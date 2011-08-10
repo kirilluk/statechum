@@ -520,7 +520,7 @@ public class TestErlangModule {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
    		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['AnyWibble','AnyWibble'],42}]",TestTypes.getAlphabetAsString(
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyWibble','AnyWibble']],42}]",TestTypes.getAlphabetAsString(
 				mod ));
     }
     
@@ -530,7 +530,30 @@ public class TestErlangModule {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\naFun(34)->33.";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
    		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['AnyWibble','AnyWibble'],42}]",TestTypes.getAlphabetAsString(
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyWibble','AnyWibble']],42}]",TestTypes.getAlphabetAsString(
+				mod ));
+    }
+
+    @Test
+    public void testLoadExportsZeroArity1() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\naFun()->33.";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyWibble','AnyWibble']],42}]",TestTypes.getAlphabetAsString(
+				mod ));
+    }
+
+    @Test
+    public void testLoadExportsZeroArity2() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n-export([testFun/1,aFun/0]).\ntestFun([Arg])->42.\naFun()->33.";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:aFun/0',[],33},"+
+				"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyWibble','AnyWibble']],42}]"
+				
+				,TestTypes.getAlphabetAsString(
 				mod ));
     }
 }

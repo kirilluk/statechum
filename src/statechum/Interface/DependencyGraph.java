@@ -1,78 +1,134 @@
 package statechum.Interface;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Map;
+import java.util.TreeMap;
 
-import statechum.JUConstants;
-import statechum.Label;
-import statechum.analysis.Erlang.ErlangModule;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-public class DependencyGraph extends statechum.analysis.learning.Visualiser {
+
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.JUConstants;
+import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.ErlangRunner.ERL;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+
+public class DependencyGraph  {
+	/** Used to serialise the coordinates. */
+	public static final int graphWindowNumber = 400;
+
+	/** Every graph has a size associated with it, this one contains the one for the next graph to be created. */
+	protected static int currentWindowNumber = graphWindowNumber;
 
 	private static final long serialVersionUID = -7258812066189916399L;
-	private Map<String, DirectedSparseVertex> nodeMap;
-	private DirectedSparseGraph graph;
+	private DirectedSparseGraph dependencyTree = new DirectedSparseGraph();
+	private Map<String,DeterministicVertex> nameToVertex = new TreeMap<String,DeterministicVertex>();
 
-	private DirectedSparseVertex getVertex(String node) {
-		DirectedSparseVertex v = nodeMap.get(node);
+	private DeterministicVertex getVertexForModule(String modName) {
+		DeterministicVertex v = nameToVertex.get(modName);
 		if (v == null) {
-			v = new DirectedSparseVertex();
-			v.addUserDatum(JUConstants.LABEL, node, UserData.CLONE);
-			v.addUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
-			graph.addVertex(v);
-			nodeMap.put(node, v);
+			v = new DeterministicVertex(modName);
+			v.setColour(JUConstants.BLUE);
+			dependencyTree.addVertex(v);
+			nameToVertex.put(modName, v);
 		}
 		return v;
 	}
-
-	public DependencyGraph(File folder) {
+	
+	private final DynamicVisualiser viz;
+	
+	public DependencyGraph()
+	{
+		viz = new DynamicVisualiser(currentWindowNumber++);
+	}
+	
+	public void load(File folder) 
+	{
 		System.out.println("Opening folder " + folder.getAbsolutePath());
-		nodeMap = new HashMap<String, DirectedSparseVertex>();
-		graph = new DirectedSparseGraph();
+		dependencyTree.setUserDatum(JUConstants.TITLE,folder.getAbsolutePath().replace(File.separatorChar, '_').replace(':','_'),UserData.SHARED);
+		viz.update(null, dependencyTree);
 		for (File f : folder.listFiles()) {
-			if (f.getName().endsWith(".erl")) {
+			if (f.canRead() && ErlangRunner.validName(f.getName())) {
 				// load the module
+				String modName = ErlangRunner.getName(f,ERL.MOD);
+				
 				try {
-					System.out.println("Loading " + f.getName());
-					ErlangModule mod = ErlangModule.loadModule(f);
-					DirectedSparseVertex myVertex = getVertex(mod.name);
-					myVertex.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
-					
-					for (String d : mod.behaviour.getDependencies()) {
-						DirectedSparseVertex v = getVertex(d);
-						DirectedSparseEdge e = new DirectedSparseEdge(myVertex, v);
-						e.setUserDatum(JUConstants.LABEL, new HashSet<Label>(), UserData.CLONE);
-						graph.addEdge(e);
+					System.out.print("Loading " + f.getName()+" ");
+					DeterministicVertex moduleVertex = null;
+					viz.suspend();
+					synchronized (AbstractLearnerGraph.syncObj) {
+						moduleVertex = getVertexForModule(modName);
+						moduleVertex.setColour(JUConstants.RED);
 					}
-				} catch (IOException e) {
-					System.out.println("\tFailed to open " + f.getName());
+					viz.resume();
+					ErlangModule mod = ErlangModule.loadModule(f);
+					
+					synchronized (AbstractLearnerGraph.syncObj) {
+						viz.suspend();
+						for (String d : mod.behaviour.getDependencies()) 
+						{
+							DeterministicVertex target = getVertexForModule(d);
+							DeterministicEdge edge = new DeterministicEdge(moduleVertex, target);
+							edge.setUserDatum(JUConstants.LABEL, Collections.EMPTY_SET, UserData.SHARED);
+							dependencyTree.addEdge(edge);
+						}
+						viz.resume();
+					}
+					System.out.println("done");
 				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("\tFailed to process " + f.getName()+ ", because of "+e.getMessage());
+					System.out.println("\tfailed because of "+e.getMessage());
+					if (e.getMessage() == null || e.getMessage().contains("unimplemented"))
+						e.printStackTrace();
 				}
 
 			}
 		}
-		this.construct(graph, null);
-		this.setLocation(10, 10);
-		this.setSize(800, 600);
-
 	}
 
-	public static void main(String[] args) {
+	private static class DynamicVisualiser extends Visualiser
+	{
+		/**
+		 * ID for serialization
+		 */
+		private static final long serialVersionUID = 361251959433005045L;
+		
+		public DynamicVisualiser(int id)
+		{
+			super(id);
+		}
+
+		public void suspend()
+		{
+			if (viewer != null)
+				viewer.getModel().suspend();
+		}
+
+		public void resume()
+		{
+			if (viewer != null)
+				viewer.getModel().restart();
+		}
+	}
+	
+	public static void main(final String[] args) {
 		if(args.length < 1) {
+			System.out.println("Usage: DependencyGraph <directory with erl files>");
 			return;
 		}
-		DependencyGraph dg = new DependencyGraph(new File(args[0]));
-		dg.pack();
-		dg.setVisible(true);
+		
+		Thread worker = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				new DependencyGraph().load(new File(args[0]));
+			}});
+		worker.setPriority(Thread.MIN_PRIORITY);
+		worker.start();
 	}
 	
 }

@@ -261,7 +261,7 @@ public class FuncSignature implements Label {
 	}
 
 	/** Verifies that the supplied label is type-compatible to the type represented by this signature, 
-	 * returns false if not.
+	 * throws an exception if not.
 	 * 
 	 * @param label which is supposed to be type-compatible to this function. 
 	 */

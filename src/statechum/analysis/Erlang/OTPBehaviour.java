@@ -140,7 +140,7 @@ public abstract class OTPBehaviour {
 			for(Entry<String,FuncSignature> sigEntry:parent.sigs.entrySet())
 			{
 				if (!sigEntry.getValue().getName().equals("module_info") && exports.contains(sigEntry.getKey()))
-					addFunctionToAlphabet(sigEntry.getKey(), sigEntry.getValue(), sigEntry.getValue(), config);
+					addFunctionToAlphabet(sigEntry.getKey(), sigEntry.getValue(), config);
 			}
 		}
 		else
@@ -163,7 +163,7 @@ public abstract class OTPBehaviour {
 						pattern.getValue());
 
 				parent.sigs.put(otpName, otpFunction);
-				addFunctionToAlphabet(otpName, otpFunction, origFunction, config);
+				addFunctionToAlphabet(otpName, otpFunction, config);
 			}
 		}
 	}
@@ -173,27 +173,9 @@ public abstract class OTPBehaviour {
 	 * 
 	 * @param callName how the function should be called in traces. Important for OTP functions but should be the same as function name for ordinary exported functions. 
 	 * @param function function to be associated with this i/o pair.
-	 * @param origFunction the function from which this was generated. Important for OTP functions which are chosen as a subset of existing ones based on patterns.  
 	 * @param config determines whether outputs are to be ignored.
 	 */
-	private void addFunctionToAlphabet(String callName, FuncSignature function, FuncSignature origFunction, Configuration config)
-	{
-		List<List<OtpErlangObject>> args = function.instantiateAllArgs();
-		List<OtpErlangObject> output = function.instantiateAllResults();
-
-		for (List<OtpErlangObject> funcArgs : args) {
-			if (funcArgs.isEmpty())	throw new RuntimeException("function " + origFunction + " should take at least one argument");
-			OtpErlangObject firstArg = funcArgs.get(0);
-
-			if (config.getUseErlangOutputs()) {
-				for (OtpErlangObject result : output) {
-					alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName, firstArg, result));
-				}
-			} else {
-				alphabet.add(new ErlangLabel(parent.sigs.get(callName),callName, firstArg));
-			}
-		}
-	}
+	abstract void addFunctionToAlphabet(String callName, FuncSignature function, Configuration config);
 	
 	@Override
 	public String toString() {
@@ -282,21 +264,11 @@ public abstract class OTPBehaviour {
 			OtpErlangTuple tuple = (OtpErlangTuple) tup;
 			OtpErlangObject name = tuple.elementAt(0);
 			if (name instanceof OtpErlangAtom
-					&& ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found
-																				// the
-																				// OTP
-																				// behaviour
-																				// attribute
+					&& ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found the OTP behaviour attribute
 				OtpErlangObject value = tuple.elementAt(1);
 				if (value instanceof OtpErlangList
 						&& ((OtpErlangList) value).arity() == 1
-						&& ((OtpErlangList) value).elementAt(0) instanceof OtpErlangAtom) {// behaviour
-																							// attribute
-																							// is
-																							// of
-																							// the
-																							// correct
-																							// kind
+						&& ((OtpErlangList) value).elementAt(0) instanceof OtpErlangAtom) {// behaviour attribute is of the correct kind
 					String bstring = ((OtpErlangAtom) ((OtpErlangList) value)
 							.elementAt(0)).atomValue();
 					if (bstring.startsWith("gen_server")) {
@@ -436,10 +408,7 @@ public abstract class OTPBehaviour {
 	 * convert it into Java list, for Otp behaviours, we make singleton lists
 	 * because all function take single arguments.
 	 */
-	public List<OtpErlangObject> functionArgumentsToListOfArgs(
-			OtpErlangObject arg) {
-		return Collections.singletonList(arg);
-	}
+	public abstract List<OtpErlangObject> functionArgumentsToListOfArgs(OtpErlangObject arg);
 
 	public List<List<OtpErlangObject>> getInitArgs() {
 		return parent.sigs.get(parent.getName() + ":init/1")

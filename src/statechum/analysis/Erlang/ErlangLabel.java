@@ -31,6 +31,8 @@ import java.util.TreeSet;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBitstr;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
+import com.ericsson.otp.erlang.OtpErlangByte;
+import com.ericsson.otp.erlang.OtpErlangChar;
 import com.ericsson.otp.erlang.OtpErlangDouble;
 import com.ericsson.otp.erlang.OtpErlangFloat;
 import com.ericsson.otp.erlang.OtpErlangInt;
@@ -1261,6 +1263,52 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		}
 	}
 
+	public static class ErlangChar implements ErlangParserComponent {
+		private ErlangChar() {
+		}
+
+		private static final ErlangChar singleton = new ErlangChar();
+
+		public static ErlangChar getSingleton() {
+			return singleton;
+		}
+
+		@Override
+		public void dump(OtpErlangObject arg, StringBuffer resultHolder) {
+			OtpErlangChar charValue = (OtpErlangChar) arg;
+			resultHolder.append(charValue.longValue());
+		}
+
+		@Override
+		public OtpErlangObject parseObject(@SuppressWarnings("unused") Lexer lexer) {
+			throw new UnsupportedOperationException(
+					"number which fit into a character range could be converted to characters, but we do not do this since this is all about guessing");
+		}
+	}
+
+	public static class ErlangByte implements ErlangParserComponent {
+		private ErlangByte() {
+		}
+
+		private static final ErlangByte singleton = new ErlangByte();
+
+		public static ErlangByte getSingleton() {
+			return singleton;
+		}
+
+		@Override
+		public void dump(OtpErlangObject arg, StringBuffer resultHolder) {
+			OtpErlangByte byteValue = (OtpErlangByte) arg;
+			resultHolder.append(byteValue.longValue());
+		}
+
+		@Override
+		public OtpErlangObject parseObject(@SuppressWarnings("unused") Lexer lexer) {
+			throw new UnsupportedOperationException(
+					"number which fit into a byte range could be converted to characters, but we do not do this since this is all about guessing");
+		}
+	}
+
 	public static class ErlangDouble implements ErlangParserComponent {
 		private ErlangDouble() {
 		}
@@ -1433,6 +1481,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				.put(OtpErlangBitstr.class, ErlangBitString.getSingleton());
 		classToDumper.put(OtpErlangFloat.class, ErlangDouble.getSingleton());
 		classToDumper.put(OtpErlangDouble.class, ErlangDouble.getSingleton());
+		classToDumper.put(OtpErlangChar.class, ErlangChar.getSingleton());
+		classToDumper.put(OtpErlangByte.class, ErlangByte.getSingleton());
 	}
 	protected final static Map<Integer, ErlangParserComponent> tokenToParser;
 	static {

@@ -4,7 +4,12 @@
  */
 package statechum.analysis.Erlang;
 
+import java.util.List;
+
+import com.ericsson.otp.erlang.OtpErlangObject;
+
 import statechum.Configuration;
+import statechum.analysis.Erlang.Signatures.FuncSignature;
 
 /**
  * 
@@ -28,5 +33,20 @@ public class OTPGenEventBehaviour extends OTPBehaviour {
 		 * Pair<String,Boolean>("init", Boolean.FALSE));
 		 */
 		generateAlphabet(config);
+	}
+
+	@SuppressWarnings("unused")
+	@Override
+	void addFunctionToAlphabet(String callName, FuncSignature function, Configuration config)
+	{
+		throw new UnsupportedOperationException("unimplemented");
+	}
+
+	@SuppressWarnings("unused")
+	@Override
+	public
+	List<OtpErlangObject> functionArgumentsToListOfArgs(OtpErlangObject arg)
+	{
+		throw new UnsupportedOperationException("unimplemented");
 	}
 }

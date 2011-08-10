@@ -23,7 +23,7 @@ public class OTPUnknownBehaviour extends OTPBehaviour {
     public OTPUnknownBehaviour(ErlangModule mod) {
         super(mod);
 
-        name = "UNKNOWN";
+        name = "-export-";
     }
 
     public void loadAlphabet(@SuppressWarnings("unused") File f) {

@@ -427,7 +427,7 @@ public class ErlangRunner
     public OtpErlangTuple call(OtpErlangObject[]args, String errorMessage)
     {
     	OtpErlangTuple result = null;
-    	OtpErlangObject response = call(args,0);
+    	OtpErlangObject response = call(args,30000);
     	
     	if (response instanceof OtpErlangAtom)
     	{

@@ -65,8 +65,11 @@ public class ErlangAppReader {
                         try {
                             File f = new File(folder, m + ".erl");
                             result.modules.add(ErlangModule.loadModule(f));
+                            System.out.println("");
                         } catch (FileNotFoundException e) {
                             throw new RuntimeException("File " + m + ".erl not found...");
+                        } catch (Exception e) {
+                        	System.out.println("FAILED]");
                         }
                     }
                 }

@@ -91,7 +91,7 @@ show(Analysis,Outputmode) ->
 		text ->
 	    		Acc ++ show_type_info_only(File, Info);
 		types-> Acc ++ [{File, Module,Info#info.recMap, extract_type_info(File,Info) }];
-		_ -> typer_s:error("unknown mode of output")
+		_ -> typer_s:reportError("unknown mode of output")
 	    end
 	end,
   lists:foldl(Fun, [], Analysis#typer_analysis.final_files).
@@ -226,13 +226,13 @@ get_type({{M, F, A} = MFA, Range, Arg}, CodeServer, RecMap) ->
 	{error, invalid_contract} ->
 	  CString = dialyzer_contracts:contract_to_string(Contract),
 	  SigString = dialyzer_utils:format_sig(Sig, RecMap),
-	  typer_s:error(
+	  typer_s:reportError(
 	    io_lib:format("Error in contract of function ~w:~w/~w\n" 
 			  "\t The contract is: " ++ CString ++ "\n" ++
 			  "\t but the inferred signature is: ~s",
 			  [M, F, A, SigString]));
 	{error, Msg} when is_list(Msg) -> % Msg is a string()
-	  typer_s:error(
+	  typer_s:reportError(
 	    io_lib:format("Error in contract of function ~w:~w/~w: ~s",
 			  [M, F, A, Msg]))
       end
@@ -332,7 +332,7 @@ get_type_info(Func, TypeMap) ->
 %% Statechum instantiates the supplied class and passes it the args provided.
 %% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
 
-unsupportedType(Descr) -> typer_s:error("Unsupported type "++Descr).
+unsupportedType(Descr) -> typer_s:reportError("Unsupported type: "++Descr).
 
 %% This one is used in two cases, to dump sets of atoms and sets of numbers
 %% Returns a list of values
@@ -340,7 +340,7 @@ set_to_Statechum(Set) ->
   List = ordsets:to_list(Set),
   lists:foreach(fun(X) ->
 	case is_atom(X) orelse is_number(X) of
-		false -> typer_s:error(io_lib:format("Asked to dump element ~w of a set which is neither an atom nor a number",[X]));
+		false -> typer_s:reportError(io_lib:format("Asked to dump element ~w of a set which is neither an atom nor a number",[X]));
 		true ->true
 	end end,List),
    List.
@@ -398,6 +398,10 @@ t_to_Statechum(?identifier(Set), _RecDict) ->
 %%	      false -> io_lib:format("~w:~w()", [Mod, Name])
 %%	    end
 %%	    || #opaque{mod = Mod, name = Name} <- ordsets:to_list(Set)], [], " | ");
+
+t_to_Statechum(?opaque(Set), _RecDict) ->
+	{'Opaque', []};
+	
 t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
 %%  io_lib:format("ms(~s,~s)", [t_to_string(Pres, RecDict),
 %%			      t_to_string(Slots,RecDict)]);
@@ -416,7 +420,7 @@ t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
       case Contents =:= ?any of
 	true -> ok;
 	false ->
-	  typer_s:error({illegal_list, ?nonempty_list(Contents, Termination)})
+	  typer_s:reportError({illegal_list, ?nonempty_list(Contents, Termination)})
       end,
       {'List',['nonempty','maybeimproper'],[]}; %% "nonempty_maybe_improper_list()";
     _ ->
@@ -443,7 +447,7 @@ t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
 	true -> ok;
 	false ->
 	  L = ?list(Contents, Termination, ?unknown_qual),
-	  typer_s:error({illegal_list, L})
+	  typer_s:reportError({illegal_list, L})
       end,
       {'List',['maybeimproper'],[]}; %% "maybe_improper_list()";
     _ -> 
@@ -497,7 +501,7 @@ t_to_Statechum(?tuple(Elements, Arity, Tag), RecDict) ->
   end;
 t_to_Statechum(?tuple_set(_) = T, RecDict) ->
   case erl_types:t_tuple_subtypes(T) of
-	'unknown' -> typer_s:error("set of tuple with arbitrary elements");
+	'unknown' -> typer_s:reportError("set of tuple with arbitrary elements");
 	List ->  union_sequence(List, RecDict)
   end;
 t_to_Statechum(?union(Types), RecDict) ->

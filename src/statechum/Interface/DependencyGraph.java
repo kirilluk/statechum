@@ -106,7 +106,7 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 		dg.setVisible(true);
 		dg.setLocation(10, 10);
 		dg.setSize(800, 600);
-
+		dg.setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 		System.out.println("Done");
 	}
 

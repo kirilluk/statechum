@@ -287,7 +287,7 @@ public class ErlangRunner
     	        	if (!entry.getKey().equals("HOME"))
     	        		envpList.add(entry.getKey()+"="+entry.getValue());
     	        envpList.add("HOME="+new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath());
-    	         
+
                 erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl",
                 		"-pa",new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath(),
                 		"-pa",new File(ErlangQSMOracle.ErlangTyper).getAbsolutePath(),// the easiest way to substitute our module in place of the original Erlang's one, otherwise I'd have to rely on tracerunner:compileAndLoad

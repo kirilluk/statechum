@@ -155,7 +155,7 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 			Error ->{reply, {failed,Error}, State}
 		end
 	catch
-		error:_Error -> {reply, {failed,dialyzer_failed}, State}
+		{_, X} -> {reply, {failed,lists:flatten(X)}, State}
 	end;
 
 %% Runs typer on the supplied files using a modified version of the typer,
@@ -167,7 +167,7 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		Outcome = typer_s:start(FilesErl,Plt,Outputmode),
 		{reply,{ok,Outcome}, State}
 	catch
-		error:Error -> {reply, {failed,Error}, State}
+		Type:Error -> {reply, {failed, Type, Error, {FilesErl,Plt,Outputmode}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
 	end;
 %% [Error,erlang:get_stacktrace()]

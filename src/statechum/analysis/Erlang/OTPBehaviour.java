@@ -418,6 +418,11 @@ public abstract class OTPBehaviour {
 	public abstract List<OtpErlangObject> functionArgumentsToListOfArgs(OtpErlangObject arg);
 
 	public List<List<OtpErlangObject>> getInitArgs() {
-		return parent.sigs.get(parent.getName() + ":init/1").instantiateAllArgs();
+		FuncSignature init = parent.sigs.get(parent.getName() + ":init/1");
+		if(init != null) {
+			return init.instantiateAllArgs();
+		} else {
+			return new LinkedList<List<OtpErlangObject>>();
+		}
 	}
 }

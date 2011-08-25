@@ -79,8 +79,6 @@ public class AltSignature extends Signature {
 		{
 			if (sig.typeCompatible(term))
 				return true;
-			if (term instanceof OtpErlangString && sig.typeCompatible(Signature.stringToList(term)))
-				return true;
 		}
 		return false;
 	}

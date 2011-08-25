@@ -115,8 +115,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 		jLabel1.setText("Alphabet:");
 
-		genStyle.setModel(new javax.swing.DefaultComboBoxModel(new String[] {
-				"Random (length 3)", "Random (length 25)" }));
+		genStyle.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Random (length 3)",
+				"Random (length 25)" }));
 
 		jLabel2.setText("Generation style:");
 
@@ -149,8 +149,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 		jLabel5.setText("traces");
 
-		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(
-				getContentPane());
+		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
 		getContentPane().setLayout(layout);
 		layout.setHorizontalGroup(layout
 				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -158,12 +157,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 						layout.createSequentialGroup()
 								.addContainerGap()
 								.addGroup(
-										layout.createParallelGroup(
-												javax.swing.GroupLayout.Alignment.LEADING)
-												.addComponent(
-														jSeparator1,
-														javax.swing.GroupLayout.DEFAULT_SIZE,
-														827, Short.MAX_VALUE)
+										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+												.addComponent(jSeparator1,
+														javax.swing.GroupLayout.DEFAULT_SIZE, 827,
+														Short.MAX_VALUE)
 												.addGroup(
 														layout.createSequentialGroup()
 																.addGroup(
@@ -172,10 +169,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 																				.addComponent(
 																						alphabetPane,
 																						javax.swing.GroupLayout.DEFAULT_SIZE,
-																						807,
-																						Short.MAX_VALUE)
-																				.addComponent(
-																						jLabel1))
+																						807, Short.MAX_VALUE)
+																				.addComponent(jLabel1))
 																.addContainerGap())
 												.addGroup(
 														javax.swing.GroupLayout.Alignment.TRAILING,
@@ -224,16 +219,12 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 																.addContainerGap())
 												.addGroup(
 														layout.createSequentialGroup()
-																.addComponent(
-																		useOutputMatchingCheckBox)
+																.addComponent(useOutputMatchingCheckBox)
 																.addPreferredGap(
 																		javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-																.addComponent(
-																		allAlphabet)
-																.addGap(41, 41,
-																		41)
-																.addComponent(
-																		jLabel4)
+																.addComponent(allAlphabet)
+																.addGap(41, 41, 41)
+																.addComponent(jLabel4)
 																.addPreferredGap(
 																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
 																.addComponent(
@@ -243,37 +234,27 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 																		javax.swing.GroupLayout.PREFERRED_SIZE)
 																.addPreferredGap(
 																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addComponent(
-																		jLabel5)
-																.addContainerGap()))));
+																.addComponent(jLabel5).addContainerGap()))));
 		layout.setVerticalGroup(layout
 				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
 				.addGroup(
 						layout.createSequentialGroup()
 								.addContainerGap()
 								.addComponent(jLabel1)
-								.addPreferredGap(
-										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-								.addComponent(alphabetPane,
-										javax.swing.GroupLayout.PREFERRED_SIZE,
-										236,
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(alphabetPane, javax.swing.GroupLayout.PREFERRED_SIZE, 236,
 										javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addPreferredGap(
-										javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-								.addComponent(jSeparator1,
-										javax.swing.GroupLayout.PREFERRED_SIZE,
-										12,
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+								.addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 12,
 										javax.swing.GroupLayout.PREFERRED_SIZE)
 								.addGap(14, 14, 14)
 								.addGroup(
-										layout.createParallelGroup(
-												javax.swing.GroupLayout.Alignment.TRAILING)
+										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
 												.addGroup(
 														layout.createParallelGroup(
 																javax.swing.GroupLayout.Alignment.LEADING,
 																false)
-																.addComponent(
-																		useOutputMatchingCheckBox,
+																.addComponent(useOutputMatchingCheckBox,
 																		javax.swing.GroupLayout.DEFAULT_SIZE,
 																		javax.swing.GroupLayout.DEFAULT_SIZE,
 																		Short.MAX_VALUE)
@@ -293,43 +274,33 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 												.addGroup(
 														layout.createParallelGroup(
 																javax.swing.GroupLayout.Alignment.LEADING)
-																.addComponent(
-																		jLabel5,
+																.addComponent(jLabel5,
 																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		23,
-																		Short.MAX_VALUE)
+																		23, Short.MAX_VALUE)
 																.addComponent(
 																		jScrollPane1,
 																		javax.swing.GroupLayout.Alignment.TRAILING,
 																		javax.swing.GroupLayout.PREFERRED_SIZE,
 																		javax.swing.GroupLayout.DEFAULT_SIZE,
 																		javax.swing.GroupLayout.PREFERRED_SIZE)))
-								.addPreferredGap(
-										javax.swing.LayoutStyle.ComponentPlacement.RELATED,
-										8, Short.MAX_VALUE)
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 8,
+										Short.MAX_VALUE)
 								.addGroup(
-										layout.createParallelGroup(
-												javax.swing.GroupLayout.Alignment.BASELINE)
+										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
 												.addComponent(jLabel3)
-												.addComponent(
-														fileNameLabel,
-														javax.swing.GroupLayout.PREFERRED_SIZE,
-														25,
+												.addComponent(fileNameLabel,
+														javax.swing.GroupLayout.PREFERRED_SIZE, 25,
 														javax.swing.GroupLayout.PREFERRED_SIZE)
 												.addComponent(jButton2))
-								.addPreferredGap(
-										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
 								.addGroup(
-										layout.createParallelGroup(
-												javax.swing.GroupLayout.Alignment.BASELINE)
-												.addComponent(
-														genStyle,
+										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+												.addComponent(genStyle,
 														javax.swing.GroupLayout.PREFERRED_SIZE,
 														javax.swing.GroupLayout.DEFAULT_SIZE,
 														javax.swing.GroupLayout.PREFERRED_SIZE)
 												.addComponent(jLabel2))
-								.addPreferredGap(
-										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
 								.addComponent(jButton1).addContainerGap()));
 
 		pack();
@@ -343,12 +314,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		int returnValue = chooser.showOpenDialog(null);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
 			try {
-				fileNameLabel.setText(chooser.getSelectedFile()
-						.getCanonicalPath());
+				fileNameLabel.setText(chooser.getSelectedFile().getCanonicalPath());
 				outfile = chooser.getSelectedFile();
 			} catch (IOException ex) {
-				Logger.getLogger(Start.class.getName()).log(Level.SEVERE, null,
-						ex);
+				Logger.getLogger(Start.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}// GEN-LAST:event_jButton2ActionPerformed
@@ -359,18 +328,15 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		try {
 			int count = Integer.parseInt(countInput.getText());
 			if (outfile == null) {
-				JOptionPane.showMessageDialog(this,
-						"No output file specified...");
+				JOptionPane.showMessageDialog(this, "No output file specified...");
 			} else {
 				if (style.equals("Random (length 3)")) {
 					genRandom(outfile, 3, count, exhaustAlphabet);
 				} else if (style.equals("Random (length 25)")) {
 					genRandom(outfile, 25, count, exhaustAlphabet);
 				} else {
-					Helper.throwUnchecked(
-							"Unknown random generation style selected (somehow...)",
-							new RuntimeException(
-									"Unknown random generation style selected (somehow...)"));
+					Helper.throwUnchecked("Unknown random generation style selected (somehow...)",
+							new RuntimeException("Unknown random generation style selected (somehow...)"));
 				}
 			}
 		} catch (NumberFormatException e) {
@@ -382,47 +348,42 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	/** Generate a trace file with random traces up to the length supplied. */
 	private void genRandomKirill(File file, int length, int count) {
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
-				Configuration.getDefaultConfiguration().copy());
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration
+				.getDefaultConfiguration().copy());
 		if (!useOutputMatchingCheckBox.isSelected()) {
 			// FIXME implement..........
 			// learnerConfig.setUseErlangOutputs(false);
 		}
 		// learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		System.out.println("Gen traces for " + module.getName() + " ("
-				+ module.sourceFolder.getPath() + File.separator
-				+ module.getName() + ".erl)");
+		System.out.println("Gen traces for " + module.getName() + " (" + module.sourceFolder.getPath()
+				+ File.separator + module.getName() + ".erl)");
 		learnerConfig.config.setErlangModuleName(module.getName());
-		learnerConfig.config.setErlangSourceFile(module.sourceFolder.getPath()
-				+ File.separator + module.getName() + ".erl");
-		ErlangOracleLearner learner = new ErlangOracleLearner(null,
-				learnerConfig);
+		learnerConfig.config.setErlangSourceFile(module.sourceFolder.getPath() + File.separator
+				+ module.getName() + ".erl");
+		ErlangOracleLearner learner = new ErlangOracleLearner(null, learnerConfig);
 		// FIXME depth...
 
 		final PTASequenceEngine currentPTA = learner.GenerateInitialTraces(5);
 
-		PTASequenceEngine positivePTA = currentPTA.filter(currentPTA
-				.getFSM_filterPredicate());
-		PTASequenceEngine negativePTA = currentPTA
-				.filter(new FilterPredicate() {
-					FilterPredicate origFilter = currentPTA
-							.getFSM_filterPredicate();
+		PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
+		PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
+			FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
 
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return !origFilter.shouldBeReturned(name);
-					}
-				});
+			@Override
+			public boolean shouldBeReturned(Object name) {
+				return !origFilter.shouldBeReturned(name);
+			}
+		});
 
-		System.out.println(positivePTA.getData().size() + " pos, "
-				+ negativePTA.getData().size() + " neg traces");
+		System.out.println(positivePTA.getData().size() + " pos, " + negativePTA.getData().size()
+				+ " neg traces");
 
 		// write to file...
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(file));
-			out.write("config erlangSourceFile " + module.sourceFolder
-					+ File.separator + module.name + ".erl\n");
+			out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name
+					+ ".erl\n");
 			out.write("config labelKind LABEL_ERLANG\n");
 			out.write("config erlangModuleName " + module.name + "\n");
 			if (!useOutputMatchingCheckBox.isSelected()) {
@@ -447,42 +408,41 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	private void genRandom(File file, int length, int count, boolean exhaustAlphabet) {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(file));
-			out.write("config erlangSourceFile " + module.sourceFolder
-					+ File.separator + module.name + ".erl\n");
+			out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name
+					+ ".erl\n");
 			out.write("config labelKind LABEL_ERLANG\n");
 			out.write("config erlangModuleName " + module.name + "\n");
-			Configuration config = Configuration.getDefaultConfiguration()
-					.copy();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			if (!useOutputMatchingCheckBox.isSelected()) {
 				config.setUseErlangOutputs(false);
 				out.write("config useErlangOutputs false\n");
 			}
 			config.setErlangModuleName(module.name);
-			config.setErlangSourceFile(module.sourceFolder + File.separator
-					+ module.name + ".erl");
-			ErlangOracleLearner learner = new ErlangOracleLearner(this,
-					new LearnerEvaluationConfiguration(config));
+			config.setErlangSourceFile(module.sourceFolder + File.separator + module.name + ".erl");
+			ErlangOracleLearner learner = new ErlangOracleLearner(this, new LearnerEvaluationConfiguration(
+					config));
 			// Make sure our copy of the module is the same object as the
 			// learner's so that alphabet mods work...
 			module = learner.getModule();
 
 			LinkedList<List<ErlangLabel>> pos = new LinkedList<List<ErlangLabel>>();
 			LinkedList<List<ErlangLabel>> neg = new LinkedList<List<ErlangLabel>>();
-			
-			// If we have been told to include the whole alphabet then do each element at least once to start with.
-			// This will also be a useful seed for the random generator, since its likely that only the init calls
+
+			// If we have been told to include the whole alphabet then do each
+			// element at least once to start with.
+			// This will also be a useful seed for the random generator, since
+			// its likely that only the init calls
 			// will be valid as initial elements of traces
-			if(exhaustAlphabet) {
-				for(ErlangLabel l : module.behaviour.getAlphabet()) {
+			if (exhaustAlphabet) {
+				for (ErlangLabel l : module.behaviour.getAlphabet()) {
 					List<ErlangLabel> line = new LinkedList<ErlangLabel>();
 					line.add(l);
 					evaluateLine(out, learner, pos, neg, -1, line);
 				}
 			}
-			
+
 			for (int i = 0; i < count; i++) {
-				List<ErlangLabel> line = randLine(
-						module.behaviour.getAlphabet(), length, pos, neg);
+				List<ErlangLabel> line = randLine(module.behaviour.getAlphabet(), length, pos, neg);
 
 				/*
 				 * int tries = 0; while (alreadySeen(line, neg, pos)) { tries++;
@@ -491,8 +451,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				 * break; } else { line = randLine(alphabet, length, pos, neg);
 				 * } }
 				 */
-
-				evaluateLine(out, learner, pos, neg, i, line);
+				if (line.size() > 0) {
+					evaluateLine(out, learner, pos, neg, i, line);
+				}
 			}
 			out.close();
 		} catch (IOException e) {
@@ -502,9 +463,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	}
 
 	private void evaluateLine(BufferedWriter out, ErlangOracleLearner learner,
-			LinkedList<List<ErlangLabel>> pos,
-			LinkedList<List<ErlangLabel>> neg, int i, List<ErlangLabel> line)
-			throws IOException {
+			LinkedList<List<ErlangLabel>> pos, LinkedList<List<ErlangLabel>> neg, int i,
+			List<ErlangLabel> line) throws IOException {
 		System.out.println("Made " + i + " lines");
 		System.out.println("trying " + line + "...");
 		TraceOutcome response = learner.askErlang(line);
@@ -522,8 +482,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			neg.add(n);
 			for (int j = 0; j < response.answerDetails.length; j++) {
 				// Lets hope Java's Set is an actual Set...
-				module.behaviour.getAlphabet().add(
-						response.answerDetails[j]);
+				module.behaviour.getAlphabet().add(response.answerDetails[j]);
 			}
 		case TRACE_OK:
 			pos.add(Arrays.asList(response.answerDetails));
@@ -557,18 +516,16 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		if (!startL.equals(startR)) {
 			return false;
 		}
-		String endL = left.substring(minButNonNeg(
-				left.indexOf("}", left.indexOf("'AnyWibble'")),
+		String endL = left.substring(minButNonNeg(left.indexOf("}", left.indexOf("'AnyWibble'")),
 				left.indexOf(",", left.indexOf("'AnyWibble'"))));
-		String endR = right.substring(minButNonNeg(
-				right.indexOf("}", left.indexOf("'AnyWibble'")),
+		String endR = right.substring(minButNonNeg(right.indexOf("}", left.indexOf("'AnyWibble'")),
 				right.indexOf(",", left.indexOf("'AnyWibble'"))));
 
 		return anyWibblePrefix(endL, endR);
 	}
 
-	private boolean alreadySeen(List<ErlangLabel> line,
-			LinkedList<List<ErlangLabel>> neg, LinkedList<List<ErlangLabel>> pos) {
+	private boolean alreadySeen(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
+			LinkedList<List<ErlangLabel>> pos) {
 		for (List<ErlangLabel> l : pos) {
 			if (line.toString().equals(l.toString())) {
 				return true;
@@ -584,8 +541,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		return false;
 	}
 
-	private boolean alreadyContradicted(List<ErlangLabel> line,
-			LinkedList<List<ErlangLabel>> neg, LinkedList<List<ErlangLabel>> pos) {
+	private boolean alreadyContradicted(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
+			LinkedList<List<ErlangLabel>> pos) {
 		// Check for negative prefixes...
 		for (List<ErlangLabel> l : neg) {
 			// if (line.toString().startsWith(l.toString().substring(0,
@@ -677,8 +634,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	// End of variables declaration//GEN-END:variables
 
-	protected void useOutputMatchingCheckBoxActionPerformed(
-			java.awt.event.ActionEvent ev) {
+	protected void useOutputMatchingCheckBoxActionPerformed(java.awt.event.ActionEvent ev) {
 		this.setVisible(false);
 		Configuration config = Configuration.getDefaultConfiguration();
 		if (!useOutputMatchingCheckBox.isSelected()) {
@@ -687,8 +643,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			config.setUseErlangOutputs(true);
 		}
 		try {
-			setModule(ErlangModule.loadModule(module.sourceFolder
-					+ File.separator + module.name + ".erl", config, true));
+			setModule(ErlangModule.loadModule(module.sourceFolder + File.separator + module.name + ".erl",
+					config, true));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

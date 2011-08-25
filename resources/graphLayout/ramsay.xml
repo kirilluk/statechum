@@ -5,10 +5,7 @@
    <string>LINEARWARNINGS</string> 
    <string>true</string> 
   </void> 
-  <void method="put"> 
-   <string>ERLANGHOME</string> 
-   <string>/usr/lib64/erlang/erts-5.8.4</string> 
-  </void> 
+
   <void method="put"> 
    <string>VIZ_CONFIG</string> 
    <string>ramsay</string> 

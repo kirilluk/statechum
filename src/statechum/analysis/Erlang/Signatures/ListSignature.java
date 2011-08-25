@@ -145,6 +145,17 @@ public class ListSignature extends Signature {
     @Override
 	public boolean typeCompatible(OtpErlangObject term) 
 	{
+    	if (term instanceof OtpErlangList)
+    		return typeCompatibleInternal(term);
+    	
+		if (term instanceof OtpErlangString)
+			return typeCompatibleInternal(Signature.stringToList(term));
+
+		return false;
+	}
+    
+	public boolean typeCompatibleInternal(OtpErlangObject term) 
+	{
 		if (!(term instanceof OtpErlangList)) return false;
 		OtpErlangList list = (OtpErlangList)term;
 		
@@ -158,11 +169,7 @@ public class ListSignature extends Signature {
 			{
 				OtpErlangObject listTerm = list.elementAt(i);
 				if (!elems.typeCompatible(listTerm))
-				{
-					// as a special case, we could have a string which might be interpreted as a list.
-					if (!(listTerm instanceof OtpErlangString) || !elems.typeCompatible(Signature.stringToList(listTerm)))
-						return false;
-				}
+					return false;
 			}
 
 		if (list.arity() == 0) return true;

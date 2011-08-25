@@ -82,13 +82,9 @@ public class TupleSignature extends Signature {
 		Iterator<Signature> sigIterator = elems.iterator();
 		for(int i=0;i<elems.size();++i)
 		{
-			OtpErlangObject listTerm = tuple.elementAt(i);
 			Signature sig = sigIterator.next();
 			if (!sig.typeCompatible(tuple.elementAt(i)))
-			{
-				if (!(listTerm instanceof OtpErlangString) || !sig.typeCompatible(Signature.stringToList(listTerm)))
-					return false;
-			}
+				return false;
 		}
 		return true;
 	}

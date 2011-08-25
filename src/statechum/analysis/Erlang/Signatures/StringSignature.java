@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.ericsson.otp.erlang.OtpErlangByte;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 
@@ -88,12 +91,38 @@ public class StringSignature extends Signature {
     	return outcome;
     }
 
-	@Override
-	public boolean typeCompatible(OtpErlangObject term) {
+    @Override
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+    	if (term instanceof OtpErlangString)
+    		return typeCompatibleInternal(term);
+    	
 		if (term instanceof OtpErlangList)
 		{
-			return !nonEmpty && ( ((OtpErlangList)term).arity() == 0);
+			if (!nonEmpty && ( ((OtpErlangList)term).arity() == 0))
+				return true;
+			char stringValue[]= new char[((OtpErlangList)term).arity()];
+			int idx=0;
+			for(OtpErlangObject obj:((OtpErlangList)term).elements())
+			{
+				long value = -1;
+				if (obj instanceof OtpErlangLong)
+					value = ((OtpErlangLong)obj).longValue();
+				if (obj instanceof OtpErlangInt)
+					value = ((OtpErlangInt)obj).longValue();
+				if (obj instanceof OtpErlangByte)
+					value = ((OtpErlangByte)obj).longValue();
+				if (value < 0 || value > 255)
+					return false;
+				stringValue[idx++]=(char)value;
+			}
+			return typeCompatibleInternal(new OtpErlangString(new String(stringValue)));
 		}
+		return false;
+	}
+    
+	public boolean typeCompatibleInternal(OtpErlangObject term)
+	{
 		if (!(term instanceof OtpErlangString)) return false;
 		String str = ((OtpErlangString) term).stringValue();
 		if (str.isEmpty() && nonEmpty) return false;

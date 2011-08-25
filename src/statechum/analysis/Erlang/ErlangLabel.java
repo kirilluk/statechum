@@ -357,7 +357,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlText:
 					if (expectComma)
 						throw new IllegalArgumentException(
-								"expecting comma in parsing list");
+								"expecting comma in parsing list but matched "+lexer.getMatch()+" was parsing "+lexer.getText());
 					listComponents.add(tokenToParser.get(currentMatch)
 							.parseObject(lexer));
 					expectComma = true;

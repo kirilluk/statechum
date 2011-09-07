@@ -57,7 +57,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -418,7 +417,31 @@ public class ErlangRunner
     	return call(new OtpErlangObject[]{new OtpErlangAtom("getAttr"), new OtpErlangAtom(name)}, "getAttr "+name).elementAt(1);
     }
     
-    
+    /** If an exception is thrown via Erlang's throw mechanism, it is packed as this exception. */
+    static class ErlangThrownException extends RuntimeException
+    {
+    	private final OtpErlangTuple errorMessage;
+    	public static final OtpErlangAtom ErrCannotLoadPlt = new OtpErlangAtom("cannotLoadPlt");
+    	
+		public ErlangThrownException(OtpErlangTuple decodedResponse,String errText) {
+			super(errText);
+			errorMessage = decodedResponse;
+		}
+
+		/** Returns an atom for the error code, throws illegalcast exception if the format an error message is unexpected. */
+		public OtpErlangAtom getError()
+		{
+			return (OtpErlangAtom)errorMessage.elementAt(1);
+		}
+
+		/**
+		 * ID for serialization.
+		 */
+		private static final long serialVersionUID = -1273285579412902110L;
+    	
+		
+		public static final String keyword = "throw";
+    }
     /** Makes a call and waits for a response.
      * 
      * @param args components of the tuple to pass a server
@@ -433,7 +456,7 @@ public class ErlangRunner
     	if (response instanceof OtpErlangAtom)
     	{
     		if (!response.equals(okAtom)) 
-    			throw new RuntimeException(errorMessage+" : error "+response+" but the server did not say more");
+    			throw new RuntimeException(errorMessage+" : error "+response);
     		
     		// success, but null response
     	}
@@ -446,9 +469,8 @@ public class ErlangRunner
     				throw new RuntimeException(errorMessage+" : unexpected type in response tuple "+decodedResponse);
     		if (!decodedResponseCode.equals(okAtom))
     		{
-    			if (decodedResponse.arity() == 2)
-    				// try to beautify the error
-    				throw new RuntimeException(errorMessage+" : error "+decodedResponse.elementAt(1).toString());
+    			if ( ((OtpErlangAtom)decodedResponseCode).atomValue().equals(ErlangThrownException.keyword))
+    				throw new ErlangThrownException(decodedResponse,errorMessage+" : has thrown "+decodedResponse);
 				throw new RuntimeException(errorMessage+" : error "+decodedResponse);
     			
     		}

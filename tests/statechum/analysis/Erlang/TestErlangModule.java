@@ -21,9 +21,13 @@ package statechum.analysis.Erlang;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,9 +52,11 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Configuration.LABELKIND;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Helper;
 import statechum.Helper.whatToRun;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
+import statechum.analysis.Erlang.ErlangRunner.ErlangThrownException;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.TestTypes;
 import statechum.analysis.learning.ErlangOracleLearner;
@@ -159,7 +165,7 @@ public class TestErlangModule {
     
     /** Only used for testing against runTyperAsAProcess. 
      * @throws IOException */
-    protected String runTyperAsAProcessInsideErlang(File f) throws IOException
+    protected String runDialyzerAndTyperAsAProcessInsideErlang(File f) throws IOException
     {
     	ErlangRunner erl = ErlangRunner.getRunner();
     	ErlangRunner.compileErl(f, erl);
@@ -177,28 +183,101 @@ public class TestErlangModule {
     	return ((OtpErlangString)response.elementAt(1)).stringValue();
     }
     
-    @Test
-    public void testConsistencyBetweenOriginalAndOurTyper1() throws IOException
+    /** Only used for testing against runTyperAsAProcess. 
+     * @throws IOException */
+    protected String runOnlyTyperAsAProcessInsideErlang(File f) throws IOException
     {
-    	File file = new File("ErlangExamples/WibbleMonster/wibble.erl");
-		new File(ErlangRunner.getName(file, ERL.PLT)).delete();
-		String typerInRunner = runTyperAsAProcessInsideErlang(file).replace("\\\\", "\\");
-		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.PLT)).delete());
-		String typerAsProcess = runTyperAsAProcess(file).replace("\\\\", "\\");
+    	ErlangRunner erl = ErlangRunner.getRunner();
+    	ErlangRunner.compileErl(f, erl);
+    	OtpErlangObject otpArgs[] = new OtpErlangObject[]{
+        		null, 
+				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
+				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
+				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
+				new OtpErlangAtom("text")
+			};
+    	otpArgs[0]=new OtpErlangAtom("typer");
+    	OtpErlangTuple response = erl.call(otpArgs,"Could not run typer");
+    	return ((OtpErlangString)response.elementAt(1)).stringValue();
+    }
+
+    /** Loads the contents of a file into a string. 
+     * @param file file to load
+     * 
+     * @throws IOException 
+     */
+    private static String loadFile(File file) throws IOException
+    {
+    	BufferedReader input = new BufferedReader(new FileReader(file));
+    	StringBuffer result = new StringBuffer();
+		String line;
+		while ((line = input.readLine()) != null) {
+			result.append(line);result.append('\n');
+		}
+		input.close();return result.toString();
+    }
+    
+    public void testConsistencyBetweenOriginalAndOurTyperHelper(File origFile, boolean ignoreModuleInfo) throws IOException
+    {
+    	Assert.assertFalse(erlangFile.equals(erlangFileOther));
+    	String moduleName = ErlangRunner.getName(origFile, ERL.MOD);
+    	final String someErlang = loadFile(origFile);
+  		String typerInRunner = null, typerAsProcess = null;
+  		{// we have to create new files because of file sync problem between multiple instances of Erlang - where multiple tests are run, we sometime get module_info, sometimes not.
+  			Assert.assertTrue(new File(TestErlangRunner.testDir.getAbsolutePath()+File.separator+"A").mkdir());
+  			String fileA = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"A"+File.separator+moduleName+".erl";
+  			Writer wr = new FileWriter(fileA);wr.write(someErlang);wr.close();
+			typerInRunner = runDialyzerAndTyperAsAProcessInsideErlang(new File(fileA)).replace("\\\\","\\").replace(fileA,"FileName");
+  		}
+  		{
+ 			Assert.assertTrue(new File(TestErlangRunner.testDir.getAbsolutePath()+File.separator+"B").mkdir());
+  			String fileB = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"B"+File.separator+moduleName+".erl";
+  			Writer wr = new FileWriter(fileB);wr.write(someErlang);wr.close();
+  			typerAsProcess = runTyperAsAProcess(new File(fileB)).replace("\\\\","\\").replace(fileB, "FileName");
+  		}
+  		if (ignoreModuleInfo)
+  		{
+	  		typerInRunner = typerInRunner.replaceAll("-spec module_info.*\n", "");
+	  		typerAsProcess = typerAsProcess.replaceAll("-spec module_info.*\n", "");
+  		}
 		Assert.assertEquals(typerAsProcess,typerInRunner);
     }
     
     @Test
+    public void testConsistencyBetweenOriginalAndOurTyper1() throws IOException
+    {
+    	testConsistencyBetweenOriginalAndOurTyperHelper(new File("ErlangExamples/WibbleMonster/wibble.erl"),false);
+     }
+    
+    @Test
     public void testConsistencyBetweenOriginalAndOurTyper2() throws IOException
     {
-    	File file = new File("ErlangExamples/locker/locker.erl");
+    	// for some reason, Erlang runner does not add module_info information
+    	testConsistencyBetweenOriginalAndOurTyperHelper(new File("ErlangExamples/locker/locker.erl"),true);
+    }
+    
+    @Test
+    public void testTyperWithInvalidPLTerror() throws IOException
+    {
+    	final File file = new File("ErlangExamples/locker/locker.erl");
+    	new File(ErlangRunner.getName(file, ERL.PLT)).delete();
+		Writer wr = new FileWriter(ErlangRunner.getName(file, ERL.PLT));wr.write("junk");wr.close();
+		Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
+			public @Override void run() throws IOException {
+				runOnlyTyperAsAProcessInsideErlang(file);
+			}},ErlangThrownException.class,"has thrown");
     	new File(ErlangRunner.getName(file, ERL.BEAM)).delete();
     	new File(ErlangRunner.getName(file, ERL.PLT)).delete();
-		String typerInRunner = runTyperAsAProcessInsideErlang(file).replace("\\\\", "\\");
-		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.PLT)).delete());
-		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.BEAM)).delete());
-		String typerAsProcess = runTyperAsAProcess(file).replace("\\\\", "\\");
-		Assert.assertEquals(typerAsProcess,typerInRunner);
+    }
+    
+    @Test
+    public void testTyperWithInvalidPLT() throws IOException
+    {
+    	File file = new File("ErlangExamples/locker/locker.erl");
+    	new File(ErlangRunner.getName(file, ERL.PLT)).delete();
+		Writer wr = new FileWriter(ErlangRunner.getName(file, ERL.PLT));wr.write("junk");wr.close();
+		ErlangModule.loadModule(file);// this should work by rebuilding plt ...
+		runOnlyTyperAsAProcessInsideErlang(file);// ... check that it did this.
     }
     
     @Test
@@ -259,7 +338,7 @@ public class TestErlangModule {
     }    
     
     @Test
-    public void testAttemptTracesNotInAlphabet() throws IOException
+    public void testAttemptTracesNotInAlphabet()
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
        	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
@@ -353,7 +432,8 @@ public class TestErlangModule {
 	/** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
      * after it has been initialised.
      */
-    protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl";
+    protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl",
+    erlangFileOther = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFileOther.erl";
     
     @Test
     public void testInvalidModuleName() throws IOException
@@ -403,16 +483,16 @@ public class TestErlangModule {
     public void testExtraAttribute1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-justsomething(aa)."+stdFunctions);wr.close();
-		ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.ignoredBehaviours.isEmpty());
    }
 
     @Test
     public void testInvalidAttribute1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-behaviour(aa)."+stdFunctions);wr.close();
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(new File(erlangFile));
-		}},IllegalArgumentException.class,"[gen_server,aa] is of the wrong kind");
+		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.ignoredBehaviours.contains("aa"));
    }
 
     @Test
@@ -429,7 +509,7 @@ public class TestErlangModule {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(565)."+stdFunctions);wr.close();
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
 			ErlangModule.loadModule(new File(erlangFile));
-		}},IllegalArgumentException.class,"[565] is of the wrong kind");
+		}},IllegalArgumentException.class,"565 is of the wrong type");
    }
     
     @Test
@@ -532,6 +612,17 @@ public class TestErlangModule {
    		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
 		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyWibble','AnyWibble']],42}]",TestTypes.getAlphabetAsString(
 				mod ));
+    }
+
+    // Tests that where a function fails to terminate, it is not included in the list of those to attempt.
+    @Test
+    public void testLoadIgnoreFunctions() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->testFun([Arg]).\n";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
+		Assert.assertTrue(mod.ignoredFunctions.contains("testFile:testFun/1"));
     }
 
     @Test

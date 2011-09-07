@@ -835,23 +835,27 @@ public class TestTypes
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangRunner.getRunner().evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(fun (A) -> A+1 end),dict:new())");
-		}},RuntimeException.class,"Unsupported type functions");
+		}},RuntimeException.class,"Unsupported type: functions");
 	}
 	
 	@Test
 	public void testTypeCompatibilityPid()
 	{
-		Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
-		Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
-		Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
+		}},RuntimeException.class,"we cannot instantiate PIDs");
+		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
+		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
 		
 	}
 	@Test
 	public void testTypeCompatibilityPort()
 	{
-		Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
-		Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
-		Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
+		}},RuntimeException.class,"we cannot instantiate Ports");
+		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
+		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
 	}
 	
 	/** Non-intersecting values of records give rise to "any" - type. */

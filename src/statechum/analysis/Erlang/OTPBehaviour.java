@@ -231,69 +231,63 @@ public abstract class OTPBehaviour {
 								+ ERL.ERL), ErlangRunner.ERL.BEAM)) },
 				"Could not load exports of " + parent.getName());
 
-		OtpErlangList listOfExportTuples = (OtpErlangList) response.elementAt(1);// the
-																					// first
-																					// element
-																					// is
-																					// 'ok'
+		OtpErlangList listOfExportTuples = (OtpErlangList) response.elementAt(1);// the first element is 'ok'
 		for (OtpErlangObject tup : listOfExportTuples.elements()) {
 			String funName = ((OtpErlangAtom) ((OtpErlangTuple) tup).elementAt(0)).atomValue();
-			if (!funName.equals("module_info")) {
+			if (!funName.equals("module_info")) 
+			{
 				long funArity = ((OtpErlangLong) ((OtpErlangTuple) tup).elementAt(1)).longValue();
-				String qualifiedName = FuncSignature.qualifiedNameFromFunction(parent.getName(), funName,
-						funArity);
-				assert parent.sigs.containsKey(qualifiedName);
-				result.add(qualifiedName);
+				String qualifiedName = FuncSignature.qualifiedNameFromFunction(parent.getName(), funName,funArity);
+				if (!parent.ignoredFunctions.contains(qualifiedName))
+				{
+					assert parent.sigs.containsKey(qualifiedName);
+					result.add(qualifiedName);
+				}
 			}
 		}
 
 		return result;
 	}
 
-	public static OTPBehaviour obtainDeclaredBehaviour(File file, ErlangModule mod) {
-		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless
-																// defined in a
-																// module
+	public static OTPBehaviour obtainDeclaredBehaviour(File file, ErlangModule mod,Collection<String> ignoredBehaviours) {
+		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless defined in a module
 		// extract the list of attributes and determine the kind of this module
 		OtpErlangTuple response = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("attributes"),
 						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM)) },
 				"Could not load attributes of " + file.getName());
 
-		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the
-																				// first
-																				// element
-																				// is
-																				// 'ok'
+		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the first element is 'ok'
 		for (OtpErlangObject tup : listOfDepTuples.elements()) {
 			OtpErlangTuple tuple = (OtpErlangTuple) tup;
 			OtpErlangObject name = tuple.elementAt(0);
-			if (name instanceof OtpErlangAtom && ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found
-																											// the
-																											// OTP
-																											// behaviour
-																											// attribute
+			if (name instanceof OtpErlangAtom && ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found the OTP behaviour attribute
 				OtpErlangObject value = tuple.elementAt(1);
-				if (value instanceof OtpErlangList && ((OtpErlangList) value).arity() == 1
-						&& ((OtpErlangList) value).elementAt(0) instanceof OtpErlangAtom) {// behaviour
-																							// attribute
-																							// is
-																							// of
-																							// the
-																							// correct
-																							// kind
-					String bstring = ((OtpErlangAtom) ((OtpErlangList) value).elementAt(0)).atomValue();
-					if (bstring.startsWith("gen_server")) {
-						behaviour = new OTPGenServerBehaviour(mod);
-					} else if (bstring.startsWith("gen_event")) {
-						behaviour = new OTPGenEventBehaviour(mod);
-					} else if (bstring.startsWith("gen_fsm")) {
-						behaviour = new OTPGenFSMBehaviour(mod);
-					} else {
-						behaviour = new OTPUnknownBehaviour(mod);
-					}
-
-					break;
+				if (value instanceof OtpErlangList) // list of behaviours
+				{
+					OtpErlangList behList = (OtpErlangList)value;
+					for(int i=0;i<behList.arity();++i)
+						if (behList.elementAt(i) instanceof OtpErlangAtom)
+						{
+							String bstring = ((OtpErlangAtom) (behList.elementAt(i))).atomValue();
+							if (bstring.startsWith("gen_server")) {
+								behaviour = new OTPGenServerBehaviour(mod);
+							} else if (bstring.startsWith("gen_event")) {
+								behaviour = new OTPGenEventBehaviour(mod);
+							} else if (bstring.startsWith("gen_fsm")) {
+								behaviour = new OTPGenFSMBehaviour(mod);
+							}
+							else
+							{
+								ignoredBehaviours.add(bstring);
+								System.out.println("Warning: unknown behaviour "+bstring);
+							}
+						}
+						else
+							throw new IllegalArgumentException("behaviour attribute " + behList.elementAt(i)
+									+ " is of the wrong type");
+							
+					
 				} else
 					throw new IllegalArgumentException("behaviour attribute " + value
 							+ " is of the wrong kind");

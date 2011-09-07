@@ -22,6 +22,7 @@ import statechum.Configuration;
 import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
+import statechum.analysis.Erlang.ErlangRunner.ErlangThrownException;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 
 import java.io.BufferedReader;
@@ -31,12 +32,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -52,11 +56,12 @@ public class ErlangModule {
 	public final String name;
 	public final OTPBehaviour behaviour;
 	public final Map<String, FuncSignature> sigs;
-
+	public final Set<String> ignoredFunctions, ignoredBehaviours;
+	
 	private ErlangModule(final File f) throws IOException {
 		name = ErlangRunner.getName(f, ERL.MOD);
 		sourceFolder = f.getParentFile();
-		ProgressIndicator progress = new ProgressIndicator(name, 5);
+		ProgressIndicator progress = new ProgressIndicator(name, 7);
 		// launch Erlang by calling a test method.
 		ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("echo2Tuple"),
@@ -66,7 +71,7 @@ public class ErlangModule {
 		// Compile and typecheck the module...
 		ErlangRunner.compileErl(f, ErlangRunner.getRunner());
 		progress.next();// 2
-		sigs = new TreeMap<String, FuncSignature>();
+		sigs = new TreeMap<String, FuncSignature>();ignoredFunctions = new TreeSet<String>();ignoredBehaviours = new TreeSet<String>();
 
 		File pltFile = new File(ErlangRunner.getName(f, ERL.PLT));
 
@@ -82,22 +87,7 @@ public class ErlangModule {
 						ErlangRunner.getName(f, ERL.ERL)) }),
 				new OtpErlangAtom("types") };
 
-		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild
-																				// the
-																				// PLT
-																				// file
-																				// since
-																				// the
-																				// source
-																				// was
-																				// modified
-																				// or
-																				// the
-																				// plt
-																				// file
-																				// does
-																				// not
-																				// exist
+		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
 			pltFile.delete();
 			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			ErlangRunner.getRunner().call(otpArgs, "Could not run dialyzer");
@@ -106,9 +96,25 @@ public class ErlangModule {
 
 		// Typer always has to be run
 		otpArgs[0] = new OtpErlangAtom("typer");
-		OtpErlangTuple response = ErlangRunner.getRunner().call(otpArgs,
-				"Could not run typer");
-		progress.next();// 4
+		OtpErlangTuple response = null;
+		try
+		{
+			response = ErlangRunner.getRunner().call(otpArgs,"Could not run typer");
+			
+			progress.next();// 4
+			progress.next();// 5
+		}
+		catch(ErlangThrownException ex)
+		{
+			pltFile.delete();
+			otpArgs[0] = new OtpErlangAtom("dialyzer");
+			progress.next();// 4
+			ErlangRunner.getRunner().call(otpArgs, "Could not run dialyzer");
+			otpArgs[0] = new OtpErlangAtom("typer");
+			progress.next();// 5
+			response = ErlangRunner.getRunner().call(otpArgs,"Could not run typer for the second time");			
+		}
+		progress.next();// 6
 
 		OtpErlangList analysisResults = (OtpErlangList) response.elementAt(1);
 		Assert.assertEquals(1, analysisResults.arity());
@@ -118,13 +124,24 @@ public class ErlangModule {
 				.elementAt(3);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
 			//System.out.print("\n" + typeInformation.elementAt(i).toString());
-			FuncSignature s = new FuncSignature(typeInformation.elementAt(i),
-					null);
-			sigs.put(s.getQualifiedName(), s);
+			OtpErlangTuple functionDescr = (OtpErlangTuple) typeInformation.elementAt(i); 
+			if (functionDescr.arity() > 3)
+			{
+				FuncSignature s = new FuncSignature(typeInformation.elementAt(i), null);
+				sigs.put(s.getQualifiedName(), s);
+			}
+			else
+			{// if not a function signature, it is an error message. The first two elements are function name and arity, we add this module name.
+				String fullName = FuncSignature.qualifiedNameFromFunction(getName(),
+						((OtpErlangAtom)functionDescr.elementAt(0)).atomValue(),
+						((OtpErlangLong)functionDescr.elementAt(1)).longValue());
+				ignoredFunctions.add( fullName );
+				System.out.println("Ignoring: "+fullName+", "+functionDescr.elementAt(2));
+			}
 		}
 		//System.out.println("\n");
-		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this);
-		progress.next();// 5
+		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this,ignoredBehaviours);
+		progress.next();// 7
 	}
 
 	private static Collection<String> seekUsages(String funcName, File f) {

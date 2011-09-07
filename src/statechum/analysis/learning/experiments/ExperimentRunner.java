@@ -1059,7 +1059,14 @@ public class ExperimentRunner
 		{
 			for(File f:directory.listFiles())
 			{
-				if (f.isDirectory()) throw new IllegalArgumentException("directory to erase should not contain directories");
+				if (f.isDirectory())
+				{
+					if (f.getName().equals("A") || f.getName().equals("B")) 
+						zapDir(f);
+					else
+						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B");
+				}
+				else
 				if (!f.delete())
 				{
 					try {

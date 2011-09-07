@@ -1469,7 +1469,22 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 	protected final static Map<Class<? extends OtpErlangObject>, ErlangParserComponent> classToDumper;
 	static {
-		classToDumper = new HashMap<Class<? extends OtpErlangObject>, ErlangParserComponent>();
+		classToDumper = new HashMap<Class<? extends OtpErlangObject>, ErlangParserComponent>(){
+
+			/**
+			 * ID for serialization
+			 */
+			private static final long serialVersionUID = 1246967667685308150L;
+			
+			@Override
+			public ErlangParserComponent get(Object cls)
+			{
+				ErlangParserComponent result = super.get(cls);
+				if (result == null)
+					throw new IllegalArgumentException("dumping of class "+cls+" is not supported");
+				return result;
+			}
+		};
 		classToDumper.put(OtpErlangTuple.class, ErlangTuple.getSingleton());
 		classToDumper.put(OtpErlangList.class, ErlangList.getSingleton());
 		classToDumper.put(OtpErlangAtom.class, ErlangQuotedAtom.getSingleton());

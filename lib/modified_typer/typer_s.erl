@@ -33,7 +33,7 @@
 -module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
 
 -export([start/3]).
--export([reportError/1, compile_error/1]).	% for error reporting
+-export([reportError/1, reportProblem/1, compile_error/1]).	% for error reporting
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
 %% -include_lib("typer/src/typer.hrl").
@@ -186,6 +186,11 @@ reportError(Slogan) ->
   msg(io_lib:format("typer failure: ~s~n~n", [Slogan])),
   erlang:error(Slogan).
 
+%% Some errors are internal to the typer, others are distinguished. Internal ones are handled with
+%% reportError, others with this function.
+reportProblem(Descr) when is_atom(Descr) ->
+  throw(Descr).
+  
 %%--------------------------------------------------------------------
 
 -spec compile_error([string()]) -> no_return().

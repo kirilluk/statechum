@@ -167,6 +167,7 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		Outcome = typer_s:start(FilesErl,Plt,Outputmode),
 		{reply,{ok,Outcome}, State}
 	catch
+		throw:Error -> {reply,{'throw',Error},State};
 		Type:Error -> {reply, {failed, Type, Error, {FilesErl,Plt,Outputmode}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
 	end;

@@ -46,8 +46,8 @@ collect(Analysis) ->
 	DialyzerPlt ->
 	dialyzer_plt:merge_plts([Analysis#typer_analysis.trust_plt, DialyzerPlt])
     catch
-      throw:{dialyzer_error,_Reason} ->
-	typer_s:reportError("Dialyzer's PLT is missing or is not up-to-date; please (re)create it")
+      throw:{dialyzer_error,Reason} ->
+		typer_s:reportProblem('cannotLoadPlt')
     end,
   NewAnalysis = lists:foldl(fun collect_one_file_info/2, 
 			    Analysis#typer_analysis{trust_plt = NewPlt}, 

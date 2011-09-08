@@ -279,7 +279,7 @@ get_type_string(F, A, Info, Mode) ->
 
   case {Mode, Type} of
     {file, {contract, _}} -> 
-	erlang:error("type of " ++ atom_to_list(F) ++ "is a file contract");
+		typer_s:reportError("type of " ++ atom_to_list(F) ++ "is a file contract");
     _ ->
 	Prefix = lists:concat(["-spec ", F,TypeStr])
   end.
@@ -297,9 +297,14 @@ extract_type_info(File, Info) ->
 	Type = get_type_info({F,A}, Info#info.typeMap),
 	Details = case Type of
 	   {contract, C} -> 
-		erlang:error("type of " ++ atom_to_list(F) ++ "/" ++ integer_to_list(A) ++ "is a contract");
+			typer_s:reportError("type of " ++ atom_to_list(F) ++ "/" ++ integer_to_list(A) ++ "is a contract");
 	   {RetType, ArgType} ->
-		{File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap)}
+			try
+				FunctionType = fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap),
+				{File, LineNo, F, A,FunctionType}
+			catch
+				throw:Str -> { F, A, Str }
+			end
 	end,
    	Acc ++ [Details]
   end,
@@ -332,7 +337,7 @@ get_type_info(Func, TypeMap) ->
 %% Statechum instantiates the supplied class and passes it the args provided.
 %% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
 
-unsupportedType(Descr) -> typer_s:reportError("Unsupported type: "++Descr).
+unsupportedType(Descr) -> throw("Unsupported type: "++Descr).
 
 %% This one is used in two cases, to dump sets of atoms and sets of numbers
 %% Returns a list of values
@@ -383,8 +388,10 @@ t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as argum
 t_to_Statechum(?identifier(Set), _RecDict) -> 
 	SetPid = erl_types:t_is_pid(?identifier(Set)),SetPort = erl_types:t_is_port(?identifier(Set)),
 	if
-		SetPid  -> {'Pid',[]};
-		SetPort -> {'Port',[]};
+		SetPid  -> %%{'Pid',[]};
+			unsupportedType("we cannot instantiate PIDs at the moment");
+		SetPort -> %%{'Port',[]};
+			unsupportedType("we cannot instantiate Ports (used to link to native code) at the moment");
 		true -> unsupportedType("references are not supported")
 	end;
 
@@ -399,8 +406,8 @@ t_to_Statechum(?identifier(Set), _RecDict) ->
 %%	    end
 %%	    || #opaque{mod = Mod, name = Name} <- ordsets:to_list(Set)], [], " | ");
 
-t_to_Statechum(?opaque(Set), _RecDict) ->
-	{'Opaque', []};
+t_to_Statechum(?opaque(Set), _RecDict) -> unsupportedType("Opaque types cannot be created externally");
+%%	{'Opaque', []};
 	
 t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
 %%  io_lib:format("ms(~s,~s)", [t_to_string(Pres, RecDict),

@@ -180,7 +180,21 @@ public class RPNIUniversalLearner extends RPNILearner
 		}
 	}
 
-	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
+	protected String learntGraphName = null;
+	
+	public void setGraphNameSuffix(String suffix)
+	{
+		learntGraphName = suffix;
+	}
+	
+	protected String getGraphName()
+	{
+		if (learntGraphName == null) {
+		 learntGraphName = "beinglearnt";
+		}
+		return GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/"+learntGraphName;
+	}
+	
 	public LearnerGraph ptaHardFacts = null;
 	
 	@Override 
@@ -191,8 +205,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		SpinUtil spin = null;
 		LearnerGraph.copyGraphs(getTentativeAutomaton(), ptaHardFacts);
 		LearnerGraph ptaSoftFacts = getTentativeAutomaton();
-		setChanged();getTentativeAutomaton().setName(learntGraphName+"_init");
-		
+		setChanged();getTentativeAutomaton().setName(getGraphName()+"_init");
 		final List<List<Label>> extraTracesPlus = new LinkedList<List<Label>>(), extraTracesMinus = new LinkedList<List<Label>>();
 		
 		if (config.isUseConstraints()) 
@@ -256,7 +269,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			}
 
 			Iterator<List<Label>> questionIt = null;
-			
+
 			if (restartLearning == RestartLearningEnum.restartNONE)
 			{
 				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibilityMap = ptaHardFacts.pairCompatibility.compatibility.get(pair.getQ());
@@ -267,20 +280,24 @@ public class RPNIUniversalLearner extends RPNILearner
 					// ask questions if needed
 					if (shouldAskQuestions(score)) 
 					{
-						temp.setName(learntGraphName+"_"+iterations);
+						temp.setName(getGraphName()+"_"+iterations);
 						//LearnerGraph updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, tentativeAutomaton, temp);
-						//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual,ptaHardFacts);
-		
+						//updatedGraphActual.setName(getGraphName(config)+"questions "+iterations);setChanged();updateGraph(updatedGraphActual,ptaHardFacts);
+						
 						questions = topLevelListener.ComputeQuestions(pair, getTentativeAutomaton(), temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 						questionIt = questions.iterator();
 						if (questionIt.hasNext())
 						{
-							pair.firstElem.setHighlight(true);pair.secondElem.setHighlight(true);
-							updateGraph(getTentativeAutomaton(),ptaHardFacts);pair.firstElem.setHighlight(false);pair.secondElem.setHighlight(false);
+							pair.firstElem.setHighlight(true);
+							pair.secondElem.setHighlight(true);
+							updateGraph(getTentativeAutomaton(),ptaHardFacts);
+							pair.firstElem.setHighlight(false);
+							pair.secondElem.setHighlight(false);
 						}
 					}
 				}
 			}
+
 			while (restartLearning == RestartLearningEnum.restartNONE && questionIt != null && questionIt.hasNext()) 
 			{
 				List<Label> question = questionIt.next();

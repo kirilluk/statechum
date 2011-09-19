@@ -37,6 +37,7 @@ import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -338,6 +339,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 					Helper.throwUnchecked("Unknown random generation style selected (somehow...)",
 							new RuntimeException("Unknown random generation style selected (somehow...)"));
 				}
+				Traces.main(new String[] { outfile.getAbsolutePath() });
 			}
 		} catch (NumberFormatException e) {
 			System.out.println(countInput.getText() + " is not a number...");
@@ -346,66 +348,13 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	public Process erlangProcess = null;
 
-	/** Generate a trace file with random traces up to the length supplied. */
-	private void genRandomKirill(File file, int length, int count) {
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration
-				.getDefaultConfiguration().copy());
-		if (!useOutputMatchingCheckBox.isSelected()) {
-			// FIXME implement..........
-			// learnerConfig.setUseErlangOutputs(false);
-		}
-		// learnerConfig.config.setScoreForAutomergeUponRestart(1);
-		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		System.out.println("Gen traces for " + module.getName() + " (" + module.sourceFolder.getPath()
-				+ File.separator + module.getName() + ".erl)");
-		learnerConfig.config.setErlangModuleName(module.getName());
-		learnerConfig.config.setErlangSourceFile(module.sourceFolder.getPath() + File.separator
-				+ module.getName() + ".erl");
-		ErlangOracleLearner learner = new ErlangOracleLearner(null, learnerConfig);
-		// FIXME depth...
-
-		final PTASequenceEngine currentPTA = learner.GenerateInitialTraces(5);
-
-		PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
-		PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
-			FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
-
-			@Override
-			public boolean shouldBeReturned(Object name) {
-				return !origFilter.shouldBeReturned(name);
-			}
-		});
-
-		System.out.println(positivePTA.getData().size() + " pos, " + negativePTA.getData().size()
-				+ " neg traces");
-
-		// write to file...
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(file));
-			out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name
-					+ ".erl\n");
-			out.write("config labelKind LABEL_ERLANG\n");
-			out.write("config erlangModuleName " + module.name + "\n");
-			if (!useOutputMatchingCheckBox.isSelected()) {
-				out.write("config useErlangOutputs false\n");
-			}
-
-			for (List<Label> trace : positivePTA.getData()) {
-				out.write("+ [" + trace.toString() + "]\n");
-			}
-
-			for (List<Label> trace : negativePTA.getData()) {
-				out.write("- [" + trace.toString() + "]\n");
-			}
-
-			out.close();
-		} catch (IOException e) {
-			Helper.throwUnchecked("Error writing traces file", e);
-		}
-		Traces.main(new String[] { file.getAbsolutePath() });
+	
+	private void genRandom(File file, int length, int count, boolean exhaustAlphabet) {
+		genRandom(module, file, length, count, exhaustAlphabet, useOutputMatchingCheckBox.isSelected());
 	}
 
-	private void genRandom(File file, int length, int count, boolean exhaustAlphabet) {
+	public static void genRandom(ErlangModule module, File file, int length, int count,
+			boolean exhaustAlphabet, boolean useOutputMatching) {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(file));
 			out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name
@@ -413,13 +362,13 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			out.write("config labelKind LABEL_ERLANG\n");
 			out.write("config erlangModuleName " + module.name + "\n");
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			if (!useOutputMatchingCheckBox.isSelected()) {
+			if (!useOutputMatching) {
 				config.setUseErlangOutputs(false);
 				out.write("config useErlangOutputs false\n");
 			}
 			config.setErlangModuleName(module.name);
 			config.setErlangSourceFile(module.sourceFolder + File.separator + module.name + ".erl");
-			ErlangOracleLearner learner = new ErlangOracleLearner(this, new LearnerEvaluationConfiguration(
+			ErlangOracleLearner learner = new ErlangOracleLearner(null, new LearnerEvaluationConfiguration(
 					config));
 			// Make sure our copy of the module is the same object as the
 			// learner's so that alphabet mods work...
@@ -437,39 +386,38 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				for (ErlangLabel l : module.behaviour.getAlphabet()) {
 					List<ErlangLabel> line = new LinkedList<ErlangLabel>();
 					line.add(l);
-					evaluateLine(out, learner, pos, neg, -1, line);
+					evaluateLine(module, out, learner, pos, neg, -1, line);
 				}
 			}
 
 			for (int i = 0; i < count; i++) {
-				List<ErlangLabel> line = randLine(module.behaviour.getAlphabet(), length, pos, neg);
+				System.out.print("..." + i);
+				System.out.flush();
+				if (i % 30 == 0) {
+					System.out.println("");
+				}
+				List<ErlangLabel> line = randLine(module, module.behaviour.getAlphabet(), length, pos, neg);
 
-				/*
-				 * int tries = 0; while (alreadySeen(line, neg, pos)) { tries++;
-				 * System.out.println(tries + " of " + Math.pow(alphabet.size(),
-				 * length)); if (tries > Math.pow(alphabet.size(), length)) {
-				 * break; } else { line = randLine(alphabet, length, pos, neg);
-				 * } }
-				 */
 				if (line.size() > 0) {
-					evaluateLine(out, learner, pos, neg, i, line);
+					evaluateLine(module, out, learner, pos, neg, i, line);
+				} else {
+					// 0 length lines mean there are no possible extensions. Give up.
+					break;
 				}
 			}
+			System.out.println(".");
 			out.close();
 		} catch (IOException e) {
 			Helper.throwUnchecked("Error writing traces file", e);
 		}
-		Traces.main(new String[] { file.getAbsolutePath() });
+
 	}
 
-	private void evaluateLine(BufferedWriter out, ErlangOracleLearner learner,
+	private static void evaluateLine(ErlangModule module, BufferedWriter out, ErlangOracleLearner learner,
 			LinkedList<List<ErlangLabel>> pos, LinkedList<List<ErlangLabel>> neg, int i,
 			List<ErlangLabel> line) throws IOException {
-		System.out.println("Made " + i + " lines");
-		System.out.println("trying " + line + "...");
 		TraceOutcome response = learner.askErlang(line);
-		System.out.println("Got: " + response);
-		out.write(response.toString() + "\n");
+		out.write(response.toTraceFileString() + "\n");
 		switch (response.outcome) {
 		case TRACE_FAIL:
 			neg.add(Arrays.asList(response.answerDetails));
@@ -490,7 +438,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		}
 	}
 
-	private int minButNonNeg(int a, int b) {
+	private static int minButNonNeg(int a, int b) {
 		if (Math.min(a, b) >= 0) {
 			return Math.min(a, b);
 		} else {
@@ -502,7 +450,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		}
 	}
 
-	private boolean anyWibblePrefix(String left, String right) {
+	private static boolean anyWibblePrefix(String left, String right) {
 		if (left.length() > right.length()) {
 			return false;
 		}
@@ -524,7 +472,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		return anyWibblePrefix(endL, endR);
 	}
 
-	private boolean alreadySeen(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
+	private static boolean alreadySeen(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
 			LinkedList<List<ErlangLabel>> pos) {
 		for (List<ErlangLabel> l : pos) {
 			if (line.toString().equals(l.toString())) {
@@ -541,7 +489,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		return false;
 	}
 
-	private boolean alreadyContradicted(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
+	private static boolean alreadyContradicted(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg,
 			LinkedList<List<ErlangLabel>> pos) {
 		// Check for negative prefixes...
 		for (List<ErlangLabel> l : neg) {
@@ -560,41 +508,57 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	 * @param neg
 	 * @param pos
 	 */
-	private List<ErlangLabel> randLine(Set<ErlangLabel> alphabet, int length,
+	private static List<ErlangLabel> randLine(ErlangModule module, Set<ErlangLabel> alphabet, int length,
 			LinkedList<List<ErlangLabel>> pos, LinkedList<List<ErlangLabel>> neg) {
 		LinkedList<ErlangLabel> result = new LinkedList<ErlangLabel>();
 		for (int i = 0; i < length; i++) {
 			List<ErlangLabel> list = new ArrayList<ErlangLabel>(alphabet.size());
 			list.addAll(alphabet);
 			LinkedList<ErlangLabel> extend;
-			boolean retry = false;
-			do {
-				// System.out.println("\tAlphabet = " + list.toString());
-				int rand = (int) Math.floor(Math.random() * list.size());
+			// remove already found negative traces...
+			List<ErlangLabel> removelist = new LinkedList<ErlangLabel>();
+			for (ErlangLabel l : list) {
 				extend = new LinkedList<ErlangLabel>(result);
-				extend.add(list.get(rand));
+				extend.add(l);
+				// Identify only negative traces.
 				if (alreadyContradicted(extend, neg, pos)) {
-					retry = true;
-					list.remove(list.get(rand));
-					// System.out.println("Rejecting " + extend.toString() +
-					// " - contradicted");
-				} else {
-					if (i == (length - 1)) {
-						if (alreadySeen(extend, neg, pos)) {
-							retry = true;
-							list.remove(list.get(rand));
-							// System.out.println("Rejecting " +
-							// extend.toString() + " - already seen");
+					removelist.add(l);
+				}
+			}
+			list.removeAll(removelist);
+			//System.out.println("Excluded " + removelist.size() + ", " + list.size() + " remain");
+			if (list.size() > 0) {
+				boolean retry = false;
+				do {
+					// System.out.println("\tAlphabet = " + list.toString());
+					int rand = (int) Math.floor(Math.random() * list.size());
+					extend = new LinkedList<ErlangLabel>(result);
+					extend.add(list.get(rand));
+					if (alreadyContradicted(extend, neg, pos)) {
+						retry = true;
+						list.remove(list.get(rand));
+						// System.out.println("Rejecting " + extend.toString() +
+						// " - contradicted");
+					} else {
+						if (i == (length - 1)) {
+							if (alreadySeen(extend, neg, pos)) {
+								retry = true;
+								list.remove(list.get(rand));
+								// System.out.println("Rejecting " +
+								// extend.toString() + " - already seen");
+							} else {
+								retry = false;
+							}
 						} else {
 							retry = false;
 						}
-					} else {
-						retry = false;
 					}
+				} while (retry && (list.size() > 0));
+				if (list.size() > 0) {
+					result = extend;
 				}
-			} while (retry && (list.size() > 0));
-			if (list.size() > 0) {
-				result = extend;
+			} else {
+				break;
 			}
 		}
 		return result;

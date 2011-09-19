@@ -21,6 +21,7 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Arrays;
 import java.util.List;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -41,7 +42,13 @@ public class BooleanSignature  extends Signature {
 	/** Values are not constrained, but term has to be boolean. */
 	@Override
 	public boolean typeCompatible(OtpErlangObject term) {
-		if (!(term instanceof OtpErlangBoolean)) return false;
+		if (!(term instanceof OtpErlangBoolean))
+		{
+			if (!(term instanceof OtpErlangAtom)) 
+				return false;			
+			String boolValue = (((OtpErlangAtom)term).atomValue()).toLowerCase();
+			return boolValue.equals("true") || boolValue.equals("false");
+		}
 		return true;
 	}
 

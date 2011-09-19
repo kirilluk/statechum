@@ -164,7 +164,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			response.append(" ]");
 		}
 
-		System.out.println("Response: " + response);
+		//System.out.println("Response: " + response);
 		Pair<Integer, String> result = null;
 
 		if (response != null) {
@@ -430,43 +430,28 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			outcome = out;
 		}
 
-		@Override
-		public String toString() {
+		public String toTraceFileString() {
 			String result = "";
 
 			if (outcome == TRACEOUTCOME.TRACE_DIFFERENTOUTPUT) {
-				result = "- [[";
+				result = "- [";
 				ErlangLabel[] shortQuestion = new ErlangLabel[answerDetails.length];
 				for (int i = 0; i < answerDetails.length; i++) {
 					shortQuestion[i] = questionDetails[i];
 				}
-				for (ErlangLabel elem : shortQuestion) {
-					if (result.length() > 4) {
-						result += ",";
-					}
-					result += elem;
-				}
-				result += "]]\n+ [[";
-				for (ErlangLabel elem : answerDetails) {
-					result += elem;
-					result += ",";
-				}
-				// Strip that extra comma...
-				result = result.substring(0, result.length() - 1);
+				result += RPNILearner.questionToString(Arrays.asList(shortQuestion));
+				result += "]\n+ [";
+
+				result += RPNILearner.questionToString(Arrays.asList(answerDetails));
 			} else {
 				if (outcome == TRACEOUTCOME.TRACE_OK) {
-					result = "+ [[";
+					result = "+ [";
 				} else if (outcome == TRACEOUTCOME.TRACE_FAIL) {
-					result = "- [[";
+					result = "- [";
 				}
-				for (ErlangLabel elem : answerDetails) {
-					if (result.length() > 4) {
-						result += ",";
-					}
-					result += elem;
-				}
+				result += RPNILearner.questionToString(Arrays.asList(answerDetails));
 			}
-			result += "]]";
+			result += "]";
 			return result;
 		}
 

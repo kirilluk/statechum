@@ -137,6 +137,7 @@ public class ErlangQSMOracle {
 		ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
 		ErlangOracleLearner innerLearner = createLearner(viz,tracesFile);
 		innerLearner.addObserver(viz);
+		innerLearner.setGraphNameSuffix(tracesFile);
 		return innerLearner.learnMachine();
 	}
 

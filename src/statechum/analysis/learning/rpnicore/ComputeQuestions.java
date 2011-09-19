@@ -459,7 +459,9 @@ public class ComputeQuestions {
 			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else
 			questions = getQuestionPta(pair,original,merged,properties).getData();// This one will return only those questions which were not answered by property automata
-		System.out.println(getQuestionPta(pair,original,merged,properties).getData(PTASequenceEngine.truePred));
+		
+		//System.out.println(getQuestionPta(pair,original,merged,properties).getData(PTASequenceEngine.truePred));
+		
 		//Visualiser.updateFrame(constructGraphWithQuestions(pair,original,merged), null);
 		//System.out.println(((NonExistingPaths)getQuestionPta(pair,original,merged,properties).getFSM()).getNonExistingVertices());
 		return ArrayOperations.sort(questions);

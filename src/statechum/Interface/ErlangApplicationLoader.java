@@ -30,10 +30,14 @@ import javax.swing.JFileChooser;
 import javax.swing.ListModel;
 import javax.swing.filechooser.FileFilter;
 
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.apps.ErlangQSMOracle;
 
 /**
  * 
@@ -85,7 +89,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			}
 		});
 
-		beginButton.setText("Begin");
+		beginButton.setText("All");
 		beginButton.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				beginButtonActionPerformed(evt);
@@ -269,22 +273,41 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	}
 
-	private void beginButtonActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
-
+	private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
 		zapErlFiles(folder);
 		try {
 			for (File f : ErlangRunner.ErlangFolder.listFiles())
 				if (ErlangRunner.validName(f.getName()))
 					ErlangRunner.compileErl(f, ErlangRunner.getRunner());
 
-			for (Object s : modules.getSelectedValues()) {
-				ErlangModule m = (ErlangModule) s;
-				// Create an Erlang QSM jobby for the selected behaviours...
-				// ErlangOracleRunner runner = new ErlangOracleRunner(m,
-				// app.modules);
-				// Thread t = new
-				// Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
-				// t.start();
+			for (Object s : app.modules) {
+				try {
+					// Load the module
+					ErlangModule m = (ErlangModule) s;
+
+					// FIXME configurable...
+					int len = 25;
+					int count = 150;
+					boolean exhaustAlphabet = true;
+					boolean useOutputMatching = true;
+					System.out.println("Generating traces for " + m.name + "...");
+					String tracefile = m.name + ".traces";
+					ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet,
+							useOutputMatching);
+
+					// Run ErlangQSMOracle on the trace file...
+					
+					System.out.println("Learning " + m.name + "...");
+					LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
+					System.out.println("Produced " + g.getStateNumber() + " states");
+					if(g.getStateNumber() > 2) {
+						System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+					} else {
+						System.out.println("-------------------------------------------------");
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -318,20 +341,19 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			loader.selectedFile = new File(args[0]);
 			ErlangApplicationLoader.zapErlFiles(loader.selectedFile);
 			loader.loadData();
-			/* What is this even for?....
-			if (loader.loadData() && loader.modules.getModel().getSize() != 1) {
-				ListModel modules = loader.modules.getModel();
-				StringBuffer tooManyException = new StringBuffer("more than a single module choice for app "
-						+ loader.selectedFile + "\n");
-				for (int i = 0; i < modules.getSize(); ++i) {
-					tooManyException.append(modules.getElementAt(i));
-					tooManyException.append('\n');
-				}
-				throw new IllegalArgumentException(tooManyException.toString());
-			}
-			loader.modules.setSelectedIndex(0);
-			loader.beginButtonActionPerformed(null);
-			*/
+			/*
+			 * What is this even for?.... if (loader.loadData() &&
+			 * loader.modules.getModel().getSize() != 1) { ListModel modules =
+			 * loader.modules.getModel(); StringBuffer tooManyException = new
+			 * StringBuffer("more than a single module choice for app " +
+			 * loader.selectedFile + "\n"); for (int i = 0; i <
+			 * modules.getSize(); ++i) {
+			 * tooManyException.append(modules.getElementAt(i));
+			 * tooManyException.append('\n'); } throw new
+			 * IllegalArgumentException(tooManyException.toString()); }
+			 * loader.modules.setSelectedIndex(0);
+			 * loader.beginButtonActionPerformed(null);
+			 */
 			loader.setVisible(true);
 		} else {
 			java.awt.EventQueue.invokeLater(new Runnable() {

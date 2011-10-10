@@ -57,6 +57,7 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 					succount += 1;
 				} catch (IOException e) {
 					System.out.println("\tFailed to open " + f.getName());
+					succount += 1;
 				} catch (Exception e) {
 					failcount += 1;
 					if (e.getMessage() != null) {

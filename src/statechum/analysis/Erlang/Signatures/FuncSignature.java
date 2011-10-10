@@ -227,7 +227,6 @@ public class FuncSignature implements Label {
 
      public List<List<OtpErlangObject>> instantiateAllArgs() {
         LinkedList<List<OtpErlangObject>> res = new LinkedList<List<OtpErlangObject>>();
-
         for (List<Signature> a : args)
             res.addAll(Signature.computeCrossProduct(a));
 
@@ -299,7 +298,7 @@ public class FuncSignature implements Label {
 		if (!typeCompatible)
 		{
 			//System.out.println("Function : "+getName()+", \n"+toErlangTerm());
-			typeCompatible(label);
+			//typeCompatible(label);
 			throw new IllegalArgumentException("Label "+OTPBehaviour.convertModToErl(label).toErlangTerm()+
 					" is not type-compatible with its function\n"+label.function.toErlangTerm());
 		}

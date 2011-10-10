@@ -49,7 +49,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 	public ErlangModule getModule() {
 		return module;
 	}
-	
+
+	protected LearnerEvaluationConfiguration myEvalCnf;
+
 	public ErlangOracleLearner(Frame parent,
 			LearnerEvaluationConfiguration evalCnf) {
 		super(parent, evalCnf);
@@ -63,8 +65,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 								+ config.getErlangSourceFile(), e);
 			}
 		}
+		myEvalCnf = evalCnf;
+		configErlang();
+	}
+
+	public void configErlang() {
 		// this one configures the runner.
-		ErlangRunner.getRunner().configurationToErlang(evalCnf.config);
+		ErlangRunner.getRunner().configurationToErlang(myEvalCnf.config);
 		ErlangRunner.getRunner().call(
 				new OtpErlangObject[] {
 						new OtpErlangAtom("addPath"),
@@ -100,10 +107,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	protected void updateInputToPossibleOutputs(Label label) {
 		Label inputPortionOfLabel = stripOutput((ErlangLabel) label);
-		Set<Label> outputsSeenForThisInput = inputToPossibleOutputs.get(inputPortionOfLabel);
+		Set<Label> outputsSeenForThisInput = inputToPossibleOutputs
+				.get(inputPortionOfLabel);
 		if (outputsSeenForThisInput == null) {
 			outputsSeenForThisInput = new TreeSet<Label>();
-			inputToPossibleOutputs.put(inputPortionOfLabel, outputsSeenForThisInput);
+			inputToPossibleOutputs.put(inputPortionOfLabel,
+					outputsSeenForThisInput);
 		}
 		outputsSeenForThisInput.add(label);
 	}
@@ -116,25 +125,28 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			@SuppressWarnings("unused") final List<Boolean> consistentFacts,
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
 			@SuppressWarnings("unused") final Object[] moreOptions) {
-		
+
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
 		switch (outcome.outcome) {
 		case TRACE_DIFFERENTOUTPUT:
-			// we generate a string because it will most likely need to be
-			// stored in logs etc,
-			// hence no point being efficient and returning the actual data.
-			response = new StringBuffer();
-			response.append("- [");
-			response.append(RPNILearner.questionToString(question));
-			response.append("] ");
-			response.append("+ [");
-			response.append(RPNILearner.questionToString(Arrays
-					.asList(outcome.answerDetails)));
-			response.append("] ");
-			// since we implicitly extend the alphabet here, add a new trace to
-			// our collection.
-			updateInputToPossibleOutputs(outcome.answerDetails[outcome.answerDetails.length - 1]);
+			if (outcome.answerDetails.length > 0) {
+				// we generate a string because it will most likely need to be
+				// stored in logs etc,
+				// hence no point being efficient and returning the actual data.
+				response = new StringBuffer();
+				response.append("- [");
+				response.append(RPNILearner.questionToString(question));
+				response.append("] ");
+				response.append("+ [");
+				response.append(RPNILearner.questionToString(Arrays
+						.asList(outcome.answerDetails)));
+				response.append("] ");
+				// since we implicitly extend the alphabet here, add a new trace
+				// to
+				// our collection.
+				updateInputToPossibleOutputs(outcome.answerDetails[outcome.answerDetails.length - 1]);
+			}
 			break;
 		case TRACE_OK:
 			// trace was accepted, response remains null indicating success.
@@ -150,7 +162,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			boolean first = true;
 			ErlangLabel noop = stripOutput((ErlangLabel) failedLabel);
 
-			assert noop.function != null : "questions do not contain function details";
+			//assert noop.function != null : "questions do not contain function details";
 			for (Label lbl : inputToPossibleOutputs.get(noop)) {
 				if (!first)
 					response.append(',');
@@ -164,7 +176,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			response.append(" ]");
 		}
 
-		//System.out.println("Response: " + response);
+		// System.out.println("Response: " + response);
 		Pair<Integer, String> result = null;
 
 		if (response != null) {
@@ -296,9 +308,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				assert outcome.answerDetails.length == traceLength;
 				ErlangLabel nextLabel = outcome.answerDetails[traceLength - 1];
 				state.rejects.add(input);// record the reject.
-
 				if (!module.behaviour.getAlphabet().contains(nextLabel)) {
-					module.behaviour.getAlphabet().add(nextLabel);// extend the alphabet
+					module.behaviour.getAlphabet().add(nextLabel);// extend the
+																	// alphabet
 					// (if the input is already in the alphabet, fine, it would
 					// be attempted soon anyway).
 					// System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());
@@ -432,24 +444,30 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 		public String toTraceFileString() {
 			String result = "";
-
 			if (outcome == TRACEOUTCOME.TRACE_DIFFERENTOUTPUT) {
 				result = "- [";
-				ErlangLabel[] shortQuestion = new ErlangLabel[answerDetails.length];
+				ErlangLabel[] shortQuestion;
+
+				shortQuestion = new ErlangLabel[answerDetails.length];
 				for (int i = 0; i < answerDetails.length; i++) {
 					shortQuestion[i] = questionDetails[i];
 				}
-				result += RPNILearner.questionToString(Arrays.asList(shortQuestion));
-				result += "]\n+ [";
+				result += RPNILearner.questionToString(Arrays
+						.asList(shortQuestion));
 
-				result += RPNILearner.questionToString(Arrays.asList(answerDetails));
+				if (answerDetails.length > 0) {
+					result += "]\n+ [";
+					result += RPNILearner.questionToString(Arrays
+							.asList(answerDetails));
+				}
 			} else {
 				if (outcome == TRACEOUTCOME.TRACE_OK) {
 					result = "+ [";
 				} else if (outcome == TRACEOUTCOME.TRACE_FAIL) {
 					result = "- [";
 				}
-				result += RPNILearner.questionToString(Arrays.asList(answerDetails));
+				result += RPNILearner.questionToString(Arrays
+						.asList(answerDetails));
 			}
 			result += "]";
 			return result;
@@ -470,8 +488,14 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			if (!(lbl instanceof ErlangLabel))
 				throw new IllegalArgumentException("question element " + lbl
 						+ " is not of Erlang type");
-			if (!module.behaviour.getAlphabet().contains(lbl))
-				throw new IllegalArgumentException("label "+lbl+" does not belong to the alphabet \n"+module.behaviour.getAlphabet());
+			/*
+			 * // Its really not for this to decide whether this is a legit
+			 * response. // The alphabet is probably wrong... if
+			 * (!module.behaviour.getAlphabet().contains(lbl)) throw new
+			 * IllegalArgumentException("label " + lbl +
+			 * " does not belong to the alphabet \n" +
+			 * module.behaviour.getAlphabet());
+			 */
 			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);
@@ -479,8 +503,14 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
-		//System.out.println("Asking Erlang about "
-		//		+ Arrays.asList(questionDetails).toString());
+		// System.out.println("Asking Erlang about "
+		// + Arrays.asList(questionDetails).toString());
+		//ErlangRunner.getRunner().killErlang();
+		//OtpErlangList procs = ErlangRunner.getRunner().listProcesses();
+		//System.out.println(procs.arity() + ": " + procs.toString());
+		//OtpErlangTuple killed = ErlangRunner.getRunner().killProcesses();
+		//System.out.println("" + ((OtpErlangList) killed.elementAt(1)).arity() + ": " + killed.elementAt(1));
+		configErlang();
 		OtpErlangTuple result = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("runTrace"),
 						new OtpErlangAtom(module.getName()),
@@ -492,15 +522,19 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		OtpErlangAtom outcome = (OtpErlangAtom) result.elementAt(1);
 
 		TRACEOUTCOME outcomeEnum = null;
-		if (outcome.atomValue().equals("ok"))
+		if (outcome.atomValue().equals("ok")) {
 			outcomeEnum = TRACEOUTCOME.TRACE_OK;
-		else if (outcome.atomValue().equals("failed_but"))
+		} else if (outcome.atomValue().equals("failed_but")) {
 			outcomeEnum = TRACEOUTCOME.TRACE_DIFFERENTOUTPUT;
-		else if (outcome.atomValue().equals("failed"))
+		} else if (outcome.atomValue().equals("timeout")) {
+			// System.out.println("TIMEOUT");
 			outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
-		else
+		} else if (outcome.atomValue().equals("failed")) {
+			outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
+		} else {
 			throw new IllegalArgumentException("unknown Erlang response "
 					+ outcome);
+		}
 		OtpErlangList trace = (OtpErlangList) result.elementAt(2);
 		ErlangLabel[] answerDetails = new ErlangLabel[trace.arity()];
 		for (int i = 0; i < trace.arity(); ++i) {
@@ -525,6 +559,17 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				answerDetails[i] = questionDetails[i];
 			}
 		}
+
+		System.out.print("I asked erlang about ");
+		for (Object o : questionDetails) {
+			System.out.print(o.toString());
+		}
+		System.out.print(" and all I got was " + outcomeEnum + ": ");
+		for (Object o : answerDetails) {
+			System.out.print(o.toString());
+		}
+		System.out.println();
+
 		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 

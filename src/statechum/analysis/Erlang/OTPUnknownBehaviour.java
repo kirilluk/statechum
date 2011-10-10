@@ -23,7 +23,7 @@ public class OTPUnknownBehaviour extends OTPBehaviour {
     public OTPUnknownBehaviour(ErlangModule mod) {
         super(mod);
 
-        name = "-export-";
+        name = "export";
     }
 
     public void loadAlphabet(@SuppressWarnings("unused") File f) {
@@ -48,10 +48,10 @@ public class OTPUnknownBehaviour extends OTPBehaviour {
 			
 			if (config.getUseErlangOutputs()) {
 				for (OtpErlangObject result : output) {
-					alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName, argsAsList, result));
+					alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName.substring(callName.indexOf(":")+1, callName.indexOf("/")), argsAsList, result));
 				}
 			} else {
-				alphabet.add(new ErlangLabel(parent.sigs.get(callName),callName, argsAsList));
+				alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName.substring(callName.indexOf(":")+1, callName.indexOf("/")), argsAsList));
 			}
 		}
 	}

@@ -18,10 +18,12 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -45,6 +47,20 @@ public class AnySignature extends Signature {
 
 	@Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-		return Collections.singletonList((OtpErlangObject)new OtpErlangAtom("AnyWibble"));
+		//return Collections.singletonList((OtpErlangObject)new OtpErlangAtom("Wibble"));
+		
+		// We are allowed anything so lets try a few things...
+		List<OtpErlangObject> result = new ArrayList<OtpErlangObject>();
+
+		//result.add(new OtpErlangAtom("Wibble"));
+		result.add(new OtpErlangList(new OtpErlangObject[] {}));
+		result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("Wibble")}));
+		result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("Wibble"), new OtpErlangAtom("Wobble")}));
+		//result.add(new OtpErlangAtom("Wobble"));
+		//result.add(new OtpErlangInt(1));
+		//result.add(new OtpErlangInt(0));
+
+		
+		return result;
 	}
 }

@@ -287,7 +287,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 					// FIXME configurable...
 					int len = 25;
-					int count = 150;
+					int count = 50;
 					boolean exhaustAlphabet = true;
 					boolean useOutputMatching = true;
 					System.out.println("Generating traces for " + m.name + "...");

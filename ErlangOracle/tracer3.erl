@@ -26,6 +26,9 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
 		died ->
 		    FullTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)],
 		    {failed, FullTrace, State3};
+		timeout ->
+		    FullTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)],
+		    {timeout, FullTrace, State3};
 		failed_but ->
 		    {failed_but, OPTrace, State3};
 		failed ->
@@ -52,16 +55,17 @@ await_end(Pid, Ref, OpTrace) ->
 	{Pid, output, OP} ->
 	    await_end(Pid, Ref, OpTrace ++ [OP]);
 	{Pid, output_mismatch, OP} ->
-	    {failed_but, OpTrace ++ [OP]};
-	{Pid, failed, OP} ->
-	    {failed, OpTrace ++ [OP]}
-    after 100 ->    
+	    {failed_but, OpTrace ++ [OP]}
+%	{Pid, failed, OP} ->
+%	    {failed, OpTrace ++ [OP]}
+    after 5000 ->    
 	    case lists:member(Pid, erlang:processes()) of
 		false ->
 		    %%io:format("Scone...~n"),
 		    {ok, OpTrace};
 		true ->	    
-		    await_end(Pid, Ref, OpTrace)
+		    %%await_end(Pid, Ref, OpTrace)
+		    {timeout, OpTrace}
 	    end
     end.
 

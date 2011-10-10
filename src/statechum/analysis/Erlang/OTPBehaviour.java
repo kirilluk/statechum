@@ -380,9 +380,9 @@ public abstract class OTPBehaviour {
 		ErlangLabel label = (ErlangLabel) lbl;
 
 		FuncSignature origFunc = parent.sigs.get(label.callName);
-		if (origFunc == null)
-			throw new IllegalArgumentException("unknown function \"" + label.callName + "\" in module "
-					+ parent.getName());
+		//if (origFunc == null)
+		//	throw new IllegalArgumentException("unknown function \"" + label.callName + "\" in module "
+		//			+ parent.getName());
 
 		// At this point, we know which function should correspond to this
 		// label,

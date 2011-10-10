@@ -127,6 +127,26 @@ handle_call({runTrace,Module, Wrapper, Trace, ModulesList}, _From, State) ->
     	{Outcome, OPTrace, State3} = tracer3:first_failure(Module, Wrapper, Trace, ModulesList, State),
     	{reply, {ok, Outcome, OPTrace}, State3};
 
+%% Displays the process list
+handle_call({processes}, _From, State) ->
+    {reply, {ok, processes()}, State};
+
+%% Displays the process list
+handle_call({killProcesses, ProcList}, _From, State) ->
+    {Killed, Skipped} = 
+	lists:foldl(fun(Pid, {Acc, Skip}) ->
+		      Keep = lists:member(Pid, ProcList),
+		      if Keep -> 
+			      {Acc, [Pid | Skip]}; 
+			 Pid == self() ->
+			      {Acc, [Pid | Skip]};
+			 true -> 
+			      exit(Pid, kill),
+			      {[Pid | Acc], Skip}
+		      end 
+	      end, {[], []}, processes()),
+    {reply, {ok, Killed, Skipped}, State};
+
 %% Adds the specified directory to the code path
 handle_call({addPath,Path}, _From, State) ->
 case(code:add_path(filename:join(filename:split(Path)))) of

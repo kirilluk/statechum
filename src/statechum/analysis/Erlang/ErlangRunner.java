@@ -276,11 +276,12 @@ public class ErlangRunner {
 	}
 
 	/*
-	 * Store the processes that were extant just after the tracerunner starts. The killProcesses method
-	 * will kill anything not in this list, which should mean anything started by traces.
+	 * Store the processes that were extant just after the tracerunner starts.
+	 * The killProcesses method will kill anything not in this list, which
+	 * should mean anything started by traces.
 	 */
 	protected OtpErlangList proclist;
-	
+
 	/**
 	 * Starts Erlang in the background,
 	 * 
@@ -357,27 +358,9 @@ public class ErlangRunner {
 								new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath(),
 								"-pa",
 								new File(ErlangQSMOracle.ErlangTyper).getAbsolutePath(),
-								// the
-								// easiest
-								// way
-								// to
-								// substitute
-								// our
-								// module
-								// in
-								// place
-								// of
-								// the
-								// original
-								// Erlang's
-								// one,
-								// otherwise
-								// I'd
-								// have
-								// to
-								// rely
-								// on
-								// tracerunner:compileAndLoad
+								// the easiest way to substitute our module in place
+								// of the original Erlang's one, otherwise I'd
+								// have to rely on tracerunner:compileAndLoad
 								"-run", "tracerunner", "start", ourNode,
 								runnerMode, "-sname", traceRunnerNode,
 								"-noshell", "-setcookie", uniqueID },
@@ -395,11 +378,9 @@ public class ErlangRunner {
 								timeBetweenChecks, new HandleProcessIO() {
 
 									@Override
-									public void OnHeartBeat() {// no prodding is
-																// done - we are
-																// being prodded
-																// by Erlang
-																// instead.
+									public void OnHeartBeat() {
+										// no prodding is done - we are
+										// being prodded by Erlang instead.
 									}
 
 									@Override
@@ -443,7 +424,8 @@ public class ErlangRunner {
 				if (timeout <= 0) {
 					final long endTime = System.currentTimeMillis();
 					throw new IllegalArgumentException(
-							"timeout waiting for a server to start after " + (endTime - startTime) + "ms");
+							"timeout waiting for a server to start after "
+									+ (endTime - startTime) + "ms");
 				}
 			}
 			final long endTime = System.currentTimeMillis();
@@ -569,7 +551,7 @@ public class ErlangRunner {
 	public OtpErlangTuple call(OtpErlangObject[] args, String errorMessage) {
 		OtpErlangTuple result = null;
 		OtpErlangObject response = call(args, 30000);
-		
+
 		if (response instanceof OtpErlangAtom) {
 			if (!response.equals(okAtom)) {
 				throw new RuntimeException(errorMessage + " : error "
@@ -675,17 +657,21 @@ public class ErlangRunner {
 	}
 
 	public OtpErlangList listProcesses() {
-		OtpErlangTuple tup = call(new OtpErlangObject[] {new OtpErlangAtom("processes")}, "Failed to get process list.");
-		if((tup.arity() == 2) && (tup.elementAt(0).equals(okAtom))) {
+		OtpErlangTuple tup = call(new OtpErlangObject[] { new OtpErlangAtom(
+				"processes") }, "Failed to get process list.");
+		if ((tup.arity() == 2) && (tup.elementAt(0).equals(okAtom))) {
 			return (OtpErlangList) tup.elementAt(1);
 		} else {
-			throw new RuntimeException("Er, why did I get this?: " + tup.elementAt(0) + "(" + tup.arity() + ")");
+			throw new RuntimeException("Er, why did I get this?: "
+					+ tup.elementAt(0) + "(" + tup.arity() + ")");
 		}
 	}
-	
+
 	public OtpErlangTuple killProcesses() {
-		if(proclist != null) {
-			return call(new OtpErlangObject[] {new OtpErlangAtom("killProcesses"), proclist}, "Failed to kill processes.");
+		if (proclist != null) {
+			return call(new OtpErlangObject[] {
+					new OtpErlangAtom("killProcesses"), proclist },
+					"Failed to kill processes.");
 		} else {
 			return null;
 		}

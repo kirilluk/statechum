@@ -57,8 +57,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		super(parent, evalCnf);
 		if (config.getErlangSourceFile() != null) {
 			try {
-				module = ErlangModule.loadModule(config.getErlangSourceFile(),
-						config, true);
+				module = ErlangModule.loadModule(config, true);
 			} catch (IOException e) {
 				Helper.throwUnchecked(
 						"Failed to load trace file "
@@ -488,14 +487,14 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			if (!(lbl instanceof ErlangLabel))
 				throw new IllegalArgumentException("question element " + lbl
 						+ " is not of Erlang type");
-			/*
-			 * // Its really not for this to decide whether this is a legit
-			 * response. // The alphabet is probably wrong... if
-			 * (!module.behaviour.getAlphabet().contains(lbl)) throw new
-			 * IllegalArgumentException("label " + lbl +
-			 * " does not belong to the alphabet \n" +
-			 * module.behaviour.getAlphabet());
-			 */
+			// Its really not for this to decide whether this is a legit
+			// The alphabet is probably wrong...
+			// KIRILL: I disagree - it is worth checking this here.
+			
+			if (!module.behaviour.getAlphabet().contains(lbl)) 
+				throw new IllegalArgumentException("label " + lbl +
+						" does not belong to the alphabet \n" +
+						module.behaviour.getAlphabet());
 			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);
@@ -527,13 +526,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		} else if (outcome.atomValue().equals("failed_but")) {
 			outcomeEnum = TRACEOUTCOME.TRACE_DIFFERENTOUTPUT;
 		} else if (outcome.atomValue().equals("timeout")) {
-			// System.out.println("TIMEOUT");
 			outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
 		} else if (outcome.atomValue().equals("failed")) {
 			outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
 		} else {
-			throw new IllegalArgumentException("unknown Erlang response "
-					+ outcome);
+			throw new IllegalArgumentException("unknown Erlang response " + outcome);
 		}
 		OtpErlangList trace = (OtpErlangList) result.elementAt(2);
 		ErlangLabel[] answerDetails = new ErlangLabel[trace.arity()];
@@ -559,7 +556,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				answerDetails[i] = questionDetails[i];
 			}
 		}
-
+/*
 		System.out.print("I asked erlang about ");
 		for (Object o : questionDetails) {
 			System.out.print(o.toString());
@@ -569,7 +566,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			System.out.print(o.toString());
 		}
 		System.out.println();
-
+*/
 		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 

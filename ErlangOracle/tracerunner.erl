@@ -270,7 +270,7 @@ handle_call({echo2Notuple,aaa},_From, State) ->
 
 %% Used for testing - produces a specific response.
 handle_call({echo2Error,aaa},_From, State) ->
-	{reply, error, State};
+	{reply, errorProcessinG, State};
 
 %% Used for testing - produces a specific response.
 handle_call({echo2ErrorMessage,aaa},_From, State) ->

@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -31,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class NoneSignature extends Signature {
 
-	public NoneSignature(OtpErlangList attributes)
+	public NoneSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("NoneSignature does not accept attributes");

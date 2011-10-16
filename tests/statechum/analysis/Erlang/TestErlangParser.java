@@ -138,7 +138,7 @@ public class TestErlangParser {
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.dumpErlangObject(new OtpErlangRef("aa",1,2));
-		}},IllegalArgumentException.class,"cannot dump object of type");
+		}},IllegalArgumentException.class,"OtpErlangRef is not supported");
 	}
 	
 	/** Empty term. */
@@ -264,7 +264,26 @@ public class TestErlangParser {
 		checkResponse("\' a \'",text);
 	}	
 
-	/** Invalid characters after backslash. */
+	/** Bar 1. */
+	@Test
+	public void testParse1i()
+	{
+		String text = " \' | a \'   ";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(" | a ",atom.atomValue());
+		checkResponse("\' | a \'",text);
+	}	
+
+	/** Bar 2. */
+	@Test
+	public void testParse1j()
+	{
+		String text = " \' a |\'   ";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(" a |",atom.atomValue());
+		checkResponse("\' a |\'",text);
+	}	
+
 	public static void testParseChokesOnInvalidChars(final char startStop)
 	{
 		for(String str:new String[]{
@@ -274,7 +293,9 @@ public class TestErlangParser {
 				"some- text",
 				"some - , text",
 				"some-,text",
-				"567some-,text"
+				"567some-,text",
+				"|some",
+				"so|me"
 		})
 		{
 			final String data = ""+startStop+str+startStop;
@@ -284,6 +305,7 @@ public class TestErlangParser {
 			checkResponse(data,data);
 		}
 		
+		/** Invalid characters after backslash. */
 		for(String str:new String[]{
 				"\\-text",
 				"\\  -text",
@@ -409,6 +431,26 @@ public class TestErlangParser {
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals(" a ",string.stringValue());
 		checkResponse("\" a \"",text);
+	}	
+
+	/** Bar 1. */
+	@Test
+	public void testParse2i()
+	{
+		String text = " \" | a \"   ";
+		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
+		Assert.assertEquals(" | a ",string.stringValue());
+		checkResponse("\" | a \"",text);
+	}	
+
+	/** Bar 2. */
+	@Test
+	public void testParse2j()
+	{
+		String text = "  \" a |\"   ";
+		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
+		Assert.assertEquals(" a |",string.stringValue());
+		checkResponse("\" a |\"",text);
 	}	
 
 	/** Invalid characters after backslash. */
@@ -653,7 +695,7 @@ public class TestErlangParser {
 		}},RuntimeException.class,"badmatch");
 	}
 	
-	/** Erlang refuses to parse 4.e10, I think this is wrong and hence my parser accepts this. */
+	/** Erlang refuses to parse 4.e10, I think this is wrong hence my parser accepts this. */
 	@Test
 	public void testParse6k()
 	{
@@ -903,6 +945,18 @@ public class TestErlangParser {
 		}},RuntimeException.class,"badmatch");
 	}
 	
+	@Test
+	public void testParseTuple1Fail10()
+	{
+		final String text = "{ 56  |";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"invalid token type 13");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
 	/** invalid atoms. */
 	@RunWith(Parameterized.class)
 	public static class TestParseInvalidCharsInAtomFail
@@ -912,38 +966,45 @@ public class TestErlangParser {
 		{
 			final String unquotedError = "unquoted atom cannot start with a dot",
 			isNeverAllowedError = "is never allowed",invalidTokenError = "invalid token",
-			erlEvaluation = "evaluation",erlNone = "";
+			erlEvaluation = "evaluation",
+			erlNone = "";// this means 'ignore what Erlang says'.
 			return java.util.Arrays.asList(new Object[][]{
 					new Object[]{"{ 56, .aa }",unquotedError,erlNone},// Real Erlang accepts this but throws away the dot - I'm not happy about this.
-					new Object[]{"{ 56, +aa }",invalidTokenError,erlNone}, 
-					new Object[]{"{ 56, -aa }",invalidTokenError,erlNone}, 
+					new Object[]{"{ 56, +aa }",invalidTokenError,erlEvaluation}, 
+					new Object[]{"{ 56, -aa }",invalidTokenError,erlEvaluation}, 
 					new Object[]{"[ 56, .aa ]",unquotedError,erlNone},
-					new Object[]{"[ 56, +aa ]",invalidTokenError,erlNone}, 
-					new Object[]{"[ 56, -aa ]",invalidTokenError,erlNone},
+					new Object[]{"[ 56, +aa ]",invalidTokenError,erlEvaluation}, 
+					new Object[]{"[ 56, -aa ]",invalidTokenError,erlEvaluation},
 					new Object[]{"{ 56, [.aa] }",unquotedError,erlNone},
-					new Object[]{"{ 56,[ +aa ]}",invalidTokenError,erlNone}, 
-					new Object[]{"{ 56, [-aa ]}",invalidTokenError,erlNone}, 
+					new Object[]{"{ 56,[ +aa ]}",invalidTokenError,erlEvaluation}, 
+					new Object[]{"{ 56, [-aa ]}",invalidTokenError,erlEvaluation}, 
 					new Object[]{"[ 56, {.aa} ]",unquotedError,erlNone},
-					new Object[]{"[ 56,{ +aa} ]",invalidTokenError,erlNone}, 
-					new Object[]{"[ 56, {-aa }]",invalidTokenError,erlNone},
-					new Object[]{"+ [ 56 ]",invalidTokenError,erlNone},
-					new Object[]{". [ 56 ]",unquotedError,erlNone},
-					new Object[]{"- [ 56 ]",invalidTokenError,erlNone},
-					new Object[]{"+[ 56 ]",invalidTokenError,erlNone},
-					new Object[]{".[ 56 ]",unquotedError,erlNone},
-					new Object[]{"-[ 56 ]",invalidTokenError,erlNone},
+					new Object[]{"[ 56,{ +aa} ]",invalidTokenError,erlEvaluation}, 
+					new Object[]{"[ 56, {-aa }]",invalidTokenError,erlEvaluation},
 					
-					new Object[]{"a-atom",isNeverAllowedError,erlNone},
-					new Object[]{"a:atom",isNeverAllowedError,erlNone},
-					new Object[]{"atom-a",isNeverAllowedError,erlNone},
-					new Object[]{"atom:b",isNeverAllowedError,erlNone},
+					// Here bar cannot be a part of an atom hence the error is proper,
+					// albeit it is reported by the list parser and not by atom parser.
+					new Object[]{"[ 56, | aa]","unexpected bar",erlEvaluation},
+					new Object[]{"+ [ 56 ]",invalidTokenError,erlEvaluation},
+					new Object[]{". [ 56 ]",unquotedError,erlEvaluation},
+					new Object[]{"- [ 56 ]",invalidTokenError,erlEvaluation},
+					new Object[]{"+[ 56 ]",invalidTokenError,erlEvaluation},
+					new Object[]{".[ 56 ]",unquotedError,erlEvaluation},
+					new Object[]{"-[ 56 ]",invalidTokenError,erlEvaluation},
+					new Object[]{"|[56]",invalidTokenError,erlEvaluation},
+					
+					new Object[]{"a-atom",isNeverAllowedError,erlEvaluation},
+					new Object[]{"a:atom",isNeverAllowedError,erlEvaluation},
+					new Object[]{"atom-a",isNeverAllowedError,erlEvaluation},
+					new Object[]{"atom:b",isNeverAllowedError,erlEvaluation},
+					new Object[]{"at|om","unexpected characters",erlEvaluation},
 					
 					new Object[]{"-atom",invalidTokenError,erlEvaluation},
 					new Object[]{"+atom",invalidTokenError,erlEvaluation},
 					new Object[]{":atom",invalidTokenError,erlEvaluation},
 					new Object[]{">atom",invalidTokenError,erlEvaluation},
 					new Object[]{"<atom",invalidTokenError,erlEvaluation},
-					
+					new Object[]{"|atom",invalidTokenError,erlEvaluation},
 			});
 		}
 		final String text,exception,erlException; 
@@ -1015,6 +1076,66 @@ public class TestErlangParser {
 			checkResponse("['e',2.675E42,45.8]",text);
 		}
 	}
+	
+	@Test
+	public void testParseList5()
+	{
+		for(String text:new String[]{
+				" [ a,b,c | d]"," [a|[b|[c|d]]]","[a,b|[c|d] ]"," [  a, b | [ c | d ] ] "})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['a','b','c' | 'd']",text);
+		}
+	}
+
+	
+	@Test
+	public void testParseList6()
+	{
+		for(String text:new String[]{
+				" [ a,b,c,d]"," [a|[b|[c|[d]]]]","[a,b|[c|[d]] ]"," [  a, b| [ c | [d] ] ] "})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['a','b','c','d']",text);
+		}
+	}
+
+	@Test
+	public void testParseList7()
+	{
+		for(String text:new String[]{
+				" [ a,b,40| -5 ]"," [a|[b|[40|-5]]]"})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['a','b',40 | -5]",text);
+		}
+	}
+
+	/** Erlang rejects integers in scientific notation such as 7e4, it has to be 7.0e4.
+	 * We also happily parse 7.e4 which Erlang rejects.
+	  */
+	@Test
+	public void testParseList8()
+	{
+		for(String text:new String[]{
+				" [ a,b,7.0e4| -5 ]"," [a|[b|[7.0e4|-5]]]"})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['a','b',70000.0 | -5]",text);
+		}
+	}
+
+	@Test
+	public void testParseList9()
+	{
+		for(String text:new String[]{
+				" [ a,b,c| \"test\" ]"," [a|[b|[c|[116,101,115,116]]]]"})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['a','b','c',116,101,115,116]",text);
+		}
+	}
+
 	@Test
 	public void testParseList1Fail1()
 	{
@@ -1124,6 +1245,114 @@ public class TestErlangParser {
 	}
 	
 	@Test
+	public void testParseList1Fail10()
+	{
+		final String text = "[ |";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected bar in parsing list");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail11()
+	{
+		final String text = "[ a |";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected end of list");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail12()
+	{
+		final String text = "[ a |,";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected comma");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail13()
+	{
+		final String text = "[ a |]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"missing tail in improper list");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail14()
+	{
+		final String text = "[ a |[,]]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected comma");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail15()
+	{
+		final String text = "[ a |[5],]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected comma");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail16()
+	{
+		final String text = "[ a |[5]6]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"expecting comma in parsing list");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail17()
+	{
+		final String text = "[ a |[5|]]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"missing tail in improper list");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParseList1Fail18()
+	{
+		final String text = "[ a |[5] | ]";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"unexpected bar");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
 	public void testParseBig()
 	{
 		final String text = "{\'this is an atom\',\"this is a string\",[[-234],{}]}";
@@ -1197,35 +1426,47 @@ public class TestErlangParser {
 					new Object[]{"56<","invalid token",badmatch},
 					new Object[]{"56.R","invalid token",badmatch},
 					new Object[]{"56 .R","unexpected dot",badmatch},
+					new Object[]{"56 |","unexpected characters at the end",badmatch},
+					new Object[]{"56|","unexpected characters at the end",badmatch},
 					new Object[]{"56-","invalid token",badmatch},
 					new Object[]{"56 -","invalid token",badmatch},
 					new Object[]{"56-7","expected dot",""},// Erlang permits this, we do not (expressions are not permitted for us)
+					new Object[]{"56-|","invalid token",badmatch},
 					new Object[]{"56.-","invalid token",badmatch},
 					new Object[]{"56..","unexpected dot",badmatch},
 					new Object[]{"56.-7","expected dot",badmatch},
 					new Object[]{"56. 7","unexpected space",badmatch},
 					new Object[]{"56.[","invalid token",badmatch},
 					new Object[]{"56.<","invalid token",badmatch},
+					new Object[]{"56.|","unexpected characters at the end",badmatch},
 					new Object[]{"56.5R","invalid token",badmatch},
 					new Object[]{"56.5[","invalid token",badmatch},
 					new Object[]{"56.5<","invalid token",badmatch},
+					new Object[]{"56.5|","unexpected characters at the end",badmatch},
 					new Object[]{"56e","unexpected end of",badmatch},
 					new Object[]{"56e.","unexpected dot",badmatch},
 					new Object[]{"56ee","unexpected exponent",badmatch},
+					new Object[]{"56e|","invalid token",badmatch},
 					new Object[]{"56 e","unexpected exponent",badmatch},
+					new Object[]{"56 |","unexpected characters at the end",badmatch},
 					new Object[]{"56.e","unexpected end of","illegal_expr"},
 					new Object[]{"56.eR","invalid token","illegal_expr"},
 					new Object[]{"56.e[","invalid token",badmatch},
 					new Object[]{"56.e<","invalid token",badmatch},
+					new Object[]{"56.e|","invalid token",badmatch},
 					new Object[]{"56.e-","invalid token",badmatch},
+					new Object[]{"56.e-|","invalid token",badmatch},
 					new Object[]{"56.e-6e","unexpected exponent",badmatch},
 					new Object[]{"56.e-6R","invalid token",badmatch},
 					new Object[]{"56.e-6[","invalid token",badmatch},
 					new Object[]{"56.e-6.","unexpected dot",badmatch},
 					new Object[]{"56.e-6<","invalid token",badmatch},
+					new Object[]{"56.e-6|","unexpected characters at the end",badmatch},
 					new Object[]{"56.e -6.","unexpected space",badmatch},
 					new Object[]{"56.e ,","invalid token",badmatch},
+					new Object[]{"56.e |","invalid token",badmatch},
 					new Object[]{"56.e - 6.","invalid token",badmatch},
+					new Object[]{"56.e - 6|","invalid token",badmatch},
 			});
 		}
 		
@@ -1272,6 +1513,7 @@ public class TestErlangParser {
 					new Object[]{"<< a","type is unexpected",badmatch},
 					new Object[]{"<< -","dash can only be used after a type",badmatch},
 					new Object[]{"<< /","slash can only be used after NUMBER:SIZE",badmatch},
+					new Object[]{"<< |","invalid token",badmatch},
 					
 					new Object[]{"<< -56345345345","unexpected end",badmatch},
 					new Object[]{"<< -56,","unexpected end",badmatch},
@@ -1283,6 +1525,7 @@ public class TestErlangParser {
 					new Object[]{"<< -56<<","invalid token",badmatch},
 					new Object[]{"<< -56/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:","unexpected end",badmatch},
+					new Object[]{"<< -56|","invalid token",badmatch},
 
 					new Object[]{"<< -56:345345345","unexpected end",badmatch},
 					new Object[]{"<< -56:,","got , in SIZE",badmatch},
@@ -1294,6 +1537,7 @@ public class TestErlangParser {
 					new Object[]{"<< -56:<<","invalid token",badmatch},
 					new Object[]{"<< -56:/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56::","got : in SIZE",badmatch},
+					new Object[]{"<< -56:|","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/,","got , in TYPE",badmatch},
 					new Object[]{"<< -56:34/ >","invalid token",badmatch},
@@ -1315,6 +1559,9 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/","unexpected end of bit string",badmatch},
 					new Object[]{"<< -56:34:","got : in SLASH_COMMA_END",badmatch},
+					new Object[]{"<< -56:34|","invalid token",badmatch},
+					new Object[]{"<< -56:34 |","invalid token",badmatch},
+					new Object[]{"<< -56:34| ","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/signed","unexpected end",badmatch},
 					new Object[]{"<< -56:34/integer","unexpected end",badmatch},
@@ -1327,6 +1574,7 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/unknown","unknown type specifier",badmatch},
 					new Object[]{"<< -56:34/55","got 55 in TYPE",badmatch},
 					new Object[]{"<< -56:34/unit","unexpected end",badmatch},
+					new Object[]{"<< -56:34/|","invalid token",badmatch},
 					
 					new Object[]{"<< -56:34/unit,","got , in UCOLON",badmatch},
 					new Object[]{"<< -56:34/unit >","invalid token",badmatch},
@@ -1337,6 +1585,7 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/unit<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/unit/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:34/unit:","unexpected end of bit string",badmatch},
+					new Object[]{"<< -56:34/unit|","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/signed,","unexpected end of bit string",badmatch},
 					new Object[]{"<< -56:34/signed >","invalid token",badmatch},
@@ -1347,6 +1596,7 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/signed<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/signed/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:34/signed:","got : in MINUS_COMMA",badmatch},
+					new Object[]{"<< -56:34/signed|","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/unit:,","got , in UNIT",badmatch},
 					new Object[]{"<< -56:34/unit: >","invalid token",badmatch},
@@ -1357,6 +1607,9 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/unit:<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/unit:/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:34/unit::","got : in UNIT",badmatch},
+					new Object[]{"<< -56:34/unit:|","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit: |","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit:| ","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/unit:5,","unexpected end of bit string",badmatch},
 					new Object[]{"<< -56:34/unit:5 >","invalid token",badmatch},
@@ -1367,6 +1620,9 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/unit:5<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/unit:5/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:34/unit:5:","got : in COMMA_END",badmatch},
+					new Object[]{"<< -56:34/unit:5|","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit:5 |","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit:5| ","invalid token",badmatch},
 
 					new Object[]{"<< -56:34/unit:5,,","got , in NUM",badmatch},
 					new Object[]{"<< -56:34/unit:5, >","invalid token",badmatch},
@@ -1377,6 +1633,9 @@ public class TestErlangParser {
 					new Object[]{"<< -56:34/unit:5,<<","invalid token",badmatch},
 					new Object[]{"<< -56:34/unit:5,/","slash can only be used after NUMBER:SIZE",badmatch},
 					new Object[]{"<< -56:34/unit:5,:","got : in NUM",badmatch},
+					new Object[]{"<< -56:34/unit:5,|","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit:5, |","invalid token",badmatch},
+					new Object[]{"<< -56:34/unit:5,| ","invalid token",badmatch},
 			});
 		}
 		

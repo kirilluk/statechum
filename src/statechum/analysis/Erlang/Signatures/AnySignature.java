@@ -22,8 +22,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -31,11 +32,28 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  * @author ramsay
  */
 public class AnySignature extends Signature {
-
-	public AnySignature(OtpErlangList attributes)
+	protected final List<OtpErlangObject> values;
+	
+	public AnySignature(Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AnySignature does not accept attributes");
+		
+		List<OtpErlangObject> result = new ArrayList<OtpErlangObject>();
+		switch(config.getErlangAlphabetAnyElements())
+		{
+		case ANY_WIBBLE:
+			result.add(new OtpErlangAtom("AnyWibble"));
+			break;
+		case ANY_WITHLIST:
+			// We are allowed anything so lets try a few things...
+			result.add(new OtpErlangAtom("JustAnythingA"));
+			result.add(new OtpErlangList(new OtpErlangObject[] {}));
+			result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA")}));
+			result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA"), new OtpErlangAtom("WobbleA")}));
+			break;
+		}
+		values = Collections.unmodifiableList(result);
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
@@ -47,20 +65,6 @@ public class AnySignature extends Signature {
 
 	@Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-		//return Collections.singletonList((OtpErlangObject)new OtpErlangAtom("Wibble"));
-		
-		// We are allowed anything so lets try a few things...
-		List<OtpErlangObject> result = new ArrayList<OtpErlangObject>();
-
-		//result.add(new OtpErlangAtom("Wibble"));
-		result.add(new OtpErlangList(new OtpErlangObject[] {}));
-		result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("Wibble")}));
-		result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("Wibble"), new OtpErlangAtom("Wobble")}));
-		//result.add(new OtpErlangAtom("Wobble"));
-		//result.add(new OtpErlangInt(1));
-		//result.add(new OtpErlangInt(0));
-
-		
-		return result;
+		return values;
 	}
 }

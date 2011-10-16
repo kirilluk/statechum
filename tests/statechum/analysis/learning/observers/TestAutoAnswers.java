@@ -95,9 +95,9 @@ public class TestAutoAnswers {
 	@Test
 	public void testPrettyPrintTrace1() throws IOException
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
+		Configuration config = ErlangModule.setupErlangConfiguration(file);
+		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
 		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
 		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();

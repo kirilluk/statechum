@@ -29,11 +29,13 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangBitstr;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
 import com.ericsson.otp.erlang.OtpErlangByte;
 import com.ericsson.otp.erlang.OtpErlangChar;
 import com.ericsson.otp.erlang.OtpErlangDouble;
+import com.ericsson.otp.erlang.OtpErlangException;
 import com.ericsson.otp.erlang.OtpErlangFloat;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -43,8 +45,10 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
+import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
 /**
@@ -73,9 +77,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	 */
 	public static final String missingFunction = "?F()";
 
-	protected String buildFunctionSignatureAsString() {// {File, LineNo, F,
-														// A,fun_to_Statechum(erl_types:t_fun(ArgType,
-														// RetType),Info#info.recMap)}
+	protected String buildFunctionSignatureAsString() {
+		// {File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType,
+		// RetType),Info#info.recMap)}
 		StringBuffer resultHolder = new StringBuffer();
 		resultHolder.append('{');
 		if (function == null) {
@@ -321,6 +325,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					first = false;
 				classToDumper.get(obj.getClass()).dump(obj, resultHolder);
 			}
+			
+			if (!list.isProper())
+			{
+				OtpErlangObject lastTail = list.getLastTail();resultHolder.append(" | ");
+				classToDumper.get(lastTail.getClass()).dump(lastTail, resultHolder);
+			}
 			resultHolder.append("]");
 		}
 
@@ -329,9 +339,11 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			assert lexer.getLastMatchType() == erlListBegin;
 
 			List<OtpErlangObject> listComponents = new LinkedList<OtpErlangObject>();
-
+			OtpErlangObject tail = null;
+			
+			OtpErlangObject nextElement = null;// temporary variable.
 			// Parser state.
-			boolean expectComma = false, pullNextToken = true;
+			boolean expectComma = false, pullNextToken = true, parsingTail = false;
 			int currentMatch = lexer.getMatchType();
 			while (currentMatch != erlListEnd) {// parsing ErlangList
 				if (currentMatch < 0)
@@ -344,10 +356,19 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlBitStrBegin:
 				case erlString:
 					if (expectComma)
-						throw new IllegalArgumentException(
-								"expecting comma in parsing list");
-					listComponents.add(tokenToParser.get(currentMatch)
-							.parseObject(lexer));
+						throw new IllegalArgumentException("expecting comma in parsing list");
+					if (tail != null)
+						throw new IllegalArgumentException("an expression past the end of a tail of an improper list, matched "+
+								lexer.getMatch()+" was parsing "+lexer.getText());
+
+					nextElement = tokenToParser.get(currentMatch).parseObject(lexer);
+					if (parsingTail)
+					{
+						tail = nextElement;
+					}
+					else
+						listComponents.add(nextElement);
+					
 					expectComma = true;
 					break;
 				case erlPositiveNumber:
@@ -358,33 +379,71 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					if (expectComma)
 						throw new IllegalArgumentException(
 								"expecting comma in parsing list but matched "+lexer.getMatch()+" was parsing "+lexer.getText());
-					listComponents.add(tokenToParser.get(currentMatch)
-							.parseObject(lexer));
-					expectComma = true;
+					if (tail != null)
+						throw new IllegalArgumentException("an expression past the end of a tail of an improper list, matched "+
+								lexer.getMatch()+" was parsing "+lexer.getText());
+					nextElement = tokenToParser.get(currentMatch).parseObject(lexer);
+					// the above terminated having eaten a token past the element it is supposed to have parsed.
 					pullNextToken = false;
+
+					if (parsingTail)
+						tail = nextElement;
+					else
+						listComponents.add(nextElement);
+					
+					expectComma = true;
+					break;
+				case erlBar:
+					parsingTail = true;
+					if (!expectComma || tail != null)
+						throw new IllegalArgumentException(
+								"unexpected bar in parsing list, looking at "	+ lexer.getMatch());
+					expectComma = false;
 					break;
 				case erlComma:
-					if (!expectComma)
+					if (!expectComma || tail != null)
 						throw new IllegalArgumentException(
-								"unexpected comma in parsing list, looking at "
-										+ lexer.getMatch());
+								"unexpected comma in parsing list, looking at "	+ lexer.getMatch());
 					expectComma = false;
 					break;
 				default:
-					throw new IllegalArgumentException("invalid token type "
-							+ currentMatch + " in parsing list, looking at "
-							+ lexer.getMatch());
+					throw new IllegalArgumentException("invalid token type " + currentMatch + " in parsing list, looking at "+ lexer.getMatch());
 				}
 				if (pullNextToken)
 					currentMatch = lexer.getMatchType();
 				else {// use the last token but pull the next one next time
-						// 'round
+					  // 'round
 					currentMatch = lexer.getLastMatchType();
 					pullNextToken = true;
 				}
 			}
-			return new OtpErlangList(
-					listComponents.toArray(new OtpErlangObject[0]));
+			
+			if (parsingTail && tail == null)
+				throw new IllegalArgumentException("missing tail in improper list");
+			
+			if (tail != null)
+			{
+				// The special case is where the end is a string which we have to turn into a list
+				// in order to merge it into the current list.
+				if (tail instanceof OtpErlangString)
+					tail = Signature.stringToList(tail);
+				
+				if (tail instanceof OtpErlangList)
+				{// merge this into the current list.
+					OtpErlangList tailAsList = (OtpErlangList)tail;
+					for(int i=0;i<tailAsList.arity();++i)
+						listComponents.add(tailAsList.elementAt(i));
+					tail = tailAsList.getLastTail();
+				}
+			}
+			
+			OtpErlangList outcome = null;
+			try {
+				outcome = new OtpErlangList(listComponents.toArray(new OtpErlangObject[0]),tail);
+			} catch (OtpErlangException e) {
+				Helper.throwUnchecked("failed to build a list", e);
+			}
+			return outcome;
 		}
 	}
 
@@ -447,6 +506,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlE:
 				case erlSpaces:
 				case erlComma:
+				case erlBar:
 					atomText.append(lexer.getMatch());
 					expectedChar = false;
 					break;
@@ -560,6 +620,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 						throw new IllegalArgumentException(
 								"unquoted atom cannot start with a dot which is ignored by the actual Erlang ");
 					break;
+				case erlBar:
 				case erlTupleBegin:
 				case erlListBegin:
 				case erlTupleEnd:
@@ -652,6 +713,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlDot:
 				case erlE:
 				case erlComma:
+				case erlBar:
 				case erlSpaces:
 					stringText.append(lexer.getMatch());
 					expectedChar = false;
@@ -798,21 +860,18 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				int bitsUsedInLeftmostByte = len % 8 == 0 ? 8 : len % 8;
 				int bitsSpareMinusBitsNeeded = (8 - (totalLen % 8))
 						- bitsUsedInLeftmostByte;
-				if (bitsSpareMinusBitsNeeded < 0) {// last byte: UUUUU...
-													// new byte: ...XXXXXX,
-													// bitsSpareMinusBitsNeeded
-													// is what will not fit in
-													// the last byte
+				if (bitsSpareMinusBitsNeeded < 0) 
+				{// last byte: UUUUU...
+				 // new byte: ...XXXXXX,
+				 // bitsSpareMinusBitsNeeded
+				 // is what will not fit in
+				 // the last byte
 					int rightShift = -bitsSpareMinusBitsNeeded;
 					// Masking is from
 					// http://stackoverflow.com/questions/11088/what-is-the-best-way-to-work-around-the-fact-that-all-java-bytes-are-signed
 					lastByte |= (byte) ((byteToAdd >> rightShift) & ((1 << (8 - rightShift)) - 1));
 					data.add(lastByte);
-					lastByte = (byte) (byteToAdd << (8 - rightShift));// make
-																		// the
-																		// last
-																		// byte
-																		// big-endian
+					lastByte = (byte) (byteToAdd << (8 - rightShift));// make the last byte big-endian
 
 					int bitsAdded = bitsUsedInLeftmostByte;
 					totalLen += bitsAdded;
@@ -871,47 +930,15 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 						len = addBigEndianByte(currentByte, len);
 					}
 				} else {// little-endian case
-					for (int i = integerData.length - 1; i > 0; --i) {// not
-																		// enough
-																		// (or
-																		// just
-																		// enough)
-																		// space
-																		// to
-																		// fit
-																		// in
-																		// the
-																		// last
-																		// byte
-																		// (we
-																		// are
-																		// trying
-																		// to
-																		// fit
-																		// an
-																		// entire
-																		// byte
-																		// in
-																		// it).
+					for (int i = integerData.length - 1; i > 0; --i) 
+					{// not enough (or just enough) space to fit in the last
+					 // byte (we are trying to fit an entire byte in it).
 						byte currentByte = integerData[i];
 						int bitsSpare = (8 - (totalLen % 8));
 						int bitsUsed = 8 - bitsSpare;
 						lastByte |= (byte) ((currentByte >> bitsUsed) & ((1 << bitsSpare) - 1));
 						data.add(lastByte);
-						lastByte = (byte) ((currentByte << bitsSpare));// the
-																		// spillover
-																		// goes
-																		// in
-																		// the
-																		// low
-																		// bits
-																		// of
-																		// the
-																		// next
-																		// byte
-																		// - we
-																		// are
-																		// little-endian
+						lastByte = (byte) ((currentByte << bitsSpare));// the spillover goes in the low bits of the next byte - we are little-endian
 						totalLen += 8;
 						len -= 8;
 					}
@@ -927,12 +954,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		int totalLen = 0;
 
 		@Override
-		public OtpErlangObject parseObject(Lexer lexer) {// I need a new
-															// instance of this
-															// object for each
-															// bit string, hence
-															// have to create it
-															// here (on demand).
+		public OtpErlangObject parseObject(Lexer lexer) 
+		{// I need a new instance of this object for each
+		 // bit string, hence have to create it here (on demand).
 			return new ErlangBitString().parseObjectInternal(lexer);
 		}
 
@@ -1185,6 +1209,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					case erlListEnd:
 					case erlSpaces:
 					case erlComma:
+					case erlBar:
 						switch (state) {
 						case PARSE_DOT:
 						case PARSE_END:
@@ -1362,16 +1387,17 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	public static final int erlNegativeNumber = 10;
 	public static final int erlBackslash = 11;
 	public static final int erlComma = 12;
-	public static final int erlSpaces = 13;
-	public static final int erlGT = 14;
-	public static final int erlLT = 15;
-	public static final int erlCol = 16;
-	public static final int erlMinus = 17;
-	public static final int erlPlus = 18;
-	public static final int erlSlash = 19;
-	public static final int erlDot = 20;
-	public static final int erlE = 21;
-	public static final int erlText = 22;
+	public static final int erlBar = 13;
+	public static final int erlSpaces = 14;
+	public static final int erlGT = 15;
+	public static final int erlLT = 16;
+	public static final int erlCol = 17;
+	public static final int erlMinus = 18;
+	public static final int erlPlus = 19;
+	public static final int erlSlash = 20;
+	public static final int erlDot = 21;
+	public static final int erlE = 22;
+	public static final int erlText = 23;
 
 	public static Lexer buildLexer(String whatToParse) {
 		return new Lexer("(\\s*\\{\\s*)|" + // erlTupleBegin
@@ -1386,6 +1412,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				"(\\s*-\\d+\\s*)|" + // erlNegativeNumber
 				"(\\\\)|" + // erlBackslash
 				"(\\s*,\\s*)|" + // erlComma
+				"(\\s*\\|\\s*)|" + // erlBar
 				"(\\s+)|" + // erlSpaces
 				"(>)|" + // erlGT
 				"(<)|" + // erlLT
@@ -1395,9 +1422,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				"(/)|" + // erlSlash
 				"(\\.)|" + // erlDot
 				"([eE])|" + // erlE
-				"([^\\\\\"\',\\[\\]{}<>:\\-/ ]+)" // erlText, together with
-													// spaces but none of the
-													// special characters above.
+				"([^\\\\\"\',\\|\\[\\]{}<>:\\-/ ]+)" // erlText, together with
+												// spaces but none of the
+												// special characters above.
 		, whatToParse);
 
 	}
@@ -1492,8 +1519,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		classToDumper.put(OtpErlangString.class, ErlangString.getSingleton());
 		classToDumper.put(OtpErlangLong.class, ErlangLong.getSingleton());
 		classToDumper.put(OtpErlangInt.class, ErlangInt.getSingleton());
+		
+		// This one is a derivative of OtpErlangBitstr.
 		classToDumper
-				.put(OtpErlangBitstr.class, ErlangBitString.getSingleton());
+			.put(OtpErlangBinary.class, ErlangBitString.getSingleton());
+		classToDumper
+			.put(OtpErlangBitstr.class, ErlangBitString.getSingleton());
 		classToDumper.put(OtpErlangFloat.class, ErlangDouble.getSingleton());
 		classToDumper.put(OtpErlangDouble.class, ErlangDouble.getSingleton());
 		classToDumper.put(OtpErlangChar.class, ErlangChar.getSingleton());
@@ -1520,11 +1551,10 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	 * label - it cannot really be passed to Erlang for execution because the
 	 * function it corresponds to is not defined.
 	 */
-	public static ErlangLabel erlangObjectToLabel(OtpErlangObject obj,
-			Configuration config) {
+	public static ErlangLabel erlangObjectToLabel(OtpErlangObject obj, Configuration config) 
+	{
 		if (!(obj instanceof OtpErlangTuple))
-			throw new IllegalArgumentException("expected a tuple, parsed "
-					+ obj);
+			throw new IllegalArgumentException("expected a tuple, parsed "+ obj);
 		OtpErlangTuple tuple = (OtpErlangTuple) obj;
 
 		ErlangLabel outcome = null;

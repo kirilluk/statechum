@@ -4,6 +4,7 @@
  */
 package statechum.analysis.learning;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -14,13 +15,18 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangObject;
+
 import statechum.Configuration;
+import statechum.Configuration.EXPANSIONOFANY;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper;
 import statechum.Configuration.LABELKIND;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -42,13 +48,11 @@ public class TestErlangOracleLearner {
 	@Test
 	public void testLockerLearning()
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
+				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl")));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
-		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		learnerConfig.config.setErlangModuleName("locker");
-		learnerConfig.config.setErlangSourceFile("ErlangExamples/locker/locker.erl");
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
-		
 		learner.GenerateInitialTraces();
 		LearnerGraph locker = learner.learnMachine();
 		Assert.assertEquals(6,locker.getStateNumber());
@@ -59,10 +63,9 @@ public class TestErlangOracleLearner {
 	@Test
 	public void testLockerLearningWithoutOutputMatching()
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
-		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		learnerConfig.config.setErlangModuleName("locker");
-		learnerConfig.config.setErlangSourceFile("ErlangExamples/locker/locker.erl");
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
+				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl")));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		learnerConfig.config.setUseErlangOutputs(false);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		
@@ -80,8 +83,9 @@ public class TestErlangOracleLearner {
             @Override
 			public void runExperiment() {
                 setSimpleConfiguration(learnerInitConfiguration.config, active, k);
+                learnerInitConfiguration.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
                 try {
-					ErlangModule.loadModule(learnerInitConfiguration.config.getErlangSourceFile());
+					ErlangModule.loadModule(learnerInitConfiguration.config);
 				} catch (IOException e) {
 					Helper.throwUnchecked("failed to load module from "+learnerInitConfiguration.config.getErlangModuleName(), e);
 				}
@@ -132,18 +136,16 @@ public class TestErlangOracleLearner {
 	@Test
 	public void testLearningFromErlangTraceFile2() throws IOException
 	{
-		ErlangModule mod = ErlangModule.loadModule(lockerFile);
+		Configuration config = ErlangModule.setupErlangConfiguration(new File(lockerFile));
+        config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule mod = ErlangModule.loadModule(config);
 		Set<ErlangLabel> alphabetA = new TreeSet<ErlangLabel>();alphabetA.addAll(mod.behaviour.getAlphabet());
 		ErlangModule.flushRegistry();
-		ErlangModule modSame = ErlangModule.loadModule(lockerFile);
-		System.out.println("============================");
-		System.out.println(alphabetA);
-		System.out.println("============================");
-		System.out.println(modSame.behaviour.getAlphabet());
+		config = ErlangModule.setupErlangConfiguration(new File(lockerFile));
+        config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule modSame = ErlangModule.loadModule(config);
 		Assert.assertTrue(alphabetA.equals(modSame.behaviour.getAlphabet()));// check that the same alphabet will be loaded second time.
 		ErlangModule.flushRegistry();
-		System.out.println("============================");
-		
 		
 		ErlangOracleLearner learner = ErlangQSMOracle.createLearner(null,"resources/earlier_failure2.txt");
 		Set<ErlangLabel> alphabetFull = new TreeSet<ErlangLabel>();alphabetFull.addAll(ErlangModule.findModule("locker").behaviour.getAlphabet());

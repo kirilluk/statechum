@@ -23,9 +23,11 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Configuration;
+
+import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
@@ -35,7 +37,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 public class TupleSignature extends Signature {
 
     protected final List<Signature> elems;
-
+    
     /** Used by the old parser. */
     public TupleSignature(List<Signature> e)
     {
@@ -43,23 +45,25 @@ public class TupleSignature extends Signature {
     }
     
     /** A tuple with an arbitrary number of elements of unknown types. */
-    public TupleSignature(OtpErlangList attributes) {
+    public TupleSignature(Configuration config, OtpErlangList attributes) {
         super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("TupleSignature does not accept attributes");
 		int arity = 2;// arbitrary value
         elems = new ArrayList<Signature>(arity);
-        for(int i=0;i<arity;++i) elems.add(wibbleSignature);
+        final AtomSignature wibbleTupleSignature = new AtomSignature(config,new OtpErlangList(),
+    			new OtpErlangList(new OtpErlangObject[] { new OtpErlangAtom("Awibble") }));
+        for(int i=0;i<arity;++i) elems.add(wibbleTupleSignature);
 		erlangTermForThisType = erlangTypeToString(attributes,null);
     }
 
     /** A tuple with elements of known types. */
-    public TupleSignature(OtpErlangList attributes,OtpErlangList values) {
+    public TupleSignature(Configuration config, OtpErlangList attributes,OtpErlangList values) {
         super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("TupleSignature does not accept attributes");
      
        	int arity = values.arity();
         elems = new ArrayList<Signature>(arity);
-        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
+        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(config, values.elementAt(i)));
 		erlangTermForThisType = erlangTypeToString(attributes,values);
    }
 

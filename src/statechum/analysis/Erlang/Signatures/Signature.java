@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
@@ -63,22 +64,17 @@ public abstract class Signature implements Label {
 	 */
 	abstract public boolean typeCompatible(OtpErlangObject term);
 
-	/** Used to instantiate a list of "any" elements. */
-	protected static final AtomSignature wibbleSignature = new AtomSignature(new OtpErlangList(),
-			new OtpErlangList(new OtpErlangObject[] { new OtpErlangAtom("Awibble") }));
-
 	/**
 	 * Given an Erlang type encoded as an object, constructs an instance of a
 	 * corresponding type.
 	 */
-	public static Signature buildFromType(OtpErlangObject elementAt) {
+	public static Signature buildFromType(Configuration config, OtpErlangObject elementAt) {
 		Signature result = null;
 
 		try {
-			if (elementAt instanceof OtpErlangTuple) {// multi-arg constructor,
-														// turn elements of the
-														// tuple into arguments
-														// for the constructor.
+			if (elementAt instanceof OtpErlangTuple) {
+				// multi-arg constructor, turn elements of the
+				// tuple into arguments for the constructor.
 				OtpErlangTuple argTuple = (OtpErlangTuple) elementAt;
 				if (argTuple.arity() < 2)
 					throw new IllegalArgumentException(
@@ -87,31 +83,36 @@ public abstract class Signature implements Label {
 					throw new IllegalArgumentException(
 							"invalid type argument: a list with arity of over three");
 				final int argumentNumber = argTuple.arity() - 1;
-				Class<OtpErlangList>[] argTypes = new Class[argumentNumber];
+				
+				// We create an array with argumentNumber+1 values reflecting that 
+				// the first argument is a Configuration.
+				Class<? extends Object>[] argTypes = new Class[argumentNumber+1];
+				argTypes[0]=Configuration.class;
 				for (int i = 0; i < argumentNumber; ++i)
-					argTypes[i] = OtpErlangList.class;
+					argTypes[i+1] = OtpErlangList.class;
 				@SuppressWarnings("unchecked")
 				Class<Signature> sigClass = (Class<Signature>) Class
 						.forName("statechum.analysis.Erlang.Signatures."
 								+ ((OtpErlangAtom) argTuple.elementAt(0)).atomValue() + "Signature");
 				Constructor<Signature> constructor = sigClass.getConstructor(argTypes);
-				Object[] values = new OtpErlangList[argumentNumber];
+				Object[] values = new Object[argumentNumber+1];
+				values[0]=config;
 				for (int i = 0; i < argumentNumber; ++i) {
 					OtpErlangObject obj = argTuple.elementAt(i + 1);
 					if (obj instanceof OtpErlangString)
 						obj = stringToList(obj);
 					else if (!(obj instanceof OtpErlangList))
 						throw new IllegalArgumentException("got " + obj + " where expected a list");
-					values[i] = obj;
+
+					values[i+1] = obj;
 				}
 				result = constructor.newInstance(values);
 			} else
 				throw new IllegalArgumentException("invalid type argument " + elementAt
 						+ " : it has to be a tuple");
-		} catch (IllegalArgumentException ex) {// if one of the constructors or
-												// some of the consistency
-												// checks failed, re-throw the
-												// exception.
+		} catch (IllegalArgumentException ex) {
+			// if one of the constructors or some of the consistency
+			// checks failed, re-throw the exception.
 			throw ex;
 		} catch (Exception ex) {// failed to create instance
 			Helper.throwUnchecked("Failed to create a type instance corresponding to " + elementAt, ex);

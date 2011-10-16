@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangByte;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -38,7 +40,8 @@ public class StringSignature extends Signature {
 	protected final List<OtpErlangObject> values;
 	protected final boolean nonEmpty;
 		
-	public StringSignature(OtpErlangList attributes)
+	public StringSignature(@SuppressWarnings("unused") Configuration config, 
+			OtpErlangList attributes)
 	{
 		if (attributes.arity() > 0) 
 			nonEmpty = attributes.elementAt(0).equals(ListSignature.NonEmptyAtom);
@@ -49,9 +52,11 @@ public class StringSignature extends Signature {
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
-	public StringSignature(OtpErlangList attributes, OtpErlangList valuesArg)
+	public StringSignature(@SuppressWarnings("unused") Configuration config, 
+			OtpErlangList attributes, OtpErlangList valuesArg)
 	{
-		if (attributes.arity() > 0) throw new IllegalArgumentException("no attributes supported for a string with an explicit collection of values");
+		if (attributes.arity() > 0) 
+			throw new IllegalArgumentException("no attributes supported for a string with an explicit collection of values");
 		values = new ArrayList<OtpErlangObject>(valuesArg.arity());
 		boolean nonEmptyValue = true;
 		for(int i=0;i<valuesArg.arity();++i)

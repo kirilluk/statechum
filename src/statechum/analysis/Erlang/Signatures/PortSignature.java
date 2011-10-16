@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPort;
@@ -31,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangPort;
  */
 public class PortSignature extends Signature {
 
-	public PortSignature(OtpErlangList attributes)
+	public PortSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("PortSignature does not accept attributes");

@@ -262,7 +262,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 		ErlangModuleViewer emv = new ErlangModuleViewer();
 		if (args.length > 0) {
 			try {
-				emv.displayModule(ErlangModule.loadModule(args[0], Configuration.getDefaultConfiguration()));
+				emv.displayModule(ErlangModule.loadModule(args[0]));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

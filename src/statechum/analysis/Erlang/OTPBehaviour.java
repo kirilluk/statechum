@@ -146,15 +146,16 @@ public abstract class OTPBehaviour {
 					// Really, I don't care...
 					// throw new
 					// IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
-					System.out.println("function " + pattern.getKey() + " is missing in module "
-							+ parent.getName());
+					System.out.println("function " + pattern.getKey() + " is missing in module " + parent.getName());
 				} else {
 					String otpName = pattern.getValue().getOtpName();
 					if (parent.sigs.containsKey(otpName))
 						throw new IllegalArgumentException("there is already a function defined with name "
 								+ otpName + " in module " + parent.getName());
-					FuncSignature origFunction = parent.sigs.get(pattern.getKey()), otpFunction = new FuncSignature(
-							ErlangLabel.parseText(origFunction.toErlangTerm()), pattern.getValue());
+					FuncSignature 
+						origFunction = parent.sigs.get(pattern.getKey()), 
+						otpFunction = new FuncSignature(config, ErlangLabel.parseText(origFunction.toErlangTerm()), 
+								pattern.getValue());
 
 					parent.sigs.put(otpName, otpFunction);
 					addFunctionToAlphabet(otpName, otpFunction, config);
@@ -204,12 +205,9 @@ public abstract class OTPBehaviour {
 				new OtpErlangObject[] { new OtpErlangAtom("dependencies"),
 						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM)) },
 				"Could not load dependencies of " + file.getName());
-
-		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the
-																				// first
-																				// element
-																				// is
-																				// 'ok'
+		
+		// the first element is 'ok'
+		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);
 		for (OtpErlangObject tup : listOfDepTuples.elements()) {
 			String mod = ((OtpErlangAtom) ((OtpErlangTuple) tup).elementAt(0)).atomValue();
 			if (!stdModsList.contains(mod) && !dependencies.contains(mod)) {
@@ -380,14 +378,12 @@ public abstract class OTPBehaviour {
 		ErlangLabel label = (ErlangLabel) lbl;
 
 		FuncSignature origFunc = parent.sigs.get(label.callName);
-		//if (origFunc == null)
-		//	throw new IllegalArgumentException("unknown function \"" + label.callName + "\" in module "
-		//			+ parent.getName());
+		if (origFunc == null)
+			throw new IllegalArgumentException("unknown function \"" + label.callName + "\" in module "
+					+ parent.getName());
 
-		// At this point, we know which function should correspond to this
-		// label,
-		// it is worth checking whether the function already associated with the
-		// label
+		// At this point, we know which function should correspond to this label,
+		// it is worth checking whether the function already associated with the label
 		// is the correct function,
 		if (label.function != null) {
 			if (!label.function.toErlangTerm().equals(origFunc.toErlangTerm()))

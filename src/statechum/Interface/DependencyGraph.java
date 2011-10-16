@@ -43,7 +43,7 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 				// load the module
 				try {
 					System.out.println("Loading " + f.getName());
-					ErlangModule mod = ErlangModule.loadModule(f);
+					ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f));
 					DirectedSparseVertex myVertex = getVertex(mod.name);
 					myVertex.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 

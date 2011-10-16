@@ -37,11 +37,10 @@ import org.junit.Test;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangPid;
-import com.ericsson.otp.erlang.OtpErlangPort;
 import com.ericsson.otp.erlang.OtpErlangString;
 
 import statechum.Configuration;
+import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Configuration.LABELKIND;
 import statechum.Helper.whatToRun;
 import statechum.Helper;
@@ -63,6 +62,8 @@ public class TestTypes
      */
     protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl";
  
+    protected final Configuration defaultConfig = Configuration.getDefaultConfiguration().copy();
+    
     @Before
 	public void beforeTest()
 	{
@@ -104,7 +105,7 @@ public class TestTypes
 	public void testExtractionOfOTPreturnValue1()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'Tuple',[],[{'Atom',[],['noreply']},{'Any',[]}]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Any',[]}",conversionResult.toErlangTerm());
 	}
@@ -114,7 +115,7 @@ public class TestTypes
 	public void testExtractionOfOTPreturnValue2()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'Tuple',[],[{'Atom',[],['noreply']},{'Alt',[],[{'Atom',[],['stop']},{'Atom',[],['normal']}]}]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Alt',[],[{'Atom',[],['stop']},{'Atom',[],['normal']}]}",conversionResult.toErlangTerm());
 	}
@@ -125,7 +126,7 @@ public class TestTypes
 	{
 		String nestedAlt = "{'Alt',[],[{'Atom',[],['normal']},{'Atom',[],['aaa']},{'Atom',[],['bb']}]}";
 		OtpErlangObject obj = ErlangLabel.parseText("{'Tuple',[],[{'Atom',[],['noreply']},{'Alt',[],[{'Atom',[],['stop']},"+nestedAlt+"]}]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Alt',[],[{'Atom',[],['stop']},{'Atom',[],['normal']},{'Atom',[],['aaa']},{'Atom',[],['bb']}]}",conversionResult.toErlangTerm());
 	}
@@ -135,7 +136,7 @@ public class TestTypes
 	public void testExtractionOfOTPreturnValue4()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Any',[]}]},{'Tuple',[],[{'Atom',[],['stop']},{'Atom',[],['normal']},{'Atom',[],['stopped']}]}]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Alt',[],[{'Any',[]},{'Atom',[],['normal']}]}",conversionResult.toErlangTerm());
 	}
@@ -146,7 +147,7 @@ public class TestTypes
 	{
 		String nestedTerm = "{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Any',[]}]},{'Tuple',[],[{'Atom',[],['stop']},{'Atom',[],['normal']},{'Atom',[],['stopped']}]}]}";
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Atom',[],['tmp']}]},"+nestedTerm+"]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Alt',[],[{'Atom',[],['tmp']},{'Any',[]},{'Atom',[],['normal']}]}",conversionResult.toErlangTerm());
 	}
@@ -157,7 +158,7 @@ public class TestTypes
 	{
 		String nestedTerm = "{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Any',[]}]},{'Tuple',[],[{'Atom',[],['stop']}]}]}";
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Atom',[],['tmp']}]},"+nestedTerm+"]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		}},IllegalArgumentException.class,"tuple too short");
@@ -168,7 +169,7 @@ public class TestTypes
 	public void testExtractionOfOTPreturnValue6()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'None',[]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'None',[]}",conversionResult.toErlangTerm());
 	}
@@ -178,7 +179,7 @@ public class TestTypes
 	public void testExtractionOfOTPreturnValue7()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'Any',[]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Any',[]}",conversionResult.toErlangTerm());
 	}
@@ -190,7 +191,7 @@ public class TestTypes
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Atom',[],['tmp']}]},"+
 				"{'Atom',[],['normal']}"+
 				"]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		}},IllegalArgumentException.class,"expected a tuple or an alt");
@@ -203,7 +204,7 @@ public class TestTypes
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Atom',[],['tmp']}]},"+
 				"{'Any',[]}"+
 				"]}");
-		Signature sig = Signature.buildFromType(obj);
+		Signature sig = Signature.buildFromType(defaultConfig, obj);
 		final Signature conversionResult = new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
 		Assert.assertEquals("{'Alt',[],[{'Atom',[],['tmp']},{'Any',[]}]}",conversionResult.toErlangTerm());
 	}
@@ -216,7 +217,7 @@ public class TestTypes
 		"\nhandle_call(45,_,_)->ok.\nhandle_cast(_,_)->ok.\n\ninit(_)->ok.\nhandle_info(_,_)->ok.\n");wr.close();
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(new File(erlangFile));
+			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		}},IllegalArgumentException.class,"expected a tuple or an alt");
 	}
 	
@@ -228,7 +229,7 @@ public class TestTypes
 		"\nhandle_call(45,_,_)->{reply}.\nhandle_cast(_,_)->{reply,ok}.\n\ninit(_)->ok.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(new File(erlangFile));
+			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		}},IllegalArgumentException.class,"tuple too short");
 	}
 	
@@ -240,7 +241,7 @@ public class TestTypes
 	{
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n"+
 		"\nhandle_call(45,_,_)->{reply,ok,5}.\n");wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 45, ok",config);
@@ -270,7 +271,7 @@ public class TestTypes
 		wr.write("handle_call("+n+",_,_)->{reply,ok,5}.\n");
 		
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 45, ok",config);
@@ -291,7 +292,7 @@ public class TestTypes
 		wr.write("handle_call("+56+",_,_)->{reply,ok,5}.\n");
 		
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 98, ok",config);
@@ -309,12 +310,14 @@ public class TestTypes
 		wr.write("handle_call("+1+",_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 /*		OtpErlangObject funcDescr = ErlangLabel.parseText(mod.sigs.get("call").toErlangTerm().replace("boundaries", "positive"));
 		System.out.println(funcDescr);*/
-		mod.sigs.put("funcPositive", new FuncSignature(ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
-		"{'Func',[],[{'Int',[positive]}],{'Atom',[],[ok]}}}"),null));
+		mod.sigs.put("funcPositive", new FuncSignature(defaultConfig, 
+				ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
+				"{'Func',[],[{'Int',[positive]}],{'Atom',[],[ok]}}}"),
+			null));
 		
 		createLabel("funcPositive, 998, ok",config);
 		checkFailureFor("funcPositive, [45], ok", config);
@@ -329,10 +332,12 @@ public class TestTypes
 		wr.write("handle_call("+1+",_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		mod.sigs.put("funcNegative", new FuncSignature(ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
-		"{'Func',[],[{'Int',[negative]}],{'Atom',[],[ok]}}}"),null));
+		mod.sigs.put("funcNegative", new FuncSignature(defaultConfig, 
+				ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
+				"{'Func',[],[{'Int',[negative]}],{'Atom',[],[ok]}}}"),
+			null));
 		
 		checkFailureFor("funcNegative, 998, ok",config);
 		checkFailureFor("funcNegative, [45], ok", config);
@@ -347,10 +352,12 @@ public class TestTypes
 		wr.write("handle_call("+1+",_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		mod.sigs.put("funcNonnegative", new FuncSignature(ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
-		"{'Func',[],[{'Int',[nonnegative]}],{'Atom',[],[ok]}}}"),null));
+		mod.sigs.put("funcNonnegative", new FuncSignature(defaultConfig, 
+				ErlangLabel.parseText("{\"testFile.erl\",3,handle_call,1,"+
+				"{'Func',[],[{'Int',[nonnegative]}],{'Atom',[],[ok]}}}"),
+			null));
 		
 		createLabel("funcNonnegative, 998, ok",config);
 		checkFailureFor("funcNonnegative, [45], ok", config);
@@ -362,7 +369,7 @@ public class TestTypes
 	public void testCompatibilityListNonEmptyPossiblyImproper()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'List',['nonempty','maybeimproper'],[]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Assert.assertFalse(sig.typeCompatible(ErlangLabel.parseText("[]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[5]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangRunner.getRunner().evaluateString("[2|3]")));
@@ -372,7 +379,7 @@ public class TestTypes
 	public void testCompatibilityListNonEmpty()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'List',['nonempty'],[]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Assert.assertFalse(sig.typeCompatible(ErlangLabel.parseText("[]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[5]")));
 		Assert.assertFalse(sig.typeCompatible(ErlangRunner.getRunner().evaluateString("[2|3]")));
@@ -382,7 +389,7 @@ public class TestTypes
 	public void testCompatibilityListNonEmptyImproper()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'List',['nonempty','improper'],[]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Assert.assertFalse(sig.typeCompatible(ErlangLabel.parseText("[]")));
 		Assert.assertFalse(sig.typeCompatible(ErlangLabel.parseText("[5]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangRunner.getRunner().evaluateString("[2|3]")));
@@ -392,7 +399,7 @@ public class TestTypes
 	public void testCompatibilityListA()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'List',[],[]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[5]")));
 		Assert.assertFalse(sig.typeCompatible(ErlangRunner.getRunner().evaluateString("[2|3]")));
@@ -402,7 +409,7 @@ public class TestTypes
 	public void testCompatibilityListB()
 	{
 		OtpErlangObject obj = ErlangLabel.parseText("{'List',[],[{'Atom',[],[aa,bb]}]}");
-		final Signature sig = Signature.buildFromType(obj);
+		final Signature sig = Signature.buildFromType(defaultConfig, obj);
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[]")));
 		Assert.assertTrue(sig.typeCompatible(ErlangLabel.parseText("[bb]")));
 		Assert.assertFalse(sig.typeCompatible(ErlangLabel.parseText("[5]")));
@@ -416,7 +423,7 @@ public class TestTypes
 		wr.write("handle_call([67,1900,atom],_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 256, ok",config);
@@ -450,7 +457,7 @@ public class TestTypes
 		wr.write("handle_call([\"str\"|55],_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 256, ok",config);
@@ -483,7 +490,7 @@ public class TestTypes
 		wr.write("handle_call([\"str\"],_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 
 		createLabel("call, 256, ok",config);
@@ -515,7 +522,7 @@ public class TestTypes
 		wr.write("handle_call([67,1900,atom|junk],_,_)->{reply,ok,5};\n");
 		wr.write("handle_call("+256+",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, 256, ok",config);
@@ -545,7 +552,7 @@ public class TestTypes
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ListSignature.checkEmptyList(new OtpErlangString("a"));
-		}},IllegalArgumentException.class,"the last tail of an improper list");
+		}},IllegalArgumentException.class,"the tail of an improper list");
 	}
 	
 	@Test
@@ -553,7 +560,7 @@ public class TestTypes
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ListSignature.checkEmptyList(new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("a")}));
-		}},IllegalArgumentException.class,"the last tail of an improper list");
+		}},IllegalArgumentException.class,"the tail of an improper list");
 	}
 	
 	/** Tests for strings. */
@@ -565,7 +572,7 @@ public class TestTypes
 		wr.write("handle_call(\"this is a test\",_,_)->{reply,ok,5};\n");
 		wr.write("handle_call(\"more interesting things\",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		createLabel("call, \"ttt\",ok",config);
 		createLabel("call, \"ttt\"",config);
@@ -582,7 +589,7 @@ public class TestTypes
 		wr.write("handle_call({\"this is a test\",\"aa\"},_,_)->{reply,\"yy\",5};\n");
 		wr.write("handle_call(\"more interesting things\",_,_)->{reply,ok,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		createLabel("call, \"ttt\",ok",config);
 		createLabel("call, \"ttt\",\"y\"",config);
@@ -598,9 +605,9 @@ public class TestTypes
 		
 		// now force the function to require non-empty tails
 		//dumpFuncDescr(mod);
-		mod.sigs.put("func", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'Alt',[],[{'List',[nonempty],[{'Int',[values],\" eghimnorst\"}]},{'Tuple',[],[{'List',[],[{'Int',[values],\" aehist\"}]},{'List',[],[{'Int',[values],\"a\"}]}]}]}],{'Alt',[],[{'Atom',[],[ok]},{'List',[],[{'Int',[values],\"y\"}]}]}}}"
-		),null));
+		mod.sigs.put("func", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+				"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'Alt',[],[{'List',[nonempty],[{'Int',[values],\" eghimnorst\"}]},{'Tuple',[],[{'List',[],[{'Int',[values],\" aehist\"}]},{'List',[],[{'Int',[values],\"a\"}]}]}]}],{'Alt',[],[{'Atom',[],[ok]},{'List',[],[{'Int',[values],\"y\"}]}]}}}"
+			),null));
 		createLabel("func, {\"ttt\",\"a\"},\"y\"",config);
 		createLabel("func, {\"ttt\",\"\"},\"\"",config);
 		checkFailureFor("func, \"\",\"\"",config);// first list is empty
@@ -620,7 +627,7 @@ public class TestTypes
 		//wr.write("handle_call(F,_,_) when F > 0 ->\"yy\".\n");
 		//wr.write("handle_call(F,_,_) when F == self() ->\"yy\".\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, {33,\"a\"},45",config);
@@ -638,7 +645,7 @@ public class TestTypes
 		wr.write("handle_call(F,_,_) when F == {} -> {reply,wr(F),5}.\n");
 		wr.write("wr({}) -> 1.");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		createLabel("call, {},1",config);
 		checkFailureFor("call, {44},1",config);
@@ -655,7 +662,7 @@ public class TestTypes
 		wr.write("handle_call(F,_,_) when F == [] -> {reply,wr(F),5}.\n");
 		wr.write("wr([]) -> 1.");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		createLabel("call, [],1",config);
 		checkFailureFor("call, [44],1",config);
@@ -672,20 +679,20 @@ public class TestTypes
 		wr.write("handle_call(F,_,_) when F == [] -> {reply,wr(F),5}.\n");
 		wr.write("wr([]) -> 1.");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		mod.sigs.put("strA", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[],\"strA\"]}],{'Int',[values],[1]}}}"),
-		null));
-		mod.sigs.put("strB", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[\"strB\"]}],{'Int',[values],[1]}}}"),
-		null));
-		mod.sigs.put("strC", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[]}],{'Int',[values],[1]}}}"),
-		null));
-		mod.sigs.put("strCnonEmpty", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[nonempty]}],{'Int',[values],[1]}}}"),
-		null));
+		mod.sigs.put("strA", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[],\"strA\"]}],{'Int',[values],[1]}}}"),
+			null));
+		mod.sigs.put("strB", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[\"strB\"]}],{'Int',[values],[1]}}}"),
+			null));
+		mod.sigs.put("strC", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[]}],{'Int',[values],[1]}}}"),
+			null));
+		mod.sigs.put("strCnonEmpty", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[nonempty]}],{'Int',[values],[1]}}}"),
+			null));
 		
 		createLabel("strA, [],1",config);
 		createLabel("strA, \"strA\",1",config);
@@ -711,14 +718,14 @@ public class TestTypes
 		wr.write("handle_call(F,_,_) when F == [] -> {reply,wr(F),5}.\n");
 		wr.write("wr([]) -> 1.");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		mod.sigs.put("strNonEmpty", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
-		null));
-		mod.sigs.put("strNonEmpty", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
-		null));
+		mod.sigs.put("strNonEmpty", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
+			null));
+		mod.sigs.put("strNonEmpty", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
+			null));
 		
 		createLabel("call, [],1",config);
 		checkFailureFor("call, [44],1",config);
@@ -734,7 +741,7 @@ public class TestTypes
 
 		wr.write("handle_call(4.8,_,_) -> {reply,1,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		createLabel("call, 4.8,1",config);
 		createLabel("call, 4.7,1",config);
@@ -754,7 +761,7 @@ public class TestTypes
 
 		wr.write("handle_call(<< 4:2,5:6 >>,_,_) -> {reply,1,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		checkFailureFor("call, 4,1",config);
 	}
@@ -767,8 +774,9 @@ public class TestTypes
 
 		wr.write("handle_call(_,_,_) -> {reply,<< 4:2,5:6 >>,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+		config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals("[{?F(),'call','AnyWibble',<< 34, 56>>},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",getAlphabetAsString(mod));
 		createLabel("call, 4.7,<< 45>> ",config);
 		checkFailureFor("call, 4,1",config);
@@ -783,7 +791,9 @@ public class TestTypes
 		wr.write("handle_call(F,_,_) when F == {4,f} -> {reply,wr(F),5}.\n");
 		wr.write("wr(A) -> A+1.");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+		config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals("[{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",getAlphabetAsString(mod));
 	}
 	
@@ -795,7 +805,7 @@ public class TestTypes
 
 		wr.write("handle_call(true,_,_) -> {reply,1,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		
 		createLabel("call, true,1",config);
@@ -811,11 +821,11 @@ public class TestTypes
 
 		wr.write("handle_call([false,true],_,_) -> {reply,1,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		mod.sigs.put("bool", new FuncSignature(ErlangLabel.parseText(
-		"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'Boolean',[]}],{'Int',[values],[1]}}}"),
-		null));
+		mod.sigs.put("bool", new FuncSignature(defaultConfig, ErlangLabel.parseText(
+			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'Boolean',[]}],{'Int',[values],[1]}}}"),
+			null));
 		
 		createLabel("bool, true,1",config);
 		createLabel("bool, false,1",config);
@@ -842,7 +852,8 @@ public class TestTypes
 	public void testTypeCompatibilityPid()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
+			Signature.buildFromType(defaultConfig, ErlangRunner.getRunner().evaluateString(
+					"typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
 		}},RuntimeException.class,"we cannot instantiate PIDs");
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
@@ -852,7 +863,8 @@ public class TestTypes
 	public void testTypeCompatibilityPort()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			Signature sig = Signature.buildFromType(ErlangRunner.getRunner().evaluateString("[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
+			Signature.buildFromType(defaultConfig, ErlangRunner.getRunner().evaluateString(
+					"[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
 		}},RuntimeException.class,"we cannot instantiate Ports");
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
@@ -867,11 +879,17 @@ public class TestTypes
 		wr.write("handle_call(#st{processNum=33}=Arg,_,_) -> {reply,11,5};\n");
 		wr.write("handle_call(#st{smth=\"whatever\"}=Arg,_,_) -> {reply,12,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+		config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule mod = ErlangModule.loadModule(config);
 
 		checkFailureFor("call, afalse,11",config);
-		Assert.assertEquals("[{?F(),'call',{'st'},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",
+		Assert.assertEquals("["+
+				"{"+ErlangLabel.missingFunction+",'call',{'st'},11},"+
+				"{"+ErlangLabel.missingFunction+",'cast','AnyWibble',5},"+
+				"{"+ErlangLabel.missingFunction+",'info','AnyWibble',{'noreply',5}},"+
+				"{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}" +
+				"]",
 				getAlphabetAsString(mod));
 	}
 	
@@ -883,11 +901,19 @@ public class TestTypes
 		wr.write("handle_call(#st{processNum=33,smth=\"whatever\"}=Arg,_,_) -> {reply,11,5};\n");
 		wr.write("handle_call(#st{processNum=11,smth=\"Awhatever\"}=Arg,_,_) -> {reply,12,5}.\n");
 		wr.write(otherMethods);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+		config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		ErlangModule mod = ErlangModule.loadModule(config);
 
 		checkFailureFor("call, afalse,11",config);
-		Assert.assertEquals("[{?F(),'call',{'st',11,[]},11},{?F(),'call',{'st',11,[65,65]},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]", 
+		Assert.assertEquals("["+
+				"{"+ErlangLabel.missingFunction+",'call',{'st',11,[]},11},"+
+				"{"+ErlangLabel.missingFunction+",'call',{'st',11,[65]},11}," +
+				"{"+ErlangLabel.missingFunction+",'call',{'st',11,[65,65]},11}," +
+				"{"+ErlangLabel.missingFunction+",'call',{'st',11,[65,65,65]},11}," +
+				"{"+ErlangLabel.missingFunction+",'cast','AnyWibble',5}," + 
+				"{"+ErlangLabel.missingFunction+",'info','AnyWibble',{'noreply',5}},"+
+				"{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}]", 
 				getAlphabetAsString(mod));
 	}
 }

@@ -19,6 +19,7 @@ package statechum;
 
 import static statechum.Helper.throwUnchecked;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
@@ -26,6 +27,7 @@ import java.util.List;
 
 import junit.framework.Assert;
 import statechum.Configuration.ERLCOVERAGE;
+import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Configuration.IDMode;
@@ -222,6 +224,16 @@ public class AttributeMutator {
 				if (var.getType().equals(ERLCOVERAGE.class))
 				{
 					valueA = ERLCOVERAGE.ERLCOV_NONE;valueB = ERLCOVERAGE.ERLCOV_LINE;
+				}
+				else
+				if (var.getType().equals(File.class))
+				{
+					valueA = new File("/a");valueB = new File("/b");
+				}
+				else
+				if (var.getType().equals(EXPANSIONOFANY.class))
+				{
+					valueA = EXPANSIONOFANY.ANY_WIBBLE;valueB = EXPANSIONOFANY.ANY_WITHLIST;
 				}
 				else
 					throw new IllegalArgumentException("A field "+var+" of "+clazz+" has an unsupported type "+var.getType());

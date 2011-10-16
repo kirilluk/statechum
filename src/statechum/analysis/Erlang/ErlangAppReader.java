@@ -10,9 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-import statechum.Interface.ErlangApplicationLoader;
-import statechum.Interface.ErlangModuleViewer;
-
 /**
  * 
  * @author ramsay
@@ -24,7 +21,7 @@ public class ErlangAppReader {
 		MODULES, REGISTERED, NORMAL
 	};
 
-	public static ErlangApp readFolder(File folder) throws IOException {
+	public static ErlangApp readFolder(File folder) {
 		ErlangApp result = new ErlangApp();
 		result.name = folder.getName();
 		/* Clean up the bad beams... */
@@ -36,13 +33,9 @@ public class ErlangAppReader {
 		}
 		*/
 		for (File f : folder.listFiles()) {
-			/*
-			 * if (ErlangRunner.getErlName(f.getName()) != null)
-			 * result.modules.add(ErlangModule.loadModule(f));
-			 */
-			if (f.getName().endsWith(".erl")) {
+			if (ErlangRunner.getErlName(f.getName()) != null) {
 				try {
-					result.modules.add(ErlangModule.loadModule(f));
+					result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
 					System.out.println("");
 				} catch (Exception e) {
 					System.out.println("FAILED " + e.getMessage() + " <" + e.getClass().getName() + ">]");
@@ -86,8 +79,8 @@ public class ErlangAppReader {
 					}
 					if (m.indexOf("'") < 0) {
 						try {
-							File f = new File(folder, m + ".erl");
-							result.modules.add(ErlangModule.loadModule(f));
+							File f = new File(folder, m + ErlangRunner.ERL.ERL.toString());
+							result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
 							System.out.println("");
 						} catch (FileNotFoundException e) {
 							throw new RuntimeException("File " + m + ".erl not found...");

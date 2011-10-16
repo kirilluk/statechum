@@ -180,7 +180,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		return randomFromCollection(alphabet);
 	}
 	
-	protected Label randomLabel(CmpVertex v){
+	protected Label randomLabel(@SuppressWarnings("unused") CmpVertex v){
 		Set<Label> labs = new TreeSet<Label>();
 		labs.addAll(mutating.pathroutines.computeAlphabet());
 		//labs.removeAll(buildAvoidSet(v));

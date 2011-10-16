@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
@@ -146,12 +147,12 @@ public class FuncSignature implements Label {
     	return Collections.unmodifiableList(immutableListList);
     }
     
-    protected static List<List<Signature>> LoadArgs(OtpErlangList ArgList)
+    protected static List<List<Signature>> LoadArgs(Configuration config, OtpErlangList ArgList)
     {// arguments
     	List<List<Signature>> result = new ArrayList<List<Signature>>(1);
         ArrayList<Signature> arguments = new ArrayList<Signature>(ArgList.arity());
         for(int i=0;i<ArgList.arity();++i)
-        	arguments.add(Signature.buildFromType(ArgList.elementAt(i)));
+        	arguments.add(Signature.buildFromType(config, ArgList.elementAt(i)));
         
         result.add(Collections.unmodifiableList(arguments));
         return Collections.unmodifiableList(result);
@@ -174,7 +175,7 @@ public class FuncSignature implements Label {
     public static final OtpErlangAtom funcAtom = new OtpErlangAtom("Func"); 
     
     /** Used to take a response from a call to typer and turn it into a function-signature. */
-    public FuncSignature(OtpErlangObject func, OtpCallInterface otpConverter) 
+    public FuncSignature(Configuration config,OtpErlangObject func, OtpCallInterface otpConverter) 
     {
     	super();
     	String extractedModuleName = null,extractedFuncName=null, extractedFileName = null;
@@ -204,15 +205,15 @@ public class FuncSignature implements Label {
 		if (otpConverter == null)
 		{
 			arity = ArgList.arity();assert arity == knownArity;
-			args = LoadArgs(ArgList);
-			result = Signature.buildFromType(Range);
+			args = LoadArgs(config, ArgList);
+			result = Signature.buildFromType(config,Range);
 			extraInfo = "";
 		}
 		else
         {// OTP-compatible one.
-			args = otpConverter.convertArguments(LoadArgs(ArgList));
+			args = otpConverter.convertArguments(LoadArgs(config, ArgList));
 			arity = otpConverter.getArity();
-        	Signature sig = Signature.buildFromType(Range);
+        	Signature sig = Signature.buildFromType(config,Range);
         	result = otpConverter.extractVisibleReturnType(sig);
         	extraInfo = "[OTP]";
         }

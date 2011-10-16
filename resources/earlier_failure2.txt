@@ -1,6 +1,7 @@
 config erlangSourceFile ErlangExamples/locker/locker.erl
 config labelKind LABEL_ERLANG
 config erlangModuleName locker
+config erlangAlphabetAnyElements ANY_WIBBLE
 - [[{call, {write,'AnyWibble'} ,'AnyWibble'}]]
 - [[{call, unlock ,'AnyWibble'}]]
 - [[{cast, 'AnyWibble' ,normal}]]

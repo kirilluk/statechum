@@ -415,9 +415,9 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangResponseTimeout1()
 	{
-		erl.startErlang("noserver", 0);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			makeCall(erl);
+			erl.startErlang("noserver", 0);// this one makes a call to listprocesses and hence times out if the server does not start
+			//makeCall(erl);
 		}},IllegalArgumentException.class,"timeout");
 	}
 	
@@ -505,9 +505,9 @@ public class TestErlangRunner {
 			erl.call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2Error"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
-		}},RuntimeException.class,"server did not say more");
+		}},RuntimeException.class,"ErrMsg : error errorProcessinG");
 	}
-	
+
 	@Test
 	public void testCallResponseDecodeFailure2()
 	{

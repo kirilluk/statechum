@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangDouble;
 import com.ericsson.otp.erlang.OtpErlangFloat;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -28,7 +30,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 
 public class FloatSignature extends Signature {
 
-	public FloatSignature(OtpErlangList attributes)
+	public FloatSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FloatSignature does not accept attributes");
 		erlangTermForThisType = erlangTypeToString(attributes,null);

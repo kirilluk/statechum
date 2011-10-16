@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import statechum.Configuration;
 import statechum.Helper;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -51,7 +52,8 @@ public class IntSignature extends Signature {
 	NegativeAtom = new OtpErlangAtom("negative"),
 	NonNegativeAtom = new OtpErlangAtom("nonnegative");
 
-    public IntSignature(OtpErlangList attributes,OtpErlangList boundariesOrValues) 
+    public IntSignature(@SuppressWarnings("unused") Configuration config, 
+    		OtpErlangList attributes, OtpErlangList boundariesOrValues) 
     {
     	long lowerValue = Long.MIN_VALUE,upperValue = Long.MAX_VALUE;Set<Long> valuesValue = null;
     	try
@@ -84,7 +86,7 @@ public class IntSignature extends Signature {
 		erlangTermForThisType = erlangTypeToString(attributes,boundariesOrValues);
 	}
     
-    public IntSignature(OtpErlangList attributes)
+    public IntSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
     {
     	long lowerValue = Long.MIN_VALUE, upperValue = Long.MAX_VALUE;values = null;
         for(OtpErlangObject obj:attributes.elements())

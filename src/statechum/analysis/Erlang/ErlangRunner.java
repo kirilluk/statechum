@@ -337,7 +337,7 @@ public class ErlangRunner {
 
 				// Now build environment variables to ensure that dialyzer will
 				// find a directory to put its plt file in.
-				// This is actually an bug of dialyzer which manifests itself on
+				// This is actually a dialyzer bug which manifests itself on
 				// Windows -
 				// there is no need for dialyzer_options:build(Opts) to call
 				// dialyzer_plt:get_default_plt()
@@ -412,10 +412,8 @@ public class ErlangRunner {
 						erlangProcess.exitValue();
 						// process terminated, record this as a failure
 						timeout = 0;
-					} catch (IllegalThreadStateException e) {// process not yet
-																// terminated,
-																// hence we keep
-																// waiting
+					} catch (IllegalThreadStateException e) {
+						// process not yet terminated, hence we keep waiting
 						--timeout;
 					}
 				}
@@ -456,10 +454,7 @@ public class ErlangRunner {
 		for (Field var : clazz.getDeclaredFields()) {
 			// based on constructArgList of AttributeMutator
 
-			if (var.getType() != clazz && var.getName() != "$VRc"// added by
-																	// eclemma
-																	// (coverage
-																	// analysis)
+			if (var.getType() != clazz && var.getName() != "$VRc"// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
 				String varName = var.getName();
 				Method getter = statechum.AttributeMutator.getMethod(clazz,

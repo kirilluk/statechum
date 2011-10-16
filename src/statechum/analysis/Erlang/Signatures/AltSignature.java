@@ -22,9 +22,10 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangString;
 
 /** This represents a set of alternative signatures.
  *
@@ -55,15 +56,16 @@ public class AltSignature extends Signature {
     }
     
     /** A tuple with elements of known types. */
-    public AltSignature(OtpErlangList attributes,OtpErlangList values) {
+    public AltSignature(Configuration config,OtpErlangList attributes,OtpErlangList values) {
         super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AltSignature does not accept attributes");
        	int arity = values.arity();
         elems = new ArrayList<Signature>(arity);
-        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
+        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(config,values.elementAt(i)));
 		erlangTermForThisType = erlangTypeToString(attributes,values);
     }
-   @Override
+    
+    @Override
     public List<OtpErlangObject> instantiateAllAlts() {
     	LinkedList<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
         for(Signature s : elems) {

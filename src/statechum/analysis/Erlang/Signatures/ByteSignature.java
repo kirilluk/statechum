@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangByte;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -31,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class ByteSignature extends Signature {
 
-	public ByteSignature(OtpErlangList attributes)
+	public ByteSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
  

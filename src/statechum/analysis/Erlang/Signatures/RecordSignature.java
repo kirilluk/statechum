@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -41,11 +43,11 @@ public class RecordSignature extends Signature {
     protected final Map<String, Signature> fields;
     protected final ArrayList<Signature> orderedSignatures;
     
-    public RecordSignature(OtpErlangList attributes,OtpErlangList fieldDetails) {
+    public RecordSignature(Configuration config, OtpErlangList attributes,OtpErlangList fieldDetails) {
     	if (attributes.arity() != 1) throw new IllegalArgumentException("RecordSignature expects a single attribute containing its name tag");
     	orderedSignatures = new ArrayList<Signature>(fieldDetails.arity());
     	nameTag = (OtpErlangAtom)attributes.elementAt(0);
-    	orderedSignatures.add(new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{
+    	orderedSignatures.add(new AtomSignature(config,new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{
     			nameTag
     	})));
     	name = nameTag.atomValue();
@@ -54,7 +56,7 @@ public class RecordSignature extends Signature {
         {
         	OtpErlangTuple nameValue = (OtpErlangTuple)obj;
         	if (nameValue.arity() != 2) throw new IllegalArgumentException("Invalid name-type field "+obj+" passed to RecordSignature");
-        	Signature sig = Signature.buildFromType(nameValue.elementAt(1));
+        	Signature sig = Signature.buildFromType(config, nameValue.elementAt(1));
         	orderedSignatures.add(sig);
         	fields.put(((OtpErlangAtom)nameValue.elementAt(0)).atomValue(),sig);
         }

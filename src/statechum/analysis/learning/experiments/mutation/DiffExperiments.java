@@ -586,7 +586,7 @@ public class DiffExperiments {
 			LearnerGraphND outcome = new LearnerGraphND(machine.config);AbstractLearnerGraph.copyGraphs(machine,outcome);
 			return outcome;
 		}
-
+/*
 		private void adjustArtificialTargetSize() {
 			int difference = actualTargetSize - average(sizeSequence);
 			artificialTargetSize = artificialTargetSize+difference;
@@ -600,6 +600,7 @@ public class DiffExperiments {
 			}
 			return total / sizeSequence.size();
 		}
+ */
 	
 	}
 }

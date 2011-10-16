@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -42,7 +44,7 @@ public class AtomSignature extends Signature {
 	protected final List<OtpErlangObject> valuesAsList;
 	
 	/** Arbitrary values. */
-	public AtomSignature(OtpErlangList attributes)
+	public AtomSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AtomSignature does not accept attributes");
 		valuesAsSet = null;valuesAsList = null;
@@ -50,7 +52,7 @@ public class AtomSignature extends Signature {
 	}
 	
 	/** Specific values. */
-	public AtomSignature(OtpErlangList attributes,OtpErlangList argValues)
+	public AtomSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes,OtpErlangList argValues)
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AtomSignature does not accept attributes");
 

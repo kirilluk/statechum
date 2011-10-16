@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
@@ -31,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangPid;
  */
 public class PidSignature extends Signature {
 
-	public PidSignature(OtpErlangList attributes)
+	public PidSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("PidSignature does not accept attributes");

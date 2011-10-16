@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Arrays;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -32,7 +34,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class BooleanSignature  extends Signature {
 
-	public BooleanSignature(OtpErlangList attributes)
+	public BooleanSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("BooleanSignature does not accept attributes");

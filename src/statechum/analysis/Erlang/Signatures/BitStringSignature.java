@@ -21,6 +21,7 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
 import statechum.analysis.Erlang.ErlangLabel;
 
 import com.ericsson.otp.erlang.OtpErlangBitstr;
@@ -32,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangRangeException;
 public class BitStringSignature extends Signature {
 	public final int Base,Unit;
 	
-	public BitStringSignature(OtpErlangList attributes,OtpErlangList values) throws OtpErlangRangeException
+	public BitStringSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes,OtpErlangList values) throws OtpErlangRangeException
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("BitStringSignature does not accept attributes");
 

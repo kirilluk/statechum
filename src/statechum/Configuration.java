@@ -17,6 +17,7 @@
 
 package statechum;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -481,84 +482,43 @@ public class Configuration implements Cloneable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (LearnerCloneGraph ? 1231 : 1237);
-		result = prime * result + (LearnerUseStrings ? 1231 : 1237);
-		result = prime * result + (bumpPositives ? 1231 : 1237);
-		result = prime * result + generalisationThreshold;
-		result = prime * result
-				+ ((learnerIdMode == null) ? 0 : learnerIdMode.hashCode());
-		result = prime
-				* result
-				+ ((learnerScoreMode == null) ? 0 : learnerScoreMode.hashCode());
-		result = prime
-				* result
-				+ ((questionGenerator == null) ? 0 : questionGenerator
-						.hashCode());
-		result = prime * result + pairsMergedPerHypothesis;
-		result = prime * result + (allowedToCloneNonCmpVertex ? 1231 : 1237);
-		result = prime * result + defaultInitialPTAName.hashCode();
-		result = prime * result + (debugMode ? 1231 : 1237);
-		result = prime * result + certaintyThreshold;
-		result = prime * result + minCertaintyThreshold;
-		result = prime * result + klimit;
-		result = prime * result + (askQuestions ? 1231 : 1237);
-		result = prime * result + randomPathAttemptThreshold;
-		result = prime * result + randomPathAttemptFudgeThreshold;
-		result = prime * result + (generateTextOutput ? 1231 : 1237);
-		result = prime * result + (generateDotOutput ? 1231 : 1237);
-		result = prime
-				* result
-				+ ((autoAnswerFileName == null) ? 0 : autoAnswerFileName
-						.hashCode());
-		result = prime * result + questionPathUnionLimit;
-		result = prime * result + (int) (attenuationK * 100);
-		result = prime * result + (consistencyCheckMode ? 1231 : 1237);
-		result = prime * result + (speculativeQuestionAsking ? 1231 : 1237);
-		result = prime * result + (int) (gdKeyPairThreshold * 100);
-		result = prime * result + (int) (gdLowToHighRatio * 100);
-		result = prime * result + (gdFailOnDuplicateNames ? 1231 : 1237);
-		result = prime * result + (learnerOverwriteOutput ? 1231 : 1237);
-		result = prime * result + gdMaxNumberOfStatesInCrossProduct;
-		result = prime * result + (compressLogs ? 1231 : 1237);
-		result = prime * result
-				+ ((learnerToUse == null) ? 0 : learnerToUse.hashCode());
-		result = prime * result + (useAmber ? 1231 : 1237);
-		result = prime * result + (useSpin ? 1231 : 1237);
-		result = prime * result + (useLTL ? 1231 : 1237);
-		result = prime * result + (useSMT ? 1231 : 1237);
-		result = prime * result + initialIDvalue;
-		result = prime * result + (useConstraints ? 1231 : 1237);
-		result = prime * result
-				+ (ignoreDepthInTheChoiceOfRepresentatives ? 1231 : 1237);
-		result = prime * result
-				+ (ignoreVertexAttributesInLogReplay ? 1231 : 1237);
-		result = prime * result + howManyStatesToAddFromIFTHEN;
-		result = prime * result + smtGraphDomainConsistencyCheck.hashCode();
-		result = prime * result + smtGraphRangeConsistencyCheck.hashCode();
-		result = prime * result + (prefixClosed ? 1231 : 1237);
-		result = prime * result + gdScoreComputation.hashCode();
-		result = prime * result + gdScoreComputationAlgorithm.hashCode();
-		result = prime * result
-				+ gdScoreComputationAlgorithm_TestSet_ExtraStates;
-		result = prime * result
-				+ gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
-		result = prime * result
-				+ gdScoreComputationAlgorithm_RandomWalk_ExtraLength;
-		result = prime * result + (equivalentStatesAllowedForW ? 1231 : 1237);
-		result = prime * result + (gdPropagateDet ? 1231 : 1237);
-		result = prime * result
-				+ gdScoreComputationAlgorithm_RandomWalk_PathLength;
-		result = prime * result + labelKind.hashCode();
-		result = prime * result + erlFlushDelay;
-		result = prime * result + erlCoverage.hashCode();
-		result = prime * result + (legacyXML ? 1231 : 1237);
-		result = prime * result
-				+ (erlangModuleName == null ? 0 : erlangModuleName.hashCode());
-		result = prime * result + scoreForAutomergeUponRestart;
-		result = prime * result
-				+ (erlangSourceFile == null ? 0 : erlangSourceFile.hashCode());
-		result = prime * result + (useErlangOutputs ? 1231 : 1237);
-
+		Class<? extends Configuration> clazz = getClass();
+		for(Field var:clazz.getDeclaredFields())
+		{
+			if (var.getType() != clazz && 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
+			{
+				Method getter = statechum.AttributeMutator.getMethod(clazz,
+						GETMETHOD_KIND.FIELD_GET, var);
+				Object outcome = null;
+				try {
+					outcome = getter.invoke(this, new Object[] {});
+				} catch (Exception e) {
+					Helper.throwUnchecked("cannot invoke method " + getter
+							+ " on " + clazz, e);
+				}
+				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+				{
+					result = prime * result + ( ((Boolean)outcome).booleanValue() ? 1231 : 1237 );
+				}
+				else
+				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+				{
+					result = prime * result + ((Integer)outcome).intValue();
+				}
+				else
+				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+				{
+					result = prime * result + (int) ( ((Double)outcome).doubleValue() * 100);
+				}
+				else
+					if (outcome != null)
+						result = prime * result + outcome.hashCode();
+					else
+						result = prime * result;
+			}
+		}
 		return result;
 	}
 
@@ -578,139 +538,49 @@ public class Configuration implements Cloneable {
 		if (!(obj instanceof Configuration))
 			return false;
 		final Configuration other = (Configuration) obj;
-		if (LearnerCloneGraph != other.LearnerCloneGraph)
-			return false;
-		if (LearnerUseStrings != other.LearnerUseStrings)
-			return false;
-		if (bumpPositives != other.bumpPositives)
-			return false;
-		if (generalisationThreshold != other.generalisationThreshold)
-			return false;
-		if (learnerIdMode == null) {
-			if (other.learnerIdMode != null)
-				return false;
-		} else if (!learnerIdMode.equals(other.learnerIdMode))
-			return false;
-		if (learnerScoreMode == null) {
-			if (other.learnerScoreMode != null)
-				return false;
-		} else if (!learnerScoreMode.equals(other.learnerScoreMode))
-			return false;
-		if (questionGenerator == null) {
-			if (other.questionGenerator != null)
-				return false;
-		} else if (!questionGenerator.equals(other.questionGenerator))
-			return false;
-		if (pairsMergedPerHypothesis != other.pairsMergedPerHypothesis)
-			return false;
-		if (allowedToCloneNonCmpVertex != other.allowedToCloneNonCmpVertex)
-			return false;
-		if (!defaultInitialPTAName.equals(other.defaultInitialPTAName))
-			return false;
-		if (!autoAnswerFileName.equals(other.autoAnswerFileName))
-			return false;
-		if (debugMode != other.debugMode)
-			return false;
-		if (certaintyThreshold != other.certaintyThreshold)
-			return false;
-		if (minCertaintyThreshold != other.minCertaintyThreshold)
-			return false;
-		if (klimit != other.klimit)
-			return false;
-		if (askQuestions != other.askQuestions)
-			return false;
-		if (randomPathAttemptThreshold != other.randomPathAttemptThreshold)
-			return false;
-		if (randomPathAttemptFudgeThreshold != other.randomPathAttemptFudgeThreshold)
-			return false;
-		if (generateTextOutput != other.generateTextOutput)
-			return false;
-		if (generateDotOutput != other.generateDotOutput)
-			return false;
-		if (questionPathUnionLimit != other.questionPathUnionLimit)
-			return false;
-		if (Math.abs(attenuationK - other.attenuationK) > fpAccuracy)
-			return false;
-		if (consistencyCheckMode != other.consistencyCheckMode)
-			return false;
-		if (speculativeQuestionAsking != other.speculativeQuestionAsking)
-			return false;
-		if (Math.abs(gdKeyPairThreshold - other.gdKeyPairThreshold) > fpAccuracy)
-			return false;
-		if (Math.abs(gdLowToHighRatio - other.gdLowToHighRatio) > fpAccuracy)
-			return false;
-		if (gdFailOnDuplicateNames != other.gdFailOnDuplicateNames)
-			return false;
-		if (learnerOverwriteOutput != other.learnerOverwriteOutput)
-			return false;
-		if (gdMaxNumberOfStatesInCrossProduct != other.gdMaxNumberOfStatesInCrossProduct)
-			return false;
-		if (compressLogs != other.compressLogs)
-			return false;
-		if (learnerToUse != other.learnerToUse)
-			return false;
-		if (useAmber != other.useAmber)
-			return false;
-		if (useSpin != other.useSpin)
-			return false;
-		if (useLTL != other.useLTL)
-			return false;
-		if (useSMT != other.useSMT)
-			return false;
-		if (initialIDvalue != other.initialIDvalue)
-			return false;
-		if (useConstraints != other.useConstraints)
-			return false;
-		if (ignoreDepthInTheChoiceOfRepresentatives != other.ignoreDepthInTheChoiceOfRepresentatives)
-			return false;
-		if (ignoreVertexAttributesInLogReplay != other.ignoreVertexAttributesInLogReplay)
-			return false;
-		if (howManyStatesToAddFromIFTHEN != other.howManyStatesToAddFromIFTHEN)
-			return false;
-		if (smtGraphDomainConsistencyCheck != other.smtGraphDomainConsistencyCheck)
-			return false;
-		if (smtGraphRangeConsistencyCheck != other.smtGraphRangeConsistencyCheck)
-			return false;
-		if (prefixClosed != other.prefixClosed)
-			return false;
-		if (gdScoreComputation != other.gdScoreComputation)
-			return false;
-		if (gdScoreComputationAlgorithm != other.gdScoreComputationAlgorithm)
-			return false;
-		if (gdScoreComputationAlgorithm_TestSet_ExtraStates != other.gdScoreComputationAlgorithm_TestSet_ExtraStates)
-			return false;
-		if (gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences != other.gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences)
-			return false;
-		if (gdScoreComputationAlgorithm_RandomWalk_ExtraLength != other.gdScoreComputationAlgorithm_RandomWalk_ExtraLength)
-			return false;
-		if (equivalentStatesAllowedForW != other.equivalentStatesAllowedForW)
-			return false;
-		if (gdPropagateDet != other.gdPropagateDet)
-			return false;
-		if (gdScoreComputationAlgorithm_RandomWalk_PathLength != other.gdScoreComputationAlgorithm_RandomWalk_PathLength)
-			return false;
-		if (labelKind != other.labelKind)
-			return false;
-		if (erlFlushDelay != other.erlFlushDelay)
-			return false;
-		if (erlCoverage != other.erlCoverage)
-			return false;
-		if (useErlangOutputs != other.useErlangOutputs)
-			return false;
-		if ((erlangSourceFile == null && other.erlangSourceFile != null) ||
-				(erlangSourceFile != null && other.erlangSourceFile == null) ||
-				(erlangSourceFile != null && !erlangSourceFile.
-						equals(other.erlangSourceFile)))
-			return false;
-		if (legacyXML != other.legacyXML)
-			return false;
-		if ((erlangModuleName == null && other.erlangModuleName != null)
-				|| (erlangModuleName != null && other.erlangModuleName == null)
-				|| (erlangModuleName != null && !erlangModuleName
-						.equals(other.erlangModuleName)))
-			return false;
-		if (scoreForAutomergeUponRestart != other.scoreForAutomergeUponRestart)
-			return false;
+
+		Class<? extends Configuration> clazz = getClass();
+		for(Field var:clazz.getDeclaredFields())
+		{
+			if (var.getType() != clazz && 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
+			{
+				Method getter = statechum.AttributeMutator.getMethod(clazz,
+						GETMETHOD_KIND.FIELD_GET, var);
+				Object ourValue = null, otherValue = null;
+				try {
+					ourValue = getter.invoke(this, new Object[] {});
+				} catch (Exception e) {
+					Helper.throwUnchecked("cannot invoke method " + getter
+							+ " on " + clazz, e);
+				}
+				try {
+					otherValue = getter.invoke(other, new Object[] {});
+				} catch (Exception e) {
+					Helper.throwUnchecked("cannot invoke method " + getter
+							+ " on " + other.getClass(), e);
+				}
+
+				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+				{
+					if (Math.abs(
+							((Double)ourValue).doubleValue() - 
+							((Double)otherValue).doubleValue()
+							) > fpAccuracy)
+						return false;
+				}
+				else
+				{
+
+					if ((ourValue == null && otherValue != null) ||
+							(ourValue != null && otherValue == null) ||
+							(ourValue != null && !ourValue.equals(otherValue)))
+						return false;
+
+				}
+			}
+		}
 
 		return true;
 	}
@@ -1206,13 +1076,13 @@ public class Configuration implements Cloneable {
 	}
 
 	/** Erlang module source file name. */
-	protected String erlangSourceFile = null;
+	protected File erlangSourceFile = null;
 
-	public String getErlangSourceFile() {
+	public File getErlangSourceFile() {
 		return erlangSourceFile;
 	}
 
-	public void setErlangSourceFile(String newValue) {
+	public void setErlangSourceFile(File newValue) {
 		erlangSourceFile = newValue;
 	}
 
@@ -1393,6 +1263,58 @@ public class Configuration implements Cloneable {
 		erlangModuleName = newValue;
 	}
 
+	
+	/**
+	 * Alphabet generation: the length of the list with elements of a known type to generate.  
+	 */
+	protected int erlangAlphabetListLength= 3;
+
+	public int getErlangAlphabetListLength()
+	{
+		return erlangAlphabetListLength;
+	}
+	
+	public void setErlangAlphabetListLength(int newValue)
+	{
+		erlangAlphabetListLength = newValue;
+	}
+	
+	/**
+	 * Alphabet generation: the length of the list with elements of ANY type to generate. This is significant
+	 * to reduce the number of lists generated. Even though EDSM learning is not complete, parts which
+	 * are semi-complete such as random path generation could attempt to generate too many transitions.
+	 */
+	protected int erlangAlphabetAnyListLength = 2;
+	
+	public int getErlangAlphabetAnyListLength()
+	{
+		return erlangAlphabetAnyListLength;
+	}
+	
+	public void setErlangAlphabetAnyListLength(int newValue)
+	{
+		erlangAlphabetAnyListLength = newValue;
+	}
+	
+	public enum EXPANSIONOFANY {
+		ANY_WIBBLE, ANY_WITHLIST
+	};
+
+	/** There are many different ways to choose elements to instantiate Any type with, 
+	 * this variables chooses a few alternatives.
+	 */
+	protected EXPANSIONOFANY erlangAlphabetAnyElements = EXPANSIONOFANY.ANY_WITHLIST;
+	
+	public EXPANSIONOFANY getErlangAlphabetAnyElements()
+	{
+		return erlangAlphabetAnyElements;
+	}
+	
+	public void setErlangAlphabetAnyElements(EXPANSIONOFANY newValue)
+	{
+		erlangAlphabetAnyElements = newValue;
+	}
+	
 	/**
 	 * Serialises configuration into XML Only primitive strings, enums and
 	 * primitive data types are taken care of. For this reason, this should only
@@ -1462,9 +1384,7 @@ public class Configuration implements Cloneable {
 		NodeList nodes = config.getChildNodes();
 		for (int i = 0; i < nodes.getLength(); ++i) {
 			org.w3c.dom.Node node = nodes.item(i);
-			if (node.getNodeType() != org.w3c.dom.Node.TEXT_NODE) {// ignore all
-																	// text
-																	// nodes
+			if (node.getNodeType() != org.w3c.dom.Node.TEXT_NODE) {// ignore all text nodes
 				if (node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE
 						|| !node.getNodeName().equals(configVarTag))
 					throw new IllegalArgumentException("unexpected element "
@@ -1509,6 +1429,8 @@ public class Configuration implements Cloneable {
 			} else if (var.getType().equals(Integer.class)
 					|| var.getType().equals(int.class)) {
 				value = Integer.valueOf(valueAsText);
+			} else if (var.getType().equals(File.class)) {
+				value = new File(valueAsText);
 			} else
 				throw new IllegalArgumentException("A field " + var
 						+ " of Configuration has an unsupported type "

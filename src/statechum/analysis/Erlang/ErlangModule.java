@@ -19,6 +19,7 @@
 package statechum.analysis.Erlang;
 
 import statechum.Configuration;
+import statechum.Configuration.LABELKIND;
 import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
@@ -58,7 +59,8 @@ public class ErlangModule {
 	public final Map<String, FuncSignature> sigs;
 	public final Set<String> ignoredFunctions, ignoredBehaviours;
 	
-	private ErlangModule(final File f) throws IOException {
+	private ErlangModule(Configuration config) throws IOException {
+		final File f = config.getErlangSourceFile();
 		name = ErlangRunner.getName(f, ERL.MOD);
 		sourceFolder = f.getParentFile();
 		ProgressIndicator progress = new ProgressIndicator(name, 7);
@@ -118,16 +120,14 @@ public class ErlangModule {
 
 		OtpErlangList analysisResults = (OtpErlangList) response.elementAt(1);
 		Assert.assertEquals(1, analysisResults.arity());
-		OtpErlangTuple fileDetails = (OtpErlangTuple) analysisResults
-				.elementAt(0);
-		OtpErlangList typeInformation = (OtpErlangList) fileDetails
-				.elementAt(3);
+		OtpErlangTuple fileDetails = (OtpErlangTuple) analysisResults.elementAt(0);
+		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
 			//System.out.print("\n" + typeInformation.elementAt(i).toString());
 			OtpErlangTuple functionDescr = (OtpErlangTuple) typeInformation.elementAt(i); 
 			if (functionDescr.arity() > 3)
 			{
-				FuncSignature s = new FuncSignature(typeInformation.elementAt(i), null);
+				FuncSignature s = new FuncSignature(config,typeInformation.elementAt(i), null);
 				sigs.put(s.getQualifiedName(), s);
 			}
 			else
@@ -139,7 +139,7 @@ public class ErlangModule {
 				System.out.println("Ignoring: "+fullName+", "+functionDescr.elementAt(2));
 			}
 		}
-		//System.out.println("\n");
+		
 		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this,ignoredBehaviours);
 		progress.next();// 7
 	}
@@ -206,28 +206,30 @@ public class ErlangModule {
 	protected final static Map<String, ErlangModule> modulesRegistry = new TreeMap<String, ErlangModule>();
 
 
-	public static ErlangModule loadModule(String module) throws IOException {
-		return loadModule(module, Configuration.getDefaultConfiguration());
+	public static ErlangModule loadModule(String moduleName) throws IOException {
+		return loadModule(new File(moduleName));
 	}
 	
-	public static ErlangModule loadModule(String module, Configuration config) throws IOException {
-		return loadModule(module, config, false);
+	public static Configuration setupErlangConfiguration(File module)
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setErlangSourceFile(module);
+		config.setErlangModuleName(ErlangRunner.getName(module, ERL.MOD));
+    	config.setLabelKind(LABELKIND.LABEL_ERLANG);
+    	return config;
 	}
-
-	public static ErlangModule loadModule(String module, Configuration config, boolean forceReload) throws IOException {
-		return loadModule(new File(module), config, forceReload);
-	}
-
+	
+	@Deprecated
 	public static ErlangModule loadModule(File module) throws IOException {
-		return loadModule(module, Configuration.getDefaultConfiguration());
+		return loadModule(setupErlangConfiguration(module));
 	}
 	
-	public static ErlangModule loadModule(File module, Configuration config) throws IOException {
-		return loadModule(module, config, false);
+	public static ErlangModule loadModule(Configuration config) throws IOException {
+		return loadModule(config, false);
 	}
 
-	public static ErlangModule loadModule(File module, Configuration config, boolean forceReload) throws IOException {
-		ErlangModule mod = new ErlangModule(module);
+	public static ErlangModule loadModule(Configuration config, boolean forceReload) throws IOException {
+		ErlangModule mod = new ErlangModule(config);
 		if ((!modulesRegistry.containsKey(mod.getName()))||forceReload) {
 			modulesRegistry.put(mod.getName(), mod);
 			mod.behaviour.generateAlphabet(config);

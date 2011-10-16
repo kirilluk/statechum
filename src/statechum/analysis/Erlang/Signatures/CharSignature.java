@@ -21,6 +21,8 @@ package statechum.analysis.Erlang.Signatures;
 import java.util.Collections;
 import java.util.List;
 
+import statechum.Configuration;
+
 import com.ericsson.otp.erlang.OtpErlangChar;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -31,7 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class CharSignature extends Signature {
 
-	public CharSignature(OtpErlangList attributes)
+	public CharSignature(@SuppressWarnings("unused") Configuration config, OtpErlangList attributes)
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("CharSignature does not accept attributes");

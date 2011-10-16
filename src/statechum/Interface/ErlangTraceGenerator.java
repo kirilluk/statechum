@@ -36,6 +36,7 @@ import statechum.Configuration.LABELKIND;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
@@ -403,8 +404,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				out.write("config useErlangOutputs false\n");
 			}
 			config.setErlangModuleName(module.name);
-			config.setErlangSourceFile(module.sourceFolder + File.separator
-					+ module.name + ".erl");
+			config.setErlangSourceFile(new File(module.sourceFolder,module.name+ErlangRunner.ERL.ERL.toString()));
 			ErlangOracleLearner learner = new ErlangOracleLearner(null,
 					new LearnerEvaluationConfiguration(config));
 			// Make sure our copy of the module is the same object as the
@@ -669,9 +669,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		} else {
 			config.setUseErlangOutputs(true);
 		}
+		config.setErlangSourceFile(new File(module.sourceFolder,module.name + ErlangRunner.ERL.ERL.toString()));
 		try {
-			setModule(ErlangModule.loadModule(module.sourceFolder
-					+ File.separator + module.name + ".erl", config, true));
+			setModule(ErlangModule.loadModule(config, true));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

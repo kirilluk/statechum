@@ -19,6 +19,7 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
 	    erlang:demonitor(Ref,[flush]),
 	    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
 	    %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
+	    cleanup(),
 	    State3=analyse_all(ModulesList,State2),
 	    case ProcStatus of 
 		ok ->
@@ -84,6 +85,21 @@ flushOPTrace(OPTrace, Pid, Delay) ->
     end
   end.
 
+
+%% Kill all processes that were spawned by the SUT
+%% Wrappers should make this process the group leader, which should transfer to their children
+cleanup() ->
+    lists:map(fun(Pid) -> 
+		      {group_leader, Parent} = process_info(Pid, group_leader),
+		      if (Pid == self()) ->
+			      ok;
+			 (Parent == self()) ->
+			      erlang:exit(Pid, kill);
+			 true ->
+			      ok
+		      end
+	      end, 
+	      processes()).
 
 %% Extracts the value of a variable from a configuration
 getConfig(Var,#statechum{config=Conf}=_State) ->

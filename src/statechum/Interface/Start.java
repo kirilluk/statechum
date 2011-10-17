@@ -22,8 +22,16 @@ import statechum.analysis.Erlang.ErlangModule;
  */
 public class Start extends javax.swing.JFrame {
 
-    /** Creates new form Start */
-    public Start() {
+	private final String initialDirectory;
+	
+    /**
+	 * ID for serialisation.
+	 */
+	private static final long serialVersionUID = -4326469608069940928L;
+	
+	/** Creates new form Start */
+    public Start(String dir) {
+    	initialDirectory = dir;
         initComponents();
     }
 
@@ -94,7 +102,7 @@ public class Start extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = new JFileChooser(initialDirectory);
         chooser.setAcceptAllFileFilterUsed(false);
         int returnValue = chooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -107,7 +115,7 @@ public class Start extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = new JFileChooser(initialDirectory);
         chooser.setAcceptAllFileFilterUsed(false);
         int returnValue = chooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -124,11 +132,12 @@ public class Start extends javax.swing.JFrame {
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
+    public static void main(final String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
 
-            public void run() {
-                new Start().setVisible(true);
+            @Override
+			public void run() {
+                new Start(args.length>0?args[0]:null).setVisible(true);
             }
         });
     }

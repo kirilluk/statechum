@@ -59,6 +59,8 @@ public class GlobalConfiguration {
 		,LTL2BA // path to LTL2BA executable, if null the default path will be used.
 		,ERLANGHOME // path to the Erlang distribution directory 
 		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
+		,SCALE_TEXT // determines the size of the font in Jung graphs, 1.0 means no scaling.
+		,SCALE_LINES // determines the thickness of lines and arrows as well as the size of loops in Jung graphs, 1.0 means no scaling.
 		;
 	}
 
@@ -85,6 +87,8 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
 		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "false");
+		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
+		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 	

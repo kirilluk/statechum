@@ -196,7 +196,7 @@ public class ErlangRunner {
 	public static void compileErl(File whatToCompile, ErlangRunner useRunner)
 			throws IOException {
 		String erlFileName = getName(whatToCompile, ERL.ERL);
-		File parentFile = whatToCompile.getParentFile();
+		File parentFile = whatToCompile.getAbsoluteFile().getParentFile();
 		if (parentFile == null)
 			throw new IllegalArgumentException(
 					"File does not have a parent directory " + whatToCompile);

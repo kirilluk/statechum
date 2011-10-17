@@ -34,6 +34,7 @@ import edu.uci.ics.jung.visualization.control.ScalingGraphMousePlugin;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.WindowPosition;
@@ -48,6 +49,7 @@ import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
@@ -133,6 +135,14 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     public static class LayoutOptions
     {
     	public boolean showNegatives = true;
+    	public double scaleText = 1.0;
+    	public double scaleLines = 1.0;
+    	
+    	public LayoutOptions( )
+    	{
+    		scaleText = Double.parseDouble(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SCALE_TEXT));
+    		scaleLines = Double.parseDouble(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SCALE_LINES));
+    	}
     }
     
     protected Map<Integer,LayoutOptions> layoutOptions = new TreeMap<Integer,LayoutOptions>();
@@ -611,6 +621,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     }
 
     protected static PluggableRenderer constructRenderer(Graph g,final LayoutOptions options) {
+    	final LayoutOptions graphLayoutOptions = options!=null?options:new LayoutOptions();
+    	
         PluggableRenderer r = new PluggableRenderer()
         {
             /**
@@ -657,10 +669,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     // at the center of the vertex.
                     Rectangle2D s2Bounds = s2.getBounds2D();
                     double translation = s2Bounds.getHeight()/2;
-                    xform.translate(0, -translation);
-                    xform.scale(s2Bounds.getWidth(),s2Bounds.getHeight());
-                    yMin = EdgeShapeBoundaries.getMinY()*s2Bounds.getHeight()-translation;
-                    yMax = EdgeShapeBoundaries.getMaxY()*s2Bounds.getHeight()-translation;
+                    xform.translate(0, -graphLayoutOptions.scaleLines*translation);
+                    xform.scale(graphLayoutOptions.scaleLines*s2Bounds.getWidth(),graphLayoutOptions.scaleLines*s2Bounds.getHeight());
+                    yMin = graphLayoutOptions.scaleLines*(EdgeShapeBoundaries.getMinY()*s2Bounds.getHeight()-translation);
+                    yMax = graphLayoutOptions.scaleLines*(EdgeShapeBoundaries.getMaxY()*s2Bounds.getHeight()-translation);
                     
                 } else 
                 {
@@ -749,8 +761,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     double xLabel = 0,yLabel = 0,xa=0,ya=0,rotation=thetaRadians;
                     if (isLoop)
                     {
-                    	double displacementY = -yMin+d.height
-                		, displacementX=d.width/2;
+                    	double displacementY = -yMin+d.height, displacementX=d.width/2;
 	                	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
 	                	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
 	                	xLabel = xa-displacementX*Math.cos(thetaRadians);
@@ -759,8 +770,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     else
                     if (dx < 0)
                     {
-                       	double displacementY = -yMax-d.height
-                       		, displacementX=d.width/2;
+                       	double displacementY = -yMax-d.height, displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa+displacementX*Math.cos(thetaRadians);
@@ -769,8 +779,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     }
                     else
                     {
-                    	double displacementY = -yMax// -yMin+d.height
-                    		, displacementX=d.width/2;
+                    	double displacementY = -yMax, displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa-displacementX*Math.cos(thetaRadians);
@@ -794,19 +803,18 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 } // if edgeHit == true
             }
         };
-        r = labelEdges(g, r);
-        r = labelVertices(r, g);
-        if (options != null)
-	        r.setVertexIncludePredicate(new Predicate(){
-	        	@Override
-				public boolean evaluate(Object object)
-	        	{
-	        		if (options.showNegatives)
-	        			return true;
-	        		else
-	        			return DeterministicDirectedSparseGraph.isAccept((Vertex) object);
-	        	}
-	        });
+        r = labelEdges(g, r, graphLayoutOptions);
+        r = labelVertices(r, g, graphLayoutOptions);
+        r.setVertexIncludePredicate(new Predicate(){
+        	@Override
+			public boolean evaluate(Object object)
+        	{
+        		if (graphLayoutOptions.showNegatives)
+        			return true;
+        		else
+	        		return DeterministicDirectedSparseGraph.isAccept((Vertex) object);
+	        }
+	    });
         return r;
     }
     /** If the frame was not constructed, we have to construct instances of
@@ -905,7 +913,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
     }
 
-    private static PluggableRenderer labelEdges(Graph graph, PluggableRenderer render) {
+    private static PluggableRenderer labelEdges(Graph graph, PluggableRenderer render, final LayoutOptions graphLayoutOptions) {
         final EdgeColour paintChooser = new EdgeColour(graph);
         EdgeStringer stringer = new EdgeStringer() {
 
@@ -917,6 +925,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 {
                     StringBuffer text = new StringBuffer();text.append("<html>");
                     boolean first=true;
+                    //final String blowupAttribute = Math.abs(graphLayoutOptions.scaleText - 1)<Configuration.fpAccuracy?" ":
+                    //	" style=\"font-size:"+Math.round(graphLayoutOptions.scaleText*100.)+"%\"";
                     for(Label lbl:(Set<Label>) e.getUserDatum(JUConstants.LABEL))
                     {
                     	if (!first) text.append("<br>");else first=false;
@@ -942,7 +952,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 return result;
             }
         };
+        render.setEdgeArrowFunction(new DirectionalEdgeArrowFunction((int)Math.round(10.*graphLayoutOptions.scaleLines), 
+        		(int)Math.round(5.*graphLayoutOptions.scaleLines), 4));
         render.setEdgeStringer(stringer);
+        render.setEdgeStrokeFunction(new ConstantEdgeStrokeFunction((float)graphLayoutOptions.scaleLines));
         render.setEdgePaintFunction(new AbstractEdgePaintFunction() {
 
             @Override
@@ -1022,10 +1035,12 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
     }
 
-    private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph) {
+    private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph,final LayoutOptions graphLayoutOptions) {
         StringLabeller labeller = StringLabeller.getLabeller(graph, "name");
         final EdgeColour paintChooser = new EdgeColour(graph);
         labeller.clear();
+        //final String blowupAttribute = Math.abs(graphLayoutOptions.scaleText - 1)<Configuration.fpAccuracy?" ":
+        //	"<font style=\"font-size:"+Math.round(graphLayoutOptions.scaleText*100.)+"%\">";
         Iterator<Vertex> labelIt = graph.getVertices().iterator();
         while (labelIt.hasNext()) {
             Vertex v = labelIt.next();
@@ -1047,11 +1062,14 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
         
         r.setVertexStringer(labeller);
+        r.setVertexFontFunction(new ConstantVertexFontFunction(new Font("Helvetica", Font.PLAIN, (int)Math.round(12.0*graphLayoutOptions.scaleText))));
+        r.setEdgeFontFunction(new ConstantEdgeFontFunction(new Font("Helvetica", Font.PLAIN, (int)Math.round(12.0*graphLayoutOptions.scaleText))));
         r.setVertexShapeFunction(new VertexShape());
         r.setVertexPaintFunction(new VertexPaint(r));
-        r.setVertexStrokeFunction(new ConstantVertexStrokeFunction(2.0f));
+        r.setVertexStrokeFunction(new ConstantVertexStrokeFunction((float)graphLayoutOptions.scaleLines));
         return r;
     }
+    
     /** Holds the JFrame to see the graphs being dealt with. Usage:
      * <pre>
      * 		updateFrame(upper,lower);// a public method
@@ -1178,8 +1196,6 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         public XMLPersistingLayout(Layout layout) {
             super(layout);
         }
-
-        
         
         /** Almost verbatim from Jung source code.
          *
@@ -1201,6 +1217,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             //encoder.writeObject(sourceMap);
             return sourceMap;
         }
+
         /** Stores the layout loaded from a file. The idea is to merge it with new one before
          * storing it back. This permits storing positions of vertices not in the layout,
          * thus permitting the same layout file to be used for different graphs. */

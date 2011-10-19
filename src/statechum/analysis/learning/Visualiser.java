@@ -39,10 +39,13 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.WindowPosition;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 
@@ -132,6 +135,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      */
     protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
     
+    /** Same as above, but stores the graphs from which those of interest has been built.
+     */
+    protected List<LearnerGraphND> graphsOrig = new  LinkedList<LearnerGraphND>();
+    
     public static class LayoutOptions
     {
     	public boolean showNegatives = true;
@@ -142,6 +149,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     	{
     		scaleText = Double.parseDouble(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SCALE_TEXT));
     		scaleLines = Double.parseDouble(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SCALE_LINES));
+    	}
+    	
+    	public LayoutOptions copy()
+    	{
+    		LayoutOptions result = new LayoutOptions();
+    		result.showNegatives = showNegatives;result.scaleText=scaleText;result.scaleLines = scaleLines;
+    		return result;
     	}
     }
     
@@ -189,7 +203,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         @Override
         public void windowClosing(@SuppressWarnings("unused") WindowEvent evt) {
-            
+            removeFromList(Visualiser.this);
         }
     }
 
@@ -331,7 +345,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         });
     }
 
-    /** Creates key bindings used in all Statechum windows.
+    protected static final Set<Visualiser> framesVisible = new HashSet<Visualiser>();
+    
+    public static void removeFromList(Visualiser visualiser) {
+		framesVisible.remove(visualiser);
+	}
+
+	/** Creates key bindings used in all Statechum windows.
      * 
      * @param frame frame of the window
      * @param windowID the identifier of the window in the config file - used to store/restore window positions
@@ -456,6 +476,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
       
         restoreLayout(true, currentGraph);
         setBounds(framePosition.getRect());
+        framesVisible.add(this);// register as an active frame.
         setVisible(true);
     }
     
@@ -509,7 +530,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             wasInitialised = true;
         } else {
             viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
-            viewer.getModel().getGraphLayout().initialize(getSize());
+            //viewer.getModel().getGraphLayout().initialize(getSize());
 
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
@@ -817,9 +838,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 	    });
         return r;
     }
+
     /** If the frame was not constructed, we have to construct instances of
      * all classes responsible for it; once it is build and only our
-     * graph changed, it is enough to replace the layout to update the graph. */
+     * graph changed, it is enough to replace the layout to update the graph. 
+     */
     protected boolean wasInitialised = false;
 
     @Override
@@ -827,14 +850,25 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         reloadLayout(true);
     }
 
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public void update(@SuppressWarnings("unused") final Observable s, Object arg) {
     	int graphNumber = graphs.size();// should match the position of the graph in the list of graphs
         if (arg instanceof AbstractLearnerGraph) {
-            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());layoutOptions.put(graphNumber,new LayoutOptions());
+        	Configuration cloneConfig = ((AbstractLearnerGraph) arg).config.copy();
+        	cloneConfig.setLearnerCloneGraph(true);
+        	LearnerGraphND gr = new LearnerGraphND((AbstractLearnerGraph)arg,cloneConfig);
+        	gr.config.setLearnerCloneGraph(false);
+        	graphsOrig.add( gr );
+            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());
+            layoutOptions.put(graphNumber,gr.getLayoutOptions());
         } else if (arg instanceof DirectedSparseGraph) {
         	DirectedSparseGraph gr = (DirectedSparseGraph) arg;
-            graphs.add(gr);layoutOptions.put(graphNumber,(LayoutOptions)gr.getUserDatum(JUConstants.LAYOUTOPTIONS));
+        	graphsOrig.add(null);graphs.add(gr);
+        	LayoutOptions options = (LayoutOptions)gr.getUserDatum(JUConstants.LAYOUTOPTIONS);
+        	if (options == null)
+        		options = new LayoutOptions();
+            layoutOptions.put(graphNumber,options);
         } else {
             System.err.println("Visualiser notified with unknown object " + arg);
         }
@@ -893,6 +927,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         public boolean isPicked(ArchetypeVertex v) {
             return getPickedLabel(v) != null;
         }
+        
         /** A colour of an inconsistent edge. */
         public final Color inconsistent = Color.MAGENTA;
 
@@ -1269,10 +1304,63 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         maybeShowPopup(e);
     }
 
-    private void maybeShowPopup(MouseEvent e) {
-        if (e.isPopupTrigger()) {
-            popupMenu.show(e.getComponent(),
-                    e.getX(), e.getY());
-        }
+    private void maybeShowPopup(MouseEvent e) 
+    {
+        if (e.isPopupTrigger()) 
+        {
+        	if ((e.getModifiers() & InputEvent.SHIFT_MASK) == 0)
+        		popupMenu.show(e.getComponent(),
+                   e.getX(), e.getY());
+        	else
+        	// attempt the popup for the diff
+	        if (currentGraph >= 0)
+	        {// if there are any graphs in this frame
+	        	JPopupMenu diffMenu = new JPopupMenu();
+	        	final LearnerGraphND ourGraph = graphsOrig.get(currentGraph);
+		        if (ourGraph != null)
+		        {// if this is a real graph
+			        for(Visualiser viz:framesVisible)
+			        {
+			        	final Visualiser fViz = viz;
+			        	if (fViz.currentGraph >= 0)
+			        	{
+			        		final LearnerGraphND otherGr = fViz.graphsOrig.get(fViz.currentGraph);
+			        		if (ourGraph != otherGr && otherGr != null)
+			        		{// only if this is a real graph
+						    	JMenuItem menuitem = new JMenuItem(new AbstractAction() {
+									/**
+									 * ID for serialization
+									 */
+									private static final long serialVersionUID = 6840129509410881970L;
+	
+									{// Constructor
+						    			putValue(Action.NAME, otherGr.getNameNotNull());
+						    			putValue(SHORT_DESCRIPTION, otherGr.getNameNotNull());
+						    		}
+						    		
+									@Override
+									public void actionPerformed(ActionEvent e) {
+										GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
+											new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+										DirectedSparseGraph gr = gd.showGD(
+												ourGraph,otherGr,
+												ExperimentRunner.getCpuNumber());
+										Visualiser.updateFrame(gr, null);
+									}
+						
+								});
+						    	diffMenu.add(menuitem);
+			        		}
+			        	} // if otherGr != null
+			        } // if fViz.graphs.size() > 0
+			        
+			        if (diffMenu.getComponentCount() > 0)
+				        diffMenu.show(e.getComponent(),
+		                        e.getX(), e.getY());
+
+		        } // if ourGraph != null
+	        } // if graphs.size() > 0
+       } // e.isPopupTrigger()
+
     }
 }

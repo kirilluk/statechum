@@ -15,7 +15,7 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
     case CompileOutcome of
 	ok ->
 	    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
-	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
+	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref,getConfig(?erlWaitForWrapperDelay,State2)),
 	    erlang:demonitor(Ref,[flush]),
 	    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
 	    %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
@@ -42,10 +42,10 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
 %% Helper functions
 %%
     
-await_end(Pid, Ref) ->
-    await_end(Pid, Ref, []).
+await_end(Pid, Ref, Delay) ->
+    await_end(Pid, Ref, Delay, []).
 
-await_end(Pid, Ref, OpTrace) ->
+await_end(Pid, Ref, Delay, OpTrace) ->
     receive
 	{'DOWN', Ref, _X, _Y, normal} ->
 	    {ok, OpTrace};
@@ -54,18 +54,29 @@ await_end(Pid, Ref, OpTrace) ->
 	{'DOWN', Ref, _X, _Y, _Status} ->
 	    {died, OpTrace};
 	{Pid, output, OP} ->
-	    await_end(Pid, Ref, OpTrace ++ [OP]);
+	    await_end(Pid, Ref, Delay, OpTrace ++ [OP]);
+	{Pid, failed, Function } ->
+		{died, OpTrace};
 	{Pid, output_mismatch, OP} ->
-	    {failed_but, OpTrace ++ [OP]}
+	    {failed_but, OpTrace ++ [OP]};
+	
+	%% This one passes io from a wrapper to the terminal.
+	GroupLeaderMessage -> 
+		group_leader() ! GroupLeaderMessage,
+		await_end(Pid, Ref, Delay, OpTrace)
 %	{Pid, failed, OP} ->
 %	    {failed, OpTrace ++ [OP]}
-    after 5000 ->    
+
+    after Delay ->    
 	    case lists:member(Pid, erlang:processes()) of
 		false ->
-		    %%io:format("Scone...~n"),
-		    {ok, OpTrace};
-		true ->	    
-		    %%await_end(Pid, Ref, OpTrace)
+			%% Got no response and the process died, report as a failure.
+		    {failed, OpTrace};
+		true ->
+			%% Got no response and the process is still alive, this means it is waiting for 
+			%% a message from somewhere, but since we cannot possibly supply that message given
+			%% our current knowledge, report this as a timeout (which is equivalent to a failure
+			%% in Statechum.
 		    {timeout, OpTrace}
 	    end
     end.
@@ -90,10 +101,10 @@ flushOPTrace(OPTrace, Pid, Delay) ->
 %% Wrappers should make this process the group leader, which should transfer to their children
 cleanup() ->
     lists:map(fun(Pid) -> 
-		      {group_leader, Parent} = process_info(Pid, group_leader),
+		      {group_leader, Leader} = process_info(Pid, group_leader),
 		      if (Pid == self()) ->
 			      ok;
-			 (Parent == self()) ->
+			 (Leader == self()) ->
 			      erlang:exit(Pid, kill);
 			 true ->
 			      ok

@@ -89,6 +89,11 @@ public class FuncSignature implements Label {
     	return qualifiedNameFromFunction(moduleName, getName(), getArity());
     }
     
+    public String getModuleName()
+    {
+    	return moduleName;
+    }
+    
     /** Used to convert function arguments into a standard representation of an Erlang function name. */
     public static String qualifiedNameFromFunction(String module, String functionName, long arity)
     {

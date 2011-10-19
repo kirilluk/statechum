@@ -61,6 +61,7 @@ public class GDVisualDemo
 	{// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
 	
 		Pair<String,String> [] pairs=new Pair[] {
+				
 				new Pair<String,String>(
 						"A-initialise->B-connect->C-login->D / "+
 						"D-changedirectory->E-listnames->F-delete->F-changedirectory->E / F-appendfile->G-logout->H-disconnect->I / D-storefile->G /"+ 
@@ -98,9 +99,11 @@ public class GDVisualDemo
 						),
 				new Pair<String,String>("A-a->B-a->C / A-b->D", "P-a->Q-a->R / S-c->R"),
 				new Pair<String,String>("A-a->B-a->C-b->D", "P-a->Q-b->R-c->R"),
+				
 				//new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T"),
 				//new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->T","A-a->C-c->E-c->D-c->F-s->T\nA-d->U-d->U"),
 				//new Pair<String,String>(TestGD_Multithreaded.A6,TestGD_Multithreaded.B6)
+				//new Pair<String,String>("A-a->B-a-#C / A-b->D", "P-a->Q-a-#R / S-c-#R"),
 				};
 		int position=0;
 		obtainDifferenceGraph(pairs[position].firstElem, pairs[position].secondElem, position,true);

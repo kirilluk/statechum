@@ -3,3 +3,4 @@
 
 -define(erlCoverage,'erlCoverage').
 -define(erlFlushDelay,'erlFlushDelay').
+-define(erlWaitForWrapperDelay,'erlWaitForWrapperDelay').

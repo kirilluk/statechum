@@ -276,10 +276,12 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
 		zapErlFiles(folder);
 		try {
+			/* Files in this folder are supposed to be compiled by ErlangRunner - it has a place where they are listed.
+
 			for (File f : ErlangRunner.ErlangFolder.listFiles())
 				if (ErlangRunner.validName(f.getName()))
 					ErlangRunner.compileErl(f, ErlangRunner.getRunner());
-
+			 */
 			for (Object s : app.modules) {
 				try {
 					// Load the module
@@ -309,8 +311,6 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 					e.printStackTrace();
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
 		} finally {
 			zapErlFiles(folder);
 		}

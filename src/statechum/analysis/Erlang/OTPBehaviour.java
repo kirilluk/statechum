@@ -125,7 +125,7 @@ public abstract class OTPBehaviour {
 	}
 
 	/**
-	 * We have normal Otp functions but all communications is via the server
+	 * We have normal OTP functions but all communications is via the server
 	 * interface, hence we create functions reflecting what we actually see
 	 * during learning.<br/>
 	 * The other case is when we do not actually talk to the server, in which
@@ -298,6 +298,13 @@ public abstract class OTPBehaviour {
 
 	public Set<ErlangLabel> getAlphabet() {
 		return alphabet;
+	}
+	
+	public void addToAlphabet(ErlangLabel lbl)
+	{
+		if (alphabet.contains(lbl))
+			throw new IllegalArgumentException("Label "+lbl+" is already in the alphabet, cannot add");
+		alphabet.add(lbl);
 	}
 
 	public static interface ConvertALabel {

@@ -55,6 +55,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.StringLabel;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -1765,10 +1766,28 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					targetToColour.put(to.getID().toString(),newColour);
 			}
 			
+			protected Label copyVertexWithPrefix(String prefix, Label origLabel)
+			{
+				Label result = null;
+				if (origLabel instanceof StringLabel)
+					result = new StringLabel(prefix+origLabel);
+				else
+				if (origLabel instanceof ErlangLabel)
+				{
+					ErlangLabel oErl = (ErlangLabel)origLabel;
+					result = new ErlangLabel(oErl.function,prefix+oErl.callName,
+							oErl.input, oErl.expectedOutput);
+				}
+				else
+					assert false;
+				
+				return result;
+			}
+			
 			@Override
 			public void addTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
-				Label label = new StringLabel("ADD_"+origLabel);
+				Label label = copyVertexWithPrefix("ADD_",origLabel);
 				mutator.addTransition(from, label, to);
 				addTransitionAnnotation(from, label, to, Color.GREEN);
 			}
@@ -1776,7 +1795,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			@Override
 			public void removeTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
-				Label label = new StringLabel("REM_"+origLabel);
+				Label label = copyVertexWithPrefix("REM_",origLabel);
 				mutator.removeTransition(from, origLabel, to);// remove the original transition
 				mutator.addTransition(from, label, to);// and add the renamed one
 				addTransitionAnnotation(from, label, to, Color.RED);

@@ -143,10 +143,15 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 	public ErlangLabel(FuncSignature operator, String shortName,
 			OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
-		super(expectedOutputArgs == null ? new OtpErlangObject[] {
-				new OtpErlangAtom(shortName), inputArgs }
-				: new OtpErlangObject[] { new OtpErlangAtom(shortName),
-						inputArgs, expectedOutputArgs });
+		super(
+				// if there is no valid function involved, this label cannot be passed to Erlang.
+				operator == null? new OtpErlangObject[]{}:
+				expectedOutputArgs == null ? new OtpErlangObject[] {
+				// if no outputs, generate a function/input pair
+				new OtpErlangAtom(operator.getName()), inputArgs }
+				: new OtpErlangObject[] { 
+				// with an output, this will be a function/input/output triple.
+				new OtpErlangAtom(operator.getName()),inputArgs, expectedOutputArgs });
 		arity = expectedOutputArgs == null ? 2 : 3;
 		function = operator;
 		callName = shortName;

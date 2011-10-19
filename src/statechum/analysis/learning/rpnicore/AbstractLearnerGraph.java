@@ -45,6 +45,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.Label;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
@@ -62,12 +63,21 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return transitionMatrix;
 	}
 
+	/** Determines the default options with which a graph should be displayed. */
+    protected LayoutOptions layoutOptions = new LayoutOptions();
+
+    /** The options returned may be modified by the caller. */
+	public LayoutOptions getLayoutOptions()
+	{
+		return layoutOptions;
+	}
+    
 	public final CACHE_TYPE learnerCache = createCache();
 
-        public CACHE_TYPE getCache()
-        {
-            return learnerCache;
-        }
+    public CACHE_TYPE getCache()
+    {
+        return learnerCache;
+    }
 
 	/** Creates the cache. Should be overridden by subclasses to create instances of an appropriate type. */
 	abstract public CACHE_TYPE createCache();
@@ -643,6 +653,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			oldToNew.put(state, cloneCmpVertex(state, result.config));
 
 		result.setInit(oldToNew.get(from.getInit()));
+		result.layoutOptions = from.layoutOptions.copy();
 		addAndRelabelGraphs(from, oldToNew, result);result.learnerCache.invalidate();
 	}
 

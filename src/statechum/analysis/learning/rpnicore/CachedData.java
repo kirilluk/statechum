@@ -17,6 +17,8 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -24,6 +26,8 @@ import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.Trace;
+import statechum.analysis.CodeCoverage.CodeCoverageMap;
 import statechum.model.testset.PTASequenceEngine;
 
 /** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
@@ -95,10 +99,31 @@ public class CachedData<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CA
 		return questionsPTA;
 	}
 	
+	/** Erlang coverage details. */
+	public static class ErlangCoverageData
+	{
+		public Collection<Trace> allPrefixTraces = null;
+		public List<CodeCoverageMap> coverage = null;
+	}
+	
+	Map<CmpVertex,CachedData.ErlangCoverageData> erlangCoverage = null;
+	
+	public void setErlangCoverage(Map<CmpVertex,CachedData.ErlangCoverageData> newValue)
+	{
+		erlangCoverage = newValue;
+	}
+	
+	public Map<CmpVertex,CachedData.ErlangCoverageData> getErlangCoverage()
+	{
+		return erlangCoverage;
+	}
+	
 	public void invalidate()
 	{
 		flowgraph=null;stateToNumber = null;
 		alphabet=null;questionsPTA = null;
+		
+		erlangCoverage = null;
 	}
 
 }

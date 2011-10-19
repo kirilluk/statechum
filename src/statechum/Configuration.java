@@ -1231,6 +1231,21 @@ public class Configuration implements Cloneable {
 		return erlFlushDelay;
 	}
 
+	/**
+	 * How long to wait for a response from a wrapper, in milliseconds.
+	 */
+	protected int erlWaitForWrapperDelay=200;
+	
+	public int getErlWaitForWrapperDelay()
+	{
+		return erlWaitForWrapperDelay;
+	}
+	
+	public void setErlWaitForWrapperDelay(int newValue)
+	{
+		erlWaitForWrapperDelay = newValue;
+	}
+
 	public enum ERLCOVERAGE {
 		ERLCOV_NONE, ERLCOV_LINE, ERLCOV_FUNCTION
 	};

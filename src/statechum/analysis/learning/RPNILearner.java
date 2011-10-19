@@ -30,22 +30,20 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import statechum.JUConstants;
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Pair;
 import statechum.StringLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.model.testset.PTASequenceEngine;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
@@ -159,55 +157,45 @@ public abstract class RPNILearner extends Observable implements Learner {
     public void updateGraph(LearnerGraph g, LearnerGraph hardFacts) {
         setChanged();
         if (config.getDebugMode()) {
-            DirectedSparseGraph gr = g.pathroutines.getGraph();
-            PathRoutines.convertPairAssociationsToTransitions(gr, g, g.config);
             Map<VertexID, Collection<VertexID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
                 Map<CmpVertex, LinkedList<Label>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
-                for (Object vert : gr.getVertices()) {
-                    if (vert instanceof DeterministicVertex) {
-                        DeterministicVertex v = (DeterministicVertex) vert;
-                        LinkedList<CodeCoverageMap> coverage = new LinkedList<CodeCoverageMap>();
-                        Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
-                        Collection<VertexID> verticesInHardFacts=mergedToHard.get(v.getID());
-                        if (verticesInHardFacts != null)
-                        {
-                        	// this one will be null if 
-	                        for (VertexID hard : verticesInHardFacts) {
-	                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
-	                            allPrefixTraces.add(path);
-	
-	                            // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
-	                            CmpVertex hardv = hardFacts.findVertex(hard);
-	                            Collection<Trace> paths = getPaths(path, hardv, hardFacts);
-	                            for (Trace p : paths) {
-	                                //System.out.println("Generating coverage for " + path + "-" + p);
-	                                Collection<Trace> onlyPath = new LinkedList<Trace>();
-	                                onlyPath.add(p);
-	                                Pair<Trace, Trace> prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
-	                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix.firstElem, prefixSuffix.secondElem);
-	                                //System.out.println("Generated coverage " + prefixSuffix[0] + "-" + prefixSuffix[1] + ": " + map.toString());
-	                                coverage.add(map);
-	                            }
-	                        }
-                        }
-                        v.addUserDatum(JUConstants.PATH, allPrefixTraces, UserData.SHARED);
-                        v.addUserDatum(JUConstants.COVERAGE, coverage, UserData.SHARED);
-                    }
-                }
+                Map<CmpVertex,CachedData.ErlangCoverageData> vertexToCoverage = new TreeMap<CmpVertex,CachedData.ErlangCoverageData>();
+                for(CmpVertex v:g.transitionMatrix.keySet())
+                {
+                	CachedData.ErlangCoverageData erlCoverage = new CachedData.ErlangCoverageData();
+                	erlCoverage.coverage = new LinkedList<CodeCoverageMap>();
+                    Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
+                    Collection<VertexID> verticesInHardFacts=mergedToHard.get(v.getID());
+                    if (verticesInHardFacts != null)
+                    {
+                    	// this one will be null if 
+                        for (VertexID hard : verticesInHardFacts) {
+                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
+                            allPrefixTraces.add(path);
 
+                            // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
+                            CmpVertex hardv = hardFacts.findVertex(hard);
+                            Collection<Trace> paths = getPaths(path, hardv, hardFacts);
+                            for (Trace p : paths) {
+                                //System.out.println("Generating coverage for " + path + "-" + p);
+                                Collection<Trace> onlyPath = new LinkedList<Trace>();
+                                onlyPath.add(p);
+                                Pair<Trace, Trace> prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
+                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix.firstElem, prefixSuffix.secondElem);
+                                //System.out.println("Generated coverage " + prefixSuffix[0] + "-" + prefixSuffix[1] + ": " + map.toString());
+                                erlCoverage.coverage.add(map);
+                            }
+                        }
+                    }
+                    
+                    vertexToCoverage.put(v, erlCoverage);
+                }
+                g.getCache().setErlangCoverage(vertexToCoverage);
             }
-            gr.addUserDatum(JUConstants.LAYOUTOPTIONS, layoutOptions(), UserData.SHARED);
-            notifyObservers(gr);
+        	notifyObservers(g);
         }
     }
-
-    /** Determines the default options with which a graph should be displayed. */
-    protected LayoutOptions layoutOptions()
-    {
-    	return new LayoutOptions();
-    }
-     
     
     /* This one is actually a specialised version of computeShortPathsToAllStates()
      */

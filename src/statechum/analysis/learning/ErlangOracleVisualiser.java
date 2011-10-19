@@ -14,7 +14,9 @@ import statechum.JUConstants;
 
 import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.rpnicore.CachedData.ErlangCoverageData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
@@ -22,6 +24,8 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
+
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Pair;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
@@ -116,7 +120,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 if (whomToNotify != null) {
                     whomToNotify.threadStarted();
                 }
-                LearnerGraph graph = mainDecorator.learnMachine(sPlus, sMinus);
+                LearnerGraph initGraph = mainDecorator.init(sPlus, sMinus);
+                initGraph.getLayoutOptions().showNegatives = false;
+                LearnerGraph graph = mainDecorator.learnMachine();
                 if (graph != null) {
                     DirectedSparseGraph learnt = graph.pathroutines.getGraph();
                     if (conf.config.isGenerateTextOutput()) {
@@ -131,23 +137,64 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         learnerThread.start();
 
     }
-    public static Object[] previousPicked = null;
-    public static Object[] previousSelected = null;
+    public static Vertex previousPicked = null;
+    public static List<Vertex> previousSelected = new LinkedList<Vertex>();
     public static CodeCoverageMap lastmap = null;
     public static String lastTrace = null;
 
+    /** Extracts coverage data from the current graph assuming that the supplied 
+     * vertex has been picked.
+     * 
+     * @param vertex picked vertex, can be null in which case the method will return null.
+     * @return Erlang coverage data for the supplied vertex. 
+     */
+    public ErlangCoverageData getCoverageFromPickedVertex(CmpVertex vertex)
+    {
+    	ErlangCoverageData result = null;
+   		LearnerGraphND gr = graphsOrig.get(currentGraph);
+   		if (vertex != null)
+    		result = gr.getCache().getErlangCoverage().get(vertex);
+    	return result;
+    }
+    
+    public Vertex getPickedVertex()
+    {
+    	Vertex result = null;
+    	Set<Vertex> vertices = viewer.getPickedState().getPickedVertices();
+    	if (!vertices.isEmpty())
+    		result = vertices.iterator().next();
+    	return result;
+    }
+    
+    public CmpVertex toLVertex(Vertex jungVertex)
+    {
+    	CmpVertex result = null;
+    	if (jungVertex != null)
+    	{
+    		Object label = jungVertex.getUserDatum(JUConstants.LABEL);
+    		assert label != null;
+    		LearnerGraphND gr = graphsOrig.get(currentGraph);
+    		result = gr.findVertex(label.toString());
+    		assert result != null;
+    	}
+    	
+    	return result;
+    }
+    
     @Override
-    public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
+    public void mouseReleased(MouseEvent e) {
         if (e.getButton() != MouseEvent.BUTTON1) {
             return;
         }
         if (mode == NoCoverage) {
             return;
         }
+        
+        ErlangCoverageData cov = getCoverageFromPickedVertex(toLVertex(getPickedVertex()));
         if (mode == AllSuffixesCoverageMode) {
-            Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
-            if (vs.length > 0) {
-                LinkedList<CodeCoverageMap> allMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
+        	if (cov != null)
+        	{
+                List<CodeCoverageMap> allMaps = cov.coverage;
                 if (allMaps == null) {
                     System.out.println("No coverage data");
                 } else {
@@ -156,29 +203,28 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                         // This is nice and readable....
                         sum = sum.sum(m);
                     }
-                    new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
+                    new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), toLVertex(getPickedVertex()).getID().toString());
                 }
             }
         } else if (mode == AllSuffixesCompareMode) {
-            Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
-            if (vs.length > 0) {
+            if (cov != null) {
                 if (previousPicked == null) {
-                    previousPicked = vs;
+                    previousPicked = getPickedVertex();
                 } else {
-                    LinkedList<CodeCoverageMap> previousMaps = (LinkedList<CodeCoverageMap>) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.COVERAGE);
+                    List<CodeCoverageMap> previousMaps = getCoverageFromPickedVertex(toLVertex(previousPicked)).coverage;
                     CodeCoverageMap previousSum = new CodeCoverageMap();
                     for (CodeCoverageMap m : previousMaps) {
                         // This is nice and readable....
                         previousSum = previousSum.sum(m);
                     }
-                    LinkedList<CodeCoverageMap> thisMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
+                    List<CodeCoverageMap> thisMaps = getCoverageFromPickedVertex(toLVertex(getPickedVertex())).coverage;
                     CodeCoverageMap thisSum = new CodeCoverageMap();
                     for (CodeCoverageMap m : thisMaps) {
                         // This is nice and readable....
                         thisSum = thisSum.sum(m);
                     }
-                    String previousLabel = ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
-                    String thisLabel = ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
+                    String previousLabel = toLVertex(previousPicked).getID().toString();
+                    String thisLabel = toLVertex(getPickedVertex()).getID().toString();
                     //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
                     new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
@@ -213,31 +259,25 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     protected void coverageSelection() {
-        Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
-        if ((ErlangOracleVisualiser.previousPicked == null) && (vs.length > 0)) {
-            ErlangOracleVisualiser.previousPicked = vs;
-        } else if (vs.length == 0) {
-            if (ErlangOracleVisualiser.previousSelected != null) {
-                for (Object v : ErlangOracleVisualiser.previousSelected) {
-                    ((Vertex) v).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.CLONE);
-                }
+    	Vertex picked = getPickedVertex();
+        if (previousPicked == null && picked != null) {
+            previousPicked = picked;
+        } else if (picked != null) {
+            if (previousSelected != null) {
+            	for(Vertex v:previousSelected)
+            		v.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.CLONE);
             }
-            ErlangOracleVisualiser.previousPicked = null;
+            previousPicked = null;
         } else {
-            if (ErlangOracleVisualiser.previousSelected != null) {
-                for (Object v : ErlangOracleVisualiser.previousSelected) {
-                    ((Vertex) v).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.CLONE);
-                }
+            if (previousSelected != null) {
+            	for(Vertex v:previousSelected) 
+            		v.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.CLONE);
             }
             viewer.getPickedState().clearPickedVertices();
-            for (Object v : ErlangOracleVisualiser.previousPicked) {
-                ((Vertex) v).setUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.CLONE);
-            }
-            for (Object v : vs) {
-                ((Vertex) v).setUserDatum(JUConstants.COLOUR, JUConstants.AMBER, UserData.CLONE);
-            }
-            Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
-            Vertex end = (Vertex) vs[0];
+            previousPicked.setUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.CLONE);
+            picked.setUserDatum(JUConstants.COLOUR, JUConstants.AMBER, UserData.CLONE);
+            Vertex start = previousPicked;
+            Vertex end = picked;
             Pair<Trace, Trace> tracePair = getPrefixSuffixPair(start, end);
             Trace startTrace = tracePair.firstElem;
             Trace endTrace = tracePair.secondElem;
@@ -248,24 +288,22 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 lastmap = getCoverageMap(startTrace, endTrace);
                 System.out.println("Trace suffix coverage map: " + lastmap.toString());
             }
-            Object[] merge = new Object[ErlangOracleVisualiser.previousPicked.length + vs.length];
-            System.arraycopy(ErlangOracleVisualiser.previousPicked, 0, merge, 0, ErlangOracleVisualiser.previousPicked.length);
-            System.arraycopy(vs, 0, merge, ErlangOracleVisualiser.previousPicked.length, vs.length);
-            ErlangOracleVisualiser.previousSelected = merge;
+            previousSelected.add(previousPicked);previousSelected.add(picked);
             ErlangOracleVisualiser.previousPicked = null;
         }
     }
 
-    public static Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Vertex end) {
-        return getPrefixSuffixPair(((Collection<Trace>) start.getUserDatum(JUConstants.PATH)), ((Collection<Trace>) end.getUserDatum(JUConstants.PATH)));
+    public Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Vertex end) {
+        return getPrefixSuffixPair(getCoverageFromPickedVertex(toLVertex(start)).allPrefixTraces, 
+        		getCoverageFromPickedVertex(toLVertex(end)).allPrefixTraces);
     }
 
-    public static Pair<Trace, Trace> getPrefixSuffixPair(Collection<Trace> start, Vertex end) {
-        return getPrefixSuffixPair(start, ((Collection<Trace>) end.getUserDatum(JUConstants.PATH)));
+    public Pair<Trace, Trace> getPrefixSuffixPair(Collection<Trace> start, Vertex end) {
+        return getPrefixSuffixPair(start, getCoverageFromPickedVertex(toLVertex(end)).allPrefixTraces);
     }
 
-    public static Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Collection<Trace> end) {
-        return getPrefixSuffixPair((Collection<Trace>) start.getUserDatum(JUConstants.PATH), end);
+    public Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Collection<Trace> end) {
+        return getPrefixSuffixPair(getCoverageFromPickedVertex(toLVertex(start)).allPrefixTraces, end);
     }
 
     public static Pair<Trace, Trace> getPrefixSuffixPair(Collection<Trace> start, Collection<Trace> end) {

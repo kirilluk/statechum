@@ -138,6 +138,7 @@ public class ErlangQSMOracle {
 		ErlangOracleLearner innerLearner = createLearner(viz,tracesFile);
 		innerLearner.addObserver(viz);
 		innerLearner.setGraphNameSuffix(tracesFile);
+		innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
 		return innerLearner.learnMachine();
 	}
 

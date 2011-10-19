@@ -30,8 +30,8 @@ import java.io.IOException;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.OTPUnknownBehaviour;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
-import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.Helper;
 import statechum.Label;
@@ -114,6 +114,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 					outputsSeenForThisInput);
 		}
 		outputsSeenForThisInput.add(label);
+		if (!module.behaviour.getAlphabet().contains(label))
+			module.behaviour.addToAlphabet((ErlangLabel)label);
 	}
 
 	@Override
@@ -141,8 +143,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				response.append(RPNILearner.questionToString(Arrays
 						.asList(outcome.answerDetails)));
 				response.append("] ");
-				// since we implicitly extend the alphabet here, add a new trace
-				// to
+				// since we implicitly extend the alphabet here, add a new trace to
 				// our collection.
 				updateInputToPossibleOutputs(outcome.answerDetails[outcome.answerDetails.length - 1]);
 			}
@@ -308,8 +309,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				ErlangLabel nextLabel = outcome.answerDetails[traceLength - 1];
 				state.rejects.add(input);// record the reject.
 				if (!module.behaviour.getAlphabet().contains(nextLabel)) {
-					module.behaviour.getAlphabet().add(nextLabel);// extend the
-																	// alphabet
+					module.behaviour.getAlphabet().add(nextLabel);
+					// extend the alphabet
 					// (if the input is already in the alphabet, fine, it would
 					// be attempted soon anyway).
 					// System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());
@@ -487,29 +488,41 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			if (!(lbl instanceof ErlangLabel))
 				throw new IllegalArgumentException("question element " + lbl
 						+ " is not of Erlang type");
-			// Its really not for this to decide whether this is a legit
-			// The alphabet is probably wrong...
-			// KIRILL: I disagree - it is worth checking this here.
+
+			ErlangLabel erlLabel = (ErlangLabel)lbl;
 			
+			if (!module.getName().equals(erlLabel.function.getModuleName()))
+				throw new IllegalArgumentException("current module is "+module.getName()+" but attempting to call "+erlLabel.function.getModuleName());
+
 			if (!module.behaviour.getAlphabet().contains(lbl)) 
 				throw new IllegalArgumentException("label " + lbl +
 						" does not belong to the alphabet \n" +
 						module.behaviour.getAlphabet());
-			questionDetails[i++] = (ErlangLabel) lbl;
+			
+			if (module.behaviour instanceof OTPUnknownBehaviour)
+			{
+				if (erlLabel.input instanceof OtpErlangList)
+				{
+					if ( ((OtpErlangList)erlLabel.input).arity() != erlLabel.function.getArity())
+						throw new IllegalArgumentException("arity of arguments does not match function "+erlLabel.function.getQualifiedName());
+				}
+			}
+			questionDetails[i++] = erlLabel;
 		}
 		return askErlang(questionDetails);
 	}
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
-		// System.out.println("Asking Erlang about "
-		// + Arrays.asList(questionDetails).toString());
-		//ErlangRunner.getRunner().killErlang();
-		//OtpErlangList procs = ErlangRunner.getRunner().listProcesses();
-		//System.out.println(procs.arity() + ": " + procs.toString());
-		//OtpErlangTuple killed = ErlangRunner.getRunner().killProcesses();
-		//System.out.println("" + ((OtpErlangList) killed.elementAt(1)).arity() + ": " + killed.elementAt(1));
 		configErlang();
+		System.out.print("Asking erlang about ");
+		boolean first = true;
+		for (Object o : questionDetails) {
+			if (first) first = false;else System.out.print(',');
+			System.out.print(o.toString());
+		}
+		System.out.println();
+
 		OtpErlangTuple result = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("runTrace"),
 						new OtpErlangAtom(module.getName()),
@@ -556,25 +569,15 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				answerDetails[i] = questionDetails[i];
 			}
 		}
-/*
-		System.out.print("I asked erlang about ");
-		for (Object o : questionDetails) {
-			System.out.print(o.toString());
-		}
-		System.out.print(" and all I got was " + outcomeEnum + ": ");
+
+		System.out.print("and the answer is "+ outcomeEnum + ": ");
+		first = true;
 		for (Object o : answerDetails) {
+			if (first) first = false;else System.out.print(',');
 			System.out.print(o.toString());
 		}
 		System.out.println();
-*/
-		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
-	}
 
-	/** Determines the default options with which a graph should be displayed. */
-	@Override
-	protected LayoutOptions layoutOptions() {
-		LayoutOptions options = new LayoutOptions();
-		options.showNegatives = false;
-		return options;
+		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 }

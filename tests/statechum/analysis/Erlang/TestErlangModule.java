@@ -402,6 +402,28 @@ public class TestErlangModule {
     }
     
     @Test
+    public void testAttemptTracesWrongModule() throws IOException
+    {
+    	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
+       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+    	evalConf.config = ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker"+ErlangRunner.ERL.ERL.toString()));
+    	final ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
+    	
+    	// The above loads a module, this one gets that module and subsequently updates its alphabet.
+    	Configuration exporterConfiguration = ErlangModule.setupErlangConfiguration(new File("ErlangExamples/exporter/exporter"+ErlangRunner.ERL.ERL.toString()));
+    	ErlangModule modLocker = ErlangModule.findModule(evalConf.config.getErlangModuleName()),
+    		modExporter = ErlangModule.loadModule(exporterConfiguration);
+    	
+    	final ErlangLabel pushLabel = modExporter.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel(
+    			"{"+ErlangLabel.missingFunction+",'exporter:push/1',['JustAnythingA'],'ok'}", exporterConfiguration));
+		//final ErlangLabel labelInvalidArity = new ErlangLabel(initLabel.function,initLabel.callName,initLabel.input,initLabel.expectedOutput);
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
+			public @Override void run() {
+				learner.askErlang(Arrays.asList(new Label[]{pushLabel}));
+			}},IllegalArgumentException.class,"but attempting to call");
+    }
+    
+    @Test
     public void testAttemptTraces()
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);

@@ -15,18 +15,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangObject;
-
 import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper;
-import statechum.Configuration.LABELKIND;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
-import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -76,6 +71,21 @@ public class TestErlangOracleLearner {
 		Assert.assertEquals(18,locker.pathroutines.countEdges());
 	}
 	
+	@Test
+	public void testExporterLearning()
+	{
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
+				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/exporter/exporter.erl")));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setUseErlangOutputs(true);
+		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+		learner.GenerateInitialTraces();
+		LearnerGraph exporter = learner.learnMachine();
+		Assert.assertEquals(6,exporter.getStateNumber());
+		Assert.assertEquals(7,exporter.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(34,exporter.pathroutines.countEdges());
+	}
+
 	@Test
 	public void testLearningFromErlangTraceFile()
 	{

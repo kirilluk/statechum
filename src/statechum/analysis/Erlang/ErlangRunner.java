@@ -224,7 +224,7 @@ public class ErlangRunner {
 		}
 	}
 
-	public static final int timeBetweenChecks = 500;
+	public static final int timeBetweenChecks = 100;
 
 	public static final File ErlangFolder = new File("ErlangOracle");
 
@@ -322,7 +322,7 @@ public class ErlangRunner {
 				// The compilation phase could a few seconds but only needs to
 				// be done once after installation of Statechum
 				for (String str : new String[] { tracerunnerProgram,
-						"tracer3.erl", "gen_event_wrapper.erl",
+						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
 					compileErl(new File(ErlangQSMOracle.ErlangFolder, str),
 							null);

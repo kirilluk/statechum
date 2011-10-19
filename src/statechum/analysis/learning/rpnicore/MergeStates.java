@@ -141,6 +141,7 @@ public class MergeStates {
 				}	
 		}
 		AMEquivalenceClass.populateCompatible(result, mergedVertices);
+		result.layoutOptions = original.layoutOptions.copy();
 		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 		if (redVertex != null)
 			result.learnerCache.stateLearnt=origToNew.get(redVertex).getMergedVertex();

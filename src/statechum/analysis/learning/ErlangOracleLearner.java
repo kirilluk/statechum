@@ -490,7 +490,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						+ " is not of Erlang type");
 
 			ErlangLabel erlLabel = (ErlangLabel)lbl;
-			
+			/*
 			if (!module.getName().equals(erlLabel.function.getModuleName()))
 				throw new IllegalArgumentException("current module is "+module.getName()+" but attempting to call "+erlLabel.function.getModuleName());
 
@@ -498,23 +498,23 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				throw new IllegalArgumentException("label " + lbl +
 						" does not belong to the alphabet \n" +
 						module.behaviour.getAlphabet());
-			
-			if (module.behaviour instanceof OTPUnknownBehaviour)
-			{
-				if (erlLabel.input instanceof OtpErlangList)
-				{
-					if ( ((OtpErlangList)erlLabel.input).arity() != erlLabel.function.getArity())
-						throw new IllegalArgumentException("arity of arguments does not match function "+erlLabel.function.getQualifiedName());
-				}
-			}
-			questionDetails[i++] = erlLabel;
+			*/
+			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);
 	}
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
+	 //System.out.println("Asking Erlang about "
+	//	 + Arrays.asList(questionDetails).toString());
+		//ErlangRunner.getRunner().killErlang();
+		//OtpErlangList procs = ErlangRunner.getRunner().listProcesses();
+		//System.out.println(procs.arity() + ": " + procs.toString());
+		//OtpErlangTuple killed = ErlangRunner.getRunner().killProcesses();
+		//System.out.println("" + ((OtpErlangList) killed.elementAt(1)).arity() + ": " + killed.elementAt(1));
 		configErlang();
+		/*
 		System.out.print("Asking erlang about ");
 		boolean first = true;
 		for (Object o : questionDetails) {
@@ -522,13 +522,16 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			System.out.print(o.toString());
 		}
 		System.out.println();
-
+*/
+		
 		OtpErlangTuple result = ErlangRunner.getRunner().call(
-				new OtpErlangObject[] { new OtpErlangAtom("runTrace"),
+				new OtpErlangObject[] { 
+						new OtpErlangAtom("runTrace"),
 						new OtpErlangAtom(module.getName()),
 						new OtpErlangAtom(module.behaviour.getWrapperName()),
-						new OtpErlangList(questionDetails), new OtpErlangList() // other
-																				// modules
+						new OtpErlangList(questionDetails), new OtpErlangList() 
+						// other
+						// modules
 				}, "running trace");
 
 		OtpErlangAtom outcome = (OtpErlangAtom) result.elementAt(1);
@@ -569,15 +572,23 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				answerDetails[i] = questionDetails[i];
 			}
 		}
-
-		System.out.print("and the answer is "+ outcomeEnum + ": ");
-		first = true;
+		
+		//System.out.print("I asked erlang about ");
+		/*
+		for (Object o : questionDetails) {
+			System.out.print(o.toString());
+		}
+		System.out.print(" and all I got was ");
+		*/
+//		 System.out.print(outcomeEnum + ": ");
+//		 System.out.println(answerDetails.length + " elements");
+		 /*
 		for (Object o : answerDetails) {
 			if (first) first = false;else System.out.print(',');
 			System.out.print(o.toString());
 		}
 		System.out.println();
-
+		*/
 		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 }

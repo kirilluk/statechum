@@ -58,13 +58,14 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	 */
 	private static final long serialVersionUID = -5038890683208421642L;
 	// protected Set<ErlangLabel> alphabet;
-	protected ErlangModule module;
+	protected ErlangModule targetModule;
+
 	protected String wrapper;
 
 	public void setAlphabet(Set<ErlangLabel> al) {
 		// alphabet = al;
 		JLabel ta = new JLabel("<html>");
-		for (OtpErlangTuple a : module.behaviour.getAlphabet()) {
+		for (OtpErlangTuple a : targetModule.behaviour.getAlphabet()) {
 			if (!ta.getText().equals("<html>")) {
 				ta.setText(ta.getText() + "<br />");
 			}
@@ -77,9 +78,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	}
 
 	public void setModule(ErlangModule mod) {
-		module = mod;
-		setAlphabet(module.behaviour.getAlphabet());
-		this.setTitle(module.name);
+		targetModule = mod;
+		setAlphabet(targetModule.behaviour.getAlphabet());
+		this.setTitle(targetModule.name);
 	}
 
 	/** Creates new form ErlangTraceGenerator */
@@ -385,28 +386,41 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	private void genRandom(File file, int length, int count,
 			boolean exhaustAlphabet) {
-		genRandom(module, file, length, count, exhaustAlphabet,
+		genRandom(targetModule, file, length, count, exhaustAlphabet,
 				useOutputMatchingCheckBox.isSelected());
 	}
 
-	public static void genRandom(ErlangModule module, File file, int length,
-			int count, boolean exhaustAlphabet, boolean useOutputMatching) {
+	private static BufferedWriter out;
+	private static Configuration config;
+	private static ErlangOracleLearner learner;
+	private static ErlangModule module;
+
+	private static void setupFile(File file, boolean useOutputMatching)
+			throws IOException {
+		out = new BufferedWriter(new FileWriter(file));
+		out.write("config erlangSourceFile " + module.sourceFolder
+				+ File.separator + module.name + ".erl\n");
+		out.write("config labelKind LABEL_ERLANG\n");
+		out.write("config erlangModuleName " + module.name + "\n");
+		config = Configuration.getDefaultConfiguration().copy();
+		if (!useOutputMatching) {
+			config.setUseErlangOutputs(false);
+			out.write("config useErlangOutputs false\n");
+		}
+		config.setErlangModuleName(module.name);
+		config.setErlangSourceFile(new File(module.sourceFolder, module.name
+				+ ErlangRunner.ERL.ERL.toString()));
+	}
+
+	public static void genRandom(ErlangModule targetmodule, File file,
+			int length, int count, boolean exhaustAlphabet,
+			boolean useOutputMatching) {
 		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(file));
-			out.write("config erlangSourceFile " + module.sourceFolder
-					+ File.separator + module.name + ".erl\n");
-			out.write("config labelKind LABEL_ERLANG\n");
-			out.write("config erlangModuleName " + module.name + "\n");
-			Configuration config = Configuration.getDefaultConfiguration()
-					.copy();
-			if (!useOutputMatching) {
-				config.setUseErlangOutputs(false);
-				out.write("config useErlangOutputs false\n");
-			}
-			config.setErlangModuleName(module.name);
-			config.setErlangSourceFile(new File(module.sourceFolder,module.name+ErlangRunner.ERL.ERL.toString()));
-			ErlangOracleLearner learner = new ErlangOracleLearner(null,
+			module = targetmodule;
+			setupFile(file, useOutputMatching);
+			learner = new ErlangOracleLearner(null,
 					new LearnerEvaluationConfiguration(config));
+
 			// Make sure our copy of the module is the same object as the
 			// learner's so that alphabet mods work...
 			module = learner.getModule();
@@ -429,11 +443,12 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 					aClone.addAll(newaClone);
 					int counter = 1;
 					for (ErlangLabel l : newaClone) {
-						System.out.println("" + counter + " of " + newaClone.size());
+						System.out.println("" + counter + " of "
+								+ newaClone.size());
 						counter++;
 						List<ErlangLabel> line = new LinkedList<ErlangLabel>();
 						line.add(l);
-						evaluateLine(module, out, learner, pos, neg, -1, line);
+						evaluateLine(module, out, learner, pos, neg, line);
 					}
 				} while (module.behaviour.getAlphabet().size() > aClone.size());
 
@@ -445,21 +460,21 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				if (i % 20 == 0) {
 					System.out.println("");
 				}
-				System.out.print("Generating a line...");
-				System.out.flush();
-				List<ErlangLabel> line = randLine(module,
+				// System.out.print("Generating a line...");
+				// System.out.flush();
+				List<ErlangLabel> line = randLine2(module,
 						module.behaviour.getAlphabet(), length, pos, neg);
-				System.out.println("Evaluating...");
-				System.out.flush();
+				// System.out.println("Evaluating...");
+				// System.out.flush();
 				if (line.size() > 0) {
-					evaluateLine(module, out, learner, pos, neg, i, line);
+					evaluateLine(module, out, learner, pos, neg, line);
 				} else {
 					// 0 length lines mean there are no possible extensions.
 					// Give up.
 					break;
 				}
 			}
-			System.out.println(".");
+			// System.out.println(".");
 			out.close();
 		} catch (IOException e) {
 			Helper.throwUnchecked("Error writing traces file", e);
@@ -467,12 +482,61 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	}
 
+	/** Generate all possible traces to the specified depth */
+	public static void genComplete(ErlangModule targetmodule, File file,
+			int depth, boolean useOutputMatching) {
+		try {
+			module = targetmodule;
+			setupFile(file, useOutputMatching);
+			learner = new ErlangOracleLearner(null,
+					new LearnerEvaluationConfiguration(config));
+
+			// Make sure our copy of the module is the same object as the
+			// learner's so that alphabet mods work...
+			module = learner.getModule();
+
+			genSet(module.behaviour.getAlphabet(), depth);
+			out.close();
+		} catch (IOException e) {
+			Helper.throwUnchecked("Error writing traces file", e);
+		}
+
+	}
+
+	private static Set<List<ErlangLabel>> genSet(Set<ErlangLabel> alphabet,
+			int depth) throws IOException {
+		LinkedList<List<ErlangLabel>> neg = new LinkedList<List<ErlangLabel>>();
+		LinkedList<List<ErlangLabel>> pos = new LinkedList<List<ErlangLabel>>();
+		if (depth > 1) {
+			Set<List<ErlangLabel>> shorter = genSet(alphabet, depth - 1);
+			System.out.print("Extending " + shorter.size() + " children with " + alphabet.size() + " elements...");
+			for (List<ErlangLabel> ls : shorter) {
+				Set<ErlangLabel> aclone = new HashSet<ErlangLabel>(alphabet);
+
+				for (ErlangLabel l : aclone) {
+					LinkedList<ErlangLabel> ls2 = new LinkedList<ErlangLabel>(
+							ls);
+					ls2.add(l);
+					evaluateLine(module, out, learner, pos, neg, ls2);
+				}
+			}
+		} else {
+			for (ErlangLabel l : alphabet) {
+				LinkedList<ErlangLabel> ls = new LinkedList<ErlangLabel>();
+				ls.add(l);
+				evaluateLine(module, out, learner, pos, neg, ls);
+			}
+		}
+		System.out.println("Done depth " + depth + ".");
+		return new HashSet<List<ErlangLabel>>(pos);
+	}
+
 	private static void evaluateLine(ErlangModule module, BufferedWriter out,
 			ErlangOracleLearner learner, LinkedList<List<ErlangLabel>> pos,
-			LinkedList<List<ErlangLabel>> neg, int i, List<ErlangLabel> line)
+			LinkedList<List<ErlangLabel>> neg, List<ErlangLabel> line)
 			throws IOException {
 		TraceOutcome response = learner.askErlang(line);
-		//System.out.println("Writing " + response.toTraceFileString());
+		// System.out.println("Writing " + response.toTraceFileString());
 		out.write(response.toTraceFileString() + "\n");
 		switch (response.outcome) {
 		case TRACE_FAIL:
@@ -560,6 +624,24 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			}
 		}
 		return false;
+	}
+
+	private static List<ErlangLabel> randLine2(ErlangModule module,
+			Set<ErlangLabel> alphabet, int length,
+			LinkedList<List<ErlangLabel>> pos, LinkedList<List<ErlangLabel>> neg) {
+		LinkedList<ErlangLabel> result = new LinkedList<ErlangLabel>();
+
+		do {
+			int rand = (int) Math.floor(Math.random() * pos.size());
+			result = new LinkedList<ErlangLabel>(pos.get(rand));
+		} while (result.size() >= length);
+
+		for (int i = result.size(); i < length; i++) {
+			int rand = (int) Math.floor(Math.random() * alphabet.size());
+			result.add((ErlangLabel) alphabet.toArray()[rand]);
+		}
+
+		return result;
 	}
 
 	/**
@@ -669,7 +751,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		} else {
 			config.setUseErlangOutputs(true);
 		}
-		config.setErlangSourceFile(new File(module.sourceFolder,module.name + ErlangRunner.ERL.ERL.toString()));
+		config.setErlangSourceFile(new File(targetModule.sourceFolder,
+				targetModule.name + ErlangRunner.ERL.ERL.toString()));
 		try {
 			setModule(ErlangModule.loadModule(config, true));
 		} catch (IOException e) {

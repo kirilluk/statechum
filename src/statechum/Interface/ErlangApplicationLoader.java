@@ -288,15 +288,14 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 					ErlangModule m = (ErlangModule) s;
 
 					// FIXME configurable...
-					int len = 25;
-					int count = 50;
+					int len = 4;
+					int count = 5000;
 					boolean exhaustAlphabet = true;
 					boolean useOutputMatching = true;
 					System.out.println("Generating traces for " + m.name + "...");
 					String tracefile = m.name + ".traces";
-					ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet,
-							useOutputMatching);
-
+					ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet, useOutputMatching);
+					//ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching);
 					// Run ErlangQSMOracle on the trace file...
 					
 					System.out.println("Learning " + m.name + "...");

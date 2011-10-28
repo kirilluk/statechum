@@ -398,6 +398,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						.size() : "alphabet was extended for the second time";
 			}
 			seq = seqNext;
+			System.out.println("wave "+waveNo+" elements: "+seq.getSize());
 		}
 		initInputToPossibleOutputsMap();
 		return engine;
@@ -490,7 +491,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						+ " is not of Erlang type");
 
 			ErlangLabel erlLabel = (ErlangLabel)lbl;
-			/*
+			
 			if (!module.getName().equals(erlLabel.function.getModuleName()))
 				throw new IllegalArgumentException("current module is "+module.getName()+" but attempting to call "+erlLabel.function.getModuleName());
 
@@ -498,7 +499,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				throw new IllegalArgumentException("label " + lbl +
 						" does not belong to the alphabet \n" +
 						module.behaviour.getAlphabet());
-			*/
+			
 			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);

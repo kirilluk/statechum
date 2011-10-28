@@ -219,6 +219,11 @@ public class PTASequenceEngine
 				ptaNodes = ptaNodes.subList(0, number);
 		}
 		
+		public int getSize()
+		{
+			return ptaNodes.size();
+		}
+		
 		/** Unites the given set of sequence with the supplied one.
 		 * Important: cannot cope well with duplicate nodes, they will be preserved.
 		 * 

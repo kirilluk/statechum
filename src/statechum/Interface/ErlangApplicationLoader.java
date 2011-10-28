@@ -23,13 +23,28 @@
  */
 package statechum.Interface;
 
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
+
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
 import javax.swing.ListModel;
 import javax.swing.filechooser.FileFilter;
 
+import statechum.Configuration.EXPANSIONOFANY;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.ErlangApp;
@@ -82,14 +97,14 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		jLabel1.setText("App file:");
 
-		jButton1.setText("...");
+		jButton1.setText("Choose");
 		jButton1.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton1ActionPerformed(evt);
 			}
 		});
 
-		beginButton.setText("All");
+		beginButton.setText("Auto-Analyse All");
 		beginButton.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				beginButtonActionPerformed(evt);
@@ -104,7 +119,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		jScrollPane1.setViewportView(modules);
 
-		jButton2.setText("View");
+		jButton2.setText("View selected module");
 		jButton2.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton2ActionPerformed(evt);
@@ -118,106 +133,201 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			}
 		});
 
-		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-		getContentPane().setLayout(layout);
-		layout.setHorizontalGroup(layout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(
-						layout.createSequentialGroup()
-								.addContainerGap()
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-												.addGroup(
-														javax.swing.GroupLayout.Alignment.TRAILING,
-														layout.createSequentialGroup()
-																.addComponent(jLabel1)
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-																.addComponent(appFile,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		720, Short.MAX_VALUE)
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addComponent(jButton3)
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addComponent(jButton1))
-												.addGroup(
-														layout.createSequentialGroup()
-																.addGroup(
-																		layout.createParallelGroup(
-																				javax.swing.GroupLayout.Alignment.LEADING)
-																				.addComponent(jLabel2)
-																				.addComponent(jLabel3))
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addGroup(
-																		layout.createParallelGroup(
-																				javax.swing.GroupLayout.Alignment.LEADING)
-																				.addComponent(
-																						startModuleArgs,
-																						javax.swing.GroupLayout.PREFERRED_SIZE,
-																						211,
-																						javax.swing.GroupLayout.PREFERRED_SIZE)
-																				.addComponent(
-																						startModule,
-																						javax.swing.GroupLayout.PREFERRED_SIZE,
-																						211,
-																						javax.swing.GroupLayout.PREFERRED_SIZE)))
-												.addGroup(
-														layout.createSequentialGroup()
-																.addComponent(jLabel4)
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addComponent(jScrollPane1,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		863, Short.MAX_VALUE))
-												.addGroup(
-														javax.swing.GroupLayout.Alignment.TRAILING,
-														layout.createSequentialGroup()
-																.addComponent(jButton2)
-																.addPreferredGap(
-																		javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																.addComponent(beginButton)))
-								.addContainerGap()));
-		layout.setVerticalGroup(layout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(
-						layout.createSequentialGroup()
-								.addContainerGap()
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-												.addComponent(jLabel1)
-												.addComponent(appFile,
-														javax.swing.GroupLayout.PREFERRED_SIZE, 25,
-														javax.swing.GroupLayout.PREFERRED_SIZE)
-												.addComponent(jButton1).addComponent(jButton3))
-								.addGap(18, 18, 18)
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-												.addComponent(jLabel2)
-												.addComponent(startModule,
-														javax.swing.GroupLayout.PREFERRED_SIZE, 21,
-														javax.swing.GroupLayout.PREFERRED_SIZE))
-								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-												.addComponent(jLabel3)
-												.addComponent(startModuleArgs,
-														javax.swing.GroupLayout.PREFERRED_SIZE, 21,
-														javax.swing.GroupLayout.PREFERRED_SIZE))
-								.addGap(18, 18, 18)
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-												.addComponent(jLabel4)
-												.addComponent(jScrollPane1,
-														javax.swing.GroupLayout.DEFAULT_SIZE, 434,
-														Short.MAX_VALUE))
-								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-								.addGroup(
-										layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-												.addComponent(beginButton).addComponent(jButton2))
-								.addContainerGap()));
+		JPanel top = new JPanel();
+		JPanel mid = new JPanel();
+		JPanel bottom = new JPanel();
+		this.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+
+		top.setLayout(new GridBagLayout());
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.weightx = 0.001;
+		c.weighty = 0.001;
+		c.gridx = 0;
+		c.gridy = 0;
+		c.anchor = GridBagConstraints.LINE_START;
+		top.add(jLabel1, c);
+		c.weightx = 0.999;
+		c.weighty = 0.999;
+		c.gridx = 1;
+		top.add(appFile, c);
+		c.weightx = 0.001;
+		c.weighty = 0.001;
+		c.anchor = GridBagConstraints.LINE_END;
+		c.gridx = 2;
+		top.add(jButton3, c);
+		c.gridx = 3;
+		top.add(jButton1, c);
+
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.weightx = 0.001;
+		c.weighty = 0.001;
+		c.gridx = 0;
+		c.gridy = 1;
+		c.anchor = GridBagConstraints.LINE_START;
+		top.add(jLabel2, c);
+		c.weightx = 0.999;
+		c.weighty = 0.999;
+		c.gridx = 1;
+		c.gridy = 1;
+		top.add(startModule, c);
+
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.weightx = 0.001;
+		c.weighty = 0.001;
+		c.gridx = 0;
+		c.gridy = 2;
+		c.anchor = GridBagConstraints.LINE_START;
+		top.add(jLabel3, c);
+		c.weightx = 0.999;
+		c.weighty = 0.999;
+		c.gridx = 1;
+		c.gridy = 2;
+		top.add(startModuleArgs, c);
+
+		c.weightx = 0.1;
+		c.weighty = 0.1;
+		c.gridy = 0;
+		c.gridx = 0;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.PAGE_START;
+		this.add(top, c);
+
+		mid.setLayout(new GridBagLayout());
+		c.weightx = 0.001;
+		c.weighty = 0.001;
+		c.gridy = 0;
+		c.anchor = GridBagConstraints.FIRST_LINE_START;
+		mid.add(jLabel4, c);
+		c.gridy = 1;
+		mid.add(jButton2, c);
+		c.gridy = 2;
+		c.weightx = 0.999;
+		c.weighty = 0.999;
+		c.anchor = GridBagConstraints.CENTER;
+		c.fill = GridBagConstraints.BOTH;
+		mid.add(jScrollPane1, c);
+
+		c.weightx = 0.9;
+		c.weighty = 0.9;
+		c.gridx = 0;
+		c.gridy = 1;
+		c.anchor = GridBagConstraints.CENTER;
+		this.add(mid, c);
+
+		lenField = new JTextField("10");
+		countField = new JTextField("250");
+		exhaustAlphabetBox = new JCheckBox("Exhaust the alphabet", true);
+		outputMatchingBox = new JCheckBox("Use output matching", true);
+
+		ButtonGroup bgroup = new ButtonGroup();
+		exhaustiveButton = new JRadioButton("Use exhaustive generation");
+		randomButton = new JRadioButton("Use random generation");
+		bgroup.add(exhaustiveButton);
+		bgroup.add(randomButton);
+		exhaustiveButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				generatorChange();
+			}
+		});
+		randomButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				generatorChange();
+			}
+		});
+		randomButton.setSelected(true);
+		seedField = new JTextField("" + (new Random()).nextLong());
+
+		anyAlphabet = new JComboBox(new String[] { "'AnyWibble'",
+				"'JustAnythingA', [], ['WibbleA'], ['WibbleA', 'WobbleA']" });
+		bottom.setLayout(new GridBagLayout());
+		c.weightx = 0.001;
+		c.gridx = 0;
+		c.gridy = 0;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(new JLabel("Trace length"), c);
+		c.weightx = 0.999;
+		c.gridx = 1;
+		c.gridy = 0;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(lenField, c);
+		c.weightx = 0.001;
+		c.gridx = 0;
+		c.gridy = 1;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(new JLabel("Number of traces to generate"), c);
+		c.weightx = 0.999;
+		c.gridx = 1;
+		c.gridy = 1;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(countField, c);
+
+		c.weightx = 0.001;
+		c.gridx = 0;
+		c.gridy = 2;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(exhaustAlphabetBox, c);
+		c.gridx = 0;
+		c.gridy = 3;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(outputMatchingBox, c);
+
+		c.weightx = 0.999;
+		c.gridx = 1;
+		c.gridy = 2;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(exhaustiveButton, c);
+		c.gridx = 1;
+		c.gridy = 3;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(randomButton, c);
+
+		c.weightx = 0.001;
+		c.gridx = 0;
+		c.gridy = 4;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(new JLabel("Alphabet for type 'any()' values"), c);
+
+		c.weightx = 0.999;
+		c.gridx = 1;
+		c.gridy = 4;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(anyAlphabet, c);
+
+		c.weightx = 0.001;
+		c.gridx = 0;
+		c.gridy = 5;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(new JLabel("Random seed"), c);
+
+		c.weightx = 0.999;
+		c.gridx = 1;
+		c.gridy = 5;
+		c.anchor = GridBagConstraints.LINE_START;
+		bottom.add(seedField, c);
+
+		/*
+		 * c.weightx = 0.5; c.weighty = 0.5; c.gridx = 1; c.gridy = 4; c.anchor
+		 * = GridBagConstraints.LINE_START; bottom.add(randomButton, c);
+		 */
+
+		c.weightx = 0.999;
+		c.weighty = 0.2;
+		c.gridx = 1;
+		c.gridy = 99;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.PAGE_END;
+		bottom.add(beginButton, c);
+
+		c.weightx = 0.2;
+		c.weighty = 0.2;
+		c.gridx = 0;
+		c.gridy = 2;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.PAGE_END;
+		this.add(bottom, c);
+
+		this.setPreferredSize(new Dimension(800, 600));
 
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
@@ -273,40 +383,72 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	}
 
+	protected JTextField lenField;
+	protected JTextField countField;
+	protected JCheckBox exhaustAlphabetBox;
+	protected JCheckBox outputMatchingBox;
+	protected JRadioButton exhaustiveButton;
+	protected JRadioButton randomButton;
+	protected JComboBox anyAlphabet;
+	protected JTextField seedField;
+
+	private void generatorChange() {
+		if (exhaustiveButton.isSelected()) {
+			seedField.setEnabled(false);
+			countField.setEnabled(false);
+		} else {
+			seedField.setEnabled(true);
+			countField.setEnabled(true);
+		}
+	}
+
 	private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
 		zapErlFiles(folder);
 		try {
-			/* Files in this folder are supposed to be compiled by ErlangRunner - it has a place where they are listed.
-
-			for (File f : ErlangRunner.ErlangFolder.listFiles())
-				if (ErlangRunner.validName(f.getName()))
-					ErlangRunner.compileErl(f, ErlangRunner.getRunner());
+			/*
+			 * Files in this folder are supposed to be compiled by ErlangRunner
+			 * - it has a place where they are listed.
+			 * 
+			 * for (File f : ErlangRunner.ErlangFolder.listFiles()) if
+			 * (ErlangRunner.validName(f.getName())) ErlangRunner.compileErl(f,
+			 * ErlangRunner.getRunner());
 			 */
 			for (Object s : app.modules) {
 				try {
 					// Load the module
 					ErlangModule m = (ErlangModule) s;
 
-					// FIXME configurable...
-					int len = 4;
-					int count = 5000;
-					boolean exhaustAlphabet = true;
-					boolean useOutputMatching = true;
+					int len = Integer.parseInt(lenField.getText());
+					boolean exhaustAlphabet = exhaustAlphabetBox.isSelected();
+					boolean useOutputMatching = outputMatchingBox.isSelected();
+					EXPANSIONOFANY any;
+					if (anyAlphabet.getSelectedItem().equals("'AnyWibble'")) {
+						any = EXPANSIONOFANY.ANY_WIBBLE;
+					} else {
+						any = EXPANSIONOFANY.ANY_WITHLIST;
+					}
 					System.out.println("Generating traces for " + m.name + "...");
 					String tracefile = m.name + ".traces";
-					ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet, useOutputMatching);
-					//ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching);
+					if (exhaustiveButton.isSelected()) {
+						ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching, any);
+					} else {
+						long seed = Long.parseLong(seedField.getText());
+						int count = Integer.parseInt(countField.getText());
+						ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet,
+								useOutputMatching, any, seed);
+					}
 					// Run ErlangQSMOracle on the trace file...
-					
+
 					System.out.println("Learning " + m.name + "...");
 					LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
 					System.out.println("Produced " + g.getStateNumber() + " states");
-					if(g.getStateNumber() > 2) {
+					if (g.getStateNumber() > 2) {
 						System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 					} else {
 						System.out.println("-------------------------------------------------");
 					}
 				} catch (Exception e) {
+					JOptionPane.showMessageDialog(this, e.toString());
 					e.printStackTrace();
 				}
 			}
@@ -337,7 +479,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		if (args.length > 0) {// run the analysis directly
 
 			ErlangApplicationLoader loader = new ErlangApplicationLoader();
-			loader.selectedFile = new File(args[0]);
+			loader.setSelectedFile(new File(args[0]));
 			ErlangApplicationLoader.zapErlFiles(loader.selectedFile);
 			loader.loadData();
 			/*
@@ -363,6 +505,11 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 				}
 			});
 		}
+	}
+
+	private void setSelectedFile(File file) {
+		selectedFile = file;
+		appFile.setText(selectedFile.getName());
 	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables

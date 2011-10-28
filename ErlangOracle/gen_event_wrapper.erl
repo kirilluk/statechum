@@ -2,6 +2,7 @@
 -export([exec_call_trace/3]).
 
 exec_call_trace(Module, [{init, InitArgs, OP} | Trace], OpProc) ->
+    group_leader(OpProc, self()),
     %%io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
     {ok, Pid} = gen_event:start_link({local, mod_under_test}, Module, InitArgs, []),
     %%Module:init(InitArgs),

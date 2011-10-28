@@ -45,7 +45,7 @@ public class TestErlangOracleLearner {
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
 				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl")));
-		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		//learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		learner.GenerateInitialTraces();

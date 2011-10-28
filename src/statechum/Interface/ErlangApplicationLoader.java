@@ -335,7 +335,12 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	protected File selectedFile;
 
 	private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
-		JFileChooser chooser = new JFileChooser();
+		JFileChooser chooser;
+		if (selectedFile != null) {
+			chooser = new JFileChooser(selectedFile.getParentFile());
+		} else {
+			chooser = new JFileChooser();
+		}
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.addChoosableFileFilter(new ErlangApplicationLoader.appFilter());
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);

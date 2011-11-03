@@ -30,7 +30,6 @@ import java.io.IOException;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
-import statechum.analysis.Erlang.OTPUnknownBehaviour;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.Helper;
@@ -374,12 +373,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 	public PTASequenceEngine GenerateInitialTraces(int wavecount) {
 		PTASequenceEngine engine = new PTASequenceEngine();
 		engine.init(new ErlangMachine());
-		/*
-		 * System.out.println(askErlang(Arrays.asList(new
-		 * Label[]{AbstractLearnerGraph.generateNewLabel(
-		 * "{"+ErlangLabel.missingFunction+",init,AnyWibble,'aa'}", config)
-		 * })).outcome);
-		 */
+
 		PTASequenceEngine.SequenceSet seq = engine.new SequenceSet();
 		seq.setIdentity();
 		PTASequenceEngine.SequenceSet seqNext = null;
@@ -398,7 +392,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						.size() : "alphabet was extended for the second time";
 			}
 			seq = seqNext;
-			System.out.println("wave "+waveNo+" elements: "+seq.getSize());
 		}
 		initInputToPossibleOutputsMap();
 		return engine;
@@ -507,23 +500,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
-	 //System.out.println("Asking Erlang about "
-	//	 + Arrays.asList(questionDetails).toString());
-		//ErlangRunner.getRunner().killErlang();
-		//OtpErlangList procs = ErlangRunner.getRunner().listProcesses();
-		//System.out.println(procs.arity() + ": " + procs.toString());
-		//OtpErlangTuple killed = ErlangRunner.getRunner().killProcesses();
-		//System.out.println("" + ((OtpErlangList) killed.elementAt(1)).arity() + ": " + killed.elementAt(1));
 		configErlang();
-		/*
-		System.out.print("Asking erlang about ");
+		
 		boolean first = true;
-		for (Object o : questionDetails) {
-			if (first) first = false;else System.out.print(',');
-			System.out.print(o.toString());
+		if (config.getErlangDisplayQuestions())
+		{
+			System.out.print("Asking erlang about ");
+			for (Object o : questionDetails) {
+				if (first) first = false;else System.out.print(',');
+				System.out.print(o.toString());
+			}
+			System.out.println();
 		}
-		System.out.println();
-*/
 		
 		OtpErlangTuple result = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { 
@@ -583,13 +571,17 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		*/
 //		 System.out.print(outcomeEnum + ": ");
 //		 System.out.println(answerDetails.length + " elements");
-		 /*
-		for (Object o : answerDetails) {
-			if (first) first = false;else System.out.print(',');
-			System.out.print(o.toString());
-		}
-		System.out.println();
-		*/
+		
+		if (config.getErlangDisplayQuestions())
+		{
+			System.out.println("And the answer is "+outcomeEnum+" :");
+			first=true;
+			for (Object o : answerDetails) {
+				if (first) first = false;else System.out.print(',');
+				System.out.print(o.toString());
+			}
+			System.out.println();
+		}		
 		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 }

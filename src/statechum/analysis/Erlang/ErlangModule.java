@@ -200,7 +200,7 @@ public class ErlangModule {
 	@Override
 	public String toString() {
 		return getName() + " [" + behaviour.toString() + "] ("
-				+ behaviour.dependencies.size() + " dependecies)";
+				+ behaviour.dependencies.size() + " dependencies)";
 	}
 
 	protected final static Map<String, ErlangModule> modulesRegistry = new TreeMap<String, ErlangModule>();

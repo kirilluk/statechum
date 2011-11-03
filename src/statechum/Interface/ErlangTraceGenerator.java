@@ -15,13 +15,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -33,19 +30,14 @@ import javax.swing.JOptionPane;
 
 import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
-import statechum.Helper;
 import statechum.Configuration.LABELKIND;
-import statechum.Label;
+import statechum.Helper;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner;
-import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
-import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -64,7 +56,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	protected String wrapper;
 
-	public void setAlphabet(Set<ErlangLabel> al) {
+	public void setAlphabet() {
 		// alphabet = al;
 		JLabel ta = new JLabel("<html>");
 		for (OtpErlangTuple a : targetModule.behaviour.getAlphabet()) {
@@ -81,8 +73,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	public void setModule(ErlangModule mod) {
 		targetModule = mod;
-		setAlphabet(targetModule.behaviour.getAlphabet());
+		setAlphabet();
 		this.setTitle(targetModule.name);
+		outfile = new File(mod.sourceFolder,mod.getName()+"_traces.txt");
+		fileNameLabel.setText(outfile.getAbsolutePath());
 	}
 
 	/** Creates new form ErlangTraceGenerator */
@@ -127,6 +121,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 		jButton1.setText("Generate");
 		jButton1.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton1ActionPerformed(evt);
 			}
@@ -134,8 +129,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 		jLabel3.setText("Output file:");
 
-		jButton2.setText("...");
+		jButton2.setText("select output file");
 		jButton2.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton2ActionPerformed(evt);
 			}
@@ -342,9 +338,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
 	protected File outfile;
 
-	private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
-		JFileChooser chooser = new JFileChooser();
+	void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
+		JFileChooser chooser = new JFileChooser(module.sourceFolder);
 		chooser.setAcceptAllFileFilterUsed(false);
+		chooser.setFileFilter(new Start.TxtFileFilter());
 		int returnValue = chooser.showOpenDialog(null);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
 			try {
@@ -358,7 +355,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		}
 	}// GEN-LAST:event_jButton2ActionPerformed
 
-	private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
+	void jButton1ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
 		String style = genStyle.getSelectedItem().toString();
 		boolean exhaustAlphabet = allAlphabet.isSelected();
 		try {
@@ -400,19 +397,22 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	private static void setupFile(File file, boolean useOutputMatching,
 			EXPANSIONOFANY expand) throws IOException {
 		out = new BufferedWriter(new FileWriter(file));
+		/*
 		out.write("config erlangSourceFile " + module.sourceFolder
 				+ File.separator + module.name + ".erl\n");
 		out.write("config labelKind LABEL_ERLANG\n");
-		out.write("config erlangModuleName " + module.name + "\n");
+		out.write("config erlangModuleName " + module.name + "\n");*/
 		config = Configuration.getDefaultConfiguration().copy();
 		if (!useOutputMatching) {
 			config.setUseErlangOutputs(false);
-			out.write("config useErlangOutputs false\n");
+			//out.write("config useErlangOutputs false\n");
 		}
+		config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		config.setErlangAlphabetAnyElements(expand);
 		config.setErlangModuleName(module.name);
 		config.setErlangSourceFile(new File(module.sourceFolder, module.name
 				+ ErlangRunner.ERL.ERL.toString()));
+		config.writeModifiedIntoWriter(out);
 	}
 
 	public static void genRandom(ErlangModule targetmodule, File file,
@@ -426,7 +426,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			int length, int count, boolean exhaustAlphabet,
 			boolean useOutputMatching, EXPANSIONOFANY expand) {
 		genRandom(targetmodule, file, length, count, exhaustAlphabet,
-				useOutputMatching,expand, (new Random()).nextLong());
+				useOutputMatching,expand, (new Random(0)).nextLong());
 	}
 	
 	public static void genRandom(ErlangModule targetmodule, File file,
@@ -579,6 +579,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				// Lets hope Java's Set is an actual Set...
 				module.behaviour.getAlphabet().add(response.answerDetails[j]);
 			}
+			//$FALL-THROUGH$
 		case TRACE_OK:
 			pos.add(Arrays.asList(response.answerDetails));
 			break;
@@ -651,10 +652,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 				targetModule.name + ErlangRunner.ERL.ERL.toString()));
 		try {
 			setModule(ErlangModule.loadModule(config, true));
+			this.setVisible(true);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		// setAlphabet(module.behaviour.getAlphabet());
-		this.setVisible(true);
 	}
 }

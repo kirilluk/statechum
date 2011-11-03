@@ -23,15 +23,19 @@
  */
 package statechum.Interface;
 
-import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
+import javax.swing.AbstractListModel;
 import javax.swing.ButtonGroup;
+import javax.swing.ComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -41,16 +45,17 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
-import javax.swing.ListModel;
 import javax.swing.filechooser.FileFilter;
 
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+
+import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
-import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
-import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.Signatures.AnySignature;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.apps.ErlangQSMOracle;
 
@@ -63,12 +68,77 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	protected ErlangApp app;
 	protected File folder;
+	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 
 	/** Creates new form ErlangApplicationLoader */
 	public ErlangApplicationLoader() {
 		super("StateChum Erlang Application Loader");
 		initComponents();
 	}
+	
+	class InnerAlphabetModel extends AbstractListModel implements ComboBoxModel
+	{
+		List<EXPANSIONOFANY> expansionValues = Arrays.asList(EXPANSIONOFANY.values());
+		List<String>sigValues = new ArrayList<String>(expansionValues.size());
+		int selectedItemIdx=0;
+		
+		public InnerAlphabetModel()
+		{// Default constructor
+			assert expansionValues.size() > 0;
+			for(EXPANSIONOFANY value:expansionValues)
+			{
+				Configuration conf = config.copy();conf.setErlangAlphabetAnyElements(value);
+				StringBuffer alphabetValues = new StringBuffer();
+				boolean first = true;
+				for(OtpErlangObject obj:new AnySignature(conf, new OtpErlangList()).instantiateAllAlts())
+				{
+					if (first) first = false;else alphabetValues.append(", ");
+					alphabetValues.append(obj.toString());
+				}
+				String expansionValue = alphabetValues.toString();
+				assert !sigValues.contains(expansionValue) : "duplicate alphabet value "+expansionValue;
+				sigValues.add(expansionValue);
+			}
+		}
+		
+		@Override
+		public int getSize() {
+			return expansionValues.size();
+		}
+		
+		@Override
+		public Object getElementAt(int index) {
+			if (index >= 0 && index < expansionValues.size())
+				return sigValues.get(index);
+			
+			return null;
+		}
+		
+	    /**
+	     * Set the value of the selected item. The selected item may be null.
+	     * <p>
+	     * @param anObject The combo box value or null for no selection.
+	     */
+		@Override
+		public void setSelectedItem(Object anItem) 
+		{
+			int value = sigValues.indexOf(anItem);
+			if (value < 0) throw new IllegalArgumentException("alphabet value "+anItem.toString()+" is not known");
+			selectedItemIdx = value;
+		}
+		
+		@Override
+		public Object getSelectedItem() {
+			return sigValues.get(selectedItemIdx);
+		}
+		
+		public EXPANSIONOFANY getSelectedExpansion()
+		{
+			return expansionValues.get(selectedItemIdx);
+		}
+		
+	}
+	
 
 	/**
 	 * This method is called from within the constructor to initialize the form.
@@ -99,6 +169,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		jButton1.setText("Choose");
 		jButton1.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton1ActionPerformed(evt);
 			}
@@ -106,6 +177,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		beginButton.setText("Auto-Analyse All");
 		beginButton.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				beginButtonActionPerformed(evt);
 			}
@@ -121,6 +193,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		jButton2.setText("View selected module");
 		jButton2.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton2ActionPerformed(evt);
 			}
@@ -128,6 +201,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 		jButton3.setText("Reload");
 		jButton3.addActionListener(new java.awt.event.ActionListener() {
+			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton3ActionPerformed(evt);
 			}
@@ -226,20 +300,21 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		bgroup.add(exhaustiveButton);
 		bgroup.add(randomButton);
 		exhaustiveButton.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				generatorChange();
+			@Override
+			public void actionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {
+				generatorChange(true);
 			}
 		});
 		randomButton.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				generatorChange();
+			@Override
+			public void actionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {
+				generatorChange(false);
 			}
 		});
 		randomButton.setSelected(true);
 		seedField = new JTextField("" + (new Random()).nextLong());
 
-		anyAlphabet = new JComboBox(new String[] { "'AnyWibble'",
-				"'JustAnythingA', [], ['WibbleA'], ['WibbleA', 'WobbleA']" });
+		anyAlphabet = new JComboBox(new InnerAlphabetModel());
 		bottom.setLayout(new GridBagLayout());
 		c.weightx = 0.001;
 		c.gridx = 0;
@@ -334,7 +409,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	protected File selectedFile;
 
-	private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
+	private void jButton1ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
 		JFileChooser chooser;
 		if (selectedFile != null) {
 			chooser = new JFileChooser(selectedFile.getParentFile());
@@ -381,7 +456,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		// Keeping these for debugging and interest:
 		// "test2.out","test2.out.covermap",
 		for (String str : new String[] { "erl_crash.dump", ".dialyzer_plt", "tmp.cover" }) {
-			File file = new File(where.getAbsolutePath() + File.separator + str);
+			File file = new File(where.getAbsolutePath(),str);
 			if (file.canRead() && !file.delete())
 				throw new RuntimeException("failed to delete " + file.getAbsolutePath());
 		}
@@ -397,8 +472,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	protected JComboBox anyAlphabet;
 	protected JTextField seedField;
 
-	private void generatorChange() {
-		if (exhaustiveButton.isSelected()) {
+	void generatorChange(boolean exhaustive) {
+		if (exhaustive) {
 			seedField.setEnabled(false);
 			countField.setEnabled(false);
 		} else {
@@ -407,7 +482,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		}
 	}
 
-	private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
+	private void beginButtonActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
 		zapErlFiles(folder);
 		try {
 			/*
@@ -426,32 +501,22 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 					int len = Integer.parseInt(lenField.getText());
 					boolean exhaustAlphabet = exhaustAlphabetBox.isSelected();
 					boolean useOutputMatching = outputMatchingBox.isSelected();
-					EXPANSIONOFANY any;
-					if (anyAlphabet.getSelectedItem().equals("'AnyWibble'")) {
-						any = EXPANSIONOFANY.ANY_WIBBLE;
-					} else {
-						any = EXPANSIONOFANY.ANY_WITHLIST;
-					}
+					EXPANSIONOFANY expansion = ((InnerAlphabetModel)anyAlphabet.getModel()).getSelectedExpansion();
 					System.out.println("Generating traces for " + m.name + "...");
 					String tracefile = m.name + ".traces";
 					if (exhaustiveButton.isSelected()) {
-						ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching, any);
+						ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching, expansion);
 					} else {
 						long seed = Long.parseLong(seedField.getText());
 						int count = Integer.parseInt(countField.getText());
 						ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet,
-								useOutputMatching, any, seed);
+								useOutputMatching, expansion, seed);
 					}
 					// Run ErlangQSMOracle on the trace file...
 
 					System.out.println("Learning " + m.name + "...");
 					LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
 					System.out.println("Produced " + g.getStateNumber() + " states");
-					if (g.getStateNumber() > 2) {
-						System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-					} else {
-						System.out.println("-------------------------------------------------");
-					}
 				} catch (Exception e) {
 					JOptionPane.showMessageDialog(this, e.toString());
 					e.printStackTrace();
@@ -463,7 +528,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	}// GEN-LAST:event_beginButtonActionPerformed
 
-	private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
+	private void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
 		for (Object s : modules.getSelectedValues()) {
 			ErlangModuleViewer view = new ErlangModuleViewer((ErlangModule) s);
 			view.pack();
@@ -472,7 +537,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		}
 	}// GEN-LAST:event_jButton2ActionPerformed
 
-	private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton3ActionPerformed
+	private void jButton3ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton3ActionPerformed
 		loadData();
 	}// GEN-LAST:event_jButton3ActionPerformed
 

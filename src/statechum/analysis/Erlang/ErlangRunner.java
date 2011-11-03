@@ -196,10 +196,10 @@ public class ErlangRunner {
 	public static void compileErl(File whatToCompile, ErlangRunner useRunner)
 			throws IOException {
 		String erlFileName = getName(whatToCompile, ERL.ERL);
-		File parentFile = whatToCompile.getAbsoluteFile().getParentFile();
-		if (parentFile == null)
+		if (whatToCompile.getParentFile() == null)
 			throw new IllegalArgumentException(
 					"File does not have a parent directory " + whatToCompile);
+		File parentFile = whatToCompile.getAbsoluteFile().getParentFile();
 
 		if (!whatToCompile.canRead())
 			throw new IOException("file " + erlFileName + " does not exist");
@@ -295,8 +295,8 @@ public class ErlangRunner {
 	public void startErlang(String runnerMode, long delay) {
 		proclist = null;
 		try {
-			System.out.print("Starting Erlang...");
-			System.out.flush();
+			//System.out.print("Starting Erlang...");
+			//System.out.flush();
 			final long startTime = System.currentTimeMillis();
 			if (erlangProcess == null) {
 				String tracerunnerProgram = "tracerunner.erl";
@@ -426,8 +426,8 @@ public class ErlangRunner {
 									+ (endTime - startTime) + "ms");
 				}
 			}
-			final long endTime = System.currentTimeMillis();
-			System.out.println("Started. " + (endTime - startTime) + "ms");
+			//final long endTime = System.currentTimeMillis();
+			//System.out.println("Started. " + (endTime - startTime) + "ms");
 		} catch (IOException e) {
 			killErlang();
 			Helper.throwUnchecked("failed to start Erlang", e);

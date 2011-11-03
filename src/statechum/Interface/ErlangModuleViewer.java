@@ -31,7 +31,6 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.WindowConstants;
 
-import statechum.Configuration;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 
@@ -51,12 +50,12 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 	/** Creates new form ErlangModuleViewer */
 	public ErlangModuleViewer() {
 		initComponents();
+		this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 	}
 
 	public ErlangModuleViewer(ErlangModule m) {
 		this();
 		displayModule(m);
-		this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 	}
 
 	protected ErlangModule module;
@@ -142,7 +141,8 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
         jButton1.setText("Close");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
+            @Override
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
@@ -161,7 +161,8 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
         jButton2.setText("Use for trace generation");
         jButton2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
+            @Override
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton2ActionPerformed(evt);
             }
         });
@@ -181,7 +182,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                         .addContainerGap()
                         .addComponent(initVals, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(dependencies, javax.swing.GroupLayout.DEFAULT_SIZE, 315, Short.MAX_VALUE))
+                        .addComponent(dependencies, javax.swing.GroupLayout.DEFAULT_SIZE, 100, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
@@ -240,13 +241,13 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-	private void jButton1ActionPerformed(
+	void jButton1ActionPerformed(
 			@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
 		this.setVisible(false);
 		this.dispose();
 	}// GEN-LAST:event_jButton1ActionPerformed
 
-	private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
+	void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
 		ErlangTraceGenerator gen = new ErlangTraceGenerator();
 		gen.setModule(module);
 		gen.setVisible(true);

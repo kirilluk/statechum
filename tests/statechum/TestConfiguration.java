@@ -17,6 +17,9 @@
 
 package statechum;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.List;
 
 import javax.xml.XMLConstants;
@@ -28,6 +31,7 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Helper.whatToRun;
 import statechum.AttributeMutator.MethodAndArgs;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
@@ -97,6 +101,64 @@ public class TestConfiguration {
 		equalityTestingHelper(confA, confClone, confC, confD);
 	}
 
+	@Test
+	public void testConfigurationToStringBuffer1()
+	{
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		Writer result = new StringWriter();
+		conf.writeModifiedIntoWriter(result);
+		Assert.assertEquals(0,result.toString().length());
+	}
+	
+	
+	@Test
+	public void testConfigurationToStringBuffer2() throws IOException
+	{
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		String value = "test\n";
+		Writer result = new StringWriter();result.append(value);
+		conf.writeModifiedIntoWriter(result);
+		Assert.assertEquals(value,result.toString());
+	}
+	
+	@Test
+	public void testConfigurationToStringBuffer3() throws IOException
+	{
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		String value = "test\n";
+		Writer result = new StringWriter();result.append(value);
+		conf.setAllowedToCloneNonCmpVertex(false);
+		conf.setCompressLogs(false);
+		conf.writeModifiedIntoWriter(result);
+		Assert.assertEquals(value+"config compressLogs false\n",result.toString());
+	}
+	
+	@Test
+	public void testConfigurationToStringBuffer4() throws IOException
+	{
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		String value = "test\n";
+		Writer result = new StringWriter();result.append(value);
+		conf.setAllowedToCloneNonCmpVertex(false);
+		conf.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		conf.setCompressLogs(false);
+		conf.writeModifiedIntoWriter(result);
+		Assert.assertEquals(value+"config compressLogs false\nconfig erlangAlphabetAnyElements ANY_WIBBLE\n",result.toString());
+	}
+	
+	@Test
+	public void testConfigurationToStringBuffer5() throws IOException
+	{
+		final Configuration conf = Configuration.getDefaultConfiguration().copy();
+		String value = "test\n";
+		final Writer result = new StringWriter();result.append(value);
+		conf.setAllowedToCloneNonCmpVertex(false);
+		conf.setErlangAlphabetAnyElements(null);
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+			conf.writeModifiedIntoWriter(result);
+		}},IllegalArgumentException.class,"cannot record resetting");
+	}
+	
 	/** An obvious problem with Configuration is forgetting to include all 
 	 * the necessary variables in equals and hashCode methods. This one
 	 * checks that each change to instance variables affects the response from 

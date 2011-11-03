@@ -51,6 +51,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public void construct(Graph g,LayoutOptions options) {
         super.construct(g,options);
         JMenuItem item = new JMenuItem("Coverage");
+        item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 
             @Override
@@ -60,6 +61,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         });
         popupMenu.add(item);
         item = new JMenuItem("Coverage Comparison");
+        item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 
             @Override
@@ -70,6 +72,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         });
         popupMenu.add(item);
         item = new JMenuItem("All suffixes coverage");
+        item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 
             @Override
@@ -80,6 +83,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         });
         popupMenu.add(item);
         item = new JMenuItem("All suffixes coverage comparison");
+        item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 
             @Override
@@ -90,6 +94,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         });
         popupMenu.add(item);
         item = new JMenuItem("No coverage display");
+        item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 
             @Override

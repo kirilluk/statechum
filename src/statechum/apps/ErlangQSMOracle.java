@@ -41,6 +41,7 @@ import statechum.analysis.Erlang.OTPBehaviour;
 import statechum.analysis.Erlang.OTPBehaviour.ConvertALabel;
 
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.observers.QuestionAndRestartCounter;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
@@ -139,7 +140,16 @@ public class ErlangQSMOracle {
 		innerLearner.addObserver(viz);
 		innerLearner.setGraphNameSuffix(tracesFile);
 		innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
-		return innerLearner.learnMachine();
+		QuestionAndRestartCounter counter = new QuestionAndRestartCounter(innerLearner);
+		
+		LearnerGraph result = counter.learnMachine();
+		
+		if (innerLearner.getTentativeAutomaton().config.getErlangDisplayStatistics())
+		{
+			System.out.println("STATISTICS: "+counter.getQuestionCounter()+" questions, "+counter.getRestarts()+" restarts");
+		}
+		
+		return result;
 	}
 
 	protected static Collection<Label> getPathTo(CmpVertex tgt, CmpVertex root,

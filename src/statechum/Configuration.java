@@ -18,6 +18,7 @@
 package statechum;
 
 import java.io.File;
+import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -1328,6 +1329,68 @@ public class Configuration implements Cloneable {
 	public void setErlangAlphabetAnyElements(EXPANSIONOFANY newValue)
 	{
 		erlangAlphabetAnyElements = newValue;
+	}
+	
+	/** Whether details of questions asked and responses received should be shown. */
+	protected boolean erlangDisplayQuestions = false;
+	
+	public boolean getErlangDisplayQuestions()
+	{
+		return erlangDisplayQuestions;
+	}
+	
+	public void setErlangDisplayQuestions(boolean newValue)
+	{
+		erlangDisplayQuestions = newValue;
+	}
+	
+	/** Whether to display statistics after learning. */
+	protected boolean erlangDisplayStatistics = false;
+	
+	public boolean getErlangDisplayStatistics()
+	{
+		return erlangDisplayStatistics;
+	}
+	
+	public void setErlangDisplayStatistics(boolean newValue)
+	{
+		erlangDisplayStatistics = newValue;
+	}
+	
+	/** Writes modified fields of this configuration into a text file.
+	 * A field is considered modified if its value is different from the
+	 * one returned by Configuration.getDefaultConfiguration(). In this sense,
+	 * the outcome is not unique since in situations where a default values 
+	 * changes, all previously stored configurations will have invalid values.
+	 */
+	public void writeModifiedIntoWriter(Writer resultHolder)
+	{
+		Configuration defaultConfiguration = Configuration.getDefaultConfiguration();
+		for (Field var : getClass().getDeclaredFields()) {
+			if (var.getType() != Configuration.class && var.getName() != "$VRc"// added by eclemma (coverage analysis)
+					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
+				Method getter = AttributeMutator.getMethod(Configuration.class,
+						GETMETHOD_KIND.FIELD_GET, var);
+				try {
+					Object origValue = getter.invoke(defaultConfiguration, new Object[] {});
+					Object value = getter.invoke(this, new Object[] {});
+					if (value != null) {
+						if (origValue == null || !value.equals(origValue)) {
+							resultHolder.append("config ");
+							resultHolder.append(var.getName());resultHolder.append(' ');
+							resultHolder.append(value.toString());
+							resultHolder.append('\n');
+						}
+					}
+					else
+						if (origValue != null)
+							throw new IllegalArgumentException("cannot record resetting of a non-null value to a null");
+				} catch (Exception e) {
+					throwUnchecked(
+							"cannot extract a value of " + var.getName(), e);
+				}
+			}
+		}
 	}
 	
 	/**

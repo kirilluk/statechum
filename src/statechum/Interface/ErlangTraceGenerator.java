@@ -339,10 +339,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	protected File outfile;
 
 	void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
-		JFileChooser chooser = new JFileChooser(module.sourceFolder);
+		JFileChooser chooser = new JFileChooser(targetModule.sourceFolder);
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.setFileFilter(new Start.TxtFileFilter());
-		int returnValue = chooser.showOpenDialog(null);
+		int returnValue = chooser.showSaveDialog(null);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
 			try {
 				fileNameLabel.setText(chooser.getSelectedFile()

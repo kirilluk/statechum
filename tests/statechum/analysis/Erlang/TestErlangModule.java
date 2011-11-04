@@ -95,23 +95,35 @@ public class TestErlangModule {
 
 	/** This is one of those odd tests which behaves differently on different operating systems,
 	 * hence there are two different cases.
+	 * @throws IOException 
 	 */
 	@Test
-	public void testRunParserFailure2()
+	public void testRunParserFailure2() throws IOException
 	{
-		final File file = new File("ErlangExamples/WibbleMonster/Wibble.erl");
-		if (!file.canRead()) // running on a case-sensitive OS
+		final String wibbleDir = "ErlangExamples/WibbleMonster";
+		final File fileWibble = new File(wibbleDir,"Wibble.erl"),
+			filewibble = new File(wibbleDir,"wibble.erl");
+		if (!fileWibble.canRead()) // running on a case-sensitive OS
 			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
 				public @Override void run() throws IOException {
-					ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+					ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(fileWibble));
 			}},IOException.class,"does not exist");
 		else
 		{
-			File plt = new File(ErlangRunner.getName(file, ERL.PLT));
+			File beam = new File(ErlangRunner.getName(fileWibble, ERL.BEAM));
+			if (beam.canRead()) Assert.assertTrue(beam.delete());
+			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(filewibble),true);
+			
+			// At this point, I have wibble compiled using a correct file name, then I delete 
+			// a plt if it exists and try to generate a new one by forcefully reloading a module.
+			// This process checks the name of the file and throws an exception if it is not consistent
+			// with the file name.
+			
+			File plt = new File(ErlangRunner.getName(fileWibble, ERL.PLT));
 			if (plt.canRead()) Assert.assertTrue(plt.delete());
 			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
 				public @Override void run() throws IOException {
-					ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+					ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(fileWibble),true);
 			}},RuntimeException.class,"Invalid file name");
 		}
 	}

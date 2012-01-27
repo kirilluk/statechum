@@ -19,9 +19,11 @@ import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.learning.observers.LearningConvergenceObserver;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -53,6 +55,27 @@ public class TestErlangOracleLearner {
 		Assert.assertEquals(6,locker.getStateNumber());
 		Assert.assertEquals(11,locker.pathroutines.computeAlphabet().size());
 		Assert.assertEquals(51,locker.pathroutines.countEdges());
+	}
+	
+	@Test
+	public void testLockerLearning_withRestartCounter()
+	{
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
+				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl")));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
+		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+		Learner learnerAndObserver = new LearningConvergenceObserver(learner);
+		learner.GenerateInitialTraces();
+		LearnerGraph locker = learnerAndObserver.learnMachine();
+		Assert.assertEquals(6,locker.getStateNumber());
+		Assert.assertEquals(11,locker.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(51,locker.pathroutines.countEdges());
+		
+		List<Double> observedConvergence = ((LearningConvergenceObserver)learnerAndObserver).progressObserved;
+		Assert.assertEquals(2,observedConvergence.size());
+		Assert.assertEquals(0.1276595744680851,observedConvergence.get(0), Configuration.fpAccuracy);
+		Assert.assertEquals(1,observedConvergence.get(1), Configuration.fpAccuracy);
 	}
 	
 	@Test

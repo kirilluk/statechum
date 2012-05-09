@@ -33,42 +33,52 @@
 border="0" bordercolor="#111111">
     <tr>
       <td
- style="width: 60%; vertical-align: top; background-color: rgb(153, 255, 153);">
+ style="width: 40%; vertical-align: top; background-color: rgb(153, 255, 153);">
       <h1>StateChum</h1>
 <h2>Introduction</h2>
 Statechum is a framework that
 implements a number of regular grammar inference algorithms. Regular
 grammars can be represented as finite state machines. Once the grammar
 / state machine has been generated, StateChum can visualise it, and
-provides a selection of statemachine analysis and testing algorithms.
+provides a selection of state-machine analysis and testing algorithms.
       <p>
 The original purpose of the framework was to investigate the
 application of grammar inference to the problem of reverse-engineering
-state machines from source code. As a result, much of the code is
-concerned with software analysis, and not directly concerned with the
-inference process itself. It is nonetheless sufficiently modular that
-the grammar inference can be used in its own right.
+state machines from execution traces. It also contains code to generate test sets using the W method and
+methods for random trace generation. 
+<p>
+It is possible to introduce domain-specific constraints using LTL or by directly encoding them in automata.
+This makes inference significantly more effective because the learner does not need to make "guesses" 
+in many cases.
+<p>
+Random FSM generator implemented in this tool was built to generate finite-state machines
+with structural properties similar to machines published in Software Engineering literature. It has been 
+used to generate samples for the <a href="http://stamina.chefbe.net/">Stamina grammar inference competition</a>.
+<p>
+Graph comparison effectively computes a "diff" between 
+arbitrary directed graphs by using language measure to match states. Finite-state machines can also be compared using
+precision/recall or BCR scores. Graphs can be visualised using the <a href="http://www.r-project.org"/>R tool</a>
+and dynamically updated in the course of analysis.
+<p>
+Recent work involves integration with <a href="http://www.erlang.org/">Erlang</a> in order to perform
+automated inference of Erlang software. This is made possible by the Typer engine which generates types
+of Erlang functions hence making it possible to automate trace generation for the inference process.
       <p>
 The framework has been primarily used as a proof-of-concept for a
 number of ideas, and was not originally intended for widespread use.
 One of the main challenges now is to make it available to the wider
 community, and to provide interfaces that make it more usable. It is
-currently an alpha release, but a full release fit for wider use is
-planned within the next couple of months.
+currently an alpha release; we are currently considering making it available as an
+Eclipse plugin.
       <p>
 To download the software, go to the SourceForge project page, which
 also provides a forum for questions / suggestions.
 <h2>References</h2>
-N. Walkinshaw, K. Bogdanov
-"<a href="http://www.dcs.shef.ac.uk/%7Enw/Files/asedraft2.pdf">Inferring Finite-State Models with Temporal Constraints<a>"
-23rd IEEE/ACM International Conference on Automated Software Engineering (ASE'08), 
-L'Aquila, Italy, 2008
-<p>
-N. Walkinshaw, K. Bogdanov, M. Holcombe, S. Salahuddin
-"<a href="http://www.dcs.shef.ac.uk/%7Enw/Files/wcre07.pdf">Reverse Engineering State
-Machines by Interactive Grammar Inference<a>"
-14th IEEE Working Conference on Reverse Engineering (WCRE'07), 
-Vancouver, October 2007
+These are available from two places, 
+<ul>
+<li>Neil Walkinshaw <a href="http://www.cs.le.ac.uk/people/nwalkinshaw/">home page</a> and</li>
+<li>Kirill Bogdanov <a href="http://www.dcs.shef.ac.uk/~kirill">home page</a>.</li>
+</ul>
       <hr>
 For further references refer to the <a href="http://www.dcs.shef.ac.uk/%7Enw/autoAbstract/">AutoAbstract Project page<a> (link also mentioned on the right-hand column).
 </td>
@@ -95,9 +105,19 @@ Note: Statechum depends on the following software.
 <tr><td>Project</td><td>Where used in Statechum</td></tr>
 <tr><td>
 <a href="http://jung.sourceforge.net">JUNG</a></td><td>Graph manipulation and visualisation.
-</td></tr><tr><td>
-      <a href="http://math-atlas.sourceforge.net/">Automatically Tuned Linear Algebra Software</a></td><td>Structural state comparison.
-</td></tr><tr><td>
+</td></tr>
+
+<tr><td>
+      <a href="http://math-atlas.sourceforge.net/">Automatically Tuned Linear Algebra Software</a>
+<b>and</b>
+      <a href="http://www.cise.ufl.edu/research/sparse/umfpack/">UMFPACK: LU factorisation of sparse matrices</a></td><td>Structural state comparison.
+</td></tr>
+<tr><td><a href="http://www.rforge.net/JRI/">JRI - Java/R Interface</a> <b>and</b>
+<a href="http://www.rforge.net/JavaGD/">JavaGD - Java Graphics Device</a></td><td>Used to display 
+<a href="http://www.r-project.org"/>R graphs</a> in Swing windows.
+</td></tr>
+
+<tr><td>
       <a href="http://www.eclipse.org/tptp/">Eclipse TPTP</a></td><td>Extraction of dynamic information.
 </td></tr><tr><td>
       <a href="http://www.sable.mcgill.ca/soot/">SOOT</a></td><td>Static analysis.
@@ -107,6 +127,9 @@ Note: Statechum depends on the following software.
       <a href="http://spinroot.com/spin/whatispin.html">SPIN</a></td><td>Checking that automata being constructed satisfies user-specified properties.</td>
  </td>
     </tr>
+
+<tr><td>Parts of <a href="http://www.erlang.org/">Erlang</a> such as modified typer</td><td>
+Automatic inference of Erlang software using type information from Typer.</td></tr>
 </table>
 </body>
 </html>

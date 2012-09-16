@@ -78,6 +78,7 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
         statechum.apps.TestQSMTool.class,
         statechum.apps.TestQSMTool.TestInvalidTraces.class,
+        statechum.apps.TestPaperUAS.class,
         statechum.TestArrayOperations.class,
         statechum.analysis.learning.rpnicore.TestNextID.class,
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,

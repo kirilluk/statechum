@@ -1,4 +1,23 @@
-package statechum.apps;
+package statechum.analysis.learning.experiments;
+
+// Options to run this program,
+// JVM options: -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs;"C:/Program Files/R/R-2.15.1/library/rJava/jri/x64"  -Xmx1500m
+// Program arguments: C:\experiment\workspace\ModelInferenceUAS\seed1_d.txt
+// C:\experiment\workspace\ModelInferenceUAS\seed2_d.txt
+// C:\experiment\workspace\ModelInferenceUAS\seed3_d.txt
+// C:\experiment\workspace\ModelInferenceUAS\seed4_d.txt
+
+// Install R,
+// run 
+//  install.packages(c("JavaGD","rJava","aplpack"))
+// from R's console,
+
+// Replace jri.jar and javaGD.jar in statechum's lib directory with those from R tool,
+// C:\Program Files\R\R-2.15.1\library\rJava\jri\jri.jar
+// C:\Program Files\R\R-2.15.1\library\JavaGD\java\javaGD.jar
+//
+// Add the following to the path,
+// C:\Program Files\Java\jre6\bin\server;C:\Program Files\R\R-2.15.1\bin\x64
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,11 +29,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -30,6 +49,7 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
 
 public class PaperUAS 
@@ -39,6 +59,11 @@ public class PaperUAS
 	
 	/** The maximal frame number encountered. */
 	int maxFrameNumber = -1;
+	
+	/** When processing graphs with numerous data points, the task is to cluster those points so as not to have too many of them
+	 * on the graphs. The easiest way is to divide a frame number by the maximal number so as to get %%.
+	 */
+	int divisor=1;
 	
 	/** Data recorded for each seed. */
 	public static class TracesForSeed
@@ -72,39 +97,59 @@ public class PaperUAS
     public static final String UAVAll = "All", UAVAllSeeds="AllS";
         
     private static final int lexSimulatedTimestamp=1;
-    private static final int lexRealTimestamp=2;
-    private static final int lexUAV=3;
-    private static final int lexSeed=4;
-    private static final int lexTrace=5;
+    //private static final int lexRealTimestamp=2;
+    private static final int lexUAV=2;
+    private static final int lexSeed=3;
+    private static final int lexTrace=4;
     
-    /** Loads traces from the file into the pair of positive/negative maps,
-     * parameterised by UAV and timeframe.
+    private final Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
+
+    /** Loads traces from the file and returns the maximal frame number.
      *  
      * @param inputData
      * @param config
      */
-    public void loadData(Reader inputData,Configuration config)
+    public int getMaxFrame(final Reader []inputData)
     {
-        BufferedReader in = null;
-        Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
+    	final AtomicInteger maxFrame=new AtomicInteger(-1);
+        scanData(inputData, new HandleOneTrace() {
+			
+			@Override
+			public void process(final int frame, final String UAV, final String seed) {
+				maxFrame.getAndSet(frame);
+			}
+        });
+        return maxFrame.get();
+    }            
+    
+    public interface HandleOneTrace
+    {
+    	void process(int frame, String UAV, String seed);
+    }
+    
+    public void loadData(final Reader inputData,final Configuration config)
+    {
+    	loadData(new Reader[]{inputData},config);
+    }
+    
+    /** Loads traces from the file into the pair of positive/negative maps,
+     * parameterised by UAV and timeframe.
+     *  
+     * @param inputData data to load
+     * @param config configuration to use
+     */
+    
+    public void loadData(final Reader []inputData,final Configuration config)
+    {
         final Map<String,TracesForSeed> data = new TreeMap<String,TracesForSeed>();
-       
-        try {
-            in = new BufferedReader(inputData);
-            String fileString;
-            
-            Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
-            Set<Integer> frameNumbers = new TreeSet<Integer>();
-            
-            while ((fileString = in.readLine()) != null) {
-            	lexer.startParsing(fileString);
-            	int match = lexer.getMatchType();
-            	if (match != 1)
-            		throw new IllegalArgumentException("invalid match");
-            	final String timeSimulated=lexer.group(lexSimulatedTimestamp),
-            		timeReal=lexer.group(lexRealTimestamp),
-            		UAV=lexer.group(lexUAV),seed=lexer.group(lexSeed);
-            	final int frameNumber = Integer.parseInt(timeSimulated);
+        final Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
+        final Set<Integer> frameNumbers = new TreeSet<Integer>();
+        
+        scanData(inputData, new HandleOneTrace() {
+			
+			@Override
+			public void process(final int frame, final String UAV, final String seed) {
+	           	final int frameNumber = frame/divisor;
             	if (!data.containsKey(UAVAllSeeds))
             		data.put(UAVAllSeeds,new TracesForSeed());
              	TracesForSeed dataForSeedTmp = data.get(seed);
@@ -118,7 +163,7 @@ public class PaperUAS
              		dataForSeed.maxFrameNumber.put(UAV,-1);
             	
             	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
-            	if (frameNumber < dataForSeed.maxFrameNumber.get(UAV) || frameNumber > 1+dataForSeed.maxFrameNumber.get(UAV))
+            	if (frameNumber < dataForSeed.maxFrameNumber.get(UAV))
             		throw new IllegalArgumentException("current frame number "+frameNumber+", previous one "+dataForSeed.maxFrameNumber.get(UAV));
              	if (UAV.equals(UAVAll) || UAV.equals(UAVAllSeeds))
              		throw new IllegalArgumentException("UAV name cannot be \""+UAVAll+"\"");
@@ -148,19 +193,52 @@ public class PaperUAS
     				}
             		
             	});
+			}
+		});
+		
+		
+       	collectionOfTraces.clear();
+    	for(Entry<String,TracesForSeed> entry:data.entrySet())
+    	{
+    		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
+    		collectionOfTraces.put(entry.getKey(), newData);
+    		newData.collectionOfPositiveTraces=accumulateTraces(traceDetails.collectionOfPositiveTraces,frameNumbers,UAVs);
+    		newData.collectionOfNegativeTraces=accumulateTraces(traceDetails.collectionOfNegativeTraces,frameNumbers,UAVs);
+    	}
+      	
 
-            	collectionOfTraces.clear();
-            	for(Entry<String,TracesForSeed> entry:data.entrySet())
-            	{
-            		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
-            		collectionOfTraces.put(entry.getKey(), newData);
-            		newData.collectionOfPositiveTraces=accumulateTraces(traceDetails.collectionOfPositiveTraces,frameNumbers,UAVs);
-            		newData.collectionOfNegativeTraces=accumulateTraces(traceDetails.collectionOfNegativeTraces,frameNumbers,UAVs);
-            	}
-            }
+   }
+    
+    /** Loads traces from the file, calling the user-supplied observer for every line.
+     *  
+     * @param inputData data to load
+     * @param loader called for each line
+     */
+    public void scanData(Reader []inputData,HandleOneTrace loader)
+    {
+        BufferedReader in = null;
+       
+        try {
+        	for(Reader rd:inputData)
+        	{
+	            in = new BufferedReader(rd);
+	            String fileString;
+	            
+	            
+	            while ((fileString = in.readLine()) != null) {
+	            	lexer.startParsing(fileString);
+	            	int match = lexer.getMatchType();
+	            	if (match != 1)
+	            		throw new IllegalArgumentException("invalid match");
+	            	final String timeSimulated=lexer.group(lexSimulatedTimestamp),
+	            		//timeReal=lexer.group(lexRealTimestamp),
+	            		UAV=lexer.group(lexUAV),seed=lexer.group(lexSeed);
+	
+	            	final int frameNumber = Integer.parseInt(timeSimulated);
+	            	loader.process(frameNumber, UAV, seed);
+	             }
             
-           	
-            
+        	}
         } catch (IOException e) {
             statechum.Helper.throwUnchecked("failed to read learner initial data", e);
         } finally {
@@ -218,33 +296,49 @@ public class PaperUAS
     public void runExperiment(Configuration config)
     {
         learnerInitConfiguration.config = config;
-        
-        LearnerGraph graphReference = new RPNIBlueFringe(0,config).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,true);
+        final int threshold = 0;
+        LearnerGraph graphReference = new RPNIBlueFringe(threshold,config).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,true);
 		Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
 		
-		LearnerGraph otherGraph = graphReference;
+		LearnerGraph otherGraph = new RPNIBlueFringe(threshold,config).learn(UAVAllSeeds, UAVAllSeeds,4,true);
 		ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,otherGraph);
 		System.out.println(matrix.BCR()+" "+matrix.fMeasure());
 		
+        /*
+        for(int i=1;i<5;++i)
+        {
+        LearnerGraph graphA = new RPNIBlueFringe(threshold,config).learn(UAVAllSeeds, UAVAllSeeds,i,true);
+ 		Collection<List<Label>> wMethod = graphA.wmethod.getFullTestSet(1);
+ 		
+ 		LearnerGraph graphB = new RPNIBlueFringe(threshold,config).learn(UAVAllSeeds, UAVAllSeeds,i-1,true);
+ 		ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphA,graphB);
+ 		System.out.println(matrix.BCR()+" "+matrix.fMeasure());
+        }*/
 		//Visualiser.updateFrame(new RPNIBlueFringe(2,config).learn(UAVAll, 0,false), null);Visualiser.waitForKey();
 		DrawGraphs gr = new DrawGraphs();
 
-		RBoxPlot<Pair<String,Integer>> 
-			uas_outcome = new RBoxPlot<Pair<String,Integer>>("Time","BCR",new File("time_bcr.pdf"));
+		RBoxPlot<Pair<Integer,String>> 
+			uas_outcome = new RBoxPlot<Pair<Integer,String>>("Time","BCR",new File("time_bcr.pdf"));
+		RBoxPlot<Integer>
+					uas_A=new RBoxPlot<Integer>("Time","BCR",new File("time_A_bcr.pdf")),
+							uas_S=new RBoxPlot<Integer>("Time","BCR",new File("time_S_bcr.pdf")),
+									uas_U=new RBoxPlot<Integer>("Time","BCR",new File("time_U_bcr.pdf"))
+			;
 		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).collectionOfPositiveTraces.get(UAVAllSeeds).keySet();
 		ProgressIndicator progress = new ProgressIndicator("UAS", allFrames.size());
 		for(Integer frame:allFrames)
 		{
 			matrix = DiffExperiments.classify(wMethod, graphReference,
-					new RPNIBlueFringe(frame,config).learn(UAVAllSeeds, UAVAllSeeds, frame,true));
-			uas_outcome.add(new Pair<String,Integer>("AS",frame),matrix.BCR());
-
+					new RPNIBlueFringe(threshold,config).learn(UAVAllSeeds, UAVAllSeeds, frame,true));
+			uas_outcome.add(new Pair<Integer,String>(frame,"S"),matrix.BCR());
+			uas_S.add(frame,matrix.BCR());
 			for(String seed:collectionOfTraces.keySet())
 				if (!seed.equals(UAVAllSeeds))
 				{
 					matrix = DiffExperiments.classify(wMethod, graphReference,
-							new RPNIBlueFringe(frame,config).learn(UAVAll, seed, frame,true));
-					uas_outcome.add(new Pair<String,Integer>("A",frame),matrix.BCR());
+							new RPNIBlueFringe(threshold,config).learn(UAVAll, seed, frame,true));
+					uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
+					uas_A.add(frame,matrix.BCR());
 				}
 			for(String UAV:collectionOfTraces.get(UAVAllSeeds).collectionOfPositiveTraces.keySet())
 				if (!UAV.equals(UAVAllSeeds) && !UAV.equals(UAVAll))
@@ -252,14 +346,19 @@ public class PaperUAS
 						if (!seed.equals(UAVAllSeeds))
 						{
 							matrix = DiffExperiments.classify(wMethod, graphReference,
-									new RPNIBlueFringe(frame,config).learn(UAV, seed, frame,true));
-							uas_outcome.add(new Pair<String,Integer>("U",frame),matrix.BCR());
+									new RPNIBlueFringe(threshold,config).learn(UAV, seed, frame,true));
+							uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
+							uas_U.add(frame,matrix.BCR());
+
 						}
 			
 			uas_outcome.drawInteractive(gr);
+			uas_A.drawInteractive(gr);
+			uas_S.drawInteractive(gr);
+			uas_U.drawInteractive(gr);
 			progress.next();
 		}
-		uas_outcome.drawPdf(gr);
+		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
 		/*
 		for(int i=0;i<10;++i)
 		{
@@ -267,7 +366,7 @@ public class PaperUAS
 			System.out.println(matrix.BCR()+" "+matrix.fMeasure());
 		}
 		*/
-        //Visualiser.updateFrame(graphReference, null);Visualiser.waitForKey();
+        Visualiser.updateFrame(graphReference, otherGraph);Visualiser.waitForKey();
     }
     
     public class RPNIBlueFringe
@@ -302,8 +401,17 @@ public class PaperUAS
 	public static void main(String[] args) throws FileNotFoundException {
 		PaperUAS paper = new PaperUAS();
     	Configuration config = Configuration.getDefaultConfiguration().copy();
-		paper.loadData(new FileReader(args[0]), config);
-		paper.runExperiment(config);
+    	{
+	    	Reader []inputFiles = new Reader[args.length];for(int i=0;i<args.length;++i) inputFiles[i]=new FileReader(args[i]); 
+	    	int maxFrame = paper.getMaxFrame(inputFiles);
+	    	paper.divisor = (maxFrame+1)/10;// the +1 ensures that the last class of frames includes the last point.
+    	}
+    	
+    	{
+	    	Reader []inputFiles = new Reader[args.length];for(int i=0;i<args.length;++i) inputFiles[i]=new FileReader(args[i]); 
+	    	paper.loadData(inputFiles, config);
+	    	paper.runExperiment(config);
+    	}
 	}
 
 }

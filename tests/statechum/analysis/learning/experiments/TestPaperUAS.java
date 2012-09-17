@@ -1,4 +1,4 @@
-package statechum.apps;
+package statechum.analysis.learning.experiments;
 
 import java.awt.print.Paper;
 import java.io.StringReader;
@@ -15,8 +15,9 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Helper.whatToRun;
+import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.apps.PaperUAS.TracesForSeed;
 
 public class TestPaperUAS {
 
@@ -54,7 +55,7 @@ public class TestPaperUAS {
 	public void testLoad2()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa]]"), config);
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa]]"), config);
 		Map<Integer,Set<List<Label>>> uav3Positive = paper.collectionOfTraces.get("4").collectionOfPositiveTraces.get("UAV3");
 		Map<Integer,Set<List<Label>>> uav3Negative = paper.collectionOfTraces.get("4").collectionOfNegativeTraces.get("UAV3");
 		Assert.assertEquals(1,uav3Positive.size());
@@ -69,36 +70,35 @@ public class TestPaperUAS {
 	public void testLoad3a1()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
-		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("1,2,UAV3,4, + [[aa]]"), config);
-		}},IllegalArgumentException.class,"current frame number");
+		paper.loadData(new StringReader("1,UAV3,4, + [[aa]]"), config);
+		Assert.assertFalse(paper.collectionOfTraces.isEmpty());
 	}
 	
 
 	/** A single trace, with zero initial timestamp but invalid subsequent timestamp. */
-	@Test
+/*	@Test
 	public void testLoad3a2()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,UAV3,4, + [[aa]]\n"+
-					"0,2,UAV66,4, + [[aa]]\n"+
-					"2,2,UAV3,4, + [[aa]]\n"
+			paper.loadData(new StringReader("0,UAV3,4, + [[aa]]\n"+
+					"0,UAV66,4, + [[aa]]\n"+
+					"2,UAV3,4, + [[aa]]\n"
 					
 			), config);
 		}},IllegalArgumentException.class,"current frame number");
 	}
-	
+	*/
 	/** A single trace, with zero initial timestamp but invalid subsequent timestamp. */
 	@Test
 	public void testLoad3a3()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,UAV3,4, + [[aa]]\n"+
-					"0,2,UAV66,4, + [[aa]]\n"+
-					"1,2,UAV3,4, + [[aa]]\n"+
-					"0,2,UAV3,4, + [[aa]]\n"
+			paper.loadData(new StringReader("0,UAV3,4, + [[aa]]\n"+
+					"0,UAV66,4, + [[aa]]\n"+
+					"1,UAV3,4, + [[aa]]\n"+
+					"0,UAV3,4, + [[aa]]\n"
 					
 			), config);
 		}},IllegalArgumentException.class,"current frame number");
@@ -109,11 +109,12 @@ public class TestPaperUAS {
 	public void testLoad3a4()
 	{
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
-				"0,2,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
-				"1,2,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
-				"0,2,UAV55,4, + [[qq]]\n"+
-				"2,2,UAV3,SEED2, + [[anotherOne]]"
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
+				"0,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
+				"1,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
+				"0,UAV55,4, + [[qq]]\n"+
+				"2,UAV3,SEED2, + [[anotherOne]]\n"+
+				"0,UAV3,4, + [[oo]]"
 		), config);
 		}},IllegalArgumentException.class,"current frame number");
 	}
@@ -124,7 +125,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,"+PaperUAS.UAVAll+",4, + [[aa]]"), config);
+			paper.loadData(new StringReader("0,"+PaperUAS.UAVAll+",4, + [[aa]]"), config);
 		}},IllegalArgumentException.class,"UAV name");
 	}
 	
@@ -134,7 +135,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,"+PaperUAS.UAVAllSeeds+",4, + [[aa]]"), config);
+			paper.loadData(new StringReader("0,"+PaperUAS.UAVAllSeeds+",4, + [[aa]]"), config);
 		}},IllegalArgumentException.class,"UAV name");
 	}
 	
@@ -144,7 +145,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,valid,"+PaperUAS.UAVAllSeeds+", + [[aa]]"), config);
+			paper.loadData(new StringReader("0,valid,"+PaperUAS.UAVAllSeeds+", + [[aa]]"), config);
 		}},IllegalArgumentException.class,"seed name");
 	}
 
@@ -154,7 +155,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,,4, + [[aa]]"), config);
+			paper.loadData(new StringReader("0,,4, + [[aa]]"), config);
 		}},IllegalArgumentException.class,"failed to lex");
 	}
 	
@@ -163,7 +164,7 @@ public class TestPaperUAS {
 	public void testLoad3d()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
-		paper.loadData(new StringReader("0,2,AA,4,  "), config);
+		paper.loadData(new StringReader("0,AA,4,  "), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		
 		// two special UAVs, collecting all traces in a specific seed and the one collecting traces across seeds.
@@ -186,7 +187,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("0,2,AA,4,  u"), config);
+			paper.loadData(new StringReader("0,AA,4,  u"), config);
 		}},IllegalArgumentException.class,"a collection of traces");
 	}
 	
@@ -196,7 +197,7 @@ public class TestPaperUAS {
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			paper.loadData(new StringReader("pp,2,AA,4,  u"), config);
+			paper.loadData(new StringReader("pp,AA,4,  u"), config);
 		}},NumberFormatException.class,"pp");
 	}
 	
@@ -205,7 +206,7 @@ public class TestPaperUAS {
 	public void testLoad3g()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa]]"), config);
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa]]"), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = tr.collectionOfPositiveTraces.get("UAV3");
 		Assert.assertEquals(1,uav3Positive.size());
@@ -227,7 +228,7 @@ public class TestPaperUAS {
 	@Test
 	public void testLoad4()
 	{
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa],[bb,cc]] - [[zz]]"), config);
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa],[bb,cc]] - [[zz]]"), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = tr.collectionOfPositiveTraces.get("UAV3");
 		Assert.assertEquals(1,uav3Positive.size());
@@ -243,9 +244,9 @@ public class TestPaperUAS {
 	@Test
 	public void testLoad5()
 	{
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
-				"0,2,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
-				"1,2,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
+				"0,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
+				"1,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"
 		), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = tr.collectionOfPositiveTraces.get("UAV3");
@@ -277,10 +278,10 @@ public class TestPaperUAS {
 	@Test
 	public void testLoad6()
 	{
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
-				"0,2,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
-				"1,2,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
-				"0,2,UAV55,4, + [[qq]]\n"
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
+				"0,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
+				"1,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
+				"0,UAV55,4, + [[qq]]\n"
 		), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav55Positive = tr.collectionOfPositiveTraces.get("UAV55");
@@ -316,11 +317,11 @@ public class TestPaperUAS {
 	@Test
 	public void testLoad7()
 	{
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
-				"0,2,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
-				"1,2,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
-				"0,2,UAV55,4, + [[qq]]\n"+
-				"2,2,UAV3,4, + [[anotherOne]]"
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa],[bb,cc]] - [[zz]]\n"+
+				"0,UAV55,4, - [[Faa],[bb,Fcc]]\n"+
+				"1,UAV3,4, + [[Taa],[bb,cc]] - [[Tzz]]\n"+
+				"0,UAV55,4, + [[qq]]\n"+
+				"2,UAV3,4, + [[anotherOne]]"
 		), config);
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav55Positive = tr.collectionOfPositiveTraces.get("UAV55");
@@ -365,11 +366,11 @@ public class TestPaperUAS {
 	@Test
 	public void testLoad8()
 	{
-		paper.loadData(new StringReader("0,2,UAV3,4, + [[aa]]\n"+
-				"0,2,UAV55,4, - [[Faa],[bb]]\n"+
-				"0,2,UAV3,SEED2, + [[Taa]]\n"+
-				"1,2,UAV55,4, + [[qq]]\n"+
-				"1,2,UAV3,SEED2, + [[anotherOne]]"
+		paper.loadData(new StringReader("0,UAV3,4, + [[aa]]\n"+
+				"0,UAV55,4, - [[Faa],[bb]]\n"+
+				"0,UAV3,SEED2, + [[Taa]]\n"+
+				"1,UAV55,4, + [[qq]]\n"+
+				"1,UAV3,SEED2, + [[anotherOne]]"
 		), config);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive4 = tr4.collectionOfPositiveTraces.get("UAV3");

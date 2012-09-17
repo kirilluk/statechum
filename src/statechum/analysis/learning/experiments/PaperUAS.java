@@ -315,6 +315,8 @@ public class PaperUAS
  		System.out.println(matrix.BCR()+" "+matrix.fMeasure());
         }*/
 		//Visualiser.updateFrame(new RPNIBlueFringe(2,config).learn(UAVAll, 0,false), null);Visualiser.waitForKey();
+		
+		
 		DrawGraphs gr = new DrawGraphs();
 
 		RBoxPlot<Pair<Integer,String>> 
@@ -359,14 +361,15 @@ public class PaperUAS
 			progress.next();
 		}
 		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
-		/*
-		for(int i=0;i<10;++i)
+		RBoxPlot<Integer>
+			uas_threshold=new RBoxPlot<Integer>("Threshold","BCR",new File("threshold_bcr.pdf"));
+		for(int i=0;i<5;++i)
 		{
 			matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(i,config).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,false));
-			System.out.println(matrix.BCR()+" "+matrix.fMeasure());
+			uas_threshold.add(i, matrix.BCR());uas_threshold.drawInteractive(gr);
 		}
-		*/
-        Visualiser.updateFrame(graphReference, otherGraph);Visualiser.waitForKey();
+		uas_threshold.drawPdf(gr);
+        //Visualiser.updateFrame(graphReference, otherGraph);Visualiser.waitForKey();
     }
     
     public class RPNIBlueFringe

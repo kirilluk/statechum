@@ -18,13 +18,12 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.apps;
 
-import java.io.File;
+import java.io.IOException;
 
 import statechum.Configuration;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.ExperimentGraphMLHandler;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
 public class GraphMLVisualiser extends Visualiser {
 	
@@ -33,17 +32,13 @@ public class GraphMLVisualiser extends Visualiser {
 	 */
 	private static final long serialVersionUID = 1735419773441272849L;
 
-	public static void main(String[] args){
-		File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
+	public static void main(String[] args) throws IOException{
+		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
-		String wholePath = graphDir.getAbsolutePath()+File.separator;
-		GraphMLFile graphmlFile = new GraphMLFile();
-		graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler(Configuration.getDefaultConfiguration()));
-		DirectedSparseGraph dg = new DirectedSparseGraph();
-		dg.getEdgeConstraints().clear();
-		dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
-		GraphMLVisualiser gmlVis = new GraphMLVisualiser();
-		gmlVis.construct(dg,null);
+		//String wholePath = graphDir.getAbsolutePath()+File.separator;
+		LearnerGraphND graph = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
+		AbstractPersistence.loadGraph(args[0], graph);
+		Visualiser.updateFrame(graph, null);Visualiser.waitForKey();
 	}
 
 }

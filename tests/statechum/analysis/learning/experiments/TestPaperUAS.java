@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments;
 
 import java.awt.print.Paper;
+import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,9 @@ public class TestPaperUAS {
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		paper.loadData(new StringReader(""), config);
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
+		
+		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{}));
+		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{new StringReader("")}));
 	}
 
 	/** Empty line */
@@ -65,9 +69,20 @@ public class TestPaperUAS {
 		Assert.assertTrue(uav3Negative.get(0).isEmpty());
 	}
 
-	/** A single trace, with non-zero initial timestamp. */
+	/** A single trace, with negative initial timestamp that does not make it past the parser. */
 	@Test
 	public void testLoad3a1()
+	{
+		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			paper.loadData(new StringReader("-1,UAV3,4, + [[aa]]"), config);
+		}},IllegalArgumentException.class,"failed to lex");
+		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
+	}
+	
+	/** A single trace, with non-zero initial timestamp. */
+	@Test
+	public void testLoad3a2()
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		paper.loadData(new StringReader("1,UAV3,4, + [[aa]]"), config);
@@ -428,5 +443,181 @@ public class TestPaperUAS {
 					Assert.assertTrue(pair.getValue().isEmpty());
 			}
 		
+	}
+	
+	
+	@Test
+	public void testGetMaxFrame()
+	{
+		Assert.assertEquals(0,paper.getMaxFrame(new Reader[]{new StringReader("0,UAV3,4, + [[aa]]")}));
+		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,4, + [[aa]]")}));
+		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,40, + [[aa]]\n" + "0,UAV3,4, + [[aa]]")}));		
+	}
+	
+	@Test
+	public void testLoadByConcatenationFail1()
+	{
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa]]\n"
+			)}, config);
+		}},IllegalArgumentException.class,"should contain at least two");
+	}
+	
+	/** not same as the starting element of a the same trace */
+	@Test
+	public void testLoadByConcatenationFail2()
+	{
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,bb]]\n"
+			)}, config);
+		}},IllegalArgumentException.class,"each positive trace");
+	}
+	
+	/** not same as the starting element of a the same trace */
+	@Test
+	public void testLoadByConcatenationFail3()
+	{
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,cc,bb]]\n"
+			)}, config);
+		}},IllegalArgumentException.class,"each positive trace");
+	}
+	
+	/** not same as the starting element of an existing positive trace */
+	@Test
+	public void testLoadByConcatenationFail4()
+	{
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,cc,aa]]\n"+"0,UAV3,4, + [[bb,cc,bb]]\n"
+			)}, config);
+		}},IllegalArgumentException.class,"last positive trace");
+	}
+	
+	/** not same as the starting element of a the same trace */
+	@Test
+	public void testLoadByConcatenationFail5()
+	{
+		paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV55,4, - [[Faa],[bb]]\n"
+			)}, config);
+		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
+		Map<Integer,Set<List<Label>>> uav55Positive4 = tr4.collectionOfPositiveTraces.get("UAV55");
+		Map<Integer,Set<List<Label>>> uav55Negative4 = tr4.collectionOfNegativeTraces.get("UAV55");
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+				uav55Positive4.get(0)));
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+				uav55Negative4.get(0)));
+	}
+	
+	@Test
+	public void testLoadByConcatenation1()
+	{
+		paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,aa]]\n"+
+				"0,UAV55,4, - [[Faa],[bb]]\n"+
+				"0,UAV3,SEED2, + [[aa,bb,cc,aa]]\n"+
+				"1,UAV55,4, + [[qq,aa,qq]]\n"+
+				"1,UAV3,SEED2, + [[aa,gg,aa]]"
+		)}, config);
+		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
+		{
+			Map<Integer,Set<List<Label>>> uav3Positive4 = tr4.collectionOfPositiveTraces.get("UAV3");
+			Map<Integer,Set<List<Label>>> uav3Negative4 = tr4.collectionOfNegativeTraces.get("UAV3");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+					uav3Positive4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+					uav3Positive4.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav3Negative4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav3Negative4.get(1)));
+		}
+		{
+			Map<Integer,Set<List<Label>>> uav55Positive4 = tr4.collectionOfPositiveTraces.get("UAV55");
+			Map<Integer,Set<List<Label>>> uav55Negative4 = tr4.collectionOfNegativeTraces.get("UAV55");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+					uav55Positive4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq","aa"}, new String[]{}}, config).equals(
+					uav55Positive4.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, config).equals(
+					uav55Negative4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, config).equals(
+					uav55Negative4.get(1)));
+		}
+		
+		TracesForSeed tr2 = paper.collectionOfTraces.get("SEED2");
+		{
+			Map<Integer,Set<List<Label>>> uav3Positive2 = tr2.collectionOfPositiveTraces.get("UAV3");
+			Map<Integer,Set<List<Label>>> uav3Negative2 = tr2.collectionOfNegativeTraces.get("UAV3");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc"}}, config).equals(
+					uav3Positive2.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc"},new String[]{"aa","bb","cc","aa","gg"}}, config).equals(
+					uav3Positive2.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav3Negative2.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav3Negative2.get(1)));
+		}		
+		
+		{
+			Map<Integer,Set<List<Label>>> uav55Positive2 = tr2.collectionOfPositiveTraces.get("UAV55");
+			Map<Integer,Set<List<Label>>> uav55Negative2 = tr2.collectionOfNegativeTraces.get("UAV55");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav55Positive2.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav55Positive2.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav55Negative2.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+					uav55Negative2.get(1)));
+		}		
+		
+	}
+	
+	@Test
+	public void testLoadByConcatenation2()
+	{
+		paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,aa]]\n"+
+				"0,UAV3,4, + [[aa,bb,cc,aa]]\n"+
+				"0,UAV3,4, - [[nn,rr]]\n"+
+				"1,UAV3,4, + [[aa,gg,aa]]\n"+
+				"1,UAV3,4, - [[Rnn,Rrr]]\n"
+		)}, config);
+		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
+		{
+			Map<Integer,Set<List<Label>>> uav3Positive4 = tr4.collectionOfPositiveTraces.get("UAV3");
+			Map<Integer,Set<List<Label>>> uav3Negative4 = tr4.collectionOfNegativeTraces.get("UAV3");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc"}}, config).equals(
+					uav3Positive4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc"}, new String[]{"aa","aa","bb","cc","aa","gg"}}, config).equals(
+					uav3Positive4.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}}, config).equals(
+					uav3Negative4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, config).equals(
+					uav3Negative4.get(1)));
+		}
+	}
+
+	@Test
+	public void testLoadByConcatenation3()
+	{
+		paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,aa]]\n"+
+				"0,UAV3,4, - [[zz]]\n"+
+				"0,UAV3,4, + [[aa,bb,cc,aa]]\n"+
+				"0,UAV3,4, - [[nn,rr]]\n"+
+				"1,UAV3,4, + [[aa,gg,aa]]\n"+
+				"1,UAV3,4, - [[Rnn,Rrr]]\n"
+		)}, config);
+		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
+		{
+			Map<Integer,Set<List<Label>>> uav3Positive4 = tr4.collectionOfPositiveTraces.get("UAV3");
+			Map<Integer,Set<List<Label>>> uav3Negative4 = tr4.collectionOfNegativeTraces.get("UAV3");
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc"}}, config).equals(
+					uav3Positive4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc"}, new String[]{"aa","aa","bb","cc","aa","gg"}}, config).equals(
+					uav3Positive4.get(1)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, config).equals(
+					uav3Negative4.get(0)));
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, config).equals(
+					uav3Negative4.get(1)));
+		}
 	}
 }

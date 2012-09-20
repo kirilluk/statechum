@@ -426,7 +426,7 @@ public class DrawGraphs {
 			yMin = min;yMax = max;
 		}
 		
-		public void add(ELEM el,Double value)
+		public synchronized void add(ELEM el,Double value)
 		{
 			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
 			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;

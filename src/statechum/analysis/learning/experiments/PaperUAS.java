@@ -52,6 +52,8 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -123,7 +125,7 @@ public class PaperUAS
     private static final int lexSeed=3;
     private static final int lexTrace=4;
     
-    private final Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
+    final Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
 
     /** Loads traces from the file and returns the maximal frame number.
      *  
@@ -453,8 +455,10 @@ public class PaperUAS
     {
         learnerInitConfiguration.config = config;
         final int threshold = 0;
+        LearnerGraph graphSolution = new LearnerGraph(config);
+        AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphSolution);
         long tmStarted = new Date().getTime();
-        final LearnerGraph graphReference = new RPNIBlueFringe(threshold,config,"Learning reference graph").learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,true);
+        final LearnerGraph graphReference = new RPNIBlueFringe(threshold,config,graphSolution,"Learning reference graph").learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,true);
         long tmFinished = new Date().getTime();
         System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         graphReference.storage.writeGraphML("longtraceautomaton.xml");
@@ -498,7 +502,7 @@ public class PaperUAS
 						@Override
 						public void run() {
 							ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-									new RPNIBlueFringe(threshold,config,null).learn(UAVAllSeeds, UAVAllSeeds, frame,true));
+									new RPNIBlueFringe(threshold,config,null,null).learn(UAVAllSeeds, UAVAllSeeds, frame,true));
 							uas_outcome.add(new Pair<Integer,String>(frame,"S"),matrix.BCR());
 							uas_S.add(frame,matrix.BCR());
 						}
@@ -514,7 +518,7 @@ public class PaperUAS
 							@Override
 							public void run() {
 								ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-										new RPNIBlueFringe(threshold,config,null).learn(UAVAll, seed, frame,true));
+										new RPNIBlueFringe(threshold,config,null,null).learn(UAVAll, seed, frame,true));
 								uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
 								uas_A.add(frame,matrix.BCR());
 							}
@@ -532,7 +536,7 @@ public class PaperUAS
 									@Override
 									public void run() {
 										ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-												new RPNIBlueFringe(threshold,config,null).learn(UAV, seed, frame,true));
+												new RPNIBlueFringe(threshold,config,null,null).learn(UAV, seed, frame,true));
 										uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
 										uas_U.add(frame,matrix.BCR());
 									}
@@ -558,7 +562,7 @@ public class PaperUAS
 
 					@Override
 					public void run() {
-						ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(arg,config,null).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,false));
+						ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(arg,config,null,null).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,false));
 						uas_threshold.add(arg, matrix.BCR());
 					}
 					
@@ -596,10 +600,11 @@ public class PaperUAS
     {
     	private final int confidenceThreshold;
     	private Learner learner;
+    	final LearnerGraph graphSolution;
     	
-		public RPNIBlueFringe(int threshold, Configuration conf,final String showProgress) 
+		public RPNIBlueFringe(int threshold, Configuration conf,final LearnerGraph graphSolutionArg, final String showProgress) 
 		{
-			confidenceThreshold = threshold;
+			confidenceThreshold = threshold;graphSolution = graphSolutionArg;
 			Configuration config = conf.copy();
 			config.setGeneralisationThreshold(confidenceThreshold);config.setAskQuestions(false); 
 			LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(config);
@@ -612,13 +617,31 @@ public class PaperUAS
 					public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
 						int newStateNumber = graph.getStateNumber();
 						for(int i=stateNumber;i>=newStateNumber;--i) indicator.next();stateNumber = newStateNumber;
-						return decoratedLearner.ChooseStatePairs(graph);
+						System.out.print("C");
+						if (graphSolution != null) 
+						{
+							DifferentFSMException ex =
+									WMethod.checkReduction(graphSolution, graphSolution.getInit(), graph, graph.getInit());
+							if (ex != null)
+								throw ex;
+						}
+						Stack<PairScore> outcome = decoratedLearner.ChooseStatePairs(graph);
+						System.out.println("\nmerging "+outcome.firstElement());
+						return outcome;
 					}
 				
 					@Override 
 					public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 					{
 						LearnerGraph graph = decoratedLearner.init(plus, minus);
+						if (graphSolution != null) 
+						{
+							DifferentFSMException ex =
+									WMethod.checkReduction(graphSolution, graphSolution.getInit(), graph, graph.getInit());
+							if (ex != null)
+								throw ex;
+						}
+
 						stateNumber = graph.getStateNumber();
 						System.out.println("initial number of states: "+stateNumber);
 						indicator = new ProgressIndicator(showProgress, stateNumber);
@@ -695,9 +718,9 @@ public class PaperUAS
     	{
 	    	Reader []inputFiles = new Reader[args.length];for(int i=0;i<args.length;++i) inputFiles[i]=new FileReader(args[i]); 
 	    	paper.loadDataByConcatenation(inputFiles, config);
-	    	paper.checkTraces(config);
+	    	//paper.checkTraces(config);
 	    	//paper.loadData(inputFiles, config);
-	    	//paper.runExperiment(config);
+	    	paper.runExperiment(config);
     	}
 	}
 

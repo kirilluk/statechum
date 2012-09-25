@@ -1095,129 +1095,180 @@ public class WMethod {
 	 */
 	@SuppressWarnings("null")
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
-		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
-		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
-		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expectedArg,CmpVertex stateExpectedArg,
-				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> actualArg,CmpVertex stateActualArg, VERTEX_COMPARISON_KIND compareVertices)
+	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
+	DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expectedArg,CmpVertex stateExpectedArg,
+			AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> actualArg,CmpVertex stateActualArg, VERTEX_COMPARISON_KIND compareVertices)
+{
+	assert stateExpectedArg != null && stateActualArg != null;
+	LearnerGraph expected = null, actual = null;
+	CmpVertex stateActual = null, stateExpected = null;
+	Object expectedArgObject = expectedArg,actualArgObject = actualArg;
+	if ( expectedArgObject instanceof LearnerGraph && actualArgObject instanceof LearnerGraph)
+	{// deterministic case
+		expected = (LearnerGraph)expectedArgObject;actual = (LearnerGraph)actualArgObject;stateActual = stateActualArg;stateExpected = stateExpectedArg;
+	}
+	else
+	{// non-deterministic case
+		try {// This one potentially makes copies of states with different names.
+			expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
+			actual = actualArg.pathroutines.buildDeterministicGraph(stateActualArg);
+		} catch (IncompatibleStatesException e) {
+			Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
+		}
+		stateActual = actual.getInit();stateExpected = expected.getInit();
+	}
+	
+	Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+	CollectionOfPairs statesAddedToBoundary = new CollectionOfPairs(expected,actual);
+	currentExplorationBoundary.add(new StatePair(stateExpected,stateActual));statesAddedToBoundary.addAndCheck(new StatePair(stateExpected,stateActual));
+	switch(compareVertices)
 	{
-		assert stateExpectedArg != null && stateActualArg != null;
-		LearnerGraph expected = null, actual = null;
-		CmpVertex stateActual = null, stateExpected = null;
-		Object expectedArgObject = expectedArg,actualArgObject = actualArg;
-		if ( expectedArgObject instanceof LearnerGraph && actualArgObject instanceof LearnerGraph)
-		{// deterministic case
-			expected = (LearnerGraph)expectedArgObject;actual = (LearnerGraph)actualArgObject;stateActual = stateActualArg;stateExpected = stateExpectedArg;
+	case DEEP:
+		if (!DeterministicDirectedSparseGraph.deepEquals(stateExpected,stateActual))
+			return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different values of attributes");
+		if (stateActual.getOrigState() == null)
+		{
+			if (stateExpected.getOrigState() != null)
+			return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
 		}
 		else
-		{// non-deterministic case
-			try {// This one potentially makes copies of states with different names.
-				expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
-				actual = actualArg.pathroutines.buildDeterministicGraph(stateActualArg);
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
-			}
-			stateActual = actual.getInit();stateExpected = expected.getInit();
-		}
-		
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		CollectionOfPairs statesAddedToBoundary = new CollectionOfPairs(expected,actual);
-		currentExplorationBoundary.add(new StatePair(stateExpected,stateActual));statesAddedToBoundary.addAndCheck(new StatePair(stateExpected,stateActual));
-		switch(compareVertices)
-		{
-		case DEEP:
-			if (!DeterministicDirectedSparseGraph.deepEquals(stateExpected,stateActual))
-				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different values of attributes");
-			if (stateActual.getOrigState() == null)
-			{
-				if (stateExpected.getOrigState() != null)
-				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
-			}
-			else
-				if (!stateActual.getOrigState().equals(stateExpected.getOrigState()))
-					return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
-			break;
-		case NAMES:	
 			if (!stateActual.getOrigState().equals(stateExpected.getOrigState()))
 				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
-			break;
-		case NONE:// nothing needs doing 
-			break;
-		}
+		break;
+	case NAMES:	
+		if (!stateActual.getOrigState().equals(stateExpected.getOrigState()))
+			return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
+		break;
+	case NONE:// nothing needs doing 
+		break;
+	}
 
-		CmpVertex sink = generateSinkState(expected);
-		boolean prefixClosed = expected.config.isPrefixClosed() && actual.config.isPrefixClosed();
-		Map<Label, CmpVertex> sinkRow = expected.createNewRow();
+	CmpVertex sink = generateSinkState(expected);
+	boolean prefixClosed = expected.config.isPrefixClosed() && actual.config.isPrefixClosed();
+	Map<Label, CmpVertex> sinkRow = expected.createNewRow();
+	while(!currentExplorationBoundary.isEmpty())
+	{
+		StatePair statePair = currentExplorationBoundary.remove();
+		assert statePair.firstElem == sink || expected.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the expected graph";
+		assert statePair.secondElem == sink || actual.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the actual graph";
+		if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
+			return new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
+
+		Map<Label,CmpVertex> expectedTargets = statePair.firstElem == sink?sinkRow:expected.transitionMatrix.get(statePair.firstElem);
+		Map<Label,CmpVertex> actualTargets = statePair.secondElem == sink?sinkRow:actual.transitionMatrix.get(statePair.secondElem);
+		//if (prefixClosed && expectedTargets.size() != actualTargets.size())// each of them is equal to the keyset size from determinism
+		//	return new DifferentFSMException("different number of transitions from states "+statePair);
+		Set<Label> outgoing = new TreeSet<Label>();outgoing.addAll(expectedTargets.keySet());outgoing.addAll(actualTargets.keySet());
+		for(Label label:outgoing)
+		{
+			CmpVertex nextExpectedState = null;
+			if (!expectedTargets.containsKey(label))
+			{
+				if (prefixClosed)
+					return new DifferentFSMException("no transition with expected label \""+label+"\" from a state \""+statePair.secondElem+"\" corresponding to \""+statePair.firstElem+"\"");
+				
+				nextExpectedState = sink;	
+			}
+			else
+				nextExpectedState = expectedTargets.get(label);
+			
+			CmpVertex nextActualState = null;
+			if (!actualTargets.containsKey(label))
+			{
+				if (prefixClosed)
+					return new DifferentFSMException("no transition with actual label \""+label+"\" from a state \""+statePair.firstElem+"\" corresponding to \""+statePair.secondElem+"\"");
+				
+				nextActualState = sink;	
+			}
+			else
+				nextActualState = actualTargets.get(label);
+
+			StatePair nextPair = new StatePair(nextExpectedState,nextActualState);
+			//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
+			if (statesAddedToBoundary.addAndCheck(nextPair))
+			{
+				switch(compareVertices)
+				{
+				case DEEP:
+					//System.out.println("looking at "+expectedState+" ("+expectedState.getColour()+") and "+tState+" ("+tState.getColour()+") ");
+					if (!DeterministicDirectedSparseGraph.deepEquals(nextExpectedState,nextActualState))
+						return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different values of attributes");
+					if (nextActualState.getOrigState() == null)
+					{
+						if (nextExpectedState.getOrigState() != null)
+							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
+					}
+					else
+						if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
+							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
+					break;
+				case NAMES:	
+					if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
+						return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
+					break;
+				case NONE:// nothing needs doing 
+					break;
+				}
+
+				currentExplorationBoundary.offer(nextPair);
+			}
+		}
+	}
+
+	// now iterate through the maps of incompatible states and make updates.
+	statesAddedToBoundary.checkPairsAssociatedCorrectly();
+	return null;
+}
+
+	public static
+	DifferentFSMException checkReduction(LearnerGraph graphMoreGeneral,CmpVertex stateExpectedArg,
+			LearnerGraph graphLessGeneral,CmpVertex stateActualArg)
+	{
+		assert stateExpectedArg != null && stateActualArg != null;
+		CmpVertex stateActual = stateActualArg, stateExpected = stateExpectedArg;
+		
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		CollectionOfPairs statesAddedToBoundary = new CollectionOfPairs(graphMoreGeneral,graphLessGeneral);
+		currentExplorationBoundary.add(new StatePair(stateExpected,stateActual));statesAddedToBoundary.addAndCheck(new StatePair(stateExpected,stateActual));
+	
+		CmpVertex sink = generateSinkState(graphMoreGeneral);
+		Map<Label, CmpVertex> sinkRow = graphMoreGeneral.createNewRow();
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair statePair = currentExplorationBoundary.remove();
-			assert statePair.firstElem == sink || expected.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the expected graph";
-			assert statePair.secondElem == sink || actual.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the actual graph";
+			assert statePair.firstElem == sink || graphMoreGeneral.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the expected graph";
+			assert statePair.secondElem == sink || graphLessGeneral.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the actual graph";
 			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
 				return new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
-
-			Map<Label,CmpVertex> expectedTargets = statePair.firstElem == sink?sinkRow:expected.transitionMatrix.get(statePair.firstElem);
-			Map<Label,CmpVertex> actualTargets = statePair.secondElem == sink?sinkRow:actual.transitionMatrix.get(statePair.secondElem);
+	
+			Map<Label,CmpVertex> moreGeneralTargets = statePair.firstElem == sink?sinkRow:graphMoreGeneral.transitionMatrix.get(statePair.firstElem);
+			Map<Label,CmpVertex> lessGeneralTargets = statePair.secondElem == sink?sinkRow:graphLessGeneral.transitionMatrix.get(statePair.secondElem);
 			//if (prefixClosed && expectedTargets.size() != actualTargets.size())// each of them is equal to the keyset size from determinism
 			//	return new DifferentFSMException("different number of transitions from states "+statePair);
-			Set<Label> outgoing = new TreeSet<Label>();outgoing.addAll(expectedTargets.keySet());outgoing.addAll(actualTargets.keySet());
-			for(Label label:outgoing)
+			Set<Label> outgoingAll = new TreeSet<Label>();outgoingAll.addAll(moreGeneralTargets.keySet());outgoingAll.addAll(lessGeneralTargets.keySet());
+			for(Label label:outgoingAll)
 			{
 				CmpVertex nextExpectedState = null;
-				if (!expectedTargets.containsKey(label))
-				{
-					if (prefixClosed)
-						return new DifferentFSMException("no transition with expected label \""+label+"\" from a state \""+statePair.secondElem+"\" corresponding to \""+statePair.firstElem+"\"");
-					
-					nextExpectedState = sink;	
-				}
-				else
-					nextExpectedState = expectedTargets.get(label);
+				if (!moreGeneralTargets.containsKey(label))
+					return new DifferentFSMException("no transition with expected label \""+label+"\" from a state \""+statePair.secondElem+"\" corresponding to \""+statePair.firstElem+"\"");
+				nextExpectedState = moreGeneralTargets.get(label);
 				
 				CmpVertex nextActualState = null;
-				if (!actualTargets.containsKey(label))
-				{
-					if (prefixClosed)
-						return new DifferentFSMException("no transition with actual label \""+label+"\" from a state \""+statePair.firstElem+"\" corresponding to \""+statePair.secondElem+"\"");
-					
+				if (!lessGeneralTargets.containsKey(label))
 					nextActualState = sink;	
-				}
 				else
-					nextActualState = actualTargets.get(label);
-
-				StatePair nextPair = new StatePair(nextExpectedState,nextActualState);
-				//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
-				if (statesAddedToBoundary.addAndCheck(nextPair))
-				{
-					switch(compareVertices)
-					{
-					case DEEP:
-						//System.out.println("looking at "+expectedState+" ("+expectedState.getColour()+") and "+tState+" ("+tState.getColour()+") ");
-						if (!DeterministicDirectedSparseGraph.deepEquals(nextExpectedState,nextActualState))
-							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different values of attributes");
-						if (nextActualState.getOrigState() == null)
-						{
-							if (nextExpectedState.getOrigState() != null)
-								return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
-						}
-						else
-							if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
-								return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
-						break;
-					case NAMES:	
-						if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
-							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
-						break;
-					case NONE:// nothing needs doing 
-						break;
-					}
-
-					currentExplorationBoundary.offer(nextPair);
+				{// only explore where both can take a transition
+					nextActualState = lessGeneralTargets.get(label);
+	
+					StatePair nextPair = new StatePair(nextExpectedState,nextActualState);
+					//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
+					if (statesAddedToBoundary.addAndCheck(nextPair))
+						currentExplorationBoundary.offer(nextPair);
 				}
 			}
 		}
-
-		// now iterate through the maps of incompatible states and make updates.
-		statesAddedToBoundary.checkPairsAssociatedCorrectly();
+	
 		return null;
 	}
 

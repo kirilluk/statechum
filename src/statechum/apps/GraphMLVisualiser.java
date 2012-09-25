@@ -36,9 +36,15 @@ public class GraphMLVisualiser extends Visualiser {
 		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
-		LearnerGraphND graph = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
-		AbstractPersistence.loadGraph(args[0], graph);
-		Visualiser.updateFrame(graph, null);Visualiser.waitForKey();
+		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
+		AbstractPersistence.loadGraph(args[0], graph0);
+		if (args[1] != null)
+		{
+			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
+			AbstractPersistence.loadGraph(args[1], graph1);
+		}
+		Visualiser.updateFrame(graph0, graph1);Visualiser.waitForKey();
 	}
+	
 
 }

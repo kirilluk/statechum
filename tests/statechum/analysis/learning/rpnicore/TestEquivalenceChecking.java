@@ -91,11 +91,10 @@ public class TestEquivalenceChecking {
 	}
 	
 	/** Verifies the equivalence of a supplied graph to the supplied machine. */
-	public static void checkM_ND(String fsm,DirectedSparseGraph g,Configuration conf)
+	public static void checkM_ND(String fsm,String g,Configuration conf)
 	{
-		final LearnerGraphND graph = new LearnerGraphND(g,conf);
-		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph",conf);
-		final LearnerGraphND expected = new LearnerGraphND(expectedGraph,conf);
+		final LearnerGraphND graph = new LearnerGraphND(buildGraph(g,"expected graph",conf),conf);
+		final LearnerGraphND expected = new LearnerGraphND(buildGraph(fsm,"expected graph",conf),conf);
 		DifferentFSMException 
 			ex1 = WMethod.checkM(expected,graph),
 			ex2 = WMethod.checkM(graph,expected);
@@ -106,14 +105,12 @@ public class TestEquivalenceChecking {
 		Assert.assertNull(ex1==null?"":ex1.toString(),ex1);
 	}
 
-	/** Verifies the equivalence of a supplied graph to the supplied machine, 
-	 * the special version for testing the above method. 
+	/** Verifies the equivalence of a supplied graph to the supplied machine.
 	 */
 	public static void checkM(String fsm,DirectedSparseGraph g,Configuration conf)
 	{
 		final LearnerGraph graph = new LearnerGraph(g,conf);
-		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph",conf);
-		final LearnerGraph expected = new LearnerGraph(expectedGraph,conf);
+		final LearnerGraph expected = new LearnerGraph(buildGraph(fsm,"expected graph",conf),conf);
 		
 		DifferentFSMException 
 			ex1 = WMethod.checkM(expected,graph),
@@ -127,17 +124,50 @@ public class TestEquivalenceChecking {
 		if (ex1 != null)
 			throw ex1;
 	}
+	
+	/** Verifies the equivalence of a supplied graph to the supplied machine.
+	 */
+	public static void checkM(String fsm,String g,Configuration conf)
+	{
+		final DirectedSparseGraph graph = buildGraph(g,"actual graph",conf);
+		checkM(fsm,graph,conf);
+	}
+	
+	/** Verifies the reduction relation between two graphs.
+	 */
+	public static void checkReduction(String fsm,String g,Configuration conf)
+	{
+		final LearnerGraph graph = new LearnerGraph(buildGraph(g,"actual graph",conf),conf);
+		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",conf);
+		
+		DifferentFSMException 
+			exReduction = WMethod.checkReduction(expected, expected.init, graph, graph.init);
+		
+		if (exReduction != null)
+		{// if not a reduction, cannot be an equivalence
+			DifferentFSMException 
+				ex1 = WMethod.checkM(expected,graph),
+				ex2 = WMethod.checkM(graph,expected);
+			Assert.assertNotNull(ex1);
+			Assert.assertNotNull(ex2);
+		}
 
+		if (exReduction != null)
+			throw exReduction;
+	}
+	
 	@Test
 	public void testCheckM1()
 	{
-		checkM("B-a->C-b->D", buildGraph("A-a->B-b->C", "testCheck1",config),config);
+		String graphA = "B-a->C-b->D",graphB="A-a->B-b->C";
+		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
 	}
 	
 	@Test
 	public void testCheckM2()
 	{
-		checkM("B-a->C-b->D\nB-b-#REJ\nD-d-#REJ",buildGraph("A-a->B-b->C-d-#F#-b-A", "testCheck2",config), config);
+		String graphA = "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ",graphB = "A-a->B-b->C-d-#F#-b-A";
+		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
 	}
 
 	@Test
@@ -145,7 +175,9 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-b-#F#-d-A";
-		checkM(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck3",config), config);
+		
+		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
+		checkM(expected,graphB, config);checkReduction(expected,graphB, config);
 	}
 
 	/** multiple reject states. */
@@ -154,7 +186,9 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
-		checkM(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4",config), config);
+		
+		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
+		checkM(expected,graphB, config);checkReduction(expected,graphB, config);
 	}
 
 	/** multiple reject states and a non-deterministic graph. */
@@ -165,13 +199,14 @@ public class TestEquivalenceChecking {
 			"A-d-#REJ\nB-c-#REJ2";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B\n"+
 			"A-d-#F\nB-c-#R";
-		checkM_ND(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4",config), config);
+		checkM_ND(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), config);
 	}
 
 	@Test
 	public void testCheckM5()
 	{
-		checkM("S-a->U<-b-U\nQ<-a-U",buildGraph("A-a->B-b->B-a->C", "testCheck5",config), config);
+		String graphA = "S-a->U<-b-U\nQ<-a-U", graphB = "A-a->B-b->B-a->C";
+		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
 	}
 
 	@Test
@@ -182,6 +217,10 @@ public class TestEquivalenceChecking {
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("A"),expected,expected.findVertex("S")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("B"),expected,expected.findVertex("U")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("C"),expected,expected.findVertex("Q")));
 	}
 
 	@Test
@@ -202,6 +241,21 @@ public class TestEquivalenceChecking {
 
 		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("F1"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("F1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("D"),graph,graph.findVertex("C2")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("C2"),graph,graph.findVertex("D")));
+		
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("D1"),graph,graph.findVertex("D2")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("D2"),graph,graph.findVertex("D1")));
+
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("D2"),graph,graph.findVertex("K2")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("K2"),graph,graph.findVertex("D2")));
+
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("D2"),graph,graph.findVertex("A1")));
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("A1"),graph,graph.findVertex("D2")));
+
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("D2"),graph,graph.findVertex("F1")));
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("F1"),graph,graph.findVertex("D2")));
 	}
 
 	@Test
@@ -212,8 +266,12 @@ public class TestEquivalenceChecking {
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
 		for(String stA:states)
 			for(String stB:states)
+			{
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
 						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
+						WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
+			}
 	}
 	
 	@Test
@@ -224,8 +282,12 @@ public class TestEquivalenceChecking {
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
 		for(String stA:states)
 			for(String stB:states)
+			{
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
 						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
+						WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
+			}
 	}
 	
 	@Test
@@ -237,11 +299,19 @@ public class TestEquivalenceChecking {
 		for(String stA:states)
 			for(String stB:states)
 				if (stA.equals(stB))
+				{
 					Assert.assertNull("states "+stA+" and "+stB+" should be equivalent",
 							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+					Assert.assertNull("states "+stA+" and "+stB+" should be equivalent",
+							WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
+				}
 				else
+				{
 					Assert.assertNotNull("states "+stA+" and "+stB+" should not be equivalent",
 							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+					Assert.assertNotNull("states "+stA+" and "+stB+" should not be equivalent",
+							WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
+				}
 	}
 	
 	@Test
@@ -261,79 +331,167 @@ public class TestEquivalenceChecking {
 		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("A"),graph,graph.findVertex("A")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("B"),graph,graph.findVertex("B")));
+		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("C"),graph,graph.findVertex("C")));
+		Assert.assertNull(WMethod.checkReduction(expected,expected.findVertex("Q"),expected,expected.findVertex("Q")));
+		Assert.assertNull(WMethod.checkReduction(expected,expected.findVertex("S"),expected,expected.findVertex("S")));
+		
+		// Some of the reductions hold even though equivalences do not
+		Assert.assertNull	(WMethod.checkReduction(graph,graph.findVertex("A"),expected,expected.findVertex("Q")));
+		Assert.assertNotNull(WMethod.checkReduction(expected,expected.findVertex("Q"),graph,graph.findVertex("A")));
+
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("A"),expected,expected.findVertex("U")));
+		Assert.assertNotNull(WMethod.checkReduction(expected,expected.findVertex("U"),graph,graph.findVertex("A")));
+
+		Assert.assertNull	(WMethod.checkReduction(graph,graph.findVertex("B"),expected,expected.findVertex("Q")));
+		Assert.assertNotNull(WMethod.checkReduction(expected,expected.findVertex("Q"),graph,graph.findVertex("B")));
+		
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("B"),expected,expected.findVertex("S")));
+		Assert.assertNotNull(WMethod.checkReduction(expected,expected.findVertex("S"),graph,graph.findVertex("B")));
+
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("C"),expected,expected.findVertex("U")));
+		Assert.assertNull	(WMethod.checkReduction(expected,expected.findVertex("U"),graph,graph.findVertex("C")));
+
+		Assert.assertNotNull(WMethod.checkReduction(graph,graph.findVertex("C"),expected,expected.findVertex("S")));
+		Assert.assertNull	(WMethod.checkReduction(expected,expected.findVertex("S"),graph,graph.findVertex("C")));
 	}
 	
 
 	@Test(expected = DifferentFSMException.class)
-	public void testCheckMD1()
+	public void testCheckMD1a()
 	{
-		checkM("B-a->C-b->B",buildGraph("A-a->B-b->C", "testCheckMD1", config), config);		
+		checkM("B-a->C-b->B","A-a->B-b->C", config);
+	}
+
+	public void testCheckMD1b()
+	{
+		checkReduction("B-a->C-b->B","A-a->B-b->C", config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
-	public void testCheckMD2() // different reject states
+	public void testCheckMD1c()
 	{
-		checkM("B-a->C-b-#D",buildGraph("A-a->B-b->C", "testCheckMD2", config), config);
+		checkReduction("A-a->B-b->C","B-a->C-b->B", config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
-	public void testCheckMD3() // missing transition
+	public void testCheckMD2a() // different reject states
 	{
-		checkM("B-a->C-b->D",buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3", config), config);
+		checkM("B-a->C-b-#D","A-a->B-b->C", config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD2b() // different reject states
+	{
+		checkReduction("B-a->C-b-#D","A-a->B-b->C", config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD2c() // different reject states
+	{
+		checkReduction("A-a->B-b->C", "B-a->C-b-#D", config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD3a() // missing transition
+	{
+		checkM("B-a->C-b->D","A-a->B-b->C\nA-b->B", config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD3b() // missing transition
+	{
+		checkReduction("B-a->C-b->D","A-a->B-b->C\nA-b->B", config);
+	}
+
+	@Test
+	public void testCheckMD3c() // missing transition
+	{
+		checkReduction("A-a->B-b->C\nA-b->B", "B-a->C-b->D", config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD4() // extra transition
 	{
-		checkM("B-a->C-b->D\nB-b->C",buildGraph("A-a->B-b->C", "testCheckMD4", config), config);
+		checkM("B-a->C-b->D\nB-b->C","A-a->B-b->C", config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
-	public void testCheckMD5() // missing transition
+	public void testCheckMD5a() // missing transition
 	{
-		checkM("B-a->C-b->D",buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5", config), config);
+		checkM("B-a->C-b->D","A-a->B-b->C\nB-c->B", config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD5b() // missing transition
+	{
+		checkReduction("B-a->C-b->D","A-a->B-b->C\nB-c->B", config);
+	}
+
+	@Test
+	public void testCheckMD5c() // missing transition
+	{
+		checkReduction("A-a->B-b->C\nB-c->B", "B-a->C-b->D",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD6() // extra transition
 	{
-		checkM("B-a->C-b->D\nC-c->C",buildGraph("A-a->B-b->C", "testCheckMD6", config), config);
+		checkM("B-a->C-b->D\nC-c->C","A-a->B-b->C", config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
-	public void testCheckMD7() // swapped transitions
+	public void testCheckMD7a() // swapped transitions
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkM(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7", config), config);
+		checkM(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD7b() // swapped transitions
+	{
+		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String expected = "A-a->B-b->C-d-#F#-b-A";
+		checkReduction(expected,another, config);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD7c() // swapped transitions
+	{
+		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String expected = "A-a->B-b->C-d-#F#-b-A";
+		checkReduction(another, expected, config);
 	}
 
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test
 	public void testPair1()
 	{
-		checkM("A-a->B-a->C-a->D-a->A",buildGraph("A-a->B-a->A", "testPair1", config), config);
+		checkM("A-a->B-a->C-a->D-a->A","A-a->B-a->A", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test(expected = DifferentFSMException.class)
 	public void testPair2()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C", "testPair2", config), config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test
 	public void testPair3()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C/ A=INCOMPATIBLE=B", "testPair3", config), config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=INCOMPATIBLE=B", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
 	@Test(expected = DifferentFSMException.class)
 	public void testPair4()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C/ A=THEN=B", "testPair4", config), config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=THEN=B", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -341,10 +499,10 @@ public class TestEquivalenceChecking {
 	public void testPair5()
 	{
 		checkM("A-a->A-c->B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
+				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", "testPair5", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -352,10 +510,10 @@ public class TestEquivalenceChecking {
 	public void testPair6()
 	{
 		checkM("A-a->A-c->B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
+				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = THEN = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", "testPair6", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -363,10 +521,10 @@ public class TestEquivalenceChecking {
 	public void testPair7a()
 	{
 		checkM("A-a->A-c->B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
+				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3", "testPair7a", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3",  config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -374,10 +532,10 @@ public class TestEquivalenceChecking {
 	public void testPair7b1()
 	{
 		checkM("A-a->A / B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / B1-b->B1 / B2-b->B2 / A3-a->A3 / B3-b->B3 "+
+				"A1-a->A2-a->A3 / B1-b->B1 / B2-b->B2 / A3-a->A3 / B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", "testPair7b", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -385,10 +543,10 @@ public class TestEquivalenceChecking {
 	public void testPair7b2()
 	{
 		checkM("A-a->A-c->B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
+				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", "testPair7b", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -396,31 +554,31 @@ public class TestEquivalenceChecking {
 	public void testPair7c()
 	{
 		checkM("A-a->A-c->B-b->B / A=INCOMPATIBLE=B",
-				buildGraph("A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
+				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3", "testPair7c", config), config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3", config);
 	}
 	
 	@Test
 	public void testPair8()
 	{
 		checkM("P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P",
-				buildGraph("Q-a->B-a->B / B = INCOMPATIBLE = Q", "testPair8", config), config);
+				"Q-a->B-a->B / B = INCOMPATIBLE = Q", config);
 	}
 	
 	@Test
 	public void testPair9()
 	{
 		checkM("R-b->P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P / P = THEN = R",
-				buildGraph("S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", "testPair9", config), config);
+				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", config);
 	}
 	
 	@Test(expected = DifferentFSMException.class)
 	public void testPair10()
 	{
 		checkM("R-b->P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P / P = INCOMPATIBLE = R",
-				buildGraph("S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", "testPair10", config), config);
+				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", config);
 	}
 	
 

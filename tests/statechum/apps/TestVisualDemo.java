@@ -44,7 +44,7 @@ public class TestVisualDemo {
 	
 	private static Pair<String,String> differenceLabelling(String graphA,String graphB)
 	{
-		Configuration config = Configuration.getDefaultConfiguration();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0,false,config);
 		Map<String,String> labelling = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
 		final EdgeAnnotation transitionAnnotation = (EdgeAnnotation)graph.getUserDatum(JUConstants.EDGE);

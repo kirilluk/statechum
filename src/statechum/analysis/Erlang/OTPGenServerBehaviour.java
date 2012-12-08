@@ -3,7 +3,6 @@ package statechum.analysis.Erlang;
 import java.util.Collections;
 import java.util.List;
 
-import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
 import statechum.Configuration;

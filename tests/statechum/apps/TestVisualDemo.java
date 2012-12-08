@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -43,7 +44,8 @@ public class TestVisualDemo {
 	
 	private static Pair<String,String> differenceLabelling(String graphA,String graphB)
 	{
-		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0,false);
+		Configuration config = Configuration.getDefaultConfiguration();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0,false,config);
 		Map<String,String> labelling = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
 		final EdgeAnnotation transitionAnnotation = (EdgeAnnotation)graph.getUserDatum(JUConstants.EDGE);
 		return new Pair<String,String>(labelling.toString(),transitionAnnotation.toString());
@@ -102,7 +104,7 @@ public class TestVisualDemo {
 	@Test
 	public final void testVisual5()
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
 		String name = "testVisual5";
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nS-a-#T";

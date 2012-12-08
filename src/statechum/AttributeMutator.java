@@ -36,6 +36,7 @@ import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
+import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
@@ -234,6 +235,11 @@ public class AttributeMutator {
 				if (var.getType().equals(EXPANSIONOFANY.class))
 				{
 					valueA = EXPANSIONOFANY.ANY_WIBBLE;valueB = EXPANSIONOFANY.ANY_WITHLIST;
+				}
+				else
+				if (var.getType().equals(STATETREE.class))
+				{
+					valueA = STATETREE.STATETREE_LINKEDHASH;valueB = STATETREE.STATETREE_SLOWTREE;
 				}
 				else
 					throw new IllegalArgumentException("A field "+var+" of "+clazz+" has an unsupported type "+var.getType());

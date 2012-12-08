@@ -34,6 +34,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -143,16 +144,17 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testMakeSteps1()
 	{
+		Configuration configGraph = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B","testMakeSteps1A",Configuration.getDefaultConfiguration());
+				"B-c->B-d->B","testMakeSteps1A",configGraph);
 		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1B",Configuration.getDefaultConfiguration());
+				"@B-c->@B-d->@B","testMakeSteps1B",configGraph);
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(true);
+		Configuration config = configGraph.copy();config.setGdPropagateDet(true);
 		gd.init(graphA, graphB, threadNumber,config);
 		Assert.assertTrue(gd.identifyKeyPairs());
-		//TestGD.printListOfPairs(gd.frontWave, gd.newToOrig);
+		TestGD.printListOfPairs(gd.frontWave, gd.newToOrig);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps();gd.computeDifference(recorder);
 		//printListOfPairs(gd,allKeyPairs);
@@ -846,7 +848,7 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testComputeGD_ND3a()
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = runTestCompute_ND3(config,5);
 		boolean foundC = false, foundB = false;
@@ -866,7 +868,7 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD_ND3a_modified()
 	{
 		final String name = "testComputeGD_ND2";
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";

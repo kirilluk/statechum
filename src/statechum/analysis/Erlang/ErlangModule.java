@@ -233,10 +233,10 @@ public class ErlangModule {
 		if ((!modulesRegistry.containsKey(mod.getName()))||forceReload) {
 			modulesRegistry.put(mod.getName(), mod);
 			mod.behaviour.generateAlphabet(config);
-			return mod;
 		} else {
-			return modulesRegistry.get(mod.getName());
+			mod = modulesRegistry.get(mod.getName());
 		}
+		return mod;
 	}
 
 	/**

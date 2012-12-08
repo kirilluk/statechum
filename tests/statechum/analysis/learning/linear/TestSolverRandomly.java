@@ -60,8 +60,10 @@ public class TestSolverRandomly {
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		for(int i=5;i<20;++i)
-			result.add(new Object[]{i,new Random(i),new Integer(i*20)});
+		final int stepCount=20;
+			for(int i=1;i<30;++i)
+				for(int count=0;count<stepCount;++count)
+					result.add(new Object[]{i*stepCount+count,new Random(i+count),new Integer(i*20)});
 		
 		return result;
 	}
@@ -83,7 +85,7 @@ public class TestSolverRandomly {
 		boolean singular = false;
 		try
 		{
-			solver.solveExternally();
+			solver.solveExternally(1);
 		}
 		catch(IllegalArgumentException ex)
 		{

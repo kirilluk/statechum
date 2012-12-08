@@ -19,7 +19,7 @@
 %%
 %%
 %%	MODIFIED for integration into the Statechum project.
-%%  The two files which were modified for Statechum are typer.erl and typer_annotator.erl,
+%%  The two files which were modified for Statechum are typer.erl, typer_annotator.erl, typer_info_s.erl
 %%  the rest were renamed to ensure no clashes with the installed typer.
 %%
 
@@ -90,7 +90,12 @@ collect_one_file_info(File, Analysis) ->
 	      case dialyzer_utils:get_spec_info(Mod, AbstractCode, Records) of
 		{error, Reason} -> typer_s:compile_error([Reason]);
 		{ok, SpecInfo} -> 
-		  analyze_core_tree(Core, Records, SpecInfo, Analysis, File)
+		  analyze_core_tree(Core, Records, SpecInfo, Analysis, File);
+		%% new argument is part of Erlang 5.9.1
+		{ok, SpecInfo, CbInfo} ->
+                  ExpTypes = get_exported_types_from_core(Core),
+		  analyze_core_tree(Core, Records, SpecInfo, CbInfo,
+				    ExpTypes, Analysis, File)
 	      end
 	  end
       end
@@ -165,3 +170,58 @@ get_dialyzer_plt(#typer_analysis{plt = PltFile0}) ->
       false -> PltFile0
     end,
   dialyzer_plt:from_file(PltFile).
+  
+%% These are components of typer.erl from Erlang 5.9.1
+get_exported_types_from_core(Core) ->
+  Attrs = cerl:module_attrs(Core),
+  ExpTypes1 = [cerl:concrete(L2) || {L1, L2} <- Attrs,
+                                    cerl:is_literal(L1),
+                                    cerl:is_literal(L2),
+                                    cerl:concrete(L1) =:= 'export_type'],
+  ExpTypes2 = lists:flatten(ExpTypes1),
+  M = cerl:atom_val(cerl:module_name(Core)),
+  sets:from_list([{M, F, A} || {F, A} <- ExpTypes2]).
+
+analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
+  Module = cerl:concrete(cerl:module_name(Core)),
+  TmpTree = cerl:from_records(Core),
+  CS1 = Analysis#typer_analysis.code_server,
+  NextLabel = dialyzer_codeserver:get_next_core_label(CS1),
+  {Tree, NewLabel} = cerl_trees:label(TmpTree, NextLabel),
+  CS2 = dialyzer_codeserver:insert(Module, Tree, CS1),
+  CS3 = dialyzer_codeserver:set_next_core_label(NewLabel, CS2),
+  CS4 = dialyzer_codeserver:store_temp_records(Module, Records, CS3),
+  CS5 =
+    case Analysis#typer_analysis.no_spec of
+      true -> CS4;
+      false ->
+	dialyzer_codeserver:store_temp_contracts(Module, SpecInfo, CbInfo, CS4)
+    end,
+  OldExpTypes = dialyzer_codeserver:get_temp_exported_types(CS5),
+  MergedExpTypes = sets:union(ExpTypes, OldExpTypes),
+  CS6 = dialyzer_codeserver:insert_temp_exported_types(MergedExpTypes, CS5),
+  Ex_Funcs = [{0,F,A} || {_,_,{F,A}} <- cerl:module_exports(Tree)],
+  TmpCG = Analysis#typer_analysis.callgraph,
+  CG = dialyzer_callgraph:scan_core_tree(Tree, TmpCG),
+  Fun = fun analyze_one_function/2,
+  All_Defs = cerl:module_defs(Tree),
+  Acc = lists:foldl(Fun, #tmpAcc{file = File, module = Module}, All_Defs),
+  Exported_FuncMap = typer_map_s:insert({File, Ex_Funcs},
+				      Analysis#typer_analysis.ex_func),
+  %% we must sort all functions in the file which
+  %% originate from this file by *numerical order* of lineNo
+  Sorted_Functions = lists:keysort(1, Acc#tmpAcc.funcAcc),
+  FuncMap = typer_map_s:insert({File, Sorted_Functions},
+			     Analysis#typer_analysis.func),
+  %% we do not need to sort functions which are imported from included files
+  IncFuncMap = typer_map_s:insert({File, Acc#tmpAcc.incFuncAcc}, 
+				Analysis#typer_analysis.inc_func),
+  RecordMap = typer_map_s:insert({File, Records}, Analysis#typer_analysis.record),
+  Final_Files = Analysis#typer_analysis.final_files ++ [{File, Module}],
+  Analysis#typer_analysis{final_files = Final_Files,
+		    callgraph = CG,
+		    code_server = CS6,
+		    ex_func = Exported_FuncMap,
+		    inc_func = IncFuncMap,
+		    record = RecordMap,
+		    func = FuncMap}.

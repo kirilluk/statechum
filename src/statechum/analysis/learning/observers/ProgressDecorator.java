@@ -88,8 +88,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		Element pairElement = doc.createElement(StatechumXML.ELEM_PAIR.name());
 		pairElement.setAttribute(StatechumXML.ATTR_Q.name(), element.getQ().getID().toString());
 		pairElement.setAttribute(StatechumXML.ATTR_R.name(), element.getR().getID().toString());
-		if (element.getScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_SCORE.name(), Integer.toString(element.getScore()));
-		if (element.getAnotherScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_OTHERSCORE.name(), Integer.toString(element.getAnotherScore()));
+		if (element.getScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_SCORE.name(), Long.toString(element.getScore()));
+		if (element.getAnotherScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_OTHERSCORE.name(), Long.toString(element.getAnotherScore()));
 		return pairElement;
 	}
 	

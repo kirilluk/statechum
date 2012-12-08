@@ -62,6 +62,7 @@ import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.LabelVertexPair;
+import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
@@ -94,7 +95,7 @@ public class TestEqualityComparisonAndHashCode {
 	public void beforeTest()
 	{
 		
-		config = mainConfiguration.copy();
+		config = mainConfiguration.copy();config.setUseOrderedEntrySet(true);
 		differentA = buildLearnerGraph("Q-a->A-b->B", "testFSMStructureEquals2",config);
 		differentB = buildLearnerGraph("A-b->A\nB-b->B", "testFSMStructureEquals2",config);
 
@@ -121,10 +122,12 @@ public class TestEqualityComparisonAndHashCode {
 	/** Used to check that equality checking is implemented correctly. 
 	 * The first two arguments are supposed to be independently constructed and they 
 	 * are checked for equality.
-	 * The last two arguments are supposed to be different from any of the first two. 
+	 * The last two arguments are supposed to be different from any of the first two.
+	 * 
+	 * @param checkHashCodesDifferent whether to verify that hash codes are different. 
+	 * They do not actually have to be for different objects, so where tests expects them to be we would like to check and not check otherwise.
 	 */
-	static final public void equalityTestingHelper(Object p, Object q, 
-			Object differentA, Object differentB)
+	static final public void equalityTestingHelper(Object p, Object q, Object differentA, Object differentB, boolean checkHashCodesDifferent)
 	{
 		assertTrue(p.equals(p));assertTrue(q.equals(q));
 		if (!p.equals(q))
@@ -147,15 +150,21 @@ public class TestEqualityComparisonAndHashCode {
 		{
 			assertFalse("graphs should not be equal: "+differentA+" and "+p,differentA.equals(p));
 			assertFalse("graphs should not be equal: "+differentA+" and "+q,differentA.equals(q));
-			assertFalse(p.hashCode() == differentA.hashCode());
-			assertFalse(q.hashCode() == differentA.hashCode());
+			if (checkHashCodesDifferent)
+			{
+				assertFalse(p.hashCode() == differentA.hashCode());
+				assertFalse(q.hashCode() == differentA.hashCode());
+			}
 		}
 		if (differentB != null)
 		{
 			assertFalse("graphs should not be equal: "+differentB+" and "+p,differentB.equals(p));
 			assertFalse("graphs should not be equal: "+differentB+" and "+q,differentB.equals(q));
-			assertFalse(p.hashCode() == differentB.hashCode());
-			assertFalse(q.hashCode() == differentB.hashCode());
+			if (checkHashCodesDifferent)
+			{
+				assertFalse(p.hashCode() == differentB.hashCode());
+				assertFalse(q.hashCode() == differentB.hashCode());
+			}
 		}
 	}
 	
@@ -235,6 +244,7 @@ public class TestEqualityComparisonAndHashCode {
 	
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
+	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID1()
 	{
@@ -242,6 +252,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
+	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2()
 	{
@@ -252,14 +263,14 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexIDEquals1()
 	{
-		equalityTestingHelper(new VertexID("A"), new VertexID("A"), new VertexID("B"), new VertexID("C"));
+		equalityTestingHelper(new VertexID("A"), new VertexID("A"), new VertexID("B"), new VertexID("C"),true);
 	}
 
 	/** Tests equality for VertexIDs. */
 	@Test
 	public final void testVertexIDEquals2()
 	{
-		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.NEUTRAL,9));
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.NEUTRAL,9),true);
 	}
 
 	public final static String 
@@ -271,14 +282,14 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexIDEquals3()
 	{
-		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEUTRAL,5));
+		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEUTRAL,5),true);
 	}
 	
 	/** Tests equality for VertexIDs with string and numerical IDs. */
 	@Test
 	public final void testVertexIDEquals4()
 	{
-		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(idN5), new VertexID(idP5));
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(idN5), new VertexID(idP5),true);
 	}
 
 	/** Tests VertexID toString methods. */
@@ -352,16 +363,16 @@ public class TestEqualityComparisonAndHashCode {
 	public final void checkDEquality1()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);
-		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
-		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA,true);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA,true);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA,true);
 	}
 
 	@Test
 	public final void checkDEquality2()
 	{
 		DvertA.setAccept(false);DvertB.setAccept(false);
-		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
-		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA,true);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA,true);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA,true);
 	}
 
 	@Test
@@ -373,7 +384,7 @@ public class TestEqualityComparisonAndHashCode {
 		DvertA.addUserDatum(JUConstants.JUNKVERTEX, "a", UserData.SHARED);DvertA.addUserDatum(JUConstants.ORIGSTATE, new VertexID("test"), UserData.SHARED);
 		DvertB.setColour(JUConstants.BLUE);DvertB.setHighlight(true);DvertB.removeUserDatum(JUConstants.INITIAL);
 		DvertB.addUserDatum(JUConstants.JUNKVERTEX, "b", UserData.SHARED);DvertB.addUserDatum(JUConstants.DEPTH, 3, UserData.SHARED);
-		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA,true);
 		Assert.assertFalse(deepEquals(DvertA,DvertB));
 		Assert.assertTrue(deepEquals(DvertA,DvertA));
 		Assert.assertTrue(deepEquals(DvertB,DvertB));
@@ -394,16 +405,16 @@ public class TestEqualityComparisonAndHashCode {
 	public final void checkSEquality1()
 	{
 		SvertA.setAccept(true);SvertB.setAccept(true);
-		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
-		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA,true);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA,true);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA,true);
 	}
 
 	@Test
 	public final void checkSEquality2()
 	{
 		SvertA.setAccept(false);SvertB.setAccept(false);
-		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
-		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA,true);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA,true);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA,true);
 	}
 
 	@Test
@@ -415,7 +426,7 @@ public class TestEqualityComparisonAndHashCode {
 		SvertB.setColour(JUConstants.BLUE);SvertB.setHighlight(true);
 		SvertA.setOrigState(new VertexID("A"));SvertB.setOrigState(new VertexID("B"));
 		SvertA.setDepth(1);SvertB.setDepth(2);
-		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA,true);
 		Assert.assertFalse(deepEquals(SvertA, SvertB));
 		Assert.assertTrue(deepEquals(SvertA,SvertA));
 		Assert.assertTrue(deepEquals(SvertB,SvertB));
@@ -437,7 +448,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void checkEquality_differentTypes()
 	{
-		equalityTestingHelper(SvertA,DvertA,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,DvertA,SdifferentA,DdifferentA,true);
 	}
 
 	@Test
@@ -521,7 +532,7 @@ public class TestEqualityComparisonAndHashCode {
 		StringVertex A=new StringVertex("A"), B=new StringVertex("B");
 		LabelVertexPair sameA=constructLabelVertexPair("a",A), sameB=constructLabelVertexPair("a",A),
 			differentPairA=constructLabelVertexPair("a",B),differentPairB=constructLabelVertexPair("c",A);
-		equalityTestingHelper(sameA, sameB, differentPairA, differentPairB);
+		equalityTestingHelper(sameA, sameB, differentPairA, differentPairB,true);
 		Assert.assertEquals(0,sameA.compareTo(sameB));
 		Assert.assertEquals(0,sameB.compareTo(sameA));
 	}
@@ -673,7 +684,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C");
 		C.setAccept(false);
-		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>();
+		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY);
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, incompatibles));
@@ -1104,7 +1115,8 @@ public class TestEqualityComparisonAndHashCode {
 						new StringVertex("A"),new StringVertex("A"),new StringVertex("C")}),
 
 				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
-						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")})
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}),
+				false
 		);
 	}
 
@@ -1123,7 +1135,8 @@ public class TestEqualityComparisonAndHashCode {
 						new StringVertex("A"),new StringVertex("A"),new StringVertex("C")}),
 		
 				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
-						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")})
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}),
+				false
 		);
 	}
 
@@ -1142,7 +1155,8 @@ public class TestEqualityComparisonAndHashCode {
 						new StringVertex("A"),new StringVertex("B"),new StringVertex("D")}),
 		
 				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
-						new StringVertex("T"),new StringVertex("A"),new StringVertex("C")})
+						new StringVertex("T"),new StringVertex("A"),new StringVertex("C")}),
+				false
 		);
 	}
 
@@ -1173,7 +1187,7 @@ public class TestEqualityComparisonAndHashCode {
 
 				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),vertices),
 
-				eqClassA, eqClassB
+				eqClassA, eqClassB, true
 		);
 	}
 
@@ -1361,13 +1375,13 @@ public class TestEqualityComparisonAndHashCode {
 		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
 			for(int sameSecond=0;sameSecond<samePairs.length;++sameSecond)
 				for(int different=0;different<differentPairs.length;++different)
-					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1]);
+					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1], true);
 
 		equalityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"),
-				constructOrigPair("a","c"),constructOrigPair("b","b"));
+				constructOrigPair("a","c"),constructOrigPair("b","b"), true);
 		for(int i=0;i<samePairs.length;++i)
 			equalityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"),
-					samePairs[i],samePairs[samePairs.length-i-1]);
+					samePairs[i],samePairs[samePairs.length-i-1], true);
 	}
 	
 	/** Tests that nulls are valid elements of state pairs. */
@@ -1386,7 +1400,7 @@ public class TestEqualityComparisonAndHashCode {
 		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
 			for(int sameSecond=0;sameSecond<samePairs.length;++sameSecond)
 				for(int different=0;different<differentPairs.length;++different)
-					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1]);
+					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1], true);
 		
 	}
 	
@@ -1406,7 +1420,7 @@ public class TestEqualityComparisonAndHashCode {
 		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
 			for(int sameSecond=0;sameSecond<samePairs.length;++sameSecond)
 				for(int different=0;different<differentPairs.length;++different)
-					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1]);
+					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1], true);
 		
 	}
 	
@@ -1424,7 +1438,7 @@ public class TestEqualityComparisonAndHashCode {
 		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
 			for(int sameSecond=0;sameSecond<samePairs.length;++sameSecond)
 				for(int different=0;different<differentPairs.length;++different)
-					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1]);
+					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1], true);
 		
 	}
 	
@@ -2045,7 +2059,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
-		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A", "updateDiagramND_add2",Configuration.getDefaultConfiguration()).equals(graph));
+		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A", "updateDiagramND_add2",config).equals(graph));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -2057,7 +2071,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("b",config),graph.findVertex("C"));
-		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A-b-#C", "updateDiagramND_add2",Configuration.getDefaultConfiguration()).equals(graph));
+		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A-b-#C", "updateDiagramND_add2",config).equals(graph));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -2155,9 +2169,9 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertTrue(testGraphString.getInit() instanceof StringVertex);
 		Assert.assertTrue(testGraphJung.getInit() instanceof DeterministicVertex);
 		Assert.assertTrue(testGraphSame.getInit() instanceof DeterministicVertex);
-		equalityTestingHelper(testGraphJung,testGraphString,differentA,differentB);
-		equalityTestingHelper(testGraphJung,testGraphSame,differentA,differentB);
-		equalityTestingHelper(testGraphString,testGraphSame,differentA,differentB);
+		equalityTestingHelper(testGraphJung,testGraphString,differentA,differentB, true);
+		equalityTestingHelper(testGraphJung,testGraphSame,differentA,differentB, true);
+		equalityTestingHelper(testGraphString,testGraphSame,differentA,differentB, true);
 	}
 
 	/** Tests the recorded state compatibility is taken into account. */ 
@@ -2169,14 +2183,14 @@ public class TestEqualityComparisonAndHashCode {
 			b=buildLearnerGraph(graph,"testFSMStructureEquals5b",config);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,a,b,differentA);
+		equalityTestingHelper(a,a,b,differentA, true);
 		
 		a.removeFromIncompatibles(a.findVertex("A"), a.findVertex("C"));
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 		
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 	}
 
 	/** Tests the recorded state compatibility is taken into account. */ 
@@ -2189,13 +2203,13 @@ public class TestEqualityComparisonAndHashCode {
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
 		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,a,b,differentA);
+		equalityTestingHelper(a,a,b,differentA, true);
 
 		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 	}
 
 	@Test
@@ -2335,7 +2349,7 @@ public class TestEqualityComparisonAndHashCode {
 		
 		for(LearnerGraph gFirst:afterGetGraph)
 			for(LearnerGraph gSecond:afterGetGraph)
-				equalityTestingHelper(gFirst,gSecond,differentA,differentB);
+				equalityTestingHelper(gFirst,gSecond,differentA,differentB, true);
 	}
 	
 	@Test

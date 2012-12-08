@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
-
+#include <unistd.h>
 
 #if HAVE_CONFIG_H
 #  include <config.h>
@@ -124,7 +124,7 @@ STDCALLFUDGE(Java_statechum_analysis_learning_Smt_releaseContext) (JNIEnv *j_env
 {
 	jfieldID field = getFieldID(j_env,smtObj);if (field == NULL) return;
 	jlong context = (*j_env)->GetLongField(j_env,smtObj,field);
-	if (context != NULL)
+	if (context != 0)
 	{
 		yicesl_del_context((yicesl_context) context);
 		(*j_env)->SetLongField(j_env,smtObj,field,0);
@@ -155,7 +155,7 @@ JNIEXPORT void JNICALL
 STDCALLFUDGE(Java_statechum_analysis_learning_Smt_loadData) (JNIEnv *j_env, jobject smtObj, jstring str)
 {
 	yicesl_context context = getContext(j_env,smtObj);
-	jbyte * text = NULL;
+	const char * text = NULL;
 	int parseResult = 0;
 
 	if (context == NULL) return;// exception should be already pending.

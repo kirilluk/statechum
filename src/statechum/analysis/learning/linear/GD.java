@@ -42,6 +42,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.ericsson.otp.erlang.OtpErlangDouble;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -147,6 +152,21 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 
 	/** Number of threads to use in a computation. */
 	int ThreadNumber = 0;
+	
+	/** Converts the supplied array to the corresponding Erlang representation. */
+	private static OtpErlangList serialiseDoubleArray(double []array)
+	{
+		if (array == null)
+			return new OtpErlangList();// empty list
+		OtpErlangDouble convertedArray[] = new OtpErlangDouble[array.length];for(int i=0;i<array.length;++i) convertedArray[i]=new OtpErlangDouble(array[i]);
+		return new OtpErlangList(convertedArray);
+	}
+	
+	/** Returns a serializable representation of scores. */
+	public OtpErlangTuple serialiseScores()
+	{
+		return new OtpErlangTuple(new OtpErlangObject[]{serialiseDoubleArray(scoresForward), serialiseDoubleArray(scoresInverse)});
+	}
 	
 	/** Compares the supplied two graphs.
 	 * 
@@ -311,7 +331,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
-						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility)) // we should not merge incompatible pairs
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(),grCombined.pairCompatibility)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 					/*
@@ -750,7 +770,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				graph.updateIDWith(fromVert);
 			}
 			else // vertex with the same ID exists
-				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert, graph.pairCompatibility)) // it is known but with a different accept condition
+				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert,graph.pairCompatibility)) // it is known but with a different accept condition
 					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);// incompatibles cannot 
 						// lead to this exception since this would mean that a state is not compatible with 
 						// itself - such a contradiction cannot be added to a set of incompatibles.
@@ -1439,7 +1459,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				JConsole_Diagnostics.getDiagnostics().setStatus("finished building matrix forward "+DateFormat.getTimeInstance().format(new Date()));
 				forward.stateToCorrespondingGraph = null;// deallocate memory
 				//System.out.println(forward.dumpEquations(solverForward, pairScores, newBToOrig));
-				solverForward.solve();
+				solverForward.solve(threads);
 				solverForward.freeAllButResult();// deallocate memory before creating a large array.
 				scoresForward = solverForward.j_x;
 			}
@@ -1450,7 +1470,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				//System.out.println(inverse.dumpEquations(solverInverse, pairScores, newBToOrig));
 				JConsole_Diagnostics.getDiagnostics().setStatus("finished building matrix inverse "+DateFormat.getTimeInstance().format(new Date()));
 				inverse.stateToCorrespondingGraph = null;// deallocate memory
-				solverInverse.solve();
+				solverInverse.solve(threads);
 				solverInverse.freeAllButResult();// deallocate memory before creating a large array.
 				scoresInverse = solverInverse.j_x;
 			}
@@ -1474,7 +1494,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// of the computation below.
 		if (fallbackToInitialPair)
 		{
-			if (AbstractLearnerGraph.checkCompatible(combined_initA, combined_initB, grCombined.pairCompatibility))
+			if (AbstractLearnerGraph.checkCompatible(combined_initA, combined_initB,grCombined.pairCompatibility))
 				topPair = new PairScore(combined_initA,combined_initB,0,0);
 		}
 		else
@@ -1528,7 +1548,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(int th=0;th<ThreadNumber;++th) currentWave.addAll(wavePerThread[th]);
 			
 			// now we find so many percent of top values.
-			int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
+			long topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
 			sortWave(currentWave);
 			if (!currentWave.isEmpty() && currentWave.iterator().next().getScore() > topScore)
 			{
@@ -1543,7 +1563,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				if (pair.getScore() >= 0 && pair.getScore() >= threshold && // top score good enough
 						(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
 						!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
-						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(),grCombined.pairCompatibility) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
 						)
 				{
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
@@ -1686,7 +1706,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		PairScore result = null;
 		if (!statesInKeyPairs.contains(targetA) && !statesInKeyPairs.contains(targetB) &&
-				AbstractLearnerGraph.checkCompatible(targetA, targetB, grCombined.pairCompatibility))
+				AbstractLearnerGraph.checkCompatible(targetA, targetB,grCombined.pairCompatibility))
 		{
 			PairScore newPair = new PairScore(targetA,targetB,Integer.MAX_VALUE,0);
 			statesInKeyPairs.add(targetA);statesInKeyPairs.add(targetB);

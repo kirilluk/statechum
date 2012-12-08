@@ -39,6 +39,7 @@ import org.junit.Test;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -523,7 +524,8 @@ public class TestLearnerGraphND {
 	 */
 	private final void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedIgnored)
 	{
-		LearnerGraph gr=buildLearnerGraph(graph,graphName,Configuration.getDefaultConfiguration());
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraph gr=buildLearnerGraph(graph,graphName,conf);
 		StatesToConsider filter = createInstanceOfFilter(filterClass, gr);
 		for(boolean direction:new boolean[]{false,true})
 		{

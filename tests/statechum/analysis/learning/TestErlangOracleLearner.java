@@ -17,9 +17,9 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
@@ -63,6 +63,7 @@ public class TestErlangOracleLearner {
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
 				ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl")));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		Learner learnerAndObserver = new LearningConvergenceObserver(learner);

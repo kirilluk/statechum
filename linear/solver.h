@@ -20,7 +20,7 @@
 #define SOLVER_H 1
 
 /* The following line is based on http://www.vtk.org/pipermail/vtkusers/2006-May/085047.html */
-typedef long long __int64;
+//typedef long long __int64;
 
 #include <jni.h>
 
@@ -41,7 +41,7 @@ struct solverData
   jdouble * x;
 
   /** Stores the description of the outcome. */
-  char *message[ERRMSG_MAX];
+  char message[ERRMSG_MAX];
 
   struct java_arrays
   {

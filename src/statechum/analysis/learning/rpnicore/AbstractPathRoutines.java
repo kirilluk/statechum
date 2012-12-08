@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.MapWithSearch;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 
@@ -231,8 +234,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		
-		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = new HashMap<CmpVertex,PTASequenceEngine.SequenceSet>();
-		Map<CmpVertex,Integer> stateToDepthMap = new HashMap<CmpVertex,Integer>();
+		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber());
+		Map<CmpVertex,Integer> stateToDepthMap = new HashMapWithSearch<CmpVertex,Integer>(coregraph.getStateNumber());
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
 		stateToPathMap.put(vertSource,pathsToVertSource);stateToDepthMap.put(vertSource,0);
@@ -313,7 +316,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
+			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.getStateNumber());
 			// add states
 			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
@@ -506,7 +509,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
 		int newLabelCnt = 0;
-		Map<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
+		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix(g.config.getMaxStateNumber());
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
 		{
 			Map<Label,TARGET_TYPE> newRow = g.createNewRow();
@@ -654,7 +657,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		
 		/** Maps sets of target states to the corresponding known states. */
-		Map<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new HashMap<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
+		Map<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new LinkedHashMap<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
 		
 		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 		if (coregraph.transitionMatrix.isEmpty())
@@ -746,7 +749,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,LinkedList<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();stateToPath.put(from, new LinkedList<Label>());
+		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMapWithSearch<CmpVertex,LinkedList<Label>>(coregraph.getStateNumber());
+		stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
 		fringe.add(from);statesInFringe.add(from);
@@ -793,19 +797,20 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	}
 
 	/** Returns an ADL representation of this graph. 
-	 * Should be moved to util.OutputUtil */
+	 * Should be moved to util.OutputUtil 
+	 */
 	public String toADL()
 	{
 		StringBuffer result = new StringBuffer();
 		result.append(coregraph.transitionMatrix.size());result.append(' ');result.append(countEdges());result.append('\n');
 		
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 		{
 			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.getInit() == entry.getKey());
 			result.append(' ');result.append(entry.getKey().isAccept());result.append('\n');
 		}
 		
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 		{
 			for(Entry<Label,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
 			{
@@ -823,7 +828,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		return result.toString();
 	}
 	
-	void addColourAndIncompatiblesRandomly(Random amberRnd, int ratioColour, int proportionIncompatible, int proportionMerged)
+	void addColourAndIncompatiblesRandomly(Random amberRnd)
 	{
 		for(int i=0;i<coregraph.getStateNumber()/3;++i)
 		{

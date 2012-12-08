@@ -19,7 +19,6 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -29,7 +28,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
@@ -49,6 +47,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRig
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.analysis.learning.rpnicore.LSolver;
+import statechum.collections.HashMapWithSearch;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -91,7 +90,7 @@ public class PairScoreComputation {
 						{
 							coregraph.pairsAndScores.add(pair);
 							++numberOfCompatiblePairs;
-							if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
+							if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
 						}
 					}
 					
@@ -115,7 +114,7 @@ public class PairScoreComputation {
 							if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 							{
 								coregraph.pairsAndScores.add(pair);
-								if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(coregraph, oldBlue);
+								if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, oldBlue);
 							}
 						}
 					}
@@ -149,7 +148,7 @@ public class PairScoreComputation {
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
 		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
-		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
+		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
@@ -186,7 +185,8 @@ public class PairScoreComputation {
 
 	public int computePairCompatibilityScore(StatePair origPair)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
+		// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 		// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
 		return computePairCompatibilityScore_internal(origPair, mergedVertices);
 	}
@@ -346,8 +346,8 @@ public class PairScoreComputation {
 	{
 		mergedVertices.clear();
 		int equivalenceClassNumber = 0;
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		int score = 0;// compatibility score between states in the pair
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.getStateNumber());
+		boolean compatible = true;
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
 		currentExplorationBoundary.add(origPair);
@@ -410,8 +410,29 @@ public class PairScoreComputation {
 									assert entry.getValue().getNumber() != secondClass.getNumber();
 						}
 				}
-			} catch (IncompatibleStatesException e) {
-				score = -1;break;// encountered incompatible states
+			} catch (IncompatibleStatesException e) {/*
+				Writer wr=null;
+				try {
+					wr = new FileWriter("errorlog.txt");
+					
+					wr.append(e.toString());
+					wr.append("\n\n===========================================\n\n");
+					for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:stateToEquivalenceClass.values())
+						wr.append(eq.toString()+"\n");
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				finally
+				{
+					try {
+						if (wr!= null) wr.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+				System.out.println(e);
+				*/
+				compatible=false;break;// encountered incompatible states
 			}
 
 			//if (equivalenceClass != null)
@@ -446,11 +467,10 @@ public class PairScoreComputation {
 							break;// go to the end of the sequence of outgoing transitions with the same label.
 						//System.out.println("transition " + firstTransition.firstElem+" to "+new StatePair(firstTransition.secondElem,secondTransition.secondElem));
 						AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> sClass = stateToEquivalenceClass.get(secondTransition.secondElem);
-						if (fClass == null || sClass == null || !fClass.equals(sClass))
+						if (fClass == null || sClass == null || fClass.getNumber() != sClass.getNumber())// !fClass.equals(sClass))
 						{// this is the case when a pair of states will have to be merged.
 							StatePair nextPair = new StatePair(firstTransition.secondElem,secondTransition.secondElem);
 							currentExplorationBoundary.offer(nextPair);
-							++score;// every matched pair increments the score.
 						}
 					}
 				}
@@ -458,9 +478,11 @@ public class PairScoreComputation {
 			}
 		}
 		
-		assert score < 0 || stateToEquivalenceClass.size() > 0;
-
-		if (score >=0)
+		assert !compatible || stateToEquivalenceClass.size() > 0;
+		
+		int score=-1;
+		
+		if (compatible)
 		{// merge successful - collect vertices from the equivalence classes
 			mergedVertices.clear();Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedCollection = new TreeSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedCollection.addAll(stateToEquivalenceClass.values());
 			mergedVertices.addAll(mergedCollection);
@@ -487,12 +509,12 @@ public class PairScoreComputation {
 	 *  @param the pair to compute a score for
 	 *  @return the resulting score, reflecting compatibility.
 	 */
-	public int computeStateScore(StatePair pair)
+	public long computeStateScore(StatePair pair)
 	{
 		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
 			return -1;
 
-		int score = 0;
+		long score = 0;
 		int currentExplorationDepth=1;
 		assert pair.getQ() != pair.getR();
 		boolean foundKTail = false;
@@ -584,7 +606,7 @@ public class PairScoreComputation {
 		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=GDLearnerGraph.PAIR_OK;
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
-		solver.solve();
+		solver.solve(ThreadNumber);
 		solver.freeAllButResult();// deallocate memory before creating a large array.
 		coregraph.pairsAndScores.clear();
 		// now fill in the scores in the array.

@@ -175,6 +175,7 @@ public class TestPTASequenceEngine
 		assertFalse(a.equals(null));
 	}
 
+	@SuppressWarnings("unused")
 	@Test(expected = IllegalArgumentException.class)
 	public final void testNode0_fail()
 	{
@@ -218,7 +219,7 @@ public class TestPTASequenceEngine
 	{
 		PTASequenceEngine engine = new PTASequenceEngine();
 		Node a = engine.new Node("A"), c = engine.new Node("B"),d = engine.new Node("C");
-		equalityTestingHelper(a,a,c,d);
+		equalityTestingHelper(a,a,c,d, true);
 	}
 	
 	/** Similar to testNode2 but uses a helper method. */
@@ -906,6 +907,7 @@ public class TestPTASequenceEngine
 	}
 	
 	/** Checks that the non-existing initial state or an invalid one is rejected. */
+	@SuppressWarnings("unused")
 	@Test
 	public final void testCreateFSMStructureFail1()
 	{
@@ -918,6 +920,7 @@ public class TestPTASequenceEngine
 	}
 	
 	/** Checks that the non-existing initial state or an invalid one is rejected. */
+	@SuppressWarnings("unused")
 	@Test
 	public final void testCreateFSMStructureFail2()
 	{
@@ -1091,7 +1094,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqStart2 = en.new SequenceSet();
 		SequenceSet seqDifferent1 = en.new SequenceSet();seqDifferent1.setIdentity();
 		PTA_FSMStructure engine2 = new PTA_FSMStructure(fsm,null);		
-		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,engine2.new SequenceSet());
+		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,engine2.new SequenceSet(), true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1106,7 +1109,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = en.new SequenceSet();seqDifferent2.setIdentity();seqDifferent2.crossWithSequence(labelList(
 				new String[] {"a"}
 		));
-		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1119,7 +1122,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = en.new SequenceSet();seqDifferent2.setIdentity();seqDifferent2.crossWithSequence(labelList(
 				new String[] {"a"}
 		));
-		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1137,7 +1140,7 @@ public class TestPTASequenceEngine
 				new String[] {"a"}
 				
 		},config));
-		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1150,7 +1153,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = seqStart1.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
 		},config));
-		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1172,7 +1175,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
 		},config));
-		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1198,7 +1201,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
 		},config));
-		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2, true);
 	}
 
 	/** Tests that we choke on an empty graph. */
@@ -1290,7 +1293,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for Union: adding an empty set to something. */
@@ -1316,7 +1319,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for Union: adding a set to itself. */
@@ -1345,7 +1348,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
 	/** Test for Union: adding a set from a different engine. */
@@ -1394,7 +1397,7 @@ public class TestPTASequenceEngine
 				new String[] {"a","b","c"},
 		},config));
 	
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
 	@Test
@@ -1432,7 +1435,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 
 	@Test
@@ -1459,7 +1462,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 
 	@Test
@@ -1486,7 +1489,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 
 	@Test
@@ -1513,7 +1516,7 @@ public class TestPTASequenceEngine
 				,config
 		));
 
-		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
 
 	@Test

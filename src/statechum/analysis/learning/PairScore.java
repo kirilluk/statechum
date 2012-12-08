@@ -28,18 +28,18 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
  */
 public class PairScore extends StatePair
 {
-	private final int score, compatibilityScore;
+	private final long score, compatibilityScore;
 
-	public PairScore(CmpVertex q, CmpVertex r, int sc, int compat) {
+	public PairScore(CmpVertex q, CmpVertex r, long sc, long compat) {
 		super(q, r);
 		score = sc;compatibilityScore = compat;
 	}
 	
-	public int getScore() {
+	public long getScore() {
 		return score;
 	}
 
-	public int getAnotherScore() {
+	public long getAnotherScore() {
 		return compatibilityScore;
 	}
 	
@@ -50,7 +50,7 @@ public class PairScore extends StatePair
 	public int hashCode() {
 		final int PRIME = 31;
 		int result = super.hashCode();
-		result = PRIME * result + score;
+		result = PRIME * result + (int)score;// doing a truncate here
 		return result;
 	}
 

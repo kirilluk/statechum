@@ -20,7 +20,7 @@ package statechum.analysis.learning.oracles;
 
 import java.awt.Frame;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Label;
 import statechum.Pair;
@@ -41,8 +41,8 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 	public LearnerGraph learnMachine()
 	{
 		SootCallGraphOracle oracle = new SootCallGraphOracle();
-		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
-			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
+		Map<Long, AtomicLong> whichScoresWereUsedForMerging = new HashMap<Long,AtomicLong>(),
+			restartScoreDistribution = new HashMap<Long,AtomicLong>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		LearnerGraph newPTA = getTentativeAutomaton();// no need to clone - this is the job of mergeAndDeterminize anyway
@@ -55,7 +55,7 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			LearnerGraph temp = topLevelListener.MergeAndDeterminize(getTentativeAutomaton(), pair);
 			setChanged();
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
-			int score = pair.getScore();
+			long score = pair.getScore();
 			if(shouldAskQuestions(score))
 			{
 				questions = topLevelListener.ComputeQuestions(pair, getTentativeAutomaton(), temp);
@@ -90,10 +90,10 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				
 				getTentativeAutomaton().clearColours();
 				setChanged();
-				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
+				AtomicLong count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
 				{
-					count = new AtomicInteger();restartScoreDistribution.put(pair.getScore(),count);
+					count = new AtomicLong();restartScoreDistribution.put(pair.getScore(),count);
 				}
 				count.incrementAndGet();
 				restartsToIterations.put(pair, iterations);
@@ -110,10 +110,10 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				// keep going with the existing model
 				setTentativeAutomaton(temp);
 				// now update the statistics
-				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
+				AtomicLong count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null)
 				{
-					count = new AtomicInteger();whichScoresWereUsedForMerging.put(pair.getScore(),count);
+					count = new AtomicLong();whichScoresWereUsedForMerging.put(pair.getScore(),count);
 				}
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);

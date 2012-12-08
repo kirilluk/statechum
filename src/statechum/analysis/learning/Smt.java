@@ -17,13 +17,16 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
  * Building Win32 version of smt library: 
  * download "Yices for Windows" from http://yices.csl.sri.com/download.shtml
- * The file is called yices-1.0.16-i686-pc-mingw32.tar.gz and should contain a .dll.
+ * The file is called yices-1.0.16-i686-pc-mingw32.tar.gz and should contain a .dll
+ * (a slightly different name for 64-bit Windows). The path to the DLL (such as C:\\cygwin\\usr\\local\\soft\\yices-1.0.36\\lib), with single backslashes, should be included in Windows PATH.
  * Edit fullrebuild.sh to point it to the directory in which yices was unpacked.
  * 
  * From the smt directory, run
  * <pre>
  * sh fullrebuild.sh
  * </pre> 
+ * If build fails to find Yices (failed to find a reasonable YICES distribution), try to build a binary yourself. If the outcome does not run 
+ * ("error while loading shared libraries: ?: cannot open shared object file: No such file or directory"), Yices is not in the PATH.
  * 
  * On Linux, the process is conceptually same as for win32/cygwin (and fullrebuild.sh has a lot less work to do).
  * In practice this will only work if you've got libtool-2.2 and the like (not the default on Debian Lenny in Oct 2009).
@@ -62,6 +65,7 @@ public class Smt {
 			UnsatisfiedLinkError ex = null;
 			ex = LSolver.tryLoading("cygSMT_Yices-1");
 			if (ex != null) ex = LSolver.tryLoading("SMT_Yices");
+			if (ex != null) ex = LSolver.tryLoading("libSMT_Yices");
 
 			if (ex != null)
 			{// failed to load our library.

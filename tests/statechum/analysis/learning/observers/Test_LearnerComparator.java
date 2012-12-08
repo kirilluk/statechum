@@ -19,7 +19,6 @@ package statechum.analysis.learning.observers;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
@@ -306,7 +305,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		return result;
 	}
 
-	protected List<PairScore> pairs = null;
+	protected Stack<PairScore> pairs = null;
 	
 	/** Called by the simulator.
 	 * 
@@ -316,7 +315,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	@Override 
 	public synchronized Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 	{
-		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		Stack<PairScore> pairsAndScores = new Stack<PairScore>();
 		Stack<PairScore> result = null;
 		if (Thread.currentThread() == secondThread)
 		{
@@ -328,7 +327,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			pairs = pairsAndScores;
 		}
 		else
-		{
+		{// first graph
 			result = decoratedLearner.ChooseStatePairs(graph);
 			pairsAndScores.addAll(result);
 		}
@@ -336,15 +335,17 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		syncOnCallOf(KIND_OF_METHOD.M_CHOOSEPAIRS);
 		
 		if (Thread.currentThread() != secondThread)
-		{// checking. 
+		{// checking. pairsAndScores as well as graph is from the first graph. pairs is from the second one.
 
 		// Since accept/reject labelling is not stored in the XML file, we have to compare pairs discounting accept/reject
 			if (pairs.size() != pairsAndScores.size())
 				throw new IllegalArgumentException("different sizes of ChooseStatePairs collections of pairs, \n"+pairs+" v.s. \n"+pairsAndScores);
-			Iterator<PairScore> ps1 = pairs.iterator(), ps2=pairsAndScores.iterator();
+			
+			Iterator<PairScore> ps1=pairsAndScores.iterator(), ps2=pairs.iterator();
 			while(ps1.hasNext())
 			{
-				PairScore p1 = ps1.next(),p2=ps2.next();
+				PairScore p1 = ps1.next(), p2 = ps2.next();
+				
 				if (!p1.getQ().getID().equals(p2.getQ().getID()) || !p1.getR().getID().equals(p2.getR().getID()) ||
 						p1.getScore() != p2.getScore() || p1.getAnotherScore() != p2.getAnotherScore())
 					throw new IllegalArgumentException("different ChooseStatePairs pairs, "+p1+" v.s. "+p2);

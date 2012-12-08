@@ -31,11 +31,9 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Pair;
 import statechum.StringLabel;
-import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -79,7 +77,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     public
     @Override
     LearnerGraph learnMachine(PTASequenceEngine en, int plusSize, int minusSize) {
-        init(en, plusSize, minusSize);
+    	topLevelListener.init(en, plusSize, minusSize);
         return learnMachine();
     }
 
@@ -109,7 +107,7 @@ public abstract class RPNILearner extends Observable implements Learner {
      * @param score score we are looking at
      * @return whether any questions should be asked or we could just proceed with merging.
      */
-    protected boolean shouldAskQuestions(int score) {
+    protected boolean shouldAskQuestions(long score) {
         if (!config.getAskQuestions()) {
             return false;
         }
@@ -169,7 +167,6 @@ public abstract class RPNILearner extends Observable implements Learner {
                     Collection<VertexID> verticesInHardFacts=mergedToHard.get(v.getID());
                     if (verticesInHardFacts != null)
                     {
-                    	// this one will be null if 
                         for (VertexID hard : verticesInHardFacts) {
                             Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
                             allPrefixTraces.add(path);

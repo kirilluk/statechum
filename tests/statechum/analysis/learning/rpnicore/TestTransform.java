@@ -25,6 +25,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,9 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -65,63 +69,35 @@ import statechum.analysis.learning.linear.GD.ChangesCounter;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
-import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
-
+@RunWith(Parameterized.class)
 public class TestTransform {
-	@Test(expected=IllegalArgumentException.class)
-	public final void testHammingDistance0()
+	Configuration config = null;
+	
+	@Parameters
+	public static Collection<Object[]> data() 
 	{
-		HammingDistance(
-				Arrays.asList(new Boolean[]{true}), Arrays.asList(new Boolean[]{}));
+		return Configuration.configurationsForTesting();
 	}
+	
+	public TestTransform(Configuration c)
+	{
+		config = c.copy();g=buildLearnerGraph("A-a->A-b->B",	"testToBooleans",config);
+	}
+	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return Configuration.parametersToString(config);
+	}
+	
 
-	@Test 
-	public final void testHammingDistance1()
-	{
-		Assert.assertEquals(0, HammingDistance(
-				Arrays.asList(new Boolean[]{}),
-				Arrays.asList(new Boolean[]{})
-		));
-	}
-	
-	@Test 
-	public final void testHammingDistance2()
-	{
-		Assert.assertEquals(0, HammingDistance(
-				Arrays.asList(new Boolean[]{false}),
-				Arrays.asList(new Boolean[]{false})
-		));
-	}
-	
-	@Test 
-	public final void testHammingDistance3()
-	{
-		Assert.assertEquals(1, HammingDistance(
-				Arrays.asList(new Boolean[]{false}),
-				Arrays.asList(new Boolean[]{true})
-		));
-	}
-	
-	@Test 
-	public final void testHammingDistance4()
-	{
-		Assert.assertEquals(1, HammingDistance(
-				Arrays.asList(new Boolean[]{true,false,false}),
-				Arrays.asList(new Boolean[]{true,true,false})
-		));
-	}
-	
-	@Test 
-	public final void testHammingDistance5()
-	{
-		Assert.assertEquals(3, HammingDistance(
-				Arrays.asList(new Boolean[]{true,true,false}),
-				Arrays.asList(new Boolean[]{false,false,true})
-		));
-	}
-
-	private LearnerGraph g = buildLearnerGraph("A-a->A-b->B",	"testToBooleans",Configuration.getDefaultConfiguration());
+	private LearnerGraph g = null;
 	private StringBuffer resultDescr = new StringBuffer();	
+
 	private List<List<Label>> buildListList(String [][]list_of_seq)
 	{
 		List<List<Label>> result = new LinkedList<List<Label>>();
@@ -206,14 +182,14 @@ public class TestTransform {
 	@Test(expected=IllegalArgumentException.class)
 	public final void testRelabel_fail1()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		AbstractPathRoutines.relabel(fsm,-1,TestFSMParser.lbl("c"));
 	}
 	
 	@Test
 	public final void testRelabel0_1()
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(origAlphabet.isEmpty());
 		AbstractPathRoutines.relabel(fsm,-1,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(newAlphabet.isEmpty());
 	}
@@ -221,14 +197,14 @@ public class TestTransform {
 	@Test
 	public final void testRelabel0_2()
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(origAlphabet.isEmpty());
 		AbstractPathRoutines.relabel(fsm,0,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(newAlphabet.isEmpty());
 	}
 	@Test
 	public final void testRelabel0_3()
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(origAlphabet.isEmpty());
 		AbstractPathRoutines.relabel(fsm,1,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();Assert.assertTrue(newAlphabet.isEmpty());
 	}
@@ -236,7 +212,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel1_1()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,-1,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -247,7 +223,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel1_2()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,0,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -258,7 +234,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel2()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,1,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -269,7 +245,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel3()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,2,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -281,7 +257,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel4()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,origAlphabet.size(),"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -293,7 +269,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel3_ND()
 	{
-		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,2,"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -305,7 +281,7 @@ public class TestTransform {
 	@Test
 	public final void testRelabel4_ND()
 	{
-		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM, "testRelabel1",config);
 		Set<Label> origAlphabet = fsm.pathroutines.computeAlphabet();
 		AbstractPathRoutines.relabel(fsm,origAlphabet.size(),"new");Set<Label> newAlphabet = fsm.pathroutines.computeAlphabet();
 		Assert.assertEquals(origAlphabet.size(), newAlphabet.size());
@@ -316,7 +292,6 @@ public class TestTransform {
 	@Test
 	public final void testStateRelabelling0()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraphND A = new LearnerGraphND(config);A.initEmpty();
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
 		whatToG.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"),config),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"),config));
@@ -331,19 +306,19 @@ public class TestTransform {
 	@Test
 	public final void testStateRelabelling1()
 	{
-		LearnerGraphND A = buildLearnerGraphND("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1",Configuration.getDefaultConfiguration()),
-			expected = buildLearnerGraphND("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1",Configuration.getDefaultConfiguration());
+		LearnerGraphND A = buildLearnerGraphND("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1",config),
+			expected = buildLearnerGraphND("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1",config);
 		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
-		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
-		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), config));
+		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), config));
+		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), config));
+		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), config));
+		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), config));
+		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
 		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.setInit(actual.findVertex("NE"));
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
@@ -352,8 +327,8 @@ public class TestTransform {
 	@Test
 	public final void testStateRelabelling2()
 	{
-		LearnerGraphND A = buildLearnerGraphND("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1",Configuration.getDefaultConfiguration()),
-			expected = buildLearnerGraphND("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1",Configuration.getDefaultConfiguration());
+		LearnerGraphND A = buildLearnerGraphND("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1",config),
+			expected = buildLearnerGraphND("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1",config);
 		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.MERGED);
@@ -361,12 +336,12 @@ public class TestTransform {
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
-		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
-		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
-		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), config));
+		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), config));
+		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), config));
+		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), config));
+		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), config));
+		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
 		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.setInit(actual.findVertex("NE"));
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
@@ -374,18 +349,18 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraph0_1() throws IncompatibleStatesException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmToAdd = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmToAdd = new LearnerGraph(config);
 		helperAddToGraph0_1(fsm, fsmSrc,fsmToAdd);
 	}
 	
 	@Test
 	public final void testAddToGraph0_1_ND() throws IncompatibleStatesException
 	{
-		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmToAdd = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
+		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
+		LearnerGraphND fsmToAdd = new LearnerGraphND(config);
 		helperAddToGraph0_1(fsm, fsmSrc,fsmToAdd);
 	}
 
@@ -411,18 +386,18 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraph0_2() throws IncompatibleStatesException
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraph fsmSrc = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraph fsmToAdd = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(config);
+		LearnerGraph fsmSrc = new LearnerGraph(config);
+		LearnerGraph fsmToAdd = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		helperAddToGraph0_2(fsm, fsmSrc,fsmToAdd);
 	}
 	
 	@Test
 	public final void testAddToGraph0_2_ND() throws IncompatibleStatesException
 	{
-		LearnerGraphND fsm = new LearnerGraphND(Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmSrc = new LearnerGraphND(Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmToAdd = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = new LearnerGraphND(config);
+		LearnerGraphND fsmSrc = new LearnerGraphND(config);
+		LearnerGraphND fsmToAdd = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
 		helperAddToGraph0_2(fsm, fsmSrc,fsmToAdd);
 	}
 	
@@ -450,18 +425,18 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraph0_3() throws IncompatibleStatesException
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraph fsmSrc = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraph fsmToAdd = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(config);
+		LearnerGraph fsmSrc = new LearnerGraph(config);
+		LearnerGraph fsmToAdd = new LearnerGraph(config);
 		helperAddToGraph0_3(fsm, fsmSrc,fsmToAdd);
 	}
 
 	@Test
 	public final void testAddToGraph0_3_ND() throws IncompatibleStatesException
 	{
-		LearnerGraphND fsm = new LearnerGraphND(Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmSrc = new LearnerGraphND(Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmToAdd = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = new LearnerGraphND(config);
+		LearnerGraphND fsmSrc = new LearnerGraphND(config);
+		LearnerGraphND fsmToAdd = new LearnerGraphND(config);
 		helperAddToGraph0_3(fsm, fsmSrc,fsmToAdd);
 	}
 
@@ -489,18 +464,18 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraph1() throws IncompatibleStatesException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmToAdd = buildLearnerGraph("A-a->B-a-#Q", "testAddToGraph1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmToAdd = buildLearnerGraph("A-a->B-a-#Q", "testAddToGraph1",config);
 		helperAddToGraph1(fsm, fsmSrc,fsmToAdd);
 	}
 	
 	@Test
 	public final void testAddToGraph1_ND() throws IncompatibleStatesException
 	{
-		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraphND fsmToAdd = buildLearnerGraphND("A-a->B-a-#Q", "testAddToGraph1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
+		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
+		LearnerGraphND fsmToAdd = buildLearnerGraphND("A-a->B-a-#Q", "testAddToGraph1",config);
 		helperAddToGraph1(fsm, fsmSrc,fsmToAdd);
 	}
 	
@@ -528,9 +503,9 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraph2()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		LearnerGraph fsmToAdd = buildLearnerGraph("A-a->B-a->Q", "testAddToGraph1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmSrc = buildLearnerGraph(relabelFSM, "testRelabel1",config);
+		LearnerGraph fsmToAdd = buildLearnerGraph("A-a->B-a->Q", "testAddToGraph1",config);
 
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
@@ -553,12 +528,12 @@ public class TestTransform {
 	@Test
 	public final void testAddToGraphIncompatibles()
 	{
-		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsm = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
 		CmpVertex oldA = fsm.findVertex(VertexID.parseID("A")), oldB = fsm.findVertex(VertexID.parseID("B")), oldC= fsm.findVertex(VertexID.parseID("C"));
 		fsm.addToCompatibility(oldB,oldC,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsmSrc = buildLearnerGraphND(relabelFSM_ND, "testRelabel1",config);
 		fsmSrc.addToCompatibility(fsmSrc.findVertex(VertexID.parseID("B")), fsmSrc.findVertex(VertexID.parseID("C")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND fsmToAdd = buildLearnerGraphND("A-a->B-a-#Q", "testAddToGraph1",Configuration.getDefaultConfiguration());
+		LearnerGraphND fsmToAdd = buildLearnerGraphND("A-a->B-a-#Q", "testAddToGraph1",config);
 		CmpVertex newB=fsmToAdd.findVertex(VertexID.parseID("B")), newA=fsmToAdd.findVertex(VertexID.parseID("A"));
 		fsmToAdd.addToCompatibility(newB,newA,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		
@@ -603,66 +578,39 @@ public class TestTransform {
 	@Test(expected=IllegalArgumentException.class)
 	public final void testGraphMLwriter_fail() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM.replaceAll("A", AbstractPersistence.Initial+"_str"), "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM.replaceAll("A", AbstractPersistence.Initial+"_str"), "testRelabel1",config);
 		StringWriter writer = new StringWriter();
 		fsm.storage.writeGraphML(writer);
 	}
 
-	/** Removes all whitespace characters from the string, by iterating through it. 
-	 * 
-	 * @param str string to transform
-	 * @return result of transformation
-	 */
-	public String removeWhiteSpace(String str)
-	{
-		StringBuffer result = new StringBuffer();for(int i=0;i<str.length();++i) if (!Character.isWhitespace(str.charAt(i))) result.append(str.charAt(i));
-		return result.toString();
-	}
-	
-	@Test
-	public final void testRemoveWhiteSpace1()
-	{
-		Assert.assertEquals("",removeWhiteSpace(""));
-	}
-	
-	@Test
-	public final void testRemoveWhiteSpace2()
-	{
-		Assert.assertEquals("test",removeWhiteSpace("test"));
-	}
-	
-	@Test
-	public final void testRemoveWhiteSpace3()
-	{
-		Assert.assertEquals("thisisatest343*()",removeWhiteSpace("this is\r a\n\t test 343 *()\n\n\t"));
-	}
-	
 	@Test
 	public final void testGraphMLwriter1() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		Configuration conf = config.copy();conf.setUseOrderedEntrySet(true);
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",conf);
 		StringWriter writer = new StringWriter();
 		fsm.storage.writeGraphML(writer);
-		Assert.assertEquals(removeWhiteSpace(graphml_beginning+graphml_ending),
-				removeWhiteSpace(writer.toString()));
+		Assert.assertEquals(TestMiscTransformFunctions.removeWhiteSpace(graphml_beginning+graphml_ending),
+				TestMiscTransformFunctions.removeWhiteSpace(writer.toString()));
 	}
 	
 	@Test
 	public final void testGraphMLwriter2() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		Configuration conf = config.copy();conf.setUseOrderedEntrySet(true);
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",conf);
 		StringWriter writer = new StringWriter();
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
 		fsm.storage.writeGraphML(writer);
-		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
+		Assert.assertEquals(TestMiscTransformFunctions.removeWhiteSpace(graphml_beginning+
 				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
 				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
 				" "+JUConstants.DEPTH.name()+"=\""+5+"\""+
 				" "+JUConstants.HIGHLIGHT.name()+"=\"true\""+
 				" "+JUConstants.ORIGSTATE.name()+"=\""+"P4500"+"\""+
 				graphml_ending),
-				removeWhiteSpace(writer.toString()));
+				TestMiscTransformFunctions.removeWhiteSpace(writer.toString()));
 	}
 	
 	@Test
@@ -684,7 +632,8 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_incompatible1() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		Configuration conf = config.copy();conf.setUseOrderedEntrySet(true);
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",conf);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		StringWriter writer = new StringWriter();
@@ -692,7 +641,7 @@ public class TestTransform {
 		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
 
 		fsm.storage.writeGraphML(writer);
-		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
+		Assert.assertEquals(TestMiscTransformFunctions.removeWhiteSpace(graphml_beginning+
 				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
 				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
 				" "+JUConstants.DEPTH.name()+"=\""+5+"\""+
@@ -704,14 +653,15 @@ public class TestTransform {
 				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),JUConstants.intUNKNOWN))+"\n"+
 				"</"+AbstractPersistence.graphmlData+">"+
 				graphML_end),
-				removeWhiteSpace(writer.toString()));
+				TestMiscTransformFunctions.removeWhiteSpace(writer.toString()));
 	}
 	
 	/** Similar to the one above but with different values of compatibility. */
 	@Test
 	public final void testGraphMLwriter_incompatible2() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		Configuration conf = config.copy();conf.setUseOrderedEntrySet(true);
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",conf);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		StringWriter writer = new StringWriter();
@@ -719,7 +669,7 @@ public class TestTransform {
 		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
 
 		fsm.storage.writeGraphML(writer);
-		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
+		Assert.assertEquals(TestMiscTransformFunctions.removeWhiteSpace(graphml_beginning+
 				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
 				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
 				" "+JUConstants.DEPTH.name()+"=\""+5+"\""+
@@ -731,7 +681,7 @@ public class TestTransform {
 				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED.getInteger(),JUConstants.intUNKNOWN))+"\n"+
 				"</"+AbstractPersistence.graphmlData+">"+
 				graphML_end),
-				removeWhiteSpace(writer.toString()));
+				TestMiscTransformFunctions.removeWhiteSpace(writer.toString()));
 	}
 	
 	public static final LearnerGraph loadLearnerGraph(Element elem,Configuration config)
@@ -747,7 +697,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_loadnode1()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
 		try
@@ -760,7 +710,7 @@ public class TestTransform {
 		{
 			Helper.throwUnchecked("configuration exception: ",ex);
 		}
-		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
+		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),config);
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertEquals(fsm.getInit(), actual.getInit());
 	}
@@ -768,7 +718,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_loadnode2()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.findVertex("B").setOrigState(VertexID.parseID("P4500"));fsm.findVertex("B").setDepth(5);
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -783,7 +733,7 @@ public class TestTransform {
 		{
 			Helper.throwUnchecked("configuration exception: ",ex);
 		}
-		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
+		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),config);
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertEquals(fsm.getInit(), actual.getInit());
 	}
@@ -806,7 +756,7 @@ public class TestTransform {
 		}
 		final Document document = doc;
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loadLearnerGraph(document.createElement("junk"),Configuration.getDefaultConfiguration());
+			loadLearnerGraph(document.createElement("junk"),config);
 		}},IllegalArgumentException.class,"element name junk");
 	}
 
@@ -814,7 +764,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_loadnode_fail2a()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
 		try
@@ -829,7 +779,7 @@ public class TestTransform {
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
+			loadLearnerGraph(elem,config);
 		}},IllegalArgumentException.class,"absent graph element");
 	}
 	
@@ -837,7 +787,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_loadnode_fail2b()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
 		try
@@ -853,7 +803,7 @@ public class TestTransform {
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
+			loadLearnerGraph(elem,config);
 		}},IllegalArgumentException.class,"absent graph element");
 	}
 	
@@ -861,7 +811,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLwriter_loadnode_fail2c()
 	{
-		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",config);
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
 		try
@@ -877,7 +827,7 @@ public class TestTransform {
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.appendChild(doc.createElement("graph"));
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
+			loadLearnerGraph(elem,config);
 		}},IllegalArgumentException.class,"duplicate graph element");
 	}
 	
@@ -888,7 +838,6 @@ public class TestTransform {
 	 */
 	public void checkLoading(LearnerGraph gr) throws IOException
 	{
-		final Configuration config = Configuration.getDefaultConfiguration();
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		LearnerGraph loaded = loadLearnerGraph(new StringReader(writer.toString()),config);
 
@@ -931,7 +880,7 @@ public class TestTransform {
 	@Test
 	public final void testVertIDSetter()
 	{
-		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(config);
 		Assert.assertTrue(ids_are_valid(graph));
 		graph.setIDNumbers();
 		Assert.assertTrue(ids_are_valid(graph));
@@ -970,8 +919,8 @@ public class TestTransform {
 	@Test
 	public final void testConvertToNumeric1()
 	{
-		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
-		AbstractPathRoutines.convertToNumerical(new LearnerGraph(Configuration.getDefaultConfiguration()),graph);
+		LearnerGraph graph = new LearnerGraph(config);
+		AbstractPathRoutines.convertToNumerical(new LearnerGraph(config),graph);
 		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
 		Assert.assertTrue(ids_are_valid(graph));
 	}
@@ -979,7 +928,7 @@ public class TestTransform {
 	@Test
 	public final void testConvertToNumeric2()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B", "testConvertToNumeric2",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B", "testConvertToNumeric2",config);
 		LearnerGraph graph = new LearnerGraph(gr.config);AbstractPathRoutines.convertToNumerical(gr,graph);
 		Assert.assertFalse(gr.wmethod.checkGraphNumeric());
 		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
@@ -993,7 +942,7 @@ public class TestTransform {
 	@Test
 	public final void testConvertToNumeric3()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a-#B\nA-b->C-a->D-a-#E\nD-b->A\nC-c->C", "testConvertToNumeric2",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a-#B\nA-b->C-a->D-a-#E\nD-b->A\nC-c->C", "testConvertToNumeric2",config);
 		LearnerGraph graph = new LearnerGraph(gr.config);AbstractPathRoutines.convertToNumerical(gr,graph);
 		Assert.assertFalse(gr.wmethod.checkGraphNumeric());
 		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
@@ -1007,14 +956,14 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter3() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		checkLoading(fsm);
 	}
 	
 	@Test
 	public final void testGraphMLWriter4() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		fsm.findVertex("BD2").setHighlight(true);
 		fsm.findVertex("BB1").setAccept(false);fsm.findVertex("BB1").setColour(JUConstants.RED);
 		fsm.findVertex("B").setColour(JUConstants.RED);
@@ -1025,14 +974,14 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter5() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config);
 		checkLoading(fsm);
 	}
 	
 	@Test
 	public final void testGraphMLWriter6() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config);
 		checkLoading(fsm);
 	}
 
@@ -1040,7 +989,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_incompatible1() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		checkLoading(fsm);
 	}
@@ -1049,7 +998,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_incompatible2() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		checkLoading(fsm);
@@ -1059,7 +1008,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_incompatible3() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config);
 		for(CmpVertex vert:fsm.transitionMatrix.keySet())
 			for(CmpVertex vert2:fsm.transitionMatrix.keySet())
 				if (vert != vert2)
@@ -1081,9 +1030,9 @@ public class TestTransform {
 		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
 		graphML_end;
 		final String FSMq0 = AbstractPersistence.InitialQ0+"-a->B-a->C-b->B-c->B";
-		LearnerGraph fsm = buildLearnerGraph(FSMq0,"testGraphMLwriter_loadnode_noVERTEX",Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = buildLearnerGraph(FSMq0,"testGraphMLwriter_loadnode_noVERTEX",config);
 		fsm.findVertex("C").setDepth(5);
-		LearnerGraph loaded = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+		LearnerGraph loaded = new LearnerGraph(config.copy());
 		AbstractPersistence.loadGraph(new StringReader(text), loaded);
 
 		Assert.assertTrue(!fsm.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
@@ -1115,7 +1064,7 @@ public class TestTransform {
 		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
 		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
 		graphML_end;
-		final LearnerGraph loaded = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+		final LearnerGraph loaded = new LearnerGraph(config.copy());
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractPersistence.loadGraph(new StringReader(text), loaded);}}, 
@@ -1125,12 +1074,12 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_boolean() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	checkForCorrectException(new whatToRun() { public @Override void run() {
-	    		loadLearnerGraph(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\"")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\"")),config);
 	    	}},IllegalUserDataException.class,"invalid colour");
 		}		
 	}
@@ -1138,14 +1087,14 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_colour() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	try
 	    	{
-	    		loadLearnerGraph(new StringReader(writer.toString().replace("COLOUR=\"red\"", "COLOUR=\"aa\"")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace("COLOUR=\"red\"", "COLOUR=\"aa\"")),config);
 	    	}
 	    	catch(FatalException ex)
 	    	{
@@ -1157,14 +1106,14 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_depth() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	try
 	    	{
-	    		loadLearnerGraph(new StringReader(writer.toString().replace("COLOUR=\"red\"", "DEPTH=\"aa\"")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace("COLOUR=\"red\"", "DEPTH=\"aa\"")),config);
 	    	}
 	    	catch(FatalException ex)
 	    	{
@@ -1176,7 +1125,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1185,7 +1134,7 @@ public class TestTransform {
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public @Override void run() {
-	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlDataIncompatible, "AA")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlDataIncompatible, "AA")),config);
 	    	}},IllegalArgumentException.class,"unexpected key");
 		}		
 	}
@@ -1194,7 +1143,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate1() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1213,7 +1162,7 @@ public class TestTransform {
 	    				brokenRepresentation = xmlRepresentation.replace(R_S, StatechumXML.ATTR_R.name()+"=\""+"T");
 	    			else
 	    				Assert.fail("unexpected XML representation");
-	    		loadLearnerGraph(new StringReader(brokenRepresentation),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(brokenRepresentation),config);
 	    	}},IllegalArgumentException.class,"Unknown state T");
 		}		
 	}
@@ -1222,7 +1171,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate2() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1242,7 +1191,7 @@ public class TestTransform {
 	    			else
 	    				Assert.fail("unexpected XML representation");
 	
-	    		loadLearnerGraph(new StringReader(brokenRepresentation),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(brokenRepresentation),config);
 	    	}},IllegalArgumentException.class,"Unknown state T");
 		}		
 	}
@@ -1251,7 +1200,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknowncompatibilitycode1() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1262,7 +1211,7 @@ public class TestTransform {
 	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
 	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
-    				StatechumXML.ATTR_SCORE.name()+"=\"6")),Configuration.getDefaultConfiguration());
+    				StatechumXML.ATTR_SCORE.name()+"=\"6")),config);
 	    	}},IllegalArgumentException.class,"6 is not a valid compatibility");
 		}		
 	}
@@ -1271,7 +1220,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknowncompatibilitycode2() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1282,7 +1231,7 @@ public class TestTransform {
 	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
 	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
-    				StatechumXML.ATTR_SCORE.name()+"=\"AA")),Configuration.getDefaultConfiguration());
+    				StatechumXML.ATTR_SCORE.name()+"=\"AA")),config);
 	    	}},IllegalArgumentException.class,"failed to read a score in a pair");
 		}		
 	}
@@ -1290,7 +1239,7 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_fail_on_load_invalid_node() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1299,7 +1248,7 @@ public class TestTransform {
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public @Override void run() {
-	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlData, "AA")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlData, "AA")),config);
 	    	}},IllegalArgumentException.class,"unexpected node");
 		}		
 	}
@@ -1307,13 +1256,13 @@ public class TestTransform {
 	@Test
 	public final void testGraphMLWriter_load_despite_Initial() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	try
 	    	{
-	    		loadLearnerGraph(new StringReader(writer.toString().replace("VERTEX=\"BB1\"", "VERTEX=\""+AbstractPersistence.Initial+" BB1\"")),Configuration.getDefaultConfiguration());
+	    		loadLearnerGraph(new StringReader(writer.toString().replace("VERTEX=\"BB1\"", "VERTEX=\""+AbstractPersistence.Initial+" BB1\"")),config);
 	    	}
 	    	catch(IllegalArgumentException ex)
 	    	{
@@ -1331,7 +1280,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions1()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big",config);
 		LearnerGraph small = buildLearnerGraph("A-a->A","testCountMatchedTransitions1small",config);
 		
@@ -1342,7 +1290,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions2()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big",config);
 		LearnerGraph small = new LearnerGraph(config);
 		
@@ -1353,7 +1300,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions3()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A\nB-b->B","testCountMatchedTransitions3big",config);
 		LearnerGraph small = buildLearnerGraph("A-a->A","testCountMatchedTransitions3small",config);
 		
@@ -1364,7 +1310,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions4()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big",config);
 		LearnerGraph small = buildLearnerGraph("A-a->A","testCountMatchedTransitions4small",config);
 		
@@ -1375,7 +1320,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions5()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big",config);
 		LearnerGraph small = buildLearnerGraph("A-a->B-a->A\nB-c->D-b->E-b->F","testCountMatchedTransitions5small",config);
 		
@@ -1387,7 +1331,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions6()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-a->A","testCountMatchedTransitions4big",config);
 		LearnerGraph small = buildLearnerGraph("A-a->B-a->A","testCountMatchedTransitions5small",config);
 		
@@ -1400,7 +1343,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions7a()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-b->A-a->B-c->B","testCountMatchedTransitions7big",config);
 		LearnerGraph small = buildLearnerGraph("A-b->B-a->C-c->D","testCountMatchedTransitions7small",config);
 		
@@ -1413,7 +1355,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions7b()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-b->A-a->B-c->B","testCountMatchedTransitions7big",config);
 		LearnerGraph small = buildLearnerGraph("A-b->A2-b->A3-b->B-a->C-c->D","testCountMatchedTransitions7bsmall",config);
 		
@@ -1426,7 +1367,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions8()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = buildLearnerGraph("A-b->A-a->B-c->B-a->A","testCountMatchedTransitions8big",config);
 		LearnerGraph small = buildLearnerGraph("A-b->B-a->C-c->D-c->E-a->F-b->G","testCountMatchedTransitions8small",config);
 		
@@ -1438,7 +1378,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions_fail1()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail1big",config);
 		final LearnerGraph small = new LearnerGraph(config);small.getInit().setAccept(false);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -1449,7 +1388,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions_fail2()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big",config);
 		final LearnerGraph small = buildLearnerGraph("A-a->B-a-#C","testCountMatchedTransitions_fail2small",config);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -1460,7 +1398,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions_fail3()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail3big",config);
 		final LearnerGraph small = buildLearnerGraph("A-a->B-a->A\nB-b->C","testCountMatchedTransitions_fail3small",config);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -1471,7 +1408,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions_fail4()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = buildLearnerGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big",config);
 		final LearnerGraph small = buildLearnerGraph("A-a->B-a->C-a->D\nB-c->D-c->D","testCountMatchedTransitions_fail4small",config);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -1482,7 +1418,6 @@ public class TestTransform {
 	@Test
 	public final void testCountMatchedTransitions_fail5()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = buildLearnerGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big",config);
 		final LearnerGraph small = buildLearnerGraph("A-a->B-a->C-a->A\nB-c->D-b->E-b->F","testCountMatchedTransitions_fail5small",config);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -1493,7 +1428,6 @@ public class TestTransform {
 	@Test
 	public final void testQuanteKoschke1()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		Assert.assertEquals(0.24,
 			Transform.QuanteKoschkeDifference(
 				buildLearnerGraph("A-create->B-push->B","testQuanteKoschke1a",config),
@@ -1506,7 +1440,6 @@ public class TestTransform {
 	@Test
 	public final void testQuanteKoschke2()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA=buildLearnerGraph("A-a->B-a->D-a->A\nA-b->B\nD-e->D\nB-f->B", "testQuanteKoschke2A",config);
 		LearnerGraph grB=buildLearnerGraph("A-a->C-a->E-a->C\nA-b->C-q->C\nE-p->E", "testQuanteKoschke2B",config);
 		Assert.assertEquals(0.25,
@@ -1514,11 +1447,9 @@ public class TestTransform {
 			0.01
 			);
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
-		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, 1, counter,config);
 		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.pathroutines.countEdges()+grB.pathroutines.countEdges());
-		//System.out.println("removed: "+counter.getRemoved()+" out of "+grA.countEdges()+", added: "+counter.getAdded()+" to produce "+grB.countEdges()+"; our difference: "+our);
 		Assert.assertEquals(0.5, ourDifference,0.01);
 	}
 	
@@ -1526,7 +1457,6 @@ public class TestTransform {
 	@Test
 	public final void testQuanteKoschke3()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA=buildLearnerGraph("A-a->B-a->D-a->A\nA-b->B\nD-e->D\nB-f->B", "testQuanteKoschke2A",config);
 		LearnerGraph grB=buildLearnerGraph("A-a->C-a->E-a->A\nA-b->C-q->C\nE-p->E", "testQuanteKoschke3B",config);
 		Assert.assertEquals(0.23,
@@ -1545,7 +1475,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph0()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = new LearnerGraph(config);
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
 		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.NONE);
@@ -1555,7 +1484,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph1()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big",config);
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
 		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.DEEP);
@@ -1565,7 +1493,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph2()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-a || c->B-a->A\nB-c->C-b->C","testInterpretLabelsOnGraph2a",config);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B\nA-c->B-a->A\nB-c->C-b->C","testInterpretLabelsOnGraph2b",config);
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
@@ -1576,7 +1503,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph3()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-c && a->C","testInterpretLabelsOnGraph3a",config);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->A\nB-c->C","testInterpretLabelsOnGraph3b",config);
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
@@ -1587,7 +1513,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph4()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-1->C","testInterpretLabelsOnGraph3a",config);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->A\nB-c->C-a->C-c->C","testInterpretLabelsOnGraph3b",config);
 		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config));
@@ -1599,7 +1524,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph5()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-(1 && (a || b))->C","testInterpretLabelsOnGraph3a",config);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->A\nB-c->C-a->C-b->C","testInterpretLabelsOnGraph3b",config);
 		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config));alphabet.add(AbstractLearnerGraph.generateNewLabel("b",config));
@@ -1611,7 +1535,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph6()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("I-load->A / A- !exit && !close ->A-close->I / R-close->P-edit || save || close-#R1 / P-load->A1 / A==THEN==R","testInterpretLabelsOnGraph6a",config);
 		final LearnerGraph expected = buildLearnerGraph("I-load->A / A-edit->A-save->A-load->A-close->I / R-close->P-edit-#R1 / P-save-#R2 / P-load->A1 / P-close-#R4 / A==THEN==R","testInterpretLabelsOnGraph6b",config);
 		Set<Label> alphabet = new TreeSet<Label>();alphabet.addAll(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"load","save","edit","close","exit"}),config));
@@ -1626,7 +1549,6 @@ public class TestTransform {
 	@Test
 	public final void testInterpretLabelsOnGraph7()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph graph = buildLearnerGraph("A-!exit->A / R-exit->P-1-#R1 / A==THEN==R","testInterpretLabelsOnGraph7a",config);
 		final LearnerGraph expected = buildLearnerGraph("A-edit->A-save->A-load->A-close->A / R-exit->P-edit-#R1 / P-save-#R2 / P-load-#R3 / P-exit-#R4 / P-close-#R5 / A==THEN==R","testInterpretLabelsOnGraph7b",config);
 		Set<Label> alphabet = new TreeSet<Label>();alphabet.addAll(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"load","save","edit","close","exit"}),config));

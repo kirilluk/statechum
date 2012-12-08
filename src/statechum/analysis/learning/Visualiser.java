@@ -92,6 +92,9 @@ import org.apache.commons.collections.Predicate;
  * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/Library/Frameworks/R.framework/Versions/2.12/Resources/library/rJava/jri -Xmx3500m
  * R_HOME=/Library/Frameworks/R.framework/Versions/2.12/Resources
  * 
+ * In all cases, it may be possible to improve performance and reduce memory footprint with the following:
+ *  -XX:+UseConcMarkSweepGC -XX:MaxPermSize=512M -XX:+UseCompressedOops
+ *  
  * Updating Statechum web page:
  * 
 (cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )

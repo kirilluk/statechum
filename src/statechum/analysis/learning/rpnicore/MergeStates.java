@@ -18,7 +18,6 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -37,6 +36,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -93,7 +93,7 @@ public class MergeStates {
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
                 Map<VertexID,Collection<VertexID>> mergedToHard = new TreeMap<VertexID,Collection<VertexID>>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
@@ -178,15 +178,16 @@ public class MergeStates {
 	
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)
 	{
-		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
+		assert pair.getQ() != pair.getR();
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
-		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(result, pair.getQ());
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) PathRoutines.checkPTAConsistency(result, pair.getQ());
 		
 		if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 			throw new IllegalArgumentException("elements of the pair are incompatible");
@@ -252,7 +253,7 @@ public class MergeStates {
 			}
 		}
 		
-		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
 		
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 			for(CmpVertex target:entry.getValue().values())
@@ -267,7 +268,7 @@ public class MergeStates {
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
 			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ().getID(),g);
 			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR().getID(),g);
-			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
+			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices());
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
 			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.

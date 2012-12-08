@@ -21,20 +21,22 @@ package statechum.analysis.learning.experiments;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Stack;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Timer;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -42,18 +44,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
+
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.ErlangOracleVisualiser;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
-import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
-import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.MergeStates;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -62,25 +68,29 @@ import statechum.Pair;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.DummyLearner;
-import statechum.analysis.learning.observers.LearnerDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
+import statechum.collections.HashMapWithSearch;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class PaperUAS 
 {
 	/** All traces. */
-	Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
+	protected Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
 	
 	/** The maximal frame number encountered. */
-	int maxFrameNumber = -1;
+	protected int maxFrameNumber = -1;
 	
 	/** When processing graphs with numerous data points, the task is to cluster those points so as not to have too many of them
 	 * on the graphs. The easiest way is to divide a frame number by the maximal number so as to get %%.
 	 */
-	int divisor=1;
+	protected int divisor=1;
 	
 	/** Data recorded for each seed. */
 	public static class TracesForSeed
@@ -88,6 +98,33 @@ public class PaperUAS
 	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfPositiveTraces = new TreeMap<String,Map<Integer,Set<List<Label>>>>();
 	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfNegativeTraces = new TreeMap<String,Map<Integer,Set<List<Label>>>>();
 
+	    public Map<String,Map<Integer,PTASequenceEngine>> tracesForUAVandFrame = null;
+	    
+	    /** Whether a state is deemed accept or reject is used to determine whether a sequence being added to PTASequenceSet will be extended or will terminate. 
+	     * Here we accumulate all sequences so {@link #isAccept(Object) isAccept} should always return true. In contrast, the {@link #shouldBeReturned(Object) shouldBeReturned} method is only used 
+	     * on states associated with tail nodes. It should return true or false depending on whether a sequence is supposed to be considered accept or reject
+	     * by the {@link PathRoutines#augmentPTA(PTASequenceEngine)} method.  
+	     *
+	     */
+	    public static class Automaton extends PTASequenceSetAutomaton
+		{
+	    	private boolean acceptValue = true;
+	    	
+	    	public void setAccept(boolean value)
+	    	{
+	    		acceptValue = value;
+	    	}
+	    	
+			@Override
+			public Object getTheOnlyState() {
+				return acceptValue?Boolean.TRUE:Boolean.FALSE;
+			}
+			
+			@Override
+			public boolean shouldBeReturned(Object elem) {
+				return elem != null && ((Boolean)elem).booleanValue();
+			}
+		}
 	    
 	    /** Used to construct long traces from the supplied traces, for an experiment to check whether we can efficiently learn
 	     * from single long traces for a UAV. 
@@ -120,12 +157,11 @@ public class PaperUAS
     public static final String UAVAll = "All", UAVAllSeeds="AllS";
         
     private static final int lexSimulatedTimestamp=1;
-    //private static final int lexRealTimestamp=2;
     private static final int lexUAV=2;
     private static final int lexSeed=3;
     private static final int lexTrace=4;
     
-    final Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
+    Lexer lexer = new Lexer("(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)");
 
     /** Loads traces from the file and returns the maximal frame number.
      *  
@@ -138,7 +174,7 @@ public class PaperUAS
         scanData(inputData, new HandleOneTrace() {
 			
 			@Override
-			public void process(final int frame, final String UAV, final String seed) {
+			public void process(final int frame, @SuppressWarnings("unused") final String UAV, @SuppressWarnings("unused") final String seed) {
 				if (maxFrame.get() < frame)
 					maxFrame.getAndSet(frame);
 			}
@@ -151,18 +187,17 @@ public class PaperUAS
     	void process(int frame, String UAV, String seed);
     }
     
-    public void loadData(final Reader inputData,final Configuration config)
+    public void loadData(final Reader inputData)
     {
-    	loadData(new Reader[]{inputData},config);
+    	loadData(new Reader[]{inputData});
     }
     
     /** Loads traces from the file into the pair of positive/negative maps,
      * parameterised by UAV and timeframe.
      *  
      * @param inputData data to load
-     * @param config configuration to use
      */
-    public void loadData(final Reader []inputData,final Configuration config)
+    public void loadData(final Reader []inputData)
     {
         final Map<String,TracesForSeed> data = new TreeMap<String,TracesForSeed>();
         final Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
@@ -196,11 +231,12 @@ public class PaperUAS
              	UAVs.add(UAV);frameNumbers.add(frameNumber);
              	if (frameNumber > maxFrameNumber) maxFrameNumber = frameNumber;
              	
-            	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),config, new TraceAdder() {
+            	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),learnerInitConfiguration.config, new TraceAdder() {
 
     				@Override
-    				public void addTrace(List<Label> trace, boolean positive) 
+    				public void addTrace(List<Label> traceArg, boolean positive) 
     				{
+    					final List<Label> trace = internTrace(traceArg);
     					if (positive)
     					{
 	    					addTraceToUAV(UAVAllSeeds,frameNumber,trace,data.get(UAVAllSeeds).collectionOfPositiveTraces);
@@ -220,19 +256,10 @@ public class PaperUAS
 		});
 		
 		
-       	collectionOfTraces.clear();
-    	for(Entry<String,TracesForSeed> entry:data.entrySet())
-    	{
-    		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
-    		collectionOfTraces.put(entry.getKey(), newData);
-    		newData.collectionOfPositiveTraces=accumulateTraces(traceDetails.collectionOfPositiveTraces,frameNumbers,UAVs);
-    		newData.collectionOfNegativeTraces=accumulateTraces(traceDetails.collectionOfNegativeTraces,frameNumbers,UAVs);
-    	}
-      	
-
+      	constructSequencesForAllUAVandFrame(data, UAVs, frameNumbers);
    }
 
-   protected static void AddLastPositiveTrace(String seed, String UAV, Map<String,TracesForSeed> data)
+   protected void AddLastPositiveTrace(String seed, String UAV, Map<String,TracesForSeed> data)
    {
    		TracesForSeed dataForSeed = data.get(seed);
    		Integer lastFrameNumberInteger = dataForSeed.maxFrameNumber.get(UAV);
@@ -242,12 +269,41 @@ public class PaperUAS
    		{
 			int lastFrameNumber = lastFrameNumberInteger.intValue();
 			final List<Label> lastPositiveTrace = new LinkedList<Label>();lastPositiveTrace.addAll(dataForSeed.lastPointOnTrace.get(UAV));// make a copy because the positive trace constantly gets added to
-			addTraceToUAV(UAVAllSeeds,lastFrameNumber,lastPositiveTrace,data.get(UAVAllSeeds).collectionOfPositiveTraces);
-			addTraceToUAV(UAVAll,lastFrameNumber,lastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
-			addTraceToUAV(UAV,lastFrameNumber,lastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
+			final List<Label> internedLastPositiveTrace = internTrace(lastPositiveTrace);
+			addTraceToUAV(UAVAllSeeds,lastFrameNumber,internedLastPositiveTrace,data.get(UAVAllSeeds).collectionOfPositiveTraces);
+			addTraceToUAV(UAVAll,lastFrameNumber,internedLastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
+			addTraceToUAV(UAV,lastFrameNumber,internedLastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
    		}
    }
     
+   
+   /** The set of all events used in traces, very useful for "interning" strings to reduce memory footprint. The map is an identity. */
+   protected Map<Label,Label> alphabet = new HashMap<Label,Label>();
+
+   /** Converts all elements in a trace to those in the alphabet. Where a label is seen that is not the same as an already known one, it is added to the alphabet. If there is 
+    * an identical one, the known one is used.
+    * 
+    * @param trace trace to intern
+    */
+   public List<Label> internTrace(List<Label> trace)
+   {
+	   if (trace.isEmpty())
+		   return trace;
+	   
+	   List<Label> outcome = new LinkedList<Label>();
+	   for(Label l:trace)
+	   {
+		   Label interned = alphabet.get(l);
+		   if (interned == null)
+		   {
+			   alphabet.put(l,l);interned = l;
+		   }
+		   outcome.add(interned);
+	   }
+	   
+	   return outcome;
+   }
+   
     /** Loads traces from the file into the pair of positive/negative maps,
      * parameterised by UAV and timeframe. The process is to assume a specific starting point and concatenate the following 
      * negative traces with it, until we meet a positive trace. After concatenation of that positive trace, we have a revised starting point.
@@ -256,7 +312,7 @@ public class PaperUAS
      * @param inputData data to load
      * @param config configuration to use
      */
-    public void loadDataByConcatenation(final Reader []inputData,final Configuration config)
+    public void loadDataByConcatenation(final Reader []inputData)
     {
         final Map<String,TracesForSeed> data = new TreeMap<String,TracesForSeed>();
         final Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
@@ -307,11 +363,12 @@ public class PaperUAS
         
              	if (frameNumber > maxFrameNumber) maxFrameNumber = frameNumber;
              	
-            	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),config, new TraceAdder() {
+            	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),learnerInitConfiguration.config, new TraceAdder() {
 
     				@Override
-    				public void addTrace(List<Label> trace, boolean positive) 
+    				public void addTrace(List<Label> traceArg, boolean positive) 
     				{
+    					final List<Label> trace = internTrace(traceArg);
     					if (positive)
     					{// The last element should be the same as the starting element in the positive trace, if there is one.
     						int traceLen = trace.size();
@@ -346,26 +403,44 @@ public class PaperUAS
 	        	if (!UAV.equals(UAVAll) && !UAV.equals(UAVAllSeeds))
 	        		AddLastPositiveTrace(seed, UAV, data);
 
-        // This is the same process as done for normal traces, it is proper to keep it unchanged because PTA construction will silently "swallow" positive prefixes
-        // and these are the only new ones here.
-       	collectionOfTraces.clear();
+      	constructSequencesForAllUAVandFrame(data, UAVs, frameNumbers);
+   }
+    
+
+    protected void constructSequencesForAllUAVandFrame(Map<String,TracesForSeed> data,Set<String> UAVs, Set<Integer> frameNumbers)
+    {
+    	collectionOfTraces.clear();
+    	lexer=null;
     	for(Entry<String,TracesForSeed> entry:data.entrySet())
     	{
     		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
     		collectionOfTraces.put(entry.getKey(), newData);
-    		newData.collectionOfPositiveTraces=accumulateTraces(traceDetails.collectionOfPositiveTraces,frameNumbers,UAVs);
-    		newData.collectionOfNegativeTraces=accumulateTraces(traceDetails.collectionOfNegativeTraces,frameNumbers,UAVs);
-    	
+    		newData.tracesForUAVandFrame=new TreeMap<String,Map<Integer,PTASequenceEngine>>();
+    		
+    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfPositiveTraces,true,frameNumbers,UAVs);
+    		newData.collectionOfPositiveTraces=null;
+    		
+    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfNegativeTraces,false,frameNumbers,UAVs);
+   		
+    		newData.collectionOfNegativeTraces=null;
     		if (!entry.getKey().equals(UAVAllSeeds))
     			for(String UAV:UAVs)
-    				if (!UAV.equals(UAVAll) && !UAV.equals(UAVAllSeeds) && traceDetails.lastPointOnTrace.containsKey(UAV)) 
+    				if (!UAV.equals(UAVAll) && !UAV.equals(UAVAllSeeds) && traceDetails.lastPointOnTrace != null && traceDetails.lastPointOnTrace.containsKey(UAV)) 
     					System.out.println("Seed: "+entry.getKey()+", UAV: "+UAV+" length: "+traceDetails.lastPointOnTrace.get(UAV).size());
-    					
+    		
     	}
     	
-      	
-   }
-    
+    	int maxFrame = -1;
+    	for(int f:frameNumbers) if (maxFrame < f) maxFrame=f;
+    	int estimatedMaxNumberOfStates = 1000;
+    	if (maxFrame >= 0)		
+    	{        	
+	    	if (collectionOfTraces.containsKey(UAVAllSeeds) && collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame != null)
+	    		estimatedMaxNumberOfStates = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrame).getSize()*2;
+    	}
+    	learnerInitConfiguration.config.setMaxStateNumber(estimatedMaxNumberOfStates);
+    	System.out.println("Highest frame number : "+maxFrame+", estimated max number of states : "+estimatedMaxNumberOfStates);
+    }
     
     /** Loads traces from the file, calling the user-supplied observer for every line.
      *  
@@ -376,7 +451,8 @@ public class PaperUAS
     {
         BufferedReader in = null;
        
-        try {
+        try 
+        {
         	for(Reader rd:inputData)
         	{
 	            in = new BufferedReader(rd);
@@ -414,62 +490,258 @@ public class PaperUAS
      * Such a calculation is done after we load all data because frames from different UAVs might
      * not be synchronized and we need to accumulate data across all of them for UAVAll.
      *   
-     * @param traces map to operate on.
+     * @param whatToUpdate collection of traces to add to
+     * @param traces traces to add
+     * @param isAccept whether traces to be added are accept or reject-traces
      * @param frameNumbers all possible frames, to ensure that all UAV frame numbers range over the same set.
      * @param UAVs names of all UAVs, used to ensure that all UAV frame numbers range over the same set.
-     * @return the accumulated results
      */
-    protected Map<String,Map<Integer,Set<List<Label>>>> accumulateTraces(
-    		Map<String,Map<Integer,Set<List<Label>>>> traces, Set<Integer> frameNumbers,Set<String> UAVs)
+    protected void turnTracesIntoPTAs(Map<String,Map<Integer,PTASequenceEngine>> whatToUpdate,
+    		Map<String,Map<Integer,Set<List<Label>>>> traces, boolean isAccept, Set<Integer> frameNumbers,Set<String> UAVs)
 	{
-    	Map<String,Map<Integer,Set<List<Label>>>> outcome = new TreeMap<String,Map<Integer,Set<List<Label>>>>();
-    	
         for(String uav:UAVs)
         {
         	
-        	Map<Integer,Set<List<Label>>> outcomeUAV = new TreeMap<Integer,Set<List<Label>>>();
-        	outcome.put(uav, outcomeUAV);
-        	Set<List<Label>> accumulatedTraces = new HashSet<List<Label>>();
+        	Map<Integer,PTASequenceEngine> outcomeUAV = whatToUpdate.get(uav);
+        	if (outcomeUAV == null)
+        	{
+        		outcomeUAV = new TreeMap<Integer,PTASequenceEngine>();whatToUpdate.put(uav, outcomeUAV);
+        	}
+        	
         	for(Integer frame:frameNumbers)
         	{
-           		Set<List<Label>> traceDetailsUAV = outcomeUAV.get(frame);
+        		PTASequenceEngine traceDetailsUAV = outcomeUAV.get(frame);
         		if (traceDetailsUAV == null)
         		{
-        			traceDetailsUAV = new HashSet<List<Label>>();outcomeUAV.put(frame, traceDetailsUAV);
+        			traceDetailsUAV = new PTASequenceEngine();
+        			traceDetailsUAV.init(new Automaton());
+        			outcomeUAV.put(frame, traceDetailsUAV);
         		}
         		
-        		Set<List<Label>> newTrace =
-        			traces.containsKey(uav)? traces.get(uav).get(frame) : null;
-        		if (newTrace != null)
-        			accumulatedTraces.addAll(newTrace);
-        		traceDetailsUAV.addAll(accumulatedTraces);
+        		if (traces.containsKey(uav))
+        		{
+        			for(int earlierFrame:frameNumbers)
+        			{
+        				if (earlierFrame>frame)
+        					break;
+
+        				Set<List<Label>> traceData = traces.get(uav).get(earlierFrame);
+	        			
+	        			if (traceData != null)
+	        			{
+		        			SequenceSet initSeq = traceDetailsUAV.new SequenceSet();initSeq.setIdentity();((Automaton)traceDetailsUAV.getFSM()).setAccept(isAccept);
+		        			initSeq.cross(traceData);
+	        			}
+       				}
+        		}
         	}
         }
         
-        return outcome;
 	}
     
-    final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(null);
-    
-    public void runExperiment(final Configuration config) throws IOException
+    public LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(null);
+   
+    public static final int pairchoiceMIN=-2, pairchoiceMAX=-1;
+
+    /** Counts the number with the same score at the top of the stack. */
+    public static int countChoices(Stack<PairScore> stack)
     {
-        learnerInitConfiguration.config = config;
-        final int threshold = 0;
-        LearnerGraph graphSolution = new LearnerGraph(config);
-        AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphSolution);
+    	if (stack.isEmpty())
+    		return 0;
+    	int outcome = 1;
+    	long top = stack.peek().getScore();
+    	
+    	int i=stack.size()-2;
+    	while(i>=0)
+    	{
+    		long curr = stack.get(i).getScore();--i;
+    		if (curr != top)
+    			break;
+    		++outcome;
+    	}
+    	return outcome;
+    }
+    
+    
+    /** Returns the pair corresponding to the smallest or largest machine for one of the pairs with the same score at the top of the stack. */ 
+    public static PairScore selectPairMinMax(LearnerGraph graph, Stack<PairScore> stack, int pairChoice)
+    {
+    	PairScore top = stack.peek();
+    	int value = MergeStates.mergeAndDeterminize(graph, top).getStateNumber();
+    	int i=stack.size()-2;
+    	while(i>=0)
+    	{
+    		PairScore pair = stack.get(i);--i;
+    		if (pair.getScore() != top.getScore()) break;
+    		int stateNumber = MergeStates.mergeAndDeterminize(graph, pair).getStateNumber();
+    		switch(pairChoice)
+    		{
+    		case pairchoiceMIN:
+    			if (stateNumber < value)
+    			{
+    				top=pair;value=stateNumber;
+    			}
+    			break;
+    		case pairchoiceMAX:
+    			if (stateNumber > value)
+    			{
+    				top=pair;value=stateNumber;
+    			}
+    			break;
+    		default:
+    			throw new IllegalArgumentException("invalid argument "+pairChoice);
+    		}
+    	}
+    	return top;
+    }
+    
+    /** Picks a pair at the top of the stack at random. */
+    public static PairScore selectPairAtRandom(Stack<PairScore> stack, Random rnd)
+    {
+    	PairScore top = stack.get(stack.size()-1-rnd.nextInt(countChoices(stack)));
+    	assert top.getScore() == stack.peek().getScore();
+    	return top;
+    }
+    
+    public void evaluateVariability() throws IOException
+    {
+   	
+		/** The runner of computational threads. */
+		int threadNumber = ExperimentRunner.getCpuNumber();
+		ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
+		ProgressIndicator progress = null;
+		List<Future<?>> outcomes = new LinkedList<Future<?>>();
+		DrawGraphs gr = new DrawGraphs();
+		final Random seedSel = new Random(0);
+
+		final RBoxPlot<String> uas_outcome = new RBoxPlot<String>("Graph","stateNumber",new File("stateNumber.pdf"));
+		for(int i=pairchoiceMIN;i<10;++i)
+		{
+			
+			final int arg=i;
+			final int seed = seedSel.nextInt();assert seed != PaperUAS.pairchoiceMAX && seed != PaperUAS.pairchoiceMIN;
+			Runnable interactiveRunner = new Runnable() {
+				
+				@Override
+				public void run() {
+			        LearnerGraph graphA=new RPNIVariabilityExperiment(arg<0?arg:seed).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber);
+			        uas_outcome.add("all", (double)graphA.getStateNumber());
+				}
+			};
+			outcomes.add(executorService.submit(interactiveRunner));
+		}
+
+		try
+		{
+			progress = new ProgressIndicator("running concurrent experiment",outcomes.size());
+			for(Future<?> task:outcomes) { task.get();progress.next(); }// wait for termination of all tasks
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to run experiment", ex);
+		}
+		finally
+		{
+			if (executorService != null) executorService.shutdown();
+		}
+		
+		uas_outcome.drawPdf(gr);
+	}
+
+   	public class RPNIVariabilityExperiment
+    {
+    	private Learner learner;
+    	
+    	/** pairchoiceMIN means choose best, pairchoiceMAX means choose worst, everything else is a seed for random generator. */
+    	final int pairChoice;
+    	final Random rnd;
+    	double logOfChoiceNumber=0;
+    	
+		public RPNIVariabilityExperiment(int choice) 
+		{
+			learnerInitConfiguration.config.setGeneralisationThreshold(0);learnerInitConfiguration.config.setAskQuestions(false);pairChoice=choice;
+			if (choice == pairchoiceMAX || choice == pairchoiceMIN) rnd = null;else rnd = new Random(choice);
+			
+			learner = new DummyLearner(new RPNIUniversalLearner(null, learnerInitConfiguration)) 
+			{
+				@Override
+				public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+				{// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
+					return super.MergeAndDeterminize(original, pair);
+				}
+
+
+				@Override 
+				public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+				{
+					Stack<PairScore> outcome = decoratedLearner.ChooseStatePairs(graph);
+					if (!outcome.isEmpty())
+					{
+						logOfChoiceNumber+=Math.log(countChoices(outcome));
+						PairScore selected = null;
+						if (pairChoice == pairchoiceMAX || pairChoice == pairchoiceMIN)
+							selected = selectPairMinMax(graph, outcome, pairChoice);
+						else
+							selected = selectPairAtRandom(outcome, rnd);
+						outcome.clear();
+						outcome.push(selected);
+					}
+					return outcome;
+				}
+			
+				@SuppressWarnings("unused")
+				@Override 
+				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+				{
+					throw new IllegalArgumentException("should not be called");
+				}
+				
+				@Override 
+				public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+				{
+					LearnerGraph graph = decoratedLearner.init(engine,plusSize,minusSize);
+					return graph;
+				}
+			};
+	
+		}
+
+		public LearnerGraph learn(String UAV, String seed,int frameNumber)
+		{
+			PTASequenceEngine engine = collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frameNumber);
+			LearnerGraph outcome = null;
+			outcome = learner.learnMachine(engine,0,0);
+			return outcome;
+		}
+		
+    } // RPNIVariabilityExperiment
+	
+   	
+   
+    public void runExperiment() throws IOException
+    {
+        final Configuration learnerConfig = learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);
+		final boolean useOptimizedMerge = false;
+       /*new LearnerGraph(learnerInitConfiguration.config);
+        AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphSolution);*/
         long tmStarted = new Date().getTime();
-        final LearnerGraph graphReference = new RPNIBlueFringe(threshold,config,graphSolution,"Learning reference graph").learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,true);
+        final LearnerGraph graphReference =
+        		//new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphReference);
+        	new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),true);
         long tmFinished = new Date().getTime();
         System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         graphReference.storage.writeGraphML("longtraceautomaton.xml");
 		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
 		tmFinished = new Date().getTime();
         System.out.println("Test generation complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
+
+        System.out.println("Collisions : "+HashMapWithSearch.getCollisions());
+        
+        //Visualiser.updateFrame(graphReference, null);Visualiser.waitForKey();
 		
 		// Here I need to moderate the effort because choosing traces for all seeds is good but I need
 		// that many times more traces, so I have to create a graph in terms of effort v.s. quailty (or even better, scale
 		// the existing one).
-		
 		DrawGraphs gr = new DrawGraphs();
 
 		final RBoxPlot<Pair<Integer,String>> 
@@ -482,7 +754,7 @@ public class PaperUAS
 		final RBoxPlot<Integer>
 			uas_threshold=new RBoxPlot<Integer>("Threshold","BCR",new File("threshold_bcr.pdf"));
 
-		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).collectionOfPositiveTraces.get(UAVAllSeeds).keySet();
+		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
 
 		/** The runner of computational threads. */
 		int threadNumber = ExperimentRunner.getCpuNumber();
@@ -502,7 +774,7 @@ public class PaperUAS
 						@Override
 						public void run() {
 							ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-									new RPNIBlueFringe(threshold,config,null,null).learn(UAVAllSeeds, UAVAllSeeds, frame,true));
+									new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true));
 							uas_outcome.add(new Pair<Integer,String>(frame,"S"),matrix.BCR());
 							uas_S.add(frame,matrix.BCR());
 						}
@@ -510,6 +782,7 @@ public class PaperUAS
 					};
 					if (threadNumber > 1) outcomes.add(executorService.submit(interactiveRunner));else interactiveRunner.run();
 				}
+				
 				for(final String seed:collectionOfTraces.keySet())
 					if (!seed.equals(UAVAllSeeds))
 					{// Just for all frames of the a single seed
@@ -518,7 +791,7 @@ public class PaperUAS
 							@Override
 							public void run() {
 								ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-										new RPNIBlueFringe(threshold,config,null,null).learn(UAVAll, seed, frame,true));
+										new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(seed).get(frame),true));
 								uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
 								uas_A.add(frame,matrix.BCR());
 							}
@@ -526,7 +799,7 @@ public class PaperUAS
 						};
 						if (threadNumber > 1) outcomes.add(executorService.submit(interactiveRunner));else interactiveRunner.run();
 					}
-				for(final String UAV:collectionOfTraces.get(UAVAllSeeds).collectionOfPositiveTraces.keySet())
+				for(final String UAV:collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.keySet())
 					if (!UAV.equals(UAVAllSeeds) && !UAV.equals(UAVAll))
 						for(final String seed:collectionOfTraces.keySet())
 							if (!seed.equals(UAVAllSeeds))
@@ -536,7 +809,7 @@ public class PaperUAS
 									@Override
 									public void run() {
 										ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-												new RPNIBlueFringe(threshold,config,null,null).learn(UAV, seed, frame,true));
+												new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAV).tracesForUAVandFrame.get(seed).get(frame),true));
 										uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
 										uas_U.add(frame,matrix.BCR());
 									}
@@ -562,7 +835,8 @@ public class PaperUAS
 
 					@Override
 					public void run() {
-						ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(arg,config,null,null).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber,false));
+						Configuration tmpConf = learnerConfig.copy();tmpConf.setGeneralisationThreshold(arg);
+						ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(tmpConf,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),false));
 						uas_threshold.add(arg, matrix.BCR());
 					}
 					
@@ -593,71 +867,129 @@ public class PaperUAS
 		
 		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
 		uas_threshold.drawPdf(gr);
-        //Visualiser.updateFrame(graphReference, otherGraph);Visualiser.waitForKey();
     }
     
-    public class RPNIBlueFringe
+    
+	public class RPNIBlueFringe
     {
-    	private final int confidenceThreshold;
     	private Learner learner;
-    	final LearnerGraph graphSolution;
+    	final List<PairOfPaths> listOfPairsToWrite;
+    	final Iterator<PairOfPaths> listOfPairsToCheckAgainstIterator;
+    	final boolean useOptimizedMerge;
+    	LearnerGraph initPta = null;
+    	final Configuration config;
     	
-		public RPNIBlueFringe(int threshold, Configuration conf,final LearnerGraph graphSolutionArg, final String showProgress) 
+    	public Learner getLearner()
+    	{
+    		return learner;
+    	}
+    	
+		public RPNIBlueFringe(final Configuration conf, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
 		{
-			confidenceThreshold = threshold;graphSolution = graphSolutionArg;
-			Configuration config = conf.copy();
-			config.setGeneralisationThreshold(confidenceThreshold);config.setAskQuestions(false); 
-			LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(config);
-			learner = new RPNIUniversalLearner(null, evalConf);
-			if (showProgress != null)
-				learner = new DummyLearner(learner) {
-					ProgressIndicator indicator;
-					int stateNumber = 0;
-					@Override 
-					public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
-						int newStateNumber = graph.getStateNumber();
-						for(int i=stateNumber;i>=newStateNumber;--i) indicator.next();stateNumber = newStateNumber;
-						System.out.print("C");
-						if (graphSolution != null) 
-						{
-							DifferentFSMException ex =
-									WMethod.checkReduction(graphSolution, graphSolution.getInit(), graph, graph.getInit());
-							if (ex != null)
-								throw ex;
-						}
-						Stack<PairScore> outcome = decoratedLearner.ChooseStatePairs(graph);
-						System.out.println("\nmerging "+outcome.firstElement());
-						return outcome;
-					}
-				
-					@Override 
-					public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
-					{
-						LearnerGraph graph = decoratedLearner.init(plus, minus);
-						if (graphSolution != null) 
-						{
-							DifferentFSMException ex =
-									WMethod.checkReduction(graphSolution, graphSolution.getInit(), graph, graph.getInit());
-							if (ex != null)
-								throw ex;
-						}
+			listOfPairsToWrite = lw;useOptimizedMerge = optimisedMerge;
+			if (lc != null) listOfPairsToCheckAgainstIterator = lc.iterator();else listOfPairsToCheckAgainstIterator = null;
+			final LearnerEvaluationConfiguration bfLearnerInitConfiguration = new LearnerEvaluationConfiguration(conf);bfLearnerInitConfiguration.ifthenSequences = PaperUAS.this.learnerInitConfiguration.ifthenSequences;
+			config = bfLearnerInitConfiguration.config;// our config is a copy of the one supplied as an argument.
+			config.setAskQuestions(false); 
+			learner = new DummyLearner(new RPNIUniversalLearner(null, bfLearnerInitConfiguration)) 
+			{
+				@Override
+				public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+				{
+					if (useOptimizedMerge)
+						// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
+						return MergeStates.mergeAndDeterminize(original, pair);
+					
+					return super.MergeAndDeterminize(original, pair);
+				}
 
-						stateNumber = graph.getStateNumber();
-						System.out.println("initial number of states: "+stateNumber);
-						indicator = new ProgressIndicator(showProgress, stateNumber);
-						return graph;
+				@Override 
+				public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+				{
+					
+					Stack<PairScore> outcome = decoratedLearner.ChooseStatePairs(graph);
+					if (!outcome.isEmpty())
+					{
+						if (listOfPairsToWrite != null)
+						{
+							listOfPairsToWrite.add(new PairOfPaths(graph, outcome.peek()));
+						}
+						
+						if(listOfPairsToCheckAgainstIterator != null)
+						{
+							listOfPairsToCheckAgainstIterator.next().rebuildStack(graph, outcome);
+						}
+						
 					}
-				};
+					
+					return outcome;
+				}
+			
+				@Override 
+				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+				{
+					if (initPta != null)
+					{
+						LearnerGraph graph = decoratedLearner.init(plus,minus);
+						LearnerGraph.copyGraphs(initPta, graph);
+						return initPta;
+					}
+					throw new IllegalArgumentException("should not be called");
+				}
+				
+				@Override 
+				public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+				{
+					LearnerGraph graph = decoratedLearner.init(engine,plusSize,minusSize);
+
+					if (initPta != null)
+						LearnerGraph.copyGraphs(initPta, graph);
+					else
+					{
+						if (alphabet != null)
+						{// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
+							CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(true), bfLearnerInitConfiguration.config);
+							Map<Label,CmpVertex> row = graph.createNewRow();
+							for(Label lbl:alphabet.keySet()) graph.addTransition(row, lbl, dummyState);
+							graph.transitionMatrix.put(dummyState, row);
+						}
+					}
+					return graph;
+				}
+			};
 	
 		}
-
-		public LearnerGraph learn(String UAV, String seed,int frameNumber, boolean useNegatives)
+		
+		/** After this method is called, the learner used above no longer looks at the PTA is it given but assumes that the PTA supplied to this call should be returned as a result of initialisation.
+		 * This is used to get around the problem of  
+		 * @param initPTAArg
+		 */
+		public void setInitPta(LearnerGraph initPTAArg)
 		{
-			return  learner.learnMachine(collectionOfTraces.get(seed).collectionOfPositiveTraces.get(UAV).get(frameNumber),
-					useNegatives?collectionOfTraces.get(seed).collectionOfNegativeTraces.get(UAV).get(frameNumber)
-							: new HashSet<List<Label>>()
-			);
-
+			initPta = initPTAArg;
+		}
+		
+		/** Learns starting with the supplied PTA. */
+		public LearnerGraph learn(LearnerGraph initPTAArg)
+		{
+			setInitPta(initPTAArg);
+			return learner.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
+		}
+		
+		public LearnerGraph learn(PTASequenceEngine engineArg, boolean useNegatives)
+		{
+			PTASequenceEngine engine = null;
+			if (!useNegatives)
+			{
+				PTASequenceEngine positives = new PTASequenceEngine();positives.init(new Automaton());
+    			SequenceSet initSeq = positives.new SequenceSet();initSeq.setIdentity();
+    			initSeq.cross(engineArg.getData());
+    			engine = positives;
+			}
+			else
+				engine = engineArg;
+			
+			return learner.learnMachine(engine,0,0);
 		}
 		
     }
@@ -702,25 +1034,77 @@ public class PaperUAS
 		}
     }
     
+    public void process(String fileString) 
+    {
+        if (fileString.length() == 0) {
+            return;// ignore empty lines.
+        }
+		if (QSMTool.isCmdWithArgs(fileString, QSMTool.cmdLTL) || QSMTool.isCmdWithArgs(fileString, QSMTool.cmdIFTHENAUTOMATON)) {
+		            if (learnerInitConfiguration.ifthenSequences == null) {
+		                learnerInitConfiguration.ifthenSequences = new TreeSet<String>();
+		            }
+		            learnerInitConfiguration.ifthenSequences.add(fileString);
+		} else if (QSMTool.isCmdWithArgs(fileString, QSMTool.cmdConfig)) {
+            StringTokenizer tokenizer = new StringTokenizer(fileString.substring(QSMTool.cmdConfig.length() + 1)," ,");
+            if (tokenizer.hasMoreTokens())
+            {
+            	String key = tokenizer.nextToken();
+            	if (!tokenizer.hasMoreTokens())
+            		throw new IllegalArgumentException("missing value for "+key);
+            	String value = tokenizer.nextToken();
+            	learnerInitConfiguration.config.assignValue(key, value, true);
+            }
+       } else if (fileString.startsWith(QSMTool.cmdComment)) {// do nothing
+       } else {
+            throw new IllegalArgumentException("invalid command " + fileString);
+       }
+    }
+    
+   public void loadReducedConfigurationFile(String configFile)
+    {
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new FileReader(configFile));
+            String fileString;
+            while ((fileString = in.readLine()) != null) {
+                    process(fileString);
+            }
+        } catch (IOException e) {
+            statechum.Helper.throwUnchecked("failed to read learner initial data", e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {// ignored.
+                }
+            }
+        }    	
+    }
+    
     /**
 	 * @param args trace file to load.
      * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
 		PaperUAS paper = new PaperUAS();
-    	Configuration config = Configuration.getDefaultConfiguration().copy();config.setDebugMode(false);
+    	Configuration config = Configuration.getDefaultConfiguration().copy();config.setDebugMode(false);paper.learnerInitConfiguration.config = config;
+    	paper.loadReducedConfigurationFile(args[0]);
+    	
+		int offset=1;
     	{
-	    	Reader []inputFiles = new Reader[args.length];for(int i=0;i<args.length;++i) inputFiles[i]=new FileReader(args[i]); 
+        	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
 	    	int maxFrame = paper.getMaxFrame(inputFiles);
 	    	paper.divisor = (maxFrame+1)/10;// the +1 ensures that the last class of frames includes the last point.
     	}
     	
     	{
-	    	Reader []inputFiles = new Reader[args.length];for(int i=0;i<args.length;++i) inputFiles[i]=new FileReader(args[i]); 
-	    	paper.loadDataByConcatenation(inputFiles, config);
+        	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
+	    	//paper.loadData(inputFiles);
+	    	paper.loadDataByConcatenation(inputFiles);
 	    	//paper.checkTraces(config);
-	    	//paper.loadData(inputFiles, config);
-	    	paper.runExperiment(config);
+	    	//paper.loadData(inputFiles);
+	    	//paper.compareTwoLearners();
+	    	paper.evaluateVariability();
     	}
 	}
 

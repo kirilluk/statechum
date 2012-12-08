@@ -70,6 +70,7 @@ public class AllTests {
     @RunWith(Suite.class)
     @Suite.SuiteClasses({
         statechum.TestConfiguration.class,
+        statechum.TestHashMapWithSearch.class,
         statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
         statechum.analysis.learning.rpnicore.TestFSMParser.class,
         statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
@@ -94,6 +95,7 @@ public class AllTests {
         statechum.analysis.learning.TestPathTracing.class,
         statechum.model.testset.TestPrefixRemovingCollection.class,
         statechum.model.testset.TestPTASequenceEngine.class,
+        statechum.analysis.learning.rpnicore.TestMiscTransformFunctions.class,
         statechum.analysis.learning.rpnicore.TestTransform.class,
         statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
         statechum.analysis.learning.rpnicore.TestWMethod.class,
@@ -153,6 +155,7 @@ public class AllTests {
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
+        statechum.analysis.learning.TestLearnerFromLargePTA.class,
     	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,
         statechum.analysis.learning.linear.TestGD_ExistingGraphsUsingTestSet.class,
         statechum.analysis.learning.linear.TestGD_ExistingGraphsND.class,

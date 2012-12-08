@@ -381,15 +381,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		for (int waveNo = 0; waveNo < wavecount; ++waveNo) {
 			// have to make a copy to avoid concurrentModification exception
 			// when updating our alphabet.
-			LinkedHashSet<Label> currentAlphabet = new LinkedHashSet<Label>(
-					module.behaviour.getAlphabet());
+			Set<Label> currentAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
 			seqNext = seq.crossWithSet(currentAlphabet);
 			if (currentAlphabet.size() < module.behaviour.getAlphabet().size()) {
-				LinkedHashSet<Label> newAlphabet = new LinkedHashSet<Label>(
-						module.behaviour.getAlphabet());
+				Set<Label> newAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
 				seqNext = seq.crossWithSet(newAlphabet);
-				assert newAlphabet.size() == module.behaviour.getAlphabet()
-						.size() : "alphabet was extended for the second time";
+				assert newAlphabet.size() == module.behaviour.getAlphabet().size() : "alphabet was extended for the second time";
 			}
 			seq = seqNext;
 		}

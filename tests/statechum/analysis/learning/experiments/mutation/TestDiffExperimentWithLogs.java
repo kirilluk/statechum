@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +18,7 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration.STATETREE;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -51,10 +55,12 @@ public class TestDiffExperimentWithLogs {
 	public static class ResultRecorder implements ResultProcessor
 	{
         XMLEncoder encoder = null;
+		OutputStream outputStream = null;
 		
         public ResultRecorder(String where) throws FileNotFoundException
         {
-        	encoder = new XMLEncoder(new FileOutputStream(where));
+        	outputStream = new FileOutputStream(where);
+        	encoder = new XMLEncoder(outputStream);
         }
         
 		@Override
@@ -64,7 +70,11 @@ public class TestDiffExperimentWithLogs {
 
 		@Override
 		public void finished() {
-			encoder.close();
+			encoder.close();try {
+				outputStream.close();
+			} catch (IOException e) {// Ignore error
+				e.printStackTrace();
+			}
 		}
 		
 	}
@@ -72,10 +82,12 @@ public class TestDiffExperimentWithLogs {
 	public static class ResultChecker implements ResultProcessor
 	{
         XMLDecoder decoder = null;
+		InputStream inputStream = null;
 		
         public ResultChecker(String where) throws FileNotFoundException
         {
-        	decoder = new XMLDecoder(new FileInputStream(where));
+        	inputStream = new FileInputStream(where);
+        	decoder = new XMLDecoder(inputStream);
         }
         
 		@Override
@@ -93,6 +105,11 @@ public class TestDiffExperimentWithLogs {
 		@Override
 		public void finished() {
 			decoder.close();
+			try {
+				inputStream.close();
+			} catch (IOException e) {// ignore this
+				e.printStackTrace();
+			}
 		}
 		
 	}
@@ -104,7 +121,7 @@ public class TestDiffExperimentWithLogs {
 			super(experimentsPerCategoryArg,mutationStagesArg,graphComplexityMaxArg);
 		}
 		
-		/** This one does not have to pricisely replicate the experiment, its aim
+		/** This one does not have to precisely replicate the experiment, its aim
 		 * is to ensure that a similar experiment can be run and the outcome of such
 		 * an experiment are unchanged whenever it is run. 
 		 */
@@ -113,6 +130,7 @@ public class TestDiffExperimentWithLogs {
 			int initStates=20;
 			try
 			{
+				config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 				for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
 				{
 					int states=initStates+graphComplexity*50;
@@ -165,6 +183,7 @@ public class TestDiffExperimentWithLogs {
 							outcome.setValue(LONG_V.DURATION_W, 0);
 							
 							outcome.experimentValid = true;
+							System.out.println("processing");
 							processor.process(outcome);
 							progress.next();
 						}

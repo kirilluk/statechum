@@ -23,6 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 
 import static statechum.Helper.throwUnchecked;
 
@@ -32,6 +33,7 @@ import org.w3c.dom.NodeList;
 
 import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.collections.HashMapWithSearch;
 
 /**
  * Represents a configuration for a learner. The purpose is a possibility of a
@@ -449,17 +451,20 @@ public class Configuration implements Cloneable {
 	}
 
 	public static Collection<Object[]> configurationsForTesting() {
-		Configuration same = new Configuration();
+		Configuration same = new Configuration();same.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 		same.setLearnerUseStrings(false);
 		same.setLearnerCloneGraph(true);
-		Configuration clone = new Configuration();
-		same.setLearnerUseStrings(false);
-		same.setLearnerCloneGraph(false);
-		Configuration strings = new Configuration();
-		same.setLearnerUseStrings(true);
-		same.setLearnerCloneGraph(false);
+		Configuration sameCompat = same.copy();sameCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		Configuration clone = new Configuration();clone.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		clone.setLearnerUseStrings(false);
+		clone.setLearnerCloneGraph(false);
+		Configuration cloneCompat = clone.copy();cloneCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		Configuration strings = new Configuration();strings.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		strings.setLearnerUseStrings(true);
+		strings.setLearnerCloneGraph(false);
+		Configuration stringsCompat = strings.copy();stringsCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		return Arrays
-				.asList(new Object[][] { { same }, { clone }, { strings } });
+				.asList(new Object[][] { { same }, { clone }, { strings }, {sameCompat},{ cloneCompat },{stringsCompat}});
 	}
 
 	/**
@@ -471,7 +476,9 @@ public class Configuration implements Cloneable {
 	 */
 	public static String parametersToString(Configuration config) {
 		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
-				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone");
+				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone") 
+				+ ", " + (config.getTransitionMatrixImplType())				
+				;
 	}
 
 	/*
@@ -1064,7 +1071,7 @@ public class Configuration implements Cloneable {
 	public void setUseAmber(boolean newValue) {
 		useAmber = newValue;
 	}
-
+	
 	/** Whether a learner should make use of output matching. */
 	protected boolean useErlangOutputs = true;
 
@@ -1196,6 +1203,57 @@ public class Configuration implements Cloneable {
 
 	public void setInitialIDvalue(int newValue) {
 		initialIDvalue = newValue;
+	}
+
+	/** Where we need to frequently query a map from a state to a corresponding row, few things beat a direct array access. In order to retain flexibility, this is done via a custom 
+	 * of {@list HashMapWithSearch} class that is essentially a copy of {@list HashMap} but contains {@list HashMapWithSearch#searchByID} function and a slightly different algorithm to 
+	 * compute hash code. For this custom version to avoid resizing, we pre-allocate the maximal size where known. This is configurable below.
+	 */
+	protected int maxStateNumber=2000;
+	
+	public int getMaxStateNumber()
+	{
+		return maxStateNumber;
+	}
+	
+	public void setMaxStateNumber(int newValue)
+	{
+		maxStateNumber = newValue;
+	}
+	
+	/** The collection holding a transition matrix can be either a tree map for compatibility with old learners or a {@link HashMapWithSearch} that is a flavour of {@link LinkedHashMap}. 
+	 * that is more efficient, particularly for large graphs. The order of state exploration is dependent on hash code computation rather than on names or numbers of states. This would
+	 * typically lead to slightly different learning outcomes hence the possibility of compatibility mode. 
+	 */
+	public enum STATETREE {
+		STATETREE_SLOWTREE, STATETREE_LINKEDHASH
+	};
+
+	protected STATETREE transitionMatrixImplType = STATETREE.STATETREE_LINKEDHASH;
+	
+	public STATETREE getTransitionMatrixImplType()
+	{
+		return transitionMatrixImplType;
+	}
+
+	public void setTransitionMatrixImplType(STATETREE value)
+	{
+		transitionMatrixImplType = value;
+	}
+	
+	/** With a switch to {@link LinkedHashMap} for representation of a transition matrix, performance is better however the order is dependent on hash code generation which may change. Using this attribute one
+	 * can switch the hashcode order to compare-order (like that of {@link TreeMap}) which is useful for recording test results.
+	 */
+	protected boolean useOrderedEntrySet = false;
+	
+	public boolean getUseOrderedEntrySet()
+	{
+		return useOrderedEntrySet;
+	}
+	
+	public void setUseOrderedEntrySet(boolean newValue)
+	{
+		useOrderedEntrySet = newValue;
 	}
 
 	/**

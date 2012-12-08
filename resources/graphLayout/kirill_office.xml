@@ -6,10 +6,6 @@
    <string>true</string> 
   </void> 
   <void method="put"> 
-   <string>ERLANGHOME</string> 
-   <string>D:\Progra~1\erl5.8.2\erts-5.8.2</string> 
-  </void> 
-  <void method="put"> 
    <string>VIZ_CONFIG</string> 
    <string>kirill_office</string> 
   </void> 

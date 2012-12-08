@@ -31,6 +31,8 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
+import statechum.MapWithSearch;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -39,6 +41,8 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.linear.Linear;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
+import statechum.collections.HashMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import statechum.Label;
@@ -111,7 +115,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		/** This one records non-existing transitions as well as some existing ones, 
 		 * those leaving states with at least one non-existing transition.
 		 */
-		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix();
+		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix(LearnerGraph.this.config.getMaxStateNumber());
 	
 		/** When checking which questions have been answered by IF-THEN automata, we need to record
 		 * which newly-added nodes have been explored by THEN automata. The set below records it.
@@ -378,12 +382,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public LearnerGraphCachedData createCache() {
 		return new LearnerGraphCachedData(this);
 	}
-/*
-	@Override
-	public Class<CmpVertex> getClassOfTargetType() {
-		return CmpVertex.class;
-	}
-*/
+
 	@Override
 	public
 	Collection<CmpVertex> getTargets(final CmpVertex targ) 
@@ -475,10 +474,14 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		};
 	}
 
+	
 	@Override
-	public Map<CmpVertex, Map<Label, CmpVertex>> createNewTransitionMatrix() 
+	public MapWithSearch<CmpVertex,Map<Label,CmpVertex>> createNewTransitionMatrix(int stateNumber) 
 	{
-		return new TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+		return 
+				config.getTransitionMatrixImplType() == STATETREE.STATETREE_LINKEDHASH?
+					new HashMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber) : //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+					new TreeMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
 	}
 
 	@Override

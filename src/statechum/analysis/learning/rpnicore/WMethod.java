@@ -37,6 +37,7 @@ import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
 import statechum.model.testset.PrefixFreeCollection;
@@ -278,6 +279,10 @@ public class WMethod {
 		}
 	}
 	
+	
+	/** Maps transitions from a state to equivalence classes of the states those transitions lead to.
+	 * Assumes that there are not many outgoing transitions from each state, otherwise {@link HashMapWithSearch} has to be used.
+	 */
 	private static class TransitionRowEqClass extends HashMap<Label,Integer>
 	{
 		private final boolean accept;
@@ -291,8 +296,7 @@ public class WMethod {
 		public int hashCode()
 		{
 			int result = super.hashCode(); 
-				/*0;
-			
+				/*
 			for(Entry<String,Integer> entry:entrySet())
 				if (entry.getValue() != sinkEqClass)
 					result+=entry.getKey().hashCode()^entry.getValue().hashCode();
@@ -400,10 +404,10 @@ public class WMethod {
 	 */
 	public static List<List<Label>> computeWSetOrig(LearnerGraph fsm) throws EquivalentStatesException
 	{ 
-		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), 
-			newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		Map<CmpVertex,Integer> equivalenceClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber()), 
+			newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber());
 		Map<Map<Label,Integer>,Integer> sortedRows = new HashMap<Map<Label,Integer>,Integer>();
-		Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata = new HashMap<CmpVertex,Map<CmpVertex,List<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata = new HashMapWithSearch<CmpVertex,Map<CmpVertex,List<Label>>>(fsm.getStateNumber());
 		CmpVertex sink = generateSinkState(fsm);
 		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
 			equivalenceClasses.put(state, state.isAccept()?1:0);
@@ -411,7 +415,7 @@ public class WMethod {
 		
 		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 		{
-			Map<CmpVertex,List<Label>> row = new HashMap<CmpVertex,List<Label>>();
+			Map<CmpVertex,List<Label>> row = new HashMapWithSearch<CmpVertex,List<Label>>(fsm.getStateNumber());
 			Wdata.put(stateA.getKey(), row);
 
 			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
@@ -494,7 +498,7 @@ public class WMethod {
 					}
 				}			
 			}			
-			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.config.getMaxStateNumber());
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
@@ -515,6 +519,7 @@ public class WMethod {
 						if (sinkAsRealState || stateB.getKey() != sink)
 						{
 							List<Label> seq = Wdata.get(stateA.getKey()).get(stateB.getKey());
+							assert seq != null : "equivalenceClasses uses a different state ordering to that of LearnerGraphs";
 							result.add(seq);
 						}
 					}
@@ -599,9 +604,9 @@ public class WMethod {
 		Configuration copyConfig = fsmOrig.config.copy();copyConfig.setLearnerCloneGraph(false);
 		LearnerGraph fsm = new LearnerGraph(fsmOrig,copyConfig);
 		CmpVertex sink = generateSinkState(fsm);fsm.transitionMatrix.put(sink, fsm.createNewRow());
-		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		Map<CmpVertex,Integer> equivalenceClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber()), newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber());
 		
-		// Since this one associates maps to number, make it Hash set so that fewer computations have to be performed.
+		// Since this one associates maps to numbers, make it Hash set so that fewer computations have to be performed.
 		Map<Map<Label,Integer>,Integer> sortedRows = new HashMap<Map<Label,Integer>,Integer>();
 		int WNext[] = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
 		Label WChar[] = new Label[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
@@ -631,7 +636,7 @@ public class WMethod {
 		do
 		{
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
-			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>();
+			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMapWithSearch<CmpVertex,TransitionRowEqClass>(fsm.getStateNumber());
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
 			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
@@ -735,7 +740,7 @@ public class WMethod {
 				}			
 			}
 			
-			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber());
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
@@ -802,10 +807,10 @@ public class WMethod {
 	 */
 	public static Collection<List<Label>> computeWSet_reducedw(LearnerGraph fsm) throws EquivalentStatesException
 	{
-		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		Map<CmpVertex,Integer> equivalenceClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber()), newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber());
 		Map<Map<Label,Integer>,Integer> sortedRows = new HashMap<Map<Label,Integer>,Integer>();
-		Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata = new HashMap<CmpVertex,Map<CmpVertex,List<Label>>>();
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata = new HashMapWithSearch<CmpVertex,Map<CmpVertex,List<Label>>>(fsm.getStateNumber());
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMapWithSearch<CmpVertex,Map<CmpVertex,Set<Label>>>(fsm.getStateNumber());
 		CmpVertex sink = generateSinkState(fsm);
 		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
 			equivalenceClasses.put(state, state.isAccept()?1:0);
@@ -813,7 +818,7 @@ public class WMethod {
 		
 		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 		{
-			Map<CmpVertex,List<Label>> row = new HashMap<CmpVertex,List<Label>>();
+			Map<CmpVertex,List<Label>> row = new HashMapWithSearch<CmpVertex,List<Label>>(fsm.getStateNumber());
 			Wdata.put(stateA.getKey(), row);
 
 			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
@@ -829,7 +834,7 @@ public class WMethod {
 		do
 		{
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
-			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>();
+			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMapWithSearch<CmpVertex,TransitionRowEqClass>(fsm.getStateNumber());
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
 			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
@@ -874,7 +879,7 @@ public class WMethod {
 						// distinguish between them and update the histogram to count the number
 						// of inputs which can be used distinguish between states at this stage.
 						Map<CmpVertex,Set<Label>> stateToDist = distinguishingLabels.get(stateA.getKey());
-						if (stateToDist == null) stateToDist = new HashMap<CmpVertex,Set<Label>>();
+						if (stateToDist == null) stateToDist = new HashMapWithSearch<CmpVertex,Set<Label>>(fsm.getStateNumber());
 						stateToDist.put(stateB.getKey(), newMap.get(stateA.getKey()).computeDistinguishingLabel(newMap.get(stateB.getKey())));
 						distinguishingLabels.put(stateA.getKey(), stateToDist);
 					}
@@ -930,7 +935,7 @@ public class WMethod {
 				topLabel = computeTopLabel(distinguishingLabels);
 			} // while(topLabel != null)
 			
-			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.getStateNumber());
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 

@@ -28,6 +28,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
@@ -45,8 +46,8 @@ public class TestGraphMutator {
 	
 	void checkContainsTransition(String from, String to, String labelAsString)
 	{
-		Label label = AbstractLearnerGraph.generateNewLabel(labelAsString, config);
 		LearnerGraphND mut = (LearnerGraphND)mutator.getMutated();Map<CmpVertex,Map<Label,List<CmpVertex>>> matrix = mut.getTransitionMatrix();
+		Label label = AbstractLearnerGraph.generateNewLabel(labelAsString, mut.config);
 		Assert.assertTrue(matrix.get(mut.findVertex(VertexID.parseID(from))).get(label).contains(mut.findVertex(VertexID.parseID(to))));
 	}
 	
@@ -54,7 +55,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition1()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		mutator.addEdgeBetweenExistingStates();
@@ -68,7 +70,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition2()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		mutator.addEdgeBetweenExistingStates();
@@ -88,7 +91,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition3()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		mutator.addEdgeBetweenExistingStates();
@@ -103,7 +107,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition4()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		mutator.addEdgeBetweenExistingStates();
@@ -126,7 +131,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition5()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		mutator.addEdgeBetweenExistingStates();
@@ -386,7 +392,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddEdgeToNewState2()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
@@ -400,7 +407,8 @@ public class TestGraphMutator {
 	@Test
 	public void testAddEdgeToNewState3()
 	{
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config);
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",conf);
 		mutator = 
 			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));

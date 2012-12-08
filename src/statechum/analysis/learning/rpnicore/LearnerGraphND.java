@@ -36,9 +36,13 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.MapWithSearch;
+import statechum.collections.HashMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 
 /** This is a non-deterministic graph. Strictly speaking, all the methods here are applicable to the
  * generalised graph too and thus could have been placed in <em>AbstractPathRoutines</em>. The reason
@@ -52,7 +56,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public LearnerGraphND(Configuration conf)
 	{
 		super(conf);
-		transitionMatrix = new TreeMap<CmpVertex,Map<Label,List<CmpVertex>>>();
+		transitionMatrix = createNewTransitionMatrix(conf.getMaxStateNumber());
 		setInit(null);
 		initPTA();
 	}
@@ -66,7 +70,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	{
 		super(conf);
 		initEmpty();
-		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
+		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>(g.numVertices());
 		if (g.containsUserDatumKey(JUConstants.TITLE))
 			setName((String)g.getUserDatum(JUConstants.TITLE));
 		Set<VertexID> idSet = new HashSet<VertexID>(); 
@@ -322,8 +326,12 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	public Map<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix() {
-		return new TreeMap<CmpVertex, Map<Label, List<CmpVertex>>>();
+	public MapWithSearch<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix(int stateNumber) 
+	{
+		return 
+				config.getTransitionMatrixImplType() == STATETREE.STATETREE_LINKEDHASH?
+					new HashMapWithSearch<CmpVertex,Map<Label, List<CmpVertex>>>(stateNumber) : //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+					new TreeMapWithSearch<CmpVertex,Map<Label, List<CmpVertex>>>(stateNumber);
 	}
 
 	@Override

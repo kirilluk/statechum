@@ -196,6 +196,8 @@ public class DrawGraphs {
 			});
 			eval("library(aplpack)","loading BagPlot");
 
+			// detect if compression is supported
+			pdfCompression = eval("is.element(\"compress\",names(formals(pdf)))","failed to detect whether compression is supported").asBool().isTRUE();
 		}
 	}
 
@@ -309,8 +311,11 @@ public class DrawGraphs {
 	}
 
 	boolean javaGDLoaded = false;
-
-
+	
+	/** Newer versions of R permit pdf compression, but older ones choke if I attempt to use it. 
+	 */
+	boolean pdfCompression = false;
+	
 	/** Since I cannot pass arguments to RViewer during it construction, static values have to be set and 
 	 * then copied into the new object. For this reason, creation of graphs has to be serialised, this is done
 	 * by running it all on the Swing thread (avoids a deadlock associated with resizing of the window
@@ -325,6 +330,7 @@ public class DrawGraphs {
 			engine.eval(".setenv <- if (exists(\"Sys.setenv\")) Sys.setenv else Sys.putenv");
 			engine.eval(".setenv(\"JAVAGD_CLASS_NAME\"=\"statechum/analysis/learning/RViewer\")");
 			eval("library(JavaGD)","loading JavaGD");
+			
 			javaGDLoaded = true;
 		}
 
@@ -369,7 +375,9 @@ public class DrawGraphs {
 			throw new IllegalArgumentException("cannot delete file "+file.getAbsolutePath());
 		// Slashes have to be the Unix-way - R simply terminates the DLL on WinXP otherwise.
 		String fullName = file.getAbsolutePath().replace(File.separatorChar, '/');
-		eval("pdf(\""+fullName+"\","+xDim+","+yDim+")","redirection to pdf("+file.getAbsolutePath()+") failed");
+		eval("pdf(\""+fullName+"\","+xDim+","+yDim
+				+(pdfCompression?",compress=FALSE":"") // disable pdf compression if enabled
+				+")","redirection to pdf("+file.getAbsolutePath()+") failed");
 		for(String cmd:drawingCommand)
 			eval(cmd,"failed to run "+cmd);
 		eval("dev.off()","failed to write to "+file.getAbsolutePath());

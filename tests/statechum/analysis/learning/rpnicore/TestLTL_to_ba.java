@@ -165,8 +165,10 @@ public class TestLTL_to_ba
 	public final void testFindInitialState_fail2()
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testCopyVertex",config);
-		graph.findInitialState("");
-		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
+		Assert.assertEquals("Avertex",graph.getInit().getID().toString());
+		graph.findInitialState("");// this may choose any vertex
+		Assert.assertNotNull(graph.getInit());
+		Assert.assertSame(graph.getInit(), graph.findVertex(graph.getInit().getID()));
 	}
 	
 	@Test

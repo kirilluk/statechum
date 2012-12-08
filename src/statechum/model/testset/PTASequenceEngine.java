@@ -27,12 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.ArrayOperations;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.collections.HashMapWithSearch;
 
 public class PTASequenceEngine 
 {
@@ -40,7 +42,7 @@ public class PTASequenceEngine
 	FSMAbstraction fsm = null;
 	
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
-	protected final Map<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>> pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>();
+	protected final Map<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>> pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>(1024);
 	
 	/** The global "counter" of nodes; this is not static to avoid racing problems associated with multiple threads
 	 * creating nodes, so that the same thread may end up with multiple nodes bearing the same ID. This may
@@ -97,7 +99,7 @@ public class PTASequenceEngine
 		/** The FSM state this object corresponds. */
 		protected final Object fsmState;
 
-		/* (non-Javadoc)
+		/** (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
 		 */
 		@Override
@@ -105,7 +107,7 @@ public class PTASequenceEngine
 			return ID;
 		}
 
-		/* (non-Javadoc)
+		/** (non-Javadoc)
 		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
 		@Override
@@ -380,7 +382,7 @@ public class PTASequenceEngine
 			{
 				PTASequenceEngine.Node nextNode = new Node(newState);
 				row.put(input, nextNode);
-				pta.put(nextNode, new HashMap<Label,PTASequenceEngine.Node>());
+				pta.put(nextNode, new LinkedHashMap<Label,PTASequenceEngine.Node>(10));
 				nextCurrentNode = nextNode;
 			}
 		}
@@ -407,6 +409,12 @@ public class PTASequenceEngine
 		return containsSequence(inputSequence,true);
 	}
 
+	/** Returns the number of nodes, used to estimate the number of states in a PTA, used in conjunction with {@link HashMapWithSearch} class to avoid collisions. */
+	public int getSize()
+	{
+		return pta.size();
+	}
+	
 	/** Checks whether the supplied sequence is contained in this PTA. 
 	 * @param inputSequence the sequence to check the existence of
 	 * @param checkLeaf if false, only checks whether the current sequence exists,

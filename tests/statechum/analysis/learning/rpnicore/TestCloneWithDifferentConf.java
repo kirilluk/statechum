@@ -11,6 +11,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.TestRpniLearner;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -30,40 +31,47 @@ public final class TestCloneWithDifferentConf
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
 	
+		
 	// AbstractLearnerGraph is polymorphic in this context: I can use both deterministic and non-deterministic graphs.
 	@SuppressWarnings("rawtypes")
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Configuration config = Configuration.getDefaultConfiguration().copy();//config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		DirectedSparseGraph graphD=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config);
 		DirectedSparseGraph graphND=FsmParser.buildGraph("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph4",config);
 
-		Configuration confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);
-		Configuration confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);
-		Configuration confSame = config.copy();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);
+		Configuration confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);confJung.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		Configuration confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);confString.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		Configuration confSame = config.copy();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);confSame.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		Configuration confStringCompat = config.copy();confStringCompat.setLearnerUseStrings(true);confStringCompat.setLearnerCloneGraph(true);confStringCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+
+		Configuration configsOfInterest[] = new Configuration[]{confJung,confSame,confString,confStringCompat}; 
 
 		List<AbstractLearnerGraph> sameGraphsA = new LinkedList<AbstractLearnerGraph>(),sameGraphsB = new LinkedList<AbstractLearnerGraph>();
-		for(Configuration configA:new Configuration[]{confJung,confSame,confString})
+		for(int configAidx=0;configAidx < configsOfInterest.length;++configAidx)
 		{
-			LearnerGraph origD = new LearnerGraph(graphD,configA);origD.setName("origD");
-			LearnerGraphND origND = new LearnerGraphND(graphND,configA);origND.setName("origND");
+			Configuration configA = configsOfInterest[configAidx];
+			LearnerGraph origD = new LearnerGraph(graphD,configA);origD.setName("origD"+configAidx);
+			LearnerGraphND origND = new LearnerGraphND(graphND,configA);origND.setName("origND"+configAidx);
 			sameGraphsA.add(origD);sameGraphsB.add(origND);
 			
-			for(Configuration configB:new Configuration[]{confJung,confSame,confString})
+			for(int configBidx=0;configBidx < configsOfInterest.length;++configBidx)
 			{
-				LearnerGraph copyD = new LearnerGraph(origD,configB);copyD.setName("copyD");
-				LearnerGraphND copyND = new LearnerGraphND(origND,configB);copyND.setName("copyND");
+				Configuration configB = configsOfInterest[configBidx];
+				LearnerGraph copyD = new LearnerGraph(origD,configB);copyD.setName("copyD"+configAidx+configBidx);
+				LearnerGraphND copyND = new LearnerGraphND(origND,configB);copyND.setName("copyND"+configAidx+configBidx);
 				sameGraphsA.add(copyD);sameGraphsB.add(copyND);
 		
-				for(Configuration configC:new Configuration[]{confJung,confSame,confString})
+				for(int configCidx=0;configCidx < configsOfInterest.length;++configCidx)
 				{
+					Configuration configC = configsOfInterest[configCidx];
 					LearnerGraph ggD = new LearnerGraph(origD.pathroutines.getGraph(),configC),
 						ggCopyD = new LearnerGraph(copyD.pathroutines.getGraph(),configC);
-					ggD.setName("origD.getGraph");ggCopyD.setName("copyD.getGraph");
+					ggD.setName("origD:"+configAidx+","+configBidx+","+configCidx+".getGraph");ggCopyD.setName("copyD:"+configAidx+","+configBidx+","+configCidx+".getGraph");
 					LearnerGraphND ggND = new LearnerGraphND(origND.pathroutines.getGraph(),configC),
 						ggCopyND = new LearnerGraphND(copyND.pathroutines.getGraph(),configC);
-					ggND.setName("origND.getGraph");ggCopyND.setName("copyND.getGraph");
+					ggND.setName("origND:"+configAidx+","+configBidx+","+configCidx+".getGraph");ggCopyND.setName("copyND:"+configAidx+","+configBidx+","+configCidx+".getGraph");
 					sameGraphsA.add(ggD);sameGraphsB.add(ggND);
 					sameGraphsA.add(ggCopyD);sameGraphsB.add(ggCopyND);
 				}
@@ -139,6 +147,6 @@ public final class TestCloneWithDifferentConf
 			for(AbstractLearnerGraph B:sameA)
 				for(AbstractLearnerGraph diffA:sameB)
 					for(AbstractLearnerGraph diffB:different)
-						TestEqualityComparisonAndHashCode.equalityTestingHelper(graph,B,diffA,diffB);
+						TestEqualityComparisonAndHashCode.equalityTestingHelper(graph,B,diffA,diffB, true);
 	}	
 }

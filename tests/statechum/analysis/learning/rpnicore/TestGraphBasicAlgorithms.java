@@ -103,7 +103,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	/** The configuration to use when running tests. */
 	private Configuration testConfig = null, mainConfiguration = null;
 
-	static public PairScore constructPairScore(String a,String b, int score, Configuration config)
+	static public PairScore constructPairScore(String a,String b, long score, Configuration config)
 	{
 		CmpVertex aV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(a), config), 
 			bV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(b),config);

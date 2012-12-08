@@ -38,7 +38,7 @@
 # LAST MODIFICATION
 #   
 #   2008-04-18 Kirill Bogdanov - added BLAS_DIR support via with-blasdir
-#
+#   2012-11-30 Kirill Bogdanov - added checking for OpenBLAS
 # COPYLEFT
 #
 #   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
@@ -83,12 +83,16 @@ case $with_blas in
 	*) BLAS_LIBS="-l$with_blas" ;;
 esac
 
+BLAS_INCLUDES=
 AC_ARG_WITH(blasdir,
 	[AC_HELP_STRING([--with-blasdir=<dir>], [use BLAS libraries in <dir>])])
 BLAS_DIR=
 if test "x$with_blasdir" != x; then
-	BLAS_DIR="-L$with_blasdir"
+	BLAS_DIR="-L$with_blasdir/lib"
+	BLAS_INCLUDES="-I$with_blasdir/include"
 fi
+
+AC_SUBST(BLAS_INCLUDES)
 
 # Get fortran linker names of BLAS functions to check for.
 AC_F77_FUNC(sgemm)
@@ -108,6 +112,7 @@ if test "x$BLAS_LIBS" != x; then
 fi
 fi
 
+
 # BLAS linked to by default?  (happens on some supercomputers)
 if test $acx_blas_ok = no; then
 	save_LIBS="$LIBS"; LIBS="$LIBS"
@@ -116,14 +121,26 @@ if test $acx_blas_ok = no; then
 fi
 
 # BLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(atlas, ATL_xerbla,[ATLAS_LIBS="-latlas"],[ATLAS_LIBS=""])	
-	AC_CHECK_LIB(f77blas, $sgemm,[F77BLAS_LIBS="-lf77blas"],[F77BLAS_LIBS=""],[-latlas])
-	AC_CHECK_LIB(ptf77blas, $sgemm,[F77BLAS_LIBS="-lptf77blas"],[],[-latlas])
+# We attempt to link statically, because the aim is to use UMFPACK that links statically.
+if test $acx_blas_ok = no -a "x$with_blasdir" != x; then
+	AC_CHECK_LIB(atlas, ATL_xerbla,[ATLAS_LIBS="$with_blasdir/lib/libatlas.a"],[ATLAS_LIBS=""])	
+	AC_CHECK_LIB(f77blas, $sgemm,[F77BLAS_LIBS="$with_blasdir/lib/libf77blas.a"],[F77BLAS_LIBS=""],[-latlas])
+	AC_CHECK_LIB(ptf77blas, $sgemm,[F77BLAS_LIBS="$with_blasdir/lib/libptf77blas.a"],[],[-latlas])
 	AC_CHECK_LIB(cblas, cblas_dgemm,[acx_blas_ok=yes
-			CBLAS_LIBS="-lcblas"],[CBLAS_LIBS=""],[-latlas])
-	AC_CHECK_LIB(ptcblas, cblas_dgemm,[CBLAS_LIBS="-lptcblas"],[],[-latlas])
+			CBLAS_LIBS="$with_blasdir/lib/libcblas.a"],[CBLAS_LIBS=""],[$with_blasdir/lib/libatlas.a])
+	AC_CHECK_LIB(ptcblas, cblas_dgemm,[CBLAS_LIBS="$with_blasdir/lib/libptcblas.a"],[],[$with_blasdir/lib/libatlas.a])
 	BLAS_LIBS="$CBLAS_LIBS $F77BLAS_LIBS $ATLAS_LIBS"
+fi
+
+# check for OpenBLAS
+if test $acx_blas_ok = no -a "x$with_blasdir" != x ; then
+	AC_CHECK_LIB(openblas, $sgemm,[acx_blas_ok=yes;OPENBLAS_LIBS="$with_blasdir/lib/libopenblas.a"],[OPENBLAS_LIBS=""])
+	
+	save_LIBS="$LIBS"; LIBS="$LIBS $OPENBLAS_LIBS"
+	AC_CHECK_FUNC(openblas_set_num_threads, [AC_DEFINE([HAVE_SETTHREADS],[1],[Define if openblas permits setting thread number])],[])
+	LIBS="$save_LIBS"
+	
+	BLAS_LIBS="$OPENBLAS_LIBS"
 fi
 
 # BLAS in PhiPACK libraries? (requires generic BLAS lib, too)
@@ -200,6 +217,7 @@ LIBS="$acx_blas_save_LIBS"
 
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
 if test x"$acx_blas_ok" = xyes; then
+        ifelse([$1],,AC_DEFINE(HAVE_BLAS,1,[Define if you have a BLAS library.]),[$1])
         ifelse([$1],,AC_DEFINE(HAVE_BLAS,1,[Define if you have a BLAS library.]),[$1])
         :
 else

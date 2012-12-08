@@ -38,7 +38,7 @@ public class GraphMLVisualiser extends Visualiser {
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
 		AbstractPersistence.loadGraph(args[0], graph0);
-		if (args[1] != null)
+		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
 			AbstractPersistence.loadGraph(args[1], graph1);

@@ -91,7 +91,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public final void testFSMStructureEquals1a()
 	{
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 
 		Assert.assertFalse(a.equals(null));
 		Assert.assertFalse(a.equals("hello"));
@@ -104,7 +104,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals2a",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals2a",config);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 	}
 	
 	/** Tests that reject states do not mess up anything. */
@@ -113,7 +113,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2b",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2b",config);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB, true);
 	}
 	
 	/** Tests that different types of states make a difference on the outcome of a comparison. */
@@ -122,7 +122,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2c",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2c",config);
-		equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB, true);
 	}
 	
 	/** Tests that state colour affects a comparison. */
@@ -133,7 +133,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2d",config);
 		a.findVertex("B").setColour(JUConstants.RED);
 		a.findVertex("A").setHighlight(true);
-		equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -146,7 +146,7 @@ public class TestGraphConstructionWithDifferentConf {
 		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -156,7 +156,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
 		LearnerGraph c=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -169,7 +169,7 @@ public class TestGraphConstructionWithDifferentConf {
 		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -179,7 +179,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e",config);
 		LearnerGraph c=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -192,7 +192,7 @@ public class TestGraphConstructionWithDifferentConf {
 		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -202,7 +202,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
 		LearnerGraph c=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e",config);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -218,7 +218,7 @@ public class TestGraphConstructionWithDifferentConf {
 		b.addToCompatibility(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
@@ -228,7 +228,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = A / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = A / B = INCOMPATIBLE = A", "testFSMStructureEquals2e",config);
 		LearnerGraph c=buildLearnerGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e",config);
-		equalityTestingHelper(a,b,c,differentB);
+		equalityTestingHelper(a,b,c,differentB, true);
 	}
 	
 	@Test
@@ -238,7 +238,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals3",config);
 		
 		b.initEmpty();
-		equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB, true);
 	}
 	
 	@Test
@@ -248,7 +248,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals4",config);
 		
 		b.initPTA();
-		equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB, true);
 	}
 	
 	@Test
@@ -258,7 +258,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals6",config);
 		
 		b.setInit(new StringVertex("B"));
-		equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB, true);
 	}
 
 	/** Tests that clones are faithful replicas. */
@@ -268,10 +268,10 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1",config);
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1",config);
 		LearnerGraph bClone = new LearnerGraph(b,b.config);
-		equalityTestingHelper(a,bClone,differentA, differentB);
-		equalityTestingHelper(b,bClone,differentA, differentB);
+		equalityTestingHelper(a,bClone,differentA, differentB, true);
+		equalityTestingHelper(b,bClone,differentA, differentB, true);
 		bClone.initPTA();
-		equalityTestingHelper(a,b,bClone,differentB);
+		equalityTestingHelper(a,b,bClone,differentB, true);
 	}
 
 	/** Tests that clones are faithful replicas. */
@@ -282,7 +282,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=buildLearnerGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone2",config);
 		LearnerGraph bClone = new LearnerGraph(b,b.config);
 		b.initPTA();
-		equalityTestingHelper(a,bClone,b,differentB);
+		equalityTestingHelper(a,bClone,b,differentB, true);
 	}
 
 	@Test
@@ -320,6 +320,7 @@ public class TestGraphConstructionWithDifferentConf {
 	}
 	
 	/** Checks if adding a vertex to a graph causes an exception to be thrown. */
+	@SuppressWarnings("unused")
 	public void checkWithVertex(Vertex v,String expectedExceptionString, String testName)
 	{
 		final DirectedSparseGraph g = buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p->CONFL",testName,config);
@@ -384,6 +385,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail6() 
 	{
 		checkForCorrectException(new whatToRun() {
+		@SuppressWarnings("unused")
 		public @Override void run() {
 			new LearnerGraph(new DirectedSparseGraph(),config);			
 		}},IllegalArgumentException.class,"missing initial");

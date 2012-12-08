@@ -9,7 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import statechum.apps.QSMTool;
 
 /** This is a tree structure that contains traces but is sorted by prefix to allow quick prefix searching
  *

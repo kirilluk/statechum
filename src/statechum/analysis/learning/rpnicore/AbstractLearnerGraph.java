@@ -19,14 +19,11 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
@@ -36,6 +33,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
+import statechum.MapWithSearch;
 import statechum.StringLabel;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
@@ -46,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
+import statechum.collections.HashMapWithSearch;
 import statechum.Label;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
@@ -57,9 +56,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
 
 	/** Transition matrix. */
-	public Map<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
+	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = null;
 
-	public Map<CmpVertex, Map<Label, TARGET_TYPE>> getTransitionMatrix() {
+	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> getTransitionMatrix() {
 		return transitionMatrix;
 	}
 
@@ -119,6 +118,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 
 	protected AbstractLearnerGraph(Configuration conf) {
 		config = conf;
+		transitionMatrix = createNewTransitionMatrix(config.getMaxStateNumber());
+		pairCompatibility = new PairCompatibility<CmpVertex>(config.getMaxStateNumber());
 		initEmpty();
 	}
 	
@@ -506,8 +507,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
 	 * such as a TreeMap. 
+	 * 
+	 * @param size the expected maximal number of states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
+	 * as is the case for VertexID.
 	 */
-	abstract public Map<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix();
+	abstract public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(int size);
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a new row for a transition matrix is to be created.
@@ -590,24 +594,12 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			return null;
 		return findVertex(VertexID.parseID(name));
 	}
-	
-	/** Finds a vertex with a supplied identifier in a transition matrix.
-	 * <p>
-	 * <b>Important</b>: do not change the acceptance condition on the returned vertex: 
-	 * it will mess up the transition matrix since hash code is dependent on acceptance.
+		
+	/** Finds a vertex with a supplied identifier in a transition matrix. Relies on {@link CmpVertex#equals(Object)} using only vertex identifiers in comparisons.
 	 */
 	public CmpVertex findVertex(VertexID name)
 	{
-		CmpVertex result = null;
-		Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> entryIt = transitionMatrix.entrySet().iterator();
-		while(entryIt.hasNext() && result == null)
-		{
-			CmpVertex currentVert = entryIt.next().getKey();
-			VertexID vertName = currentVert.getID();
-			if (vertName.equals(name))
-				result = currentVert;
-		}
-		return result;
+		return transitionMatrix.findElementById(name);
 	}
 	
 	/** Checks if the supplied vertex belongs to this graph. */
@@ -642,11 +634,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		result.initEmpty();
-		result.transitionMatrix = result.createNewTransitionMatrix();
+		result.transitionMatrix = result.createNewTransitionMatrix(from.config.getMaxStateNumber());
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
 
-		Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> oldToNew = new HashMapWithSearch<CmpVertex,CmpVertex>(from.getStateNumber());
 		
 		// First, clone vertices
 		for(CmpVertex state:from.transitionMatrix.keySet())
@@ -679,7 +671,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			if (row == null)
 			{// new state rather than a duplicate one
 				row = result.createNewRow();
-                                result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
+                result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
 			}
 			
 			for(Entry<Label,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
@@ -715,26 +707,28 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		//result = prime * result + ((config == null) ? 0 : config.hashCode());
 		//result = prime * result + vertNegativeID;
 		//result = prime * result + vertPositiveID;
+		result = prime * result + (config.getUseOrderedEntrySet()?  1231 : 1237);// this boolean determines the order in which vertices are explored and thus the hash code is set to be explicitly affected by it.
 		result = prime * result + (getInit() == null?0:getInit().hashCode());
 		//result = prime * result + transitionMatrix.hashCode();
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
-			result = prime * result + entry.getKey().hashCode();
-			result = prime * result + (entry.getKey().isAccept()?  1231 : 1237);
-			result = prime * result + (entry.getKey().getColour() == null?0:entry.getKey().getColour().hashCode());
-			result = prime * result + (entry.getKey().isHighlight()?  1231 : 1237);
-			result = prime * result + (entry.getKey().getDepth());
-			result = prime * result + (entry.getKey().getOrigState() == null? 0:entry.getKey().getOrigState().hashCode());
+			int primeForState = 1;
+			primeForState = prime * primeForState + entry.getKey().hashCode();
+			primeForState = prime * primeForState + (entry.getKey().isAccept()?  1231 : 1237);
+			primeForState = prime * primeForState + (entry.getKey().getColour() == null?0:entry.getKey().getColour().hashCode());
+			primeForState = prime * primeForState + (entry.getKey().isHighlight()?  1231 : 1237);
+			primeForState = prime * primeForState + (entry.getKey().getDepth());
+			primeForState = prime * primeForState + (entry.getKey().getOrigState() == null? 0:entry.getKey().getOrigState().hashCode());
 			for(Entry<Label,TARGET_TYPE> rowEntry:entry.getValue().entrySet())
 			{
-				result = prime * result + rowEntry.getKey().hashCode();
+				primeForState = prime * primeForState + rowEntry.getKey().hashCode();
 				for(CmpVertex vertex:getTargets(rowEntry.getValue()))
-					result = prime * result + vertex.hashCode();
+					primeForState = prime * primeForState + vertex.hashCode();
 			}
+			result^=primeForState;// This ensures that the order of exploration of states does not affect the outcome. Very important where the underlying collection is a hash set where the order depends not only on hash code but also on the order of insertion due to collisions.
 		}
 
 		result = prime*result + pairCompatibility.hashCode();
-		
 		return result;
 	}
 
@@ -775,6 +769,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			if (!getInit().equals(other.getInit()))
 				return false;
 
+		if (config.getUseOrderedEntrySet() != other.config.getUseOrderedEntrySet()) // this boolean determines the order in which vertices are explored and thus the hash code is set to be explicitly affected by it.
+			return false;
+		
 		if (!transitionMatrix.keySet().equals(other.transitionMatrix.keySet()))
 			return false;
 		
@@ -853,7 +850,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return init;
 	}
 
-	public final PairCompatibility<CmpVertex> pairCompatibility = new PairCompatibility<CmpVertex>();
+	public final PairCompatibility<CmpVertex> pairCompatibility;
 
 	/** Stores pairs of states which satisfy a relation of interest.
 	 * For instance, these could be mandatory merge constraints or a record that
@@ -867,8 +864,21 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public static class PairCompatibility<VERTEX_TYPE>
 	{
-		public final Map<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> compatibility = new TreeMap<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>>();
+		public final MapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> compatibility;
 
+		protected final int maxStateNumber;
+		
+		/**
+		 * Creates an instance, using an expected maximal state number
+		 *  
+		 * @param stateNumber determines the maximal number of states, this is passed to {@link HashMapWithSearch} where it determines the initial size of the
+		 * hash map. 
+		 */
+		public PairCompatibility(int stateNumber)
+		{
+			maxStateNumber = stateNumber;compatibility = new HashMapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>>(maxStateNumber);
+		}
+		
 		/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
 		 * or recorded as incompatible.
 		 *  
@@ -926,7 +936,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		
 		protected Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> createNewCompatibilityRow(VERTEX_TYPE A)
 		{
-			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMap<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>();
+			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMapWithSearch<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>(maxStateNumber);
 			compatibility.put(A,incSet);return incSet;
 		}
 		
@@ -964,7 +974,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			
 			for(Entry<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> entry:compatibility.entrySet())
 			{
-				Map<VERTEX_TYPE,JUConstants> otherMap = (Map<VERTEX_TYPE,JUConstants>)other.compatibility.get(entry.getKey());
+				Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> otherMap = (Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>)other.compatibility.get(entry.getKey());
 				for(Entry<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> pair:entry.getValue().entrySet())
 					if (!pair.getValue().equals(otherMap.get(pair.getKey())))
 						return false;

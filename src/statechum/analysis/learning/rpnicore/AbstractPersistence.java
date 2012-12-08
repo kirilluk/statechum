@@ -114,25 +114,25 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
 		graphTop.appendChild(endl(doc));
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 		{
 			graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
 		}
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			for(Entry<Label,TARGET_TYPE> transition:vert.getValue().entrySet())
 				for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
-			{
-				Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getID().toString());
-				edge.setAttribute("target", targetState.getID().toString());edge.setAttribute("directed", "true");
-				edge.setAttribute("EDGE", transition.getKey().toErlangTerm());graphTop.appendChild(edge);
-				graphTop.appendChild(endl(doc));
-			}
+				{
+					Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getID().toString());
+					edge.setAttribute("target", targetState.getID().toString());edge.setAttribute("directed", "true");
+					edge.setAttribute("EDGE", transition.getKey().toErlangTerm());graphTop.appendChild(edge);
+					graphTop.appendChild(endl(doc));
+				}
 		
 		if (!coregraph.pairCompatibility.compatibility.isEmpty())
 		{
 			Element compatibilityData = doc.createElementNS(StatechumXML.graphmlNS.toString(),graphmlData);compatibilityData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
 			Set<CmpVertex> encounteredNodes = new HashSet<CmpVertex>();
-			for(Entry<CmpVertex,Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY>> entry:coregraph.pairCompatibility.compatibility.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY>> entry:coregraph.pairCompatibility.compatibility.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			{
 				encounteredNodes.add(entry.getKey());
 				for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> vert:entry.getValue().entrySet())
@@ -340,7 +340,18 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config));
 	    	String fileToLoad = fileName;
 	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
-	    	loadGraph(new FileReader(fileToLoad),result);result.setName(fileName);
+	    	FileReader is = null;
+	    	try
+	    	{
+	    		is = new FileReader(fileToLoad);
+	    		loadGraph(is,result);result.setName(fileName);
+	    	}
+	    	finally
+	    	{
+	    		if (is != null)
+	    			is.close();
+	    	}
+	    	
 	    	return result;
 		}
 	}

@@ -105,16 +105,26 @@ public class TransformLearnerLogs implements Runnable
 	 * */
 	protected int computeGraphNumber(File fileName) throws IOException
 	{
-		ZipInputStream inputZip = new ZipInputStream(new java.io.BufferedInputStream(new java.io.FileInputStream(fileName)));
-		ZipEntry entry = inputZip.getNextEntry();
-		while(entry != null)
+		ZipInputStream inputZip = null;
+		
+		try
 		{
-			if (entry.getName().contains(StatechumXML.ELEM_MERGEANDDETERMINIZE.name()))
+			inputZip = new ZipInputStream(new java.io.BufferedInputStream(new java.io.FileInputStream(fileName)));
+			ZipEntry entry = inputZip.getNextEntry();
+			while(entry != null)
 			{
-				++graphNumber;if ((graphNumber % modValueGraphCounter) == 0) updateProgressBar(true, -1, "found: "+graphNumber+" graphs");
-				if (computationAborted) throw new ComputationAbortedException();
+				if (entry.getName().contains(StatechumXML.ELEM_MERGEANDDETERMINIZE.name()))
+				{
+					++graphNumber;if ((graphNumber % modValueGraphCounter) == 0) updateProgressBar(true, -1, "found: "+graphNumber+" graphs");
+					if (computationAborted) throw new ComputationAbortedException();
+				}
+				entry = inputZip.getNextEntry();
 			}
-			entry = inputZip.getNextEntry();
+		}
+		finally
+		{
+			if (inputZip != null)
+				inputZip.close();
 		}
 		return graphNumber;
 	}

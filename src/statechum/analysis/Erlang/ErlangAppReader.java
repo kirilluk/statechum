@@ -51,58 +51,67 @@ public class ErlangAppReader {
 		ErlangApp result = new ErlangApp();
 		result.name = ErlangRunner.getErlName(filename);
 
-		BufferedReader input = new BufferedReader(new FileReader(new File(folder, filename)));
-		String line = "";
-		mode currentmode = mode.NORMAL;
-		while ((line = input.readLine()) != null) {
-			line = line.trim();
-			if (currentmode == mode.NORMAL) {
-				if (line.startsWith("{modules")) {
-					currentmode = mode.MODULES;
-				} else if (line.startsWith("{registered")) {
-					currentmode = mode.REGISTERED;
-				} else if (line.startsWith("{mod")) {
-					line = line.substring(line.indexOf("{", 4) + 1);
-					String[] items = line.split(",");
-					result.startModule = items[0];
-					result.startModuleArgs = items[1].substring(0, items[1].indexOf("}"));
-				}
-
-				line = line.substring(line.indexOf("[") + 1);
-			}
-			if (currentmode == mode.MODULES) {
-				String[] mods = line.split(",");
-				for (String m : mods) {
-					if (m.indexOf("]") >= 0) {
-						m = m.substring(0, m.indexOf("]"));
-						currentmode = mode.NORMAL;
+		BufferedReader input = null;
+		
+		try
+		{
+			input = new BufferedReader(new FileReader(new File(folder, filename)));
+			String line = "";
+			mode currentmode = mode.NORMAL;
+			while ((line = input.readLine()) != null) {
+				line = line.trim();
+				if (currentmode == mode.NORMAL) {
+					if (line.startsWith("{modules")) {
+						currentmode = mode.MODULES;
+					} else if (line.startsWith("{registered")) {
+						currentmode = mode.REGISTERED;
+					} else if (line.startsWith("{mod")) {
+						line = line.substring(line.indexOf("{", 4) + 1);
+						String[] items = line.split(",");
+						result.startModule = items[0];
+						result.startModuleArgs = items[1].substring(0, items[1].indexOf("}"));
 					}
-					if (m.indexOf("'") < 0) {
-						try {
-							File f = new File(folder, m + ErlangRunner.ERL.ERL.toString());
-							result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
-							System.out.println("");
-						} catch (FileNotFoundException e) {
-							throw new RuntimeException("File " + m + ".erl not found...");
-						} catch (Exception e) {
-							System.out.println("FAILED]");
+	
+					line = line.substring(line.indexOf("[") + 1);
+				}
+				if (currentmode == mode.MODULES) {
+					String[] mods = line.split(",");
+					for (String m : mods) {
+						if (m.indexOf("]") >= 0) {
+							m = m.substring(0, m.indexOf("]"));
+							currentmode = mode.NORMAL;
+						}
+						if (m.indexOf("'") < 0) {
+							try {
+								File f = new File(folder, m + ErlangRunner.ERL.ERL.toString());
+								result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
+								System.out.println("");
+							} catch (FileNotFoundException e) {
+								throw new RuntimeException("File " + m + ".erl not found...");
+							} catch (Exception e) {
+								System.out.println("FAILED]");
+							}
 						}
 					}
 				}
-			}
-			if (currentmode == mode.REGISTERED) {
-				String[] mods = line.split(",");
-				for (String m : mods) {
-					if (m.indexOf("]") >= 0) {
-						m = m.substring(0, m.indexOf("]"));
-						currentmode = mode.NORMAL;
+				if (currentmode == mode.REGISTERED) {
+					String[] mods = line.split(",");
+					for (String m : mods) {
+						if (m.indexOf("]") >= 0) {
+							m = m.substring(0, m.indexOf("]"));
+							currentmode = mode.NORMAL;
+						}
+						result.registered.add(m);
 					}
-					result.registered.add(m);
 				}
+	
 			}
-
 		}
-
+		finally
+		{
+			if (input != null)
+				input.close();
+		}
 		return result;
 	}
 }

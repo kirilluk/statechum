@@ -20,7 +20,6 @@ package statechum.analysis.learning.rpnicore;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -46,6 +45,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -375,7 +375,7 @@ public class PathRoutines {
 					}
 				}
 				currentNode.userObject = ourVertex;
-
+				
 				if (ourVertex.isAccept() != accepted)
 				{ 
 					ourVertex.setHighlight(true);
@@ -430,7 +430,7 @@ public class PathRoutines {
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 			Map<CmpVertex,Map<CmpVertex,Set<Label>>> flowgraph = coregraph.pathroutines.getFlowgraph();
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
+			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.getStateNumber());
 			// add states
 			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
 			{
@@ -529,12 +529,12 @@ public class PathRoutines {
 			StatePair pair,Collection<CmpVertex> notRemoved)
 	{
 		assert GlobalConfiguration.getConfiguration().isAssertEnabled() : "this one should not run when not under test";
-	
+
 		// The first check: every state of a merged PTA contains only one incoming transition,
 		// assuming that only those labelled RED can have multiple incoming transitions. Given that
 		// merging routines merge PTA states _into_ the original ones, thus preserving the red colour,
 		// those left with blue colour or without any have to be PTA parts. 
-		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMap<CmpVertex,AtomicInteger>();
+		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMapWithSearch<CmpVertex,AtomicInteger>(mergeResult.getStateNumber());
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:mergeResult.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> targ:entry.getValue().entrySet())
 			{
@@ -608,7 +608,7 @@ public class PathRoutines {
 				CmpVertex InterestingUnreachableVertex = unreachables.iterator().next();
 				List<Label> seq = original.pathroutines.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
 				System.out.println(seq);// dumps a seq from a blue state to the first unreachable vertex (after merging) which was on the PTA in the original machine.
-				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
+				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
 				if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 					throw new IllegalArgumentException("elements of the pair are incompatible in the original machine, no idea why they got merged in the first place");
 				
@@ -862,10 +862,8 @@ public class PathRoutines {
 	public CmpVertex getVertex(List<Label> path)
 	{
 		CmpVertex current = coregraph.getInit();
-		int pos = -1;
 		for(Label label:path)
 		{
-			++pos;
 			Map<Label,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
 			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
 				return null;

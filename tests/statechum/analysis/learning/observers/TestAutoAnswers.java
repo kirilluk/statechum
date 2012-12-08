@@ -30,7 +30,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.Configuration.LABELKIND;
+import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.Configuration;
 import statechum.Pair;
@@ -96,7 +96,7 @@ public class TestAutoAnswers {
 	public void testPrettyPrintTrace1() throws IOException
 	{
 		File file = new File("ErlangExamples/locker/locker.erl");
-		Configuration config = ErlangModule.setupErlangConfiguration(file);
+		Configuration config = ErlangModule.setupErlangConfiguration(file);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
 		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);

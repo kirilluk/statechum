@@ -19,3 +19,8 @@ heartbeat
 fallback
 yices
 zip
+flipped
+covariance
+sheffield
+dialyzer
+plugin

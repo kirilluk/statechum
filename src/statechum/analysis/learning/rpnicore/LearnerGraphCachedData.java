@@ -57,9 +57,9 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
             return mergedToHardFacts;
         }
 
-	/** The maximal score which can be returned by score computation routines. 
+	/** The maximal score which can be returned by score computation routines. Has to be long if are prepared to handle a PTA with a million states. 
 	 */
-	protected int maxScore = -1;
+	protected long maxScore = -1;
 	
 	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
 	protected CmpVertex stateLearnt = null;
@@ -70,6 +70,7 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 		super.invalidate();
 		mergedStates = null;maxScore=-1;stateLearnt = null;
 		abstractStateToLabelPreviouslyChecked = null;
+		mergedToHardFacts=null;
 	}
 	
 	/** A map associating an abstract state and a set of transitions which have been evaluated from 

@@ -24,7 +24,8 @@
 ## Based on http://sources.redhat.com/autobook/autobook/autobook_253.html#SEC253
 
 
-AM_CFLAGS = -I../include -Iinclude @UMFPACK_INCLUDES@ -DNDEBUG -Wall
+AM_CFLAGS = -I../include -Iinclude @BLAS_INCLUDES@ @UMFPACK_INCLUDES@ -DNDEBUG -Wall
+ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES		= libStatechumSolver.la
 libStatechumSolver_la_SOURCES     = umfsolver.c

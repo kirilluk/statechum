@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -88,7 +90,7 @@ final public class DeterministicDirectedSparseGraph {
 		{
 			if (id == null) throw new IllegalArgumentException("invalid id");
 			idString = id;kind=VertKind.NONE;idInteger=0;
-			cachedHash = ~idString.hashCode(); // aims to ensure that "P5" and positive,5 have different hashes since we now consider them different.
+			cachedHash = ~idString.hashCode(); // aims to ensure that "P5" and positive 5 have different hashes since we now consider them different.
 		}
 		
 		/** When XML files are loaded, IDs are always textual, however we'd like
@@ -107,15 +109,23 @@ final public class DeterministicDirectedSparseGraph {
 			}
 			else*/
 			if (text.length() > 1)
-			{
+			{// Hash codes are assigned with the lowest bit not set. This permits clashes to be resolved with a limited amount of additional search, thus it is possible to mix string and integer IDs without a significant collision penalty.
 				if (text.charAt(0) == 'P')
+				{
 					tentativeKind = VertKind.POSITIVE;
+				}
 				else if (text.charAt(0) == 'N')
+				{
 					tentativeKind = VertKind.NEGATIVE;
+				}
 				else if (text.charAt(0) == '+')
+				{
 					tentativeKind = VertKind.NONEXISTING;
+				}
 				else if (text.charAt(0) == 'V')
+				{
 					tentativeKind = VertKind.NEUTRAL;
+				}
 				
 				if (tentativeKind != VertKind.NONE)
 					try
@@ -126,12 +136,28 @@ final public class DeterministicDirectedSparseGraph {
 					{// cannot parse, revert to text.
 						tentativeKind = VertKind.NONE;
 					}
+					
 			}
 			
 			if (tentativeKind == VertKind.NONE)
 				return new VertexID(text);
 			
 			return new VertexID(tentativeKind,id);
+		}
+		
+		
+		public static int hashFromID(VertKind kind, int id)
+		{
+			int value = 0;
+			switch(kind)
+			{
+			case POSITIVE:value = 0;break;
+			case NEGATIVE:value = 2;break;
+			case NONEXISTING:value=4;break;
+			default:value=6;
+			}
+			
+			return value | (id << 3);
 		}
 		
 		public int getIngegerID()
@@ -151,8 +177,6 @@ final public class DeterministicDirectedSparseGraph {
 			String result = null;
 			switch(kind)
 			{
-/*			case INIT:
-				result = initID;break;*/
 			case NEGATIVE:
 				result = "N"+idInteger;break;
 			case POSITIVE:
@@ -168,12 +192,29 @@ final public class DeterministicDirectedSparseGraph {
 			return result;
 		}
 		
+		
+		/** This is a special case constructor to set not only ID details but also the hashCode (which is declared final). Used to ensure that where all vertices fit in an array, a hashcode
+		 * can be used to map them to the appropriate slot. 
+		 * 
+		 * @param k type of vertex
+		 * @param i identification
+		 * @param hashCode hash code to use for this vertex, often set to i.
+		 */
+		@SuppressWarnings("unused")
+		private VertexID(VertKind k, int i, int hashCode)
+		{
+			if (k == VertKind.NONE) throw new IllegalArgumentException("invalid id kind");
+			idString = null;kind = k;idInteger=i;
+			cachedHash = hashCode;
+			assignStringID_ifNeeded();
+		}
+
 		public VertexID(VertKind k, int i)
 		{
 			if (k == VertKind.NONE) throw new IllegalArgumentException("invalid id kind");
 			idString = null;kind = k;idInteger=i;
-			cachedHash = getStringId().hashCode();
 			assignStringID_ifNeeded();
+			cachedHash = hashFromID(k, i);
 		}
 
 		@Override
@@ -262,7 +303,7 @@ final public class DeterministicDirectedSparseGraph {
 	}
 	
 	/** These are expected to be compared for equality using acceptance and IDs only,
-	 * not highlight or colour.
+	 * not highlight or colour. The {@link AbstractLearnerGraph#findVertex(VertexID)} method relies on this property to efficiently find a vertex with the supplied identifier. 
 	 */
 	public interface CmpVertex extends Comparable<CmpVertex> {
 		/** Returns an ID of this vertex. */

@@ -25,6 +25,7 @@
 
 
 AM_CFLAGS = -I../include -Iinclude @YICES_INCLUDES@ -DNDEBUG -Wall
+ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES		= libSMT_Yices.la
 libSMT_Yices_la_SOURCES     = yices_caller.c

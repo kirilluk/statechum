@@ -36,6 +36,7 @@
 	 callgraph   = dialyzer_callgraph:new() :: dialyzer_callgraph:callgraph(),
 	 ana_files   = []			:: [string()],   % absolute filenames
 	 plt         = none			:: 'none' | string(),
+
 	 
 	 %% Esp for TypEr
 	 %% ----------------------
@@ -44,6 +45,11 @@
 	 %% For choosing between contracts or comments
 	 contracts   = true			:: boolean(),
 	 
+	 no_spec    = false              :: boolean(),
+	 show_succ  = false              :: boolean(),
+	 %% For choosing between specs or edoc @spec comments
+	 edoc       = false		 :: boolean(),
+
 	 %% Any file in 'final_files' is compilable.
 	 %% And we need to keep it as {FileName,ModuleName}
 	 %% in case filename does NOT match with moduleName

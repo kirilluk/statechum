@@ -159,7 +159,8 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk1b3Fail()
 	{
 		final Set<Label> alphabet = new TreeSet<Label>();alphabet.addAll(labelList(new String[]{"b","c","d","e","f"}));
-		checkForCorrectException(new whatToRun() { @Override public void run() {
+		checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		@Override public void run() {
 			new RandomPathGenerator(simpleGraph,new Random(0),0,null,alphabet);
 		}},IllegalArgumentException.class,"does not include");
 	}

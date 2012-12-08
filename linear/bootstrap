@@ -26,11 +26,13 @@
 set -x
 libtoolize --force --copy
 aclocal -I config -I ../linear/m4
-cat /usr/local/soft/libtool-2.2/share/aclocal/libtool.m4>>aclocal.m4 
-cat /usr/local/soft/libtool-2.2/share/aclocal/ltoptions.m4 >>aclocal.m4 
-cat /usr/local/soft/libtool-2.2/share/aclocal/ltversion.m4>>aclocal.m4 
-cat /usr/local/soft/libtool-2.2/share/aclocal/ltsugar.m4>>aclocal.m4 
-cat /usr/local/soft/libtool-2.2/share/aclocal/lt~obsolete.m4>>aclocal.m4
+LIBTOOLFILES=/usr/share/aclocal
+[ -r /usr/local/soft/libtool-2.2 ] && LIBTOOLFILES=/usr/local/soft/libtool-2.2/share/aclocal
+#cat ${LIBTOOLFILES}/libtool.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltoptions.m4 >>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltversion.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltsugar.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/lt~obsolete.m4>>aclocal.m4
 automake --foreign --add-missing --force-missing  --copy
 autoconf -f
 

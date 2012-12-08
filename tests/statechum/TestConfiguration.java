@@ -78,9 +78,9 @@ public class TestConfiguration {
 		confB.setBumpPositives(true);confB.setLearnerIdMode(Configuration.IDMode.NONE);confB.setDefaultInitialPTAName("test");
 		confC.setBumpPositives(true);confC.setLearnerIdMode(Configuration.IDMode.NONE);confC.setDefaultInitialPTAName("a");
 		confD.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-		equalityTestingHelper(confA, confB, confC, confD);
+		equalityTestingHelper(confA, confB, confC, confD, true);
 		confC.setDefaultInitialPTAName("test");confA.setDefaultInitialPTAName("b");
-		equalityTestingHelper(confC, confB, confA, confD);
+		equalityTestingHelper(confC, confB, confA, confD, true);
 	}
 	
 	@Test
@@ -91,14 +91,14 @@ public class TestConfiguration {
 		confA.setBumpPositives(true);confA.setLearnerIdMode(Configuration.IDMode.NONE);confA.setDefaultInitialPTAName("test");
 		confC.setBumpPositives(true);confC.setLearnerIdMode(Configuration.IDMode.NONE);confC.setDefaultInitialPTAName("a");
 		Configuration confClone = confA.copy();
-		equalityTestingHelper(confA, confClone, confC, confD);
+		equalityTestingHelper(confA, confClone, confC, confD, true);
 		
 		confClone.setDefaultInitialPTAName("avalue");// mess up the clone
-		equalityTestingHelper(confA, confA, confClone, confD);
-		equalityTestingHelper(confA.copy(), confA, confClone, confD);
+		equalityTestingHelper(confA, confA, confClone, confD, true);
+		equalityTestingHelper(confA.copy(), confA, confClone, confD, true);
 		
 		confA.setDefaultInitialPTAName("avalue");// mess up the original the same way as the clone was messed up
-		equalityTestingHelper(confA, confClone, confC, confD);
+		equalityTestingHelper(confA, confClone, confC, confD, true);
 	}
 
 	@Test

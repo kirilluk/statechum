@@ -116,7 +116,7 @@ public class RandomPathGenerator {
 	}
 	
 	public static int diameter(LearnerGraph graph)
-	{// TODO: to rewrite using a flowgraph or not, given that this is only used once per experiment? 
+	{// Decided not to rewrite using a flowgraph or not, given that this is only used once per experiment. 
 		DirectedSparseGraph g = graph.pathroutines.getGraph();
 		DijkstraDistance dd = new DijkstraDistance(g);
 		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(g)).values();

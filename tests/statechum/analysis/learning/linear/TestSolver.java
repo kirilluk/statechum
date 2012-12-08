@@ -98,7 +98,7 @@ public class TestSolver {
 		for(int i=0;i<s.j_b.length;++i) x.setQuick(i, s.j_b[i]);
 		
 		// Test 1
-		s.solveExternally();
+		s.solveExternally(1);
 		for(int i=0;i<testMatrix.rows();++i)
 			Assert.assertEquals(i+1, s.j_x[i],Configuration.fpAccuracy);
 		verifyAxb(s);
@@ -134,6 +134,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -155,6 +156,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -177,6 +179,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"too few");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -198,6 +201,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -219,6 +223,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -240,6 +245,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -261,6 +267,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -282,6 +289,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
+			@SuppressWarnings("unused")
 			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -300,7 +308,7 @@ public class TestSolver {
 		
 		checkForCorrectException(new whatToRun() {
 			public @Override void run() throws NumberFormatException {
-				solver.solveExternally();
+				solver.solveExternally(1);
 			}
 		}, IllegalArgumentException.class,"singular");		
 
@@ -381,7 +389,7 @@ public class TestSolver {
 		verifyAxb(matrix, b, vector);
 		
 		tmStarted = new Date().getTime();
-		solver.solveExternally();
+		solver.solveExternally(1);
 		tmFinished = new Date().getTime();
 		System.out.println(" time taken: "+((double)tmFinished-tmStarted)/1000);		
 		for(int i=0;i<matrix.rows();++i)
@@ -478,7 +486,7 @@ public class TestSolver {
 	{
 		LSolver solver = buildSolver(10000,4);
 		long tmStarted = new Date().getTime();
-		solver.solveExternally();
+		solver.solveExternally(1);
 		long tmFinished = new Date().getTime();
 		System.out.println("time taken: "+((double)tmFinished-tmStarted)/1000);
 		verifyAxb(solver);
@@ -487,6 +495,6 @@ public class TestSolver {
 	@Test
 	public final void testLargeMatrix2()
 	{
-		LSolver solver = buildSolver(15000,3);solver.solveExternally();verifyAxb(solver);
+		LSolver solver = buildSolver(15000,3);solver.solveExternally(1);verifyAxb(solver);
 	}
 }

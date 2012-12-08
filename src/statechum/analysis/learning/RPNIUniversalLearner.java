@@ -235,7 +235,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			PairScore pair = possibleMerges.pop();
 			final LearnerGraph temp = topLevelListener.MergeAndDeterminize(getTentativeAutomaton(), pair);
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
-			int score = pair.getScore();
+			long score = pair.getScore();
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA and restart learning.
 
 			if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
@@ -613,21 +613,21 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * FIXME: there is no support for LTL/IFTHEN/IGNORE in this method.
 	 * @return true if question answering has been cancelled by a user.
 	 */
-	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph ptaHardFacts)
+	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph argHardFacts)
 	{
 		JUConstants colourToAugmentWith = getTentativeAutomaton().config.getUseAmber()? JUConstants.AMBER:null;
 
 		while(!possibleMerges.isEmpty())
 		{
 			PairScore pair = possibleMerges.pop();
-			int score = pair.getScore();
+			long score = pair.getScore();
 
 			if(shouldAskQuestions(score))
 			{
 				LearnerGraph tempNew = null;
 				try
 				{
-					tempNew = topLevelListener.MergeAndDeterminize(ptaHardFacts, pair);
+					tempNew = topLevelListener.MergeAndDeterminize(argHardFacts, pair);
 				}
 				catch(IllegalArgumentException ex)
 				{// ignore - tempNew is null anyway					
@@ -635,11 +635,11 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				if (tempNew != null) // merge successful - it would fail if our updates to newPTA have modified tentativeAutomaton (the two are often the same graph)
 				{					
-					for(List<Label> question:topLevelListener.ComputeQuestions(pair, ptaHardFacts, tempNew))
+					for(List<Label> question:topLevelListener.ComputeQuestions(pair, argHardFacts, tempNew))
 					{
 						List<Boolean> acceptedElements = null;
 						if (getTentativeAutomaton().config.isUseConstraints())
-							acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
+							acceptedElements = PathRoutines.mapPathToConfirmedElements(argHardFacts,question,ifthenAutomata);
 						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(getTentativeAutomaton(),question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,pair,new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
@@ -649,14 +649,14 @@ public class RPNIUniversalLearner extends RPNILearner
 						
 						if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 						{
-							topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
+							topLevelListener.AugmentPTA(argHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
 						}
 						else 
 							if(answer.firstElem >= 0)
 							{// The sequence has been rejected by a user
 								assert answer.firstElem < question.size();
 								LinkedList<Label> subAnswer = new LinkedList<Label>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
-								topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
+								topLevelListener.AugmentPTA(argHardFacts,RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
 							}
 					}
 				}

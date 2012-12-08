@@ -41,7 +41,8 @@ public class LearningConvergenceObserver extends DummyLearner {
 	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		computeProgress(original);
-		return decoratedLearner.ComputeQuestions(pair, original, temp);
+		List<List<Label>> outcome = decoratedLearner.ComputeQuestions(pair, original, temp);
+		return outcome;
 	}
 
 	@Override 
@@ -69,7 +70,6 @@ public class LearningConvergenceObserver extends DummyLearner {
 	{
 		assert lastProgress >= 0.;
 		progressObserved.add(lastProgress);
-		System.out.println(lastProgress);
 		lastProgress=-1;
 	}
 	

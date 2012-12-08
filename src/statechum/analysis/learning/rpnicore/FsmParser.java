@@ -198,7 +198,7 @@ public class FsmParser
 	 * @return Jung graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static DirectedSparseGraph buildGraph(String fsm,String name,Configuration config)
+	public final static DirectedSparseGraph buildGraph(String fsm,String name,final Configuration config)
 	{
 		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
 		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
@@ -270,7 +270,7 @@ public class FsmParser
 				PairCompatibility<Vertex> pairCompatibility = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
 				if (pairCompatibility == null)
 				{
-					pairCompatibility = new PairCompatibility<Vertex>();
+					pairCompatibility = new PairCompatibility<Vertex>(config.getMaxStateNumber());
 					g.addUserDatum(JUConstants.PAIR_COMPATIBILITY, pairCompatibility, UserData.SHARED);
 				}
 				if (!existingVertices.containsKey(stateA))

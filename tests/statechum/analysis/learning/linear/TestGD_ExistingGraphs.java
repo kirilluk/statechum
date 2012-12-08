@@ -33,20 +33,24 @@ import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+
 import statechum.Configuration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
+import statechum.Configuration.STATETREE;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.linear.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -139,7 +143,7 @@ public class TestGD_ExistingGraphs {
 	 */
 	static Configuration computeConfig(double ratio)
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		config.setGdKeyPairThreshold(.75);
 		if (ratio > 0)
 			config.setGdLowToHighRatio(ratio);
@@ -233,7 +237,7 @@ public class TestGD_ExistingGraphs {
 					grB = loadedB1;
 			}
 			
-			gd.init(grA, grB, 1,config);
+			gd.init(grA, grB, ExperimentRunner.getCpuNumber(),config);
 		}
 		catch(IOException ex)
 		{
@@ -248,8 +252,28 @@ public class TestGD_ExistingGraphs {
 		gr.pathroutines.addIncompatiblesRandomly(rnd,6);
 		gr.pathroutines.addMergedRandomly(rnd,6);
 	}
-	
-	public final void runPatch(File fileA, File fileB)
+
+	static ScoresLogger scoresLogger = new ScoresLogger();
+
+	@BeforeClass
+	public static void loadLog()
+	{
+		scoresLogger.loadMap();
+	}
+
+/*
+	@After
+	public void save()
+	{
+		scoresLogger.saveMap();
+	}
+	@AfterClass
+	public static void saveLogIfNeeded()
+	{
+		scoresLogger.saveMap();
+	}
+ */
+	public final void runPatch(File fileA, File fileB,boolean checkScores)
 	{
 		try
 		{
@@ -262,6 +286,7 @@ public class TestGD_ExistingGraphs {
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
 			
 			gd.init(grA, grB, threadNumber,config);
+			if (checkScores) scoresLogger.check(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA,fileB), gd.serialiseScores());
 			gd.identifyKeyPairs();
 			if (!gd.fallbackToInitialPair) addPairsRandomly(gd,pairsToAdd);
 			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
@@ -285,14 +310,14 @@ public class TestGD_ExistingGraphs {
 	public final void testGD_AB_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runPatch(graphA, graphB);
+		runPatch(graphA, graphB,true);
 	}
 	
 	@Test
 	public final void testGD_BA_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runPatch(graphB, graphA);
+		runPatch(graphB, graphA,true);
 	}
 	
 	@Test
@@ -300,7 +325,7 @@ public class TestGD_ExistingGraphs {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
 		config.setGdPropagateDet(false);
-		runPatch(graphB, graphA);
+		runPatch(graphB, graphA,false);
 	}
 	
 	final int NumberOfSequences=50,PathLength=10;
@@ -311,7 +336,7 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
 		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
-		runPatch(graphA, graphB);
+		runPatch(graphA, graphB,false);
 	}
 	
 	@Test
@@ -321,7 +346,7 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
 		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
 		config.setGdPropagateDet(false);
-		runPatch(graphA, graphB);
+		runPatch(graphA, graphB,false);
 	}
 	
 	@Test
@@ -330,7 +355,7 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
 		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
-		runPatch(graphB, graphA);
+		runPatch(graphB, graphA,false);
 	}
 	
 	@Test
@@ -339,7 +364,7 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
 		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
-		runPatch(graphA, graphB);
+		runPatch(graphA, graphB,false);
 	}
 	
 	@Test
@@ -348,7 +373,7 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
 		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
-		runPatch(graphB, graphA);
+		runPatch(graphB, graphA,false);
 	}
 
 	@Test

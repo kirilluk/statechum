@@ -53,6 +53,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.StringVertex;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.StatePair;
@@ -1375,6 +1376,7 @@ public class TestWMethod {
 	@Test
 	public final void testVertexToInt2()
 	{
+		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraph textGraph = buildLearnerGraph("A-a->A-b->B-c->C","testCheckGraphNumeric",config);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = AbstractPathRoutines.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<Label>())));

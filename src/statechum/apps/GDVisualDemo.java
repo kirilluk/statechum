@@ -39,11 +39,11 @@ import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
  */
 public class GDVisualDemo
 {
-	public static DirectedSparseGraph obtainDifferenceGraph(String graphA, String graphB,int counter,boolean display)
+	public static DirectedSparseGraph obtainDifferenceGraph(String graphA, String graphB,int counter,boolean display, Configuration config)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
-		Configuration config = Configuration.getDefaultConfiguration();
+
 		LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config),grB=
 		buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config);
 		DirectedSparseGraph gr = gd.showGD(
@@ -60,6 +60,7 @@ public class GDVisualDemo
 	public static void main(String str[])
 	{// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
 	
+		@SuppressWarnings("unchecked")
 		Pair<String,String> [] pairs=new Pair[] {
 				
 				new Pair<String,String>(
@@ -106,7 +107,7 @@ public class GDVisualDemo
 				//new Pair<String,String>("A-a->B-a-#C / A-b->D", "P-a->Q-a-#R / S-c-#R"),
 				};
 		int position=0;
-		obtainDifferenceGraph(pairs[position].firstElem, pairs[position].secondElem, position,true);
+		obtainDifferenceGraph(pairs[position].firstElem, pairs[position].secondElem, position,true, Configuration.getDefaultConfiguration());
 		
 	}
 }

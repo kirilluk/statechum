@@ -72,7 +72,7 @@ public enum JUConstants {
 		 * @param compat value to convert
 		 * @return resulting value
 		 */
-		public static PAIRCOMPATIBILITY compatibilityToJUConstants(int compat)
+		public static PAIRCOMPATIBILITY compatibilityToJUConstants(long compat)
 		{
 			PAIRCOMPATIBILITY result = null;
 			if (compat == PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger()) result = PAIRCOMPATIBILITY.INCOMPATIBLE;

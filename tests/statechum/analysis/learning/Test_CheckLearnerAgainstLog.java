@@ -19,7 +19,7 @@ package statechum.analysis.learning;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -67,7 +68,8 @@ public class Test_CheckLearnerAgainstLog
 	{
 		try {
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
+			final java.io.FileInputStream inputStream = new java.io.FileInputStream(logFileName);
+			final LearnerSimulator simulator = new LearnerSimulator(inputStream,true);
 			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
 			final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
@@ -95,6 +97,8 @@ public class Test_CheckLearnerAgainstLog
 			recorder.writeLearnerEvaluationData(evalData);
 			learner2.setTopLevelListener(recorder);
 			recorder.learnMachine(initial.plus, initial.minus);
+			inputStream.close();
+			out.close();
 		} catch (java.io.IOException e) {
 			statechum.Helper.throwUnchecked("failure reading/writing log files", e);
 		}
@@ -106,18 +110,20 @@ public class Test_CheckLearnerAgainstLog
 	 * <li>checks most arguments and return values of most methods called by a learner against values recorded in the log.</li>
 	 * </ul> 
 	 * @param logFileName log to play
-	 * @throws FileNotFoundException if log is not where it should be.
+	 * @throws IOException 
 	 */
-	public void check(String logFileName) throws FileNotFoundException
+	public void check(String logFileName) throws IOException
 	{
 		// now a simulator to a learner
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;// this is a major change in a configuration of learners, affecting the comparison between vertex IDs 
 
-		final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
+		final java.io.FileInputStream inputStream = new java.io.FileInputStream(logFileName);
+		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true);
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setLegacyXML(true);
 		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
+		evalData.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		
 		// Now we need to choose learner parameters based on the kind of file we are given
 		// (given the pace of Statechum evolution, I cannot expect all the correct options
@@ -265,6 +271,7 @@ public class Test_CheckLearnerAgainstLog
 		new Test_LearnerComparator(learner2,simulator,!evalData.config.isIgnoreVertexAttributesInLogReplay()).learnMachine(initial.plus, initial.minus);
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_NORM;// reset this one if needed.
+		inputStream.close();
 	}
 
 	protected final static String pathToLogFiles = "resources/logs";
@@ -298,7 +305,7 @@ public class Test_CheckLearnerAgainstLog
 	}
 	
 	@Test
-	public final void testAgainstLog() throws FileNotFoundException
+	public final void testAgainstLog() throws IOException
 	{
 		check(logFileToProcess.getAbsolutePath());
 	}

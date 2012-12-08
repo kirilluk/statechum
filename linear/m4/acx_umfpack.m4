@@ -61,10 +61,10 @@
 AC_DEFUN([ACX_UMFPACK_CHECKUMF],[
 	acx_umfpack_include_ok=no
 	UMFDIR=[$1]
-	UMFPACK_INCLUDES="-I$UMFDIR/UMFPACK/Include -I$UMFDIR/UFconfig -I$UMFDIR/AMD/Include $BLAS_DIR"
+	UMFPACK_INCLUDES="-I$UMFDIR/include -I$UMFDIR/UMFPACK/Include -I$UMFDIR/UFconfig -I$UMFDIR/AMD/Include $BLAS_DIR"
 
 	for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS;do UMFPACK_INCLUDES="$UMFPACK_INCLUDES -I$JNI_INCLUDE_DIR";done
-	UMFPACK_LIBS="-L$UMFDIR/UMFPACK/Lib -L$UMFDIR/AMD/Lib -lumfpack -lamd $BLAS_LIBS"
+	UMFPACK_LIBS="-L$UMFDIR/lib -L$UMFDIR/UMFPACK/Lib -L$UMFDIR/AMD/Lib -lumfpack -lamd -lsuitesparseconfig -lcholmod -lcolamd $LIBRT -lm $BLAS_LIBS"
 	save_CPPFLAGS="$CPPFLAGS"; CPPFLAGS="$CPPFLAGS $UMFPACK_INCLUDES"
 	save_LIBS="$LIBS"; LIBS="$UMFPACK_LIBS $LIBS"
 	AC_CHECK_HEADER(umfpack.h,
@@ -135,6 +135,8 @@ case $with_umfpack in
 	no) acx_umfpack_ok=disable ;;
 	*) UMFPACK_ROOT="$with_umfpack" ;;
 esac
+
+AC_CHECK_LIB([rt],[aio_cancel],[LIBRT=-lrt],[LIBRT=])
 
 acx_umfpack_save_LIBS="$LIBS"
 

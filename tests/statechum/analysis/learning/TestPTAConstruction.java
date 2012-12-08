@@ -71,8 +71,8 @@ public class TestPTAConstruction
 		checkM(expectedPTA,actualA, config);
 		checkM(expectedPTA,actualC, config);
 	}
-
-	private static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
+	
+	public static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
 	{
 		final Boolean accept = new Boolean(true), reject = new Boolean(false);
 		boolean theOnlyStateReject = false;

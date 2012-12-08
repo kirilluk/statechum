@@ -53,7 +53,7 @@ public class ScoreMatrixOutput {
 	private static void writeMatrix(List<PairScore> ps, List<StringVertex> stateLabelsA, List<StringVertex> stateLabelsB, String name){
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File output  = new File(fileRef);
-		int[][] matrix = new int[stateLabelsA.size()][stateLabelsB.size()];
+		long[][] matrix = new long[stateLabelsA.size()][stateLabelsB.size()];
 		//int max = 0;
 		for (PairScore p : ps) {
 			int indexA = stateLabelsA.indexOf(p.getQ());
@@ -67,7 +67,7 @@ public class ScoreMatrixOutput {
 		OutputUtil.write(matrixString, output);
 	}
 	
-	private static String matrixToString(int[][] matrix, List<StringVertex>stateLabelsA, List<StringVertex>stateLabelsB){
+	private static String matrixToString(long[][] matrix, List<StringVertex>stateLabelsA, List<StringVertex>stateLabelsB){
 		String s = ",";
 		for(int i=0;i<stateLabelsB.size();i++){
 			if(i<stateLabelsB.size()-1)

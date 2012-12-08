@@ -246,7 +246,7 @@ public class TestSmtLabelRepresentation {
 		}
 		SmtLabelRepresentation lblsDiffB = new SmtLabelRepresentation(config);
 		lblsDiffB.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
-		TestEqualityComparisonAndHashCode.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB);
+		TestEqualityComparisonAndHashCode.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB, true);
 	}
 
 	public final String __P = SmtLabelRepresentation.delimiterString,__N = SmtLabelRepresentation.delimiterString+"-";
@@ -696,7 +696,8 @@ public class TestSmtLabelRepresentation {
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		public @Override void run() {
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),null,
 					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
 							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,7);
@@ -711,7 +712,8 @@ public class TestSmtLabelRepresentation {
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,null,null,7);
 		}},IllegalArgumentException.class, "previous state");
@@ -725,7 +727,8 @@ public class TestSmtLabelRepresentation {
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,null,
 					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,7);

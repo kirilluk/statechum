@@ -46,6 +46,7 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
+import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -100,7 +101,7 @@ public class TestLinearWithMultipleThreads {
 	@Before
 	public void reassignConfiguration()
 	{
-		config = Configuration.getDefaultConfiguration().copy();
+		config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 	}
 	
 	protected DoubleMatrix1D getExpectedMatrix1DSlowly(LearnerGraph gr)
@@ -189,7 +190,7 @@ public class TestLinearWithMultipleThreads {
 		if (expectedAx != null) Assert.assertEquals(expectedAx, Ax);
 		DoubleMatrix1D b=solver.toDoubleMatrix1D();
 		if (expectedB != null) Assert.assertEquals(expectedB, b);Assert.assertEquals(getExpectedMatrix1DSlowly(gr),b);
-		solver.solveExternally();// check if we have a solution, just in case it fails.
+		solver.solveExternally(1);// check if we have a solution, just in case it fails.
 
 		// Now check consistency.
 		gr.config.setAttenuationK_testOnly(1);DoubleMatrix2D Ax1 = ndGraph.buildMatrix(ThreadNumber).toDoubleMatrix2D();

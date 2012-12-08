@@ -1360,7 +1360,7 @@ public class GDLearnerGraph
 				}
 				
 				@Override
-				public void solve()
+				public void solve(int threads)
 				{// a dummy method
 				}
 			};
@@ -1379,7 +1379,7 @@ public class GDLearnerGraph
 		final int [] incompatiblePairs = new int[getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
-		solver.solve();
+		solver.solve(ThreadNumber);
 		solver.freeAllButResult();// deallocate memory before creating a large array.
 		double statePairScores[] = new double[incompatiblePairs.length];
 		// now fill in the scores in the array.

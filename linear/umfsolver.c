@@ -34,6 +34,7 @@
 #endif
 
 #include <memory.h>
+#include "cblas.h"
 #include "umfpack.h"
 #include "solver.h"
 
@@ -277,6 +278,21 @@ STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_setIRStep)(
   Control_IRSTEP = j_n;
   return JNI_TRUE;
 }
+
+JNIEXPORT jboolean JNICALL
+STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_setThreadNumber)(
+   JNIEnv *j_env,        //interface pointer
+   jclass j_cls,        // "this" pointer
+   jint j_n)
+{
+#ifdef HAVE_SETTHREADS
+  openblas_set_num_threads(j_n);
+  return JNI_TRUE;
+#else
+  return JNI_FALSE;
+#endif
+}
+
 
 JNIEXPORT jboolean JNICALL
 STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_extmalloc)(

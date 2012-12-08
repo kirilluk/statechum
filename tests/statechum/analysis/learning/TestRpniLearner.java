@@ -205,7 +205,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), g));
 		StatePair pairNew = new StatePair(s.findVertex(new VertexID("B")),s.findVertex(new VertexID("A")));
 		doneEdges = new HashSet<DirectedSparseEdge>();
-		int origScore = computeScore(g, pairOrig),
+		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew);
 		Assert.assertEquals(-1, origScore);
 		Assert.assertEquals(-1, newScoreA);
@@ -241,7 +241,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		
 		
 		doneEdges = new HashSet<DirectedSparseEdge>();
-		int origScore = computeScore(g, pairOrig),
+		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
 			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
@@ -1018,7 +1018,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		}
 		Stack<? extends StatePair> pairs = chooser.choosePairs();
 
-		Map<Integer,Set<PairScore>> distribution = new HashMap<Integer,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
+		Map<Long,Set<PairScore>> distribution = new HashMap<Long,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
 
 		Set<Set<String>> expectedRedsAsSet = new HashSet<Set<String>>();
 		for(int i=0;i<expectedReds.length;++i) 
@@ -1040,13 +1040,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			}
 			currScore.add(ps);
 		}
-		int lastScore = -1;
+		long lastScore = -1;
 		for(StatePair elem:pairs)
 		{
 			doneEdges = new HashSet<DirectedSparseEdge>();
 			DeterministicVertex origBlue = DeterministicDirectedSparseGraph.findVertexNamed(elem.getQ().getID(), g);
 			DeterministicVertex origRed = DeterministicDirectedSparseGraph.findVertexNamed(elem.getR().getID(), g);
-			int currentScore = computeScore(g, new OrigStatePair(origBlue,origRed));// This one returns vertices from g, but elem may easily contain StringVertices and such, hence convert elem to Vertex-pair.
+			long currentScore = computeScore(g, new OrigStatePair(origBlue,origRed));// This one returns vertices from g, but elem may easily contain StringVertices and such, hence convert elem to Vertex-pair.
 			PairScore elA = constructPairScore(elem.getQ().getID().toString(),elem.getR().getID().toString(),currentScore, testConfig);
 			PairScore elB = constructPairScore(elem.getR().getID().toString(),elem.getQ().getID().toString(),currentScore, testConfig);
 			Assert.assertTrue(elem.getR().getColour() == JUConstants.RED);
@@ -1178,11 +1178,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				s.findVertex(new VertexID("A")));
 		doneEdges = new HashSet<DirectedSparseEdge>();
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);s.setMaxScore(maxScoreConstant-1);
-		int origScore = computeScore(g, pairOrig),
+		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew);
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.COMPATIBILITY);
-		int newScoreC = s.pairscores.computePairCompatibilityScore(pairNew);
+		long newScoreC = s.pairscores.computePairCompatibilityScore(pairNew);
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
 		assertEquals(expectedComputedScore, origScore); 
 		assertEquals(expectedComputedScore, newScoreA);

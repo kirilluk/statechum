@@ -63,8 +63,8 @@ public class TestWriteReadPair {
 	
 	public static String pairToXML(PairScore pair)
 	{
-		String otherScore = pair.getAnotherScore() == JUConstants.intUNKNOWN?"":" "+StatechumXML.ATTR_OTHERSCORE.name()+"=\""+Integer.toString(pair.getAnotherScore())+"\"";
-		String mainScore = pair.getScore() == JUConstants.intUNKNOWN?"":" "+StatechumXML.ATTR_SCORE.name()+"=\""+Integer.toString(pair.getScore())+"\"";
+		String otherScore = pair.getAnotherScore() == JUConstants.intUNKNOWN?"":" "+StatechumXML.ATTR_OTHERSCORE.name()+"=\""+Long.toString(pair.getAnotherScore())+"\"";
+		String mainScore = pair.getScore() == JUConstants.intUNKNOWN?"":" "+StatechumXML.ATTR_SCORE.name()+"=\""+Long.toString(pair.getScore())+"\"";
 		return "< "+StatechumXML.ELEM_PAIR+otherScore+" "+
 			StatechumXML.ATTR_Q.name()+"=\""+pair.getQ().getID().toString()+"\" "+
 			StatechumXML.ATTR_R.name()+"=\""+pair.getR().getID().toString()+"\""+

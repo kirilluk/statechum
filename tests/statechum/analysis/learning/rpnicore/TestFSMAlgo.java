@@ -1175,7 +1175,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL1()
 	{
-		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraph graph = new LearnerGraph(config);
 		graph.initEmpty();
 		Assert.assertEquals("0 0\n",graph.pathroutines.toADL());
 	}
@@ -1183,7 +1184,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL2()
 	{
-		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraph graph = new LearnerGraph(config);
 		graph.initPTA();
 		Assert.assertEquals("1 0\nP1000 true true\n",graph.pathroutines.toADL());
 	}
@@ -1191,7 +1193,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL3()
 	{
-		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraph graph = new LearnerGraph(config);
 		graph.initPTA();graph.getInit().setAccept(false);
 		Assert.assertEquals("1 0\nP1000 true false\n",graph.pathroutines.toADL());
 	}
@@ -1199,7 +1202,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL4()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B","testtoADL4",Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B","testtoADL4",config);
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 2\nA true false\nB false true\nA A a\nA B a\n",graph.pathroutines.toADL());
 	}
@@ -1207,7 +1211,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL5()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B","testtoADL4",Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B","testtoADL4",config);
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 3\nA true false\nB false true\nA A a\nA B a\nA B b\n",graph.pathroutines.toADL());
 	}
@@ -1215,7 +1220,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL6()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",config);
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("3 5\nA true false\nB false true\nC false false\nA A a\nA B a\nA B b\nB A b\nB C c\n",graph.pathroutines.toADL());
 	}
@@ -1223,7 +1229,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL7()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",Configuration.getDefaultConfiguration());
+		config.setUseOrderedEntrySet(true);
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",config);
 		Assert.assertEquals("3 5\nA true true\nB false true\nC false false\nA A a\nA B a\nA B b\nB A b\nB C c\n",graph.pathroutines.toADL());
 	}
 	

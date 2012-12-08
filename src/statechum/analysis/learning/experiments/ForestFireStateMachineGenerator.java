@@ -118,7 +118,7 @@ public class ForestFireStateMachineGenerator {
 					machine.addVertex(v);
 					vertices.add(v);// permits v to be chosen as a target, creating self-loops
 					this.labelmap.put(v.getID(), v);
-					Set<DeterministicVertex> tried = new HashSet<DeterministicVertex>();
+					Set<DeterministicVertex> tried = new TreeSet<DeterministicVertex>();
 					tried.add(v);
 					DeterministicVertex random = null;
 					do
@@ -168,7 +168,7 @@ public class ForestFireStateMachineGenerator {
 	 */
 	protected DeterministicVertex selectRandom(Set<DeterministicVertex> blocked)
 	{
-		Set<DeterministicVertex> available = new HashSet<DeterministicVertex>();available.addAll(vertices);
+		Set<DeterministicVertex> available = new TreeSet<DeterministicVertex>();available.addAll(vertices);
 		if (blocked != null) available.removeAll(blocked);
 		if (available.isEmpty()) throw new IllegalArgumentException("no vertices to select from");
 		DeterministicVertex availableArray[] = new DeterministicVertex[available.size()];available.toArray(availableArray);

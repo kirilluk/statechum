@@ -29,6 +29,7 @@ import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -156,8 +157,28 @@ public class TestGD_ExistingGraphsND {
 		return graphA+"+"+graphB+"-"+graphC+"+"+graphD+" ["+threadNumber+" threads] ";
 	}
 	
+	static ScoresLogger scoresLogger = new ScoresLogger();
+/*
+	@After
+	public void save()
+	{
+		scoresLogger.saveMap();
+	}
+	@AfterClass
+	public static void saveLogIfNeeded()
+	{
+		scoresLogger.saveMap();
+	}
+ */
+	
+	@BeforeClass
+	public static void loadLog()
+	{
+		scoresLogger.loadMap();
+	}
+
 	/** This one assembles a non-deterministic version of the graphs and checks that things still work. */
-	public final void runNDPatch(File fileA1, File fileA2, File fileB1, File fileB2)
+	public final void runNDPatch(File fileA1, File fileA2, File fileB1, File fileB2,boolean checkScores)
 	{
 		try
 		{
@@ -183,6 +204,7 @@ public class TestGD_ExistingGraphsND {
 			ChangesRecorder patcher = new ChangesRecorder(null);
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
 			gd.init(grA, grB, threadNumber,config);
+			if (checkScores) scoresLogger.check(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA1,fileA2,fileB1,fileB2), gd.serialiseScores());
 			gd.identifyKeyPairs();
 			if (!gd.fallbackToInitialPair) TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
 			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
@@ -209,14 +231,14 @@ public class TestGD_ExistingGraphsND {
 	public final void testGD_AB_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runNDPatch(graphA, graphB, graphC, graphD);
+		runNDPatch(graphA, graphB, graphC, graphD, true);
 	}
 	
 	@Test
 	public final void testGD_BA_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runNDPatch(graphC, graphD, graphA, graphB);
+		runNDPatch(graphC, graphD, graphA, graphB, true);
 	}
 	
 	@Test
@@ -224,7 +246,7 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphA, graphB, graphC, graphD);
+		runNDPatch(graphA, graphB, graphC, graphD, false);
 	}
 	
 	@Test
@@ -232,6 +254,6 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphA, graphB, graphC, graphD);
+		runNDPatch(graphA, graphB, graphC, graphD, false);
 	}
 }

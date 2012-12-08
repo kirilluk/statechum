@@ -19,14 +19,11 @@
 package statechum.analysis.learning;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
-import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

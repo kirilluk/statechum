@@ -17,6 +17,7 @@
  */
 package statechum.analysis.learning.rpnicore;
 
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
 import cern.colt.matrix.DoubleFactory1D;
@@ -39,7 +40,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * <pre>
 * and run (replacing the prefix path with the one where you'd like Atlas to be installed)
 * <pre>  
-* ../configure --prefix=/usr/local/soft/atlas-3.8.1 -Fa alg -fPIC
+* ../configure --prefix=/usr/local/soft/atlas-3.10.1 -Fa alg -fPIC
 * </pre>
 * Note: on Win32 with cygwin, 
 * <ul>
@@ -68,25 +69,25 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * Note that when building starts, you need an unloaded PC for it to collect the 
 * relevant times for self-optimising. For this reason,
 * <pre>
-* cpufreq-selector -c 0 -g performance
-* cpufreq-selector -c 1 -g performance
+* cpufreq-selector -g performance
 * </pre>
 * might help to disable power-saving (Atlas calls it "CPU throttling" and 
-* attempts to detect it).
+* attempts to detect it).  
 * </li>
 * 
-* <li>You need UMFPACK, {@link http://www.cise.ufl.edu/research/sparse/umfpack/}
-* which includes AMD and UFconfig. These three need to be uncompressed
+* <li>You need UMFPACK, {@link http://www.cise.ufl.edu/research/sparse/umfpack/}. Packages to download are
+* AMD, COLAMD, CHOLMOD and SuiteSparse_config. These need to be uncompressed
 * starting from the same directory.
 * Subsequently, configuration needs to be set. The file to edit is 
 * <pre> 
-* UFconfig/UFconfig.mk
+* SuiteSparse_config/SuiteSparse_config.mk
 * </pre>
+* (or any other depending on whether you use a Mac or GPU.
 * It has to have the following two lines included (which would usually replace
 * the appropriate lines in the file rather than be added at the end):
 * <pre>
-* UMFPACK_CONFIG = -DNO_TIMER -fPIC
-* BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lgfortran
+* UMFPACK_CONFIG = -fPIC
+* BLAS = -L/usr/local/soft/atlas-3.10.1/lib -lf77blas -latlas -lgfortran
 * </pre>
 * Note the reference to the Atlas installation directory. You may also wish 
 * to replace -llf77blas with -lptf77blas, but it should not affect anything.
@@ -106,7 +107,16 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * <pre>
 * BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lg2c
 * </pre>
-* Subsequently, running make in the UMFPACK directory will build UMFPACK (and AMD).
+* Subsequently, running make in the UMFPACK directory will build UMFPACK (and other libraries).
+* Most likely, you will have to run 
+* <pre>
+* make install 
+* </pre> 
+* in all of AMD/CHOLMOD/COLAMD/SuiteSparse_config/UMFPACK in order to get all the files installed. Without them, it will not be possible to build libStatechumsolver
+* The best way to do this is via
+* <pre>
+* for D in AMD CHOLMOD COLAMD SuiteSparse_config UMFPACK;do (cd $D;make install );done
+* </pre>
 * </li>
 * 
 * <li>If files
@@ -119,7 +129,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * Building the interface involves running
 * <pre>
 * cd linear
-* ./configure --with-blasdir=/usr/local/soft/atlas-3.8.1/lib --with-umfpack=/usr/local/src/umfpack && make
+* ./configure --with-blasdir=/usr/local/soft/atlas-3.10.1/lib --with-umfpack=/usr/local/src/umfpack && make
 * </pre>
 * Note that the above includes both Atlas directory and the one into which 
 * UMFPACK was extracted. Subsequently, running make should build the library.
@@ -127,7 +137,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * If gcc has gcj installed, Sun JDK may include a jni_md.h which will pick gcc's jni_md.h rather than Sun's one and give
 * an error about a boolean. The solution is to do something like 
 * <pre>
-* CC='gcc -I/usr/local/soft/jdk1.6.0_16/include/linux/' sh ./configure --with-blasdir=/usr/local/soft/atlas-3.8.3 --with-umfpack=/usr/local/src/umfpack/
+* CC='gcc -I/usr/local/soft/jdk1.6.0_16/include/linux/' sh ./configure --with-blasdir=/usr/local/soft/atlas-3.10.1 --with-umfpack=/usr/local/src/umfpack/
 * </pre>
 * <p>
 * On Win32 with cygwin's gcc version 3, this will not work because libtool will not link to static libraries
@@ -223,6 +233,54 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * It is worth noting that the full path of the interface is encoded in the shared libraries hence
 * moving this interface is only possible if libraries are rebuilt. For this reason, LSolver
 * is stuck in the rpnicore rather than in learner/linear. 
+* 
+* Instructions for building OpenBLAS on Linux,
+* Uncompress the .zip, then from the main directory run
+* <pre>
+* make PREFIX=/usr/local/soft/OpenBLAS-be853da DYNAMIC_ARCH=1 UTEST_CHECK=1 NO_LAPACK=1	NO_AFFINITY=1
+* </pre>
+* The first parameter is responsible for building in support for all CPU architectures, otherwise only the current one will 
+* This will attempt to download CUnit and then fail.
+* <pre>
+* cd utest;make
+* </pre>
+* should build and install CUnit into utest. Subsequently doing the following command from the main directory (the one just above utest)
+* <pre> 
+* ln -s utest/CUnit-2.1-2/include/CUnit .
+* </pre>
+* would fix unit tests that ship with OpenBLAS and they will run when the above make command is run.
+* After doing
+* <pre> 
+* make PREFIX=/usr/local/soft/OpenBLAS-be853da DYNAMIC_ARCH=1 UTEST_CHECK=1 NO_LAPACK=1 install
+* </pre>
+* OpenBLAS is available.
+* SuiteSparse_config.mk should have  
+* <pre>
+* CC=x86_64-w64-mingw32-gcc
+* AR=x86_64-w64-mingw32-ar
+* RANLIB = x86_64-w64-mingw32-ranlib
+* F77 = x86_64-w64-mingw32-gfortran
+* BLAS = /usr/local/soft/OpenBLAS-be853da/lib/libopenblas.lib
+* INSTALL_LIB=/usr/local/soft/umfpack-5.6.1-openblas/lib
+* INSTALL_INCLUDE=/usr/local/soft/umfpack-5.6.1-openblas/include
+* </pre>
+* OpenBLAS on Windows7-x86_64
+* First, build OpenBLAS with both options for Unix (above) and those mentioned in quickbuild.64bit.
+* <p/>
+* When building UMFPACK, most options are the same as for Unix but there are a few changes,
+* <ul>
+* <li>BLAS = /usr/local/soft/OpenBLAS-be853da/lib/libopenblas.lib</li>
+* <li>It is worth removing 
+* -fPIC from the definition of CF since on Windows all code is position-independent and this eliminates the warning.</li>
+* <li>It is worth removing 
+* -lrt from definition LIB because the library is missing.</li>
+* </ul>
+* Finally, Makefile in the UMFPACK/Demo directory has the "run" target, where it runs demos and records the results. Every time it runs a demo, the output
+* has to be piped through d2u to correct line endings on Windows and through sed  's/e\([+-]\)0\([0-9]\+\)/e\1\2/g' to convert the differences in which exponents are output on Windows.
+* Hence the extra content is like
+* <pre>
+* ... _demo | d2u |  sed  's/e\([+-]\)0\([0-9]\+\)/e\1\2/g' > my_ ... .out
+* </pre>
 */
 public class LSolver 
 {
@@ -266,9 +324,21 @@ public class LSolver
 	public enum LibraryLoadResult { SUCCESS, FAILURE, NOT_ATTEMPTED }
 	private static LibraryLoadResult libraryLoaded = LibraryLoadResult.NOT_ATTEMPTED;
 	
+	/** If true, the underlying solver supports configuring the number of cpus to use. */
+	private static boolean threadNumberSupported = false;
+	
 	/** Solves the system of equations, placing the solution in the x array. For details, refer to UMFPACK manual. */
 	public static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
 
+	/** Configures the external solver to use a specific number of threads. 
+	 * Can be ignored by some solvers such as Atlas.
+	 * 
+	 * @param threads number of threads to use.
+	 * @return true if the function is supported. Old builds of the corresponding native library do not have this function at all, hence we have to check whether
+	 * calling this throws unsatisfiedlinkerror.
+	 */
+	public static native boolean setThreadNumber(int threads);
+	
 	/** Allocates the memory for use by the solver. This was introduced to 
 	 * combat "out-of-memory" errors on 32-bit WinXP but was not useful for this purpose. 
 	 */
@@ -279,8 +349,11 @@ public class LSolver
 	
 	/** Solves the system of equations using the external solver throws if 
 	 * external library cannot be found. Use <em>solve()</em> if you want
-	 * a fallback on Colt when external library is not available. */
-	public boolean solveExternally()
+	 * a fallback on Colt when external library is not available. 
+	 *
+	 * @param theads the number of threads to use, only supported with some native libraries such as OpenBlas on Linux
+	 */
+	public boolean solveExternally(int threads)
 	{
 		boolean result = false;
 		if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
@@ -288,6 +361,10 @@ public class LSolver
 
 		if (libraryLoaded == LibraryLoadResult.SUCCESS)
 		{
+			if (threadNumberSupported)
+			{
+				setThreadNumber(threads);
+			}
 			result = extsolve(j_Ap,j_Ai,j_Ax,j_b,j_x);
 		}
 		else
@@ -308,9 +385,11 @@ public class LSolver
 	/** Solves the system of equations using the external solver 
 	 * if it is available, otherwise falls back on Colt.
 	 * 
+	 * @param threads the number of threads to use
+	 * 
 	 * Throws IllegalArgumentException of the matrix is singular.
 	 */
-	public void solve()
+	public void solve(int threads)
 	{
 		if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
 		try
@@ -327,7 +406,9 @@ public class LSolver
 		}
 		
 		if (libraryLoaded == LibraryLoadResult.SUCCESS)
-			solveExternally();
+		{
+			solveExternally(threads);
+		}
 		else
 			solveUsingColt();
 	}
@@ -375,6 +456,7 @@ public class LSolver
 			UnsatisfiedLinkError ex = null;
 			ex = tryLoading("cygStatechumSolver-1");
 			if (ex != null) ex = tryLoading("StatechumSolver");
+			if (ex != null) ex = tryLoading("libStatechumSolver");
 
 			if (ex != null)
 			{// failed to load our library.
@@ -385,6 +467,18 @@ public class LSolver
 
 			setIRStep(1);
 			libraryLoaded = LibraryLoadResult.SUCCESS;
+		}
+		
+		if (libraryLoaded == LibraryLoadResult.SUCCESS)
+		{
+			try
+			{
+				setThreadNumber(ExperimentRunner.getCpuNumber());
+				threadNumberSupported = true;// if we got here, the method is supported
+			}
+			catch(UnsatisfiedLinkError err)
+			{// not supported				
+			}
 		}
 	}
 	

@@ -322,6 +322,7 @@ public final class TestGraphConstruction
 	@Test
 	public final void testGraphConstruction1a()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B-b->C-c->A","testConstruction1",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
@@ -332,13 +333,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,graph.transitionMatrix.equals(expected.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 	
 	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction1b()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B-b->C-c->A","testConstruction1",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
@@ -349,13 +351,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,graph.transitionMatrix.equals(expected.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 
 	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction2()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B-b->C-c->A-b->B-a-#D","testConstruction2",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
@@ -371,13 +374,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 
 	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction3()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B<-b--C-c->A-b->A-c->A\nB-d->B-p->C\nB-q->C\nB-r->C\n","testConstruction3",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
@@ -391,13 +395,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 
 	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction4()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B<-b--D-c->A-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction4",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C"),D = new StringVertex("D");
@@ -417,13 +422,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 
 	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction5()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("A--a-->B-b-#C\nA-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction5",config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
@@ -437,13 +443,14 @@ public final class TestGraphConstruction
 		
 		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);		
+		equalityTestingHelper(graph,expected,differentA,differentB, true);		
 	}
 	
 	/** checks support for loops. */
 	@Test
 	public final void testGraphConstruction6()
 	{
+		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = buildLearnerGraph("P-c->P<-b-Q_State<-a-P-b->P\nQ_State-a->Q_State","testConstruction6",config);
 		CmpVertex P = new StringVertex("P"), Q_State = new StringVertex("Q_State");
@@ -455,7 +462,7 @@ public final class TestGraphConstruction
 		
 		assertEquals("P", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
-		equalityTestingHelper(graph,expected,differentA,differentB);
+		equalityTestingHelper(graph,expected,differentA,differentB, true);
 	}
 
 	/** Tests that references to unknown vertices cause an exception because we do not know whether

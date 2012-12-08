@@ -74,12 +74,12 @@ fi
 
 # get the likely subdirectories for system specific java includes
 case "$host_os" in
-bsdi*)          _JNI_INC_SUBDIRS="bsdos";;
-linux*)         _JNI_INC_SUBDIRS="linux genunix";;
-osf*)           _JNI_INC_SUBDIRS="alpha";;
-solaris*)       _JNI_INC_SUBDIRS="solaris";;
-mingw*)			_JNI_INC_SUBDIRS="win32";;
-cygwin*)		_JNI_INC_SUBDIRS="win32";;
+*bsdi*)          _JNI_INC_SUBDIRS="bsdos";;
+*linux*)         _JNI_INC_SUBDIRS="linux genunix";;
+*osf*)           _JNI_INC_SUBDIRS="alpha";;
+*solaris*)       _JNI_INC_SUBDIRS="solaris";;
+*mingw*)	_JNI_INC_SUBDIRS="win32";;
+*cygwin*)	_JNI_INC_SUBDIRS="win32";;
 *)              _JNI_INC_SUBDIRS="genunix";;
 esac
 
@@ -87,7 +87,7 @@ esac
 for JINCSUBDIR in $_JNI_INC_SUBDIRS
 do
         if test -d "$_JTOPDIR/include/$JINCSUBDIR"; then
-                JNI_INCLUDE_DIRS=$JNI_INCLUDE_DIRS $_JTOPDIR/include/$JINCSUBDIR
+                JNI_INCLUDE_DIRS="$JNI_INCLUDE_DIRS $_JTOPDIR/include/$JINCSUBDIR"
         fi
 done
 ])

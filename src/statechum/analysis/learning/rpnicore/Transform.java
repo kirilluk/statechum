@@ -50,6 +50,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.QSMTool;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
 public class Transform 
@@ -421,7 +422,7 @@ public class Transform
 	 * have been visited before. This is why there is no record of which exactly instance is being
 	 * explored.
 	 */
-	public static class ExplorationElement
+	public static class ExplorationElement implements Comparable<ExplorationElement>
 	{
 		/** How far from the last existing state in a tentative automaton we've gone. */
 		public final int depth;
@@ -462,7 +463,7 @@ public class Transform
 			result = prime * result + ((IFState == null) ? 0: IFState.hashCode());
 					//+ Arrays.deepHashCode(IFState);
 			result = prime * result
-				+ ((thenGraph == null) ? 0 : thenGraph.hashCode());
+				+ ((thenGraph == null) ? 0 : thenGraph.getNameNotNull().hashCode());// It is too expensive to do this for large graphs and not really necessary
 			result = prime * result
 				+ ((IFState == null) ? 0 : IFState.hashCode());
 			result = prime * result
@@ -486,28 +487,7 @@ public class Transform
 			if (!(obj instanceof ExplorationElement))
 				return false;
 			ExplorationElement other = (ExplorationElement) obj;
-			if (graphState == null) {
-				if (other.graphState != null)
-					return false;
-			} else if (!graphState.equals(other.graphState))
-				return false;
-			if (IFState == null) {
-				if (other.IFState != null)
-					return false;
-			} else if (!IFState.equals(other.IFState))
-				return false;
-			
-			if (thenGraph != other.thenGraph)
-				return false;// we care about referential equality only here because if there are multiple equal graphs, 
-					// we attempt to match all their thens and it will only be somewhat inefficient, 
-					// compared to invoking inefficient equals() function on graphs.
-			if (thenState == null) {
-				if (other.thenState != null)
-					return false;
-			} else if (!thenState.equals(other.thenState))
-				return false;
-			
-			return true;
+			return compareTo(other) == 0;
 		}
 
 		/* (non-Javadoc)
@@ -516,6 +496,71 @@ public class Transform
 		@Override
 		public String toString() {
 			return "( graph: "+graphState+", THEN: "+thenState+" from "+thenGraph+", IF state: "+IFState+ ", edepth: "+depth+" )";
+		}
+
+		@Override
+		public int compareTo(ExplorationElement o) {
+			int grState = 0;
+			if (graphState == null)
+			{
+				if (o.graphState != null)
+					grState = -1;
+			}
+			else
+				if (o.graphState != null)
+					grState = graphState.compareTo(o.graphState);
+				else
+					grState = 1;// our graphState is not null while o.graphState is null
+			
+			if (grState != 0)
+				return grState;
+			
+			int ifState = 0;
+			
+			if (IFState == null)
+			{
+				if (o.IFState != null)
+					ifState = -1;
+			}
+			else
+				if (o.IFState != null)
+					ifState = IFState.compareTo(o.IFState);
+				else
+					ifState = 1;
+			
+			if (ifState != 0)
+				return ifState;
+			
+			int thenGraphName = 0;
+			if (thenGraph == null)
+			{
+				if (o.thenGraph != null)
+					thenGraphName = -1;
+			}
+			else 
+				if (o.thenGraph != null)
+					thenGraphName = thenGraph.getNameNotNull().compareTo(o.thenGraph.getNameNotNull());
+				else
+					thenGraphName = 1;
+			
+			if (thenGraphName == 0 && thenGraph != o.thenGraph)
+				throw new IllegalArgumentException("different graphs with the same name "+thenGraph.getNameNotNull());
+			if (thenGraphName != 0)
+				return thenGraphName;
+			
+			int thenStateComparison = 0;
+			if (thenState == null)
+			{
+				if (o.thenState != null)
+					thenStateComparison = -1;
+			}
+			else
+				if (o.thenState != null)
+					thenStateComparison = thenState.compareTo(o.thenState);
+				else
+					thenStateComparison = 1;
+			
+			return thenStateComparison;
 		}
 	}
 
@@ -620,12 +665,10 @@ public class Transform
 		Set<ExplorationElement> propertyStatesForThisGraphState = visited[explorationElement.propertyGraph].get(explorationElement.graphState);
 		if (propertyStatesForThisGraphState == null)
 		{
-			propertyStatesForThisGraphState = new HashSet<ExplorationElement>();visited[explorationElement.propertyGraph].put(explorationElement.graphState,propertyStatesForThisGraphState);
+			propertyStatesForThisGraphState = new TreeSet<ExplorationElement>();visited[explorationElement.propertyGraph].put(explorationElement.graphState,propertyStatesForThisGraphState);
 		}
-		boolean result = propertyStatesForThisGraphState.contains(explorationElement);
-		if (!result)
-			propertyStatesForThisGraphState.add(explorationElement);
-		return result;
+		boolean result = propertyStatesForThisGraphState.add(explorationElement);
+		return !result;// result is false if a state was not added because it is already in the set. Hence we return true here.
 	}
 	
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
@@ -659,14 +702,14 @@ public class Transform
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.getNonExistingVertices();
-		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
+		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix(graph.config.getMaxStateNumber()):questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
-		final Map<CmpVertex,Set<ExplorationElement>>[] visited = new TreeMap[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
+		final Map<CmpVertex,Set<ExplorationElement>>[] visited = new Map[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
 
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
-			visited[i]=new TreeMap<CmpVertex,Set<ExplorationElement>>();
+			visited[i]=new HashMapWithSearch<CmpVertex,Set<ExplorationElement>>(graph.getStateNumber() << 1);// create space for more vertices
 			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
 			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();
@@ -863,7 +906,7 @@ public class Transform
 		
 		// first pass - computing an alphabet
 		Set<Label> alphabet = result.learnerCache.getAlphabet();
-		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix();
+		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix(ltl.config.getMaxStateNumber());
 		// second pass - checking if any transitions need to be added and adding them.
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 		{

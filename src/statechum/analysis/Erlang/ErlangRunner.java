@@ -45,7 +45,18 @@
 	<string>/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/X11/bin</string>
 </dict>
 </plist>
-
+ * 
+ *
+ * As documented in many places online such as, 
+ * http://concurrently-chaotic.blogspot.co.uk/2012/03/erlang-vm-memory-size-and-erlmaxports.html
+ * Erlang has a habit of allocating a lot of memory for possible ports,
+ * this was usually a small number (such as 1024), but was recently increased, leading to Erlang eating 250Meg
+ * per instance (as shown by pmap -d on Linux).
+ * 
+ * I use the command 
+ * {Dh,Dd}=instrument:descr(instrument:memory_data()),lists:foreach(fun(T)->{Tname,_,Tsize,Tpid}=T,if Tsize>200000 -> io:format("~p ~p ~p~n",[Tname,Tsize,Tpid]); true -> ok end end,Dd).
+ * to list all the "worst offenders", but one can see it in the list of allocators (ll_alloc is the one that ate all this and in another
+ * lists that shows the size of the 'static' allocated memory). Solution: ERL_MAX_PORTS.
  * 
  * 
  */
@@ -59,7 +70,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
@@ -259,7 +272,7 @@ public class ErlangRunner {
 		try {
 			p.waitFor();
 		} catch (InterruptedException e) {
-			;
+			// assumed we have been asked to terminate
 		}
 
 		if (p.exitValue() != 0)
@@ -294,9 +307,13 @@ public class ErlangRunner {
 	 */
 	public void startErlang(String runnerMode, long delay) {
 		proclist = null;
+		final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
 		try {
-			//System.out.print("Starting Erlang...");
-			//System.out.flush();
+			if (displayErlangOutput)
+			{
+				System.out.print("Starting Erlang...");System.out.flush();
+			}
+			
 			final long startTime = System.currentTimeMillis();
 			if (erlangProcess == null) {
 				String tracerunnerProgram = "tracerunner.erl";
@@ -343,12 +360,17 @@ public class ErlangRunner {
 				// dialyzer_plt:get_default_plt()
 				// before build_options(Opts, DefaultOpts1).
 				List<String> envpList = new LinkedList<String>();
+				
+				Map<String,String> newValues = new TreeMap<String,String>();
+				newValues.put("HOME",new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath());
+				newValues.put("ERL_MAX_PORTS","1024");// to limit the size of each Erlang instance to a few meg from a few hundred meg
+
 				for (Entry<String, String> entry : System.getenv().entrySet())
-					if (!entry.getKey().equals("HOME"))
+					if (!newValues.containsKey(entry.getKey()))
 						envpList.add(entry.getKey() + "=" + entry.getValue());
-				envpList.add("HOME="
-						+ new File(ErlangQSMOracle.ErlangFolder)
-								.getAbsolutePath());
+				
+				for(Entry<String, String> entry : newValues.entrySet())
+					envpList.add(entry.getKey() + "=" + entry.getValue());
 
 				erlangProcess = Runtime
 						.getRuntime()
@@ -367,10 +389,6 @@ public class ErlangRunner {
 								envpList.toArray(new String[0]),
 								new File(ErlangQSMOracle.ErlangFolder));
 				stdDumper = new Thread(new Runnable() {
-					final boolean displayErlangOutput = Boolean
-							.parseBoolean(GlobalConfiguration
-									.getConfiguration().getProperty(
-											G_PROPERTIES.ERLANGOUTPUT_ENABLED));
 
 					@Override
 					public void run() {
@@ -448,7 +466,7 @@ public class ErlangRunner {
 
 	/** Passes Statechum configuration to Erlang. */
 	public void configurationToErlang(Configuration config) {
-		Class clazz = config.getClass();
+		Class<? extends Configuration> clazz = config.getClass();
 		List<OtpErlangTuple> nameToValue = new LinkedList<OtpErlangTuple>();
 
 		for (Field var : clazz.getDeclaredFields()) {
@@ -625,50 +643,51 @@ public class ErlangRunner {
 
 	public void killErlang() {
 		if (erlangProcess != null) {
-			System.out.print("Stopping Erlang...");
-			System.out.flush();
+			final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
+			if (displayErlangOutput)
+			{
+				System.out.print("Stopping Erlang...");
+				System.out.flush();
+			}
 			erlangProcess.destroy();
-			try {
-				erlangProcess.waitFor();
-			} catch (InterruptedException e) {
-				statechum.Helper.throwUnchecked(
-						"wait for Erlang to terminate aborted", e);
+			try { erlangProcess.waitFor(); } 
+			catch (InterruptedException e) {
+				statechum.Helper.throwUnchecked("wait for Erlang to terminate aborted", e);
 			}
 			erlangProcess = null;
 			ourBox = null;
 			thisMbox = null;
-			stdDumper.interrupt();// if this one is sleeping, interrupt will
-									// wake it and it will terminate since
+			stdDumper.interrupt();// if this one is sleeping, interrupt will wake it and it will terminate since
 									// Erlang is already no more ...
-			try {
-				stdDumper.join();
-			} catch (InterruptedException e) {
-				Helper.throwUnchecked(
-						"Interrupt waiting for erlang out/err dumper to terminate",
-						e);
+			try { stdDumper.join();	} 
+			catch (InterruptedException e) {
+				Helper.throwUnchecked("Interrupt waiting for erlang out/err dumper to terminate",e);
 			}// wait for that to happen.
 			stdDumper = null;
 		}
 	}
 
 	public OtpErlangList listProcesses() {
+		OtpErlangList outcome = null;
 		OtpErlangTuple tup = call(new OtpErlangObject[] { new OtpErlangAtom(
 				"processes") }, "Failed to get process list.");
 		if ((tup.arity() == 2) && (tup.elementAt(0).equals(okAtom))) {
-			return (OtpErlangList) tup.elementAt(1);
-		} else {
+			outcome = (OtpErlangList) tup.elementAt(1);
+		} else
 			throw new RuntimeException("Er, why did I get this?: "
 					+ tup.elementAt(0) + "(" + tup.arity() + ")");
-		}
+		
+		return outcome;
 	}
 
 	public OtpErlangTuple killProcesses() {
+		OtpErlangTuple outcome = null;
 		if (proclist != null) {
-			return call(new OtpErlangObject[] {
+			outcome = call(new OtpErlangObject[] {
 					new OtpErlangAtom("killProcesses"), proclist },
 					"Failed to kill processes.");
-		} else {
-			return null;
-		}
+		} 
+		
+		return outcome;
 	}
 }

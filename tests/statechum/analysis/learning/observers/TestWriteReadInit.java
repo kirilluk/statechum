@@ -89,6 +89,7 @@ public class TestWriteReadInit {
 	public final void createInitialData_fail1()
 	{
 		checkForCorrectException(new whatToRun() {
+		@SuppressWarnings("unused")
 		public @Override void run() {
 			new InitialData(new LinkedList<List<Label>>(),-1,new LinkedList<List<Label>>(),0,null);
 		}},IllegalArgumentException.class,"inconsistent positive");
@@ -98,6 +99,7 @@ public class TestWriteReadInit {
 	public final void createInitialData_fail2()
 	{
 		checkForCorrectException(new whatToRun() {
+		@SuppressWarnings("unused")
 		public @Override void run() {
 			new InitialData(new LinkedList<List<Label>>(),0,new LinkedList<List<Label>>(),5,null);
 		}},IllegalArgumentException.class,"inconsistent negative");

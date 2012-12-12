@@ -44,8 +44,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
-
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
@@ -716,12 +714,99 @@ public class PaperUAS
 		
     } // RPNIVariabilityExperiment
 	
+   	public void learnIfThenFromTraces()
+   	{
+ 	   LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
+ 	   pta.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
+ 	   System.out.println(learnIfThen(pta,0.1,0.2));
+   	}
    	
-   
+   	
+   /** Uses a technique describe in David Lo's papers to infer pairwise constraints between events.
+    * 
+    * @param pta PTA to process.
+    * @param thresholdEvent threshold for an event to be considered significant, 0..1.
+    * @param thresholdPair threshold for a pair of events to be considered significant, 0..1.
+    * @return Map from events to the other component of a pair of events. 
+    * Positive values are confidence values that the two events always lead to an accept-state, negative ones are for those leading to reject-states. 
+    */
+   public static Map<Label,Map<Label,Double>> learnIfThen(LearnerGraph pta,double thresholdEvent,double thresholdPair)
+   {
+	   long total = 0;
+	   
+	   Map<Label,Map<Label,Double>> outcome = new TreeMap<Label,Map<Label,Double>>();
+	   
+	   Map<Label,AtomicInteger> supportForEvent = new TreeMap<Label,AtomicInteger>();
+	   Map<Label,Map<Label,AtomicInteger>> supportForPair = new TreeMap<Label,Map<Label,AtomicInteger>>();// positive number means the number of positive pairs, negative is for negatives. Where there is a clash, a zero is used to mean that the pair is inconclusive
+
+	   for(Label lbl:pta.pathroutines.computeAlphabet())
+	   {
+		   supportForEvent.put(lbl, new AtomicInteger(0));supportForPair.put(lbl, new TreeMap<Label,AtomicInteger>());
+	   }
+	   
+	   for(Entry<CmpVertex,Map<Label,CmpVertex>> state:pta.transitionMatrix.entrySet())
+		   for(Entry<Label,CmpVertex> next:state.getValue().entrySet())
+		   {
+			   Label lbl = next.getKey();
+			   supportForEvent.get(lbl).incrementAndGet();++total;
+			   
+			   if (next.getValue().isAccept())
+			   {
+				   Map<Label,AtomicInteger> supportStartingFromlbl = supportForPair.get(lbl);
+				   for(Entry<Label,CmpVertex> subsequent:pta.transitionMatrix.get(next.getValue()).entrySet())
+				   {
+					   Label nextLbl = subsequent.getKey();boolean nextAccept = subsequent.getValue().isAccept();
+					   AtomicInteger counter = supportStartingFromlbl.get(nextLbl);
+					   if (counter == null)
+						   supportStartingFromlbl.put(nextLbl, new AtomicInteger(nextAccept?1:-1));
+					   else
+						   if (counter.get() > 0)
+						   {// previously recorded value is positive, that means we've seen positive examples
+							   if (nextAccept)
+								   counter.incrementAndGet();
+							   else
+								   counter.set(0);// inconclusive results
+						   }
+						   else
+						   if (counter.get() < 0)
+						   {// previously recorded value is negative, that means we've seen negative examples
+							   if (nextAccept)
+								   counter.set(0);// inconclusive results
+							   else
+								   counter.decrementAndGet();
+						   }
+						   
+					   }
+			   }
+		  }
+	   
+	   if (total > 0)
+		   for(Entry<Label,AtomicInteger> lblDetails:supportForEvent.entrySet())
+			   if (lblDetails.getValue().get()/(double)total > thresholdEvent)
+			   {// enough support for the label
+				   for(Entry<Label,AtomicInteger> entry:supportForPair.get(lblDetails.getKey()).entrySet())
+				   {
+					   double pairSupport = entry.getValue().get()/(double)lblDetails.getValue().get();
+					   if (Math.abs(pairSupport)>thresholdPair)
+					   {
+						   Map<Label,Double> outcomeEntry = outcome.get(lblDetails.getKey());
+						   if (outcomeEntry == null)
+						   {
+							   outcomeEntry = new TreeMap<Label,Double>();outcome.put(lblDetails.getKey(),outcomeEntry);
+						   }
+						   outcomeEntry.put(entry.getKey(), pairSupport);
+					   }
+				   }
+			   }
+	   
+	   return outcome;
+   }
+   	
+   	
     public void runExperiment() throws IOException
     {
         final Configuration learnerConfig = learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);
-		final boolean useOptimizedMerge = false;
+		final boolean useOptimizedMerge = true;
        /*new LearnerGraph(learnerInitConfiguration.config);
         AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphSolution);*/
         long tmStarted = new Date().getTime();
@@ -1104,7 +1189,8 @@ public class PaperUAS
 	    	//paper.checkTraces(config);
 	    	//paper.loadData(inputFiles);
 	    	//paper.compareTwoLearners();
-	    	paper.evaluateVariability();
+	    	//paper.evaluateVariability();
+	    	paper.learnIfThenFromTraces();
     	}
 	}
 

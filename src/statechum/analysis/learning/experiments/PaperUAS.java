@@ -60,6 +60,7 @@ import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.analysis.learning.rpnicore.MergeStates;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -79,7 +80,7 @@ import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class PaperUAS 
 {
-	/** All traces. */
+	/** All traces, maps a seed to a collection of traces for the specific seed. */
 	protected Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
 	
 	/** The maximal frame number encountered. */
@@ -718,7 +719,13 @@ public class PaperUAS
    	{
  	   LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
  	   pta.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
- 	   System.out.println(learnIfThen(pta,0.1,0.2));
+ 	   Map<Label,Map<Label,Double>> outcome = learnIfThen(pta,0.0,0.8);
+ 	   
+ 	   for(Entry<Label,Map<Label,Double>> entry:outcome.entrySet())
+ 		   for(Entry<Label,Double> lblToDouble:entry.getValue().entrySet())
+ 		   {
+ 			   System.out.println(entry.getKey()+" "+lblToDouble.getKey()+" , "+lblToDouble.getValue());
+ 		   }
    	}
    	
    	
@@ -802,6 +809,33 @@ public class PaperUAS
 	   return outcome;
    }
    	
+   
+   public void runExperimentWithSingleAutomaton(String name) throws IOException
+   {
+       final Configuration learnerConfig = learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);
+		final boolean useOptimizedMerge = true;
+	   
+        long tmStarted = new Date().getTime();
+        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/uas_reference_automaton.xml",graphReference);
+   		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
+   		DrawGraphs gr = new DrawGraphs();
+		final RBoxPlot<Integer>
+				uas_S=new RBoxPlot<Integer>("Time","BCR",new File("time_S_"+name+"_bcr.pdf"));
+		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
+		ProgressIndicator progress = new ProgressIndicator("UAS", allFrames.size());
+  		for(final Integer frame:allFrames)
+   		{
+	        final LearnerGraph actualAutomaton = new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true);
+	        long tmFinished = new Date().getTime();
+	        System.out.println("Learning complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
+	        ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference, actualAutomaton);
+	        System.out.println("BCR for frame : "+frame+" = "+matrix.BCR());
+			uas_S.add(frame,matrix.BCR());
+			uas_S.drawInteractive(gr);
+			progress.next();
+ 		}
+  		uas_S.drawPdf(gr);
+  }
    	
     public void runExperiment() throws IOException
     {
@@ -815,7 +849,10 @@ public class PaperUAS
         	new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),true);
         long tmFinished = new Date().getTime();
         System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
-        graphReference.storage.writeGraphML("longtraceautomaton.xml");
+        graphReference.storage.writeGraphML("traceautomaton.xml");
+        //Visualiser.updateFrame(graphReference, null);Visualiser.waitForKey();
+        
+        
 		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
 		tmFinished = new Date().getTime();
         System.out.println("Test generation complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
@@ -875,8 +912,10 @@ public class PaperUAS
 
 							@Override
 							public void run() {
+								TracesForSeed tracesForThisSeed = collectionOfTraces.get(seed);
+								
 								ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-										new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(seed).get(frame),true));
+										new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(tracesForThisSeed.tracesForUAVandFrame.get(UAVAll).get(frame),true));
 								uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
 								uas_A.add(frame,matrix.BCR());
 							}
@@ -894,7 +933,7 @@ public class PaperUAS
 									@Override
 									public void run() {
 										ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-												new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAV).tracesForUAVandFrame.get(seed).get(frame),true));
+												new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frame),true));
 										uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
 										uas_U.add(frame,matrix.BCR());
 									}
@@ -963,6 +1002,8 @@ public class PaperUAS
     	final boolean useOptimizedMerge;
     	LearnerGraph initPta = null;
     	final Configuration config;
+    	
+    	VertexID phantomVertex = null;
     	
     	public Learner getLearner()
     	{
@@ -1033,7 +1074,8 @@ public class PaperUAS
 					{
 						if (alphabet != null)
 						{// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
-							CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(true), bfLearnerInitConfiguration.config);
+							phantomVertex = graph.nextID(true);
+							CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(phantomVertex, bfLearnerInitConfiguration.config);
 							Map<Label,CmpVertex> row = graph.createNewRow();
 							for(Label lbl:alphabet.keySet()) graph.addTransition(row, lbl, dummyState);
 							graph.transitionMatrix.put(dummyState, row);
@@ -1058,7 +1100,10 @@ public class PaperUAS
 		public LearnerGraph learn(LearnerGraph initPTAArg)
 		{
 			setInitPta(initPTAArg);
-			return learner.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
+			LearnerGraph outcome = learner.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
+			if (phantomVertex != null) 
+				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
+			return outcome;
 		}
 		
 		public LearnerGraph learn(PTASequenceEngine engineArg, boolean useNegatives)
@@ -1074,7 +1119,10 @@ public class PaperUAS
 			else
 				engine = engineArg;
 			
-			return learner.learnMachine(engine,0,0);
+			LearnerGraph outcome = learner.learnMachine(engine,0,0);
+			if (phantomVertex != null) 
+				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
+			return outcome;
 		}
 		
     }
@@ -1172,7 +1220,8 @@ public class PaperUAS
 	 */
 	public static void main(String[] args) throws IOException {
 		PaperUAS paper = new PaperUAS();
-    	Configuration config = Configuration.getDefaultConfiguration().copy();config.setDebugMode(false);paper.learnerInitConfiguration.config = config;
+    	Configuration config = Configuration.getDefaultConfiguration().copy();config.setDebugMode(false);
+    	paper.learnerInitConfiguration.config = config;
     	paper.loadReducedConfigurationFile(args[0]);
     	
 		int offset=1;
@@ -1185,12 +1234,12 @@ public class PaperUAS
     	{
         	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
 	    	//paper.loadData(inputFiles);
-	    	paper.loadDataByConcatenation(inputFiles);
+	    	paper.loadDataByConcatenation(inputFiles);paper.runExperimentWithSingleAutomaton("large");
 	    	//paper.checkTraces(config);
 	    	//paper.loadData(inputFiles);
 	    	//paper.compareTwoLearners();
 	    	//paper.evaluateVariability();
-	    	paper.learnIfThenFromTraces();
+	    	//paper.learnIfThenFromTraces();
     	}
 	}
 

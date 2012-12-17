@@ -52,6 +52,7 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.PathRoutines;
@@ -73,7 +74,6 @@ import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
-import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -548,13 +548,13 @@ public class PaperUAS
     	if (stack.isEmpty())
     		return 0;
     	int outcome = 1;
-    	long top = stack.peek().getScore();
+    	PairScore top = stack.peek();
     	
     	int i=stack.size()-2;
     	while(i>=0)
     	{
-    		long curr = stack.get(i).getScore();--i;
-    		if (curr != top)
+    		PairScore curr = stack.get(i);--i;
+    		if (curr.getScore() != top.getScore() || curr.getR() != top.getR() )
     			break;
     		++outcome;
     	}
@@ -602,52 +602,38 @@ public class PaperUAS
     	return top;
     }
     
-    public void evaluateVariability() throws IOException
+    /** Given a graph, leaves only the states that are connected to the root state with paths of length at most the specified number.
+     * Very useful to visualise parts of complex graphs where Jung will take forever to run it spring-based algorithm and all states will be pushed towards the edges of the 
+     * window.
+     * @param graph graph to trim
+     * @param pathsToLeave the maximal length of paths to root state
+     * @return trimmed graph. The original is not modified.
+     */
+    public static LearnerGraph trimGraphTo(LearnerGraph graph, int pathsToLeave)
     {
-   	
-		/** The runner of computational threads. */
-		int threadNumber = ExperimentRunner.getCpuNumber();
-		ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
-		ProgressIndicator progress = null;
-		List<Future<?>> outcomes = new LinkedList<Future<?>>();
-		DrawGraphs gr = new DrawGraphs();
-		final Random seedSel = new Random(0);
-
-		final RBoxPlot<String> uas_outcome = new RBoxPlot<String>("Graph","stateNumber",new File("stateNumber.pdf"));
-		for(int i=pairchoiceMIN;i<10;++i)
+		Set<CmpVertex> whatToRemove = new TreeSet<CmpVertex>();
+		for(Entry<CmpVertex,LinkedList<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
-			
-			final int arg=i;
-			final int seed = seedSel.nextInt();assert seed != PaperUAS.pairchoiceMAX && seed != PaperUAS.pairchoiceMIN;
-			Runnable interactiveRunner = new Runnable() {
-				
-				@Override
-				public void run() {
-			        LearnerGraph graphA=new RPNIVariabilityExperiment(arg<0?arg:seed).learn(UAVAllSeeds, UAVAllSeeds,maxFrameNumber);
-			        uas_outcome.add("all", (double)graphA.getStateNumber());
-				}
-			};
-			outcomes.add(executorService.submit(interactiveRunner));
-		}
-
-		try
-		{
-			progress = new ProgressIndicator("running concurrent experiment",outcomes.size());
-			for(Future<?> task:outcomes) { task.get();progress.next(); }// wait for termination of all tasks
-		}
-		catch(Exception ex)
-		{
-			Helper.throwUnchecked("failed to run experiment", ex);
-		}
-		finally
-		{
-			if (executorService != null) executorService.shutdown();
+			if (entry.getValue().size() > pathsToLeave)
+				whatToRemove.add(entry.getKey());
 		}
 		
-		uas_outcome.drawPdf(gr);
-	}
-
-   	public class RPNIVariabilityExperiment
+		LearnerGraph trimmedOne = new LearnerGraph(graph.config);
+		AbstractLearnerGraph.copyGraphs(graph, trimmedOne);
+		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+			if (whatToRemove.contains(entry.getKey())) trimmedOne.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
+			else
+			{
+				Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(entry.getKey());
+				for(Entry<Label,CmpVertex> targetRow:entry.getValue().entrySet())
+					for(CmpVertex target:graph.getTargets(targetRow.getValue()))
+						if (whatToRemove.contains(target)) trimmedOne.removeTransition(row, targetRow.getKey(), target);
+			}
+		return trimmedOne;
+    }
+    
+   	public class RPNIBlueFringe
     {
     	private Learner learner;
     	
@@ -655,18 +641,24 @@ public class PaperUAS
     	final int pairChoice;
     	final Random rnd;
     	double logOfChoiceNumber=0;
+    	final Configuration config;
     	
-		public RPNIVariabilityExperiment(int choice) 
+    	VertexID phantomVertex = null;
+    	
+		public RPNIBlueFringe(final Configuration conf,int choice) 
 		{
-			learnerInitConfiguration.config.setGeneralisationThreshold(0);learnerInitConfiguration.config.setAskQuestions(false);pairChoice=choice;
+			pairChoice=choice;
+			final LearnerEvaluationConfiguration bfLearnerInitConfiguration = new LearnerEvaluationConfiguration(conf);bfLearnerInitConfiguration.ifthenSequences = PaperUAS.this.learnerInitConfiguration.ifthenSequences;
+			config = bfLearnerInitConfiguration.config;// our config is a copy of the one supplied as an argument.
+			config.setAskQuestions(false); 
 			if (choice == pairchoiceMAX || choice == pairchoiceMIN) rnd = null;else rnd = new Random(choice);
 			
-			learner = new DummyLearner(new RPNIUniversalLearner(null, learnerInitConfiguration)) 
+			learner = new DummyLearner(new RPNIUniversalLearner(null, bfLearnerInitConfiguration)) 
 			{
 				@Override
 				public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 				{// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
-					return super.MergeAndDeterminize(original, pair);
+					return MergeStates.mergeAndDeterminize(original, pair);
 				}
 
 
@@ -682,12 +674,43 @@ public class PaperUAS
 							selected = selectPairMinMax(graph, outcome, pairChoice);
 						else
 							selected = selectPairAtRandom(outcome, rnd);
+						 
+						/*
+						PairScore pair2=null;
+						if (!outcome.isEmpty())
+						{
+							pair2 = outcome.pop();
+							if (pair2.getScore() == selected.getScore() && pair2.getR() != selected.getR())
+							{
+								Set<CmpVertex> whatToRemove = new TreeSet<CmpVertex>();
+								for(Entry<CmpVertex,LinkedList<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
+								{
+									if (entry.getValue().size() > 4)
+										whatToRemove.add(entry.getKey());
+								}
+								
+								LearnerGraph trimmedOne = new LearnerGraph(graph.config);
+								AbstractLearnerGraph.copyGraphs(graph, trimmedOne);
+								// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
+								for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+									if (whatToRemove.contains(entry.getKey())) trimmedOne.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
+									else
+									{
+										Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(entry.getKey());
+										for(Entry<Label,CmpVertex> targetRow:entry.getValue().entrySet())
+											for(CmpVertex target:graph.getTargets(targetRow.getValue()))
+												if (whatToRemove.contains(target)) trimmedOne.removeTransition(row, targetRow.getKey(), target);
+									}
+								Visualiser.updateFrame(trimmedOne, null);System.out.println(selected+" "+pair2);Visualiser.waitForKey();
+							}
+								
+						}*/
 						outcome.clear();
 						outcome.push(selected);
 					}
 					return outcome;
 				}
-			
+		
 				@SuppressWarnings("unused")
 				@Override 
 				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
@@ -699,17 +722,36 @@ public class PaperUAS
 				public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
 				{
 					LearnerGraph graph = decoratedLearner.init(engine,plusSize,minusSize);
+					if (alphabet != null)
+					{// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
+						phantomVertex = graph.nextID(true);
+						CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(phantomVertex, bfLearnerInitConfiguration.config);
+						Map<Label,CmpVertex> row = graph.createNewRow();
+						for(Label lbl:alphabet.keySet()) graph.addTransition(row, lbl, dummyState);
+						graph.transitionMatrix.put(dummyState, row);
+					}
 					return graph;
 				}
 			};
 	
 		}
 
-		public LearnerGraph learn(String UAV, String seed,int frameNumber)
+		public LearnerGraph learn(final PTASequenceEngine engineArg, boolean useNegatives)
 		{
-			PTASequenceEngine engine = collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frameNumber);
-			LearnerGraph outcome = null;
-			outcome = learner.learnMachine(engine,0,0);
+			PTASequenceEngine engine = null;
+			if (!useNegatives)
+			{
+				PTASequenceEngine positives = new PTASequenceEngine();positives.init(new Automaton());
+    			SequenceSet initSeq = positives.new SequenceSet();initSeq.setIdentity();
+    			initSeq.cross(engineArg.getData());
+    			engine = positives;
+			}
+			else
+				engine = engineArg;
+
+			LearnerGraph outcome = learner.learnMachine(engine,0,0);
+			if (phantomVertex != null) 
+				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
 			return outcome;
 		}
 		
@@ -813,8 +855,6 @@ public class PaperUAS
    public void runExperimentWithSingleAutomaton(String name) throws IOException
    {
        final Configuration learnerConfig = learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);
-		final boolean useOptimizedMerge = true;
-	   
         long tmStarted = new Date().getTime();
         final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/uas_reference_automaton.xml",graphReference);
    		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
@@ -823,26 +863,36 @@ public class PaperUAS
 				uas_S=new RBoxPlot<Integer>("Time","BCR",new File("time_S_"+name+"_bcr.pdf"));
 		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
 		ProgressIndicator progress = new ProgressIndicator("UAS", allFrames.size());
+		
+		Random rnd = new Random(0);
+		final int []SelectionChoices=new int [10];
+		for(int i=0;i<SelectionChoices.length;++i) 
+		{ 
+			SelectionChoices[i]=rnd.nextInt();assert SelectionChoices[i] != pairchoiceMIN && SelectionChoices[i] != pairchoiceMAX; 
+		}
   		for(final Integer frame:allFrames)
-   		{
-	        final LearnerGraph actualAutomaton = new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true);
-	        long tmFinished = new Date().getTime();
-	        System.out.println("Learning complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
-	        ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference, actualAutomaton);
-	        System.out.println("BCR for frame : "+frame+" = "+matrix.BCR());
-			uas_S.add(frame,matrix.BCR());
-			uas_S.drawInteractive(gr);
-			progress.next();
- 		}
+  			for(int choice:SelectionChoices)
+	   		{
+  				RPNIBlueFringe learner = new RPNIBlueFringe(learnerConfig,choice);
+		        final LearnerGraph actualAutomaton = learner.learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true);
+		        long tmFinished = new Date().getTime();
+		        System.out.println("Learning complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
+		        ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference, actualAutomaton);
+		        System.out.println("BCR for frame : "+frame+" = "+matrix.BCR()+" , "+learner.logOfChoiceNumber);
+				uas_S.add(frame,matrix.BCR());
+				//uas_S.drawInteractive(gr);
+				progress.next();
+	 		}
   		uas_S.drawPdf(gr);
+		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
   }
    	
     public void runExperiment() throws IOException
     {
         final Configuration learnerConfig = learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);
-		final boolean useOptimizedMerge = true;
        /*new LearnerGraph(learnerInitConfiguration.config);
         AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphSolution);*/
+		/*
         long tmStarted = new Date().getTime();
         final LearnerGraph graphReference =
         		//new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("shorttraceautomaton.xml",graphReference);
@@ -850,17 +900,10 @@ public class PaperUAS
         long tmFinished = new Date().getTime();
         System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         graphReference.storage.writeGraphML("traceautomaton.xml");
-        //Visualiser.updateFrame(graphReference, null);Visualiser.waitForKey();
-        
-        
+        */
+        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/uas_reference_automaton.xml",graphReference);
 		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
-		tmFinished = new Date().getTime();
-        System.out.println("Test generation complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
-
-        System.out.println("Collisions : "+HashMapWithSearch.getCollisions());
         
-        //Visualiser.updateFrame(graphReference, null);Visualiser.waitForKey();
-		
 		// Here I need to moderate the effort because choosing traces for all seeds is good but I need
 		// that many times more traces, so I have to create a graph in terms of effort v.s. quailty (or even better, scale
 		// the existing one).
@@ -876,6 +919,13 @@ public class PaperUAS
 		final RBoxPlot<Integer>
 			uas_threshold=new RBoxPlot<Integer>("Threshold","BCR",new File("threshold_bcr.pdf"));
 
+		Random rnd=new Random(0);
+		final int []SelectionChoices=new int [10];
+		for(int i=0;i<SelectionChoices.length;++i) 
+		{ 
+			SelectionChoices[i]=rnd.nextInt();assert SelectionChoices[i] != pairchoiceMIN && SelectionChoices[i] != pairchoiceMAX; 
+		}
+		
 		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
 
 		/** The runner of computational threads. */
@@ -895,10 +945,13 @@ public class PaperUAS
 	
 						@Override
 						public void run() {
-							ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-									new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true));
-							uas_outcome.add(new Pair<Integer,String>(frame,"S"),matrix.BCR());
-							uas_S.add(frame,matrix.BCR());
+							for(int choice:SelectionChoices)
+							{
+								ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
+										new RPNIBlueFringe(learnerConfig,choice).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame),true));
+								uas_outcome.add(new Pair<Integer,String>(frame,"S"),matrix.BCR());
+								uas_S.add(frame,matrix.BCR());
+							}
 						}
 						
 					};
@@ -914,10 +967,13 @@ public class PaperUAS
 							public void run() {
 								TracesForSeed tracesForThisSeed = collectionOfTraces.get(seed);
 								
-								ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-										new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(tracesForThisSeed.tracesForUAVandFrame.get(UAVAll).get(frame),true));
-								uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
-								uas_A.add(frame,matrix.BCR());
+								for(int choice:SelectionChoices)
+								{
+									ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
+											new RPNIBlueFringe(learnerConfig,choice).learn(tracesForThisSeed.tracesForUAVandFrame.get(UAVAll).get(frame),true));
+									uas_outcome.add(new Pair<Integer,String>(frame,"A"),matrix.BCR());
+									uas_A.add(frame,matrix.BCR());
+								}
 							}
 							
 						};
@@ -932,10 +988,13 @@ public class PaperUAS
 
 									@Override
 									public void run() {
-										ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
-												new RPNIBlueFringe(learnerConfig,useOptimizedMerge,null,null).learn(collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frame),true));
-										uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
-										uas_U.add(frame,matrix.BCR());
+										for(int choice:SelectionChoices)
+										{
+											ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,
+													new RPNIBlueFringe(learnerConfig,choice).learn(collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frame),true));
+											uas_outcome.add(new Pair<Integer,String>(frame,"U"),matrix.BCR());
+											uas_U.add(frame,matrix.BCR());
+										}
 									}
 									
 								};
@@ -943,11 +1002,12 @@ public class PaperUAS
 							}
 				
 				if (threadNumber <= 1)
-				{
+				{/*
 					uas_outcome.drawInteractive(gr);
 					uas_A.drawInteractive(gr);
 					uas_S.drawInteractive(gr);
 					uas_U.drawInteractive(gr);
+					*/
 					progress.next();
 				}
 			}
@@ -959,9 +1019,12 @@ public class PaperUAS
 
 					@Override
 					public void run() {
-						Configuration tmpConf = learnerConfig.copy();tmpConf.setGeneralisationThreshold(arg);
-						ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(tmpConf,useOptimizedMerge,null,null).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),false));
-						uas_threshold.add(arg, matrix.BCR());
+						for(int choice:SelectionChoices)
+						{
+							Configuration tmpConf = learnerConfig.copy();tmpConf.setGeneralisationThreshold(arg);
+							ConfusionMatrix matrix = DiffExperiments.classify(wMethod, graphReference,new RPNIBlueFringe(tmpConf,choice).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),false));
+							uas_threshold.add(arg, matrix.BCR());
+						}
 					}
 					
 				};
@@ -970,7 +1033,7 @@ public class PaperUAS
 				else 
 				{ 
 					interactiveRunner.run();
-					uas_threshold.drawInteractive(gr);
+					//uas_threshold.drawInteractive(gr);
 				}
 			}
 
@@ -991,10 +1054,11 @@ public class PaperUAS
 		
 		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
 		uas_threshold.drawPdf(gr);
+		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
     }
     
     
-	public class RPNIBlueFringe
+	public class RPNIBlueFringeTestVariability
     {
     	private Learner learner;
     	final List<PairOfPaths> listOfPairsToWrite;
@@ -1010,7 +1074,7 @@ public class PaperUAS
     		return learner;
     	}
     	
-		public RPNIBlueFringe(final Configuration conf, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
+		public RPNIBlueFringeTestVariability(final Configuration conf, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
 		{
 			listOfPairsToWrite = lw;useOptimizedMerge = optimisedMerge;
 			if (lc != null) listOfPairsToCheckAgainstIterator = lc.iterator();else listOfPairsToCheckAgainstIterator = null;
@@ -1232,9 +1296,10 @@ public class PaperUAS
     	}
     	
     	{
-        	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
-	    	//paper.loadData(inputFiles);
-	    	paper.loadDataByConcatenation(inputFiles);paper.runExperimentWithSingleAutomaton("large");
+        	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]);
+        	//paper.loadData(inputFiles);paper.runExperimentWithSingleAutomaton("tmp");
+	    	paper.loadData(inputFiles);paper.runExperiment();
+	    	//paper.loadDataByConcatenation(inputFiles);paper.runExperimentWithSingleAutomaton("large");
 	    	//paper.checkTraces(config);
 	    	//paper.loadData(inputFiles);
 	    	//paper.compareTwoLearners();

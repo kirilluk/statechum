@@ -132,7 +132,7 @@ Total time: 20492 sec
         listOptReader.close();
         
         long tmStarted = new Date().getTime();
-        LearnerGraph graphD=paper.new RPNIBlueFringe(learnerConf,mergerToUse,null,listOpt).learn(initial.graph);
+        LearnerGraph graphD=paper.new RPNIBlueFringeTestVariability(learnerConf,mergerToUse,null,listOpt).learn(initial.graph);
         long tmFinished = new Date().getTime();
         System.out.println("Learning ("+mergerToUse+"), "+pairsToUse+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         

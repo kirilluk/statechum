@@ -227,6 +227,8 @@ public class DrawGraphs {
 		return result.toString();
 	}
 	
+	public static final String defaultColour = "green";
+	
 	/**
 	 * Formats a box plotting command to R.
 	 * 
@@ -236,7 +238,7 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String boxPlotToString(List<List<Double>> data,List<String> names,String colour, String otherAttrs)
+	protected static String boxPlotToString(List<List<Double>> data,List<String> names,List<String> colour, String otherAttrs)
 	{
 		if (data.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
@@ -259,16 +261,22 @@ public class DrawGraphs {
 		
 		// colours
 		{
-			result.append(",col=c(");
-			boolean startVector = true;
-			for(int i=0;i<data.size();++i)
-			{
-				if (!startVector) result.append(",");else startVector=false;
-				result.append('\"');
-				result.append(colour);
-				result.append('\"');
+			result.append(",col=");
+			if (colour != null) result.append(vectorToR(colour,true));
+			else
+			{// no colours provided, using the default one
+				boolean startVector = true;
+				result.append("c(");
+				for(int i=0;i<data.size();++i)
+				{
+					if (!startVector) result.append(",");else startVector=false;
+					result.append('\"');
+					String col = defaultColour;
+					result.append(col);
+					result.append('\"');
+				}
+				result.append(")");
 			}
-			result.append(")");
 		}
 		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
@@ -405,6 +413,9 @@ public class DrawGraphs {
 	{
 		Map<ELEM,List<Double>> collectionOfResults = new TreeMap<ELEM,List<Double>>();
 		
+		/** Assigns colours to specific elements, the default colour is used where none is assigned. */
+		Map<ELEM,String> collectionOfColours = new TreeMap<ELEM,String>();
+		
 		protected final String xAxis,yAxis;
 		protected final File file;
 		
@@ -445,6 +456,11 @@ public class DrawGraphs {
 			List<Double> list = collectionOfResults.get(el);
 			if (list == null) { list=new LinkedList<Double>();collectionOfResults.put(el,list); }
 			list.add(value);
+		}
+		
+		public synchronized void add(ELEM el,Double value, String colour)
+		{
+			add(el,value);collectionOfColours.put(el,colour);
 		}
 		
 		/** Returns a command to draw a graph in R. */
@@ -493,12 +509,13 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
-			List<String> names = new LinkedList<String>();
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
 			for(Entry<ELEM,List<Double>> entry:collectionOfResults.entrySet())
 			{
 				data.add(entry.getValue());names.add(entry.getKey().toString());
+				if (collectionOfColours.containsKey(entry.getKey())) colours.add(collectionOfColours.get(entry.getKey()));else colours.add(defaultColour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,"green","xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
 		}
 
 		@Override

@@ -63,7 +63,7 @@ public class TestDrawGraphs {
 	public void testBoxPlotToStringFail1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(new LinkedList<List<Double>>(), new LinkedList<String>(),"green",null);
+			DrawGraphs.boxPlotToString(new LinkedList<List<Double>>(), new LinkedList<String>(),new LinkedList<String>(),null);
 		}},IllegalArgumentException.class,"empty");
 	}
 	
@@ -74,7 +74,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),"green",null);
+			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),new LinkedList<String>(),null);
 		}},IllegalArgumentException.class,"mismatch");
 	}
 
@@ -84,7 +84,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),"green",null);
+			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),new LinkedList<String>(),null);
 		}},IllegalArgumentException.class,"not used");
 	}
 
@@ -94,20 +94,32 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = "green";
+		String colour = DrawGraphs.defaultColour;
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+colour+"\",\""+colour+"\"))",
-				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),colour,null));
+				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),null));
 	}
 	
+	/** Same colours. */
 	@Test
 	public void testBoxPlotToString1b()
 	{
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = "green";
+		String colour = DrawGraphs.defaultColour;
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+colour+"\",\""+colour+"\"),someOther attrs)",
-				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),colour,"someOther attrs"));
+				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),"someOther attrs"));
+	}
+	
+	/** Same as above but different colours. */
+	@Test
+	public void testBoxPlotToString1c()
+	{
+		final List<List<Double>> data = new LinkedList<List<Double>>();
+		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
+		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+"red"+"\",\""+"blue"+"\"),someOther attrs)",
+				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{"red","blue"}),"someOther attrs"));
 	}
 	
 	/** As above but without labels. */
@@ -117,9 +129,8 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = "green";
-		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),col=c(\""+colour+"\",\""+colour+"\"))",
-				DrawGraphs.boxPlotToString(data, null,colour,null));
+		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),col=c(\""+DrawGraphs.defaultColour+"\",\""+DrawGraphs.defaultColour+"\"))",
+				DrawGraphs.boxPlotToString(data, null,null,null));
 	}
 	
 	/** As above but one vector and without labels. */
@@ -128,9 +139,8 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		String colour = "green";
-		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+colour+"\"))",
-				DrawGraphs.boxPlotToString(data, null,colour,null));
+		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+DrawGraphs.defaultColour+"\"))",
+				DrawGraphs.boxPlotToString(data, null,null,null));
 	}
 	/** As above but one vector and without labels. */
 	@Test
@@ -138,9 +148,8 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		String colour = "green";
-		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+colour+"\"),other attrs)",
-				DrawGraphs.boxPlotToString(data, null,colour,"other attrs"));
+		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+DrawGraphs.defaultColour+"\"),other attrs)",
+				DrawGraphs.boxPlotToString(data, null,null,"other attrs"));
 	}
 	public static final File testDir = new File("resources","__TestDrawGraphs__");
 
@@ -213,7 +222,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		File output = new File(testDir,"out.pdf");
-		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),"green",null)),7,7,output);
+		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),null,null)),7,7,output);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", "aphA","aphB"});
@@ -285,7 +294,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.);
-		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0),col=c(\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -305,11 +314,26 @@ public class TestDrawGraphs {
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
-		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),col=c(\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
+	/** Same as above, but with different colours. */
 	@Test
-	public void testGenerateGraph2b()
+	public void testGenerateGraphWithdifferentColours()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		g.add("one",34.,"cyan");
+		g.add("one",34.);
+		g.add("one",2.,"magenta");
+		g.add("two",3.);
+		g.add("three",4.,"blue");
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"one\",\"three\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
+	}
+	
+	/** This one is a bagplot. */
+	@Test
+	public void testGenerateGraph2c()
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
@@ -328,7 +352,7 @@ public class TestDrawGraphs {
 		g.add("one",34.);
 		g.add("one",2.);
 		g.add("two",2.);
-		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\""+DrawGraphs.defaultColour+"\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test

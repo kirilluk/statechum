@@ -404,6 +404,21 @@ public class DrawGraphs {
 		}		
 	}
 
+	public static class DataColumn
+	{
+		/** Data to be displayed. */
+		final List<Double> results;
+		/** Colour to use, if {@code null} default colour is used. */
+		String colour;
+		/** Label to be used, if {@code null} column identifier is used. */
+		String label;
+		
+		public DataColumn()
+		{
+			results = new LinkedList<Double>(); 
+		}
+	}
+	
 	/**
 	 * Represents a graph.
 	 * 
@@ -411,10 +426,7 @@ public class DrawGraphs {
 	 */
 	public static abstract class RGraph<ELEM extends Comparable<ELEM>>
 	{
-		Map<ELEM,List<Double>> collectionOfResults = new TreeMap<ELEM,List<Double>>();
-		
-		/** Assigns colours to specific elements, the default colour is used where none is assigned. */
-		Map<ELEM,String> collectionOfColours = new TreeMap<ELEM,String>();
+		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
 		
 		protected final String xAxis,yAxis;
 		protected final File file;
@@ -453,14 +465,28 @@ public class DrawGraphs {
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 			
-			List<Double> list = collectionOfResults.get(el);
-			if (list == null) { list=new LinkedList<Double>();collectionOfResults.put(el,list); }
-			list.add(value);
+			DataColumn column = collectionOfResults.get(el);
+			if (column == null) { column=new DataColumn();collectionOfResults.put(el,column); }
+			column.results.add(value);
 		}
 		
 		public synchronized void add(ELEM el,Double value, String colour)
 		{
-			add(el,value);collectionOfColours.put(el,colour);
+			add(el,value);collectionOfResults.get(el).colour=colour;
+		}
+		
+		/** Same as {@link add} but additionally permits setting of both colour and a label for this 
+		 * column of data values.
+		 * @param el identifier for the column
+		 * @param value value to be added to it
+		 * @param colour colour with which box plot values are to be shown
+		 * @param label label to show on the horizonal axis, empty string for no label.
+		 */
+		public synchronized void add(ELEM el,Double value, String colour, String label)
+		{
+			add(el,value);
+			if (colour != null) collectionOfResults.get(el).colour=colour;
+			if (label != null) collectionOfResults.get(el).label=label;
 		}
 		
 		/** Returns a command to draw a graph in R. */
@@ -510,10 +536,16 @@ public class DrawGraphs {
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
 			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM,List<Double>> entry:collectionOfResults.entrySet())
+			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
 			{
-				data.add(entry.getValue());names.add(entry.getKey().toString());
-				if (collectionOfColours.containsKey(entry.getKey())) colours.add(collectionOfColours.get(entry.getKey()));else colours.add(defaultColour);
+				data.add(entry.getValue().results);
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
 			}
 			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
 		}
@@ -537,9 +569,9 @@ public class DrawGraphs {
 		{
 			data = new LinkedList<List<Double>>();
 			names = new LinkedList<Double>();
-			for(Entry<Double,List<Double>> entry:collectionOfResults.entrySet())
+			for(Entry<Double,DataColumn> entry:collectionOfResults.entrySet())
 			{
-				data.add(entry.getValue());names.add(entry.getKey());
+				data.add(entry.getValue().results);names.add(entry.getKey());
 			}
 		}
 		
@@ -595,16 +627,16 @@ public class DrawGraphs {
 		{
 			Double xValueMin = null, xValueMax = null, yValueMin = null, yValueMax = null;
 			// if there is nothing useful to draw, do not pass the command to Bagplot - it will crash (as of May 24, 2011).
-			Iterator<Entry<Double,List<Double>>> resultIterator = collectionOfResults.entrySet().iterator();
+			Iterator<Entry<Double,DataColumn>> resultIterator = collectionOfResults.entrySet().iterator();
 
 			while(resultIterator.hasNext())
 			{
-				Entry<Double,List<Double>> entry = resultIterator.next();
+				Entry<Double,DataColumn> entry = resultIterator.next();
 				if (xValueMin == null) { xValueMin = entry.getKey();xValueMax = entry.getKey(); }
 				if (xValueMin.compareTo(entry.getKey()) > 0) xValueMin = entry.getKey();
 				if (xValueMax.compareTo(entry.getKey()) < 0) xValueMax = entry.getKey();
 				
-				for(Double y:entry.getValue())
+				for(Double y:entry.getValue().results)
 				{
 					if (yValueMin == null) { yValueMin = y;yValueMax = y; }
 					if (yValueMin.compareTo(y) > 0) yValueMin = y;

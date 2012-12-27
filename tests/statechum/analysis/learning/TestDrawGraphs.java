@@ -241,6 +241,36 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
+	public void testRunRealPlotWithLabelsAndColours() throws IOException
+	{
+		final DrawGraphs gr = new DrawGraphs();
+
+		final String X="axisX", Y="axisY";
+		File output = new File(testDir,"out.pdf");
+		RGraph<String> g=new RBoxPlot<String>(X,Y, output);
+		g.add("one",34.,"cyan","lbl");
+		g.add("one",34.);
+		g.add("one",2.,"magenta");
+		g.add("two",3.);
+		g.add("three",4.,"blue","");
+		g.drawPdf(gr);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y,"(lb","0.000 0.000 1.000 rg","1.000 0.000 1.000 rg","0.000 1.000 0.000 rg","0.000 0.000 0.000 rg"});
+		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
+		try
+		{
+			while((line=reader.readLine()) != null)
+				for(String str:stringsOfInterest)
+					if (line.contains(str)) encounteredStrings.put(str,true);
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals(stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings	
+	}
+	@Test
 	public void testPlotFail1()
 	{
 		final DrawGraphs gr = new DrawGraphs();
@@ -329,6 +359,20 @@ public class TestDrawGraphs {
 		g.add("two",3.);
 		g.add("three",4.,"blue");
 		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"one\",\"three\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
+	}
+	
+	/** Same as above, but with different colours and labels. */
+	@Test
+	public void testGenerateGraphWithdifferentColoursAndLabels()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		g.add("one",34.,"cyan","lbl");
+		g.add("one",34.);
+		g.add("one",2.,"magenta");
+		g.add("two",3.);
+		g.add("three",4.,"blue","");
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"lbl\",\"\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	/** This one is a bagplot. */

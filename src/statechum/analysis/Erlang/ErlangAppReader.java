@@ -109,8 +109,7 @@ public class ErlangAppReader {
 		}
 		finally
 		{
-			if (input != null)
-				input.close();
+			if (input != null) { try { input.close();input=null; } catch(IOException toBeIgnored) { /* Ignore exception */ }}
 		}
 		return result;
 	}

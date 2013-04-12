@@ -43,7 +43,8 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults = null;
 
-	public AccuracyTrackerDecorator(Learner learner, LearnerGraph target){
+	public AccuracyTrackerDecorator(Learner learner, LearnerGraph target)
+	{
 		super(learner);
 
 		results = new LinkedList<List<ResultsContainer>>();

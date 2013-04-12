@@ -52,7 +52,7 @@ public class StructuralDifferencesPaper {
 
 	public static void dumpEquations()
 	{
-		GDLearnerGraph ndGraph = new GDLearnerGraph(buildLearnerGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"dumpEquations",config),LearnerGraphND.ignoreRejectStates, false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(buildLearnerGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"dumpEquations",config,null),LearnerGraphND.ignoreRejectStates, false);
 		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
 		final int pairsNumber = incompatiblePairs.length;
 		for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=i;// emulate the behaviour or non-public part for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,1);
@@ -97,12 +97,12 @@ public class StructuralDifferencesPaper {
 				"q16-disconnect->q17 /" +
 				"q3-changedir->q9 /" +
 				"q10-appendfile->q11 /" +
-				"q13-retrievefile->q13","sd_cvs",config),
-				markovD = buildLearnerGraphND(markovString.replace("PART2", "a").replace("PART3", "a"),"sd_markovD",config).pathroutines.buildDeterministicGraph(),
-				edsm = buildLearnerGraph("a-initialise->b-connect->c-login->d-storefile->e-changedir->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedir->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","sd_edsm",config)
+				"q13-retrievefile->q13","sd_cvs",config,null),
+				markovD = buildLearnerGraphND(markovString.replace("PART2", "a").replace("PART3", "a"),"sd_markovD",config,null).pathroutines.buildDeterministicGraph(),
+				edsm = buildLearnerGraph("a-initialise->b-connect->c-login->d-storefile->e-changedir->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedir->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","sd_edsm",config,null)
 				;
 		LearnerGraphND 
-			markov = buildLearnerGraphND(markovString,"sd_markov",config);
+			markov = buildLearnerGraphND(markovString,"sd_markov",config,null);
 		markovD.setName("sd_markovD");
 
 		Set<Label> origAlphabet = cvsGraph.pathroutines.computeAlphabet();

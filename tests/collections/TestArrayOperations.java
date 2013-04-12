@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum;
+package collections;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,10 +28,13 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration;
+import statechum.collections.ArrayOperations;
+
 
 import junit.framework.AssertionFailedError;
 
-import static statechum.ArrayOperations.arrayappend;
+import static statechum.collections.ArrayOperations.arrayappend;
 
 public class TestArrayOperations {
 	/** Fails the currently running test with the supplied error message.

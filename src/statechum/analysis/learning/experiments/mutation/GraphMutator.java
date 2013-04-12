@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -94,12 +95,12 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		}
 
 		@Override
-		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
-			if (next != null) next.removeFromCompatibility(a,b);
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value) {
+			if (next != null) next.removeFromCompatibility(a,b,value);
 		}
 
 		@Override
-		public void addRelabelling(VertexID a, VertexID b) {
+		public void addRelabelling(VertID a, VertID b) {
 			if (next != null) next.addRelabelling(a, b);
 		}
 		
@@ -236,7 +237,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		if (mutationsWeCanAccommodate < 2)
 			throw new FailureToMutateException("in order to add an edge, we have to be able to manage two mutations, only one is available");
 		CmpVertex from = selectRandomState();
-		CmpVertex newV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("added_"+addedStates++), Configuration.getDefaultConfiguration());
+		CmpVertex newV = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("added_"+addedStates++), Configuration.getDefaultConfiguration());
 		mutator.addVertex(newV);
 		Label newLabel = randomLabel();
 		mutator.addTransition(from, newLabel, newV);

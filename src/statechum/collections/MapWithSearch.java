@@ -16,12 +16,12 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum;
+package statechum.collections;
 
 import java.util.Map;
 import java.util.Set;
 
-import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 
 /** This one makes it possible to search a map for an element with a specific ID and returns an element of its domain that matches that ID.
  * 
@@ -29,7 +29,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 public interface MapWithSearch<K,V> extends Map<K, V>
 {
 	/** Searches a map for an element with a specific ID and returns an element of its domain that matches that ID. */
-	K findElementById(VertexID id);
+	K findElementById(VertID id);
 	
 	/** Returns elements in the same order as they would have been returned by TreeMap, for testing only. */
 	Set<Map.Entry<K, V>> getTreeEntrySet();

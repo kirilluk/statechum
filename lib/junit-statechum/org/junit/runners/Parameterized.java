@@ -67,7 +67,12 @@ public class Parameterized extends Suite {
 			{
 				String result = null;
 				Class<?> [] argTypes = new Class<?>[parameters.length];
-				for(int i=0;i<parameters.length;++i) argTypes[i]=parameters[i].getClass();
+				for(int i=0;i<parameters.length;++i)
+				{
+					argTypes[i]=parameters[i].getClass();
+					if (argTypes[i].isAnonymousClass())
+						argTypes[i]=argTypes[i].getSuperclass();
+				}
 				try {
 					java.lang.reflect.Method converterMethod = type.getMethod("parametersToString", argTypes);
 					if (converterMethod != null && java.lang.reflect.Modifier.isStatic(converterMethod.getModifiers()))
@@ -111,7 +116,7 @@ public class Parameterized extends Suite {
 			}
 
 			@Override
-			protected void validateZeroArgConstructor(List<Throwable> errors) {
+			protected void validateZeroArgConstructor(@SuppressWarnings("unused") List<Throwable> errors) {
 				// constructor can, nay, should have args.
 			}
 

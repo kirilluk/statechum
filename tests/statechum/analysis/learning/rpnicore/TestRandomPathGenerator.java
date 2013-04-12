@@ -31,11 +31,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import static statechum.Helper.checkForCorrectException;
@@ -44,12 +45,13 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 public class TestRandomPathGenerator {
 	private Configuration config = null;
-
+	private ConvertALabel converter = null;
+	
 	@Before
 	public void InitConfig()
 	{
 		config = Configuration.getDefaultConfiguration().copy();
-		simpleGraph = buildLearnerGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1",config);
+		simpleGraph = buildLearnerGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1",config,converter);
 	}
 	
 	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
@@ -60,7 +62,7 @@ public class TestRandomPathGenerator {
 	 */
 	protected List<Label> labelList(String [] labels)
 	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config,converter);
 	}
 	
 	@Test
@@ -75,21 +77,21 @@ public class TestRandomPathGenerator {
 	public void test_diameter1()
 	{
 		Assert.assertEquals(0, RandomPathGenerator.diameter(
-				buildLearnerGraph("A-a->A","test_diameter1",config)));
+				buildLearnerGraph("A-a->A","test_diameter1",config,converter)));
 	}
 
 	@Test
 	public void test_diameter2()
 	{
 		Assert.assertEquals(1, RandomPathGenerator.diameter(
-				buildLearnerGraph("A-a->A-b->B","test_diameter2",config)));
+				buildLearnerGraph("A-a->A-b->B","test_diameter2",config,converter)));
 	}
 
 	@Test
 	public void test_diameter3()
 	{
 		Assert.assertEquals(3, RandomPathGenerator.diameter(
-				buildLearnerGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter3",config)));
+				buildLearnerGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter3",config,converter)));
 	}
 
 	/** One of the test graphs. Should not contain reject states since these methods assume that all states are accepts. */
@@ -169,7 +171,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk1c()
 	{
-		LearnerGraph graph = buildLearnerGraph("WW-s->WW\n"+"A-a->B\nB-b->D-c->E","test_generateRandomWalk1",config);
+		LearnerGraph graph = buildLearnerGraph("WW-s->WW\n"+"A-a->B\nB-b->D-c->E","test_generateRandomWalk1",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,graph.findVertex(VertexID.parseID("A")));
 		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
 		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
@@ -188,7 +190,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalkAlt()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B\nA-c->B\nB-b->D-c->E\nB-d->D","test_generateRandomWalkAlt",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B\nA-c->B\nB-b->D-c->E\nB-d->D","test_generateRandomWalkAlt",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		List<Label> seq = generator.generateRandomWalk(2,2, true);
 		Assert.assertEquals(labelList(new String[]{"c","d"}), seq);generator.allSequences.add(seq);
@@ -278,7 +280,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk7a()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(1,2,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -291,7 +293,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk7b()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(2,2,generator,
 				ArrayOperations.flatten(new Object[]{"a",new Object[]{// the first Object[] means we are talking
@@ -304,7 +306,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk7c()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,3,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -318,7 +320,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk8a()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config);
+		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,4, 7,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -335,7 +337,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk8b()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config);
+		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,3, 5,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -415,7 +417,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void checkGenerationOfPathsOfLengthOneFail()
 	{
-		final LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config);
+		final LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config,converter);
 		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
 		checkForCorrectException(new whatToRun() { @Override public void run() {
 			new RandomPathGenerator(graph,new Random(0),0,null).generatePosNeg(2, 1);
@@ -425,7 +427,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void checkGenerationOfPathsOfLengthOne1()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config,converter);
 		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),1,null);
 		generator.generatePosNeg(2,1);
@@ -444,7 +446,7 @@ public class TestRandomPathGenerator {
 	public RandomPathGenerator generatePosNegTestHelper(String automaton, String automatonName,
 			final int chunkNumber,final int posOrNegPerChunk)
 	{
-		LearnerGraph graph = buildLearnerGraph(automaton,automatonName,config);
+		LearnerGraph graph = buildLearnerGraph(automaton,automatonName,config,converter);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -522,7 +524,7 @@ public class TestRandomPathGenerator {
 
 	public RandomPathGenerator generateRandomPosNegHelper(String automaton, String automatonName,final int chunkNumber,int posOrNegPerChunk)
 	{
-		LearnerGraph graph = buildLearnerGraph(automaton,automatonName,config);
+		LearnerGraph graph = buildLearnerGraph(automaton,automatonName,config,converter);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -588,7 +590,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void checkGenerationOfPathsOfLengthOne2()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config);
+		LearnerGraph graph = buildLearnerGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne",config,converter);
 		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),1,null);
 		generator.generateRandomPosNeg(2, 1);
@@ -662,7 +664,7 @@ public class TestRandomPathGenerator {
 	{
 		config.setRandomPathAttemptFudgeThreshold(1);
 		
-		LearnerGraph graph = buildLearnerGraph(failAutomaton,failAutomatonName,config);
+		LearnerGraph graph = buildLearnerGraph(failAutomaton,failAutomatonName,config,converter);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		int posOrNegPerChunk = 18, chunkNumber = 12;
@@ -709,7 +711,7 @@ public class TestRandomPathGenerator {
 	{
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
-		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",config);
+		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",config,converter);
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -764,7 +766,7 @@ public class TestRandomPathGenerator {
 	{
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
-		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",config);
+		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",config,converter);
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);

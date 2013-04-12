@@ -42,10 +42,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
-import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
@@ -53,6 +51,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
@@ -74,7 +73,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	 */
 	protected List<Label> labelList(String [] labels)
 	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),testConfig);
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),testConfig,getLabelConverter());
 	}
 	
 	/** Given a test configuration, returns a textual description of its purpose. 
@@ -88,7 +87,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	}
 	
 	public TestGraphBasicAlgorithms(Configuration conf) {
-		super(null,conf);mainConfiguration = conf;
+		super(null,conf,conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null);mainConfiguration = conf;
 	}
 
 	@Before
@@ -102,11 +101,11 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 
 	/** The configuration to use when running tests. */
 	private Configuration testConfig = null, mainConfiguration = null;
-
+	
 	static public PairScore constructPairScore(String a,String b, long score, Configuration config)
 	{
-		CmpVertex aV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(a), config), 
-			bV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(b),config);
+		CmpVertex aV = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(a), config), 
+			bV = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(b),config);
 		return new PairScore(aV,bV, score,score);
 	}
 
@@ -150,10 +149,10 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testFindVertex0()
 	{
-		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\n", "testFindVertex", testConfig);
+		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\n", "testFindVertex", testConfig,getLabelConverter());
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("A", s.findVertex("A").getID().toString());
-		Assert.assertEquals("C", s.findVertex("C").getID().toString());
+		Assert.assertEquals("A", s.findVertex("A").getStringId());
+		Assert.assertEquals("C", s.findVertex("C").getStringId());
 	}
 	
 	@Test
@@ -161,7 +160,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	{
 		LearnerGraph s = new LearnerGraph(testConfig);
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("Init", s.findVertex("Init").getID().toString());
+		Assert.assertEquals("Init", s.findVertex("Init").getStringId());
 	}
 	
 	/** Helps testing the routines which find the shortest path between a pair of nodes in a graph.
@@ -180,7 +179,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 			for(Entry<String,String> expSrc:TestFSMAlgo.buildStringMap(expectedResult).entrySet())
 			{
 				String expectedSequence = expSrc.getKey().length()>0? ArrayOperations.separator+expSrc.getKey():"";
-				for(List<Label> is:TestFSMAlgo.buildSet(initSeq, testConfig)) expected.put(ArrayOperations.seqToString(is)+expectedSequence, expSrc.getValue());
+				for(List<Label> is:TestFSMAlgo.buildSet(initSeq, testConfig,getLabelConverter())) expected.put(ArrayOperations.seqToString(is)+expectedSequence, expSrc.getValue());
 			}
 		else // initSeq == null
 			expected.putAll(TestFSMAlgo.buildStringMap(expectedResult));
@@ -188,11 +187,11 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		IllegalArgumentException exORIG = null;
 		
 		{// testing the orig part
-			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig);
+			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig,getLabelConverter());
 			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
 			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
-			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig));
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig,getLabelConverter()));
 			try
 			{ 
 				s.paths.ORIGcomputePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
@@ -207,11 +206,11 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		IllegalArgumentException exNew = null;
 		
 		{// testing the new part
-			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig);
+			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig,getLabelConverter());
 			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
 			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
-			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig));
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig,getLabelConverter()));
 			try
 			{ 
 				s.pathroutines.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths); 
@@ -225,10 +224,10 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		IllegalArgumentException exCaching = null;
 		
 		{// testing the latest part with caching.
-			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig);
+			LearnerGraph s = buildLearnerGraph(machine, testName, testConfig,getLabelConverter());
 			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
-			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig));
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq, testConfig,getLabelConverter()));
 			try
 			{
 				Map<CmpVertex,PTASequenceEngine.SequenceSet> map = s.pathroutines.computePathsSBetween_All(s.findVertex(FirstState), engine,initSet);
@@ -474,7 +473,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsSBetween16()
 	{
-		LearnerGraph s = buildLearnerGraph(complexGraphA, "ComputePathsSBetween_complexGraphA", testConfig);
+		LearnerGraph s = buildLearnerGraph(complexGraphA, "ComputePathsSBetween_complexGraphA", testConfig,getLabelConverter());
 		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
 		PTASequenceEngine.SequenceSet pathsA = engine.new SequenceSet();
@@ -582,10 +581,10 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed1()
 	{
-		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed1", testConfig);
+		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed1", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {}
-			},testConfig), 
+			},testConfig,getLabelConverter()), 
 			actual = new HashSet<List<Label>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("A")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
@@ -595,10 +594,10 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed2()
 	{
-		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed2", testConfig);
+		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed2", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"a","b"}
-			}, testConfig), 
+			}, testConfig,getLabelConverter()), 
 			actual = new HashSet<List<Label>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
@@ -608,13 +607,13 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed3()
 	{
-		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed3", testConfig);
+		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed3", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},
 				new String[] {"c","b"},
 				new String[] {"c","d"}
-			}, testConfig), 
+			}, testConfig,getLabelConverter()), 
 			actual = new HashSet<List<Label>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
@@ -624,11 +623,11 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed4()
 	{
-		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed4", testConfig);
+		LearnerGraph s = buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed4", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"p"},
 				new String[] {"q"}
-			}, testConfig), 
+			}, testConfig,getLabelConverter()), 
 			actual = new HashSet<List<Label>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
@@ -638,15 +637,14 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed5()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig);
-		LearnerGraph s = new LearnerGraph(g, testConfig);
+		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},
 				new String[] {"c","b"},
 				new String[] {"c","d"},
 				new String[] {"p","q"}
-			}, testConfig), 
+			}, testConfig,getLabelConverter()), 
 			actual = new HashSet<List<Label>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
@@ -655,21 +653,21 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testGetVertex1()
 	{
-		LearnerGraph score = buildLearnerGraph("A-a->B-a->C-b->D\n","testFindVertex1", testConfig);
-		Assert.assertTrue(score.getVertex(new LinkedList<Label>()).getID().toString().equals("A"));
+		LearnerGraph score = buildLearnerGraph("A-a->B-a->C-b->D\n","testFindVertex1", testConfig,getLabelConverter());
+		Assert.assertTrue(score.getVertex(new LinkedList<Label>()).getStringId().equals("A"));
 	}
 
 	@Test
 	public final void testGetVertex2()
 	{
-		LearnerGraph score = buildLearnerGraph("A-a->B-b->C-b->D\n","testFindVertex2", testConfig);
-		Assert.assertTrue(score.getVertex(labelList(new String[]{"a","b"})).getID().toString().equals("C"));
+		LearnerGraph score = buildLearnerGraph("A-a->B-b->C-b->D\n","testFindVertex2", testConfig,getLabelConverter());
+		Assert.assertTrue(score.getVertex(labelList(new String[]{"a","b"})).getStringId().equals("C"));
 	}
 
 	@Test
 	public final void testGetVertex3()
 	{
-		LearnerGraph score = buildLearnerGraph("A-a->B-a->C-b->D\n","testFindVertex3", testConfig);
+		LearnerGraph score = buildLearnerGraph("A-a->B-a->C-b->D\n","testFindVertex3", testConfig,getLabelConverter());
 		Assert.assertNull(score.getVertex(labelList(new String[]{"a","d"})));
 	}
 
@@ -683,42 +681,42 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testGetExtentOfCompleteness1()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->A\n","testGetExtentOfCompleteness1", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 	
 	@Test
 	public final void testGetExtentOfCompleteness2()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->A-b->A\n","testGetExtentOfCompleteness2", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->A-b->A\n","testGetExtentOfCompleteness2", testConfig,getLabelConverter());
 		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 	
 	@Test
 	public final void testGetExtentOfCompleteness3()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\n","testGetExtentOfCompleteness1", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 		
 	@Test
 	public final void testGetExtentOfCompleteness4()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B\n","testGetExtentOfCompleteness1", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->B\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals(0.5,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 	
 	@Test
 	public final void testGetExtentOfCompleteness5()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A\n","testGetExtentOfCompleteness1", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals(0.5,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 	
 	@Test
 	public final void testGetExtentOfCompleteness6()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A-b->A\n","testGetExtentOfCompleteness1", testConfig);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A-b->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals((1.+0.5)/2,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
 	

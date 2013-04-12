@@ -35,13 +35,15 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
-import statechum.MapWithSearch;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 import statechum.collections.TreeMapWithSearch;
 
 /** This is a non-deterministic graph. Strictly speaking, all the methods here are applicable to the
@@ -66,6 +68,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	 * @param g the graph to build StateChum graph from
 	 * @param conf configuration to use
 	 */
+	@SuppressWarnings("unchecked")
 	public LearnerGraphND(Graph g,Configuration conf)
 	{
 		super(conf);
@@ -73,7 +76,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>(g.numVertices());
 		if (g.containsUserDatumKey(JUConstants.TITLE))
 			setName((String)g.getUserDatum(JUConstants.TITLE));
-		Set<VertexID> idSet = new HashSet<VertexID>(); 
+		Set<VertID> idSet = new HashSet<VertID>(); 
 		
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{
@@ -94,9 +97,9 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 				else vert = cloneCmpVertex(srcVert,config);
 				origToCmp.put(srcVert, vert);
 
-				if (idSet.contains(vert.getID()))
-					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
-				idSet.add(vert.getID());
+				if (idSet.contains(vert))
+					throw new IllegalArgumentException("multiple states with the same name "+vert.getStringId());
+				idSet.add(vert);
 				
 				transitionMatrix.put(vert,createNewRow());
 			}
@@ -174,7 +177,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 
 	/** Converts a given matrix into a non-deterministic representation, needed for
 	 * some methods. */
-	@SuppressWarnings("unchecked") // I aim to convert any kind of graph to this type.
+	@SuppressWarnings({ "unchecked", "rawtypes" }) // I aim to convert any kind of graph to this type.
 	public LearnerGraphND(AbstractLearnerGraph matrixND, Configuration argConfig)
 	{
 		super(argConfig);
@@ -199,8 +202,12 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 					for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 						if (filter.stateToConsider(targetState))
 						{
-							List<CmpVertex> targetList = new LinkedList<CmpVertex>();targetList.add(targetState);
-							entryForState.put(transition.getKey(), targetList);
+							List<CmpVertex> targetList = entryForState.get(transition.getKey());
+							if (targetList == null)
+							{
+								targetList = new LinkedList<CmpVertex>();entryForState.put(transition.getKey(), targetList);
+							}
+							targetList.add(targetState);
 						}
 				matrixND.transitionMatrix.put(entry.getKey(), entryForState);
 			}
@@ -210,7 +217,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		// that all states are mentioned on the left-hand side
 		// LearnerGraph's transition matrix.
 		
-		assert matrixND.findVertex(coregraph.getInit().getID()) != null : "initial state was filtered out";
+		assert matrixND.findVertex(coregraph.getInit()) != null : "initial state was filtered out";
 		matrixND.setInit(coregraph.getInit());
 	}
 	
@@ -252,25 +259,6 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		if (matrixND.transitionMatrix.isEmpty()) matrixND.setInit(null);
 		else matrixND.setInit(graph.getInit());
 	}
-
-	/** Looks through all the states for the one matching the supplied name and sets the initial state to the found one.
-	 * If the supplied state is not found, the initial state is reset to null.
-	 * 
-	 * @param initStateName name of the initial state.
-	 */
-	public void findInitialState(String initStateName)
-	{
-		CmpVertex initVertex = null;
-		for(CmpVertex vert:transitionMatrix.keySet())
-			if (vert.getID().toString().contains(initStateName))
-			{
-				initVertex = vert;break;
-			}
-		if (initVertex == null)
-			throw new IllegalArgumentException("absent initial state");
-
-		setInit(initVertex);
-	}
 	
 	public static final JUConstants ltlColour = JUConstants.INF_AMBER;
 
@@ -306,6 +294,8 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 
 	@Override
 	public Map<Label, List<CmpVertex>> createNewRow() {
+		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			return new ArrayMapWithSearchPos<Label, List<CmpVertex>>();
 		return new TreeMap<Label,List<CmpVertex>>();
 	}
 
@@ -328,12 +318,22 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	@Override
 	public MapWithSearch<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix(int stateNumber) 
 	{
-		return 
-				config.getTransitionMatrixImplType() == STATETREE.STATETREE_LINKEDHASH?
-					new HashMapWithSearch<CmpVertex,Map<Label, List<CmpVertex>>>(stateNumber) : //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
-					new TreeMapWithSearch<CmpVertex,Map<Label, List<CmpVertex>>>(stateNumber);
+		MapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>> outcome=null;
+		switch(config.getTransitionMatrixImplType())
+		{
+		case STATETREE_LINKEDHASH:
+			outcome = new HashMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber); //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+			break;
+		case STATETREE_ARRAY:
+			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber);
+			break;
+		case STATETREE_SLOWTREE:
+			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber);
+			break;
+		}
+		return outcome;
 	}
-
+	
 	@Override
 	public Collection<CmpVertex> getTargets(List<CmpVertex> targ) {
 		return targ;

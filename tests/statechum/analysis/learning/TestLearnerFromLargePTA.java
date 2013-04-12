@@ -1,6 +1,22 @@
+/* Copyright (c) 2012 The University of Sheffield, UK.
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collection;
@@ -15,20 +31,18 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
-import statechum.StatechumXML;
+import statechum.analysis.learning.experiments.PairQualityLearner;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
 @RunWith(Parameterized.class)
 public class TestLearnerFromLargePTA extends PaperUAS 
 {
-   	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
-   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
 	/*
    	public void recordInitialConfiguration() throws IOException
     {
@@ -87,61 +101,63 @@ Total time: 20492 sec
 
 */
    	
-   	public TestLearnerFromLargePTA(Boolean merger, String pairs)
+   	public TestLearnerFromLargePTA(Boolean merger, String pairs,Configuration.STATETREE matrixType)
    	{
-   		pairsToUse = pairs;mergerToUse = merger;
+   		pairsToUse = pairs;mergerToUse = merger;matrixToUse = matrixType;
    	}
 	
+   	public static String mergerTypeToXml(boolean optimizedMerge)
+   	{
+   		if (optimizedMerge) return "listOpt.xml";
+   		return "listGen.xml";
+   	}
+   	
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		for(boolean merger:new boolean[]{true,false})
-		for(String pairsToUse:new String[]{"listOpt.xml","listGen.xml"})
-			result.add(new Object[]{merger,pairsToUse});
+		for(Configuration.STATETREE matrixType:new Configuration.STATETREE []{Configuration.STATETREE.STATETREE_LINKEDHASH, Configuration.STATETREE.STATETREE_ARRAY})
+			for(boolean merger:new boolean[]{true,false})
+				for(boolean pairsFromMerger:new boolean[]{true,false})
+					result.add(new Object[]{merger,mergerTypeToXml(pairsFromMerger), matrixType});
 		
 		return result;
 	}
 
-	public static String parametersToString(Boolean merger, String pairsFile)
+	public static String parametersToString(Boolean merger, String pairsFile,Configuration.STATETREE matrixType)
 	{
-		return "merger:"+(merger?"fast":"general")+" "+pairsFile;
+		return "merger:"+(merger?"fast":"general")+", "+matrixType+" , "+pairsFile;
 	}
 
 	/** Name of the file containing pairs to be chosen from those determined by ChooseStatePairs. */
 	final String pairsToUse;
 	/** Whether to use an old merger that relies on merging a PTA into an automaton or a general one that mergers an arbitrary pairs of states. */ 
 	final boolean mergerToUse;
+	/** The kind of transition matrix to create. */
+	final Configuration.STATETREE matrixToUse;
 	
 	@Test
 	public void runCompareTwoLearners() throws IOException
     {
-		final Configuration.STATETREE trTypeFinal = Configuration.STATETREE.STATETREE_LINKEDHASH;
-		final java.io.FileInputStream inputStream = new java.io.FileInputStream(largePTAFileName);
-		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true);
-		Configuration defaultConfig = Configuration.getDefaultConfiguration();
+		Transform.InternStringLabel converter = new Transform.InternStringLabel();
 		PaperUAS paper = new PaperUAS();
-		paper.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
-		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
-		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
-		inputStream.close();
-
-		Configuration learnerConf = paper.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(trTypeFinal);
-        FileReader listOptReader = new FileReader(largePTALogsDir+pairsToUse);
-        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, paper.learnerInitConfiguration.config);
+		ProgressDecorator.InitialData initial = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
+		
+		Configuration learnerConf = paper.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(matrixToUse);
+        FileReader listOptReader = new FileReader(PairQualityLearner.largePTALogsDir+pairsToUse);
+        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, paper.learnerInitConfiguration.config,converter);
         listOptReader.close();
-        
+
         long tmStarted = new Date().getTime();
         LearnerGraph graphD=paper.new RPNIBlueFringeTestVariability(learnerConf,mergerToUse,null,listOpt).learn(initial.graph);
         long tmFinished = new Date().getTime();
         System.out.println("Learning ("+mergerToUse+"), "+pairsToUse+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
-        
-        LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(largePTALogsDir+"learnt_"+pairsToUse, referenceA);
-        Assert.assertEquals(trTypeFinal,graphD.config.getTransitionMatrixImplType());
+        String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_"+pairsToUse;
+        //graphD.storage.writeGraphML(outcomeName);
+        LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
+        Assert.assertEquals(matrixToUse,graphD.config.getTransitionMatrixImplType());
         DifferentFSMException diff = WMethod.checkM(referenceA, graphD);
         if (diff != null)
         	throw diff;
     }
-	
-
 }

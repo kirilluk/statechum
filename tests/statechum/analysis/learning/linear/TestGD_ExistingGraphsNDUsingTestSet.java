@@ -48,6 +48,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /**
  * @author kirill
@@ -61,6 +62,9 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 	protected final int threadNumber, pairsToAdd;
 
 	Configuration config = null;
+
+	/** Label converter to use. */
+	private ConvertALabel converter = null;
 
 	public static final String testFilePath = "resources/TestGraphs/75-6/";
 
@@ -162,21 +166,21 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 		{
 			LearnerGraphND grA = null, grB = null, graph = null;
 			{
-				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
-				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
+				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
 				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 			}
 			
 			{
-				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1);
-				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2);
+				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1, converter);
+				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2, converter);
 				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 			}
 			
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			{
-				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
-				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
+				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
 				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(graph, new Random(0));
 			}
 			ChangesRecorder patcher = new ChangesRecorder(null);
@@ -189,7 +193,7 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 			gd.computeDifference(patcher);
 
 			LearnerGraphND outcome = new LearnerGraphND(config);
-			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
 			Assert.assertEquals(grB,outcome);

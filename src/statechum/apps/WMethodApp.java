@@ -40,7 +40,7 @@ public class WMethodApp {
 	public static void main(String[] args){
 		try
 		{
-			LearnerGraph g = new LearnerGraph(Configuration.getDefaultConfiguration());AbstractPersistence.loadGraph(args[0], g);
+			LearnerGraph g = new LearnerGraph(Configuration.getDefaultConfiguration());AbstractPersistence.loadGraph(args[0], g,null);
 			int k = 0;
 			if(args.length>1)
 				k = Integer.parseInt(args[1]);

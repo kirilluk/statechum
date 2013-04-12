@@ -65,4 +65,9 @@ public class StringLabel implements Label {
 	{
 		return label;
 	}
+
+	@Override
+	public int toInt() {
+		throw new UnsupportedOperationException("string labels do are not numbered by default, this label is "+label);
+	}
 }

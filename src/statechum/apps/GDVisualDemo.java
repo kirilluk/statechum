@@ -44,8 +44,8 @@ public class GDVisualDemo
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 
-		LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config),grB=
-		buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config);
+		LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config,null),
+				grB=buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config,null);
 		DirectedSparseGraph gr = gd.showGD(
 				grA,grB,
 				ExperimentRunner.getCpuNumber());

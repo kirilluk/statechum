@@ -97,7 +97,30 @@ import org.apache.commons.collections.Predicate;
  *  
  * Updating Statechum web page:
  * 
-(cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )
+ * (cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )
+ * 
+ * 
+ * -------------------------------
+ * Warning settings for Eclipse-Juno and JDK1.7_10:
+ * WWI (non-static access)
+ * WWII (access to a non-accessible member)
+ * WWII (resource not managed via try-with-resource)
+ * WWWI (comparing identical values)
+ * WWWWW (using a char array in string concatenation)
+ * IWWWW (switch is missing default case)
+ * EWWWW (resource leak)
+ * WW (field declaration hides another field or variable)
+ * WWW (type parameter hides another type)
+ * W (deprecated API)
+ * EW (forbidden reference)
+ * WW (value of local variable is not used)
+ * WWIWW (unused import)
+ * WW  (unused break or continue)
+ * WWWW (unchecked generic type operation)
+ * W (missing @Override)
+ * WWW (missing @Deprecated)
+ * W (unused @SuppressWarnings)
+ * WIW (Null pointer access)
  * 
 Jung license included below,
 
@@ -236,10 +259,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	XMLEncoder encoder = null;
                 try {
                     if (propName >= 0) {
                         String fileName = getLayoutFileName(graphs.get(currentGraph));
-                        XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
+                        encoder = new XMLEncoder(new FileOutputStream(fileName));
                         Map<Integer, DoublePair> layout = ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist();
                         encoder.writeObject(layout);
                         XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
@@ -250,10 +274,12 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                         encoder.writeObject(trL);
                         ((XMLModalGraphMouse) viewer.getGraphMouse()).store(encoder);
                         encoder.writeObject(layoutOptions.get(currentGraph));
-                        encoder.close();
+                        encoder.close();encoder = null;
                     }
                 } catch (Exception e1) {
                     e1.printStackTrace();
+                } finally {
+                	if (encoder != null) { encoder.close();encoder=null; }
                 }
             }
         };
@@ -409,7 +435,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     }
     
     public void construct(Graph g,LayoutOptions options) {
-        if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT))) {
+        if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT_ENABLED))) {
             System.err.println("Pass the -ea argument to JVM to enable assertions");
         }
 
@@ -550,11 +576,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      *  @param graphNumber the number of the graph to load.
      */
     protected void restoreLayout(boolean ignoreErrors, int graphNumber) {
+    	XMLDecoder decoder = null;
         try {
             String fileName = getLayoutFileName(graphs.get(graphNumber));
             if (propName >= 0 && (new File(fileName)).canRead()) {
-                XMLDecoder decoder = new XMLDecoder(new FileInputStream(fileName));
-                Map<Integer, DoublePair> map = (Map<Integer, DoublePair>) decoder.readObject();
+                decoder = new XMLDecoder(new FileInputStream(fileName));
+                @SuppressWarnings("unchecked")
+				Map<Integer, DoublePair> map = (Map<Integer, DoublePair>) decoder.readObject();
                 ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
 
                 // Most rotate/share/translate are stateless, so I only need to get the cumulative transform
@@ -570,14 +598,14 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
                 ((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
                 layoutOptions.put(propName,(LayoutOptions)decoder.readObject());
-                decoder.close();
-
                 viewer.invalidate();
             }
         } catch (Exception e1) {
             if (!ignoreErrors) {
                 e1.printStackTrace();
             }
+        } finally {
+        	if (decoder != null) { decoder.close();decoder=null; }
         }
     }
 
@@ -885,7 +913,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         final EdgeAnnotation transitionColours;
         final Map<String, String> extraLabels;
 
-        public EdgeColour(Graph graph) {
+        @SuppressWarnings("unchecked")
+		public EdgeColour(Graph graph) {
             transitionColours = (EdgeAnnotation) graph.getUserDatum(JUConstants.EDGE);
             extraLabels = (Map<String, String>) graph.getUserDatum(JUConstants.VERTEX);
         }
@@ -934,7 +963,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         /** A colour of an inconsistent edge. */
         public final Color inconsistent = Color.MAGENTA;
 
-        public Color getPickedColour(ArchetypeEdge e) {
+        @SuppressWarnings("unchecked")
+		public Color getPickedColour(ArchetypeEdge e) {
             Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
             Iterator<Label> labelIt = labels.iterator();
             Color col = null;
@@ -943,7 +973,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 Color newCol = getEdgeColour(e, currentLabel);
                 if (col == null) {
                     col = newCol;
-                } else if (col != newCol) {
+                } else if (!col.equals(newCol)) {
                     col = inconsistent;
                 }
             }
@@ -955,7 +985,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         final EdgeColour paintChooser = new EdgeColour(graph);
         EdgeStringer stringer = new EdgeStringer() {
 
-            @Override
+            @SuppressWarnings("unchecked")
+			@Override
             public String getLabel(ArchetypeEdge e) {
                 String result = "";
 
@@ -1079,7 +1110,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         labeller.clear();
         //final String blowupAttribute = Math.abs(graphLayoutOptions.scaleText - 1)<Configuration.fpAccuracy?" ":
         //	"<font style=\"font-size:"+Math.round(graphLayoutOptions.scaleText*100.)+"%\">";
-        Iterator<Vertex> labelIt = graph.getVertices().iterator();
+        @SuppressWarnings("unchecked")
+		Iterator<Vertex> labelIt = graph.getVertices().iterator();
         while (labelIt.hasNext()) {
             Vertex v = labelIt.next();
             try {
@@ -1246,7 +1278,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             if (sourceMap == null) {
                 sourceMap = new TreeMap<Integer, DoublePair>();
             }
-            Set<Vertex> set = getGraph().getVertices();
+            @SuppressWarnings("unchecked")
+			Set<Vertex> set = getGraph().getVertices();
             for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
                 Vertex v = iterator.next();
                 DoublePair p = new DoublePair(getX(v), getY(v));
@@ -1266,7 +1299,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
          *
          * @param map to load from
          */
-        public void restore(Map<Integer, DoublePair> loadedMap) {
+        @SuppressWarnings("unchecked")
+		public void restore(Map<Integer, DoublePair> loadedMap) {
             if (sourceMap == null) {
                 sourceMap = new TreeMap<Integer, DoublePair>();
             }
@@ -1342,7 +1376,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 						    		}
 						    		
 									@Override
-									public void actionPerformed(ActionEvent e) {
+									public void actionPerformed(@SuppressWarnings("unused") ActionEvent ev) {
 										GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 											new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 										DirectedSparseGraph gr = gd.showGD(

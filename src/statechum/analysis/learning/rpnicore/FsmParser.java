@@ -18,28 +18,18 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.GlobalConfiguration;
+import statechum.Configuration.STATETREE;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
-import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 
 public class FsmParser 
@@ -171,57 +161,60 @@ public class FsmParser
 	 * 
 	 * @param fsm the textual representation of an FSM
 	 * @param name graph name, to be displayed as the caption of the Jung window.
-	 * @return Jung graph for it
+	 * @param conv label converter, ignored if null.
+	 * @return LearnerGraph graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static LearnerGraph buildLearnerGraph(String fsm,String name,Configuration config)
+	public final static LearnerGraph buildLearnerGraph(String fsm,String name,Configuration config,final ConvertALabel conv)
 	{
-		return new LearnerGraph(buildGraph(fsm,name,config),config);
+		LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
+		buildGraph(fsm,name,config,graph,conv);
+		return graph;
 	}
-	
+		
 	/** Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
 	 * 
 	 * @param fsm the textual representation of an FSM
 	 * @param name graph name, to be displayed as the caption of the Jung window.
-	 * @return Jung graph for it
+	 * @param conv label converter, ignored if null.
+	 * @return LearnerGraphND graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static LearnerGraphND buildLearnerGraphND(String fsm,String name,Configuration config)
+	public final static LearnerGraphND buildLearnerGraphND(String fsm,String name,Configuration config,final ConvertALabel conv)
 	{
-		return new LearnerGraphND(buildGraph(fsm,name,config),config);
+		LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
+		buildGraph(fsm,name,config,graph,conv);
+		return graph;
 	}
-	
-	/** Given a textual representation of an fsm, builds a corresponding Jung graph
+		
+	/** Given a textual representation of an fsm, builds a corresponding graph
 	 * 
 	 * @param fsm the textual representation of an FSM
-	 * @param name graph name, to be displayed as the caption of the Jung window.
-	 * @return Jung graph for it
+	 * @param name graph name.
+	 * @param conv label converter, ignored if null.
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static DirectedSparseGraph buildGraph(String fsm,String name,final Configuration config)
+	public final static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void buildGraph(String fsm,String name,final Configuration config, 
+			final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> target,final ConvertALabel conv)
 	{
-		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
-		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
-		
-		final DirectedSparseGraph g = new DirectedSparseGraph();
-		g.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-
+		assert config.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || conv != null : "converter has to be set for an ARRAY transition mantrix";
+		//assert conv == null || config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY : "non-null converter may only accompany an ARRAY transition matrix in tests";
+		target.setName(name);
 		new FsmParser(fsm).parse(new TransitionReceiver()
 		{
 			public void put(String from, String to, Label label, boolean accept) {
-				DeterministicVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
+				CmpVertex fromVertex = target.transitionMatrix.findElementById(VertexID.parseID(from)), toVertex = target.transitionMatrix.findElementById(VertexID.parseID(to));
 				
 				if (fromVertex == null)
 				{
-					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(from);
-					if (existingVertices.isEmpty())
-						fromVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-					fromVertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
-					existingVertices.put(from, fromVertex);
-					g.addVertex(fromVertex);
+					fromVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(from), config);
+					if (target.transitionMatrix.isEmpty())
+						target.setInit(fromVertex);
+					target.transitionMatrix.put(fromVertex, target.createNewRow());
+					fromVertex.setAccept(true);
 				}
 				else
-					if (!Boolean.valueOf(fromVertex.getUserDatum(JUConstants.ACCEPTED).toString()))
+					if (!fromVertex.isAccept())
 						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+from);
 
 				if (from.equals(to))
@@ -232,27 +225,16 @@ public class FsmParser
 				else
 					if (toVertex == null)
 					{
-						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(to);
-						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
-						toVertex.addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
-						existingVertices.put(to, toVertex);
-						g.addVertex(toVertex);
+						toVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(to),config);
+						toVertex.setAccept(accept);
+						target.transitionMatrix.put(toVertex, target.createNewRow());
 					}
 					else
-						if (DeterministicDirectedSparseGraph.isAccept(toVertex) != accept)
+						if (toVertex.isAccept() != accept)
 							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 				
-				StatePair pair = new StatePair(fromVertex,toVertex);
-				DeterministicEdge edge = existingEdges.get(pair);
-				if (edge == null)
-				{
-					edge = new DeterministicDirectedSparseGraph.DeterministicEdge(fromVertex,toVertex);
-					edge.addUserDatum(JUConstants.LABEL, new HashSet<String>(), UserData.CLONE);
-					g.addEdge(edge);existingEdges.put(pair,edge);
-				}
-				
-				Set<Label> labels = (Set<Label>)edge.getUserDatum(JUConstants.LABEL);
-				labels.add(label);
+				Label convertedLabel = label;if (conv != null) convertedLabel = conv.convertLabelToLabel(label);
+				target.addTransition(target.transitionMatrix.get(fromVertex),convertedLabel,toVertex);				
 			}
 
 			@Override
@@ -267,25 +249,13 @@ public class FsmParser
 
 			@Override
 			public void pairCompatibility(String stateA, PAIRCOMPATIBILITY pairRelation, String stateB) {
-				PairCompatibility<Vertex> pairCompatibility = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
-				if (pairCompatibility == null)
-				{
-					pairCompatibility = new PairCompatibility<Vertex>(config.getMaxStateNumber());
-					g.addUserDatum(JUConstants.PAIR_COMPATIBILITY, pairCompatibility, UserData.SHARED);
-				}
-				if (!existingVertices.containsKey(stateA))
+				CmpVertex fromVertex = target.transitionMatrix.findElementById(VertexID.parseID(stateA)), toVertex = target.transitionMatrix.findElementById(VertexID.parseID(stateB));
+				if (fromVertex == null)
 					throw new IllegalArgumentException("unknown vertex "+stateA);
-				if (!existingVertices.containsKey(stateB))
+				if (toVertex == null)
 					throw new IllegalArgumentException("unknown vertex "+stateB);
-				pairCompatibility.addToCompatibility(existingVertices.get(stateA), existingVertices.get(stateB), pairRelation);
-				
+				target.addToCompatibility(fromVertex, toVertex, pairRelation);
 			}
 		},config);
-
-		if (GlobalConfiguration.getConfiguration().isGraphTransformationDebug(g))
-		{
-			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
-		}
-		return g;
 	}
 }

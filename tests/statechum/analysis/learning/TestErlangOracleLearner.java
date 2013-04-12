@@ -23,6 +23,7 @@ import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.observers.LearningConvergenceObserver;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -40,6 +41,7 @@ public class TestErlangOracleLearner {
 	public void beforeTest()
 	{
 		ErlangModule.flushRegistry();
+		ErlangRunner.getRunner().killErlang();
 	}
 	
 	@Test

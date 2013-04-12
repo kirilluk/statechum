@@ -22,7 +22,6 @@ import statechum.Configuration.STATETREE;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.experiments.mutation.ExperimentResult.DOUBLE_V;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.LONG_V;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -70,11 +69,7 @@ public class TestDiffExperimentWithLogs {
 
 		@Override
 		public void finished() {
-			encoder.close();try {
-				outputStream.close();
-			} catch (IOException e) {// Ignore error
-				e.printStackTrace();
-			}
+			encoder.close();if (outputStream != null) { try { outputStream.close();outputStream=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 		
 	}
@@ -83,6 +78,8 @@ public class TestDiffExperimentWithLogs {
 	{
         XMLDecoder decoder = null;
 		InputStream inputStream = null;
+		
+		double difference = 0.;
 		
         public ResultChecker(String where) throws FileNotFoundException
         {
@@ -94,22 +91,14 @@ public class TestDiffExperimentWithLogs {
 		public void process(ExperimentResult result) {
 			ExperimentResult recorded = new ExperimentResult();
 			recorded.load(decoder);
-			// The log was recorded some time ago and the new argument is not featuring in it, hence
-			// we add it since the purpose of the test is to verify the overall performance and we
-			// aim to be insensitive to future changes.
-			recorded.setValue(DOUBLE_V.ACCURACY_LINEAR, result.getValue(DOUBLE_V.ACCURACY_LINEAR));
 			recorded.experimentValid = true;
 			Assert.assertEquals(result,recorded);
+			//double newDiff = result.maxDiff(recorded);
 		}
 
 		@Override
 		public void finished() {
-			decoder.close();
-			try {
-				inputStream.close();
-			} catch (IOException e) {// ignore this
-				e.printStackTrace();
-			}
+			decoder.close();if (inputStream != null) { try { inputStream.close();inputStream=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 		
 	}
@@ -158,6 +147,7 @@ public class TestDiffExperimentWithLogs {
 							LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
 							Map<CmpVertex,CmpVertex> origToNew = copyStatesAndTransitions(origGraph,origAfterRenaming);
 							LearnerGraphND mutated = (LearnerGraphND)mutator.getMutated();
+							mutated.setName(origAfterRenaming.getName()+"_mutated");origAfterRenaming.setName(origAfterRenaming.getName()+"_orig");
 							Set<Transition> appliedMutations = new HashSet<Transition>();
 							for(Transition tr:mutator.getDiff())
 							{
@@ -183,8 +173,8 @@ public class TestDiffExperimentWithLogs {
 							outcome.setValue(LONG_V.DURATION_W, 0);
 							
 							outcome.experimentValid = true;
-							System.out.println("processing");
 							processor.process(outcome);
+							
 							progress.next();
 						}
 					}

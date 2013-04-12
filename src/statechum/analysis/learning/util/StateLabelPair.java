@@ -10,9 +10,9 @@ class StateLabelPair{
 	CmpVertex vertex=null;
 	Label label = null;
 	
-	public StateLabelPair(CmpVertex vertex, Label label) {
-		this.vertex = vertex;
-		this.label=label;
+	public StateLabelPair(CmpVertex vertexArg, Label labelArg) {
+		this.vertex = vertexArg;
+		this.label=labelArg;
 	}
 	
 }

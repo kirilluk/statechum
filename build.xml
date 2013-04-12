@@ -1,19 +1,30 @@
-<!-- based on http://ant.apache.org/manual/ -->
+<!-- based on http://ant.apache.org/manual/ 
+
+Make sure that you do clean after an update of an existing checkout.
+Without it, Erlang part may fail because .beam files are recompiled based on source .erl
+file, without taking into account changes of the .hrl files that may be needed.
+Moreover, it does not seem that all Java files will always be recompiled, presumably due to a similar
+lack of tracking dependencies between Java files.
+
+-->
 <project name="XMachineTool" default="test" basedir=".">
     <description>
         Builds the project and runs tests on it.
     </description>
   <!-- set global properties for this build -->
-  <property name="root" location="../"/>
+  <property name="root" location="lib"/>
   <property name="junit_statechum" location="lib/junit-statechum"/>
   <property name="junit_statechum_src" location="${junit_statechum}"/>
   <property name="junit_statechum_bin" location="bin"/>
   <property name="statechum_src" location="src"/>
+  <property name="statechum_collections_src" location="lib/modified_collections"/>
   <property name="test_src" location="tests"/>
   <property name="test_dir" location="."/>
   <property name="statechum_bin" location="bin"/>
   <property name="ant.build.javac.source" value="1.7"/>
-
+  <property name="rtool_path" value="/usr/local/lib/R/site-library/rJava/jri"/>
+  <property name="rpath" value="/usr/lib/R"/>
+  <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
     <path id="classpath.lib">
       <fileset dir="lib">
         <include name="**/*.jar"/>
@@ -23,7 +34,7 @@
     <path id="classpath.statechum">
       <pathelement location="${junit_statechum_bin}"/>
       <path refid="classpath.lib"/>
-<!--      <pathelement location="${root}/trunk/lib/junit-4.8.2.jar"/> -->
+      <path refid="classpath.lib"/>
     </path>
 
   <target name="init">
@@ -38,7 +49,6 @@
  	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
 		<classpath>
 			<path refid="classpath.lib"/>
-   			<pathelement location="${root}/trunk/lib/junit-4.8.2.jar"/>
 		</classpath>
     	<compilerarg value="-g" />
     	</javac>
@@ -46,7 +56,7 @@
   	
   <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
     <!-- Compile the java code from ${src} into ${bin} -->
-    <javac fork="on" srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+    <javac fork="on" srcdir="${statechum_src}:${statechum_collections_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
        	<classpath refid="classpath.statechum" />
     	<compilerarg value="-g" />
 	<!-- <compilerarg value="-Xlint:unchecked"/> -->
@@ -64,21 +74,24 @@
 
   <target name="test" depends="compileTests" description="run unit tests">
   	   <echo>This will always fail on Win32 because max memory is set too high, but will work on 64-bit platforms that have at least 32GB of RAM</echo>
-  	   <echo>Assumes that R is installed in /usr/lib/R and jri shared library is in /usr/local/lib/R/site-library/rJava/jri</echo>  	   
-       <junit  fork="on" maxmemory="30000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}">
+  	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
+       <junit  fork="on" maxmemory="20000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
 		<assertions>
         	<enable/>
       	</assertions>
-      	<env key="R_HOME" value="/usr/lib/R"/>
+      	<env key="R_HOME" value="${rpath}"/>
     	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
     	<jvmarg value="-XX:+UseCompressedOops"/>
-       	<jvmarg value="-Xdebug" />
-       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
-       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:/usr/local/lib/R/site-library/rJava/jri"/>
-       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:${rtool_path}"/>
+
        	<sysproperty key="threadnum" value="4"/>
-       	
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
 		<sysproperty key="com.sun.management.jmxremote" value="" />
        	<classpath>
          	<path refid="classpath.statechum" />
@@ -87,15 +100,29 @@
        	<!-- formatter type="xml"/>
        	-->
        	<formatter type="plain"/>
-  <!--       	
+
+<!--
   <batchtest>
-    <fileset dir="${src}">
+    <fileset dir="${test_src}">
       <include name="**/Test*.java"/>
+      <exclude name="**/AllTests.java"/>
     </fileset>
   </batchtest>
-  -->
+-->
+<!--
+  <batchtest>
+    <fileset dir="${test_src}">
+	<include name="**/TestSolver.java"/>
+      <include name="**/TestAugmentUsingIFTHEN.java"/>
+      <include name="**/TestSmtLabelRepresentation.java"/>
+
+    </fileset>
+  </batchtest>
+-->
        	<test name="statechum.AllTests" />
-       	
+<!--
+	<test name="statechum.analysis.learning.experiments.TestExperimentRunner" />
+-->
        </junit>
        
   </target>
@@ -106,16 +133,20 @@
         	<enable/>
       	</assertions>
     	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
     	<jvmarg value="-XX:+UseCompressedOops"/>
-       	<jvmarg value="-Xdebug" />
-       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
         <!-- <jvmarg value="-Duser.dir=/home/ramsay/statechum/XMachineTool/trunk/"/> -->
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
        	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
-       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+       	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
        	<sysproperty key="threadnum" value="4"/>
 		<sysproperty key="com.sun.management.jmxremote" value="" />
-       	<classpath>
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+      	<classpath>
          	<path refid="classpath.statechum" />
          	<pathelement location="${statechum_bin}"/>
          </classpath>
@@ -135,14 +166,17 @@
 	        	<enable/>
 	      	</assertions>
 	    	<!-- <jvmarg value="-XX:+CITime"/> -->
-    		<jvmarg value="-XX:+UseCompressedOops"/>
-	       	<!-- jvmarg value="-Xdebug" />
-	       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" /> -->
+           	<jvmarg value="-ea"/>
+        	<jvmarg value="-XX:+UseCompressedOops"/>
+           	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
 	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
 	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
-	       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
 	       	<sysproperty key="threadnum" value="4"/>
-		<sysproperty key="com.sun.management.jmxremote" value="" />
+           	<sysproperty key="ASSERT_ENABLED" value="true"/>
+           	<sysproperty key="SMTWARNINGS" value="true"/>
+           	<sysproperty key="LINEARWARNINGS" value="true"/>
+           	<sysproperty key="FORCEFORK" value="true"/>
+			<sysproperty key="com.sun.management.jmxremote" value="" />
 	       	<classpath>
 	         	<path refid="classpath.statechum" />
 	         	<pathelement location="${statechum_bin}"/>
@@ -155,5 +189,11 @@
   <target name="clean" description="clean up" >
     <delete dir="${statechum_bin}/statechum"/>
     <delete dir="${junit_statechum_bin}"/>
+    <delete>
+    	<fileset dir="." includes="**/*.beam"/>
+    	<fileset dir="." includes="**/*.plt"/>
+	<fileset dir="ErlangOracle" includes="*.dump"/>
+    </delete>
+
   </target>
 </project>

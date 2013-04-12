@@ -423,8 +423,8 @@ public class TestErlangModule {
     	
     	// The above loads a module, this one gets that module and subsequently updates its alphabet.
     	Configuration exporterConfiguration = ErlangModule.setupErlangConfiguration(new File("ErlangExamples/exporter/exporter"+ErlangRunner.ERL.ERL.toString()));
-    	ErlangModule modLocker = ErlangModule.findModule(evalConf.config.getErlangModuleName()),
-    		modExporter = ErlangModule.loadModule(exporterConfiguration);
+    	ErlangModule.findModule(evalConf.config.getErlangModuleName());
+    	ErlangModule modExporter = ErlangModule.loadModule(exporterConfiguration);
     	
     	final ErlangLabel pushLabel = modExporter.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel(
     			"{"+ErlangLabel.missingFunction+",'exporter:push/1',['JustAnythingA'],'ok'}", exporterConfiguration));
@@ -491,7 +491,7 @@ public class TestErlangModule {
 		Configuration config = ErlangModule.setupErlangConfiguration(new File("ErlangExamples/locker/locker.erl"));
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, lock}", LBL2 = "{call, unlock}";
-		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
+		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config,null);
 		Assert.assertEquals(2,gr.pathroutines.computeAlphabet().size());
 		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
 		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(), lbl2 = (ErlangLabel)lblIter.next();
@@ -500,7 +500,7 @@ public class TestErlangModule {
 			ErlangLabel tmp = lbl1;lbl1=lbl2;lbl2=tmp;
 		}
 		List<Label> trace = AbstractLearnerGraph.buildList(Arrays.asList(
-				new String[]{LBL1,LBL2,LBL2}), config), expected = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
+				new String[]{LBL1,LBL2,LBL2}), config, null), expected = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
 		Assert.assertEquals(expected,trace);
 	}
 

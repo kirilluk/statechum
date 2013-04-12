@@ -41,6 +41,7 @@ import statechum.analysis.learning.Learner.RestartLearningEnum;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /**
  * @author kirill
@@ -52,13 +53,16 @@ public class TestWriteReadAugmentPta
 	List<Label> sequence = null;
 	String xmlData = null;
 	
+	private final Configuration config = Configuration.getDefaultConfiguration().copy();
+	private final ConvertALabel converter = null;
+
 	@Before
 	public final void beforeTest()
 	{
-		graph = buildLearnerGraph("A-a->B-a->C", "testWritePairs1",Configuration.getDefaultConfiguration());
-		sequence = AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"p","q","r"}),graph.config);
+		graph = buildLearnerGraph("A-a->B-a->C", "testWritePairs1",config,converter);
+		sequence = AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"p","q","r"}),graph.config,converter);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		dumper.topElement.appendChild(dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE)));dumper.close();
 		
@@ -69,8 +73,8 @@ public class TestWriteReadAugmentPta
 	@Test
 	public final void testWriteAugment0()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
@@ -83,8 +87,8 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment1()
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
-				TestRecordProgressDecorator.addExtraAttribute(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+				TestRecordProgressDecorator.addExtraAttribute(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
@@ -97,14 +101,14 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment2a()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		dumper.topElement.appendChild(dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartHARD,new LinkedList<Label>(),false,JUConstants.RED)));dumper.close();
 		
 		xmlData = output.toString();
 
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
@@ -117,14 +121,14 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment2b()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		dumper.topElement.appendChild(dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartHARD,sequence,false,null)));dumper.close();
 		
 		xmlData = output.toString();
 
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
@@ -136,8 +140,8 @@ public class TestWriteReadAugmentPta
 	@Test
 	public final void testWriteAugment3()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
@@ -149,15 +153,15 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment4()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		Element augmentElement = dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE));
 		augmentElement.setTextContent("");
 		dumper.topElement.appendChild(augmentElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
@@ -169,15 +173,15 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment5()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		Element augmentElement = dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE));
 		augmentElement.removeAttribute(StatechumXML.ATTR_COLOUR.name());
 		dumper.topElement.appendChild(augmentElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
@@ -190,15 +194,15 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment6()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		Element augmentElement = dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE));
 		augmentElement.removeAttribute(StatechumXML.ATTR_ACCEPT.name());
 		dumper.topElement.appendChild(augmentElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
@@ -210,15 +214,15 @@ public class TestWriteReadAugmentPta
 	public final void testWriteAugment7()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		Element augmentElement = dumper.writeAugmentPTA(
 				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE));
 		augmentElement.removeAttribute(StatechumXML.ATTR_KIND.name());
 		dumper.topElement.appendChild(augmentElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = Configuration.getDefaultConfiguration();
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = config;
 		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));

@@ -90,8 +90,8 @@ public class PairQualityExperiment {
 						fileA=files[fileNum], 
 						fileB=files[(fileNum+1)%files.length];
 					Configuration config = Configuration.getDefaultConfiguration().copy();
-					LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA);
-					LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB);
+					LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA,null);
+					LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB,null);
 					GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 					GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 					runExperiment(grA,grB,gd,counter,fileA.getName()+"-"+fileB.getName());
@@ -108,15 +108,15 @@ public class PairQualityExperiment {
 				
 					LearnerGraphND grA = null, grB = null;
 					{
-						LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
-						LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+						LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1,null);
+						LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2,null);
 						grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);
 						addColourAndTransitionsRandomly(grA, new Random(0));
 					}
 					
 					{
-						LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1);
-						LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2);
+						LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1,null);
+						LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2,null);
 						grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);
 						addColourAndTransitionsRandomly(grB, new Random(1));
 					}

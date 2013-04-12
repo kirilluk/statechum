@@ -44,4 +44,9 @@ public class ConfusionMatrix {
 		return divide(sensitivity+specificity,2);
 	}
 
+	@Override
+	public String toString()
+	{
+		return "tp="+tp+", tn="+tn+", fp="+fp+", fn="+fn; 
+	}
 }

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +31,12 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
-import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -47,6 +47,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRig
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.analysis.learning.rpnicore.LSolver;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 
 public class PairScoreComputation {
@@ -62,70 +63,80 @@ public class PairScoreComputation {
 		coregraph = computeStateScores;
 	}
 
-	public Stack<PairScore> chooseStatePairs()
+	
+	public static interface RedNodeDecisionProcedure
+	{
+		/** Given a graph, the current collection of red nodes and those not compatible with any current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
+		 * 
+		 * @param coregraph graph to work with.
+		 * @param reds nodes currently coloured red.
+		 * @param tentativeRedNodes blue nodes that are subject to promotion.
+		 * @return the node to promote.
+		 */
+		CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes);
+	}
+	
+	public Stack<PairScore> chooseStatePairs(RedNodeDecisionProcedure decisionProcedure)
 	{
 		coregraph.pairsAndScores.clear();
-		Set<CmpVertex> reds = new LinkedHashSet<CmpVertex>();
+		Collection<CmpVertex> reds = new LinkedList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			if (v.getColour() == JUConstants.RED)
 				reds.add(v);
 
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
-		currentExplorationBoundary.addAll(reds);
-		List<CmpVertex> BlueStatesConsideredSoFar = new LinkedList<CmpVertex>();
-		while(!currentExplorationBoundary.isEmpty())
+		Collection<CmpVertex> RedStatesFound = new LinkedList<CmpVertex>();
+		
+		do
 		{
-			CmpVertex currentRed = currentExplorationBoundary.remove();
-			for(Entry<Label,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
-				if (BlueEntry.getValue().getColour() == null || 
-						BlueEntry.getValue().getColour() == JUConstants.BLUE)
-				{// the next vertex is not marked red, hence it has to become blue
-					CmpVertex currentBlueState = BlueEntry.getValue();
-											
-					int numberOfCompatiblePairs = 0;
-					for(CmpVertex oldRed:reds)
-					{
-						PairScore pair = obtainPair(currentBlueState,oldRed);
-						if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
-						{
-							coregraph.pairsAndScores.add(pair);
-							++numberOfCompatiblePairs;
-							if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
-						}
-					}
-					
-					if (numberOfCompatiblePairs == 0)
-					{// mark this blue node as red. 
-						CmpVertex newRedNode = currentBlueState;
-						newRedNode.setColour(JUConstants.RED);
-						reds.add(newRedNode);currentExplorationBoundary.add(newRedNode);
-						BlueStatesConsideredSoFar.remove(newRedNode);
+			RedStatesFound.clear();coregraph.pairsAndScores.clear();
+			currentExplorationBoundary.addAll(reds);
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				CmpVertex currentRed = currentExplorationBoundary.remove();
+	
+				for(Entry<Label,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
+					if (BlueEntry.getValue().getColour() == null || 
+							BlueEntry.getValue().getColour() == JUConstants.BLUE)
+					{// the next vertex is not marked red, hence it has to become blue
+						CmpVertex currentBlueState = BlueEntry.getValue();
 						
-						// All future blue nodes will use this revised set of red states; the fact that
-						// it is added to the exploration boundary ensures that it is considered when looking for more blue states.
-						// Note that previously-considered blue states were not compared to this one (because it was blue before),
-						// however previously-introduced red were - we're using the up-to-date reds set above.
-						// For this reason, all we have to do is iterate over the old blue states and compare them to the
-						// current one; none of those states may become red as a consequence since they are not 
-						// red already, i.e. there is an entry about them in PairsAndScores
-						for(CmpVertex oldBlue:BlueStatesConsideredSoFar)
+						int numberOfCompatiblePairs = 0;
+						for(CmpVertex oldRed:reds)
 						{
-							PairScore pair = obtainPair(oldBlue,newRedNode);
+							PairScore pair = obtainPair(currentBlueState,oldRed);
 							if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 							{
 								coregraph.pairsAndScores.add(pair);
-								if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, oldBlue);
+								++numberOfCompatiblePairs;
+								if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
 							}
 						}
-					}
-					else
-					{// This node is a blue node and remains blue unlike the case above when it could become red.
-						BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
+						
+						if (numberOfCompatiblePairs == 0)
+							RedStatesFound.add(currentBlueState);
+							
+						// This node is current a blue node and remains blue until I decide which of the currently potentially red nodes become red.
 						currentBlueState.setColour(JUConstants.BLUE);
-					}							
-				}
+					}
+			}
+	
+			// Now that we have a collection of all potentially red vertices, pick one to make red and then then check if others can remain blue.
+			CmpVertex newRedNode = null;
+			if (!RedStatesFound.isEmpty())
+			{
+				if (decisionProcedure != null)
+					newRedNode = decisionProcedure.selectRedNode(coregraph, reds, RedStatesFound);
+				else
+					newRedNode = RedStatesFound.iterator().next();
+				// mark this blue node as red and rebuild a collection of blue and potentially red states. 
+				newRedNode.setColour(JUConstants.RED);
+				reds.add(newRedNode);
+				//System.out.println("marked "+newRedNode+" as RED");
+			}
 		}
-
+		while(!RedStatesFound.isEmpty());
+		
 		return getSortedPairsAndScoresStackFromUnsorted();
 	}		
 
@@ -185,7 +196,9 @@ public class PairScoreComputation {
 
 	public int computePairCompatibilityScore(StatePair origPair)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>():
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
 		// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 		// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
 		return computePairCompatibilityScore_internal(origPair, mergedVertices);
@@ -261,13 +274,14 @@ public class PairScoreComputation {
 				CmpVertex nextRedState = coregraph.transitionMatrix.get(currentPair.getR()).get(blueEntry.getKey());
 				if (nextRedState != null)
 				{// both states can make a transition - this would be the case of "non-determinism" for Merge&Determinize
+					boolean newRedFromPta = redFromPta;
 					
 					// PTA does not have loops, but the original automaton has
 					// and one of those loops is not on the transition diagram, namely the one related to B=A
 					if (nextRedState == origPair.getQ())
 					{
 						nextRedState = origPair.getR(); // emulates the new loop
-						redFromPta = coregraph.config.getLearnerScoreMode() != Configuration.ScoreMode.COMPATIBILITY; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
+						newRedFromPta = coregraph.config.getLearnerScoreMode() != Configuration.ScoreMode.COMPATIBILITY; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
 						// The problem is that since we effectively merge the
 						// states at this point, a loop introduced by merging
 						// adjacent states may suck many PTA states into it, 
@@ -279,8 +293,10 @@ public class PairScoreComputation {
 						// matching PTA with itself and PTA may be sparse).
 					}
 
+					if (coregraph.config.getScoreCompatibilityScoreComputationBugEmulation())
+						redFromPta = newRedFromPta;
 					StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
-					currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(redFromPta);
+					currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(newRedFromPta);
 				}
 				else
 				{// the current red state cannot make a transition, perhaps PTA states associated with it can
@@ -346,7 +362,10 @@ public class PairScoreComputation {
 	{
 		mergedVertices.clear();
 		int equivalenceClassNumber = 0;
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.getStateNumber());
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
+				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+						new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>():
+				new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(5);// these are going to be small sets, no point creating really big ones.
 		boolean compatible = true;
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
@@ -425,7 +444,7 @@ public class PairScoreComputation {
 				finally
 				{
 					try {
-						if (wr!= null) wr.close();
+						if (wr!= null) { wr.close();wr = null; }
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -659,6 +678,7 @@ public class PairScoreComputation {
 		if (threshold <= 0)
 		{
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			@SuppressWarnings("unchecked")
 			final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			{

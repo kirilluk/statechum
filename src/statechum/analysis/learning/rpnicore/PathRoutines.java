@@ -31,7 +31,6 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
@@ -40,11 +39,12 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
-import statechum.StringLabel;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
+import statechum.collections.ArrayOperations;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
@@ -435,7 +435,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
 			{
 				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = new DeterministicVertex(source.getID());
+				DeterministicVertex vert = new DeterministicVertex(source);
 				if (coregraph.getInit() == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				vert.setAccept(source.isAccept());
@@ -903,13 +903,13 @@ public class PathRoutines {
 	 * <p>
 	 * This method performs such a conversion, adding the associations to the <em>whereTo</em> graph.
 	 *
-         * @param whereTo where to add the associations
-	 * @param graph graph
-	 * @param config
-	 * @return
+     * @param whereTo where to add the associations
+	 * @param graph graph to convert
+	 * @param config configuration to use
+	 * @param converter label intern converter, used internally
 	 */
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>
-		void convertPairAssociationsToTransitions(DirectedSparseGraph whereTo,AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
+		void convertPairAssociationsToTransitions(DirectedSparseGraph whereTo,AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config, ConvertALabel converter)
 	{
 		Set<Label> alphabet = graph.pathroutines.computeAlphabet();
 		
@@ -932,7 +932,7 @@ public class PathRoutines {
 			
 			private void putAssociation_internal(CmpVertex stateFrom, CmpVertex stateTo, Label label,Color color)
 			{
-				String fromString = stateFrom.getID().toString();
+				String fromString = stateFrom.getStringId();
 				Map<Label,Map<String,Color>> lbl = get(fromString);
 				if (lbl == null)
 				{
@@ -946,7 +946,7 @@ public class PathRoutines {
                     lbl.put(label,targetToColour);
 				}
 				
-				targetToColour.put(stateTo.getID().toString(),color);
+				targetToColour.put(stateTo.getStringId(),color);
 			}
 		}
 
@@ -958,7 +958,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
 				if (!rowsProcessed.contains(associations.getKey()))
 				{
-					Label label = new StringLabel(associationPrefix+associations.getValue().name());
+					Label label = AbstractLearnerGraph.generateNewLabel(associationPrefix+associations.getValue().name(),config,converter);
 					if (alphabet.contains(label))
 						throw new IllegalArgumentException("cannot use label "+label);
 

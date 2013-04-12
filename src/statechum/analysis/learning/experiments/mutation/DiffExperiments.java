@@ -424,7 +424,7 @@ public class DiffExperiments {
 		outcome.experimentValid=true;outcome.setValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS,((double)expectedMutations.size())/from.pathroutines.countEdges());
 		Map<CmpVertex,CmpVertex> keyPairs = gd.getKeyPairs();int mismatchedKeyPairs=0;
 		for(Entry<CmpVertex,CmpVertex> pair:keyPairs.entrySet())
-			if (!pair.getKey().getID().toString().equals("o"+pair.getValue().getID().toString()) && !pair.getValue().getID().toString().startsWith("added"))
+			if (!pair.getKey().getStringId().equals("o"+pair.getValue().getStringId()) && !pair.getValue().getStringId().startsWith("added"))
 				mismatchedKeyPairs++;//System.err.println("mismatched key pair: "+pair);
 		if (keyPairs.size() > 0)
 			outcome.setValue(DOUBLE_V.MISMATCHED_KEYPAIRS,((double)mismatchedKeyPairs)/keyPairs.size());
@@ -497,7 +497,7 @@ public class DiffExperiments {
 		graphTo.getTransitionMatrix().clear();
 		Set<CmpVertex> machineStates = machineFrom.getTransitionMatrix().keySet();
 		for (CmpVertex cmpVertex : machineStates) { //copy all vertices
-			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("o"+cmpVertex.getID().toString()), graphTo.config);
+			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("o"+cmpVertex.getStringId()), graphTo.config);
 			DeterministicDirectedSparseGraph.copyVertexData(cmpVertex, newVertex);
 			machineVertexToGraphVertex.put(cmpVertex, newVertex);
 		}

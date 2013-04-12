@@ -27,6 +27,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
@@ -39,8 +40,9 @@ import static statechum.DeterministicDirectedSparseGraph.findEdge;
 public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNIBlueFringeLearner {
 	
 
-	public Test_Orig_RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c){
-		super(parent,c);
+	public Test_Orig_RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c, ConvertALabel conv)
+	{
+		super(parent,c,conv);
 	}
 	
 	@Override
@@ -128,6 +130,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	
 	
 	
+	@SuppressWarnings("unchecked")
 	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(DeterministicDirectedSparseGraph.findInitial(model), r);
@@ -143,6 +146,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return tempRed;
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected List<List<Label>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
@@ -187,6 +191,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static List<List<Label>> mergePrefixWithSuffixes(Set<List<Label>> sp, Collection<List<Label>> suffixes){
 		ArrayList<List<Label>> questions = new ArrayList<List<Label>>();
 		Object[] prefixArray = null;
@@ -213,6 +218,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static List<List<Label>> mergePrefixWithSuffixes(Collection<List<Label>> sp, Collection<Label> loopLabels, Collection<List<Label>> suffixes){
 		List<List<Label>> questions = new LinkedList<List<Label>>();
 		Object[] prefixArray = null;
@@ -244,6 +250,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static Set<List<Label>> computeSuffixes(Vertex v, DirectedSparseGraph model){
 		Set<List<Label>> returnSet = new HashSet<List<Label>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
@@ -271,6 +278,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	
 	private static Set<Vertex> getEndPoints(DirectedSparseGraph g){
 		Set<Vertex> returnSet = new HashSet<Vertex>();
+		@SuppressWarnings("unchecked")
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();

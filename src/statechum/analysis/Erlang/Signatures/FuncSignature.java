@@ -309,4 +309,10 @@ public class FuncSignature implements Label {
 					" is not type-compatible with its function\n"+label.function.toErlangTerm());
 		}
 	}
+
+	@Override
+	public int toInt() {
+		throw new UnsupportedOperationException("Function signature does not have support for toInt");
+	}
+
 }

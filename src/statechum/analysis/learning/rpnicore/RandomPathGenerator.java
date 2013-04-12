@@ -119,6 +119,7 @@ public class RandomPathGenerator {
 	{// Decided not to rewrite using a flowgraph or not, given that this is only used once per experiment. 
 		DirectedSparseGraph g = graph.pathroutines.getGraph();
 		DijkstraDistance dd = new DijkstraDistance(g);
+		@SuppressWarnings("unchecked")
 		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(g)).values();
 		Double result =-1.;
 		for(Double distance:distances) if (result<distance) result=distance;

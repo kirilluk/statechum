@@ -12,8 +12,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.MapWithSearch;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 
 
 public class TreeMapWithSearch<K,V> extends TreeMap<K,V> implements MapWithSearch<K,V>
@@ -41,9 +40,9 @@ public class TreeMapWithSearch<K,V> extends TreeMap<K,V> implements MapWithSearc
 	 * @see statechum.MapWithSearch#findElementById(statechum.DeterministicDirectedSparseGraph.VertexID)
 	 */
 	@Override
-	public K findElementById(VertexID id) {
+	public K findElementById(VertID id) {
 		for(K el:keySet())
-			if (el.equals(id) || (el instanceof CmpVertex && ((CmpVertex)el).getID().equals(id)))
+			if (el.equals(id) || (el instanceof CmpVertex && ((CmpVertex)el).equals(id)))
 				return el;
 		return null;
 	}

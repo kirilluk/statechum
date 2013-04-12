@@ -30,29 +30,31 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class TestLoadAnswers {
 	
 	protected final Configuration config = Configuration.getDefaultConfiguration();
+	protected final ConvertALabel converter = null;
 	
 	/** This method passes the right arguments to the object under test.
 	*/
 	private List<Label> arrayToLabels(String [] question)
 	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(question), config);
+		return AbstractLearnerGraph.buildList(Arrays.asList(question), config,converter);
 	}
 	
 	@Test
 	public void testLoadAnswers1()
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		Assert.assertEquals(0,sa.getCount());
 	}
 	
 	@Test
 	public void testLoadAnswers2() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(""));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -60,7 +62,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers3a() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(""));
 		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
@@ -69,7 +71,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers3b() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(RPNILearner.QUESTION_SPIN+" even more junk"));
 		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
@@ -78,7 +80,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers3c() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("junk"+RPNILearner.QUESTION_USER+" even more junk"));
 		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
@@ -87,7 +89,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers3d() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("junk"+RPNILearner.QUESTION_USER+" even more\n junk"));
 		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
@@ -95,17 +97,17 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers4() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(""+RPNILearner.QUESTION_USER+"[test] <yes>"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), 
-				sa.getAnswer(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"test"}),config)));
+				sa.getAnswer(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"test"}),config,converter)));
 	}
 	
 	@Test
 	public void testLoadAnswers5A() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(" \t\t  "+RPNILearner.QUESTION_USER+"  [test] <no> at position 5, junk"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
@@ -114,7 +116,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers5B() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+"[test] <no> at position 5, junk\n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
@@ -123,7 +125,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers5C() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -131,7 +133,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers5D() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_USER+" [test] <ltl> some ltl formula"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl formula"), sa.getAnswer(arrayToLabels(new String[]{"test"})));
@@ -140,7 +142,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers5E() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -149,61 +151,61 @@ public class TestLoadAnswers {
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail1() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"junk"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail2() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] junk"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3a() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no>"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no>"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3b() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3c() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>    "));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>    "));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail4() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position "));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position "));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail5() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 6"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 6"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail6() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 7,\n"+RPNILearner.QUESTION_USER+"junk"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 7,\n"+RPNILearner.QUESTION_USER+"junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail7() throws IOException
 	{
-		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+" junk\n\n[valid string] <no> at position 7,\n"));
+		new StoredAnswers(config,null).setAnswers(new StringReader(RPNILearner.QUESTION_USER+" junk\n\n[valid string] <no> at position 7,\n"));
 	}
 	
 	@Test
 	public void testLoadAnswersIgnore1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] "+RPNILearner.QUESTION_IGNORE+"\n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
@@ -212,7 +214,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswersIgnore2() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_IGNORE+"   \n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
@@ -223,13 +225,13 @@ public class TestLoadAnswers {
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersIgnoreFailure1() throws IOException 
 	{
-		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] <ignore> at position 5, junk\n"));
+		new StoredAnswers(config,null).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] <ignore> at position 5, junk\n"));
 	}
 	
 	@Test
 	public void testLoadAnswersIncompatible1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_INCOMPATIBLE+" nodeA nodeB  \n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB"), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
@@ -240,13 +242,13 @@ public class TestLoadAnswers {
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersIncompatibleFail1() throws IOException 
 	{
-		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_INCOMPATIBLE+"\n"));
+		new StoredAnswers(config,null).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_INCOMPATIBLE+"\n"));
 	}
 
 	@Test
 	public void testLoadAnswersNewTrace1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB  \n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB"), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
@@ -256,7 +258,7 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswersNewTrace2() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB // elemC elemA / \n"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals("+ elemA elemB // elemC elemA /",sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})).secondElem);
@@ -268,13 +270,13 @@ public class TestLoadAnswers {
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersNewTraceFail1() throws IOException 
 	{
-		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_NEWTRACE+"\n"));
+		new StoredAnswers(config,null).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_NEWTRACE+"\n"));
 	}
 	
 	@Test
 	public void testLoadAnswers6() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers(config);
+		StoredAnswers sa = new StoredAnswers(config,null);
 		sa.setAnswers(new StringReader(""+RPNILearner.QUESTION_USER+"[test] <no> at position 5, junk\n "
 				+RPNILearner.QUESTION_USER+" [some_text, more_of_it] <yes> whatever\n\n\n"
 				+""+RPNILearner.QUESTION_USER+"[teststr, another, more] <no> at position 0, junk\n"				

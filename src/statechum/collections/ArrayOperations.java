@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum;
+package statechum.collections;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +24,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import statechum.Label;
 
 /** A number of static methods to manipulate nested sequences of objects. 
  * Implemented as sequences of arrays because Java provides a simple syntax 
@@ -348,7 +350,7 @@ public class ArrayOperations {
         if ( !what[i].getClass().equals(with[i].getClass()))
         {
           if (comparisonResult != null)
-            comparisonResult.append("Elements at position "+i+" are of different types");
+            comparisonResult.append("Elements at position "+i+" are of different types, "+what[i].getClass()+" v.s. "+with[i].getClass());
           return false;
         }
 

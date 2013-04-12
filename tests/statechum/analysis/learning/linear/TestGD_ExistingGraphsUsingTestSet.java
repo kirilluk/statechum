@@ -46,6 +46,7 @@ import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
@@ -61,6 +62,9 @@ public class TestGD_ExistingGraphsUsingTestSet {
 	protected final int threadNumber, pairsToAdd;
 
 	Configuration config = null;
+
+	/** Label converter to use. */
+	private ConvertALabel converter = null;
 
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -156,10 +160,10 @@ public class TestGD_ExistingGraphsUsingTestSet {
 	{
 		try
 		{
-			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(grA, new Random(0));
-			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(grB, new Random(1));
+			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA, converter);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(grA, new Random(0));
+			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB, converter);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(grB, new Random(1));
 			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(graph, new Random(0));
+			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph, converter);TestGD_ExistingGraphs.addColourAndIncompatiblesRandomly(graph, new Random(0));
 			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder patcher = new ChangesRecorder(null);
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
@@ -171,7 +175,7 @@ public class TestGD_ExistingGraphsUsingTestSet {
 			gd.makeSteps();
 			gd.computeDifference(patcher);
 
-			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
 			DifferentFSMException ex= WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP);

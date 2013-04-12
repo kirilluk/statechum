@@ -64,6 +64,7 @@ import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.StatechumXML.SequenceIO;
 
@@ -71,6 +72,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 {
 	public ProgressDecorator(Learner learner) {
 		super(learner);setTopLevelListener(this);
+	}
+	
+	public ProgressDecorator(ConvertALabel conv) {
+		super(conv);
 	}
 	
 	protected Document doc = null;
@@ -86,8 +91,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	public static Element writePair(PairScore element, Document doc)
 	{
 		Element pairElement = doc.createElement(StatechumXML.ELEM_PAIR.name());
-		pairElement.setAttribute(StatechumXML.ATTR_Q.name(), element.getQ().getID().toString());
-		pairElement.setAttribute(StatechumXML.ATTR_R.name(), element.getR().getID().toString());
+		pairElement.setAttribute(StatechumXML.ATTR_Q.name(), element.getQ().getStringId());
+		pairElement.setAttribute(StatechumXML.ATTR_R.name(), element.getR().getStringId());
 		if (element.getScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_SCORE.name(), Long.toString(element.getScore()));
 		if (element.getAnotherScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_OTHERSCORE.name(), Long.toString(element.getAnotherScore()));
 		return pairElement;
@@ -159,6 +164,20 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Configuration config = null; 
 		public Collection<String> ifthenSequences = null;
 		public SmtLabelRepresentation labelDetails = null;
+		
+		/** Used to intern labels in an experiment with large graphs. Although not set a final, many things will break if different graphs used together are relying
+		 * on different intern engines because integer IDs of labels could be passed from a graph to a different one where they could mean a completely different label. */
+		private ConvertALabel labelConverter = null; 
+		
+		public ConvertALabel getLabelConverter()
+		{
+			return labelConverter;
+		}
+		
+		public void setLabelConverter(ConvertALabel conv)
+		{
+			labelConverter = conv;
+		}
 		
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
@@ -241,13 +260,17 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		
 	}
 
-	/** Data need to construct an experiment and evaluate the results. This is not 
+	/** <p>
+	 * Data need to construct an experiment and evaluate the results. This is not 
 	 * a part of <em>AbstractExperiment</em> because this is only for testing and
 	 * hence one would only want to record
 	 * data from <b>some</b> experiments, not all of them.
-	 * <p>
+	 * </p><p>
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration.
 	 * Unexpected elements are ignored.
+	 * </p><p>
+	 * {@link LearnerEvaluationConfiguration#labelConverter} is not assigned since it is a function that is supposed to be set globally for an entire experiment.
+	 * </p>
 	 */
 	public LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement,Configuration defaultConfig)
 	{
@@ -282,14 +305,14 @@ public abstract class ProgressDecorator extends LearnerDecorator
 
 		initIO(evaluationDataElement.getOwnerDocument(),result.config);
 		
-		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
+		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph, decoratedLearner.getLabelConverter());
 		
 		result.testSet = labelio.readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
 			result.ifthenSequences = stringio.readInputSequence(nodesLtl.item(0).getTextContent());
 		if (nodesLabelDetails.getLength() > 0)
 		{
-			result.labelDetails = new SmtLabelRepresentation(result.config);
+			result.labelDetails = new SmtLabelRepresentation(result.config,getLabelConverter());
 			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0),stringio );
 		}
 		result.graphNumber=graphNumber;
@@ -302,14 +325,14 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (configuration.getLegacyXML())
 		{
 			if (labelio == null)
-				labelio = new StatechumXML.LEGACY_StringLabelSequenceWriter(document,configuration);
+				labelio = new StatechumXML.LEGACY_StringLabelSequenceWriter(document,configuration,getLabelConverter());
 			if (stringio == null)
 				stringio = new StatechumXML.LEGACY_StringSequenceWriter(document);
 		}
 		else
 		{// current
 			if (labelio == null)
-				labelio = new StatechumXML.LabelSequenceWriter(document,configuration);
+				labelio = new StatechumXML.LabelSequenceWriter(document,configuration, getLabelConverter());
 			if (stringio == null)
 				stringio = new StatechumXML.StringSequenceWriter(document);
 		}
@@ -387,7 +410,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				{
 					if (result.graph != null)
 						throw new IllegalArgumentException("duplicate graph element");
-					result.graph = new LearnerGraph(config);AbstractPersistence.loadGraph(e, result.graph);
+					result.graph = new LearnerGraph(config);AbstractPersistence.loadGraph(e, result.graph, decoratedLearner.getLabelConverter());
 				}
 				else
 					if (e.getNodeName().equals(StatechumXML.ELEM_SEQ.name()))

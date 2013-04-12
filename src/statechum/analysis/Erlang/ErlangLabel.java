@@ -1622,4 +1622,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		return outcome;
 	}
 
+	@Override
+	public int toInt() {
+		throw new UnsupportedOperationException("Erlang label does not have support for toInt");
+	}
+
 }

@@ -27,6 +27,9 @@ import java.util.Random;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
@@ -35,6 +38,7 @@ import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.linear.TestGD_Multithreaded;
+import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
@@ -45,30 +49,44 @@ import static statechum.Helper.whatToRun;
  * @author kirill
  *
  */
-public class TestGraphSeries {
+@RunWith(Parameterized.class)
+public class TestGraphSeries extends TestWithMultipleConfigurations
+{
 	LearnerGraph graphA = null, graphB = null, graphC = null, graphD = null;
 	String xmlData = null;
 	Collection<List<String>> plus, minus = null, justSomething = null;
 	
-	/** Graphs will have to be renumbered at all times. */ 
-	Configuration renumberConfig = null;
+	@Parameters
+	public static Collection<Object[]> data() 
+	{
+		return TestWithMultipleConfigurations.data();
+	}
+	
+	public static String parametersToString(Configuration config)
+	{
+		return TestWithMultipleConfigurations.parametersToString(config);
+	}
+	
+	public TestGraphSeries(Configuration config)
+	{
+		super(config);
+	}
 	
 	@Before
 	public final void beforeTest()
 	{
-		renumberConfig = Configuration.getDefaultConfiguration().copy();
 /*
-		graphA = buildLearnerGraph("A-a->A-b->B-a->C", "TestGraphSeries1",renumberConfig);
-		graphB = buildLearnerGraph("A-a->B-a->C", "TestGraphSeries2",renumberConfig);
-		graphC = buildLearnerGraph("A-a->D-b->D-a->C", "TestGraphSeries3",renumberConfig);
-		graphD = buildLearnerGraph("A-a->B-a->C-a-#D", "TestGraphSeries4",renumberConfig);
+		graphA = buildLearnerGraph("A-a->A-b->B-a->C", "TestGraphSeries1",mainConfiguration);
+		graphB = buildLearnerGraph("A-a->B-a->C", "TestGraphSeries2",mainConfiguration);
+		graphC = buildLearnerGraph("A-a->D-b->D-a->C", "TestGraphSeries3",mainConfiguration);
+		graphD = buildLearnerGraph("A-a->B-a->C-a-#D", "TestGraphSeries4",mainConfiguration);
 		*/
-		graphA = buildLearnerGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1",renumberConfig);
-		graphB = buildLearnerGraph("A2-a->B2-a->C2", "B_TestGraphSeries2",renumberConfig);
-		graphC = buildLearnerGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3",renumberConfig);
-		graphD = buildLearnerGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4",renumberConfig);
+		graphA = buildLearnerGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1",mainConfiguration,converter);
+		graphB = buildLearnerGraph("A2-a->B2-a->C2", "B_TestGraphSeries2",mainConfiguration,converter);
+		graphC = buildLearnerGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3",mainConfiguration,converter);
+		graphD = buildLearnerGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4",mainConfiguration,converter);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output, 1,renumberConfig,false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(output, 1,mainConfiguration,false,converter);
 		GraphSeries series = dumper.series;
 		Element grElement = null;
 		grElement = series.writeGraph(graphA);Assert.assertEquals(StatechumXML.graphmlNodeNameNS.toString(), grElement.getNodeName());
@@ -116,9 +134,9 @@ public class TestGraphSeries {
 	@Test
 	public final void testReadMultipleSeries()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = renumberConfig;
-		GraphSeries series = new GraphSeries(renumberConfig);
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = mainConfiguration;
+		GraphSeries series = new GraphSeries(mainConfiguration,converter);
 		LearnerGraph graph = null;
 		Element elem = null;
 		
@@ -149,7 +167,7 @@ public class TestGraphSeries {
 	{
 		{// Writing part
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
-			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
+			RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 			GraphSeries series = dumper.series;
 			Element grElement = null;
 			grElement = series.writeGraph(graphA);Assert.assertEquals(StatechumXML.graphmlNodeNameNS.toString(), grElement.getNodeName());
@@ -171,9 +189,9 @@ public class TestGraphSeries {
 		}
 		
 		{// Reading part
-			LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-			loader.config = renumberConfig;
-			GraphSeries series = new GraphSeries(renumberConfig);
+			LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+			loader.config = mainConfiguration;
+			GraphSeries series = new GraphSeries(mainConfiguration,converter);
 			LearnerGraph graph = null;
 			Element elem = null;
 
@@ -218,7 +236,7 @@ public class TestGraphSeries {
 	/** A very long sequence of graphs. */
 	public void tryLongSeries(LearnerGraph A,LearnerGraph B, LearnerGraph C, LearnerGraph D)
 	{
-		renumberConfig.setGdFailOnDuplicateNames(false);
+		mainConfiguration.setGdFailOnDuplicateNames(false);
 		LearnerGraph graphs[]=new LearnerGraph[]{
 				A,B,C,D, null};// null means "do reset".
 		final int length = 202;
@@ -226,7 +244,7 @@ public class TestGraphSeries {
 			Random rndGraphToUse = new Random(0);
 
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
-			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
+			RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 			GraphSeries series = dumper.series;
 
 			for(int i=0;i<length;++i)
@@ -245,9 +263,9 @@ public class TestGraphSeries {
 		}
 		
 		{// Reading part
-			LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-			loader.config = renumberConfig;
-			GraphSeries series = new GraphSeries(renumberConfig);
+			LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+			loader.config = mainConfiguration;
+			GraphSeries series = new GraphSeries(mainConfiguration,converter);
 			LearnerGraph graph = null;
 			Random rndGraphToUse = new Random(0);
 			Element elem = null;
@@ -270,7 +288,7 @@ public class TestGraphSeries {
 	public final void writeReadOnly1()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 		final GraphSeries series = dumper.series;
 		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(StatechumXML.graphmlNodeNameNS.toString(), grElement1.getNodeName());
 		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(AbstractPersistence.endl(dumper.doc));
@@ -287,7 +305,7 @@ public class TestGraphSeries {
 	public final void writeReadOnly2()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
+		RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 		final GraphSeries series = dumper.series;
 		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(StatechumXML.graphmlNodeNameNS.toString(), grElement1.getNodeName());
 		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(AbstractPersistence.endl(dumper.doc));
@@ -305,9 +323,9 @@ public class TestGraphSeries {
 	@Test
 	public final void readWriteOnly1()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = renumberConfig;
-		final GraphSeries series = new GraphSeries(renumberConfig);
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = mainConfiguration;
+		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 		LearnerGraph graph = null;
 		Element elem = null;
 		
@@ -326,9 +344,9 @@ public class TestGraphSeries {
 	@Test
 	public final void readWriteOnly2()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		loader.config = renumberConfig;
-		final GraphSeries series = new GraphSeries(renumberConfig);
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
+		loader.config = mainConfiguration;
+		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 		LearnerGraph graph = null;
 		Element elem = null;
 		
@@ -350,8 +368,8 @@ public class TestGraphSeries {
 	public final void readNonElement()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
-		final GraphSeries series = new GraphSeries(renumberConfig);
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
+		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(AbstractPersistence.endl(dumper.doc));
@@ -363,8 +381,8 @@ public class TestGraphSeries {
 	public final void readInvalidElement()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
-		final GraphSeries series = new GraphSeries(renumberConfig);
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
+		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(dumper.doc.createElement(TestRecordProgressDecorator.junkTag));

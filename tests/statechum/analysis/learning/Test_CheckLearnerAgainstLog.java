@@ -31,7 +31,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.JUConstants;
@@ -49,6 +48,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.collections.ArrayOperations;
 
 /**
  * Makes sure a learner performs exactly as the record in a log.
@@ -69,7 +69,7 @@ public class Test_CheckLearnerAgainstLog
 		try {
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			final java.io.FileInputStream inputStream = new java.io.FileInputStream(logFileName);
-			final LearnerSimulator simulator = new LearnerSimulator(inputStream,true);
+			final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,null);// not using a converter
 			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
 			final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
@@ -119,7 +119,7 @@ public class Test_CheckLearnerAgainstLog
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;// this is a major change in a configuration of learners, affecting the comparison between vertex IDs 
 
 		final java.io.FileInputStream inputStream = new java.io.FileInputStream(logFileName);
-		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true);
+		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,null);
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setLegacyXML(true);
 		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
@@ -128,6 +128,7 @@ public class Test_CheckLearnerAgainstLog
 		// Now we need to choose learner parameters based on the kind of file we are given
 		// (given the pace of Statechum evolution, I cannot expect all the correct options
 		// to be stored in log files).
+		evalData.config.setScoreCompatibilityScoreComputationBugEmulation(true);
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_MAY2008.name()))
 		{
 			evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);

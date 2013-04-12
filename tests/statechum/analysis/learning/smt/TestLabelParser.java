@@ -37,6 +37,7 @@ import statechum.Helper.whatToRun;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.CompositionOfFunctions;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.FUNC_DATA;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.OP_DATA;
@@ -51,6 +52,7 @@ public class TestLabelParser {
 	SmtLabelRepresentation lbls;
 	
 	protected final Configuration config = Configuration.getDefaultConfiguration(); 
+	protected final ConvertALabel converter = null;
 	
 	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
 	 * because all of them start from a default one and do not modify label type.
@@ -60,13 +62,13 @@ public class TestLabelParser {
 	 */
 	protected Label[] asArray(String [] labels)
 	{// this is only used for testing hence efficiency is not significant.
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),lbls.config).toArray(new Label[0]);
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),lbls.config,converter).toArray(new Label[0]);
 	}
 	
 	@Before
 	public final void beforeTest()
 	{
-		lbls = new SmtLabelRepresentation(config);
+		lbls = new SmtLabelRepresentation(config,converter);
 	
 	}
 	
@@ -97,7 +99,7 @@ public class TestLabelParser {
 			});
 
 		{
-			final SmtLabelRepresentation l = new SmtLabelRepresentation(config);
+			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
@@ -111,7 +113,7 @@ public class TestLabelParser {
 		}
 
 		{
-			final SmtLabelRepresentation l = new SmtLabelRepresentation(config);
+			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 0",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
@@ -122,13 +124,13 @@ public class TestLabelParser {
 		}
 
 		{
-			final SmtLabelRepresentation l = new SmtLabelRepresentation(config);
+			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
 			l.parseCollection(decl);
 			Assert.assertFalse(l.usingLowLevelFunctions);
 		}
 
 		{
-			final SmtLabelRepresentation l = new SmtLabelRepresentation(config);
+			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
@@ -306,9 +308,9 @@ public class TestLabelParser {
 				QSMTool.cmdDataTrace+" + callA () callB callD"}));
 		Assert.assertEquals(3,lbls.traces.size());
 		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"}},config),positives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"}},config,converter),positives);
 		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callC"}},config),negatives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callC"}},config,converter),negatives);
 	}
 	
 	/** Empty set of negatives. */
@@ -326,9 +328,9 @@ public class TestLabelParser {
 				QSMTool.cmdDataTrace+" + callA () callB callD"}));
 		Assert.assertEquals(3,lbls.traces.size());
 		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"},new String[]{"callT","callC"}},config),positives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"},new String[]{"callT","callC"}},config,converter),positives);
 		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config),negatives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config,converter),negatives);
 	}
 	
 	@Test
@@ -352,9 +354,9 @@ public class TestLabelParser {
 	
 		Assert.assertEquals(1,lbls.traces.size());
 		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"}},config),positives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"}},config,converter),positives);
 		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config),negatives);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config,converter),negatives);
 		
 		TraceWithData trace = lbls.traces.iterator().next();
 		for(CompositionOfFunctions func:trace.arguments)

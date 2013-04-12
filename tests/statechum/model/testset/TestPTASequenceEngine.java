@@ -19,8 +19,9 @@
 package statechum.model.testset;
 
 import statechum.model.testset.PTA_FSMStructure;
+
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +31,9 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
@@ -45,6 +49,8 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.Node;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -53,10 +59,27 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
-public class TestPTASequenceEngine 
+@RunWith(Parameterized.class)
+public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 {
 	private PTASequenceEngine en = null, engine_testLimitToGraph= null; 
 	LearnerGraph fsm = null;
+	
+	@Parameters
+	public static Collection<Object[]> data() 
+	{
+		return TestWithMultipleConfigurations.data();
+	}
+	
+	public static String parametersToString(Configuration config)
+	{
+		return TestWithMultipleConfigurations.parametersToString(config);
+	}
+	
+	public TestPTASequenceEngine(Configuration argConfig)
+	{
+		super(argConfig);
+	}
 	
 	/** Set up the graphs to use. Additionally,  
 	 * make sure that whatever changes a test have made to the 
@@ -65,32 +88,15 @@ public class TestPTASequenceEngine
 	@Before
 	public final void setUp()
 	{
-		config = mainConfiguration.copy();config.setAllowedToCloneNonCmpVertex(true);
-		fsm = buildLearnerGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine",config);
+		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
+		fsm = buildLearnerGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		engine_testLimitToGraph = new PTA_FSMStructure(buildLearnerGraph(
-				"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine",config),null);
+				"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine",mainConfiguration,converter),null);
 		//Visualiser.updateFrame(buildLearnerGraph(
 		//		"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine",config), null);
 		//Visualiser.waitForKey();
 	}
-	
-	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
-	 * because all of them start from a default one and do not modify label type.
-	 * 
-	 * @param labels what to convert
-	 * @return the outcome of conversion.
-	 */
-	protected List<Label> labelList(String [] labels)
-	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
-	}
-	
-	/** The working configuration to use when running tests. */
-	private Configuration config = null;
-	
-	/** Each test starts with this configuration. */
-	private Configuration mainConfiguration = Configuration.getDefaultConfiguration();
 	
 	/** Checks that the supplied engine has a specific number of sequences in it 
 	 * which are all returned when getData() is performed on it. Text in the <em>expected</em>
@@ -99,14 +105,16 @@ public class TestPTASequenceEngine
 	 * @param ptaToVerify engine to check
 	 * @param engineSize expected size
 	 * @param expected expected sequences to be returned from the engine in response to getData()
+	 * @param config configuration to use
+	 * @param converter label intern engine to use.
 	 */
-	static void vertifyPTA(PTASequenceEngine ptaToVerify, int engineSize, String [][] expected, Configuration config)
+	static void vertifyPTA(PTASequenceEngine ptaToVerify, int engineSize, String [][] expected, Configuration config, ConvertALabel converter)
 	{
 		Set<List<Label>> actualA = new HashSet<List<Label>>();actualA.addAll(ptaToVerify.getData());
 		Set<List<Label>> actualB = new HashSet<List<Label>>();actualB.addAll(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getData());
 		Set<List<Label>> actualC = new HashSet<List<Label>>();actualC.addAll(ptaToVerify.getDataORIG());
 		Set<List<Label>> actualD = new HashSet<List<Label>>();actualD.addAll(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getDataORIG());
-		Set<List<Label>> expectedSet = TestFSMAlgo.buildSet(expected,config);
+		Set<List<Label>> expectedSet = TestFSMAlgo.buildSet(expected,config,converter);
 		assertTrue("expected: "+expectedSet+" received : "+actualA,expectedSet.equals(actualA));
 		assertTrue("expected: "+expectedSet+" received : "+actualB,expectedSet.equals(actualB));
 		assertTrue("expected: "+expectedSet+" received : "+actualC,expectedSet.equals(actualC));
@@ -124,7 +132,7 @@ public class TestPTASequenceEngine
 	 */
 	void vertifyPTA(PTASequenceEngine ptaToVerify, int engineSize, String [][] expected)
 	{
-		vertifyPTA(ptaToVerify,engineSize,expected,config);
+		vertifyPTA(ptaToVerify,engineSize,expected,mainConfiguration,converter);
 	}
 	
 	@Test
@@ -136,7 +144,7 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,config),null);
+		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,mainConfiguration),null);
 		vertifyPTA(enVerySmall, 1, new String[][] { 
 				new String[] {}
 			});
@@ -151,7 +159,7 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,config),null);
+		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,mainConfiguration),null);
 		vertifyPTA(enVerySmall, 1, new String[][] {
 				new String[] {}
 		});
@@ -203,7 +211,7 @@ public class TestPTASequenceEngine
 		assertEquals("A", b.getState());
 		assertEquals("B", c.getState());
 		
-		int aID = a.getID(), bID = b.getID(), cID = c.getID();
+		int aID = a.toInt(), bID = b.toInt(), cID = c.toInt();
 		assertTrue(aID > 0 && bID > 0 && cID > 0);
 		assertTrue(aID != bID && aID != cID && aID != bID);
 		
@@ -597,7 +605,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet3_5() // a more complex composition
 	{
-		fsm = buildLearnerGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5",config);
+		fsm = buildLearnerGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		SequenceSet temp2 = seq.crossWithSet(labelList(new String[] {"b","a","d"}))
@@ -628,7 +636,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet3_6() // a more complex composition
 	{
-		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",config);
+		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		Map<String,String> actual = getDebugDataMap(en,seq.crossWithSet(labelList(new String[] {"b","a"}))
@@ -653,7 +661,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned1",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned1",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -682,7 +690,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy()
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->A\nB-c->D-a->D", "test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->A\nB-c->D-a->D", "test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -732,7 +740,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1b()
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->A", "test_sequenceSet_testing_shouldBeReturned1b",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->A", "test_sequenceSet_testing_shouldBeReturned1b",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -750,7 +758,7 @@ public class TestPTASequenceEngine
 				new String[] {"d","d"},
 				new String[] {"c"}
 				
-		},config)).crossWithSet(labelList(new String[] {"b","a"})));
+		},mainConfiguration,converter)).crossWithSet(labelList(new String[] {"b","a"})));
 		vertifyPTA(en, 2, new String[][] {
 				new String[] {"a","a","b","b"},
 				new String[] {"d","d","b"}
@@ -767,7 +775,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1c()
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C", "test_sequenceSet_testing_shouldBeReturned1c",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C", "test_sequenceSet_testing_shouldBeReturned1c",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -785,7 +793,7 @@ public class TestPTASequenceEngine
 				new String[] {"d","d"},
 				new String[] {"c"}
 				
-		},config)).crossWithSet(labelList(new String[] {"b","a"})));
+		},mainConfiguration,converter)).crossWithSet(labelList(new String[] {"b","a"})));
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","a","b","b"}
 		});
@@ -801,7 +809,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1d()
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -820,7 +828,7 @@ public class TestPTASequenceEngine
 				new String[] {"d","d"},
 				new String[] {"c"}
 				
-		},config)).crossWithSet(labelList(new String[] {"b","a"})));
+		},mainConfiguration,converter)).crossWithSet(labelList(new String[] {"b","a"})));
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","a","b","b"}
 		});
@@ -834,7 +842,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1e()
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -850,7 +858,7 @@ public class TestPTASequenceEngine
 		Map<String,String> actual = getDebugDataMap(en,seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a","b","c"}
 				
-		},config)).crossWithSet(labelList(new String[] {"b","a"})));
+		},mainConfiguration,converter)).crossWithSet(labelList(new String[] {"b","a"})));
 		vertifyPTA(en, 2, new String[][] {
 				new String[] {"a","a","b","c","a"},
 				new String[] {"a","a","b","c","b"}
@@ -867,7 +875,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned2a() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2a",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2a",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -894,7 +902,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned2b() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = buildLearnerGraph("P-a->P\nA-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2b",config);
+		final LearnerGraph machine = buildLearnerGraph("P-a->P\nA-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2b",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,machine.findVertex(VertexID.parseID("A")));
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		Map<String,String> actual = getDebugDataMap(en,seq.crossWithSet(labelList(new String[] {"b","a"}))
@@ -911,11 +919,11 @@ public class TestPTASequenceEngine
 	@Test
 	public final void testCreateFSMStructureFail1()
 	{
-		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",config);
+		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-				new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("newVertex"), mach.config));
+				new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Vert"), mach.config));
 			}},IllegalArgumentException.class,"is not a valid state of the graph");
 	}
 	
@@ -924,8 +932,8 @@ public class TestPTASequenceEngine
 	@Test
 	public final void testCreateFSMStructureFail2()
 	{
-		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",config);
-		final LearnerGraph sameMach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",config);
+		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
+		final LearnerGraph sameMach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
 		Helper.checkForCorrectException(new whatToRun() {public @Override void run() {
@@ -936,7 +944,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned3() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned3",config);
+		final LearnerGraph machine = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned3",mainConfiguration,converter);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -974,7 +982,7 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		final LearnerGraph machine = new LearnerGraph(g,config);
+		final LearnerGraph machine = new LearnerGraph(g,mainConfiguration);
 		en = new PTA_FSMStructure(machine,null) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -996,7 +1004,7 @@ public class TestPTASequenceEngine
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		Map<String,String> actual = getDebugDataMap(en,seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		},config)));
+		},mainConfiguration,converter)));
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","b","c"}
 		});
@@ -1015,7 +1023,7 @@ public class TestPTASequenceEngine
 				new String[] {"a"},
 				new String[] {"a","b","c","d"},
 				
-		},config));
+		},mainConfiguration,converter));
 		Map<String,String> actual = getDebugDataMap(en,result);
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","b","c","d"}
@@ -1034,11 +1042,11 @@ public class TestPTASequenceEngine
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		SequenceSet temp = seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet result = temp.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		Map<String,String> actual = getDebugDataMap(en,result);
 		vertifyPTA(en, 2, new String[][] {
 				new String[] {"a","b","c","c"},
@@ -1056,11 +1064,11 @@ public class TestPTASequenceEngine
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		},config)).crossWithSet(new LinkedList<Label>());
+		},mainConfiguration,converter)).crossWithSet(new LinkedList<Label>());
 		Map<String,String> actual = getDebugDataMap(en,en.new SequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
-		},config)));
+		},mainConfiguration,converter)));
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","b","c"}
 		});
@@ -1077,7 +1085,7 @@ public class TestPTASequenceEngine
 		Map<String,String> actual = getDebugDataMap(en,en.new SequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
-		},config)));
+		},mainConfiguration,converter)));
 		vertifyPTA(en, 1, new String[][] {
 				new String[] {"a","b","c"}
 		});
@@ -1139,7 +1147,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent2 = en.new SequenceSet();seqDifferent2.setIdentity();seqDifferent2.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
 				
-		},config));
+		},mainConfiguration,converter));
 		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
@@ -1152,7 +1160,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqDifferent1 = en.new SequenceSet();
 		SequenceSet seqDifferent2 = seqStart1.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
-		},config));
+		},mainConfiguration,converter));
 		equalityTestingHelper(seqStart1,seqStart2,seqDifferent1,seqDifferent2, true);
 	}
 	
@@ -1164,17 +1172,17 @@ public class TestPTASequenceEngine
 		SequenceSet seqStartOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqStartTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c","a","a"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqDifferent1 = en.new SequenceSet();
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
-		},config));
+		},mainConfiguration,converter));
 		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2, true);
 	}
 	
@@ -1186,21 +1194,21 @@ public class TestPTASequenceEngine
 		SequenceSet seqStartOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqStartTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"},
 				new String[] {"c","a","a"}
 				
-		},config)).cross(TestFSMAlgo.buildList(new String[][] {
+		},mainConfiguration,converter)).cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"},
 				new String[] {"c","a","a"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqDifferent1 = en.new SequenceSet();
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a"}
-		},config));
+		},mainConfiguration,converter));
 		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2, true);
 	}
 
@@ -1214,7 +1222,7 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config),null);
+		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,mainConfiguration),null);
 		engine.containsSequence(new ArrayList<Label>());
 	}
 	
@@ -1226,7 +1234,7 @@ public class TestPTASequenceEngine
 		seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		assertTrue(en.containsSequence(labelList(new String[]{"c"})));
 		assertTrue(en.containsAsLeaf(labelList(new String[]{"c"})));
 		assertFalse(en.containsSequence(labelList(new String[]{"a","a","b"})));
@@ -1262,7 +1270,7 @@ public class TestPTASequenceEngine
 		seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","c","b"},
 				new String[] {"c","c","c","c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		assertFalse(engine_testLimitToGraph.extendsLeaf(labelList(new String[]{})));
 		assertFalse(engine_testLimitToGraph.extendsLeaf(labelList(new String[]{"a"})));
@@ -1282,15 +1290,15 @@ public class TestPTASequenceEngine
 		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqTwo = en.new SequenceSet();seqTwo.unite(seqOne);
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1304,19 +1312,19 @@ public class TestPTASequenceEngine
 		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqA = en.new SequenceSet();seqOne.unite(seqA);
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1330,22 +1338,22 @@ public class TestPTASequenceEngine
 		SequenceSet seqA = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqTwo = en.new SequenceSet();seqTwo.unite(seqA);seqTwo.unite(seqTwo);
 		List<List<Label>> arg = new LinkedList<List<Label>>();
 		Set<List<Label>> setOfStrings = TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a"},
-				new String[] {"c"}},config);
+				new String[] {"c"}},mainConfiguration,converter);
 		arg.addAll(setOfStrings);arg.addAll(setOfStrings);
 		SequenceSet seqOne = seqStart.cross(arg);
 
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1359,7 +1367,7 @@ public class TestPTASequenceEngine
 		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqTwo = new PTA_FSMStructure(fsm,null).new SequenceSet();
 		seqTwo.unite(seqOne);
 	}
@@ -1372,30 +1380,30 @@ public class TestPTASequenceEngine
 		SequenceSet seqSecondStart = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqDifferent1 = seqSecondStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		
 		SequenceSet seqOne = seqSecondStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {}
-		},config));
+		},mainConfiguration,converter));
 		SequenceSet seqOneB = seqSecondStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		seqOne.unite(seqOneB);
 		
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"a","a",	"a","b","c"}
-		},config));
+		},mainConfiguration,converter));
 		
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"},
-		},config));
+		},mainConfiguration,converter));
 	
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
 	}
@@ -1408,7 +1416,7 @@ public class TestPTASequenceEngine
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));seqOne.limitTo(0);
+		},mainConfiguration,converter));seqOne.limitTo(0);
 		Assert.assertTrue(seqOne.isEmpty());
 	}
 	
@@ -1420,19 +1428,19 @@ public class TestPTASequenceEngine
 				new String[] {"a","a"},
 				new String[] {"a","c"},
 				new String[] {"c"}
-		},config));seqOne.limitTo(1);
+		},mainConfiguration,converter));seqOne.limitTo(1);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","a"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1446,20 +1454,20 @@ public class TestPTASequenceEngine
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));
+		},mainConfiguration,converter));
 		seqOne.limitTo(2);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","c"},
 				new String[] {"a","a" }
-				},config));
+				},mainConfiguration,converter));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1473,20 +1481,20 @@ public class TestPTASequenceEngine
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));seqOne.limitTo(2000);
+		},mainConfiguration,converter));seqOne.limitTo(2000);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-				},config));
+				},mainConfiguration,converter));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1500,20 +1508,20 @@ public class TestPTASequenceEngine
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-		},config));seqOne.limitTo(-1);
+		},mainConfiguration,converter));seqOne.limitTo(-1);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","c"},
 				new String[] {"a","a"},
 				new String[] {"c"}
-				},config));
+				},mainConfiguration,converter));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
-				,config
+				,mainConfiguration,converter
 		));
 
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2, true);
@@ -1522,7 +1530,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize0()
 	{
-		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",config);
+		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		vertifyPTA(en, 1, new String[][] {
@@ -1537,7 +1545,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize1()
 	{
-		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",config);
+		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.crossWithSequence(labelList(new String[] {"b","a"}));
@@ -1553,7 +1561,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize2()
 	{
-		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",config);
+		fsm = buildLearnerGraph("A-a->A-b->B", "test_sequenceSet3_6",mainConfiguration,converter);
 		en = new PTA_FSMStructure(fsm,null);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.crossWithSet(labelList(new String[] {"b","a"}))

@@ -44,7 +44,7 @@ public class ComputeCompleteness {
 				continue;
 			for (Label label : alphabet) {
 				StateLabelPair pair = new StateLabelPair(v,label);
-				ArrayList seq = new ArrayList();
+				ArrayList<Label> seq = new ArrayList<Label>();
 				seq.add(label);
 				CmpVertex dest = lg.getVertex(v, seq);
 				if(dest == null)

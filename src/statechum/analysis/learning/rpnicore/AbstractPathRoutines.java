@@ -21,6 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,14 +42,16 @@ import edu.uci.ics.jung.utils.UserData;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
-import statechum.MapWithSearch;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 
@@ -234,7 +237,9 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		
-		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber());
+		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new statechum.collections.ArrayMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber());
 		Map<CmpVertex,Integer> stateToDepthMap = new HashMapWithSearch<CmpVertex,Integer>(coregraph.getStateNumber());
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
@@ -335,7 +340,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
 				{
 					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld.getID()) == targetOld : "was looking for vertex with name "+targetOld.getID()+", got "+coregraph.findVertex(targetOld.getID());
+					assert coregraph.findVertex(targetOld) == targetOld : "was looking for vertex with name "+targetOld+", got "+coregraph.findVertex(targetOld);
 					DeterministicVertex target = oldToNew.get(targetOld);
 					DeterministicEdge e = new DeterministicEdge(source,target);
 					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
@@ -501,10 +506,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param g graph to transform.
 	 * @param argNrToKeep number of labels to keep.
 	 * @param PrefixNew prefix of new labels.
+	 * @param conv converter used to intern labels
 	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
-		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, String PrefixNew)
+		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, String PrefixNew, ConvertALabel conv)
 	{
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
@@ -524,7 +530,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 					{
 						if(transition.getKey().toErlangTerm().startsWith(PrefixNew))
 							throw new IllegalArgumentException("there is already a transition with prefix "+PrefixNew+" in the supplied graph");
-						fromTo.put(transition.getKey(), AbstractLearnerGraph.generateNewLabel(PrefixNew+(newLabelCnt++),g.config));
+						fromTo.put(transition.getKey(), AbstractLearnerGraph.generateNewLabel(PrefixNew+(newLabelCnt++),g.config,conv));
 					}
 				newRow.put(fromTo.get(transition.getKey()), transition.getValue());
 			}
@@ -553,7 +559,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param what graph to merge into g.
 	 * @param argWhatToG maps original vertices to those included in the graph <em>g</em>.
 	 * @return vertex in g corresponding to the initial vertex in what 
-	 */ 
+	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
@@ -606,24 +612,25 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 			else
 			{
-				if (coregraph.findVertex(coregraph.getInit().getID()) != coregraph.getInit()) 
+				if (coregraph.findVertex(coregraph.getInit()) != coregraph.getInit()) 
 					throw new IllegalArgumentException("initial state is not in a graph");
-				if (reference.findVertex(coregraph.getInit().getID()) != coregraph.getInit())
+				if (reference.findVertex(coregraph.getInit()) != coregraph.getInit())
 					throw new IllegalArgumentException("initial state is not in a reference graph");
-				
 				for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 				{
 					if (entry.getValue() == null) throw new IllegalArgumentException("null target states");
-					if (coregraph.findVertex(entry.getKey().getID()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
-					if (reference.findVertex(entry.getKey().getID()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
+					if (coregraph.findVertex(entry.getKey()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
+					if (reference.findVertex(entry.getKey()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
 					
 					for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
 					{
-						if (coregraph.getTargets(transition.getValue()).isEmpty()) throw new IllegalArgumentException("empty set of target states");
+						if (coregraph.getTargets(transition.getValue()).isEmpty())
+							throw new IllegalArgumentException("empty set of target states for transition "+transition.getKey()+" from state "+entry.getKey());
+
 						for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 						{
-							if (coregraph.findVertex(targetState.getID()) != targetState) throw new IllegalArgumentException("duplicate state "+entry.getKey());
-							if (reference.findVertex(targetState.getID()) != targetState) throw new IllegalArgumentException("duplicate state "+entry.getKey());
+							if (coregraph.findVertex(targetState) != targetState) throw new IllegalArgumentException("duplicate state "+entry.getKey());
+							if (reference.findVertex(targetState) != targetState) throw new IllegalArgumentException("duplicate state "+entry.getKey());
 						}
 					}
 				}
@@ -766,6 +773,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				{
 					if (!statesInFringe.contains(target))
 					{
+						@SuppressWarnings("unchecked")
 						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
 						stateToPath.put(target,newPath);
 						fringe.offer(target);
@@ -806,7 +814,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 		{
-			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.getInit() == entry.getKey());
+			result.append(entry.getKey().getStringId());result.append(' ');result.append(coregraph.getInit() == entry.getKey());
 			result.append(' ');result.append(entry.getKey().isAccept());result.append('\n');
 		}
 		
@@ -816,10 +824,17 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			{
 				List<CmpVertex> targetStates = new ArrayList<CmpVertex>();
 				targetStates.addAll(coregraph.getTargets(transitionEntry.getValue()));
-				Collections.sort(targetStates);
+				Collections.sort(targetStates,new Comparator<CmpVertex>(){
+
+					@Override
+					public int compare(CmpVertex arg0, CmpVertex arg1) {
+						return arg0.compareTo(arg1);
+					}
+					
+				});
 				for(CmpVertex targetState:targetStates)
 				{
-					result.append(entry.getKey().getID());result.append(' ');result.append(targetState.getID());
+					result.append(entry.getKey().getStringId());result.append(' ');result.append(targetState.getStringId());
 					result.append(' ');result.append(transitionEntry.getKey());result.append('\n');
 				}
 			}

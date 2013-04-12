@@ -33,6 +33,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.linear.GD.ChangesRecorder;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
@@ -55,22 +56,26 @@ public class GraphSeries {
 	
 	protected final Configuration config;
 	
+	/** The label converter to be used. */
+	protected final ConvertALabel converter;
+	
 	/** Creates the series for writing graphs.
 	 * 
 	 * @param d document to create XML nodes in
 	 * @param threads number of threads to use during GD computation.
-	 * @param cnf configuration to use. Particularly important if 
+	 * @param cnf configuration to use. Particularly important if
+	 * @param conv the converter to use when loading graphs 
 	 * <em>setGdFailOnDuplicateNames(false)</em> has to be set.
 	 */ 
-	public GraphSeries(Document d, int threads, Configuration cnf)
+	public GraphSeries(Document d, int threads, Configuration cnf, ConvertALabel conv)
 	{
-		doc = d;threadsNumber = threads;config=cnf;reset();
+		doc = d;threadsNumber = threads;config=cnf;converter=conv;reset();
 	}
 	
 	/** Creates a read-only graph series. */
-	public GraphSeries(Configuration cnf)
+	public GraphSeries(Configuration cnf, ConvertALabel conv)
 	{
-		doc = null;threadsNumber = 1;config=cnf;reset();
+		doc = null;threadsNumber = 1;config=cnf;converter = conv;reset();
 	}
 	
 	/** Resets the series - the first graph to follow will be stored directly.
@@ -95,12 +100,12 @@ public class GraphSeries {
 		Element element = (Element)node;
 		if (element.getNodeName().equals(StatechumXML.graphmlNodeNameNS.toString()))
 		{
-			graph=new LearnerGraph(config);AbstractPersistence.loadGraph(element, graph);
+			graph=new LearnerGraph(config);AbstractPersistence.loadGraph(element, graph, converter);
 		}
 		else if (element.getNodeName().equals(StatechumXML.gdGD.toString()))
 		{
 			LearnerGraph newGraph = new LearnerGraph(config);
-			ChangesRecorder.applyGD_WithRelabelling(graph != null?new LearnerGraph(graph,config):new LearnerGraph(config), element,newGraph);
+			ChangesRecorder.applyGD_WithRelabelling(graph != null?new LearnerGraph(graph,config):new LearnerGraph(config), element,converter,newGraph);
 			graph = newGraph;
 		}
 		else throw new IllegalArgumentException("expected either graph or GD, got "+element.getNodeName());
@@ -133,7 +138,7 @@ public class GraphSeries {
 		{
 			result = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>().computeGDToXML(graph, newGraph, threadsNumber, doc, null,config);
 			LearnerGraph whatShouldBeIdenticalToNewGraph = new LearnerGraph(config);
-			GD.ChangesRecorder.applyGD_WithRelabelling(graph, result,whatShouldBeIdenticalToNewGraph);
+			GD.ChangesRecorder.applyGD_WithRelabelling(graph, result,converter,whatShouldBeIdenticalToNewGraph);
 			// Note: if we simply do GD.ChangesRecorder.applyGD(graph,result) when loading graphs, this does not relabel vertices. 
 			// For this reason, we have to do applyGD during saving in order to ensure that state IDs are consistent with 
 			// what we'll end up with when a series of graphs is sequentially reconstructed, 

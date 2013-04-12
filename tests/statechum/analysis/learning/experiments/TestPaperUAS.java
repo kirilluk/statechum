@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +21,9 @@ import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -29,26 +33,43 @@ import statechum.Helper.whatToRun;
 import statechum.StatechumXML;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class TestPaperUAS {
+@RunWith(Parameterized.class)
+public class TestPaperUAS extends TestWithMultipleConfigurations 
+{
 
-	protected Configuration config;
 	protected PaperUAS paper;
+	
+	@Parameters
+	public static Collection<Object[]> data() 
+	{
+		return TestWithMultipleConfigurations.data();
+	}
+	
+	public static String parametersToString(Configuration config)
+	{
+		return TestWithMultipleConfigurations.parametersToString(config);
+	}
+	
+	public TestPaperUAS(Configuration conf)
+	{
+		super(conf);
+	}
 	
 	@Before
 	public void BeforeTests()
 	{
-		config = Configuration.getDefaultConfiguration().copy();paper = new PaperUAS();paper.learnerInitConfiguration.config = config;
+		paper = new PaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
 	}
 	
 	/** Empty traces */
@@ -107,7 +128,7 @@ public class TestPaperUAS {
 		Map<Integer,Set<List<Label>>> uav3Negative = constructCollectionOfTraces(paper.collectionOfTraces.get("4").tracesForUAVandFrame.get("UAV3"),false);
 		Assert.assertEquals(1,uav3Positive.size());
 		Assert.assertEquals(1,uav3Negative.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 				uav3Positive.get(0)));
 		Assert.assertTrue(uav3Negative.get(0).isEmpty());
 	}
@@ -230,13 +251,13 @@ public class TestPaperUAS {
 		Assert.assertEquals(3,tr.tracesForUAVandFrame.size());
 		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),true).size());
 		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),false).size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
 				constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),true).get(0)));// empty trace corresponds to a single accept state in a PTA
 		Assert.assertTrue(constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),false).get(0).isEmpty());// nothing among reject states, an empty trace here would mean that the initial state is the reject one 
 
 		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true).size());
 		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false).size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
 				constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true).get(0)));// empty trace corresponds to a single accept state in a PTA
 		Assert.assertTrue(constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false).get(0).isEmpty());
 	}
@@ -270,14 +291,14 @@ public class TestPaperUAS {
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),true);
 		Assert.assertEquals(1,uav3Positive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 				uav3Positive.get(0)));
 		Map<Integer,Set<List<Label>>> uav3Negative= constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),false);
 		Assert.assertEquals(1,uav3Negative.size());
 		Assert.assertTrue(uav3Negative.get(0).isEmpty());
 		Map<Integer,Set<List<Label>>> uav3PositiveAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true);
 		Assert.assertEquals(1,uav3PositiveAll.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 				uav3PositiveAll.get(0)));
 		Map<Integer,Set<List<Label>>> uav3NegativeAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false);
 		Assert.assertEquals(1,uav3NegativeAll.size());
@@ -292,11 +313,11 @@ public class TestPaperUAS {
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),true);
 		Assert.assertEquals(1,uav3Positive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uav3Positive.get(0)));
 		Map<Integer,Set<List<Label>>> uav3Negative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),false);
 		Assert.assertEquals(1,uav3Negative.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"}}, mainConfiguration,converter).equals(
 				uav3Negative.get(0)));
 	}
 	
@@ -311,15 +332,15 @@ public class TestPaperUAS {
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),true);
 		Assert.assertEquals(2,uav3Positive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uav3Positive.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uav3Positive.get(1)));
 		Map<Integer,Set<List<Label>>> uav3Negative =constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),false);
 		Assert.assertEquals(2,uav3Negative.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"}}, mainConfiguration,converter).equals(
 				uav3Negative.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"},new String[]{"Tzz"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"zz"},new String[]{"Tzz"}}, mainConfiguration,converter).equals(
 				uav3Negative.get(1)));
 		
 		Map<Integer,Set<List<Label>>> uav55Positive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV55"),true);
@@ -327,9 +348,9 @@ public class TestPaperUAS {
 		Assert.assertEquals(2,uav55Negative.size());
 		Assert.assertEquals(2,uav55Positive.size());
 		Assert.assertTrue(uav55Positive.get(0).isEmpty());Assert.assertTrue(uav55Positive.get(1).isEmpty());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(1)));
 		
 	}
@@ -348,28 +369,28 @@ public class TestPaperUAS {
 		Map<Integer,Set<List<Label>>> uav55Negative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV55"),false);
 		Assert.assertEquals(2,uav55Negative.size());
 		Assert.assertEquals(2,uav55Positive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(1)));
 
 		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true);
 		Assert.assertEquals(2,uavAllPositive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uavAllPositive.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uavAllPositive.get(1)));
 		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false);
 		Assert.assertEquals(2,uavAllNegative.size());
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"},
-				new String[]{"zz"}}, config).equals(
+				new String[]{"zz"}}, mainConfiguration,converter).equals(
 				uavAllNegative.get(0)));
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"},
-				new String[]{"zz"}, new String[]{"Tzz"}}, config).equals(
+				new String[]{"zz"}, new String[]{"Tzz"}}, mainConfiguration,converter).equals(
 				uavAllNegative.get(1)));
 	}
 
@@ -388,37 +409,37 @@ public class TestPaperUAS {
 		Map<Integer,Set<List<Label>>> uav55Negative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV55"),false);
 		Assert.assertEquals(3,uav55Negative.size());
 		Assert.assertEquals(3,uav55Positive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive.get(2)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"}}, mainConfiguration,converter).equals(
 				uav55Negative.get(2)));
 
 		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true);
 		Assert.assertEquals(3,uavAllPositive.size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uavAllPositive.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uavAllPositive.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"anotherOne"},new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"anotherOne"},new String[]{"aa"},new String[]{"qq"},new String[]{"Taa"},new String[]{"bb","cc"}}, mainConfiguration,converter).equals(
 				uavAllPositive.get(2)));
 		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false);
 		Assert.assertEquals(3,uavAllNegative.size());
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"},
-				new String[]{"zz"}}, config).equals(
+				new String[]{"zz"}}, mainConfiguration,converter).equals(
 				uavAllNegative.get(0)));
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"},
-				new String[]{"zz"}, new String[]{"Tzz"}}, config).equals(
+				new String[]{"zz"}, new String[]{"Tzz"}}, mainConfiguration,converter).equals(
 				uavAllNegative.get(1)));
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb","Fcc"},
-				new String[]{"zz"}, new String[]{"Tzz"}}, config).equals(
+				new String[]{"zz"}, new String[]{"Tzz"}}, mainConfiguration,converter).equals(
 				uavAllNegative.get(2)));
 	}
 
@@ -435,36 +456,36 @@ public class TestPaperUAS {
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 		Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 				uav3Positive4.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 				uav3Positive4.get(1)));
 		Assert.assertTrue(uav3Negative4.get(0).isEmpty());
 		Assert.assertTrue(uav3Negative4.get(1).isEmpty());
 		Map<Integer,Set<List<Label>>> uav55Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),true);
 		Map<Integer,Set<List<Label>>> uav55Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),false);
 		Assert.assertTrue(uav55Positive4.get(0).isEmpty());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq"}}, mainConfiguration,converter).equals(
 				uav55Positive4.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uav55Negative4.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uav55Negative4.get(1)));
 	
 		TracesForSeed tr2 = paper.collectionOfTraces.get("SEED2");
 		Map<Integer,Set<List<Label>>> uav3Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),true);
 		Map<Integer,Set<List<Label>>> uav3Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Taa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Taa"}}, mainConfiguration,converter).equals(
 				uav3Positive2.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Taa"},new String[]{"anotherOne"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Taa"},new String[]{"anotherOne"}}, mainConfiguration,converter).equals(
 				uav3Positive2.get(1)));
 		Assert.assertTrue(uav3Negative2.get(0).isEmpty());
 		Assert.assertTrue(uav3Negative2.get(1).isEmpty());
 		
 		Map<Integer,Set<List<Label>>> uav55Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),true);
 		Map<Integer,Set<List<Label>>> uav55Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(uav55Positive2.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(uav55Positive2.get(1)));
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(uav55Positive2.get(0)));
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(uav55Positive2.get(1)));
 		Assert.assertTrue(uav55Negative2.get(0).isEmpty());
 		Assert.assertTrue(uav55Negative2.get(1).isEmpty());
 		
@@ -472,19 +493,19 @@ public class TestPaperUAS {
 		Assert.assertEquals(4,trAll.tracesForUAVandFrame.size());
 		Map<Integer,Set<List<Label>>> uavAllPositiveAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(PaperUAS.UAVAllSeeds),true);
 		Map<Integer,Set<List<Label>>> uavAllNegativeAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(PaperUAS.UAVAllSeeds),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"}}, mainConfiguration,converter).equals(
 				uavAllPositiveAll.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"},new String[]{"qq"},new String[]{"anotherOne"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"},new String[]{"qq"},new String[]{"anotherOne"}}, mainConfiguration,converter).equals(
 				uavAllPositiveAll.get(1)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uavAllNegativeAll.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uavAllNegativeAll.get(1)));
 		for(Entry<String,Map<Integer,PTASequenceEngine>> entry:trAll.tracesForUAVandFrame.entrySet())
 			if (!entry.getKey().equals(PaperUAS.UAVAllSeeds))
 			{
 				for(Entry<Integer,Set<List<Label>>> pair:constructCollectionOfTraces(entry.getValue(),true).entrySet())
-					Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(pair.getValue()));
+					Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(pair.getValue()));
 			}
 		
 	}
@@ -546,9 +567,9 @@ public class TestPaperUAS {
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav55Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),true);
 		Map<Integer,Set<List<Label>>> uav55Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 				uav55Positive4.get(0)));// since there are no positive traces at all, this set is empty. It would usually contain an empty sequence. 
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, config).equals(
+		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uav55Negative4.get(0)));
 	}
 	
@@ -565,25 +586,25 @@ public class TestPaperUAS {
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative4.get(1)));
 		}
 		{
 			Map<Integer,Set<List<Label>>> uav55Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),true);
 			Map<Integer,Set<List<Label>>> uav55Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav55Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq","aa"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq","aa"}}, mainConfiguration,converter).equals(
 					uav55Positive4.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, mainConfiguration,converter).equals(
 					uav55Negative4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, mainConfiguration,converter).equals(
 					uav55Negative4.get(1)));
 		}
 		
@@ -591,26 +612,26 @@ public class TestPaperUAS {
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc"}}, mainConfiguration,converter).equals(
 					uav3Positive2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc","aa","gg"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc","aa","gg"}}, mainConfiguration,converter).equals(
 					uav3Positive2.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative2.get(1)));
 		}		
 		
 		{
 			Map<Integer,Set<List<Label>>> uav55Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),true);
 			Map<Integer,Set<List<Label>>> uav55Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
 					uav55Positive2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
 					uav55Positive2.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav55Negative2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav55Negative2.get(1)));
 		}		
 		
@@ -629,13 +650,13 @@ public class TestPaperUAS {
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
 					uav3Positive4.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(1)));
 		}
 	}
@@ -654,13 +675,13 @@ public class TestPaperUAS {
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));// all positive traces are prefixes of negatives and are thus not included
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}, new String[]{"aa","aa","bb","cc","aa","gg","Rnn","Rrr"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(1)));
 		}
 	}
@@ -679,13 +700,13 @@ public class TestPaperUAS {
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, config).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa","gg"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa","gg"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, config).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(1)));
 		}
 	}
@@ -693,43 +714,75 @@ public class TestPaperUAS {
 	@Test
 	public void testWritePairsToXMLFail1()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C\nD-a->D", "testWritePairsToXMLFail1",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C\nD-a->D", "testWritePairsToXMLFail1",mainConfiguration,converter);
 		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused") public @Override void run() {
 			new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("D")), gr.findVertex(VertexID.parseID("C")),1,2));
 		}},IllegalArgumentException.class,"failed to find paths");
 	}
 	
 	@Test
-	public void testWritePairsToXML1()
+	public void testWritePairsToXML1a()
 	{
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		PairOfPaths pair = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		List<PairOfPaths> list = new LinkedList<PairOfPaths>();list.add(pair);
-		PairOfPaths.writePairs(list, config, outputStream);
+		PairOfPaths.writePairs(list, mainConfiguration, outputStream);
 		
 		// Now load this.
-		System.out.println(outputStream);
-		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), config);
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), mainConfiguration,converter);
 		Assert.assertEquals(1,loaded.size());
 		
 		PairOfPaths r=loaded.get(0);
-		Assert.assertEquals("A",gr.getVertex(r.getQ()).getID().toString());Assert.assertEquals("C",gr.getVertex(r.getR()).getID().toString());
+		Assert.assertEquals("A",gr.getVertex(r.getQ()).getStringId());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
+	}
+	
+	/** A pair with only one element. */
+	@Test
+	public void testWritePairsToXML1b()
+	{
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
+		PairOfPaths pair = new PairOfPaths(gr,new PairScore(null, gr.findVertex(VertexID.parseID("C")),1,2));
+		List<PairOfPaths> list = new LinkedList<PairOfPaths>();list.add(pair);
+		PairOfPaths.writePairs(list, mainConfiguration, outputStream);
+		
+		// Now load this.
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), mainConfiguration,converter);
+		Assert.assertEquals(1,loaded.size());
+		
+		PairOfPaths r=loaded.get(0);
+		Assert.assertNull(r.getQ());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
 	}
 	
 	@Test
-	public void testLoadFromXML1()
+	public void testLoadFromXML1a()
 	{
 		String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><"+PairOfPaths.pairCollectionElement+">\n"+
 			"<"+StatechumXML.ELEM_SEQ+" "+StatechumXML.ATTR_SEQ+"=\""+PairOfPaths.pairElement+"\">[['b','c'],\n"+
 			"[]]</"+StatechumXML.ELEM_SEQ+"></"+PairOfPaths.pairCollectionElement+">";
 		
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
-		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(xmlString), config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(xmlString), mainConfiguration,converter);
 		Assert.assertEquals(1,loaded.size());
 		
 		PairOfPaths r=loaded.get(0);
-		Assert.assertEquals("A",gr.getVertex(r.getQ()).getID().toString());Assert.assertEquals("C",gr.getVertex(r.getR()).getID().toString());
+		Assert.assertEquals("A",gr.getVertex(r.getQ()).getStringId());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
+	}
+	
+	/** A pair with only one element. */
+	@Test
+	public void testLoadFromXML1b()
+	{
+		String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><"+PairOfPaths.pairCollectionElement+">\n"+
+			"<"+StatechumXML.ELEM_SEQ+" "+StatechumXML.ATTR_SEQ+"=\""+PairOfPaths.pairElement+"\">[['b','c']]</"+StatechumXML.ELEM_SEQ+"></"+PairOfPaths.pairCollectionElement+">";
+		
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(xmlString), mainConfiguration,converter);
+		Assert.assertEquals(1,loaded.size());
+		
+		PairOfPaths r=loaded.get(0);
+		Assert.assertNull(r.getQ());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
 	}
 	
 	@Test
@@ -738,7 +791,7 @@ public class TestPaperUAS {
 		String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><"+PairOfPaths.pairCollectionElement+">\n"+
 			"</"+PairOfPaths.pairCollectionElement+">";
 		
-		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(xmlString), config);
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(xmlString), mainConfiguration,converter);
 		Assert.assertEquals(0,loaded.size());
 	}
 	
@@ -750,7 +803,7 @@ public class TestPaperUAS {
 			"[]]</"+StatechumXML.ELEM_SEQ+"></AA>";
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			 PairOfPaths.readPairs(new StringReader(xmlString), config);
+			 PairOfPaths.readPairs(new StringReader(xmlString), mainConfiguration,converter);
 		}},IllegalArgumentException.class,"invalid child element");
 	}
 	
@@ -761,7 +814,7 @@ public class TestPaperUAS {
 			"[]]</"+StatechumXML.ELEM_SEQ+"></AA>";
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			 PairOfPaths.readPairs(new StringReader(xmlString), config);
+			 PairOfPaths.readPairs(new StringReader(xmlString), mainConfiguration,converter);
 		}},IllegalArgumentException.class,"failed to construct/load");
 	}
 	
@@ -770,40 +823,60 @@ public class TestPaperUAS {
 	public void testWritePairsToXML2()
 	{
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2)),
 				pair2 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
 		List<PairOfPaths> list = new LinkedList<PairOfPaths>();list.add(pair1);list.add(pair2);
-		PairOfPaths.writePairs(list, config, outputStream);
+		PairOfPaths.writePairs(list, mainConfiguration, outputStream);
 		
 		// Now load this.
-		System.out.println(outputStream);
-		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), config);
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), mainConfiguration,converter);
 		Assert.assertEquals(2,loaded.size());
 		
 		PairOfPaths r=loaded.get(0);
-		Assert.assertEquals("A",gr.getVertex(r.getQ()).getID().toString());Assert.assertEquals("C",gr.getVertex(r.getR()).getID().toString());
+		Assert.assertEquals("A",gr.getVertex(r.getQ()).getStringId());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
 		r=loaded.get(1);
-		Assert.assertEquals("B",gr.getVertex(r.getQ()).getID().toString());Assert.assertEquals("C",gr.getVertex(r.getR()).getID().toString());
+		Assert.assertEquals("B",gr.getVertex(r.getQ()).getStringId());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
+	}
+	
+	/** Same as above but with one single-state element. */
+	@Test
+	public void testWritePairsToXML3()
+	{
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
+		PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(null, gr.findVertex(VertexID.parseID("C")),1,2)),
+				pair2 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
+		List<PairOfPaths> list = new LinkedList<PairOfPaths>();list.add(pair1);list.add(pair2);
+		PairOfPaths.writePairs(list, mainConfiguration, outputStream);
+		
+		// Now load this.
+		List<PairOfPaths> loaded = PairOfPaths.readPairs(new StringReader(outputStream.toString()), mainConfiguration,converter);
+		Assert.assertEquals(2,loaded.size());
+		
+		PairOfPaths r=loaded.get(0);
+		Assert.assertNull(r.getQ());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
+		r=loaded.get(1);
+		Assert.assertEquals("B",gr.getVertex(r.getQ()).getStringId());Assert.assertEquals("C",gr.getVertex(r.getR()).getStringId());
 	}
 	
 	@Test
 	public void testRebuildStack1()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		pair1.rebuildStack(gr, stack);
 		Assert.assertEquals(1,stack.size());
 		PairScore r = stack.pop();
-		Assert.assertEquals("A",r.getQ().getID().toString());Assert.assertEquals("C",r.getR().getID().toString());
+		Assert.assertEquals("A",r.getQ().getStringId());Assert.assertEquals("C",r.getR().getStringId());
 	}	
 	
 	@Test
 	public void testRebuildStack2()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("A")),1,2));
@@ -813,13 +886,13 @@ public class TestPaperUAS {
 		pair1.rebuildStack(gr, stack);
 		Assert.assertEquals(1,stack.size());
 		PairScore r = stack.pop();
-		Assert.assertEquals("A",r.getQ().getID().toString());Assert.assertEquals("C",r.getR().getID().toString());
+		Assert.assertEquals("A",r.getQ().getStringId());Assert.assertEquals("C",r.getR().getStringId());
 	}
 	
 	@Test
 	public void testRebuildStack3()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("C")),1,2));
@@ -829,13 +902,13 @@ public class TestPaperUAS {
 		pair1.rebuildStack(gr, stack);
 		Assert.assertEquals(1,stack.size());
 		PairScore r = stack.pop();
-		Assert.assertEquals("A",r.getQ().getID().toString());Assert.assertEquals("C",r.getR().getID().toString());
+		Assert.assertEquals("A",r.getQ().getStringId());Assert.assertEquals("C",r.getR().getStringId());
 	}	
 	
 	@Test
 	public void testRebuildStackFail1()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		final PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -846,7 +919,7 @@ public class TestPaperUAS {
 	@Test
 	public void testRebuildStackFail2()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		final PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
@@ -861,7 +934,7 @@ public class TestPaperUAS {
 	@Test
 	public void testRebuildStackFail3()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		final PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
@@ -876,7 +949,7 @@ public class TestPaperUAS {
 	@Test
 	public void testRebuildStackFail4()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-c->C", "testWritePairsToXML1",mainConfiguration,converter);
 		final PairOfPaths pair1 = new PairOfPaths(gr,new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("C")),1,2));
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("C")),2,2));
@@ -889,7 +962,7 @@ public class TestPaperUAS {
 	@Test
 	public void testChoices1a()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("B")),1,2));
@@ -916,7 +989,7 @@ public class TestPaperUAS {
 	@Test
 	public void testChoices1b()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("A")),1,2));
@@ -928,7 +1001,7 @@ public class TestPaperUAS {
 	@Test
 	public void testChoices1c()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2));
@@ -951,7 +1024,7 @@ public class TestPaperUAS {
 	@Test
 	public void testCountChoices2a()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),1,2));
@@ -975,7 +1048,7 @@ public class TestPaperUAS {
 	@Test
 	public void testCountChoices2b()
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",config);
+		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2));
 		Assert.assertEquals(1,PaperUAS.countChoices(stack));
@@ -1012,7 +1085,7 @@ public class TestPaperUAS {
 	@Test
 	public void testInternTrace2()
 	{
-		List<Label> list=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config),AbstractLearnerGraph.generateNewLabel("b", config),AbstractLearnerGraph.generateNewLabel("a", config)});
+		List<Label> list=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),AbstractLearnerGraph.generateNewLabel("a", mainConfiguration)});
 		List<Label> internedList = paper.internTrace(list);
 		Assert.assertEquals("a",internedList.get(0).toErlangTerm());Assert.assertEquals("b",internedList.get(1).toErlangTerm());Assert.assertEquals("a",internedList.get(2).toErlangTerm());
 		Assert.assertSame(internedList.get(0),internedList.get(2));
@@ -1022,51 +1095,51 @@ public class TestPaperUAS {
 	@Test
 	public void testLearnIfThen1()
 	{
-		Assert.assertTrue(PaperUAS.learnIfThen(new LearnerGraph(Configuration.getDefaultConfiguration()), 0,0).isEmpty());
+		Assert.assertTrue(PaperUAS.learnIfThen(new LearnerGraph(mainConfiguration), 0,0).isEmpty());
 	}
 	
 	@Test
 	public void testLearnIfThen2()
 	{
-		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", Configuration.getDefaultConfiguration()), 0,0.5).isEmpty());
+		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
 	}
 	
 	@Test
 	public void testLearnIfThen3()
 	{
-		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", config), 0,0);
+		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", config);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.5, entry.get(a),Configuration.fpAccuracy);
 	}
 	
 	@Test
 	public void testLearnIfThen4()
 	{
-		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", config), 0,0);
+		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", config);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.75, entry.get(a),Configuration.fpAccuracy);
 	}
 	
 	@Test
 	public void testLearnIfThen5()
 	{
-		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", Configuration.getDefaultConfiguration()), 1,0).isEmpty());
+		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
 	}
 	
 	@Test
 	public void testLearnIfThen6()
 	{
-		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", Configuration.getDefaultConfiguration()), 0,0).isEmpty());
+		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
 	}
 	
 	@Test
 	public void testLearnIfThen7()
 	{
-		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", config), 0,0);
+		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", config),b= AbstractLearnerGraph.generateNewLabel("b", config);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);
 	}
 	
@@ -1074,7 +1147,7 @@ public class TestPaperUAS {
 	@Test
 	public void testTrimGraph1()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, -1);
 		Assert.assertTrue(trimmed.transitionMatrix.isEmpty());
 	}
@@ -1082,9 +1155,9 @@ public class TestPaperUAS {
 	@Test
 	public void testTrimGraph2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 0);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->A","testTrimGraph2", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->A","testTrimGraph2", mainConfiguration,converter);
 		expected.transitionMatrix.get(expected.transitionMatrix.findElementById(VertexID.parseID("A"))).clear();
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
@@ -1092,36 +1165,36 @@ public class TestPaperUAS {
 	@Test
 	public void testTrimGraph3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testTrimGraph3", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testTrimGraph3", mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public void testTrimGraph4()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public void testTrimGraph5()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public void testTrimGraph6()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 2);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
@@ -1129,16 +1202,16 @@ public class TestPaperUAS {
 	@Test
 	public void testTrimGraph7()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 3);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", Configuration.getDefaultConfiguration());
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public void testTrimGraph8()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", Configuration.getDefaultConfiguration());
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 4);
 		Assert.assertNull(WMethod.checkM(graph,trimmed));
 	}

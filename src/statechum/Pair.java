@@ -25,7 +25,8 @@ package statechum;
  * @param <A>
  * @param <B>
  */
-public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Comparable<Pair<A,B>> {
+public class Pair<A extends Comparable<? super A>,B extends Comparable<? super B>> implements Comparable<Pair<A,B>>
+{
 	public final A firstElem;
 	public final B secondElem;
 	
@@ -63,6 +64,7 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Co
 			return false;
 		if (!(obj instanceof Pair))
 			return false;
+		@SuppressWarnings("unchecked")
 		final Pair<A,B> other = (Pair<A,B>) obj;
 		if (firstElem == null) {
 			if (other.firstElem != null) {
@@ -82,7 +84,8 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Co
 
 	}
 
-	public int compareTo(Pair<A, B> o) {
+	@Override
+	public int compareTo(Pair<A,B> o) {
 		int firstComp = 0;
 		
 		if (firstElem == null)

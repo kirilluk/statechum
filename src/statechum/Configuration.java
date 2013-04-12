@@ -307,6 +307,19 @@ public class Configuration implements Cloneable {
 		this.bumpPositives = bumpPositivesArg;
 	}
 
+	/** Computation of the compatibility score was setting the "red state entered" variable at a high level rather than locally. This has now been corrected but to remain compatible with earlier revisions of the learner we emulate this bug. */  
+	protected boolean scoreCompatibilityScoreComputationBugEmulation = false;
+	
+	public boolean getScoreCompatibilityScoreComputationBugEmulation()
+	{
+		return scoreCompatibilityScoreComputationBugEmulation;
+	}
+	
+	public void setScoreCompatibilityScoreComputationBugEmulation(boolean newValue)
+	{
+		scoreCompatibilityScoreComputationBugEmulation = newValue;
+	}
+	
 	/** When learning is restarted, we go through the same process with new information. This is fine 
 	 * but we end up asking questions for states we merged earlier. Most of those mergers are fine and
 	 * should be done anyway unless new information prohibits mergers. The rest will have little evidence hence
@@ -450,7 +463,8 @@ public class Configuration implements Cloneable {
 		return autoAnswerFileName;
 	}
 
-	public static Collection<Object[]> configurationsForTesting() {
+	public static Collection<Object[]> configurationsForTesting() 
+	{
 		Configuration same = new Configuration();same.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 		same.setLearnerUseStrings(false);
 		same.setLearnerCloneGraph(true);
@@ -463,8 +477,9 @@ public class Configuration implements Cloneable {
 		strings.setLearnerUseStrings(true);
 		strings.setLearnerCloneGraph(false);
 		Configuration stringsCompat = strings.copy();stringsCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		Configuration stringsArray = strings.copy();stringsCompat.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		return Arrays
-				.asList(new Object[][] { { same }, { clone }, { strings }, {sameCompat},{ cloneCompat },{stringsCompat}});
+				.asList(new Object[][] { { same }, { clone }, { strings }, {sameCompat},{ cloneCompat },{stringsCompat},{stringsArray}});
 	}
 
 	/**
@@ -1226,7 +1241,7 @@ public class Configuration implements Cloneable {
 	 * typically lead to slightly different learning outcomes hence the possibility of compatibility mode. 
 	 */
 	public enum STATETREE {
-		STATETREE_SLOWTREE, STATETREE_LINKEDHASH
+		STATETREE_SLOWTREE, STATETREE_LINKEDHASH, STATETREE_ARRAY
 	};
 
 	protected STATETREE transitionMatrixImplType = STATETREE.STATETREE_LINKEDHASH;

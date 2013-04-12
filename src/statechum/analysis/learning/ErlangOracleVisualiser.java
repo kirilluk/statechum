@@ -129,13 +129,20 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 initGraph.getLayoutOptions().showNegatives = false;
                 LearnerGraph graph = mainDecorator.learnMachine();
                 if (graph != null) {
-                    DirectedSparseGraph learnt = graph.pathroutines.getGraph();
-                    if (conf.config.isGenerateTextOutput()) {
-                        OutputUtil.generateTextOutput(learnt, "textOutput.txt");
-                    }
-                    if (conf.config.isGenerateDotOutput()) {
-                        OutputUtil.generateDotOutput(learnt, "dotOutput.dot");
-                    }
+                	try
+                	{
+	                	DirectedSparseGraph learnt = graph.pathroutines.getGraph();
+	                    if (conf.config.isGenerateTextOutput()) {
+	                        OutputUtil.generateTextOutput(learnt, "textOutput.txt");
+	                    }
+	                    if (conf.config.isGenerateDotOutput()) {
+	                        OutputUtil.generateDotOutput(learnt, "dotOutput.dot");
+	                    }
+                	}
+                	catch(IOException ex)
+                	{
+                		ex.printStackTrace();
+                	}
                 }
             }
         }, "ErlangOracle learner thread");
@@ -186,7 +193,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     	return result;
     }
     
-    @Override
+    @SuppressWarnings("unused")
+	@Override
     public void mouseReleased(MouseEvent e) {
         if (e.getButton() != MouseEvent.BUTTON1) {
             return;
@@ -208,7 +216,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                         // This is nice and readable....
                         sum = sum.sum(m);
                     }
-                    new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), toLVertex(getPickedVertex()).getID().toString());
+                    new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), toLVertex(getPickedVertex()).getStringId());
                 }
             }
         } else if (mode == AllSuffixesCompareMode) {
@@ -228,8 +236,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                         // This is nice and readable....
                         thisSum = thisSum.sum(m);
                     }
-                    String previousLabel = toLVertex(previousPicked).getID().toString();
-                    String thisLabel = toLVertex(getPickedVertex()).getID().toString();
+                    String previousLabel = toLVertex(previousPicked).getStringId();
+                    String thisLabel = toLVertex(getPickedVertex()).getStringId();
                     //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
                     new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
@@ -403,12 +411,13 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2, boolean hide) {
         String result = "<html><body>";
         String sourceFile = "";
+        BufferedReader input = null; 
         try {
             for (String m : ErlangQSMOracle.erlangModules) {
                 result += "<h2>" + m + "</h2>";
                 result += "<pre>";
                 sourceFile = ErlangQSMOracle.ErlangFolder + "/" + m + ".erl";
-                BufferedReader input = new BufferedReader(new FileReader(sourceFile));
+                input = new BufferedReader(new FileReader(sourceFile));
                 int linenum = 0;
                 String line = null;
                 String prevLine = "";
@@ -457,12 +466,15 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     }
                     prevLine = line;
                 }
-                input.close();
+                input.close();input=null;
                 result += "</pre>";
             }
         } catch (IOException e) {
             System.out.println("Couldn't open " + sourceFile);
+        } finally {
+        	if (input != null) { try { input.close();input=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
         }
+        
         return result + "</body></html>";
     }
 }

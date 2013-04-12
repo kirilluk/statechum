@@ -40,14 +40,14 @@ public class SootCallGraphManager extends JFrame {
 	 */
 	private static final long serialVersionUID = -7064964842501276326L;
 	private File packageRoot;
-	private Collection classes;
+	private Collection<String> classes;
 	
 	public SootCallGraphManager (){
 		init();
 	}
 	
 	public  void init(){
-		classes = new HashSet();
+		classes = new HashSet<String>();
 		ArrayList<String> dynamicClasses = new ArrayList<String>();
 		dynamicClasses.add("CH.ifa.draw.util.collections.jdk12.CollectionsFactoryJDK12");
 		Options.v().set_whole_program(true);
@@ -66,7 +66,7 @@ public class SootCallGraphManager extends JFrame {
 	}
 	
 	private  void setApplicationClasses(){
-		Iterator classIt = classes.iterator();
+		Iterator<String> classIt = classes.iterator();
 		while(classIt.hasNext()){
 			String className = classIt.next().toString();
 			SootClass current = Scene.v().getSootClass(className);

@@ -18,12 +18,15 @@
  */
 package statechum;
 
+import statechum.collections.ConvertibleToInt;
+
 /**
  * An interface which all transition labels are supposed to implement.
+ * If {@link Label#toInt()} is implemented, it should return a non-negative integer. 
  * 
  * @author ramsay
  */
-public interface Label extends Comparable<Label> {
+public interface Label extends Comparable<Label>, ConvertibleToInt {
 
 	/** Converts a label to text which can be parsed back into the same label.
 	 * Used to compare labels and to compute their hash codes as well 

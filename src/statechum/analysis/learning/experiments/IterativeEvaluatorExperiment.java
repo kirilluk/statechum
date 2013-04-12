@@ -68,7 +68,9 @@ public class IterativeEvaluatorExperiment {
 			//config.setKlimit(2);
 			//config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 			config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
-			Learner l = new AccuracyTrackerDecorator(new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
+			LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(null,null,config,null,null);
+			evaluationConfiguration.setLabelConverter(experiment.getLabelConverter());
+			Learner l = new AccuracyTrackerDecorator(new RPNIUniversalLearner(null,evaluationConfiguration)
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(

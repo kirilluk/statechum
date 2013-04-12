@@ -65,11 +65,7 @@ public class PrefixTraceTree {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (IOException e) { /* ignore this */ }
-            }
+            if (input != null) { try { input.close();input=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
         }
     }
 

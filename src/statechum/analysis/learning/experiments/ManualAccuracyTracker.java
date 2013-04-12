@@ -18,10 +18,12 @@
 package statechum.analysis.learning.experiments;
 
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
+import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.*;
@@ -60,7 +62,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		
 		String target =  "X-initialise->B-fail_close->A-check_updates->A-update->H-failed_get_use_old->I-succeed_use_remove_pending->F-write_to_cm_sim->D-set_wind_altimeter->A\nB-success_ctas_use_new_weather->C-succeed_use->D\nC-failed_use->A\nI-failed_use->E-write_to_cm_sim->A\nG-succeed_use_remove_pending->F\nG-failed_use_remove_pending->E\nH-success_ctas_use_new_weather->G";
 		
-		LearnerGraph targetMachine = FsmParser.buildLearnerGraph(target, "Target", learnerInitConfiguration.config);
+		LearnerGraph targetMachine = FsmParser.buildLearnerGraph(target, "Target", learnerInitConfiguration.config,null);
 		
 		int sampleSize = (targetMachine.pathroutines.countEdges()*2);
 		int percentPerChunk = 10;
@@ -95,7 +97,11 @@ public class ManualAccuracyTracker extends QSMTool {
 			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
 			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
 			//atd.init(sPlus, sMinus);
-			OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph(),"dotOutput.dot");
+			try {
+				OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph(),"dotOutput.dot");
+			} catch (IOException e) {
+				Helper.throwUnchecked("failed to create dotOutput", e);
+			}
 			Learner autoAns = new AutoAnswers(atd);
 			autoAns.init(sPlus, sMinus);
 			/*

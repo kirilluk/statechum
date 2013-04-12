@@ -18,13 +18,12 @@
 package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -32,23 +31,22 @@ import java.util.Set;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
-import statechum.Pair;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Pair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 
 @RunWith(Parameterized.class)
@@ -56,43 +54,43 @@ public class TestWMethodUniversal
 {
 	boolean prefixClosed;
 	
-	public TestWMethodUniversal(boolean closed)
+	public TestWMethodUniversal(Configuration conf, boolean closed)
 	{
 		prefixClosed = closed;
-		mainConfiguration = Configuration.getDefaultConfiguration();
-	}
-	
-	/** Make sure that whatever changes a test have made to the 
-	 * configuration, next test is not affected.
-	 */
-	@Before
-	public void beforeTest()
-	{
-		config = mainConfiguration.copy();
+		config = conf.copy();
+		converter = config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
 	}
 	
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
-		return Arrays.asList(new Object[][]{new Object[]{true},new Object[]{false}});
+		List<Object[]> outcome = new LinkedList<Object[]>();
+		for(Object[] cnf:TestWithMultipleConfigurations.data())
+		{
+			assert cnf.length == 1;
+			outcome.add(new Object[]{cnf[0],true});outcome.add(new Object[]{cnf[0],false});
+		}
+		return outcome;
 	}
 
 	/** Given an argument, returns a textual representation of it. 
 	 * 
+	 * @param config configuration to use
 	 * @param closed boolean to consider
 	 * @return description.
 	 */ 
-	public static String parametersToString(Boolean closed)
+	public static String parametersToString(Configuration config,Boolean closed)
 	{
-		return closed?"prefix-closed":"not prefix-closed";
+		return TestWithMultipleConfigurations.parametersToString(config)+" "+(closed?"prefix-closed":"not prefix-closed");
 	}
 	
 	/** The configuration to use when running tests. */
-	private Configuration config = null, mainConfiguration = null;
-
+	private final Configuration config;
+	private final ConvertALabel converter;
+	
 	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected)
 	{
-		LearnerGraph fsm = buildLearnerGraph(machine,"testWset",config);
+		LearnerGraph fsm = buildLearnerGraph(machine,"testWset",config,converter);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
 	}
 	
@@ -119,7 +117,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset4()
 	{
-		LearnerGraph fsm = buildLearnerGraph("A-a->A","testWset4",config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->A","testWset4",config,converter);
 		Assert.assertTrue(WMethod.computeWSet_reducedmemory(fsm).isEmpty());
 	}
 
@@ -207,8 +205,8 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWsetBig1() throws IOException
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
-		AbstractPersistence.loadGraph("resources/testWset1.graphml",fsm);
+		LearnerGraph fsm = new LearnerGraph(config.copy());
+		AbstractPersistence.loadGraph("resources/testWset1.graphml",fsm,converter);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
 	}
 	
@@ -216,7 +214,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles1()
 	{
-		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1",config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1",config,converter);
 		fsm.addToCompatibility(fsm.findVertex("A"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,false,false,prefixClosed);
 	}
@@ -225,7 +223,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles2()
 	{
-		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2",config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2",config,converter);
 		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -241,7 +239,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles_fail1()
 	{
-		final LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2",config);
+		final LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2",config,converter);
 		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
@@ -250,9 +248,9 @@ public class TestWMethodUniversal
 	
 	public class EmptyPermutator implements FsmPermutator {
 		@Override 
-		public ArrayList<Pair<CmpVertex, Label>> getPermutation(
-				Collection<Pair<CmpVertex, Label>> from) {
-			ArrayList<Pair<CmpVertex, Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
+		public ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from) 
+		{
+			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
 			result.addAll(from);
 			return result;
 		}
@@ -267,15 +265,15 @@ public class TestWMethodUniversal
 		}
 		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
 		@Override 
-		public ArrayList<Pair<CmpVertex, Label>> getPermutation(
-				Collection<Pair<CmpVertex, Label>> from) {
-			ArrayList<Pair<CmpVertex, Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
+		public ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from) 
+		{
+			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
 			result.addAll(from);
 			
 			for(int i=0;i< from.size();++i)
 			{
 				int first = rnd.nextInt(from.size()), second = rnd.nextInt(from.size());
-				Pair<CmpVertex, Label> firstObj = result.get(first);result.set(first,result.get(second));result.set(second,firstObj);
+				Pair<CmpVertex,Label> firstObj = result.get(first);result.set(first,result.get(second));result.set(second,firstObj);
 			}
 			return result;
 		}
@@ -291,10 +289,9 @@ public class TestWMethodUniversal
 	 */
 	public void testWsetDeterministic(String machine, FsmPermutator perm, String testName)
 	{
-		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName,config);
-		LearnerGraph fsm = new LearnerGraph(g,config);//visFrame.update(null, g);
+		LearnerGraph fsm = buildLearnerGraph(machine,"testDeterminism_"+testName,config,converter);
 		Set<List<Label>> origWset = new HashSet<List<Label>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
-		LearnerGraph permFsm = fsm.wmethod.Permute(perm);
+		LearnerGraph permFsm = fsm.wmethod.Permute(perm,converter);
 		Assert.assertNull(WMethod.checkM(fsm,permFsm));
 		
 		Set<List<Label>> newWset = new HashSet<List<Label>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));

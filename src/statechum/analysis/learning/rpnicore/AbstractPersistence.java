@@ -44,17 +44,15 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
 
 public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
@@ -77,7 +75,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
 	protected String transformNodeName(CmpVertex node)
 	{
-		return (node == coregraph.getInit()? Initial+" ":"")+node.getID().toString(); 
+		return (node == coregraph.getInit()? Initial+" ":"")+node.getStringId(); 
 	}
 
 	/** Writes a graph into a graphML file. All vertices are written. */
@@ -88,10 +86,10 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		
 	protected Element createStateNode(Document doc, CmpVertex node)
 	{
-		if (node.getID().toString().contains(Initial))
+		if (node.getStringId().contains(Initial))
 			throw new IllegalArgumentException("Invalid node name "+node);
 		Element nodeElement = doc.createElementNS(StatechumXML.graphmlNS.toString(),"node");
-		nodeElement.setAttribute("id",node.getID().toString());
+		nodeElement.setAttribute("id",node.getStringId());
 		nodeElement.setIdAttribute("id", true);
 		nodeElement.setAttribute("VERTEX", transformNodeName(node));
 		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.name(),Boolean.toString(node.isAccept()));
@@ -100,6 +98,52 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		if (node.getOrigState() != null) nodeElement.setAttribute(JUConstants.ORIGSTATE.name(),node.getOrigState().toString());
 		if (node.getDepth() != JUConstants.intUNKNOWN) nodeElement.setAttribute(JUConstants.DEPTH.name(), Integer.toString(node.getDepth()));
 		return nodeElement;
+	}
+	
+	/** Populates attributes of the specified node, returning true if it is marked as an initial node. */
+	protected static boolean populateCmpVertexFromElement(Element nodeElement, CmpVertex target)
+	{
+		if (nodeElement.hasAttribute(JUConstants.ACCEPTED.name())) 
+		{
+			boolean outcome = false;
+			String value = nodeElement.getAttribute(JUConstants.ACCEPTED.name()).toLowerCase();
+			if (value.equalsIgnoreCase("true"))
+				outcome = true;
+			else
+				if (value.equalsIgnoreCase("false"))
+					outcome = false;
+				else
+					throw new IllegalArgumentException("invalid ACCEPT value "+value);
+			
+			target.setAccept(outcome);
+		}
+		if (nodeElement.hasAttribute(JUConstants.HIGHLIGHT.name())) target.setHighlight(Boolean.parseBoolean(nodeElement.getAttribute(JUConstants.HIGHLIGHT.name())));
+		if (nodeElement.hasAttribute(JUConstants.COLOUR.name())) 
+		{
+			String colour = nodeElement.getAttribute(JUConstants.COLOUR.name());
+			try
+			{
+				target.setColour(JUConstants.valueOf(colour));
+			}
+			catch(IllegalArgumentException ex)
+			{
+				throw new IllegalArgumentException("invalid colour "+colour);
+			}
+		}
+		if (nodeElement.hasAttribute(JUConstants.ORIGSTATE.name())) target.setOrigState(VertexID.parseID(nodeElement.getAttribute(JUConstants.ORIGSTATE.name())));
+		if (nodeElement.hasAttribute(JUConstants.DEPTH.name()))
+		{
+			String depth = nodeElement.getAttribute(JUConstants.DEPTH.name());
+			try
+			{
+				target.setDepth(Integer.parseInt(depth));
+			}
+			catch(NumberFormatException ex)
+			{// cannot parse, revert to text.
+				throw new IllegalArgumentException("invalid depth "+depth);
+			}
+		}
+		return nodeElement.getAttribute("VERTEX").contains(Initial);
 	}
 	
 	public static Text endl(Document doc)
@@ -114,16 +158,18 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
 		graphTop.appendChild(endl(doc));
+		graphTop.appendChild(createStateNode(doc, coregraph.getInit()));graphTop.appendChild(endl(doc));
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
-		{
-			graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
-		}
+			if (vert.getKey() != coregraph.getInit())
+			{
+				graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
+			}
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			for(Entry<Label,TARGET_TYPE> transition:vert.getValue().entrySet())
 				for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 				{
-					Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getID().toString());
-					edge.setAttribute("target", targetState.getID().toString());edge.setAttribute("directed", "true");
+					Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getStringId());
+					edge.setAttribute("target", targetState.getStringId());edge.setAttribute("directed", "true");
 					edge.setAttribute("EDGE", transition.getKey().toErlangTerm());graphTop.appendChild(edge);
 					graphTop.appendChild(endl(doc));
 				}
@@ -179,24 +225,6 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		}
 	}
 	
-	/** We need to be able to get access to a graph being loaded and the only 
-	 * possible way is to override an appropriate method. 
-	 */
-	static class DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
-		extends ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>
-	{
-		public DOMExperimentGraphMLHandler(Configuration config)
-		{
-			super(config);
-		}
-		
-	    @Override
-		public Graph getGraph() {
-	        return super.getGraph();
-	    }
-		
-	}
-
 	public static final String graphmlAttribute="attribute", graphmlGraph = "graph", graphmlData="data", 
 		graphmlDataKey = "key",graphmlDataIncompatible="key_incompatible";
 	
@@ -220,12 +248,13 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	 * 
 	 * @param elem XML element to load from
 	 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
+	 * @param conv how to convert loaded labels, null for no conversion.
 	 * @return loaded graph
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
-		AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(org.w3c.dom.Element elem, 
-				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result)
+		AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(org.w3c.dom.Element elem, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result, ConvertALabel conv)
 	{
+		result.initEmpty();
 		if (!elem.getNodeName().equals(StatechumXML.graphmlNodeNameNS.toString()) && !elem.getNodeName().equals(StatechumXML.graphmlNodeName.toString()))
 			throw new IllegalArgumentException("element name "+elem.getNodeName()+" is not graphml");
 		NodeList graphs = StatechumXML.getChildWithTag(elem,graphmlGraph);
@@ -235,89 +264,118 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 			throw new IllegalArgumentException("duplicate graph element");
 		Element graphElement = (Element)graphs.item(0);
 
-		DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE> graphHandler = new DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config);
-    	GraphMLFile graphmlFile = new GraphMLFile();
-    	graphmlFile.setGraphMLFileHandler(graphHandler);
-    	synchronized(AbstractLearnerGraph.syncObj)
-    	{// multi-core execution understandably fails if I forget to sync on that object
-	    	try
-	    	{
-		    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
-		    	NodeList nodes = graphElement.getChildNodes(); 
-		    	for(int i=0;i<nodes.getLength();++i)
-		    	{
-					org.w3c.dom.Node node = nodes.item(i);
-					if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
-						graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
-		    	}
-	    	}
-	    	catch(SAXException e)
-	    	{
-	    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
-	    		throw ex;
-	    	}
-    	}
-    	LearnerGraphND loadedGraph = new LearnerGraphND(graphHandler.getGraph(),result.config);
-    	AbstractLearnerGraph.copyGraphs(loadedGraph, result);
-    	NodeList nodes = graphElement.getChildNodes(); 
-    	for(int i=0;i<nodes.getLength();++i)
+    	if (!graphElement.getAttribute("edgedefault").equals("directed"))
+    		throw new IllegalArgumentException("only directed graphs are supported");
+    	
+    	NodeList xmlNodes = graphElement.getChildNodes();
+    	for(int i=0;i<xmlNodes.getLength();++i)
     	{
-			org.w3c.dom.Node node = nodes.item(i);
+			org.w3c.dom.Node node = xmlNodes.item(i);
 			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
 			{
-				if (node.getNodeName().equals(graphmlData))
+				Element nodeElement = (Element)node;
+				if (nodeElement.getNodeName().equals("node"))
 				{
-					if (graphmlDataIncompatible.equals(((Element)node).getAttribute(graphmlDataKey)))
+					if (!nodeElement.hasAttribute("id"))
+						throw new IllegalArgumentException("missing id attribute");
+					
+					CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(
+							VertexID.parseID(nodeElement.getAttribute("id")), result.config);
+					boolean initial = populateCmpVertexFromElement(nodeElement, vert);
+					if (result.transitionMatrix.containsKey(vert))
+						throw new IllegalArgumentException("duplicate vertex "+vert);
+
+					Map<Label,TARGET_TYPE> row = result.createNewRow();
+					result.transitionMatrix.put(vert, row);
+					if (initial)
 					{
-						NodeList children = node.getChildNodes();
-						for(int childNum=0;childNum<children.getLength();++childNum)
-							if (children.item(childNum).getNodeType() == Node.ELEMENT_NODE)
-							{
-								PairScore pair=ProgressDecorator.readPair(result, (Element)children.item(childNum));
-								CmpVertex a = result.findVertex(pair.firstElem.getID()), b = result.findVertex(pair.secondElem.getID()); 
-								if (a == null)
-									throw new IllegalArgumentException("Unknown state "+pair.firstElem);
-								if (b == null)
-									throw new IllegalArgumentException("Unknown state "+pair.secondElem);
-								result.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(pair.getScore()));
-							}
+						if (result.getInit() == null)
+							result.setInit(vert);
+						else
+							throw new IllegalArgumentException("loadGraph: vertices "+vert+" and "+result.getInit()+" are both labelled as initial");
+					}
+					
+				}
+				else
+					if (nodeElement.getNodeName().equals("edge"))
+					{
+						if (!nodeElement.hasAttribute("source"))
+							throw new IllegalArgumentException("loadGraph: missing source of a transition");
+						if (!nodeElement.hasAttribute("target"))
+							throw new IllegalArgumentException("loadGraph: missing target of a transition");
+						if (!nodeElement.hasAttribute("directed"))
+							throw new IllegalArgumentException("loadGraph: missing \"directed\" attribute of a transition");
+						if (!nodeElement.hasAttribute("EDGE"))
+							throw new IllegalArgumentException("loadGraph: missing \"edge\" attribute of a transition");
+						if (!nodeElement.getAttribute("directed").equals("true"))
+							throw new IllegalArgumentException("loadGraph: transition must be directed");
 						
+						CmpVertex source = result.findVertex(VertexID.parseID(nodeElement.getAttribute("source"))),
+								target = result.findVertex(VertexID.parseID(nodeElement.getAttribute("target")));
+						
+						if (source == null)
+							throw new IllegalArgumentException("loadGraph: unknown source state");
+						if (target == null)
+							throw new IllegalArgumentException("loadGraph: unknown target state");
+						Label label = AbstractLearnerGraph.generateNewLabel(nodeElement.getAttribute("EDGE"), result.config);
+						if (conv == null)
+							result.addTransition(result.transitionMatrix.get(source),label,target);
+						else
+							//for(Label l:conv.convertLabel(label))
+								result.addTransition(result.transitionMatrix.get(source),conv.convertLabelToLabel(label),target);
 					}
 					else
-						throw new IllegalArgumentException("unexpected key "+((Element)node).getAttribute(graphmlDataKey));
-				}
-				else // a node which is not a "data" node.
-					if (!node.getNodeName().equals("node") && !node.getNodeName().equals("edge"))
-						throw new IllegalArgumentException("unexpected node "+node.getNodeName()+" in graph");
+					if (node.getNodeName().equals(graphmlData))
+					{
+						if (graphmlDataIncompatible.equals(((Element)node).getAttribute(graphmlDataKey)))
+						{
+							NodeList children = node.getChildNodes();
+							for(int childNum=0;childNum<children.getLength();++childNum)
+								if (children.item(childNum).getNodeType() == Node.ELEMENT_NODE)
+								{
+									PairScore pair=ProgressDecorator.readPair(result, (Element)children.item(childNum));
+									CmpVertex a = result.findVertex(pair.firstElem), b = result.findVertex(pair.secondElem); 
+									if (a == null)
+										throw new IllegalArgumentException("Unknown state "+pair.firstElem);
+									if (b == null)
+										throw new IllegalArgumentException("Unknown state "+pair.secondElem);
+									result.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(pair.getScore()));
+								}
+							
+						}
+						else
+							throw new IllegalArgumentException("unexpected key "+((Element)node).getAttribute(graphmlDataKey));
+					}
+					else // a node which is not a "data" node.
+						if (!node.getNodeName().equals("node") && !node.getNodeName().equals("edge"))
+							throw new IllegalArgumentException("unexpected node "+node.getNodeName()+" in graph");
 			}
     	}
     	
+    	if (result.getInit() == null)
+    		throw new IllegalArgumentException("missing initial state");
+    	
+    	result.createCache();result.setIDNumbers();
     	return result;
 	}	
 	
 	/** Loads a graph from the data in a supplied reader.
 	 * @param from reader to load a graph from
+	 * @param conv how to convert loaded labels, null for no conversion.
 	 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
-		AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(Reader from, 
-				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result)
+		AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(Reader from, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result, ConvertALabel conv)
 	{
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config));
 	    	try
 	    	{
-	    		loadGraph(LearnerSimulator.getDocumentOfXML(from).getDocumentElement(), result);
+	    		loadGraph(LearnerSimulator.getDocumentOfXML(from).getDocumentElement(), result, conv);
 	    	}
 	    	finally
 	    	{
-	    		try
-	    		{ if (from != null) from.close(); }
-	    		catch(IOException ex)
-	    		{// exception on close is ignored.	    			
-	    		}
+	    		if (from != null) { try { from.close(); } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 	    	}
 		}
 		return result;
@@ -328,28 +386,26 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	 * @param from where to load from
 	 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
 	 * The configuration of this graph determines types of nodes created, such as whether they are Jung nodes or Strings.
+	 * @param conv how to convert loaded labels, null for no conversion.
 	 * @return created graph.
 	*/
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 		AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(String fileName,
-				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result) throws IOException
+				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result, ConvertALabel conv) throws IOException
 	{
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config));
 	    	String fileToLoad = fileName;
 	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
 	    	FileReader is = null;
 	    	try
 	    	{
 	    		is = new FileReader(fileToLoad);
-	    		loadGraph(is,result);result.setName(fileName);
+	    		loadGraph(is,result,conv);result.setName(fileName);
 	    	}
 	    	finally
 	    	{
-	    		if (is != null)
-	    			is.close();
+	    		if (is != null) { try { is.close();is=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 	    	}
 	    	
 	    	return result;
@@ -361,12 +417,13 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		 * @param from where to load from
 		 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
 		 * The configuration of this graph determines types of nodes created, such as whether they are Jung nodes or Strings.
+	 	 * @param conv how to convert loaded labels, null for no conversion.
 		 * @return created graph.
 		*/
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(File fileToLoad,
-					AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result) throws IOException
+					AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result, ConvertALabel conv) throws IOException
 		{
-			return loadGraph(fileToLoad.getAbsolutePath(),result);
+			return loadGraph(fileToLoad.getAbsolutePath(),result,conv);
 		}
 }

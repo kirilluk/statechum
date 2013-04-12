@@ -35,6 +35,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Label;
@@ -42,11 +43,11 @@ import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.Smt;
 import statechum.analysis.learning.smt.SmtLabelParser.FunctionArgumentsHandler;
 import statechum.analysis.learning.AbstractOracle;
@@ -70,6 +71,7 @@ public class SmtLabelRepresentation
 	protected SMTLabel init = null;
 
 	final protected Configuration config;
+	final protected ConvertALabel converter;
 	
 	/** If true, this means that all abstract states corresponding to accept-states will be included in the 
 	 * Yices context.
@@ -984,7 +986,7 @@ public class SmtLabelRepresentation
 		
 		SmtLabelParser parser = new SmtLabelParser();
 		parser.interpretTrace(text.substring(1).trim(),new FunctionVariablesHandler(VARIABLEUSE.IO));
-		trace.traceDetails = AbstractLearnerGraph.buildList(parser.operations,config);
+		trace.traceDetails = AbstractLearnerGraph.buildList(parser.operations,config,converter);
 		trace.arguments = parser.arguments;
 		traces.add(trace);
 	}
@@ -992,9 +994,9 @@ public class SmtLabelRepresentation
 	public enum OP_DATA { PRE,POST }
 	public enum FUNC_DATA { ARITY, DECL, CONSTRAINT, CONSTRAINARGS }
 	
-	public SmtLabelRepresentation(Configuration conf)
+	public SmtLabelRepresentation(Configuration conf, ConvertALabel conv)
 	{
-		config = conf;
+		config = conf;converter = conv;
 	}
 	
 	/** Whenever we generate paths, new variables have to be introduced. By incrementing this variable,
@@ -1754,10 +1756,10 @@ public class SmtLabelRepresentation
 	}
 	
 	/** Extracts an ID of a supplied vertex. */
-	public static VertexID getID(CmpVertex vertex)
+	public static VertID getID(CmpVertex vertex)
 	{
 		if (vertex.getOrigState() != null) return vertex.getOrigState();
-		return vertex.getID();
+		return vertex;
 	}
 	
 	/** Similar to CheckWithEndUser, but works via SMT. 

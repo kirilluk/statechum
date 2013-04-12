@@ -45,7 +45,7 @@ import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.WMethod;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
 
 /**
@@ -73,6 +73,9 @@ public class TestRecorderIntegration {
 	boolean useCompression;
 	boolean forceGDfallback;
 	
+	private final Configuration testConfig = Configuration.getDefaultConfiguration().copy();
+	private final ConvertALabel converter = null;
+	
 	public TestRecorderIntegration(boolean zip,boolean logCompression, boolean forceFallback,RecorderTestKind k)
 	{
 		useZip=zip;useCompression=logCompression;forceGDfallback=forceFallback;kind = k;
@@ -98,18 +101,16 @@ public class TestRecorderIntegration {
 	 */
 	protected void checkLearnerProgressRecording(String fsmString, String name, final String [][] plus, final String [][] minus)
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
 		testConfig.setGdFailOnDuplicateNames(false);
 		if (forceGDfallback) testConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 		testConfig.setCompressLogs(useCompression);
-		final DirectedSparseGraph g = FsmParser.buildGraph(fsmString, name,testConfig);
-		final LearnerGraph expected = new LearnerGraph(g,testConfig);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph(fsmString, name,testConfig, null);
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig,converter));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig,converter));
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
@@ -128,7 +129,7 @@ public class TestRecorderIntegration {
 		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,testConfig,useZip);
 		Collection<List<Label>> testSet = new LinkedList<List<Label>>();
 		recorder.writeLearnerEvaluationData(new LearnerEvaluationConfiguration(expected, testSet, testConfig, null, null));
-		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
+		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
 		
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
 		//System.out.println(logStream.toString()+"============");
@@ -142,8 +143,8 @@ public class TestRecorderIntegration {
 			case RECORDERTEST_SS:
 			{// matching two simulators
 				final LearnerSimulator 
-					simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip),
-					simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
+					simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip,converter),
+					simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip,converter);
 				
 				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData(testConfig);
 				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
@@ -154,13 +155,13 @@ public class TestRecorderIntegration {
 				Assert.assertEquals(testSet, eval2.testSet);
 				Assert.assertEquals(expected.config, testConfig);
 				
-				new Test_LearnerComparator(simulator,simulator2,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
+				new Test_LearnerComparator(simulator,simulator2,true).learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
 				break;
 			}
 			
 			case RECORDERTEST_SL:
 			{// now a simulator to a learner
-				final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
+				final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip,converter);
 				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData(testConfig);
 				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
 				Assert.assertEquals(testSet, eval1.testSet);
@@ -179,7 +180,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
-				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
+				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
 				break;
 			}
 
@@ -211,7 +212,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
-				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
+				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
 				break;
 			}
 		}
@@ -224,7 +225,7 @@ public class TestRecorderIntegration {
 	@Test
 	public void testLearnerRec1()
 	{
-		checkLearnerProgressRecording("A-a->B<-a-A\nA-b->A","testLearner1",
+		checkLearnerProgressRecording("A-a->B\nA-b->A","testLearner1",
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
 				new String[][]{new String[]{"a","b"},new String[]{"a","a"}});
 	}

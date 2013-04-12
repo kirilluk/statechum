@@ -32,21 +32,22 @@ import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
-import statechum.MapWithSearch;
-import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.linear.Linear;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 import statechum.collections.TreeMapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import statechum.Label;
-import statechum.StringLabel;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -195,7 +196,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public void setAccept(Object currentState, boolean value) 
 		{
 			CmpVertex vert = (CmpVertex)currentState;
-			if (vert.getID().getKind() == VertKind.NONEXISTING)
+			if (vert.getKind() == VertKind.NONEXISTING)
 				vert.setAccept(value);// update the acceptance condition on new vertices only 
 		}
 	}
@@ -234,7 +235,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 * @param matrixND the matrix to build graph from.
 	 * @param argConfig configuration to use
 	 */
-	@SuppressWarnings("unchecked") // unchecked conversions are fine here because copyGraphs works the same way regardless of argument types.
+	@SuppressWarnings({ "unchecked", "rawtypes" }) // unchecked conversions are fine here because copyGraphs works the same way regardless of argument types.
 	public LearnerGraph(AbstractLearnerGraph matrixND, Configuration argConfig)
 	{
 		super(argConfig);
@@ -327,15 +328,16 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 * @param tTable table, where tTable[source][input]=targetstate
 	 * @param vFrom the order in which elements from tTable are to be used.
 	 * @param rejectNumber the value of an entry in a tTable which is used to denote an absence of a transition.
+	 * @param converter interns labels
 	 * @return the constructed transition structure.
 	 */
-	public static LearnerGraph convertTableToFSMStructure(final int [][]tTable, final int []vFrom, int rejectNumber, Configuration config)
+	public static LearnerGraph convertTableToFSMStructure(final int [][]tTable, final int []vFrom, int rejectNumber, Configuration config, ConvertALabel converter)
 	{
 		if (vFrom.length == 0 || tTable.length == 0) throw new IllegalArgumentException("array is zero-sized");
 		int alphabetSize = tTable[vFrom[0]].length;
 		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
-		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=new StringVertex("S"+i);
-		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]=new StringLabel("i"+i);
+		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"+i),config);
+		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]=AbstractLearnerGraph.generateNewLabel("i"+i,config,converter);
 		LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		fsm.setInit(stateName[vFrom[0]]);
 		Set<CmpVertex> statesUsed = new HashSet<CmpVertex>();
@@ -367,6 +369,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	@Override
 	public Map<Label, CmpVertex> createNewRow() 
 	{
+		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			return new ArrayMapWithSearchPos<Label, CmpVertex>();
 		return new TreeMap<Label,CmpVertex>();// using TreeMap makes everything predictable
 	}
 
@@ -374,7 +378,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
 	{
 		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
-			
+		assert input != null;
+		assert target != null;
 		row.put(input, target);
 	}
 
@@ -478,10 +483,20 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	@Override
 	public MapWithSearch<CmpVertex,Map<Label,CmpVertex>> createNewTransitionMatrix(int stateNumber) 
 	{
-		return 
-				config.getTransitionMatrixImplType() == STATETREE.STATETREE_LINKEDHASH?
-					new HashMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber) : //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
-					new TreeMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
+		MapWithSearch<CmpVertex,Map<Label,CmpVertex>> outcome=null;
+		switch(config.getTransitionMatrixImplType())
+		{
+		case STATETREE_LINKEDHASH:
+			outcome = new HashMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber); //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+			break;
+		case STATETREE_ARRAY:
+			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
+			break;
+		case STATETREE_SLOWTREE:
+			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
+			break;
+		}
+		return outcome;
 	}
 
 	@Override

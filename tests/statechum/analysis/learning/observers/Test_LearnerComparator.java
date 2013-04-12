@@ -346,7 +346,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			{
 				PairScore p1 = ps1.next(), p2 = ps2.next();
 				
-				if (!p1.getQ().getID().equals(p2.getQ().getID()) || !p1.getR().getID().equals(p2.getR().getID()) ||
+				if (!p1.getQ().equals(p2.getQ()) || !p1.getR().equals(p2.getR()) ||
 						p1.getScore() != p2.getScore() || p1.getAnotherScore() != p2.getAnotherScore())
 					throw new IllegalArgumentException("different ChooseStatePairs pairs, "+p1+" v.s. "+p2);
 			}
@@ -388,7 +388,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking, ignoring scores and accept-conditions.
-			if (!QqPair.getQ().getID().equals(pair.getQ().getID()) || !QqPair.getR().getID().equals(pair.getR().getID()))
+			if (!QqPair.getQ().equals(pair.getQ()) || !QqPair.getR().equals(pair.getR()))
 					failureCode = new IllegalArgumentException("different ComputeQuestions pair "+QqPair+" v.s. "+pair);
 			if (!Qquestions.equals(result))
 				failureCode = new IllegalArgumentException("different ComputeQuestions questions: \n"+Qquestions+"\n v.s.\n"+result);
@@ -429,7 +429,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking, ignoring scores and accept-conditions.
-			if (!MqPair.getQ().getID().equals(pair.getQ().getID()) || !MqPair.getR().getID().equals(pair.getR().getID()))
+			if (!MqPair.getQ().equals(pair.getQ()) || !MqPair.getR().equals(pair.getR()))
 					failureCode = new IllegalArgumentException("different RecomputeQuestions pair "+MqPair+" v.s. "+pair);
 			if (!Mquestions.equals(result))
 				failureCode = new IllegalArgumentException("different RecomputeQuestions questions: \n"+Mquestions+"\n v.s.\n"+result);
@@ -472,7 +472,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 
 		if (Thread.currentThread() != secondThread)
 		{// checking, considering that acceptance conditions are not stored in XML.
-			if (!mPair.getQ().getID().equals(pair.getQ().getID()) || !mPair.getR().getID().equals(pair.getR().getID()))
+			if (!mPair.getQ().equals(pair.getQ()) || !mPair.getR().equals(pair.getR()))
 				failureCode = new IllegalArgumentException("different MergeAndDeterminize pair "+mPair+" v.s. "+pair);
 			checkGraphEquality(mGraph, copyOfResult);
 

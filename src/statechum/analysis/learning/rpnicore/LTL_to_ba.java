@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,10 +34,12 @@ import java.util.regex.Pattern;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.Label;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 
 /** This one runs LTL2BA and parses its output.
@@ -149,6 +153,7 @@ public class LTL_to_ba {
 		baError = "ltl2ba",baSimpleComment="\\s*/\\*.*\\*/\\n*";
 	
 	private final Configuration config;
+	private final ConvertALabel converter;
 	protected final LearnerGraphND matrixFromLTL;
 	
 	public LearnerGraphND getLTLgraph()
@@ -159,11 +164,11 @@ public class LTL_to_ba {
 	/** Constructs class which will use LTL to augment the supplied graph.
 	 * 
 	 * @param cnf configuration to use
-	 * @param from graph to fold LTL into
+	 * @param conv converter to use to intern labels.
 	 */
-	public LTL_to_ba(Configuration cnf)
+	public LTL_to_ba(Configuration cnf, ConvertALabel conv)
 	{
-		config = cnf;
+		config = cnf;converter = conv;
 		matrixFromLTL = new LearnerGraphND(config);
 	}
 		
@@ -290,6 +295,7 @@ public class LTL_to_ba {
 	
 	/** Maps names of vertices to the corresponding "real" vertices. */
 	private Map<String,CmpVertex> verticesUsed = new HashMap<String,CmpVertex>(); 
+	private int vertexCounter = 1;
 	
 	/** Adds a state to the graph and the transition matrix.
 	 * If a state already exists, it is returned.
@@ -303,7 +309,7 @@ public class LTL_to_ba {
 
 		if (vert == null)
 		{// add new vertex
-			vert = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(name), config);
+			vert = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEUTRAL,vertexCounter++), config);
 			vert.setAccept(name.startsWith("accept_"));vert.setColour(LearnerGraphND.ltlColour);
 			matrixFromLTL.transitionMatrix.put(vert,matrixFromLTL.createNewRow());
 			verticesUsed.put(name, vert);
@@ -311,6 +317,27 @@ public class LTL_to_ba {
 		return vert;
 	}
 	
+	/** Looks through all the states for the one matching the supplied name and returns the corresponding vertex.
+	 * 
+	 * @param nameToSearchFor name of the initial state.
+	 * @param map of names to vertices map to search through.
+	 * @return the found vertex. 
+	 * @throws IllegalArgumentException if a vertex was not found.
+	 */
+	public static CmpVertex findInitialState(String nameToSearchFor,Map<String,CmpVertex> map)
+	{
+		CmpVertex vertexFound = null;
+		for(Entry<String,CmpVertex> entry:map.entrySet())
+			if (entry.getKey().contains(nameToSearchFor))
+			{
+				vertexFound = entry.getValue();break;
+			}
+		if (vertexFound == null)
+			throw new IllegalArgumentException("missing state");
+		
+		return vertexFound;
+	}
+
 	/** The name of the initial state given by ltl2ba. */
 	public static final String initStateName = "init";
 	
@@ -408,7 +435,8 @@ public class LTL_to_ba {
 			currentMatch = lexer.getMatchType();
 		}
 		
-		matrixFromLTL.findInitialState(initStateName);
+		
+		matrixFromLTL.setInit(findInitialState(initStateName, verticesUsed));
 		//Visualiser.updateFrame(matrixFromLTL, null);
 	}
 	
@@ -433,14 +461,14 @@ public class LTL_to_ba {
 		}
 	}
 	
-	/** Alphabet of a graph we'd like to augment with LTL. */
-	protected Set<Label> alphabet = null;
+	/** Alphabet of a graph we'd like to augment with LTL. Described as a map in order to intern labels. */
+	protected Map<Label,Label> alphabet = null;
 	
-	void setAlphabet(Set<Label> alph)
+	void setAlphabet(Collection<Label> alph)
 	{
-		alphabet = alph;
+		alphabet = new TreeMap<Label,Label>();for(Label lbl:alph) alphabet.put(lbl, lbl);
 	}
-	
+		
 	enum OPERATION { AND,OR,NEG,ASSIGN }
 	
 	public static final int exprOpen = 1;
@@ -502,7 +530,7 @@ public class LTL_to_ba {
 			case exprNEG:
 				break;
 			case exprWord:
-				currentValue.add(AbstractLearnerGraph.generateNewLabel(lexExpr.group(exprWordText),config));
+				currentValue.add(AbstractLearnerGraph.generateNewLabel(lexExpr.group(exprWordText),config,converter));
 				break;
 			default:
 				throw new IllegalArgumentException("invalid token "+currentMatch+", looking at "+lexExpr.getMatch());
@@ -603,7 +631,7 @@ public class LTL_to_ba {
 			left.clear();left.addAll(right);
 			break;
 		case NEG:
-			left.clear();left.addAll(alphabet);left.removeAll(right);
+			left.clear();left.addAll(alphabet.keySet());left.removeAll(right);
 			break;
 		case AND:
 			left.retainAll(right);break;
@@ -627,13 +655,13 @@ public class LTL_to_ba {
 		Set<Label> result = new TreeSet<Label>();
 		
 		if (stringLabel.equals("1")) 
-			result.addAll(alphabet);
+			result.addAll(alphabet.keySet());
 		else
 		{
-			Label label=AbstractLearnerGraph.generateNewLabel(stringLabel,config);
-			if (!alphabet.contains(label))
+			Label label=AbstractLearnerGraph.generateNewLabel(stringLabel,config,converter);
+			if (!alphabet.containsKey(label))
 				throw new IllegalArgumentException("unrecognised label "+stringLabel);
-			result.add(label);
+			result.add(alphabet.get(label));
 		}
 		return result;
 	}
@@ -690,7 +718,7 @@ public class LTL_to_ba {
 	public boolean ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert, String pathTo_ltl2ba)
 	{
 		if (graph != null)
-			alphabet = graph.pathroutines.computeAlphabet();
+			setAlphabet(graph.pathroutines.computeAlphabet());
 		String ltlString = concatenateLTL(ltl).toString();
 		if (ltlString.length() == 0)
 			return false;

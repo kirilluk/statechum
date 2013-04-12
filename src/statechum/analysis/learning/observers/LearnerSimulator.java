@@ -49,6 +49,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.analysis.learning.AbstractOracle;
 
@@ -258,9 +259,9 @@ public class LearnerSimulator extends ProgressDecorator
 		return result;
 	}
 	
-	public LearnerSimulator(InputStream inStream, boolean useZip) 
+	public LearnerSimulator(InputStream inStream, boolean useZip, ConvertALabel conv) 
 	{
-		super(null);decoratedLearner=this;readZip=useZip;
+		super(conv);decoratedLearner=this;readZip=useZip;
 		if (readZip)
 		{
 			inputZip = new ZipInputStream(new java.io.BufferedInputStream(inStream));
@@ -269,6 +270,20 @@ public class LearnerSimulator extends ProgressDecorator
 		{
 			doc = getDocumentOfXML(new InputStreamReader(inStream));childElements = doc.getDocumentElement().getChildNodes();
 		}
+	}
+	
+	public void close()
+	{
+		childElements = null;childOfTopElement=JUConstants.intUNKNOWN;
+		if (inputZip != null)
+		{
+			try {
+				inputZip.close();
+			} catch (IOException e) {// ignores error
+			}
+			inputZip = null;
+		}
+		doc = null;
 	}
 	
 	protected Learner topLevelListener = this;
@@ -487,7 +502,7 @@ public class LearnerSimulator extends ProgressDecorator
 		Element evaluationData = expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name());
 		LearnerEvaluationConfiguration cnf = readLearnerEvaluationConfiguration(evaluationData,defaultConfig);
 		config = cnf.config;
-		series = new GraphSeries(config);
+		series = new GraphSeries(config,converter);
 		return cnf;
 	}
 

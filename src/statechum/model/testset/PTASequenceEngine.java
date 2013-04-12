@@ -27,13 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.ArrayOperations;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.ArrayOperations;
+import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
 public class PTASequenceEngine 
@@ -42,7 +44,7 @@ public class PTASequenceEngine
 	FSMAbstraction fsm = null;
 	
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
-	protected final Map<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>> pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>(1024);
+	protected final Map<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>> pta;
 	
 	/** The global "counter" of nodes; this is not static to avoid racing problems associated with multiple threads
 	 * creating nodes, so that the same thread may end up with multiple nodes bearing the same ID. This may
@@ -62,7 +64,7 @@ public class PTASequenceEngine
 	}
 	
 	/** Represents elements of the PTA. */
-	public class Node  
+	public class Node implements ConvertibleToInt  
 	{
 		
 		/** Constructor for reject nodes. */
@@ -79,7 +81,8 @@ public class PTASequenceEngine
 			ID = positiveNodeID++;fsmState = state;
 		}
 		
-		public int getID()
+		@Override
+		public int toInt()
 		{
 			return ID;
 		}
@@ -116,7 +119,7 @@ public class PTASequenceEngine
 				return true;
 			if (obj == null)
 				return false;
-			if (getClass() != obj.getClass())
+			if (!(obj instanceof Node))
 				return false;
 			final PTASequenceEngine.Node other = (PTASequenceEngine.Node) obj;
 			return ID == other.ID;// Since every two different instances of Node have different IDs, this comparison is always false, but I decided to keep it in case this changes in future. 
@@ -161,8 +164,20 @@ public class PTASequenceEngine
 		public boolean shouldBeReturned(Object elem);
 	}
 	
+	private final boolean useArrayMap;
 	
-	public PTASequenceEngine() {}
+	public PTASequenceEngine() {
+		 this(false);
+	}
+	
+	public PTASequenceEngine(boolean arrayMap)
+	{
+		useArrayMap = arrayMap;
+		if (useArrayMap)
+			pta = new ArrayMapWithSearch<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>();
+		else
+			pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>(1024);
+	}
 	
 	/** Initialises this PTA engine with an underlying machine. There is no method 
 	 * to swap a machine for a different one afterwards since states of the original
@@ -181,8 +196,16 @@ public class PTASequenceEngine
 		else
 			init = rejectNode;
 		
-		pta.put(init,new LinkedHashMap<Label,PTASequenceEngine.Node>());
-		pta.put(rejectNode,new LinkedHashMap<Label,PTASequenceEngine.Node>());
+		if (useArrayMap)
+		{
+			pta.put(init,new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());
+			pta.put(rejectNode,new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());
+		}
+		else
+		{
+			pta.put(init,new LinkedHashMap<Label,PTASequenceEngine.Node>());
+			pta.put(rejectNode,new LinkedHashMap<Label,PTASequenceEngine.Node>());
+		}
 	}
 	
 	/** Represents a set of sequences using a PTA, backed by an underlying state machine, passed in at initialisation. */
@@ -382,7 +405,10 @@ public class PTASequenceEngine
 			{
 				PTASequenceEngine.Node nextNode = new Node(newState);
 				row.put(input, nextNode);
-				pta.put(nextNode, new LinkedHashMap<Label,PTASequenceEngine.Node>(10));
+				if (useArrayMap)
+					pta.put(nextNode, new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());//(10));
+				else
+					pta.put(nextNode, new LinkedHashMap<Label,PTASequenceEngine.Node>());//(10));
 				nextCurrentNode = nextNode;
 			}
 		}

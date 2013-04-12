@@ -17,8 +17,8 @@
 
 package statechum.analysis.learning;
 
-import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Pair;
 
 public class StatePair extends Pair<CmpVertex,CmpVertex>
 {
@@ -38,9 +38,9 @@ public class StatePair extends Pair<CmpVertex,CmpVertex>
 	@Override
 	public String toString(){
 		String origFirst="",origSecond="";
-		if (firstElem.getOrigState() != null) origFirst="("+firstElem.getOrigState()+")";
-		if (secondElem.getOrigState() != null) origSecond="("+secondElem.getOrigState()+")";
-		return "[ "+((getQ() == null)?"NULL":getQ().getID().toString())+origFirst+", "+((getR() == null)?"NULL":getR().getID().toString())+origSecond+" ]";
+		if (firstElem != null && firstElem.getOrigState() != null) origFirst="("+firstElem.getOrigState()+")";
+		if (secondElem != null && secondElem.getOrigState() != null) origSecond="("+secondElem.getOrigState()+")";
+		return "[ "+((getQ() == null)?"NULL":getQ().getStringId())+origFirst+", "+((getR() == null)?"NULL":getR().getStringId())+origSecond+" ]";
 	}
 
 }

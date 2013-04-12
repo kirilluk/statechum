@@ -28,6 +28,7 @@ import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
 public interface Learner 
@@ -181,4 +182,11 @@ public interface Learner
 	 * @return null if the construction was successful,
 	 */ 
 	public boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder, StringBuffer counterExampleHolder);
+	
+	/** Just about any experiment with large graphs involves interning strings. This is to be centralised
+	 * at the learner level rather than at graph level, because if-then expects both if-then automata and the
+	 * graphs that are being augmented to work off the same set of labels. It is worth pointing out that GD
+	 * avoids this problem completely by making a copy of the graphs (and it will not work with large graphs anyway).
+	 */
+	public ConvertALabel getLabelConverter();
 }

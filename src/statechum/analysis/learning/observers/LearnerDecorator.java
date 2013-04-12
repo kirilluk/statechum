@@ -24,6 +24,7 @@ import java.util.List;
 import statechum.Label;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
 /** This cannot be integrated into RPNIBlueFringeLearner because learner
@@ -33,10 +34,23 @@ public abstract class LearnerDecorator implements Learner {
 	
 	protected Learner decoratedLearner;
 	
-	public LearnerDecorator(Learner learner){
-		this.decoratedLearner = learner;if (learner != null) learner.setTopLevelListener(this);
+	public LearnerDecorator(Learner learner)
+	{
+		this.decoratedLearner = learner;
+		if (learner != null)
+		{
+			learner.setTopLevelListener(this);
+			converter = learner.getLabelConverter();
+		}
+		else
+			converter = null;
 	}
 	
+	public LearnerDecorator(ConvertALabel conv)
+	{
+		converter = conv;
+	}
+
 	/** Propagates the request from a listener higher-up to our learner (or a lower-level listener).
 	 * 
 	 * @param top the current top of the listener stack
@@ -66,6 +80,15 @@ public abstract class LearnerDecorator implements Learner {
 	{
 		init(engine, plusSize, minusSize);
 		return decoratedLearner.learnMachine();
+	}
+
+	/** The label converter to be used. */
+	protected final ConvertALabel converter;
+	
+	@Override
+	public ConvertALabel getLabelConverter()
+	{
+		return converter;
 	}
 
 }

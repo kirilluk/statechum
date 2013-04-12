@@ -29,13 +29,15 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
@@ -93,23 +95,25 @@ public class MergeStates {
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
-                Map<VertexID,Collection<VertexID>> mergedToHard = new TreeMap<VertexID,Collection<VertexID>>();
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
+                Map<VertID,Collection<VertID>> mergedToHard = new TreeMap<VertID,Collection<VertID>>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
 			eqClass.constructMergedVertex(configHolder,false,true);
-                        Collection<VertexID> hardVertices = new LinkedList<VertexID>();mergedToHard.put(eqClass.getMergedVertex().getID(), hardVertices);
+                        Collection<VertID> hardVertices = new LinkedList<VertID>();mergedToHard.put(eqClass.getMergedVertex(), hardVertices);
 			for(CmpVertex v:eqClass.getStates())
-                        {
-                            origToNew.put(v, eqClass);
-                            Map<VertexID,Collection<VertexID>> hardOrig = original.learnerCache.getMergedToHardFacts();
-                            if (hardOrig != null && hardOrig.containsKey(v.getID()))
-                            {
-                                hardVertices.addAll(hardOrig.get(v.getID()));
-                            }
-                            else
-                                hardVertices.add(v.getID());
-                        }
+            {
+                origToNew.put(v, eqClass);
+                Map<VertID,Collection<VertID>> hardOrig = original.learnerCache.getMergedToHardFacts();
+                if (hardOrig != null && hardOrig.containsKey(v))
+                {
+                    hardVertices.addAll(hardOrig.get(v));
+                }
+                else
+                    hardVertices.add(v);
+            }
 		}
 		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
@@ -182,7 +186,9 @@ public class MergeStates {
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
@@ -263,18 +269,21 @@ public class MergeStates {
 		return result;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair, Configuration conf)
 	{
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
-			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ().getID(),g);
-			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR().getID(),g);
-			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices());
+			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ(),g);
+			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR(),g);
+			Map<CmpVertex,List<CmpVertex>> mergedVertices = conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? 
+					new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices()):
+					new HashMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices());
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
 			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.
 			Configuration VertexCloneConf = conf.copy();VertexCloneConf.setLearnerUseStrings(false);VertexCloneConf.setLearnerCloneGraph(false);
 			LearnerGraph s=new LearnerGraph(g,VertexCloneConf);
-			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ().getID()),s.findVertex(pair.getR().getID())),mergedVertices) < 0)
+			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ()),s.findVertex(pair.getR())),mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
 			// make a loop

@@ -123,8 +123,7 @@ public class TransformLearnerLogs implements Runnable
 		}
 		finally
 		{
-			if (inputZip != null)
-				inputZip.close();
+			if (inputZip != null) { inputZip.close();inputZip = null; }
 		}
 		return graphNumber;
 	}
@@ -232,17 +231,20 @@ public class TransformLearnerLogs implements Runnable
 			}*/
 			String outcome = null;
 			if (!computationAborted)
+			{
+				java.io.FileInputStream is = null;java.io.FileOutputStream os = null;
 				try
 				{
-					LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(sourceFile),true);
+					is = new java.io.FileInputStream(sourceFile);
+					LearnerSimulator simulator = new LearnerSimulator(is,true,null);// not using a converter
 					LearnerEvaluationConfiguration evaluationData = simulator.readLearnerConstructionData(null);
 					evaluationData.config.setGdFailOnDuplicateNames(false);evaluationData.graphNumber=graphsInFile;
 					final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 					final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 					simulator.setNextElement(nextElement);
 					Configuration recorderConfig = evaluationData.config.copy();recorderConfig.setCompressLogs(true);recorderConfig.setGdMaxNumberOfStatesInCrossProduct(0);
-					RecordProgressDecorator recorder = new RecordProgressDecorator(simulator,new java.io.FileOutputStream(
-						targetFile),threadNumber,recorderConfig,true);
+					os = new java.io.FileOutputStream(targetFile);
+					RecordProgressDecorator recorder = new RecordProgressDecorator(simulator,os,threadNumber,recorderConfig,true);
 					recorder.writeLearnerEvaluationData(evaluationData);
 					DummyWithDelayedProgressIndicator progress = new DummyWithDelayedProgressIndicator(recorder);
 					progress.learnMachine(initial.plus,initial.minus);// load the file provided and compress its contents into the other one.
@@ -260,7 +262,12 @@ public class TransformLearnerLogs implements Runnable
 					outcome = "failure compressing "+sourceFile;
 					e.printStackTrace();
 				}
-		
+				finally
+				{
+					if (is != null)	{ is.close();is=null; }
+					if (os != null)	{ os.close();os=null; }
+				}
+			}
 			return outcome;
 		}
 	}

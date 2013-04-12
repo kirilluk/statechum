@@ -111,14 +111,13 @@ public class GDLearnerGraph
 		else
 		{
 			LearnerGraphND.buildForward(coregraph,LearnerGraphND.ignoreNone,matrixForward);
-			LearnerGraphND.buildInverse(matrixForward,filter,matrixInverse);
+			LearnerGraphND.buildInverse(coregraph,filter,matrixInverse);
 		}
 		matrixForward.pathroutines.checkConsistency(coregraph);
 		matrixInverse.pathroutines.checkConsistency(coregraph);
 		// Now we need to estimate expectedIncomingPerPairOfStates
 		expectedIncomingPerPairOfStates = estimatePairIndegree();
 		findDirectlyIncompatiblePairs(coregraph);
-		
 	}
 
 	public Set<Label> getAlphabet()
@@ -858,6 +857,7 @@ public class GDLearnerGraph
 	{
 		stateToCorrespondingGraph = new TreeMap<CmpVertex,GraphAndWalk>();
 		//final AtomicInteger totalStates = new AtomicInteger();
+		@SuppressWarnings("unchecked")
 		final Map<CmpVertex,GraphAndWalk> workerMap[]=new Map[ThreadNumber];
  
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
@@ -888,7 +888,7 @@ public class GDLearnerGraph
 						Helper.throwUnchecked("failed to build a deterministic graph due to inconsistent state labelling starting from state "+entryA.getKey(), e);
 					}
 					
-					CmpVertex state = deterministicGraph.findVertex(entryA.getKey().getID());
+					CmpVertex state = deterministicGraph.findVertex(entryA.getKey());
 					GraphAndWalk graphwalk = null;
 					switch(config.getGdScoreComputationAlgorithm())
 					{
@@ -1360,7 +1360,7 @@ public class GDLearnerGraph
 				}
 				
 				@Override
-				public void solve(int threads)
+				public void solve(@SuppressWarnings("unused") int threads)
 				{// a dummy method
 				}
 			};

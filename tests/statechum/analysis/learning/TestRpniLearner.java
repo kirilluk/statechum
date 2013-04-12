@@ -40,11 +40,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -60,6 +63,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceSet;
 
@@ -92,8 +96,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		return Configuration.parametersToString(config);
 	}
 	
-	public TestRpniLearner(Configuration conf) {
-		super(null,conf);mainConfiguration = conf;
+	
+	public TestRpniLearner(Configuration conf) 
+	{
+		super(null,conf, conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null);
+		mainConfiguration = conf;
 	}
 
 	/** Make sure that whatever changes a test have made to the 
@@ -113,17 +120,28 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	
 	protected void checkLearner(String fsmString, String name,String [][] plus, String [][] minus)
 	{
-		final DirectedSparseGraph g = FsmParser.buildGraph(fsmString, name,config);
-		final LearnerGraph expected = new LearnerGraph(g,testConfig);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph(fsmString, name,testConfig,getLabelConverter());
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config,getLabelConverter()));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config,getLabelConverter()));
 		// Visualiser.getVisualiser()
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
+			@Override
+			public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+			{
+				// Check that compatibility score computation gives the same response as if we did merge and computed a difference between the number of states.
+				ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+				long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);
+				original.config.setLearnerScoreMode(origScore);
+				LearnerGraph outcome = super.MergeAndDeterminize(original, pair);
+				Assert.assertEquals(compatibilityScore+1,original.getStateNumber()-outcome.getStateNumber());
+				return outcome;
+			}
+
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
@@ -132,7 +150,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+				Pair<Integer,String> oracleAnswer = new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+				return oracleAnswer;				
 			}
 		};
 		config.setDebugMode(false);
@@ -140,13 +159,19 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
-		LearnerGraph learntStructureA = new LearnerGraph(l.learnMachine(buildSet(plus,config), buildSet(minus,config)),expected.config);
+		LearnerGraph learntStructureA = new LearnerGraph(l.learnMachine(buildSet(plus,testConfig,getLabelConverter()), buildSet(minus,testConfig,getLabelConverter())),expected.config);
 		// Now do the same with ptasets instead of real sets
-		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus,config));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus,config));
+		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus,testConfig,getLabelConverter()));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus,testConfig,getLabelConverter()));
 		LearnerGraph learntStructureB = new LearnerGraph(l.learnMachine(plusPTA, minusPTA),expected.config);
 		Assert.assertNull(WMethod.checkM(learntStructureA, learntStructureB));
 		LearnerGraph learntMachineNoRejects = new LearnerGraph(expected.config);
 		AbstractPathRoutines.removeRejectStates(learntStructureA,learntMachineNoRejects);
+		/*
+		if (null != WMethod.checkM(learntMachineNoRejects, expected))
+		{
+			Visualiser.updateFrame(learntMachineNoRejects, expected);Visualiser.waitForKey();
+		}
+		*/
 		Assert.assertNull(WMethod.checkM(learntMachineNoRejects, expected));
 	}
 	
@@ -157,7 +182,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public void testLearner1()
 	{
-		checkLearner("A-a->B<-a-A\nA-b->A","testLearner1",
+		checkLearner("A-a->B\nA-b->A","testLearner1",
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
 				new String[][]{new String[]{"a","b"},new String[]{"a","a"}});
 	}
@@ -198,12 +223,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm, String name)
 	{
-		DirectedSparseGraph g = FsmParser.buildGraph(fsm, name,config);
-		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
-		LearnerGraph s = new LearnerGraph(g, testConfig);
-		OrigStatePair pairOrig = new OrigStatePair(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
-				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), g));
-		StatePair pairNew = new StatePair(s.findVertex(new VertexID("B")),s.findVertex(new VertexID("A")));
+		LearnerGraph s = FsmParser.buildLearnerGraph(fsm, name,testConfig,getLabelConverter());
+		DirectedSparseGraph g = s.pathroutines.getGraph();
+		OrigStatePair pairOrig = new OrigStatePair(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
+				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));
+		StatePair pairNew = new StatePair(s.findVertex(VertexID.parseID("B")),s.findVertex(VertexID.parseID("A")));
 		doneEdges = new HashSet<DirectedSparseEdge>();
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew);
@@ -221,14 +245,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 */
 	public final void testNewLearnerQuestions(String fsm, int expectedScore, String learnerName)
 	{
-		DirectedSparseGraph g = FsmParser.buildGraph(fsm, learnerName,config);
-		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
-		LearnerGraph s = new LearnerGraph(g, testConfig);
+		LearnerGraph s = FsmParser.buildLearnerGraph(fsm, learnerName,testConfig,getLabelConverter());
+		DirectedSparseGraph g = s.pathroutines.getGraph();
 		OrigStatePair pairOrig = 
 			new OrigStatePair(
-					DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
-					DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), g));
-		StatePair pairNew1 = new StatePair(s.findVertex(new VertexID("B")),s.findVertex(new VertexID("A")));
+					DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
+					DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));
+		StatePair pairNew1 = new StatePair(s.findVertex(VertexID.parseID("B")),s.findVertex(VertexID.parseID("A")));
 		DirectedSparseGraph 
 			temp = mergeAndDeterminize((Graph)g.copy(), pairOrig),
 			tempB = MergeStates.mergeAndDeterminize(g, pairNew1,testConfig);
@@ -247,7 +270,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
-		StatePair pairNew2 = new StatePair(learner2.findVertex(new VertexID("B")),learner2.findVertex(new VertexID("A")));
+		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
 		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).pathroutines.getGraph(learnerName));Visualiser.waitForKey();
 		Collection<List<Label>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
@@ -320,19 +343,19 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewLearner5()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b-#A2"+PTA1,"testNewLearner5");
+		testNewLearnerIncompatible("A-a->A1-a-#RJ\nA1-b-#A2"+PTA1,"testNewLearner5");
 	}
 
 	@Test
 	public final void testNewLearner6()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2-b-#A3"+PTA1,"testNewLearner6");
+		testNewLearnerIncompatible("A-a->A1-a-#RJ\nA1-b->A2-b-#A3"+PTA1,"testNewLearner6");
 	}
 	
 	@Test
 	public final void testNewLearner7()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2-b->A3"+PTA1,4,"testNewLearner7");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-b->A2-b->A3"+PTA1,4,"testNewLearner7");
 	}
 	
 	public static final String PTA2 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\nB1-c->BB1-c->BB2\n";
@@ -340,124 +363,124 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewLearner8()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A1"+PTA2,5,"testNewLearner8");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-b->A2\nA1-c->A1"+PTA2,5,"testNewLearner8");
 	}
 	
 	@Test
 	public final void testNewLearner9()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2\nA1-c-#A3"+PTA2,"testNewLearner9");
+		testNewLearnerIncompatible("A-a->A1-a-#RJ\nA1-b->A2\nA1-c-#A3"+PTA2,"testNewLearner9");
 	}
 	
 	@Test
 	public final void testNewLearner10()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A3"+PTA2,4,"testNewLearner10");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-b->A2\nA1-c->A3"+PTA2,4,"testNewLearner10");
 	}
 	
 	@Test
 	public final void testNewLearner11()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A1\nA1-c->A3"+PTA2,5,"testNewLearner11");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-b->A1\nA1-c->A3"+PTA2,5,"testNewLearner11");
 	}
 	
-	protected static final String PTA_4 = "\nB1-d->B3a-d->B4a-c->B5a-c->B6a\nB3a-c->B4c-c->B5c-c->B6c\nB3b-d->B4d-c->B5d-c->B6d\nB1-c->B3b-c->B4b-c->B5b-c->B6b\n";
+	protected static final String PTA_4 = "\nB1-d->Z1-d->Z2-c->Z3-c->Z4\nZ1-c->Y1-c->Y2-c->Y3\nY4-d->B4d-c->Y5-c->Y6\nB1-c->Y4-c->Y7-c->Y8-c->Y9\n";
 	public static final String PTA3 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2"+PTA_4;
 	
 	@Test
 	public final void testNewLearner_2_1()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_2_1");
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_2_1");
 	}
 	
 	@Test
 	public final void testNewLearner_2_2()
 	{
-		testNewLearnerIncompatible("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_2_2");
+		testNewLearnerIncompatible("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_2_2");
 	}
 	
 	@Test
 	public final void testNewLearner_2_3()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_2_3");
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_2_3");
 	}
 	
 	@Test
 	public final void testNewLearner_2_4()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_2_4");
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_2_4");
 	}
 	
 	@Test
 	public final void testNewLearner_2_6()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_2_6");
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_2_6");
 	}
 	
 	@Test
 	public final void testNewLearner_2_7()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_2_7");
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#RJ\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_2_7");
 	}
 
 	@Test
 	public final void testNewLearner_3_1()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_3_1");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_3_1");
 	}
 	
 	@Test
 	public final void testNewLearner_3_2()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_3_2");
+		testNewLearnerIncompatible("A-a->A1-a-#RJ\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_3_2");
 	}
 	
 	@Test
 	public final void testNewLearner_3_3()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_3_3");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_3_3");
 	}
 	
 	@Test
 	public final void testNewLearner_3_4()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_3_4");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_3_4");
 	}
 	
 	@Test
 	public final void testNewLearner_3_5a()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A3"+PTA3,13,"testNewLearner_3_5a");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A3-c->A3"+PTA3,13,"testNewLearner_3_5a");
 	}
 	
 	@Test
 	public final void testNewLearner_3_5b()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A4"+PTA3,10,"testNewLearner_3_5b");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A3-c->A4"+PTA3,10,"testNewLearner_3_5b");
 	}
 	
 	@Test
 	public final void testNewLearner_3_6()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_3_6");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_3_6");
 	}
 	
 	@Test
 	public final void testNewLearner_3_7()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_3_7");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_3_7");
 	}
 
 	@Test
 	public final void testNewLearner_4_1() // red and blue are adjacent
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+"\nA-p->B"+"\nB-a->B1-a-#B2"+PTA_4,8,"testNewLearner_4_1");
+		testNewLearnerQuestions("A-a->A1-a-#RJ\nA1-d->A2\nA1-c->A1"+"\nA-p->B"+"\nB-a->B1-a-#B2"+PTA_4,8,"testNewLearner_4_1");
 	}
 	
 	@Test
 	public final void testNewLearner_4_2() // blue node has no access successors
 	{
-		testNewLearnerQuestions("A-d->A1\nA1-d->A2\nA1-c->A1"+"\nA-p->Atmp-q->B"+"\nB2#-c-B-a-#B1\n",0,"testNewLearner_4_2");
+		testNewLearnerQuestions("A-d->A1\nA1-d->A2\nA1-c->A1"+"\nA-p->At-q->B"+"\nB2#-c-B-a-#B1\n",0,"testNewLearner_4_2");
 	}
 	
 	@Test
@@ -505,7 +528,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewLearner_4_8b() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->Atmp-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4,"testNewLearner_4_8b");
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->At-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4,"testNewLearner_4_8b");
 	}
 
 	@Test
@@ -554,6 +577,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6,"testNewLearner_4_13");
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp)
 	{
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
@@ -573,8 +597,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testGetTempRed1()
 	{
-		DirectedSparseGraph a=FsmParser.buildGraph("A-a->B", "testGetTempRed1 model",config),
-			temp=FsmParser.buildGraph("C-d->Q", "testGetTempRed1 temp",config);
+		DirectedSparseGraph a=FsmParser.buildLearnerGraph("A-a->B", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
+			temp=FsmParser.buildLearnerGraph("C-d->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Vertex foundB =Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundA));
@@ -584,28 +608,28 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testGetTempRed2()
 	{
-		DirectedSparseGraph a=FsmParser.buildGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model",config),
-			temp=FsmParser.buildGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp",config);
-		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), a), temp);
-		Vertex foundB = Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), a), temp);
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), temp).equals(foundA));
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), temp).equals(foundB));
+		DirectedSparseGraph a=FsmParser.buildLearnerGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
+			temp=FsmParser.buildLearnerGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
+		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
+		Vertex foundB = Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
+		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp).equals(foundA));
+		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp).equals(foundB));
 	}
 	
 	@Test
 	public final void findMergeablePair1()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergeablePair1",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergeablePair1",config,getLabelConverter()).pathroutines.getGraph();
 		Assert.assertNull(Test_Orig_RPNIBlueFringeLearner.findMergablePair(g));
 	}
 	
 	@Test
 	public final void findMergeablePair2()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair2",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair2",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex 
-			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
-			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
+			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
+			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
 		Set<Vertex> expected = new HashSet<Vertex>();expected.add(d);expected.add(b);
 		Set<Vertex> actualA = new HashSet<Vertex>();
 		OrigStatePair value = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);actualA.add(value.getQ());actualA.add(value.getR());
@@ -615,10 +639,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair3a()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex 
-			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g),
-			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
+			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
+			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
 		OrigStatePair expected = new OrigStatePair(d,s),
 		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
@@ -627,10 +651,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair3b()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex 
-			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
-			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g);
+			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
+			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g);
 		OrigStatePair expected = new OrigStatePair(b,s),
 		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
@@ -639,7 +663,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair4()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergeablePair4",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergeablePair4",config,getLabelConverter()).pathroutines.getGraph();
 		OrigStatePair actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertNull(actualA);
 	}
@@ -661,27 +685,27 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public void checkCorrectnessOfMerging(String machineToMerge, String expectedFSM, 
 			String stateBlue, String stateRed, String graphName, boolean checkWithEquals)
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph(machineToMerge, graphName,config),
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph(machineToMerge, graphName,config,getLabelConverter()).pathroutines.getGraph(),
 			g2=(DirectedSparseGraph)g.copy();
 		Vertex 
-			a = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID(stateRed), g),
-			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID(stateBlue), g);
+			a = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateRed), g),
+			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateBlue), g);
 				
 		Assert.assertNotNull("state "+stateRed+" was not found", a);
 		Assert.assertNotNull("state "+stateBlue+" was not found", b);
 		
 		OrigStatePair pairOrig = new OrigStatePair(b,a);
-		StatePair pairNew1 = new StatePair(DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(stateBlue), g),DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(stateRed), g));
+		StatePair pairNew1 = new StatePair(DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(stateBlue), g),DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(stateRed), g));
 		LearnerGraph l = new LearnerGraph(g, testConfig);
-		StatePair pairNew2 = new StatePair(l.findVertex(new VertexID(stateBlue)),l.findVertex(new VertexID(stateRed)));
+		StatePair pairNew2 = new StatePair(l.findVertex(VertexID.parseID(stateBlue)),l.findVertex(VertexID.parseID(stateRed)));
 		LearnerGraph 
 			mergeResultA = new LearnerGraph(Test_Orig_RPNIBlueFringeLearner.mergeAndDeterminize(g, pairOrig),testConfig), 
 			mergeResultB = new LearnerGraph(MergeStates.mergeAndDeterminize(g2, pairNew1,testConfig),testConfig),
 			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).pathroutines.getGraph(),testConfig),
 			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).pathroutines.getGraph(),testConfig),
-			expectedMachine = buildLearnerGraph(expectedFSM, "expected machine",testConfig);
+			expectedMachine = buildLearnerGraph(expectedFSM, "expected machine",testConfig,getLabelConverter());
 
-		TestEquivalenceChecking.checkM(machineToMerge, g2, testConfig);
+		TestEquivalenceChecking.checkM(machineToMerge, new LearnerGraph(g2,testConfig), testConfig, getLabelConverter());
 		
 		Assert.assertFalse("unreachable states - original",mergeResultA.pathroutines.checkUnreachableStates());
 		Assert.assertFalse("unreachable states",mergeResultB.pathroutines.checkUnreachableStates());
@@ -707,14 +731,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testMerge1a()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex 
-			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g),
-			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("U"), g);
+			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
+			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("U"), g);
 		OrigStatePair pair = new OrigStatePair(d,s);
 		LearnerGraph 
 			mergeResultA = new LearnerGraph(Test_Orig_RPNIBlueFringeLearner.mergeAndDeterminize(g, pair),testConfig),
-			expectedResult = buildLearnerGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-d->E\nS-n->S", "expected",testConfig);
+			expectedResult = buildLearnerGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-d->E\nS-n->S", "expected",testConfig,getLabelConverter());
 		Assert.assertTrue(expectedResult.equals(mergeResultA));
 	}
 	
@@ -937,10 +961,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail1a()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph(largeGraph1_invalid5,"testMerge_fail1",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",config,getLabelConverter()).pathroutines.getGraph();
 		CmpVertex 
-			a = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID("A"), g),
-			b = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID("B"), g);
+			a = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID("A"), g),
+			b = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID("B"), g);
 		StatePair pair = new StatePair(b,a);// A is red
 		MergeStates.mergeAndDeterminize(g, pair,testConfig);
 	}
@@ -948,10 +972,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail2()
 	{
-		LearnerGraph l=buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",testConfig);
+		LearnerGraph l=buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",testConfig,getLabelConverter());
 		CmpVertex 
-			a = l.findVertex(new VertexID("A")),
-			b = l.findVertex(new VertexID("B"));
+			a = l.findVertex(VertexID.parseID("A")),
+			b = l.findVertex(VertexID.parseID("B"));
 		StatePair pair = new StatePair(b,a);// A is red
 		MergeStates.mergeAndDeterminize(l, pair);
 	}
@@ -959,10 +983,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail3()
 	{
-		LearnerGraph l=buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",testConfig);
+		LearnerGraph l=buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",testConfig,getLabelConverter());
 		CmpVertex 
-			a = l.findVertex(new VertexID("A")),
-			b = l.findVertex(new VertexID("B"));
+			a = l.findVertex(VertexID.parseID("A")),
+			b = l.findVertex(VertexID.parseID("B"));
 		StatePair pair = new StatePair(b,a);// A is red
 		MergeStates.mergeAndDeterminize_general(l, pair);
 	}
@@ -986,7 +1010,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 */
 	public final void testChooseStatePairs(String fsm, String [] initialReds, String [][] expectedReds, List<PairScore> expectedPairs, String graphName)
 	{
-		final DirectedSparseGraph gB = FsmParser.buildGraph(fsm, graphName,config);
+		final LearnerGraph fsmAsLearnerGraph = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter());
+		final DirectedSparseGraph gB = fsmAsLearnerGraph.pathroutines.getGraph();
+		for(PairScore pair:expectedPairs) 
+		{
+			Assert.assertNotNull("vertex "+pair.getQ()+" is missing in the graph",fsmAsLearnerGraph.findVertex(pair.getQ()));
+			Assert.assertNotNull("vertex "+pair.getR()+" is missing in the graph",fsmAsLearnerGraph.findVertex(pair.getR()));
+		}
 		//Visualiser.updateFrame(new LearnerGraph(gB,Configuration.getDefaultConfiguration()), null);Visualiser.waitForKey();
 		// check how the reference pair selection function performs
 		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
@@ -999,12 +1029,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			}
 		});
 
-		final DirectedSparseGraph gA = FsmParser.buildGraph(fsm, graphName,config);
+		final DirectedSparseGraph gA = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
 		// check how the revised pair selection function performs
 		final LearnerGraph s = new LearnerGraph(gA, testConfig);
 		testChooseStatePairsInternal(gA,s, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
 			public @Override Stack<? extends StatePair> choosePairs() {
-				return s.pairscores.chooseStatePairs();
+				return s.pairscores.chooseStatePairs(null);
 			}
 		});
 	}
@@ -1014,7 +1044,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		for(String red:initialReds)
 		{
-			CmpVertex v = l.findVertex(new VertexID(red));v.setColour(JUConstants.RED);
+			CmpVertex v = l.findVertex(VertexID.parseID(red));v.setColour(JUConstants.RED);
 		}
 		Stack<? extends StatePair> pairs = chooser.choosePairs();
 
@@ -1029,7 +1059,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Set<String> finalReds = new HashSet<String>();
 		DirectedSparseGraph grf = l.pathroutines.getGraph();
 		for(Vertex red:DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, grf))
-				finalReds.add(((VertexID)red.getUserDatum(JUConstants.LABEL)).toString());
+				finalReds.add(((VertID)red.getUserDatum(JUConstants.LABEL)).getStringId());
 		Assert.assertTrue("expected red states, any of: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.contains(finalReds));
 		for(PairScore ps:expectedPairs)
 		{
@@ -1044,11 +1074,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(StatePair elem:pairs)
 		{
 			doneEdges = new HashSet<DirectedSparseEdge>();
-			DeterministicVertex origBlue = DeterministicDirectedSparseGraph.findVertexNamed(elem.getQ().getID(), g);
-			DeterministicVertex origRed = DeterministicDirectedSparseGraph.findVertexNamed(elem.getR().getID(), g);
+			DeterministicVertex origBlue = DeterministicDirectedSparseGraph.findVertexNamed(elem.getQ(), g);
+			DeterministicVertex origRed = DeterministicDirectedSparseGraph.findVertexNamed(elem.getR(), g);
 			long currentScore = computeScore(g, new OrigStatePair(origBlue,origRed));// This one returns vertices from g, but elem may easily contain StringVertices and such, hence convert elem to Vertex-pair.
-			PairScore elA = constructPairScore(elem.getQ().getID().toString(),elem.getR().getID().toString(),currentScore, testConfig);
-			PairScore elB = constructPairScore(elem.getR().getID().toString(),elem.getQ().getID().toString(),currentScore, testConfig);
+			PairScore elA = constructPairScore(elem.getQ().getStringId(),elem.getR().getStringId(),currentScore, testConfig);
+			PairScore elB = constructPairScore(elem.getR().getStringId(),elem.getQ().getStringId(),currentScore, testConfig);
 			Assert.assertTrue(elem.getR().getColour() == JUConstants.RED);
 			Assert.assertTrue(elem.getQ().getColour() == JUConstants.BLUE);
 			Assert.assertTrue(currentScore >= 0);
@@ -1066,6 +1096,40 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals("unused entries : "+distribution,0, distribution.size());
 	}
 	
+	/** The distance from the initial state is factored into decisions to compare pairs, in order to 
+	 * keep the spirit of BlueFringe where we look at red states closest to the initial state first. 
+	 */
+	@Test
+	public final void testVertexOrdering()
+	{
+		LearnerGraph gr = new LearnerGraph(config);
+		Label a=AbstractLearnerGraph.generateNewLabel("a", config,getLabelConverter()),b=AbstractLearnerGraph.generateNewLabel("b", config,getLabelConverter());
+		gr.paths.augmentPTA(Arrays.asList(new Label[]{a,a}),true,false,null);
+		gr.paths.augmentPTA(Arrays.asList(new Label[]{a,b}),true,false,null);
+		gr.paths.augmentPTA(Arrays.asList(new Label[]{b}),true,false,null);
+		
+		CmpVertex A=gr.paths.getVertex(Arrays.asList(new Label[]{})),
+				B=gr.paths.getVertex(Arrays.asList(new Label[]{a})),
+				C=gr.paths.getVertex(Arrays.asList(new Label[]{a,a})),
+				D=gr.paths.getVertex(Arrays.asList(new Label[]{a,b})),
+				E=gr.paths.getVertex(Arrays.asList(new Label[]{b}));
+						
+		// The following names are in the order of Red,Blue, but constructor of PairScore expects them in the opposite order 
+		PairScore AE=new PairScore(E,A,0,0),AB=new PairScore(B,A,0,0),
+				AD=new PairScore(D,A,0,0),AC=new PairScore(C,A,0,0),
+				BC=new PairScore(C,B,0,0),EC=new PairScore(C,E,0,0),
+				DC=new PairScore(C,D,0,0),CC=new PairScore(C,C,0,0);
+		
+		PairScore orderedArray[]=new PairScore[]{AE,AB,AD,AC,EC,BC,DC,CC};
+		for(int i=0;i<orderedArray.length;++i)
+			for(int j=0;j<orderedArray.length;++j)
+			{
+				int actual = orderedArray[i].compareInTermsOfDepth(orderedArray[j]);if (actual > 0) actual=1;else if (actual < 0) actual=-1;
+				int expected = new Integer(j).compareTo(i);// the first one is the highest
+				Assert.assertEquals(orderedArray[i]+".compareto "+orderedArray[j]+" (="+actual+") != "+expected,expected,actual);
+			}
+	}
+	
 	@Test
 	public final void testNewchooseStatePairs1()
 	{
@@ -1080,14 +1144,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			pairsAndScores.add(constructPairScore(state, "P1", 0,testConfig));
 
 		testChooseStatePairs(
-				"A-a-#Arej\nA-d->A2-c->A3-c->A4-c->A5\n"+
+				"A-a-#R\nA-d->A2-c->A3-c->A4-c->A5\n"+
 				"A-p->P1-a->P2\n"+
 				"A-s->S1-d->S2-c->S3-c->S4\n"+
 				"A-r->R1-d->R2-c->R3\n"+
 				"A-u->U1-d->U2-c->U3\n"+
 				"A-q->Q1-d->Q2",
 				new String[]{"A"},
-				new String[][] {new String[]{"A","P1","Arej"}},
+				new String[][] {new String[]{"A","P1","R"}},
 				pairsAndScores,"testNewchooseStatePairs1");
 	}
 	
@@ -1103,17 +1167,17 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		pairsAndScores.add(constructPairScore("P2", "A", 0,testConfig));
 		for(String state:new String[]{"A2","U1","S1","R1","Q1","P2"})
 			pairsAndScores.add(constructPairScore(state, "P1", 0,testConfig));
-		pairsAndScores.add(constructPairScore("P3", "Arej", 0,testConfig));
+		pairsAndScores.add(constructPairScore("P3", "R", 0,testConfig));
 
 		testChooseStatePairs(
-				"A-a-#Arej\nA-d->A2-c->A3-c->A4-c->A5\n"+
+				"A-a-#R\nA-d->A2-c->A3-c->A4-c->A5\n"+
 				"A-p->P1-a->P2\n"+"P1-b-#P3\n"+
 				"A-s->S1-d->S2-c->S3-c->S4\n"+
 				"A-r->R1-d->R2-c->R3\n"+
 				"A-u->U1-d->U2-c->U3\n"+
 				"A-q->Q1-d->Q2",
 				new String[]{"A"},
-				new String[][] {new String[]{"A","P1","Arej"},new String[]{"A","P1","P3"}},
+				new String[][] {new String[]{"A","P1","R"},new String[]{"A","P1","P3"}},
 				pairsAndScores,"testNewchooseStatePairs2");
 	}
 	
@@ -1121,16 +1185,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testNewchooseStatePairs3()
 	{
 		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
-		pairsAndScores.add(constructPairScore("REJ1", "REJ2", 0,testConfig));
+		pairsAndScores.add(constructPairScore("R1", "R2", 0,testConfig));
 		pairsAndScores.add(constructPairScore("A1", "A", 3,testConfig));
 
 		testChooseStatePairs(
-				"A-a->B1-a-#REJ1\nB1-b-#REJ2\n"+
-				"A-b->A1-a->B2\n"+
+				"A-a->B1-a-#R1\nB1-b-#R2\n"+
+				"A-b->A1\n"+
 				"A1-a->B2\n"+
 				"A1-b->A2-a->B3\n",
 				new String[]{"A"},
-				new String[][] {new String[]{"A","B1","REJ2"},new String[]{"A","B1","REJ1"}},
+				new String[][] {new String[]{"A","B1","R2"},new String[]{"A","B1","R1"}},
 				pairsAndScores,"testNewchooseStatePairs3");
 	}
 	
@@ -1167,15 +1231,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		//buildRubyTests(fsm,expectedComputedScore,graphName);
 		
-		DirectedSparseGraph g = FsmParser.buildGraph(fsm, graphName,config);
+		DirectedSparseGraph g = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
 		OrigStatePair pairOrig = new OrigStatePair(
-				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
-				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), g));
+				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
+				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));
 		
 		LearnerGraph s = new LearnerGraph(g, testConfig);
 		StatePair pairNew = new StatePair(
-				s.findVertex(new VertexID("B")),
-				s.findVertex(new VertexID("A")));
+				s.findVertex(VertexID.parseID("B")),
+				s.findVertex(VertexID.parseID("A")));
 		doneEdges = new HashSet<DirectedSparseEdge>();
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);s.setMaxScore(maxScoreConstant-1);
 		long origScore = computeScore(g, pairOrig),
@@ -1230,7 +1294,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:what) 
 		{
 			Set<String> oneOfTheSets = new HashSet<String>();
-			for(CmpVertex vert:eqClass.getStates()) oneOfTheSets.add(vert.getID().toString());
+			for(CmpVertex vert:eqClass.getStates()) oneOfTheSets.add(vert.getStringId());
 			Assert.assertTrue("received an unexpected set "+oneOfTheSets,expectedSets.contains(oneOfTheSets));expectedSets.remove(oneOfTheSets);
 		}
 		Assert.assertEquals(0, expectedSets.size());		
@@ -1239,8 +1303,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	private void testGeneralPairScoreComputation(String machine, String graphName, int expectedScore,
 			String[][] expectedSrc,String [][]incompatibles)
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph(machine, graphName,config);
-		LearnerGraph fsm = new LearnerGraph(g,config);
+		LearnerGraph fsm = FsmParser.buildLearnerGraph(machine, graphName,config,getLabelConverter());
 
 		if (incompatibles != null)
 			for(String [] incompatibleRow:incompatibles)
@@ -1250,14 +1313,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			}
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> result = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = -2;
-		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(new VertexID("A")),fsm.findVertex(new VertexID("B"))),result);
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("A")),fsm.findVertex(VertexID.parseID("B"))),result);
 		//Visualiser.updateFrame(g, result);Visualiser.waitForKey();
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);
 		
 		result.clear();score = -2;
-		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(new VertexID("B")),fsm.findVertex(new VertexID("A"))),result);
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("B")),fsm.findVertex(VertexID.parseID("A"))),result);
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);
@@ -1319,7 +1382,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		testGeneralPairScoreComputation(
 				"A-a->B\nA-b->B\nA-e->B\n"+
 				"B-e->B4-c->D3-a->T1\n"+
-				"B-e->B4-d->C3-e->T1\n"+
+				"B4-d->C3-e->T1\n"+
 				"B-c->D1-a->T2\n"+
 				"B-b->B5-c->D2-a->T3\n"+
 				"B-a->B1-d->C1-e->T4\n"+

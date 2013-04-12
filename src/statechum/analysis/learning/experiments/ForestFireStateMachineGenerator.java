@@ -36,6 +36,7 @@ import cern.jet.random.engine.MersenneTwister;
 import cern.jet.random.engine.RandomEngine;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -87,7 +88,7 @@ public class ForestFireStateMachineGenerator {
 	{
 	}
 	
-	protected Map<VertexID,DeterministicVertex> labelmap;
+	protected Map<VertID,DeterministicVertex> labelmap;
 
 	/** Adds the supplied number of states to the machine, connecting them to the surrounding ones via forest-fire.
 	 * 
@@ -101,7 +102,7 @@ public class ForestFireStateMachineGenerator {
 		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
 		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
 			
-			labelmap = new HashMap<VertexID,DeterministicVertex>();
+			labelmap = new HashMap<VertID,DeterministicVertex>();
 			int i=0;
 			
 			// We start by adding the specified number of vertices, after that we reduce,
@@ -117,7 +118,7 @@ public class ForestFireStateMachineGenerator {
 					annotateVertex(v);
 					machine.addVertex(v);
 					vertices.add(v);// permits v to be chosen as a target, creating self-loops
-					this.labelmap.put(v.getID(), v);
+					this.labelmap.put(v, v);
 					Set<DeterministicVertex> tried = new TreeSet<DeterministicVertex>();
 					tried.add(v);
 					DeterministicVertex random = null;
@@ -199,10 +200,12 @@ public class ForestFireStateMachineGenerator {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
 	{
 		DijkstraDistance p = new DijkstraDistance(machine);
 		List<Integer> distances = new LinkedList<Integer>();
+
 		for(DeterministicVertex v:(Set<DeterministicVertex>)machine.getVertices())
 			for(DeterministicVertex vOther:(Set<DeterministicVertex>)machine.getVertices())
 			{
@@ -210,8 +213,7 @@ public class ForestFireStateMachineGenerator {
 				Number distance = p.getDistance(v, vOther);if (distance != null) length = distance.intValue();
 				if (length > 0) // non-empty path
 					distances.add(length);
-				if (v == vOther)
-					break;// we only process a triangular subset.
+				// cannot limit consideration to a triangular subset because the relation is not symmetric.
 			}
 		
 		int result = 0;
@@ -263,6 +265,7 @@ public class ForestFireStateMachineGenerator {
 	{
 		// This one needs to choose vertices at random, not just choose first x/y vertices.
 		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>();
+		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> inIt = ambassador.getInEdges().iterator();
 		Set<DeterministicVertex> verticesToChooseFrom = new TreeSet<DeterministicVertex>();
 		while(inIt.hasNext()){
@@ -273,6 +276,7 @@ public class ForestFireStateMachineGenerator {
 		}
 		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, x));
 		
+		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> outIt = ambassador.getOutEdges().iterator();
 		verticesToChooseFrom.clear();
 		while(outIt.hasNext()){

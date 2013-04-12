@@ -18,10 +18,12 @@
 
 package statechum.analysis.learning.observers;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -44,7 +46,11 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 	@Override
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 	{
-		statechum.analysis.learning.util.ScoreMatrixOutput.writeMatrix(graph, "stage"+Integer.toString(counter));
+		try {
+			statechum.analysis.learning.util.ScoreMatrixOutput.writeMatrix(graph, "stage"+Integer.toString(counter));
+		} catch (IOException e) {
+			Helper.throwUnchecked("failed to write output score matrix", e);
+		}
 		counter++;
 		return decoratedLearner.ChooseStatePairs(graph);
 	}

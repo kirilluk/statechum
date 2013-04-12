@@ -26,6 +26,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Configuration;
 import statechum.Label;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -34,6 +35,7 @@ import java.util.Map.Entry;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.Signature;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 
 /**
@@ -307,10 +309,6 @@ public abstract class OTPBehaviour {
 		alphabet.add(lbl);
 	}
 
-	public static interface ConvertALabel {
-		public Label convertLabelToLabel(Label lbl);
-	}
-
 	/**
 	 * Given an instance of a converter, converts all elements of a trace. This
 	 * is useful for converting from text-compatible traces (no function
@@ -416,10 +414,9 @@ public abstract class OTPBehaviour {
 
 	public List<List<OtpErlangObject>> getInitArgs() {
 		FuncSignature init = parent.sigs.get(parent.getName() + ":init/1");
-		if(init != null) {
+		if(init != null)
 			return init.instantiateAllArgs();
-		} else {
-			return new LinkedList<List<OtpErlangObject>>();
-		}
+
+		return new LinkedList<List<OtpErlangObject>>();
 	}
 }

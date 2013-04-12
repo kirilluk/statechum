@@ -318,11 +318,11 @@ public class DrawGraphs {
 		return result.toString();
 	}
 
-	boolean javaGDLoaded = false;
+	private static boolean javaGDLoaded = false;
 	
 	/** Newer versions of R permit pdf compression, but older ones choke if I attempt to use it. 
 	 */
-	boolean pdfCompression = false;
+	private static boolean pdfCompression = false;
 	
 	/** Since I cannot pass arguments to RViewer during it construction, static values have to be set and 
 	 * then copied into the new object. For this reason, creation of graphs has to be serialised, this is done
@@ -424,7 +424,7 @@ public class DrawGraphs {
 	 * 
 	 * @param <ELEM> type of elements for the X axis, veritical is always a Double
 	 */
-	public static abstract class RGraph<ELEM extends Comparable<ELEM>>
+	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>>
 	{
 		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
 		
@@ -525,7 +525,7 @@ public class DrawGraphs {
 		abstract protected double computeHorizSize();
 	}
 	
-	public static class RBoxPlot<ELEM extends Comparable<ELEM>> extends RGraph<ELEM>
+	public static class RBoxPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
 		public RBoxPlot(String x, String y, File name) {
 			super(x, y, name);

@@ -71,13 +71,13 @@ public class QSMTool {
         tool.loadConfig(args[0]);
         if (tool.showLTL) {
             Learner l = new RPNIUniversalLearner(null, tool.learnerInitConfiguration);
-            LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);
+            LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config, tool.learnerInitConfiguration.getLabelConverter());
             if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus), true,
                     GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA))) {
                 try {
                     LearnerGraph graph = Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph());
                     DirectedSparseGraph gr = graph.pathroutines.getGraph();
-                    PathRoutines.convertPairAssociationsToTransitions(gr, graph, tool.learnerInitConfiguration.config);
+                    PathRoutines.convertPairAssociationsToTransitions(gr, graph, tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter());
                     Visualiser.updateFrame(gr, null);
                 } catch (IncompatibleStatesException e) {
                     e.printStackTrace();
@@ -117,12 +117,7 @@ public class QSMTool {
         } catch (IOException e) {
             statechum.Helper.throwUnchecked("failed to read learner initial data", e);
         } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {// ignored.
-                }
-            }
+            if (in != null) { try { in.close();in=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
         }
     }
 
@@ -190,7 +185,7 @@ public class QSMTool {
 	    				throw new IllegalArgumentException("a collection of traces should start with either "+cmdPositive+" or "+cmdNegative+", got"+lexer.getMatch()+" in "+lexer.remaining());
 	    	if (positiveNegative != null)
 	    	{
-	    		for(List<Label> sequence:StatechumXML.readSequenceList(ErlangLabel.parseFirstTermInText(lexer),config))
+	    		for(List<Label> sequence:StatechumXML.readSequenceList(ErlangLabel.parseFirstTermInText(lexer),config,null))
 	    			collector.addTrace(sequence, positiveNegative.booleanValue());
 	    		match = lexer.getLastMatchType();
 	    	}
@@ -244,7 +239,7 @@ public class QSMTool {
             showLTL = true;
         } else if (fileString.startsWith(cmdOperation) || fileString.startsWith(cmdDataTrace) || fileString.startsWith(cmdLowLevelFunction)) {
             if (learnerInitConfiguration.labelDetails == null) {
-                learnerInitConfiguration.labelDetails = new SmtLabelRepresentation(learnerInitConfiguration.config);
+                learnerInitConfiguration.labelDetails = new SmtLabelRepresentation(learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
                 dataDescription = new LinkedList<String>();
             }
             dataDescription.add(fileString.trim());

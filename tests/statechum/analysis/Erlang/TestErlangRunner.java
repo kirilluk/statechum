@@ -377,7 +377,17 @@ public class TestErlangRunner {
         }
         Assert.assertEquals(1,erlangProcess.exitValue());
         Assert.assertTrue(out.toString().contains("function_clause"));
-        Assert.assertEquals(0,err.length());
+        // When this test runs alongside others in TestErlangRunner, the error message
+        // starting with "Crash dump was written to: erl_crash.dump" is written into StdErr,
+        // but when I run it separately, it goes into StdOut. This most likely relates to a
+        // problem with how Java 1.7.10 does things so I work around but permitting both 
+        // responses.
+        String msgWithErrorText = null;
+        if (err.length() > 0)
+        	msgWithErrorText = err.toString();
+        else
+        	msgWithErrorText = out.toString();
+        Assert.assertTrue("Unexpected error message: "+msgWithErrorText,msgWithErrorText.contains("Crash dump was written to: erl_crash.dump"));
 	}
 		
 	@Test

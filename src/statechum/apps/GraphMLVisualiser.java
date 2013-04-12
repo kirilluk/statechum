@@ -37,11 +37,11 @@ public class GraphMLVisualiser extends Visualiser {
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
-		AbstractPersistence.loadGraph(args[0], graph0);
+		AbstractPersistence.loadGraph(args[0], graph0,null);
 		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
-			AbstractPersistence.loadGraph(args[1], graph1);
+			AbstractPersistence.loadGraph(args[1], graph1,null);
 		}
 		Visualiser.updateFrame(graph0, graph1);Visualiser.waitForKey();
 	}

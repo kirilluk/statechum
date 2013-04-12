@@ -42,7 +42,8 @@ import statechum.model.testset.PTASequenceEngine;
  * 
  * @author ramsay
  */
-public class ErlangOracleLearner extends RPNIUniversalLearner {
+public class ErlangOracleLearner extends RPNIUniversalLearner 
+{
 	protected ErlangModule module;
 
 	public ErlangModule getModule() {
@@ -51,8 +52,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	protected LearnerEvaluationConfiguration myEvalCnf;
 
-	public ErlangOracleLearner(Frame parent,
-			LearnerEvaluationConfiguration evalCnf) {
+	public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) {
 		super(parent, evalCnf);
 		if (config.getErlangSourceFile() != null) {
 			try {
@@ -185,7 +185,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			result = new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED,
 					null);
 		}
-
+		
 		return result;
 	}
 

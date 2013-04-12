@@ -31,6 +31,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,6 +60,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.linear.TestGD;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -69,7 +71,8 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  *
  */
 @RunWith(Parameterized.class)
-public class TestGD_ExistingGraphs {
+public class TestGD_ExistingGraphs 
+{
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
@@ -216,10 +219,10 @@ public class TestGD_ExistingGraphs {
 			
 			LearnerGraphND grA = null, grB = null;
 			{
-				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
+				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, null);
 				if (fileA2 != null)
 				{
-					LearnerGraphND loadedA2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+					LearnerGraphND loadedA2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA2, loadedA2, null);
 					grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 				}
 				else
@@ -227,10 +230,10 @@ public class TestGD_ExistingGraphs {
 			}
 			
 			{
-				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1);
+				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1, null);
 				if (fileB2 != null)
 				{
-					LearnerGraphND loadedB2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB2, loadedB2);
+					LearnerGraphND loadedB2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB2, loadedB2, null);
 					grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 				}
 				else
@@ -253,47 +256,44 @@ public class TestGD_ExistingGraphs {
 		gr.pathroutines.addMergedRandomly(rnd,6);
 	}
 
-	static ScoresLogger scoresLogger = new ScoresLogger();
+	static ScoresLogger scoresLogger = new ScoresLoggerChecker();
+
+	/** Label converter to use. */
+	private ConvertALabel converter = null;
 
 	@BeforeClass
 	public static void loadLog()
 	{
 		scoresLogger.loadMap();
 	}
-
-/*
-	@After
-	public void save()
-	{
-		scoresLogger.saveMap();
-	}
+	
 	@AfterClass
 	public static void saveLogIfNeeded()
 	{
 		scoresLogger.saveMap();
 	}
- */
+ 
 	public final void runPatch(File fileA, File fileB,boolean checkScores)
 	{
 		try
 		{
-			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA);addColourAndIncompatiblesRandomly(grA, new Random(0));
-			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB);addColourAndIncompatiblesRandomly(grB, new Random(1));
+			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA, converter);addColourAndIncompatiblesRandomly(grA, new Random(0));
+			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB, converter);addColourAndIncompatiblesRandomly(grB, new Random(1));
 			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph);addColourAndIncompatiblesRandomly(graph, new Random(0));
+			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph, converter);addColourAndIncompatiblesRandomly(graph, new Random(0));
 			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder patcher = new ChangesRecorder(null);
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
 			
 			gd.init(grA, grB, threadNumber,config);
-			if (checkScores) scoresLogger.check(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA,fileB), gd.serialiseScores());
+			if (checkScores) scoresLogger.checkOrRecord(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA,fileB), gd.serialiseScores());
 			gd.identifyKeyPairs();
 			if (!gd.fallbackToInitialPair) addPairsRandomly(gd,pairsToAdd);
 			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
 			gd.makeSteps();
 			gd.computeDifference(patcher);
 
-			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
 			DifferentFSMException ex= WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP);
@@ -381,12 +381,12 @@ public class TestGD_ExistingGraphs {
 	{
 		try
 		{
-			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grA);
-			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grB);
-			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,graph);
+			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grA, converter);
+			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grB, converter);
+			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,graph, converter);
 			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 			LearnerGraph outcome = new LearnerGraph(config);
-			ChangesRecorder.applyGD_WithRelabelling(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null,config),outcome);
+			ChangesRecorder.applyGD_WithRelabelling(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null,config), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 			Assert.assertNull(testDetails(),WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 		}

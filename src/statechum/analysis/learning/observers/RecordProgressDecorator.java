@@ -44,6 +44,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
 /** Stores some arguments and results of calls to learner's methods 
@@ -69,7 +70,20 @@ public class RecordProgressDecorator extends ProgressDecorator
 	
 	public RecordProgressDecorator(Learner learner, OutputStream outStream, int threadNumber, Configuration conf, boolean writeInZipFormat) 
 	{
-		super(learner);config = conf;writeZip=writeInZipFormat;
+		super(learner);
+		initProgressDecorator(outStream, threadNumber, conf, writeInZipFormat);
+	}
+
+	/** Constructor only used for testing. */
+	public RecordProgressDecorator(OutputStream outStream, int threadNumber, Configuration conf, boolean writeInZipFormat, ConvertALabel conv) 
+	{
+		super(conv);
+		initProgressDecorator(outStream, threadNumber, conf, writeInZipFormat);
+	}
+	
+	private void initProgressDecorator(OutputStream outStream, int threadNumber, Configuration conf, boolean writeInZipFormat)
+	{
+		config = conf;writeZip=writeInZipFormat;
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
 		{
@@ -85,8 +99,9 @@ public class RecordProgressDecorator extends ProgressDecorator
 				outputStream=outStream;
 				topElement = doc.createElement(StatechumXML.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(AbstractPersistence.endl(doc));
 			}
+			
 			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
-			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
+			series = new GraphSeries(doc,threadNumber,seriesConfiguration,converter);
 			initIO(doc,config);
 		}
 		catch(ParserConfigurationException e)
@@ -94,7 +109,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 			statechum.Helper.throwUnchecked("failed to construct DOM document",e);
 		}
 	}
-
+	
 	/** Writes the outcome of learning into the log and closes the log.
 	 * 
 	 * @param graph the outcome of learning.

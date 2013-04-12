@@ -87,7 +87,7 @@ public class WExperiment {
 		for(LearnerGraph gr:graphs)
 			if (gr != result)
 			{
-				AbstractPathRoutines.relabel(gr, 1, "gr_"+graphNumber++);
+				AbstractPathRoutines.relabel(gr, 1, "gr_"+graphNumber++,null);
 				CmpVertex newInit = AbstractPathRoutines.addToGraph(result, gr,null);
 				int score = -1;
 				do
@@ -129,7 +129,6 @@ public class WExperiment {
 			//System.out.println("time taken: "+(tmFinished-tmStarted)/1000);
 			result.storage.writeGraphML("../../W_experiment/experiment_5000.xml");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}			
 		//AddTransitions.writeGraphML(graph, "resources/tmp/"+new File(inputFileName).getName()+"_tmpresult.xml");

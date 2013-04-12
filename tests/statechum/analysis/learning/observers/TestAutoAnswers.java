@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration.STATETREE;
@@ -41,6 +42,7 @@ import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.PairScore;
 
 /** Tests that AutoAnswers works.
@@ -96,17 +98,24 @@ public class TestAutoAnswers {
 	public void testPrettyPrintTrace1() throws IOException
 	{
 		File file = new File("ErlangExamples/locker/locker.erl");
-		Configuration config = ErlangModule.setupErlangConfiguration(file);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		config = ErlangModule.setupErlangConfiguration(file);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
-		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
+		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config,null);
 		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
 		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
 		List<Label> trace = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
 		Assert.assertEquals("[{?F(),'call','read'},{?F(),'call','lock'},{?F(),'call','lock'}]",RPNILearner.questionToString(trace));
 	}
 	
-
+	private ConvertALabel converter = null;
+	private Configuration config;
+	
+	@Before
+	public void setup()
+	{
+		config = Configuration.getDefaultConfiguration().copy();
+	}
 	
 	// The machine I'm talking of is the following:
 	// A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n
@@ -117,11 +126,10 @@ public class TestAutoAnswers {
 	{
 		//Visualiser.updateFrame(new LearnerGraph(FsmParser.buildGraph("A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n"+
 		//"B-e->A\nC-e->A\nD-e->A\nE-e->A\nF-e->A\nG-e->A\n","testAutoAnswers0"),Configuration.getDefaultConfiguration()),null);
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
-		testConfig.setGdFailOnDuplicateNames(false);
-		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		config.setGdFailOnDuplicateNames(false);
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -139,35 +147,34 @@ public class TestAutoAnswers {
 		AutoAnswers ans = new AutoAnswers(learner);
 		ans.loadAnswers(new StringReader(
 				partA+partB+partC
-		),testConfig);
+		),config);
 		ans.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }},testConfig),
+				new String[] { "c","a","a","a","a","b","p" }},config,converter),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			},testConfig));
+			},config,converter));
 	}	
 	
 	@Test
 	public void testAuto1()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
-		testConfig.setGdFailOnDuplicateNames(false);
-		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		config.setGdFailOnDuplicateNames(false);
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
 		final AutoAnswers semiUser = new AutoAnswers(null);
 		semiUser.loadAnswers(new StringReader(
 				partA
-		),testConfig);
+		),config);
 		
-		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -186,30 +193,29 @@ public class TestAutoAnswers {
 		AutoAnswers ans = new AutoAnswers(learner);
 		ans.loadAnswers(new StringReader(
 				partB+partC
-		),testConfig);
+		),config);
 		ans.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }},testConfig),
+				new String[] { "c","a","a","a","a","b","p" }},config,converter),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			},testConfig));
+			},config,converter));
 	}
 	
 	@Test
 	public void testAuto2()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
-		testConfig.setGdFailOnDuplicateNames(false);
-		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		config.setGdFailOnDuplicateNames(false);
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -227,34 +233,33 @@ public class TestAutoAnswers {
 		AutoAnswers ans1 = new AutoAnswers(learner);
 		ans1.loadAnswers(new StringReader(
 				partA+partC
-		),testConfig);
+		),config);
 		AutoAnswers ans2 = new AutoAnswers(ans1);
 		ans2.loadAnswers(new StringReader(
 				partB
-		),testConfig);
+		),config);
 		ans2.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }},testConfig),
+				new String[] { "c","a","a","a","a","b","p" }},config,converter),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			},testConfig));
+			},config,converter));
 	}
 	
 	@Test
 	public void testAuto3()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
-		testConfig.setGdFailOnDuplicateNames(false);
-		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		config.setGdFailOnDuplicateNames(false);
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -301,30 +306,29 @@ public class TestAutoAnswers {
 				RPNILearner.QUESTION_USER+" [e, c, a, a, b, p, e] <yes>\n"+
 				RPNILearner.QUESTION_USER+" [e, c, a, a, a, a, b, p] <yes>\n"+
 				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"
-		),testConfig);
+		),config);
 		ans2.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }},testConfig),
+				new String[] { "c","a","a","a","a","b","p" }},config,converter),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			},testConfig));
+			},config,converter));
 	}
 	
 	@Test
 	public void testAuto4()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
-		testConfig.setGdFailOnDuplicateNames(false);
-		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		config.setGdFailOnDuplicateNames(false);
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -356,20 +360,20 @@ public class TestAutoAnswers {
 				" - [[ e, c, b, e, p], [ e, c, b, p, a], [ e, c, b, p, p]] "+
 				"+ [[ e, c, b, p, e, e]], - [[e, c, a, a, b, p, a]], "+
 				"+ [[e, c, a, a, b, p, e], [ e, c, a, a, a, a, b, p]] \n"
-		),testConfig);
+		),config);
 		ans2.learnMachine(
 				buildSet(new String[][]{
 					new String[] { "c","b","p","e","e" },
 					new String[] { "c","a","a","b","p", "e" },
 					new String[] { "c","a","e","c" },
-					new String[] { "c","a","a","a","a","b","p" }},testConfig),
+					new String[] { "c","a","a","a","a","b","p" }},config,converter),
 				buildSet(new String[][]{
 					new String[] { "c", "a", "a", "b", "p", "a" },
 					new String[] { "c", "b", "p", "a" },
 					new String[] { "c", "c" },
 					new String[] { "b" },
 					new String[] { "a" }
-				},testConfig));
+				},config,converter));
 		}
 
 }

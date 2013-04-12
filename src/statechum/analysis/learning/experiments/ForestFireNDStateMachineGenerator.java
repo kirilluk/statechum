@@ -38,6 +38,7 @@ import cern.jet.random.engine.RandomEngine;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.StringVertex;
@@ -65,7 +66,7 @@ public class ForestFireNDStateMachineGenerator {
 	protected Random boolGenerator;
 	protected int alphabet;
 	
-	public ForestFireNDStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed, int alphabet)
+	public ForestFireNDStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed, int alphabetArg)
 	{
 		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
@@ -74,7 +75,7 @@ public class ForestFireNDStateMachineGenerator {
 		machine = new LearnerGraphND(Configuration.getDefaultConfiguration());
 		vertices = new ArrayList<CmpVertex>();
 		generator  = new MersenneTwister(seed);
-		this.alphabet = alphabet;
+		this.alphabet = alphabetArg;
 		boolGenerator = new Random(seed);
 		CmpVertex v= AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertexID.VertKind.NEUTRAL,0), Configuration.getDefaultConfiguration());  //new ();
 		annotateVertex(v);
@@ -88,7 +89,7 @@ public class ForestFireNDStateMachineGenerator {
 	{
 	}
 	
-	protected Map<VertexID,CmpVertex> labelmap;
+	protected Map<VertID,CmpVertex> labelmap;
 
 	/** Adds the supplied number of states to the machine, connecting them to the surrounding ones via forest-fire.
 	 * 
@@ -102,14 +103,14 @@ public class ForestFireNDStateMachineGenerator {
 		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
 		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
 			
-			labelmap = new HashMap<VertexID,CmpVertex>();
+			labelmap = new HashMap<VertID,CmpVertex>();
 			for(int i=0;i<size-1;i++)
 			{
 				CmpVertex v=new StringVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
 				annotateVertex(v);
 				machine.getTransitionMatrix().put(v, machine.createNewRow());
 				vertices.add(v);// permits v to be chosen as a target, creating self-loops
-				this.labelmap.put(v.getID(), v);
+				this.labelmap.put(v, v);
 				CmpVertex random = selectRandomVertex();
 
 				machine.addTransition(machine.getTransitionMatrix().get(random), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config), v);
@@ -168,6 +169,7 @@ public class ForestFireNDStateMachineGenerator {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
 	{
 		DijkstraDistance p = new DijkstraDistance(machine);

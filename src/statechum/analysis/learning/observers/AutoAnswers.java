@@ -70,7 +70,7 @@ public class AutoAnswers extends DummyLearner {
 
 	void loadAnswers(Reader from, Configuration config)
 	{
-		ans = new StoredAnswers(config);
+		ans = new StoredAnswers(config,getLabelConverter());
 		try {
 			((StoredAnswers)ans).setAnswers(from);
 		} catch (Exception e) {
@@ -137,6 +137,6 @@ public class AutoAnswers extends DummyLearner {
 	 */
 	public static String pairToString(PairScore pair)
 	{
-		return pair.firstElem.getID().toString()+" "+pair.secondElem.getID().toString();
+		return pair.firstElem.getStringId()+" "+pair.secondElem.getStringId();
 	}
 }

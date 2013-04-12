@@ -80,7 +80,9 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  */
-			RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
+			LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(null,null,config,null,null);
+			evaluationConfiguration.setLabelConverter(experiment.getLabelConverter());
+			RPNILearner learner = new RPNIUniversalLearner(null,evaluationConfiguration)
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(

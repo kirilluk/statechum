@@ -19,8 +19,8 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -29,12 +29,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
+import statechum.collections.TreeMapWithSearch;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
@@ -55,23 +58,29 @@ public class TestLTL_to_ba
 	 */
 	protected List<Label> labelList(String [] labels)
 	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config,converter);
+	}
+	
+	private void ConstructAlphabet(LTL_to_ba baArg,String[] labels)
+	{
+		baArg.setAlphabet(labelList(labels));
 	}
 	
 	@Before
 	public final void beforeTest()
 	{
 		config = Configuration.getDefaultConfiguration().copy();		
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"a","b","c"}));
+		ba=new LTL_to_ba(config,converter);ConstructAlphabet(ba,new String[]{"a","b","c"});
 		
 		expectedFromASEExample = buildLearnerGraph(
 				"I-close->1\nI-edit->I1\nI-save->I1\nI-load->I1\n"+
 				"1-load->I1-close->1\n"+
-				"I1-edit->I1-save->I1-load->I1\n","testLTL_bigger",config);
+				"I1-edit->I1-save->I1-load->I1\n","testLTL_bigger",config,converter);
 	}
 	// ,"load","save","edit","close"
 	protected Configuration config = null;
+	protected ConvertALabel converter = null;
+	
 	protected LTL_to_ba ba = null;
 	protected LearnerGraph expectedFromASEExample = null;
 	
@@ -135,40 +144,40 @@ public class TestLTL_to_ba
 	@Test
 	public final void testFindInitialState1()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config);
-		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
-		graph.findInitialState("A");
-		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
+		LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config,converter);
+		Map<String,CmpVertex> map = new TreeMapWithSearch<String,CmpVertex>(10);for(CmpVertex vert:graph.transitionMatrix.keySet()) map.put(vert.getStringId(), vert);
+		Assert.assertEquals("Avertex", LTL_to_ba.findInitialState("A",map).getStringId());
 	}
 	
 	/** Tests a search of a different initial state. */
 	@Test
 	public final void testFindInitialState2()
 	{
-		LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config);
-		graph.findInitialState("B");
-		Assert.assertEquals("Bvertex", graph.getInit().getID().getStringId());
+		LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config,converter);
+		Map<String,CmpVertex> map = new TreeMapWithSearch<String,CmpVertex>(10);for(CmpVertex vert:graph.transitionMatrix.keySet()) map.put(vert.getStringId(), vert);
+		Assert.assertEquals("Bvertex", LTL_to_ba.findInitialState("B",map).getStringId());
 	}
 	
 	/** Tests that a search for an initial state may fail. */
 	@Test
 	public final void testFindInitialState_fail1()
 	{
-		final LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config);
+		final LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1",config,converter);
+		final Map<String,CmpVertex> map = new TreeMapWithSearch<String,CmpVertex>(10);for(CmpVertex vert:graph.transitionMatrix.keySet()) map.put(vert.getStringId(), vert);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			graph.findInitialState("Q");
-		}}, IllegalArgumentException.class,"absent initial state");
+			LTL_to_ba.findInitialState("Q",map);
+		}}, IllegalArgumentException.class,"missing state");
 	}
 	
 	/** Tests that a search for an initial state may fail, using an empty string which matches the first vertex encountered. */
 	@Test
 	public final void testFindInitialState_fail2()
 	{
-		final LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testCopyVertex",config);
-		Assert.assertEquals("Avertex",graph.getInit().getID().toString());
-		graph.findInitialState("");// this may choose any vertex
-		Assert.assertNotNull(graph.getInit());
-		Assert.assertSame(graph.getInit(), graph.findVertex(graph.getInit().getID()));
+		final LearnerGraphND graph = buildLearnerGraphND("Avertex-a->Bvertex-b->Cvertex", "testCopyVertex",config,converter);
+		Map<String,CmpVertex> map = new TreeMapWithSearch<String,CmpVertex>(10);for(CmpVertex vert:graph.transitionMatrix.keySet()) map.put(vert.getStringId(), vert);
+		Assert.assertEquals("Avertex",graph.getInit().getStringId());
+		Assert.assertNotNull(LTL_to_ba.findInitialState("",map));// this may choose any vertex, we rely on it choosing the smallest one lexicographically via the use of TreeMap
+		Assert.assertEquals("Avertex", LTL_to_ba.findInitialState("",map).getStringId());
 	}
 	
 	@Test
@@ -323,7 +332,7 @@ public class TestLTL_to_ba
 	public final void testLabelInterpretationB()
 	{
 		Set<Label> set = ba.interpretInputLabel("1");
-		Assert.assertEquals(ba.alphabet, set);
+		Assert.assertEquals(ba.alphabet.keySet(), set);
 	}
 	
 	/** Checks that a very simple expression applied to the initial data returns the expected value.
@@ -357,7 +366,7 @@ public class TestLTL_to_ba
 	protected Label [] getAlphabet()
 	{
 		Label[] result = new Label[ba.alphabet.size()];
-		ba.alphabet.toArray(result);
+		ba.alphabet.keySet().toArray(result);
 		return result;
 	}
 	
@@ -714,7 +723,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"state_b: if :: (a) -> goto state_b fi;"+
 		"}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0",config,converter);
 		expected.findVertex("B").setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
@@ -730,7 +739,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"state_b: false;\n"+
 		"}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B", "testLTL_ba_graph0",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B", "testLTL_ba_graph0",config,converter);
 		expected.findVertex("B").setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
@@ -748,7 +757,7 @@ public class TestLTL_to_ba
 		"state_unreachable: false;\n"+
 		"state_unreachable: false;\n"+
 		"}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0",config,converter);
 		expected.findVertex("B").setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
@@ -764,7 +773,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"state_b: skip\n"+
 		"}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B-b->B-c->B", "testLTL_ba_graph0",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-b->B-a->B-b->B-c->B", "testLTL_ba_graph0",config,converter);
 		expected.findVertex("B").setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
@@ -782,7 +791,7 @@ public class TestLTL_to_ba
 		"}\n";
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
-		}},IllegalArgumentException.class,"absent initial state");
+		}},IllegalArgumentException.class,"missing state");
 	}
 	
 	/** Conjunction of labels */
@@ -793,7 +802,7 @@ public class TestLTL_to_ba
 		"accept_init:\n"+
 		"if :: (!a && b) -> goto accept_init fi;\n"+
 		"}\n";
-		LearnerGraph expected = buildLearnerGraph("A-b->A", "testLTL_ba_graph1",config);
+		LearnerGraph expected = buildLearnerGraph("A-b->A", "testLTL_ba_graph1",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -805,7 +814,7 @@ public class TestLTL_to_ba
 		"accept_init: if\n"+
 		":: (!a && !b) -> goto accept_init \n"+
 		"fi;}\n";
-		LearnerGraph expected = buildLearnerGraph("A-c->A", "testLTL_ba_graph2",config);
+		LearnerGraph expected = buildLearnerGraph("A-c->A", "testLTL_ba_graph2",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -821,7 +830,7 @@ public class TestLTL_to_ba
 		"accept_A: if\n"+
 		":: (b) -> goto accept_A\n"+
 		"fi;}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B-b->B", "testLTL_ba_graph3",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B-b->B", "testLTL_ba_graph3",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -837,7 +846,7 @@ public class TestLTL_to_ba
 		"accept_A: if\n"+
 		":: (!b && b) -> goto accept_A\n"+
 		"fi;}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B", "testLTL_ba_graph4",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B", "testLTL_ba_graph4",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -853,7 +862,7 @@ public class TestLTL_to_ba
 		"accept_A: if\n"+
 		":: (1) -> goto accept_A\n"+
 		"fi;}\n";
-		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B-a->B\nB-b->B\nB-c->B", "testLTL_ba_graph4",config);
+		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B-a->B\nB-b->B\nB-c->B", "testLTL_ba_graph4",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -895,7 +904,7 @@ public class TestLTL_to_ba
 				"CD-b->FG\nCD-c->E-a->B\n"+
 				"FG-a->AB\n"+
 				"AB-a->CD\nAB-b->B\nAB-c->D\n"
-				, "testLTL_ba_nd1",config);
+				, "testLTL_ba_nd1",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -939,7 +948,7 @@ public class TestLTL_to_ba
 				"IABCDE-a->IABCDE\n"+
 				"BE-b->B-a->C-a->I\n"+"ABDE-b->B\n"+"IBCE-b->B\n"+"IABDE-b->B\n"+"IABCDE-b->B\n"+"B-b->B\n"+
 				"BE-c->E-a->I\n"+"ABDE-c->E\n"+"IBCE-c->E\n"+"IABDE-c->E\n"+"IABCDE-c->E\n"+"E-c->E\n"
-				, "testLTL_ba_nd2",config);
+				, "testLTL_ba_nd2",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 
@@ -1019,8 +1028,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_bigger()
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		LearnerGraph actual = loadLTLFromOutputOfLTL2BA("never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
 				"			accept_init :    /* init */\n"+
 				"				if\n"+
@@ -1069,8 +1078,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_integration_empty() throws IncompatibleStatesException
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		LearnerGraph expected = new LearnerGraph(config);expected.getInit().setAccept(false);
 		ba.runLTL2BA("false",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
@@ -1081,8 +1090,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_integration_bigger() throws IncompatibleStatesException
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}
@@ -1092,8 +1101,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_integration_bigger2() throws IncompatibleStatesException
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(ba.matrixFromLTL.config);
 		AbstractPathRoutines.completeMatrix(ba.matrixFromLTL.pathroutines.buildDeterministicGraph(),result);
@@ -1102,7 +1111,7 @@ public class TestLTL_to_ba
 				"1-load->I1-close->1\n"+
 				"I1-edit->I1-save->I1-load->I1\n"+
 				"1-edit-#R1\n"+"1-save-#R2\n"+"1-close-#R3\n"
-				,"testLTL_bigger",config);
+				,"testLTL_bigger",config,converter);
 		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 
@@ -1110,8 +1119,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_integration_subsystem_nonfinal()
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close","open"}));
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close","open"});
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([](close-><>open))"}),null,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		}},IllegalArgumentException.class,"not all states are accept");
@@ -1156,9 +1165,9 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_uniteAndDeterminise()
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
-		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config);
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
+		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
 		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
@@ -1170,9 +1179,9 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_uniteAndDeterminise2()
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
-		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config);
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
+		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
 		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
@@ -1186,9 +1195,9 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLTL_uniteAndDeterminise3()
 	{
-		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<Label>();
-		ba.alphabet.addAll(labelList(new String[]{"load","save","edit","close"}));
-		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config);
+		ba=new LTL_to_ba(config,converter);
+		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
+		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
 		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba), expected  = automatonLoadedFromLTL(ba);

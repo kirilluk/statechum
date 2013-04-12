@@ -83,7 +83,6 @@ public class SmtLabelParser {
 		String lastLabel = null;
 		CompositionOfFunctions lastArgs = null;
 		boolean argumentsAlreadyParsed = false;
-		int position = 0;// position in the trace.
 		while(currentMatch >= 0)
 		{
 			switch(currentMatch)
@@ -109,7 +108,6 @@ public class SmtLabelParser {
 				}
 				lastLabel = lexExpr.group(exprWordText);
 				lastArgs = null;argumentsAlreadyParsed = false;
-				++position;
 				break;
 			case exprClose:
 				throw new IllegalArgumentException("unexpected closing brace when parsing "+lexExpr.getText());

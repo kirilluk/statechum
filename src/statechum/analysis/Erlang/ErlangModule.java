@@ -184,7 +184,7 @@ public class ErlangModule {
 					// Loop for more occurences on this line
 				}
 			}
-			input.close();
+			input.close();input=null;
 		} catch (IOException e) {
 			Helper.throwUnchecked("read error", e);
 		}

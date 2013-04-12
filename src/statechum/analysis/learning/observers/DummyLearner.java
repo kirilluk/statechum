@@ -28,6 +28,7 @@ import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
 /** An implementation of <em>LearnerDecorator</em> which does nothing and
@@ -118,5 +119,13 @@ public class DummyLearner extends LearnerDecorator
 	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) 
 	{
 		return decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
+	}
+
+	@Override
+	public ConvertALabel getLabelConverter() 
+	{
+		if (decoratedLearner == null)
+			return super.getLabelConverter();
+		return decoratedLearner.getLabelConverter();
 	}
 }

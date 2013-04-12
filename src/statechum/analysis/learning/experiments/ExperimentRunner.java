@@ -46,6 +46,7 @@ import statechum.Pair;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class ExperimentRunner 
 {
@@ -303,6 +304,12 @@ public class ExperimentRunner
 		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, ExperimentRunner exp);
 	}
 	
+	/** Permits all labels in an experiment to be interned. */
+	public ConvertALabel getLabelConverter()
+	{
+		return null;
+	}
+	
 	public abstract static class LearnerEvaluator implements Callable<String>
 	{
 		/** Configuration for the learner and related.
@@ -372,11 +379,7 @@ public class ExperimentRunner
 				finally
 				{
 					if (reader != null)
-						try {
-							reader.close();
-						} catch (IOException e) {
-							// ignore the exception
-						}
+						try { reader.close();reader=null; } catch (IOException e) {	/* ignore the exception */ }
 				}
 			}
 			OUTCOME currentOutcome = OUTCOME.RUNNING;
@@ -420,7 +423,7 @@ public class ExperimentRunner
 			try
 			{
 				graph = new LearnerGraph(cnf);
-				AbstractPersistence.loadGraph(new FileReader(inputFileName),graph);
+				AbstractPersistence.loadGraph(new FileReader(inputFileName),graph, experiment.getLabelConverter());
 			}
 			catch(Exception ex)
 			{
@@ -456,6 +459,7 @@ public class ExperimentRunner
 					percentValue = FS+percent;
 
 				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(resultString == null? "":resultString)+"\n");
+				outputWriter.close();outputWriter = null;
 			}
 			catch(IOException e)
 			{
@@ -465,11 +469,7 @@ public class ExperimentRunner
 			}
 			finally
 			{
-				try { if (outputWriter != null) outputWriter.close(); 
-				} 
-				catch (IOException e) {
-					// ignore this
-				}
+				if (outputWriter != null) { try { outputWriter.close();outputWriter=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 			}
 			return stdOutput;
 		}
@@ -495,9 +495,10 @@ public class ExperimentRunner
 	 */
 	private void loadFileNames(Reader fileNameListReader) throws IOException
 	{
-		BufferedReader reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
+		BufferedReader reader = null;
 		try
 		{
+			reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
 			String line = reader.readLine();
 			while(line != null)
 			{
@@ -514,7 +515,7 @@ public class ExperimentRunner
 		}
 		finally
 		{
-			reader.close();
+			if (reader != null) { try { reader.close();reader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 		
 		if (fileName.isEmpty())
@@ -601,20 +602,25 @@ public class ExperimentRunner
 		{
 			LearnerEvaluator evaluator = getLearnerEvaluator(fileNameListReader,Number);
 			String line = null;
+			BufferedReader reader = null; 
 			try
 			{
-				BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(FileType.RESULT)));
+				reader = new BufferedReader(new FileReader(evaluator.getFileName(FileType.RESULT)));
 				line = reader.readLine();
 				if (line != null && line.contains(LearnerEvaluator.OUTCOME.SUCCESS.name()))
 				{// get the next line
 					line = reader.readLine();if (line != null && line.length() == 0) line = null;
 				}
 				else line = null;
-				reader.close();
+				
 			}
 			catch(IOException e)
 			{
 				line = null;
+			}
+			finally
+			{
+				if (reader != null) { try { reader.close();reader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 			}
 			
 			if (line != null)
@@ -631,7 +637,7 @@ public class ExperimentRunner
 		for(Entry<String,List<String>> entry:resultMap.entrySet())
 			for(String str:entry.getValue())
 			csvWriter.write(str+"\n");
-		csvWriter.close();
+		csvWriter.close();csvWriter=null;
 
 		return failures;
 	}
@@ -779,7 +785,7 @@ public class ExperimentRunner
     		}
     		finally
     		{
-    			if (reader != null) reader.close();
+    			if (reader != null) { try { reader.close();reader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
     		}
  		}
 
@@ -814,10 +820,11 @@ public class ExperimentRunner
 	 */
 	public static void main(String args[])
 	{
+		XMLDecoder decoder = null; 
 		try 
 		{
 			
-			XMLDecoder decoder = new XMLDecoder(new FileInputStream(args[0]));
+			decoder = new XMLDecoder(new FileInputStream(args[0]));
 			final ExperimentRunner exp = (ExperimentRunner) decoder.readObject();decoder.close();
 			String []expArgs = new String[args.length-1];System.arraycopy(args, 1, expArgs, 0, args.length-1);
 			if (exp.isForked())
@@ -879,6 +886,8 @@ public class ExperimentRunner
 		} catch (Exception e) {
 			// no point handling this because the caller will do post-process and will know what happened.
 			e.printStackTrace();
+		} finally {
+			if (decoder != null) { decoder.close();decoder = null; }
 		}
 		
 	}
@@ -1048,6 +1057,8 @@ public class ExperimentRunner
 		}
 		if (outBuffer.length() > 0) handler.StdOut(outBuffer);
 		if (errBuffer.length() > 0) handler.StdOut(errBuffer);
+		try { err.close(); } catch (IOException e) { /* ignore this */ }
+		try { out.close(); } catch (IOException e) { /* ignore this */ }
 	}
 	
 	/** Removes the directory and all its files. If the directory contains 
@@ -1086,6 +1097,9 @@ public class ExperimentRunner
 	 */
 	protected boolean zapOutputDir = true;
 	
+	/** Debug flags to JVM. */
+	private static final String debugArg = "-agentlib:jdwp";
+	
 	/** This method is a Grid-mode-only runner which can be provided with
 	 * a configuration to run experiments on and a subclass of 
 	 * <em>LearnerEvaluatorGenerator</em> which actually runs them. It also
@@ -1099,7 +1113,7 @@ public class ExperimentRunner
 	{
   		Reader reader = null;File serialisedExperiment = null;
         outputDir = outputDirName;
-
+        XMLEncoder encoder = null;
 		try
 		{
 			File graphDir = new File(graphDirName);
@@ -1123,17 +1137,19 @@ public class ExperimentRunner
 			// following http://forums.sun.com/thread.jspa?threadID=563892&messageID=2788740
 			List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
 			boolean debuggerArgsFound = false;
-			for(String arg:jvmArgs)
-				if (arg.startsWith("-agentlib:jdwp"))
-				{
-					debuggerArgsFound = true;break;
-				}
+			if (!Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.FORCEFORK)))
+				for(String arg:jvmArgs)
+					if (arg.startsWith(debugArg))
+					{
+						debuggerArgsFound = true;break;
+					}
+
 			setForked(!debuggerArgsFound);setRobust(!debuggerArgsFound);
 			
 			// Now serialise this experiment and get the new JVM to load it back.
 			serialisedExperiment = File.createTempFile("experiment", ".xml", new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)));
-			XMLEncoder encoder = new XMLEncoder(new FileOutputStream(serialisedExperiment));
-			encoder.writeObject(this);encoder.close();
+			encoder = new XMLEncoder(new FileOutputStream(serialisedExperiment));
+			encoder.writeObject(this);encoder.close();encoder = null;
 			int learnerCounter = 1;
 			int failures = -1, attempts =isForked()?0:restarts-1;// if we start under debugger, only run learner once.
 			while(failures != 0 && attempts++<restarts)
@@ -1145,7 +1161,10 @@ public class ExperimentRunner
 					if (isForked())
 					{// arguments for the JVM to run
 						commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
-						commandLine.addAll(jvmArgs);commandLine.add("-Djava.awt.headless=true");commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
+						for(String arg:jvmArgs)
+							if (!arg.startsWith(debugArg)) // filter out debug args, this is used in Ant tests.
+								commandLine.add(arg);
+						commandLine.add("-Djava.awt.headless=true");commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
 						commandLine.add(this.getClass().getCanonicalName());
 					}
 					commandLine.add(serialisedExperiment.getAbsolutePath());commandLine.add(graphDir.getAbsolutePath());commandLine.add(outputDirectory.getAbsolutePath());
@@ -1191,11 +1210,11 @@ public class ExperimentRunner
 			}
 			if (failures > 0)
 				throw new LearnerFailed(failures+" files could not be processed");
-			
  		}
 		finally
 		{
-			if (reader != null) reader.close();
+			if (reader != null) { try { reader.close();reader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
+			if (encoder != null) { encoder.close();encoder=null; }
 			if (serialisedExperiment != null) serialisedExperiment.delete();
 		}
 
@@ -1220,11 +1239,12 @@ public class ExperimentRunner
 			tableReader = new BufferedReader(new FileReader(new File(getOutputDir(),resultName)));
 			resultWriter = new BufferedWriter(new FileWriter(result));
 			postProcessIntoR(learnerFilter,colSort,numbers,colNumber, tableReader,resultWriter);
+			resultWriter.close();resultWriter = null;
 		}
 		finally
 		{
-			if (tableReader != null) tableReader.close();
-			if (resultWriter != null) resultWriter.close();
+			if (tableReader != null) { try { tableReader.close();tableReader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
+			if (resultWriter != null) { try { resultWriter.close();resultWriter=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}		
 	}
 	

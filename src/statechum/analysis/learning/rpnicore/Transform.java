@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
@@ -39,17 +40,20 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
-import statechum.Pair;
+import statechum.StringLabelInt;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
+import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.QSMTool;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -132,6 +136,7 @@ public class Transform
 		for(int i=0;i< stateToBitVector.length;++i)
 			for(int j=i+1;j<stateToBitVector.length;++j)
 			{
+				@SuppressWarnings("unchecked")
 				Entry<CmpVertex,List<Boolean>> vecI = (Entry<CmpVertex,List<Boolean>>) stateToBitVector[i],vecJ = (Entry<CmpVertex,List<Boolean>>)stateToBitVector[j];
 				int h = HammingDistance(vecI.getValue(), vecJ.getValue());
 				average+=h;
@@ -230,7 +235,7 @@ public class Transform
 			for(Label label:newLabels)
 			{
 				LearnerGraph newGraph = new LearnerGraph(coregraph,coregraph.config);
-				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
+				CmpVertex currState = newGraph.findVertex(entry.getKey());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
 				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet,true,null);
 				boolean changed = (description != null);
@@ -249,7 +254,7 @@ public class Transform
 				++total;
 			}
 			changeNumber+=changesForThisState;
-			result+="changes for "+entry.getKey().getID().toString()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
+			result+="changes for "+entry.getKey().getStringId()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
 		}
 		double stateNumber = coregraph.getStateNumber();
 		double wsize = wSet.size();
@@ -369,7 +374,7 @@ public class Transform
 							graphModified=true;
 						}
 						nextGraphVertex = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(accept), config);
-						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
+						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && result.findVertex(nextGraphVertex) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getStringId()+" in graph "+result);
 						DeterministicDirectedSparseGraph.copyVertexData(graphState, nextGraphVertex);nextGraphVertex.setAccept(accept);
 						result.transitionMatrix.put(nextGraphVertex,result.createNewRow());
 						
@@ -562,6 +567,43 @@ public class Transform
 			
 			return thenStateComparison;
 		}
+
+		/** In order to reduce memory use, where the intention is to store a single element in a collection, I just store that element as an object.
+		 * Where multiple elements are needed, it is converted to a real collection. This method takes an object and turns it into a collection
+		 * that can be iterated over. Nothing more is needed.
+		 * 
+		 * @param object
+		 * @return
+		 */
+		public static Iterator<ExplorationElement> getCollectionOfVisited(final Object object) 
+		{
+			if (object == null)
+				return null;
+			else
+				if (object instanceof ExplorationElement)
+					return new Iterator<ExplorationElement>(){
+						private boolean elementReturned = false;
+						
+						@Override
+						public boolean hasNext() {
+							return !elementReturned;
+						}
+
+						@Override
+						public ExplorationElement next() {
+							if (elementReturned)
+								throw new NoSuchElementException("no more elments in the iterator over exploration elements");
+							elementReturned = true;
+							return (ExplorationElement)object;
+						}
+
+						@Override
+						public void remove() {
+							throw new UnsupportedOperationException("remove not supported from an iterator over exploration elements");
+						}};
+						else
+							return ((Set<ExplorationElement>)object).iterator();
+		}
 	}
 
 	public static class AugmentFromIfThenAutomatonException extends IncompatibleStatesException
@@ -656,19 +698,38 @@ public class Transform
 		return currentState.isAccept() == accept;
 	}
 	
+	
+	
 	/** Given a map reflecting visited states (depending on specific property automaton and specific graph state),
 	 * this method checks if the exploration element corresponding to these have already been encountered.
 	 * When the answer is false, the supplied exploration element is marked as visited.
 	 */
-	private static boolean hasBeenVisited(Map<CmpVertex,Set<ExplorationElement>>[] visited, ExplorationElement explorationElement)
+	private static boolean hasBeenVisited(Map<CmpVertex,Object>[] visited, ExplorationElement explorationElement)
 	{
-		Set<ExplorationElement> propertyStatesForThisGraphState = visited[explorationElement.propertyGraph].get(explorationElement.graphState);
+		Object propertyStatesForThisGraphState = visited[explorationElement.propertyGraph].get(explorationElement.graphState);
+		boolean result = true;
 		if (propertyStatesForThisGraphState == null)
-		{
-			propertyStatesForThisGraphState = new TreeSet<ExplorationElement>();visited[explorationElement.propertyGraph].put(explorationElement.graphState,propertyStatesForThisGraphState);
+		{// no object recorded, store the object as such.
+			visited[explorationElement.propertyGraph].put(explorationElement.graphState,explorationElement);
+			result = false;// successfully recorded
 		}
-		boolean result = propertyStatesForThisGraphState.add(explorationElement);
-		return !result;// result is false if a state was not added because it is already in the set. Hence we return true here.
+		else
+			if (propertyStatesForThisGraphState instanceof ExplorationElement)
+			{// a singleton recorded, check if it is the same as the one we try to add.
+				if (!explorationElement.equals(propertyStatesForThisGraphState))
+				{// the new element is different from the previous one, have to record the two as a collection
+					Set<ExplorationElement> collection = new TreeSet<ExplorationElement>();
+					collection.add((ExplorationElement)propertyStatesForThisGraphState);collection.add(explorationElement);
+					visited[explorationElement.propertyGraph].put(explorationElement.graphState,collection);
+					result = false;// had to create a collection
+				}
+			}
+			else
+			{// already have a collection
+				result = !((Set<ExplorationElement>)propertyStatesForThisGraphState).add(explorationElement);
+				// result is false if a state was not added because it is already in the set. Hence we return true here.
+			}
+		return result;
 	}
 	
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
@@ -696,20 +757,22 @@ public class Transform
 	{
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
 			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
+		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
 			for(CmpVertex state:graph.transitionMatrix.keySet())
-				if (state.getID().getKind() == VertKind.NONEXISTING)
+				if (state.getKind() == VertKind.NONEXISTING)
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.getNonExistingVertices();
 		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix(graph.config.getMaxStateNumber()):questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
-		final Map<CmpVertex,Set<ExplorationElement>>[] visited = new Map[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
+		@SuppressWarnings("unchecked")
+		final Map<CmpVertex,Object>[] visited = new Map[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
 
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
-			visited[i]=new HashMapWithSearch<CmpVertex,Set<ExplorationElement>>(graph.getStateNumber() << 1);// create space for more vertices
+			visited[i]=graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new ArrayMapWithSearch<CmpVertex,Object>() :
+					new HashMapWithSearch<CmpVertex,Object>(graph.getStateNumber());// previously the number of states was shifted left by one to create space for more vertices
 			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
 			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();
@@ -762,7 +825,6 @@ public class Transform
 						{// we hit a match-state, add next states
 							ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,ifthenGraph,entry.getKey(),
 									explorationElement.propertyGraph,explorationElement.IFState, explorationElement.depth,JUConstants.PAIRCOMPATIBILITY.THEN, explorationElement);
-							//Set<ExplorationElement> visitedStates = visited[explorationElement.propertyGraph].get(exploranew HashSet<ExplorationElement>();
 							if (!hasBeenVisited(visited,nextExplorationElement))
 							{// not seen this triple already
 								//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
@@ -793,8 +855,11 @@ public class Transform
 				{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
 					nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
 					newStates.add(nextGraphState);
-					if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
+					if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getStringId()+" in graph "+graph);
 					DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);
+					nextGraphState.setDepth(explorationElement.graphState.getDepth()+1);// the new state sticks out of the main graph, this is why we can 
+						// count on the distance from the root to that state to be one transition greater than the distance from the root 
+						// to the state it is reached from (and anything we add forms a tree).
 					graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
 					
 					// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
@@ -816,15 +881,18 @@ public class Transform
 					// a target state of newly-added transition).
 					for(int i=0;i<ifthenGraphs.length;++i)
 					{
-						final Set<ExplorationElement> visitedEarlier = visited[i].get(explorationElement.graphState);
-						if (visitedEarlier != null) // some vertices in a tentative automaton can never be reached by an IF portion of some if-then automata, in which case there will not be a corresponding entry in visited- we're checking for this here.
-							for(ExplorationElement elem:visitedEarlier)
+						final Iterator<ExplorationElement> visitedEarlierIterator = ExplorationElement.getCollectionOfVisited(visited[i].get(explorationElement.graphState));
+						if (visitedEarlierIterator != null) // some vertices in a tentative automaton can never be reached by an IF portion of some if-then automata, in which case there will not be a corresponding entry in visited- we're checking for this here.
+							while(visitedEarlierIterator.hasNext())
+							{
+								ExplorationElement elem=visitedEarlierIterator.next();
 								if (elem.IFState != null)
 								{// if we have not been matching IF part at this point (this happens when we 
 								 // unroll THEN through some paths some of which are in a tentative automaton), 
 								 // there is no point extending. 
 									currentExplorationBoundary.offer(elem);
 								}
+							}
 					}
 				}
 				
@@ -849,7 +917,7 @@ public class Transform
 					//System.out.println("G: "+explorationElement+"-"+label+"->"+nextExplorationElement);
 					currentExplorationBoundary.offer(nextExplorationElement);
 
-					if (nextGraphState.getID().getKind() == VertKind.NONEXISTING && nonExistingVertices.contains(nextGraphState))
+					if (nextGraphState.getKind() == VertKind.NONEXISTING && nonExistingVertices.contains(nextGraphState))
 					{// we're extending into the area of questions (nextGraphState.getID().getKind() == VertKind.NONEXISTING) 
 					 // not previously visited (nonExistingVertices.contains(nextGraphState))
 						nonExistingVertices.remove(nextGraphState);
@@ -870,15 +938,18 @@ public class Transform
 						// THEN is null and graph vertices are not-visited-non-existent are not added to the frontline.
 						for(int i=0;i<ifthenGraphs.length;++i)
 						{
-							Set<ExplorationElement> previouslyVisited = visited[i].get(explorationElement.graphState);
-							if (previouslyVisited != null)
-								for(ExplorationElement elem:previouslyVisited)
+							final Iterator<ExplorationElement> previouslyVisitedIterator = ExplorationElement.getCollectionOfVisited(visited[i].get(explorationElement.graphState));
+							if (previouslyVisitedIterator != null)
+								while(previouslyVisitedIterator.hasNext())
+								{
+									ExplorationElement elem=previouslyVisitedIterator.next();
 									if (elem.IFState != null)
 									{// if we have not been matching IF part at this point (this happens when we 
 									 // unroll THEN through some paths some of which are in a tentative automaton), 
 									 // there is no point extending. 
 										currentExplorationBoundary.offer(elem);
 									}
+								}
 						}
 					}
 				}
@@ -936,14 +1007,16 @@ public class Transform
 		return result;
 	}
 	
-	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, LearnerGraph graph, Configuration config)
+	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, LearnerGraph graph, Configuration config, ConvertALabel conv)
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
-		LTL_to_ba converter = new LTL_to_ba(config);
+		LTL_to_ba converter = new LTL_to_ba(config,conv);
 		if (converter.ltlToBA(ltl, graph, true,
 				GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)))
 			try {
-				LearnerGraph ltlAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
+				LearnerGraph ltlTmpAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
+				LearnerGraph ltlAutomaton = new LearnerGraph(ltlTmpAutomaton.config);
+				AbstractLearnerGraph.interpretLabelsOnGraph(ltlTmpAutomaton,ltlAutomaton,new ConvertLabel(conv));
 				ltlAutomaton.setName("LTL");
 				ifthenAutomata.add(ltlAutomaton);
 			} catch (IncompatibleStatesException e) {
@@ -957,8 +1030,11 @@ public class Transform
 				int endOfName = automatonAndName.indexOf(' ');
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
-				LearnerGraph propertyAutomaton = 
-						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
+				LearnerGraph tmpPropertyAutomaton = 
+						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
+							.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet(),conv); // this is inefficient but I can afford this because if-then automata are small.
+				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
+				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
 				ifthenAutomata.add(propertyAutomaton);
 			}
@@ -1025,6 +1101,17 @@ public class Transform
 		public Set<Label> convertLabel(Label label);
 	}
 	
+	public static interface ConvertALabel
+	{
+		/** Converts a label to a single label, possibly of a completely different type,
+		 * such as string->Erlang.
+		 * 
+		 * @param label label to convert
+		 * @return outcome of conversion.
+		 */
+		public Label convertLabelToLabel(Label label);
+	}
+	
 	/** Interprets string labels as a limited kind of regular expressions, returns the corresponding set of labels.
 	 * 
 	 */
@@ -1034,10 +1121,11 @@ public class Transform
 		 * 
 		 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
 		 * @param config configuration to use
+		 * @param converter converter to intern labels.
 		 */
-		public ConvertExpandLabels(Set<Label> alphabet, Configuration config)
+		public ConvertExpandLabels(Set<Label> alphabet, Configuration config, ConvertALabel converter)
 		{
-			ba = new LTL_to_ba(config);
+			ba = new LTL_to_ba(config,converter);
             ba.setAlphabet(alphabet);
 		}
 		@Override
@@ -1051,12 +1139,12 @@ public class Transform
 	/** Makes no interpretation, aimed to convert vertices to a different type.
 	 * 
 	 */
-	public static class ConvertTypeOfLabels implements LabelConverter
+	public static class ConvertTypeOfLabels implements LabelConverter, ConvertALabel
 	{
 
 		@Override
 		public Set<Label> convertLabel(Label label) {
-			return Collections.singleton(AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config));
+			return Collections.singleton(convertLabelToLabel(label));
 		}
 
 		public ConvertTypeOfLabels(Configuration cnf)
@@ -1064,44 +1152,75 @@ public class Transform
 			config = cnf;
 		}
 		private final Configuration config;
-	}
-	
-	/** Given a graph where each label is a composite expression, this method expands those labels.
-	 * If labels are regular expressions, the corresponding subsets of an alphabet are built
-	 * and transitions replaced by sets of transitions. This also permits conversion of graphs 
-	 * between label types, for instance, one may load a graph with textual labels and then use
-	 * this method to interpret labels as Erlang expressions.
-	 *  
-	 * @param converter code do convert vertices.
-	 * @return a state machine where each transition transition label belongs to the alphabet.
-	 */
-	public LearnerGraph interpretLabelsOnGraph(LabelConverter converter)
-	{
-		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
-		LearnerGraph result = new LearnerGraph(coregraph,config);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-		{// here we are replacing existing rows without creating new states.
-		 // This is why associations (such as THENs) remain valid.
-			Map<Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
-			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-					for(Label label:converter.convertLabel(transition.getKey()))
-						result.addTransition(row, label, transition.getValue());
+		
+		@Override
+		public Label convertLabelToLabel(Label label) 
+		{
+			return AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config);
 		}
-		return result;
 	}
 	
+	/** Permits the use of the one-to-one label converter as {@link LabelConverter}.
+	 */
+	public static class ConvertLabel implements LabelConverter
+	{
+		private final ConvertALabel converter;
+		
+		public ConvertLabel(ConvertALabel conv)
+		{
+			converter = conv;
+		}
+		
+		@Override
+		public Set<Label> convertLabel(Label label) 
+		{
+			return Collections.singleton(converter == null?label:converter.convertLabelToLabel(label));
+		}
+		
+	}
 	
+	/** This class permits one to intern labels. Any number of instances can be created, one for each group of graphs that should share labels.
+	 */
+	public static class InternStringLabel implements LabelConverter, ConvertALabel
+	{
+		protected Map<Label,Label> labelDatabase = new HashMapWithSearch<Label,Label>(20);
+		
+		/** ID to give to the next label. */
+		protected int nextID;
+		
+		/** Given a label, returns an interned label. Could return the same label but should not return null. 
+		 * @param lbl label to intern. 
+		 */
+		@Override
+		public Label convertLabelToLabel(Label label)
+		{
+			Label outcome = labelDatabase.get(label);
+			if (outcome == null)
+			{
+				outcome = new StringLabelInt(label.toErlangTerm(), nextID++);labelDatabase.put(outcome,outcome);
+			}
+			return outcome;
+		}
+
+		@Override
+		public Set<Label> convertLabel(Label label) {
+			return Collections.singleton(convertLabelToLabel(label));
+		}
+	}
+
 	/** Given a graph where each label is a composite expression, this method expands those labels.
 	 * If labels are regular expressions, the corresponding subsets of an alphabet are built
 	 * and transitions replaced by sets of transitions.
 	 * 
 	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
-	 * @param config configuration to use
+	 * @param conv converter to use to intern labels.
 	 */
-	public LearnerGraph interpretLabelsAsReg(Set<Label> alphabet)
+	public LearnerGraph interpretLabelsAsReg(Set<Label> alphabet, ConvertALabel conv)
 	{
 		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
-		return interpretLabelsOnGraph(new ConvertExpandLabels(alphabet, config));
+		LearnerGraph outcome = new LearnerGraph(config);
+		AbstractLearnerGraph.interpretLabelsOnGraph(coregraph,outcome,new ConvertExpandLabels(alphabet, config, conv));
+		return outcome;
 	}
 	
 	public static class TraversalStatistics

@@ -17,24 +17,29 @@
 package statechum;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
-
-final public class StringVertex implements CmpVertex {
+final public class StringVertex extends VertexID implements CmpVertex
+{
+	/**
+	 * ID for serialisation
+	 */
+	private static final long serialVersionUID = -3577238342791987067L;
+	
 	protected JUConstants colour = null;
 	protected boolean accept = true,highlight = false;
-	final protected VertexID vertexId;
-	private VertexID origState = null;
+	private VertID origState = null;
 	private int depth=JUConstants.intUNKNOWN;
 	
 	public StringVertex(String nameArg)
 	{
-		vertexId = new DeterministicDirectedSparseGraph.VertexID(nameArg);
+		super(VertexID.parseID(nameArg));
 	}
 	
-	public StringVertex(VertexID nameArg)
+	public StringVertex(VertID nameArg)
 	{
-		vertexId = nameArg;
+		super(nameArg);
 	}
 	
 	@Override 
@@ -42,11 +47,6 @@ final public class StringVertex implements CmpVertex {
 		return colour;
 	}
 
-	@Override 
-	public VertexID getID() {
-		return vertexId;
-	}
-	
 	@Override 
 	public boolean isAccept() {
 		return accept;
@@ -65,7 +65,7 @@ final public class StringVertex implements CmpVertex {
 	@Override 
 	public void setColour(JUConstants c) {
 		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE && c != JUConstants.AMBER && c != JUConstants.GRAY && c != JUConstants.INF_AMBER)
-			throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+getID().toString()+")");
+			throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+super.toString()+")");
 		colour = c;
 	}
 
@@ -81,39 +81,15 @@ final public class StringVertex implements CmpVertex {
 	 * will generate the appropriate number. 
 	 */
 	@Override 
-	public int compareTo(CmpVertex o) 
+	public int compareTo(VertID o) 
 	{
 		assert o != null;
 /*		if (!(o instanceof CmpVertex))
 			throw new IllegalArgumentException("an attempt to compare "
 				+ toString() + " with a non-CmpVertex " + o.getName());*/
-		CmpVertex v = o;
-		if (this == v)
+		if (this == o)
 			return 0;
-		return vertexId.compareTo(v.getID());
-	}
-
-	@Override
-	public int hashCode() {
-		int labelHashCode = vertexId == null?super.hashCode():vertexId.hashCode();
-		
-		return labelHashCode;
-	}
-
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (this == obj)
-			return true;
-		if (!(obj instanceof CmpVertex))
-			return false;
-		
-		final CmpVertex other = (CmpVertex) obj;
-		
-		if (vertexId == null)
-			return other.getID() == null;
-		
-		return vertexId.equals(other.getID());
+		return super.compareTo(o);
 	}
 
 	@Override
@@ -122,7 +98,7 @@ final public class StringVertex implements CmpVertex {
 		String origName = "";if (getOrigState() != null) origName=" <"+getOrigState()+">";
 		String strDepth="";if(getDepth()!=JUConstants.intUNKNOWN) strDepth=" depth="+getDepth();
 		String strColour="";if(getColour()!=null) strColour=" colour="+getColour();
-		return vertexId == null?"NULL":vertexId.toString()+origName+strDepth+strColour;
+		return super.toString()+origName+strDepth+strColour;
 	}
 
 	@Override 
@@ -131,7 +107,7 @@ final public class StringVertex implements CmpVertex {
 	}
 
 	@Override 
-	public VertexID getOrigState() {
+	public VertID getOrigState() {
 		return origState;
 	}
 
@@ -141,7 +117,8 @@ final public class StringVertex implements CmpVertex {
 	}
 
 	@Override 
-	public void setOrigState(VertexID newState) {
-		origState = newState;
+	public void setOrigState(VertID newState) {
+		if (newState == null) origState = null;
+		else origState = new VertexID(newState);
 	}
 }

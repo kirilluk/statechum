@@ -32,7 +32,8 @@ import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.*;
 import statechum.analysis.learning.util.*;
 
-public class PickNegativesVisualiser extends Visualiser {
+public class PickNegativesVisualiser extends Visualiser 
+{
     /**
 	 *  ID for serialisation.
 	 */
@@ -90,11 +91,19 @@ public class PickNegativesVisualiser extends Visualiser {
 	        	LearnerGraph graph = mainDecorator.learnMachine(sPlus, sMinus);
 	        	if (graph != null)
 	        	{
-		        	DirectedSparseGraph learnt = graph.pathroutines.getGraph();
-	        		if(conf.config.isGenerateTextOutput())
-	        			OutputUtil.generateTextOutput(learnt,"textOutput.txt");
-	        		if(conf.config.isGenerateDotOutput())
-	        			OutputUtil.generateDotOutput(learnt, "dotOutput.dot");
+	        		try
+	        		{
+			        	DirectedSparseGraph learnt = graph.pathroutines.getGraph();
+		        		if(conf.config.isGenerateTextOutput())
+		        			OutputUtil.generateTextOutput(learnt,"textOutput.txt");
+		        		if(conf.config.isGenerateDotOutput())
+		        			OutputUtil.generateDotOutput(learnt, "dotOutput.dot");
+		        	}
+	            	catch(java.io.IOException ex)
+	            	{
+	            		ex.printStackTrace();
+	            	}
+
 	        	}        		
 			}
 		},"RPNI learner thread");
@@ -160,6 +169,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	
 	@Override
 	public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
+		@SuppressWarnings("rawtypes")
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;

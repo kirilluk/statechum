@@ -270,4 +270,10 @@ public abstract class Signature implements Label {
 	public int hashCode() {
 		return toErlangTerm().hashCode();
 	}
+
+	@Override
+	public int toInt() {
+		throw new UnsupportedOperationException("Signature does not have support for toInt");
+	}
+
 }

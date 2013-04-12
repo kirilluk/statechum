@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import javax.xml.XMLConstants;
@@ -29,18 +30,35 @@ import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
-public class TestEquivalenceChecking {
-	public TestEquivalenceChecking()
+@RunWith(Parameterized.class)
+public class TestEquivalenceChecking extends TestWithMultipleConfigurations 
+{
+	public TestEquivalenceChecking(Configuration conf)
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration().copy();
+		super(conf);
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
+	}
+	
+	
+	@Parameters
+	public static Collection<Object[]> data() 
+	{
+		return TestWithMultipleConfigurations.data();
+	}
+	
+	public static String parametersToString(Configuration config)
+	{
+		return TestWithMultipleConfigurations.parametersToString(config);
 	}
 	
 	org.w3c.dom.Document doc = null;
@@ -51,8 +69,6 @@ public class TestEquivalenceChecking {
 	@Before
 	public void beforeTest()
 	{
-		config = mainConfiguration.copy();
-
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
 		{
@@ -66,35 +82,29 @@ public class TestEquivalenceChecking {
 		}
 	}
 
-	/** The configuration to use when running tests. */
-	Configuration config = null, mainConfiguration = null;
-
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
 	 * @param g graph to check
 	 * @param fsm the string representation of the machine which the graph should be isomorphic to
 	 */
-	public void checkEq(DirectedSparseGraph g, String fsm)
+	public void checkEq(LearnerGraph graph, String fsm)
 	{
-		DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph",config);
-		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
-		final LearnerGraph expected = new LearnerGraph(expectedGraph,Configuration.getDefaultConfiguration());
-		
+		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",mainConfiguration,converter);
 		assertEquals("incorrect data",true,expected.equals(graph));
 	}
 
 	@Test
 	public void testCheckEq()
 	{
-		DirectedSparseGraph g=buildGraph("P-a->Q_State-b->P-c->P","testCheckEq",config);
-		checkEq(g,"P-c->P<-b-Q_State<-a-P");
+		LearnerGraph g=buildLearnerGraph("P-a->Q_St-b->P-c->P","testCheckEq",mainConfiguration,converter);
+		checkEq(g,"P-c->P<-b-Q_St<-a-P");
 	}
 	
 	/** Verifies the equivalence of a supplied graph to the supplied machine. */
-	public static void checkM_ND(String fsm,String g,Configuration conf)
+	public static void checkM_ND(String fsm,String g,Configuration conf, ConvertALabel converter)
 	{
-		final LearnerGraphND graph = new LearnerGraphND(buildGraph(g,"expected graph",conf),conf);
-		final LearnerGraphND expected = new LearnerGraphND(buildGraph(fsm,"expected graph",conf),conf);
+		final LearnerGraphND graph = buildLearnerGraphND(g,"expected graph",conf,converter);
+		final LearnerGraphND expected = buildLearnerGraphND(fsm,"expected graph",conf,converter);
 		DifferentFSMException 
 			ex1 = WMethod.checkM(expected,graph),
 			ex2 = WMethod.checkM(graph,expected);
@@ -107,10 +117,9 @@ public class TestEquivalenceChecking {
 
 	/** Verifies the equivalence of a supplied graph to the supplied machine.
 	 */
-	public static void checkM(String fsm,DirectedSparseGraph g,Configuration conf)
+	public static void checkM(String fsm,LearnerGraph graph,Configuration conf, ConvertALabel converter)
 	{
-		final LearnerGraph graph = new LearnerGraph(g,conf);
-		final LearnerGraph expected = new LearnerGraph(buildGraph(fsm,"expected graph",conf),conf);
+		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",conf,converter);
 		
 		DifferentFSMException 
 			ex1 = WMethod.checkM(expected,graph),
@@ -127,18 +136,18 @@ public class TestEquivalenceChecking {
 	
 	/** Verifies the equivalence of a supplied graph to the supplied machine.
 	 */
-	public static void checkM(String fsm,String g,Configuration conf)
+	public static void checkM(String fsm,String g,Configuration conf, ConvertALabel converter)
 	{
-		final DirectedSparseGraph graph = buildGraph(g,"actual graph",conf);
-		checkM(fsm,graph,conf);
+		final LearnerGraph graph = buildLearnerGraph(g,"actual graph",conf,converter);
+		checkM(fsm,graph,conf,converter);
 	}
 	
 	/** Verifies the reduction relation between two graphs.
 	 */
-	public static void checkReduction(String fsm,String g,Configuration conf)
+	public static void checkReduction(String fsm,String g,Configuration conf, ConvertALabel converter)
 	{
-		final LearnerGraph graph = new LearnerGraph(buildGraph(g,"actual graph",conf),conf);
-		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",conf);
+		final LearnerGraph graph = buildLearnerGraph(g,"actual graph",conf,converter);
+		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",conf,converter);
 		
 		DifferentFSMException 
 			exReduction = WMethod.checkReduction(expected, expected.init, graph, graph.init);
@@ -160,14 +169,14 @@ public class TestEquivalenceChecking {
 	public void testCheckM1()
 	{
 		String graphA = "B-a->C-b->D",graphB="A-a->B-b->C";
-		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
+		checkM(graphA,graphB,mainConfiguration,converter);checkReduction(graphA, graphB, mainConfiguration,converter);
 	}
 	
 	@Test
 	public void testCheckM2()
 	{
 		String graphA = "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ",graphB = "A-a->B-b->C-d-#F#-b-A";
-		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
+		checkM(graphA,graphB,mainConfiguration,converter);checkReduction(graphA, graphB, mainConfiguration,converter);
 	}
 
 	@Test
@@ -177,7 +186,7 @@ public class TestEquivalenceChecking {
 		String expected = "A-a->B-b->C-b-#F#-d-A";
 		
 		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
-		checkM(expected,graphB, config);checkReduction(expected,graphB, config);
+		checkM(expected,graphB, mainConfiguration,converter);checkReduction(expected,graphB, mainConfiguration,converter);
 	}
 
 	/** multiple reject states. */
@@ -188,7 +197,7 @@ public class TestEquivalenceChecking {
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
 		
 		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
-		checkM(expected,graphB, config);checkReduction(expected,graphB, config);
+		checkM(expected,graphB, mainConfiguration,converter);checkReduction(expected,graphB, mainConfiguration,converter);
 	}
 
 	/** multiple reject states and a non-deterministic graph. */
@@ -196,24 +205,24 @@ public class TestEquivalenceChecking {
 	public void testCheckM4_ND()
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3\n"+
-			"A-d-#REJ\nB-c-#REJ2";
+			"B-c-#REJ2";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B\n"+
-			"A-d-#F\nB-c-#R";
-		checkM_ND(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), config);
+			"B-c-#R";
+		checkM_ND(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), mainConfiguration,converter);
 	}
 
 	@Test
 	public void testCheckM5()
 	{
 		String graphA = "S-a->U<-b-U\nQ<-a-U", graphB = "A-a->B-b->B-a->C";
-		checkM(graphA,graphB,config);checkReduction(graphA, graphB, config);
+		checkM(graphA,graphB,mainConfiguration,converter);checkReduction(graphA, graphB, mainConfiguration,converter);
 	}
 
 	@Test
 	public void testCheckM6()
 	{
-		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6",config);
-		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",config);
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6",mainConfiguration,converter);
+		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
@@ -226,7 +235,7 @@ public class TestEquivalenceChecking {
 	@Test
 	public final void testCheckM_multipleEq1() // equivalent states
 	{
-		final LearnerGraph graph = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1",config);
+		final LearnerGraph graph = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1",mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D"),graph,graph.findVertex("C2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C2"),graph,graph.findVertex("D"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		
@@ -261,8 +270,7 @@ public class TestEquivalenceChecking {
 	@Test
 	public final void testCheckM_multipleEq2() // equivalent states
 	{
-		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->N-b->N","testCheckM_multipleEq2",config);
-		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
+		final LearnerGraph graph = buildLearnerGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->N-b->N","testCheckM_multipleEq2",mainConfiguration,converter);
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
 		for(String stA:states)
 			for(String stB:states)
@@ -277,8 +285,7 @@ public class TestEquivalenceChecking {
 	@Test
 	public final void testCheckM_multipleEq3() // equivalent states
 	{
-		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N","testCheckM_multipleEq3",config);
-		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
+		final LearnerGraph graph = buildLearnerGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N","testCheckM_multipleEq3",mainConfiguration,converter);
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
 		for(String stA:states)
 			for(String stB:states)
@@ -293,8 +300,7 @@ public class TestEquivalenceChecking {
 	@Test
 	public final void testCheckM_multipleEq4() // non-equivalent states
 	{
-		final DirectedSparseGraph g = buildGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4",config);
-		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4",mainConfiguration,converter);
 		List<String> states = Arrays.asList(new String[]{"A","B","C"});
 		for(String stA:states)
 			for(String stB:states)
@@ -317,8 +323,8 @@ public class TestEquivalenceChecking {
 	@Test
 	public void testCheckM6_f1()
 	{
-		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6", Configuration.getDefaultConfiguration());
-		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",Configuration.getDefaultConfiguration());
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6", mainConfiguration,converter);
+		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",mainConfiguration,converter);
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),graph,graph.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),graph,graph.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),graph,graph.findVertex("C"),WMethod.VERTEX_COMPARISON_KIND.NONE));
@@ -362,84 +368,84 @@ public class TestEquivalenceChecking {
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD1a()
 	{
-		checkM("B-a->C-b->B","A-a->B-b->C", config);
+		checkM("B-a->C-b->B","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	public void testCheckMD1b()
 	{
-		checkReduction("B-a->C-b->B","A-a->B-b->C", config);
+		checkReduction("B-a->C-b->B","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD1c()
 	{
-		checkReduction("A-a->B-b->C","B-a->C-b->B", config);
+		checkReduction("A-a->B-b->C","B-a->C-b->B", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD2a() // different reject states
 	{
-		checkM("B-a->C-b-#D","A-a->B-b->C", config);
+		checkM("B-a->C-b-#D","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD2b() // different reject states
 	{
-		checkReduction("B-a->C-b-#D","A-a->B-b->C", config);
+		checkReduction("B-a->C-b-#D","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD2c() // different reject states
 	{
-		checkReduction("A-a->B-b->C", "B-a->C-b-#D", config);
+		checkReduction("A-a->B-b->C", "B-a->C-b-#D", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD3a() // missing transition
 	{
-		checkM("B-a->C-b->D","A-a->B-b->C\nA-b->B", config);
+		checkM("B-a->C-b->D","A-a->B-b->C\nA-b->B", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD3b() // missing transition
 	{
-		checkReduction("B-a->C-b->D","A-a->B-b->C\nA-b->B", config);
+		checkReduction("B-a->C-b->D","A-a->B-b->C\nA-b->B", mainConfiguration,converter);
 	}
 
 	@Test
 	public void testCheckMD3c() // missing transition
 	{
-		checkReduction("A-a->B-b->C\nA-b->B", "B-a->C-b->D", config);
+		checkReduction("A-a->B-b->C\nA-b->B", "B-a->C-b->D", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD4() // extra transition
 	{
-		checkM("B-a->C-b->D\nB-b->C","A-a->B-b->C", config);
+		checkM("B-a->C-b->D\nB-b->C","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD5a() // missing transition
 	{
-		checkM("B-a->C-b->D","A-a->B-b->C\nB-c->B", config);
+		checkM("B-a->C-b->D","A-a->B-b->C\nB-c->B", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD5b() // missing transition
 	{
-		checkReduction("B-a->C-b->D","A-a->B-b->C\nB-c->B", config);
+		checkReduction("B-a->C-b->D","A-a->B-b->C\nB-c->B", mainConfiguration,converter);
 	}
 
 	@Test
 	public void testCheckMD5c() // missing transition
 	{
-		checkReduction("A-a->B-b->C\nB-c->B", "B-a->C-b->D",config);
+		checkReduction("A-a->B-b->C\nB-c->B", "B-a->C-b->D",mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD6() // extra transition
 	{
-		checkM("B-a->C-b->D\nC-c->C","A-a->B-b->C", config);
+		checkM("B-a->C-b->D\nC-c->C","A-a->B-b->C", mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
@@ -447,7 +453,7 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkM(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), config);
+		checkM(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
@@ -455,7 +461,7 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkReduction(expected,another, config);
+		checkReduction(expected,another, mainConfiguration,converter);
 	}
 
 	@Test(expected = DifferentFSMException.class)
@@ -463,35 +469,35 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkReduction(another, expected, config);
+		checkReduction(another, expected, mainConfiguration,converter);
 	}
 
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test
 	public void testPair1()
 	{
-		checkM("A-a->B-a->C-a->D-a->A","A-a->B-a->A", config);
+		checkM("A-a->B-a->C-a->D-a->A","A-a->B-a->A", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test(expected = DifferentFSMException.class)
 	public void testPair2()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C", config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
 	@Test
 	public void testPair3()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=INCOMPATIBLE=B", config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=INCOMPATIBLE=B", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
 	@Test(expected = DifferentFSMException.class)
 	public void testPair4()
 	{
-		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=THEN=B", config);
+		checkM("A-a->B-a->C / A=INCOMPATIBLE=B","A-a->B-a->C/ A=THEN=B", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -502,7 +508,7 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -513,7 +519,7 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = THEN = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = INCOMPATIBLE = B3", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -524,7 +530,7 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3",  config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3",  mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -535,7 +541,7 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / B1-b->B1 / B2-b->B2 / A3-a->A3 / B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -546,7 +552,7 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A2 = INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3", mainConfiguration,converter);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -557,28 +563,28 @@ public class TestEquivalenceChecking {
 				"A1-a->A2-a->A3 / A1-c->B1-b->B1 / A2-c->B2-b->B2 / A3-a->A3-c->B3-b->B3 "+
 					" / A1=INCOMPATIBLE = B1 / A2 = INCOMPATIBLE = B1 / A3 = INCOMPATIBLE = B1"+
 					" / A1=INCOMPATIBLE = B2 / A3 = INCOMPATIBLE = B2"+
-					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3", config);
+					" / A1=INCOMPATIBLE = B3 / A2 = INCOMPATIBLE = B3 / A3 = THEN = B3", mainConfiguration,converter);
 	}
 	
 	@Test
 	public void testPair8()
 	{
 		checkM("P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P",
-				"Q-a->B-a->B / B = INCOMPATIBLE = Q", config);
+				"Q-a->B-a->B / B = INCOMPATIBLE = Q", mainConfiguration,converter);
 	}
 	
 	@Test
 	public void testPair9()
 	{
 		checkM("R-b->P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P / P = THEN = R",
-				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", config);
+				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", mainConfiguration,converter);
 	}
 	
 	@Test(expected = DifferentFSMException.class)
 	public void testPair10()
 	{
 		checkM("R-b->P-a->A-a->C-a->C / A=INCOMPATIBLE=P / C=INCOMPATIBLE=P / P = INCOMPATIBLE = R",
-				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", config);
+				"S-b->Q-a->B-a->B / B = INCOMPATIBLE = Q / S = THEN = Q", mainConfiguration,converter);
 	}
 	
 

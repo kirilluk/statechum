@@ -27,6 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -49,6 +50,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /**
  * @author kirill
@@ -157,19 +159,18 @@ public class TestGD_ExistingGraphsND {
 		return graphA+"+"+graphB+"-"+graphC+"+"+graphD+" ["+threadNumber+" threads] ";
 	}
 	
-	static ScoresLogger scoresLogger = new ScoresLogger();
-/*
-	@After
-	public void save()
-	{
-		scoresLogger.saveMap();
-	}
+	/** Set argument to true to record, false for playback. */
+	static ScoresLogger scoresLogger = new ScoresLoggerChecker();
+
+	/** Label converter to use. */
+	private ConvertALabel converter = null;
+	
 	@AfterClass
 	public static void saveLogIfNeeded()
 	{
 		scoresLogger.saveMap();
 	}
- */
+
 	
 	@BeforeClass
 	public static void loadLog()
@@ -184,27 +185,26 @@ public class TestGD_ExistingGraphsND {
 		{
 			LearnerGraphND grA = null, grB = null, graph = null;
 			{
-				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
-				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
+				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
 				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 			}
 			
 			{
-				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1);
-				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2);
+				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1, converter);
+				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2, converter);
 				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 			}
 			
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			{
-				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
-				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
+				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
+				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
 				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(graph, new Random(0));
 			}
 			ChangesRecorder patcher = new ChangesRecorder(null);
-			//gd.computeGD(grA, grB, threadNumber, patcher,config);
 			gd.init(grA, grB, threadNumber,config);
-			if (checkScores) scoresLogger.check(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA1,fileA2,fileB1,fileB2), gd.serialiseScores());
+			if (checkScores) scoresLogger.checkOrRecord(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA1,fileA2,fileB1,fileB2), gd.serialiseScores());
 			gd.identifyKeyPairs();
 			if (!gd.fallbackToInitialPair) TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
 			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
@@ -212,7 +212,7 @@ public class TestGD_ExistingGraphsND {
 			gd.computeDifference(patcher);
 
 			LearnerGraphND outcome = new LearnerGraphND(config);
-			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
 			Assert.assertEquals(grB,outcome);

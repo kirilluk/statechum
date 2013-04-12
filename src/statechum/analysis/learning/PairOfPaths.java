@@ -2,6 +2,7 @@ package statechum.analysis.learning;
 
 import java.io.OutputStream;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,6 +13,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -31,6 +33,7 @@ import statechum.StatechumXML.SequenceIO;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class PairOfPaths
 {
@@ -51,7 +54,7 @@ public class PairOfPaths
 	
 	public void WritePair(Element top, SequenceIO<statechum.Label> labelio)
 	{
-		Collection<List<Label>> elements = new LinkedList<List<Label>>();elements.add(R);elements.add(Q);
+		Collection<List<Label>> elements = new LinkedList<List<Label>>();elements.add(R);if (Q != null) elements.add(Q);
 		Element sequences = labelio.writeSequenceList(pairElement, elements);
 		top.appendChild(sequences);		
 	}
@@ -64,7 +67,7 @@ public class PairOfPaths
 			factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
 			Document doc = factory.newDocumentBuilder().newDocument();
-			SequenceIO<statechum.Label> labelio = new StatechumXML.LabelSequenceWriter(doc,configuration);
+			SequenceIO<statechum.Label> labelio = new StatechumXML.LabelSequenceWriter(doc,configuration, null);
 			Element top = doc.createElement(pairCollectionElement);doc.appendChild(top);top.appendChild(AbstractPersistence.endl(doc));
 			for(PairOfPaths p:pairs)
 				p.WritePair(top,labelio);
@@ -77,9 +80,9 @@ public class PairOfPaths
 		}
     }
 
-    public static List<PairOfPaths> readPairs(Reader inStream, Configuration configuration)
+    public static List<PairOfPaths> readPairs(Reader inStream, Configuration configuration, ConvertALabel conv)
     {
-    	List<PairOfPaths> outcome = new LinkedList<PairOfPaths>();
+    	List<PairOfPaths> outcome = new ArrayList<PairOfPaths>();
     	Document doc = LearnerSimulator.getDocumentOfXML(inStream);
     	NodeList nlist = doc.getChildNodes();
     	if (nlist.getLength() != 1)
@@ -88,16 +91,18 @@ public class PairOfPaths
     		throw new IllegalArgumentException("invalid child element");
     	NodeList childElements = nlist.item(0).getChildNodes();
     	int length = childElements.getLength();
-    	SequenceIO<statechum.Label> labelio = new StatechumXML.LabelSequenceWriter(doc,configuration);
+    	SequenceIO<statechum.Label> labelio = new StatechumXML.LabelSequenceWriter(doc,configuration, conv);
     	for(int i=0;i<length;++i)
     	{
     		if (childElements.item(i) instanceof Element)
     		{
         		Element n = (Element)childElements.item(i);
         		List<List<Label>> p = labelio.readSequenceList(n,pairElement);
-        		assert p.size() == 2;
-        		
-        		PairOfPaths pair = new PairOfPaths();pair.R=p.get(0);pair.Q=p.get(1);
+        		PairOfPaths pair = new PairOfPaths();
+        		assert p.size() > 0 && p.size() <= 2;
+        		pair.R=p.get(0);
+        		if (p.size() > 1)
+        			pair.Q=p.get(1);
         		outcome.add(pair);
     		}
     	}
@@ -108,16 +113,65 @@ public class PairOfPaths
 	{}
 	
 	/** Computes shortest paths from the initial state to the supplied states.
+	 * If one of the components of the pair is null, it is used to indicate a single state rather than a pair. Used to record which red states have been chosen and verify that a particular pair represents the red state and not a pair to be selected.
 	 */
 	public PairOfPaths(LearnerGraph coregraph,PairScore pair)
 	{
-		Stack<PairScore> inputStack = new Stack<PairScore>();inputStack.add(pair);
-		Stack<PairOfPaths> outcome = convertStack(coregraph,inputStack);
-		if (outcome == null)
+		Set<CmpVertex> statesOfInterest = new TreeSet<CmpVertex>();statesOfInterest.add(pair.getR());if (pair.getQ() != null) statesOfInterest.add(pair.getQ());
+		Map<CmpVertex,LinkedList<Label>> stateToPath = convertSetOfStatesToPaths(coregraph, statesOfInterest);
+		if (stateToPath == null)
 			throw new IllegalArgumentException("failed to find paths to the supplied pair "+pair);// we should not reach here because the two states should exist in the graph
-		Q=outcome.peek().Q;R=outcome.peek().R;
+		if (pair.getQ() != null) Q=stateToPath.get(pair.getQ());
+		R=stateToPath.get(pair.getR());
 	}
 
+	/** Given a collection of states, computes paths in the automaton from the initial state to states in the set.
+	 * Does not use state cover computation for memory efficiency.
+	 */
+	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Set<CmpVertex> statesOfInterest)
+	{
+		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();// not many of these hence not a HashSetWithSearch
+		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
+		
+		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+		fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+		int pathsLeft=statesOfInterest.size();
+		while(!fringe.isEmpty())
+		{
+			CmpVertex currentState = fringe.remove();
+			LinkedList<Label> currentPath = stateToPath.get(currentState);
+			if (statesOfInterest.contains(currentState))
+			{
+				pathsLeft--;
+				statesOfInterest.remove(currentState);
+				if (pathsLeft <= 0)
+					break;// finished
+			}
+			
+			Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+			if(targets != null && !targets.isEmpty())
+				for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
+				{
+					CmpVertex target = labelstate.getValue();
+					if (!statesInFringe.contains(target))
+					{
+						@SuppressWarnings("unchecked")
+						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
+						stateToPath.put(target, newPath);
+						fringe.offer(target);
+						statesInFringe.add(target);
+
+					}
+				}
+		}
+
+		if (pathsLeft > 0)
+			return null;//throw new IllegalArgumentException("failed to find paths to the supplied stack "+stack);// we should not reach here because all states should exist in the graph
+		
+		return stateToPath;
+	}
+	
 	/** Given a stack of pairs of states, converts it to a stack of pairs of paths to those states. This is useful where state labelling may change but we 
 	 * need to match pairs of states computed by {@link Learner#ChooseStatePairs(LearnerGraph)}. 
 	 * 
@@ -130,50 +184,14 @@ public class PairOfPaths
 		Stack<PairOfPaths> outcome = new Stack<PairOfPaths>();
 		if (!stack.isEmpty())
 		{
-			Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();// not many of these hence not a HashSetWithSearch
+			
 			Set<CmpVertex> statesOfInterest = new HashSet<CmpVertex>();
-			for(int i=0;i<stack.size();++i)
+			for(PairScore pair:stack)
 			{
-				statesOfInterest.add(stack.get(i).getQ());statesOfInterest.add(stack.get(i).getR());
+				statesOfInterest.add(pair.getQ());statesOfInterest.add(pair.getR());
 			}
 			
-			stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
-			
-			Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-			Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-			fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
-			int pathsLeft=statesOfInterest.size();
-			while(!fringe.isEmpty())
-			{
-				CmpVertex currentState = fringe.remove();
-				LinkedList<Label> currentPath = stateToPath.get(currentState);
-				if (statesOfInterest.contains(currentState))
-				{
-					pathsLeft--;
-					statesOfInterest.remove(currentState);
-					if (pathsLeft <= 0)
-						break;// finished
-				}
-				
-				Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
-				if(targets != null && !targets.isEmpty())
-					for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
-					{
-						CmpVertex target = labelstate.getValue();
-						if (!statesInFringe.contains(target))
-						{
-							LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
-							stateToPath.put(target, newPath);
-							fringe.offer(target);
-							statesInFringe.add(target);
-
-						}
-					}
-			}
-
-			if (pathsLeft > 0)
-				return null;//throw new IllegalArgumentException("failed to find paths to the supplied stack "+stack);// we should not reach here because all states should exist in the graph
-			
+			Map<CmpVertex,LinkedList<Label>> stateToPath = convertSetOfStatesToPaths(coregraph, statesOfInterest);
 			// Now populate the stack to return
 			for(int i=0;i<stack.size();++i)
 			{

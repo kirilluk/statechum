@@ -97,7 +97,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		jLabel1 = new javax.swing.JLabel();
 		alphabetPane = new javax.swing.JScrollPane();
 		jSeparator1 = new javax.swing.JSeparator();
-		genStyle = new javax.swing.JComboBox();
+		genStyle = new javax.swing.JComboBox<String>();
 		jLabel2 = new javax.swing.JLabel();
 		jButton1 = new javax.swing.JButton();
 		jLabel3 = new javax.swing.JLabel();
@@ -556,13 +556,13 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		return new HashSet<List<ErlangLabel>>(pos);
 	}
 
-	private static void evaluateLine(ErlangModule module, BufferedWriter out,
-			ErlangOracleLearner learner, LinkedList<List<ErlangLabel>> pos,
+	private static void evaluateLine(ErlangModule moduleArg, BufferedWriter outArg,
+			ErlangOracleLearner learnerArg, LinkedList<List<ErlangLabel>> pos,
 			LinkedList<List<ErlangLabel>> neg, List<ErlangLabel> line)
 			throws IOException {
-		TraceOutcome response = learner.askErlang(line);
+		TraceOutcome response = learnerArg.askErlang(line);
 		// System.out.println("Writing " + response.toTraceFileString());
-		out.write(response.toTraceFileString() + "\n");
+		outArg.write(response.toTraceFileString() + "\n");
 		switch (response.outcome) {
 		case TRACE_FAIL:
 			neg.add(Arrays.asList(response.answerDetails));
@@ -577,7 +577,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			}
 			for (int j = 0; j < response.answerDetails.length; j++) {
 				// Lets hope Java's Set is an actual Set...
-				module.behaviour.getAlphabet().add(response.answerDetails[j]);
+				moduleArg.behaviour.getAlphabet().add(response.answerDetails[j]);
 			}
 			//$FALL-THROUGH$
 		case TRACE_OK:
@@ -586,9 +586,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		}
 	}
 
-	private static List<ErlangLabel> randLine2(ErlangModule module,
+	private static List<ErlangLabel> randLine2(@SuppressWarnings({ "unused", "hiding" }) ErlangModule module,
 			Set<ErlangLabel> alphabet, int length,
-			LinkedList<List<ErlangLabel>> pos, LinkedList<List<ErlangLabel>> neg, Random randGen) {
+			LinkedList<List<ErlangLabel>> pos, @SuppressWarnings("unused") LinkedList<List<ErlangLabel>> neg, Random randGen) {
 		LinkedList<ErlangLabel> result = new LinkedList<ErlangLabel>();
 
 		do {
@@ -625,7 +625,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	private javax.swing.JScrollPane alphabetPane;
 	private javax.swing.JTextPane countInput;
 	private javax.swing.JLabel fileNameLabel;
-	private javax.swing.JComboBox genStyle;
+	private javax.swing.JComboBox<String> genStyle;
 	private javax.swing.JButton jButton1;
 	private javax.swing.JButton jButton2;
 	private javax.swing.JLabel jLabel1;
@@ -640,18 +640,18 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	// End of variables declaration//GEN-END:variables
 
 	protected void useOutputMatchingCheckBoxActionPerformed(
-			java.awt.event.ActionEvent ev) {
+			@SuppressWarnings("unused") java.awt.event.ActionEvent ev) {
 		this.setVisible(false);
-		Configuration config = Configuration.getDefaultConfiguration();
+		Configuration configToUse = Configuration.getDefaultConfiguration().copy();
 		if (!useOutputMatchingCheckBox.isSelected()) {
-			config.setUseErlangOutputs(false);
+			configToUse.setUseErlangOutputs(false);
 		} else {
-			config.setUseErlangOutputs(true);
+			configToUse.setUseErlangOutputs(true);
 		}
-		config.setErlangSourceFile(new File(targetModule.sourceFolder,
+		configToUse.setErlangSourceFile(new File(targetModule.sourceFolder,
 				targetModule.name + ErlangRunner.ERL.ERL.toString()));
 		try {
-			setModule(ErlangModule.loadModule(config, true));
+			setModule(ErlangModule.loadModule(configToUse, true));
 			this.setVisible(true);
 		} catch (IOException e) {
 			e.printStackTrace();

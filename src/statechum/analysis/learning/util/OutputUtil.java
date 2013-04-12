@@ -14,14 +14,15 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
 public class OutputUtil {
 	
-	public static void generateTextOutput(DirectedSparseGraph g, String name){
+	public static void generateTextOutput(DirectedSparseGraph g, String name) throws IOException{
 		StringWriter graphout = traverseGraph(g);
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
+		graphout.close();
 	}
 	
-	public static void generateADLOutput(LearnerGraph g, String name){
+	public static void generateADLOutput(LearnerGraph g, String name) throws IOException{
 		StringWriter graphout = new StringWriter();
 		graphout.write(new LearnerGraphND(g,g.config).pathroutines.toADL());
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
@@ -29,35 +30,34 @@ public class OutputUtil {
 		write(graphout.toString(), outputMachine);
 	}
 	
-	public static void generateDotOutput(DirectedSparseGraph g, String name){
+	public static void generateDotOutput(DirectedSparseGraph g, String name) throws IOException{
 		StringWriter graphout = dotGraph(g);
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
+		graphout.close();
 	}
 	
-	public static void generatePajekOutput(DirectedSparseGraph g, String name){
+	public static void generatePajekOutput(DirectedSparseGraph g, String name) throws IOException{
 		StringWriter graphout = pajekGraph(g);
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name+".net";
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
+		graphout.close();
 	}
 	
-	public static void write(String string, File f){
-		try {
-			if(f.getParentFile()!=null)
-				f.getParentFile().mkdirs();
-			f.createNewFile();
-			FileOutputStream fos = new FileOutputStream(f);
-			OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
-			out.write(string);
-			out.close();
-			fos.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public static void write(String string, File f) throws IOException{
+		if(f.getParentFile()!=null)
+			f.getParentFile().mkdirs();
+		f.createNewFile();
+		FileOutputStream fos = new FileOutputStream(f);
+		OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
+		out.write(string);
+		out.close();
+		fos.close();
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected static StringWriter traverseGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
@@ -77,6 +77,7 @@ public class OutputUtil {
 		return graphout;
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
@@ -110,6 +111,7 @@ public class OutputUtil {
 		return graphout;
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected static StringWriter pajekGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("*Network\n*Vertices "+g.numVertices());
@@ -129,7 +131,7 @@ public class OutputUtil {
 		}
 		graphout.write("\n*Arcs");
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
-			Vertex dest = e.getDest();
+			//Vertex dest = e.getDest();
 			//if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
 			//	continue;
 			String from = String.valueOf((vertexList.indexOf(e.getSource())+1));

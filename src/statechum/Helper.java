@@ -56,7 +56,10 @@ public class Helper {
 		{
 			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
 			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
-			Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
+			if (ex.getMessage() == null)
+				Assert.assertNull("got null instead of \""+exceptionString+"\"",exceptionString);
+			else
+				Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
 		}
 	}
 

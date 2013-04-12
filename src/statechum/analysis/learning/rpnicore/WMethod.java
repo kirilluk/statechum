@@ -30,13 +30,14 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Helper;
 import statechum.JUConstants;
-import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
+import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
@@ -44,7 +45,8 @@ import statechum.model.testset.PrefixFreeCollection;
 import statechum.model.testset.SlowPrefixFreeCollection;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public class WMethod {
+public class WMethod 
+{
 	final LearnerGraph coregraph;
 	
 	/** Associates this object to ComputeStateScores it is using for data to operate on. 
@@ -1098,7 +1100,6 @@ public class WMethod {
 	 * @param compareVertices if DEEP, compares attributes of every pair of states reached; NAMES means only names are compared.
 	 * @return DifferentFSMException if machines are different and null otherwise.
 	 */
-	@SuppressWarnings("null")
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
@@ -1177,6 +1178,7 @@ public class WMethod {
 			}
 			else
 				nextExpectedState = expectedTargets.get(label);
+			assert nextExpectedState != null:"null target for "+label+" from state "+statePair.firstElem+" in row "+expectedTargets;
 			
 			CmpVertex nextActualState = null;
 			if (!actualTargets.containsKey(label))
@@ -1188,6 +1190,7 @@ public class WMethod {
 			}
 			else
 				nextActualState = actualTargets.get(label);
+			assert nextActualState != null:"null target for "+label+" from state "+statePair.secondElem+" in row "+actualTargets;
 
 			StatePair nextPair = new StatePair(nextExpectedState,nextActualState);
 			//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
@@ -1327,7 +1330,7 @@ public class WMethod {
 	 * @param prefixClosed whether we are talking of prefix-closed languages
 	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
 	 */
-	public void checkW_is_corrent(Collection<List<Label>> wset, boolean prefixClosed, Set<Pair<CmpVertex,CmpVertex>> equivalentVertices)
+	public void checkW_is_corrent(Collection<List<Label>> wset, boolean prefixClosed, Set<StatePair> equivalentVertices)
 	{
 		String result = checkW_is_corrent_boolean(wset,prefixClosed,equivalentVertices);
 		if (result != null)
@@ -1340,14 +1343,14 @@ public class WMethod {
 	 * @param prefixClosed whether we are talking of prefix-closed languages
 	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
 	 */
-	public String checkW_is_corrent_boolean(Collection<List<Label>> wset, boolean prefixClosed, Set<Pair<CmpVertex,CmpVertex>> equivalentVertices)
+	public String checkW_is_corrent_boolean(Collection<List<Label>> wset, boolean prefixClosed, Set<StatePair> equivalentVertices)
 	{
 		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
 		{
 			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
 				if (stateA != stateB && (equivalentVertices == null || 
-						(!equivalentVertices.contains(new Pair<CmpVertex,CmpVertex>(stateA, stateB)) &&
-						 !equivalentVertices.contains(new Pair<CmpVertex,CmpVertex>(stateB, stateA)))))
+						(!equivalentVertices.contains(new StatePair(stateA, stateB)) &&
+						 !equivalentVertices.contains(new StatePair(stateB, stateA)))))
 				{
 					boolean foundString = false;
 					Iterator<List<Label>> pathIt = wset.iterator();
@@ -1378,9 +1381,12 @@ public class WMethod {
 	/** This method permutes states of a supplied machine using the permutation function provided.
 	 * 
 	 * @param perm the permutator to use.
+	 * @param converter used to intern labels of the graph, sadly has to be a parameter 
+	 * because such converters are associated with higher-level entities such as 
+	 * learners or learnerevaluationconvigurations rather than graphs.
 	 * @return the state machine permuted from the current one using the supplied permutator.
 	 */
-	public LearnerGraph Permute(FsmPermutator perm)
+	public LearnerGraph Permute(FsmPermutator perm, ConvertALabel converter)
 	{
 		ArrayList<Pair<CmpVertex,Label>> transitionList = new ArrayList<Pair<CmpVertex,Label>>();
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> row:coregraph.transitionMatrix.entrySet())
@@ -1395,8 +1401,9 @@ public class WMethod {
 			CmpVertex from = p.firstElem;Label label = p.secondElem;
 			newFsm.append("\n"+from+"-"+label+"->"+coregraph.transitionMatrix.get(from).get(label));
 		}
-		LearnerGraph permFsm = buildLearnerGraph(newFsm.toString(), "testDeterminism_perm",coregraph.config);
-		permFsm.setInit(permFsm.findVertex(coregraph.getInit().getID()));
+
+		LearnerGraph permFsm = buildLearnerGraph(newFsm.toString(), "testDeterminism_perm",coregraph.config, converter);
+		permFsm.setInit(permFsm.findVertex(coregraph.getInit()));
 		return permFsm;
 	}
 
@@ -1404,7 +1411,7 @@ public class WMethod {
 	public boolean checkGraphNumeric()
 	{
 		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
-			if (vert.getID().getKind() == DeterministicDirectedSparseGraph.VertexID.VertKind.NONE)
+			if (vert.getKind() == DeterministicDirectedSparseGraph.VertexID.VertKind.NONE)
 				return false;
 		return true;
 	}

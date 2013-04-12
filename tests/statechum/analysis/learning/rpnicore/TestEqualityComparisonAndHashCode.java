@@ -21,10 +21,10 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import static statechum.DeterministicDirectedSparseGraph.deepEquals;
+import static statechum.Helper.checkForCorrectException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +44,8 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.Configuration.STATETREE;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
@@ -53,7 +55,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
-import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.Helper.whatToRun;
 import statechum.AttributeMutator.MethodAndArgs;
 import statechum.analysis.learning.StatePair;
@@ -62,6 +64,7 @@ import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.LabelVertexPair;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -72,14 +75,17 @@ public class TestEqualityComparisonAndHashCode {
 	public TestEqualityComparisonAndHashCode()
 	{
 		mainConfiguration = Configuration.getDefaultConfiguration();
+		converter = mainConfiguration.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
 	}
 	
 	/** Graph used in tests of cloning. */
-	private DirectedSparseGraph testGraph = null;
+	private LearnerGraph testGraph = null;
 
 	/** The configuration to use when running tests. */
 	Configuration config = null;
 
+	private final ConvertALabel converter;
+	
 	private Configuration mainConfiguration = null;
 	
 	/** Configuration settings used to test creation/cloning of graphs. */
@@ -94,15 +100,15 @@ public class TestEqualityComparisonAndHashCode {
 	@Before
 	public void beforeTest()
 	{
-		
 		config = mainConfiguration.copy();config.setUseOrderedEntrySet(true);
-		differentA = buildLearnerGraph("Q-a->A-b->B", "testFSMStructureEquals2",config);
-		differentB = buildLearnerGraph("A-b->A\nB-b->B", "testFSMStructureEquals2",config);
+		
+		differentA = buildLearnerGraph("Q-a->A-b->B", "testFSMStructureEquals2",config,converter);
+		differentB = buildLearnerGraph("A-b->A\nB-b->B", "testFSMStructureEquals2",config,converter);
 
 		confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);
 		confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);
 		confSame = config.copy();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);
-		testGraph = buildGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B", "testFSMStructureClone",config);
+		testGraph = buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B", "testFSMStructureClone",config,converter);
 		testGraphJung=new LearnerGraph(testGraph,confJung.copy());// clone here makes it possible to change the configuration later without affecting objects in this object
 		testGraphString=new LearnerGraph(testGraph,confString.copy());
 		testGraphSame=new LearnerGraph(testGraph,confSame.copy());
@@ -131,9 +137,14 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		assertTrue(p.equals(p));assertTrue(q.equals(q));
 		if (!p.equals(q))
-			p.equals(q);
+			p.equals(q);// this line is to set a breakpoint on when debugging equality
 		assertTrue("graphs differ: "+p+" and "+q,p.equals(q));
 		assertTrue("graphs differ: "+p+" and "+q,q.equals(p));
+		if (p.hashCode() != q.hashCode())
+		{
+			p.hashCode();// this line is to set a breakpoint on when debugging hash code computation
+			q.hashCode();
+		}
 		assertTrue("hash codes differ",p.hashCode() == q.hashCode());
 		assertTrue("p has a zero hash code",p.hashCode() != 0);assertTrue("p has a zero hash code",q.hashCode() != 0);
 		assertFalse(p.equals(null));assertFalse(q.equals(null));
@@ -221,7 +232,7 @@ public class TestEqualityComparisonAndHashCode {
 		VertexID id = VertexID.parseID("P00");
 		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
 		Assert.assertEquals("P0",id.toString());
-		Assert.assertEquals(0, id.getIngegerID());
+		Assert.assertEquals(0, id.getIntegerID());
 	}
 	
 	@Test
@@ -230,7 +241,8 @@ public class TestEqualityComparisonAndHashCode {
 		VertexID id = VertexID.parseID("P100789");
 		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
 		Assert.assertEquals("P100789",id.toString());
-		Assert.assertEquals(100789, id.getIngegerID());
+		Assert.assertEquals(100789, id.getIntegerID());
+		Assert.assertEquals(100789, id.toInt());
 	}
 	
 	@Test
@@ -239,7 +251,8 @@ public class TestEqualityComparisonAndHashCode {
 		VertexID id = VertexID.parseID("N100789");
 		Assert.assertEquals(VertKind.NEGATIVE,id.getKind());
 		Assert.assertEquals("N100789",id.toString());
-		Assert.assertEquals(100789, id.getIngegerID());
+		Assert.assertEquals(100789, id.getIntegerID());
+		Assert.assertEquals(-100789, id.toInt());
 	}
 	
 	
@@ -254,23 +267,75 @@ public class TestEqualityComparisonAndHashCode {
 	/** Tests that it is not possible to create an invalid VertexID. */
 	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
-	public final void testCannotCreateNoneVertexID2()
+	public final void testCannotCreateNoneVertexID2a()
 	{
-		new VertexID(null);
+		new VertexID((String)null);
+	}
+	
+	/** Tests that it is not possible to create an invalid VertexID. */
+	@SuppressWarnings("unused")
+	@Test(expected=IllegalArgumentException.class)
+	public final void testCannotCreateNoneVertexID2b()
+	{
+		new VertexID((VertexID)null);
 	}
 	
 	/** Tests equality for VertexIDs. */
 	@Test
-	public final void testVertexIDEquals1()
+	public final void testVertexIDEquals1a()
 	{
-		equalityTestingHelper(new VertexID("A"), new VertexID("A"), new VertexID("B"), new VertexID("C"),true);
+		equalityTestingHelper(VertexID.parseID("A"), VertexID.parseID("A"), VertexID.parseID("B"), VertexID.parseID("C"),true);
 	}
 
 	/** Tests equality for VertexIDs. */
 	@Test
-	public final void testVertexIDEquals2()
+	public final void testVertexIDEquals1b()
+	{
+		equalityTestingHelper(new VertexID(VertexID.parseID("A")), VertexID.parseID("A"), VertexID.parseID("B"), VertexID.parseID("C"),true);
+	}
+
+	/** Tests equality for VertexIDs. */
+	@Test
+	public final void testVertexIDEquals2a()
 	{
 		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.NEUTRAL,9),true);
+	}
+
+	/** Tests equality for VertexIDs. */
+	@Test
+	public final void testVertexIDEquals2b()
+	{
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(new VertexID(VertKind.POSITIVE,5)), new VertexID(VertKind.NEGATIVE,9), new VertexID(new VertexID(VertKind.NEUTRAL,9)),true);
+	}
+
+	@Test
+	public final void testParseString1()
+	{
+		VertexID id = VertexID.parseID("A");Assert.assertEquals(VertKind.NEUTRAL,id.getKind());Assert.assertEquals(65,id.getIntegerID());Assert.assertEquals("A",id.getStringId());
+	}
+	
+	@Test
+	public final void testParseString2()
+	{
+		final VertexID id = VertexID.parseID("");Assert.assertEquals(VertKind.NONE,id.getKind());Assert.assertEquals("",id.getStringId());
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			id.getIntegerID();
+		}},IllegalArgumentException.class,"ID without an integer");
+	}
+
+	@Test
+	public final void testParseString3()
+	{
+		VertexID id = VertexID.parseID("ABCD");Assert.assertEquals(VertKind.NEUTRAL,id.getKind());Assert.assertEquals(65+(66 *96)+(67*96*96)+(68 *96*96*96),id.getIntegerID());Assert.assertEquals("ABCD",id.getStringId());
+	}
+
+	@Test
+	public final void testParseString4()
+	{
+		final VertexID id = VertexID.parseID("ABCDE");Assert.assertEquals(VertKind.NONE,id.getKind());Assert.assertEquals("ABCDE",id.getStringId());
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			id.getIntegerID();
+		}},IllegalArgumentException.class,"ID without an integer");
 	}
 
 	public final static String 
@@ -292,6 +357,46 @@ public class TestEqualityComparisonAndHashCode {
 		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(idN5), new VertexID(idP5),true);
 	}
 
+	/** Tests equality for VertexIDs with numerical IDs, across both Deterministic vertices and StringVertices. */
+	@Test
+	public final void testVertexIDEqualsCmpVertex1()
+	{
+		Configuration configToUse = Configuration.getDefaultConfiguration().copy();configToUse.setLearnerUseStrings(true);
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5),
+				AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,5), configToUse), 
+				new VertexID(idN5), new VertexID(idP5),true);
+	}
+
+	/** Tests equality for VertexIDs with numerical IDs, across both Deterministic vertices and StringVertices. */
+	@Test
+	public final void testVertexIDEqualsCmpVertex2()
+	{
+		Configuration configToUse = Configuration.getDefaultConfiguration().copy();configToUse.setLearnerUseStrings(false);
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5),
+				AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,5), configToUse), 
+				new VertexID(idN5), new VertexID(idP5),true);
+	}
+
+	/** Tests equality for VertexIDs with String IDs, across both Deterministic vertices and StringVertices. */
+	@Test
+	public final void testVertexIDEqualsCmpVertex3()
+	{
+		Configuration configToUse = Configuration.getDefaultConfiguration().copy();configToUse.setLearnerUseStrings(true);
+		equalityTestingHelper(new VertexID(idP5),
+				AbstractLearnerGraph.generateNewCmpVertex(new VertexID(idP5), configToUse), 
+				new VertexID(idN5), new VertexID(VertKind.POSITIVE,5),true);
+	}
+
+	/** Tests equality for VertexIDs with String IDs, across both Deterministic vertices and StringVertices. */
+	@Test
+	public final void testVertexIDEqualsCmpVertex4()
+	{
+		Configuration configToUse = Configuration.getDefaultConfiguration().copy();configToUse.setLearnerUseStrings(false);
+		equalityTestingHelper(new VertexID(idP5),
+				AbstractLearnerGraph.generateNewCmpVertex(new VertexID(idP5), configToUse), 
+				new VertexID(idN5), new VertexID(VertKind.POSITIVE,5),true);
+	}
+
 	/** Tests VertexID toString methods. */
 	@Test
 	public final void testVertexIDToString()
@@ -301,7 +406,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("P5", new VertexID(VertKind.POSITIVE,5).toString());
 		Assert.assertEquals("N5", new VertexID(VertKind.NEGATIVE,5).toString());
 
-		Assert.assertEquals("JustAnything", new VertexID("JustAnything").toString());
+		Assert.assertEquals("JustAnything", VertexID.parseID("JustAnything").toString());
 		Assert.assertEquals("V5", new VertexID(VertKind.NEUTRAL,5).toString());
 	}
 	
@@ -381,7 +486,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);
 		DvertA.setColour(JUConstants.RED);DvertA.setHighlight(true);DvertA.addUserDatum(JUConstants.INITIAL, "", UserData.SHARED);
-		DvertA.addUserDatum(JUConstants.JUNKVERTEX, "a", UserData.SHARED);DvertA.addUserDatum(JUConstants.ORIGSTATE, new VertexID("test"), UserData.SHARED);
+		DvertA.addUserDatum(JUConstants.JUNKVERTEX, "a", UserData.SHARED);DvertA.addUserDatum(JUConstants.ORIGSTATE, VertexID.parseID("test"), UserData.SHARED);
 		DvertB.setColour(JUConstants.BLUE);DvertB.setHighlight(true);DvertB.removeUserDatum(JUConstants.INITIAL);
 		DvertB.addUserDatum(JUConstants.JUNKVERTEX, "b", UserData.SHARED);DvertB.addUserDatum(JUConstants.DEPTH, 3, UserData.SHARED);
 		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA,true);
@@ -424,7 +529,7 @@ public class TestEqualityComparisonAndHashCode {
 		SvertA.setAccept(true);SvertB.setAccept(true);
 		SvertA.setColour(JUConstants.RED);SvertA.setHighlight(true);
 		SvertB.setColour(JUConstants.BLUE);SvertB.setHighlight(true);
-		SvertA.setOrigState(new VertexID("A"));SvertB.setOrigState(new VertexID("B"));
+		SvertA.setOrigState(VertexID.parseID("A"));SvertB.setOrigState(VertexID.parseID("B"));
 		SvertA.setDepth(1);SvertB.setDepth(2);
 		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA,true);
 		Assert.assertFalse(deepEquals(SvertA, SvertB));
@@ -521,6 +626,15 @@ public class TestEqualityComparisonAndHashCode {
 		assertTrue(p.compareTo(q)==0);
 	}
 
+	@Test
+	public final void testStatePairToString()
+	{
+		assertEquals("[ A, B ]", new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), config),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("B"), config) ).toString());
+		assertEquals("[ A, NULL ]", new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), config),null ).toString());
+		assertEquals("[ NULL, A ]", new StatePair(null,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), config)).toString());
+		assertEquals("[ NULL, NULL ]", new StatePair(null,null).toString());
+	}
+	
 	protected LabelVertexPair constructLabelVertexPair(String label,CmpVertex vertex)
 	{
 		return new LabelVertexPair(AbstractLearnerGraph.generateNewLabel(label, config), vertex);
@@ -699,7 +813,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testIncompatChecking2()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C", "testIncompatChecking2",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C", "testIncompatChecking2",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		assert !C.isAccept();
 		
@@ -717,7 +831,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testIncompatChecking3()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D", "testIncompatChecking3",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D", "testIncompatChecking3",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		assert !C.isAccept();
 		
@@ -743,7 +857,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testIncompatChecking4()
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E", "testIncompatChecking4",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E", "testIncompatChecking4",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		assert !C.isAccept();
 		
@@ -775,7 +889,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassMerging1() throws IncompatibleStatesException
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);Assert.assertEquals(0, eqClass.getNumber());
@@ -797,7 +911,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassMerging2() throws IncompatibleStatesException
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(10,gr);
@@ -826,7 +940,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassMerging3() throws IncompatibleStatesException
 	{
-		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",Configuration.getDefaultConfiguration());
+		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(4,gr),eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -858,7 +972,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail1() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -876,7 +990,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail2() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -894,7 +1008,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassMerging4() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassMerging2",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassMerging2",config,converter);
 		final CmpVertex C=gr.findVertex("C"), F=gr.findVertex("F");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -913,7 +1027,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail3() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -930,7 +1044,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail4() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -947,7 +1061,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail5() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -966,7 +1080,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail6() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
@@ -983,9 +1097,9 @@ public class TestEqualityComparisonAndHashCode {
 	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
 	 */
 	@Test
-	public final void testEqClassHandlingOfIncompatibleVertices_fail7() throws IncompatibleStatesException
+	public final void testEqClassHandlingOfIncompatibleVertices_fail7a() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1001,12 +1115,33 @@ public class TestEqualityComparisonAndHashCode {
 
 	/** Checking whether incompatible vertices are correctly handled. This tests checks for adding of vertices
 	 * recorded as incompatible  when one equivalence class is merged into another one.
+	 * This test differs from {@link TestEqualityComparisonAndHashCode#testEqClassHandlingOfIncompatibleVertices_fail7a()} in that the we do mergeWith on B with A rather than the other way around.
+	 */
+	@Test
+	public final void testEqClassHandlingOfIncompatibleVertices_fail7b() throws IncompatibleStatesException
+	{
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
+		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
+		
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
+		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
+		eqClassB.addFrom(D, gr.transitionMatrix.get(D).entrySet());
+		
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
+			eqClassB.mergeWith(eqClassA);
+		}}, IncompatibleStatesException.class,"incompatible");
+	}
+
+	/** Checking whether incompatible vertices are correctly handled. This tests checks for adding of vertices
+	 * recorded as incompatible  when one equivalence class is merged into another one.
 	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
 	 */
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail8() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1027,7 +1162,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail9() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1047,7 +1182,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_nofail9a() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.MERGED);
@@ -1064,7 +1199,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail10() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1083,7 +1218,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassHandlingOfIncompatibleVertices_fail11() throws IncompatibleStatesException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",Configuration.getDefaultConfiguration());
+		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		
 		gr.addToCompatibility(E, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1211,7 +1346,7 @@ public class TestEqualityComparisonAndHashCode {
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, false, true);
-		Assert.assertEquals(vert.getID(),eqClass.getMergedVertex().getOrigState());
+		Assert.assertEquals(vert,eqClass.getMergedVertex().getOrigState());
 		// now set the orig state of the merged vertex to the original value and compare the rest of the attributes.
 		eqClass.getMergedVertex().setOrigState(vert.getOrigState());
 		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vert,eqClass.getMergedVertex()));
@@ -1226,7 +1361,7 @@ public class TestEqualityComparisonAndHashCode {
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, false);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(eqClass.getMergedVertex(),vert));
-		Assert.assertFalse(eqClass.getMergedVertex().getID().equals(vert.getID()));
+		Assert.assertFalse(eqClass.getMergedVertex().equals(vert));
 	}
 	
 	/** Check that duplicate names are correctly detected, part 2. */
@@ -1238,8 +1373,8 @@ public class TestEqualityComparisonAndHashCode {
 		eqClass.constructMergedVertex(testGraphString, true, true);
 		// no point comparing all attributes here since origState will be set to a different value than that of vert
 		Assert.assertEquals(JUConstants.AMBER, eqClass.getMergedVertex().getOrigState());
-		Assert.assertEquals(vert.getID(),eqClass.getMergedVertex().getOrigState());
-		Assert.assertFalse(eqClass.getMergedVertex().getID().equals(vert.getID()));
+		Assert.assertEquals(vert,eqClass.getMergedVertex().getOrigState());
+		Assert.assertFalse(eqClass.getMergedVertex().equals(vert));
 	}
 
 	@Test
@@ -1475,7 +1610,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DeterministicVertex vertex = new DeterministicVertex("testVertex");
-		vertex.setAccept(false);vertex.setHighlight(true);vertex.setColour(JUConstants.AMBER);vertex.setOrigState(new VertexID("id"));vertex.setDepth(34);
+		vertex.setAccept(false);vertex.setHighlight(true);vertex.setColour(JUConstants.AMBER);vertex.setOrigState(VertexID.parseID("id"));vertex.setDepth(34);
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.LABEL));
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.ACCEPTED));
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.HIGHLIGHT));
@@ -1499,11 +1634,11 @@ public class TestEqualityComparisonAndHashCode {
 		DeterministicVertex vA=new DeterministicVertex("a");
 		
 		// here I cannot add, only set since the ID has already been set.
-		vA.setUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getID().toString());
-		vA.setUserDatum(JUConstants.LABEL, new VertexID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getID().toString());
+		vA.setUserDatum(JUConstants.LABEL, VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getStringId());
+		vA.setUserDatum(JUConstants.LABEL, VertexID.parseID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getStringId());
 
 		DeterministicVertex vS=new DeterministicVertex("a");
-		vS.setUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getID().toString());
+		vS.setUserDatum(JUConstants.LABEL, VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getStringId());
 	}
 	
 	/** Tests that types are correctly converted. */
@@ -1513,11 +1648,11 @@ public class TestEqualityComparisonAndHashCode {
 		DeterministicVertex vA=new DeterministicVertex("a");
 
 		// here I cannot add, only set since the ID has already been set.
-		vA.setUserDatum("lAbel", new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getID().toString());
-		vA.setUserDatum("labEl", new VertexID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getID().toString());
+		vA.setUserDatum("lAbel", VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getStringId());
+		vA.setUserDatum("labEl", VertexID.parseID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getStringId());
 
 		DeterministicVertex vS=new DeterministicVertex("a");
-		vS.setUserDatum("laBel", new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getID().toString());
+		vS.setUserDatum("laBel", VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getStringId());
 	}
 	
 	/** Tests that types are correctly converted. */
@@ -1642,7 +1777,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testAddUserData_Orig1()
 	{
 		DeterministicVertex vA=new DeterministicVertex("a");
-		VertexID vertID = new VertexID("id");
+		VertexID vertID = VertexID.parseID("id");
 		vA.addUserDatum(JUConstants.ORIGSTATE,vertID, UserData.SHARED);Assert.assertTrue(vertID.equals(vA.getOrigState()));
 		vA.setOrigState(null);Assert.assertNull(vA.getOrigState());Assert.assertNull(vA.getUserDatum(JUConstants.ORIGSTATE));
 		vA.addUserDatum(JUConstants.ORIGSTATE,"id", UserData.SHARED);Assert.assertTrue(vertID.equals(vA.getOrigState()));
@@ -1653,9 +1788,9 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testAddUserData_Orig2()
 	{
 		DeterministicVertex vA=new DeterministicVertex("a");
-		vA.addUserDatum("oRigStatE", new VertexID("id"), UserData.SHARED);Assert.assertTrue(new VertexID("id").equals(vA.getOrigState()));
-		vA.setUserDatum("origstAte", new VertexID("DD"), UserData.SHARED);Assert.assertTrue(new VertexID("DD").equals(vA.getOrigState()));
-		vA.setUserDatum("origstAte", "PP", UserData.SHARED);Assert.assertTrue(new VertexID("PP").equals(vA.getOrigState()));
+		vA.addUserDatum("oRigStatE", VertexID.parseID("id"), UserData.SHARED);Assert.assertTrue(VertexID.parseID("id").equals(vA.getOrigState()));
+		vA.setUserDatum("origstAte", VertexID.parseID("DD"), UserData.SHARED);Assert.assertTrue(VertexID.parseID("DD").equals(vA.getOrigState()));
+		vA.setUserDatum("origstAte", "PP", UserData.SHARED);Assert.assertTrue(VertexID.parseID("PP").equals(vA.getOrigState()));
 		vA.setUserDatum("origstAtE", "N56", UserData.SHARED);Assert.assertTrue(VertexID.parseID("N56").equals(vA.getOrigState()));
 	}
 	
@@ -1775,7 +1910,7 @@ public class TestEqualityComparisonAndHashCode {
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
 		CmpVertex result = AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
-		Assert.assertEquals("name", result.getID().toString());
+		Assert.assertEquals("name", result.getStringId());
 		Assert.assertTrue(result.isAccept());Assert.assertFalse(result.isHighlight());Assert.assertNull(result.getColour());
 		Assert.assertNull(result.getOrigState());Assert.assertEquals(JUConstants.intUNKNOWN,result.getDepth());
 	}
@@ -1785,9 +1920,9 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testVertexClone1b()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
-		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);
+		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, VertexID.parseID("name"), UserData.SHARED);
 		CmpVertex result = AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
-		Assert.assertEquals("name", result.getID().toString());
+		Assert.assertEquals("name", result.getStringId());
 		Assert.assertTrue(result.isAccept());Assert.assertFalse(result.isHighlight());Assert.assertNull(result.getColour());
 		Assert.assertNull(result.getOrigState());Assert.assertEquals(JUConstants.intUNKNOWN,result.getDepth());
 	}
@@ -1801,14 +1936,14 @@ public class TestEqualityComparisonAndHashCode {
 		vertex.addUserDatum(JUConstants.HIGHLIGHT, 1, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
-		vertex.addUserDatum(JUConstants.ORIGSTATE, new VertexID("test"), UserData.SHARED);
+		vertex.addUserDatum(JUConstants.ORIGSTATE, VertexID.parseID("test"), UserData.SHARED);
 		vertex.addUserDatum(JUConstants.DEPTH, 12, UserData.SHARED);
 		
 		CmpVertex result = AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
-		Assert.assertEquals("name", result.getID().toString());
+		Assert.assertEquals("name", result.getStringId());
 		Assert.assertEquals(JUConstants.BLUE, result.getColour());
 		Assert.assertFalse(result.isAccept());Assert.assertTrue(result.isHighlight());
-		Assert.assertTrue(new VertexID("test").equals(result.getOrigState()));Assert.assertEquals(12,result.getDepth());
+		Assert.assertTrue(VertexID.parseID("test").equals(result.getOrigState()));Assert.assertEquals(12,result.getDepth());
 		
 		vertex.removeUserDatum(JUConstants.ACCEPTED);vertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		Assert.assertFalse(result.isAccept());
@@ -1837,8 +1972,8 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyVertex()
 	{
-		DirectedSparseGraph graphB = FsmParser.buildGraph("A-a->B-b->C","testCopyVertex",config);
-		Map<VertexID,DeterministicVertex> vertexMap = new TreeMap<VertexID,DeterministicVertex>();
+		DirectedSparseGraph graphB = FsmParser.buildLearnerGraph("A-a->B-b->C","testCopyVertex",config,converter).pathroutines.getGraph();
+		Map<VertID,DeterministicVertex> vertexMap = new TreeMap<VertID,DeterministicVertex>();
 
 		DeterministicVertex vertD = new DeterministicVertex("D");
 		DeterministicVertex copyOfD = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphB, vertD);
@@ -1854,7 +1989,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertNotSame(initial,copyOfInitial);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(initial, copyOfInitial));
 		Assert.assertEquals(2,vertexMap.size());
 		LearnerGraph gr = new LearnerGraph(graphC,config);Assert.assertEquals(1,gr.getStateNumber());
-		Assert.assertEquals("init",gr.getInit().getID().getStringId());
+		Assert.assertEquals("init",gr.getInit().getStringId());
 	}
 	
 	private static void testColourHelper(CmpVertex vert)
@@ -1906,7 +2041,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		vert.setAccept(true);
 		CmpVertex vert_clone = AbstractLearnerGraph.cloneCmpVertex(vert, conf);
-		Assert.assertNotSame(vert, vert_clone);Assert.assertEquals("test vertex", vert_clone.getID().toString());Assert.assertEquals(vert, vert_clone);
+		Assert.assertNotSame(vert, vert_clone);Assert.assertEquals("test vertex", vert_clone.getStringId());Assert.assertEquals(vert, vert_clone);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vert, vert_clone));
 
 		vert.setAccept(false);
@@ -1955,7 +2090,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		Assert.assertTrue(testGraphSame.equals(testGraphString));
 		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),testGraphString.findVertex("A"));
-		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config).equals(testGraphString));
+		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(testGraphString));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -1966,7 +2101,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 	// "A-a->A-b->B-c->B\nA-c-#C\nB-b->B"	
 		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),testGraphString.findVertex("B"));
-		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config).equals(testGraphString));
+		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(testGraphString));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -1977,7 +2112,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 	// "A-a->A-b->B-c->B\nA-c-#C\nB-b->B"	
 		testGraphString.addTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("d",config),testGraphString.findVertex("A"));
-		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B-d->A", "updateDiagram_add1", config).equals(testGraphString));
+		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B-d->A", "updateDiagram_add1", config,converter).equals(testGraphString));
 	}
 	
 	/** Tests that it is not possible to add a transition leading to a non-determinism.
@@ -2022,7 +2157,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("B"));
 		Assert.assertNull(graph.transitionMatrix.get(graph.findVertex("B")).get(AbstractLearnerGraph.generateNewLabel("c",config)));
-		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config).equals(graph));
+		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(graph));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -2031,7 +2166,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void updateDiagramND_remove3()
 	{
-		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config);
+		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("a",config),graph.findVertex("C"));
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));
@@ -2059,7 +2194,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
-		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A", "updateDiagramND_add2",config).equals(graph));
+		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A", "updateDiagramND_add2",config,converter).equals(graph));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -2071,7 +2206,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("b",config),graph.findVertex("C"));
-		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A-b-#C", "updateDiagramND_add2",config).equals(graph));
+		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A-b-#C", "updateDiagramND_add2",config,converter).equals(graph));
 	}
 
 	/** Tests that a transition diagram can be updated for both deterministic 
@@ -2082,14 +2217,14 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
-		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->A\nB-c->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config).equals(graph));
+		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->A\nB-c->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(graph));
 	}
 	
 	/** Tests that access to target states is correctly handled, non-deterministic case. */
 	@Test
 	public final void testAccessToTargetStates1()
 	{
-		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config);
+		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));targets.add(graph.findVertex("C"));
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config))));
@@ -2100,7 +2235,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testAccessToTargetStates2()
 	{
-		final LearnerGraph graph = buildLearnerGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2",config);
+		final LearnerGraph graph = buildLearnerGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2",config,converter);
 		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config)));
 		Assert.assertFalse(targets.isEmpty());Assert.assertEquals(1,targets.size());
 		Assert.assertTrue(targets.contains(graph.findVertex("B")));
@@ -2168,7 +2303,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		Assert.assertTrue(testGraphString.getInit() instanceof StringVertex);
 		Assert.assertTrue(testGraphJung.getInit() instanceof DeterministicVertex);
-		Assert.assertTrue(testGraphSame.getInit() instanceof DeterministicVertex);
+		Assert.assertTrue(testGraphSame.getInit() instanceof StringVertex);
 		equalityTestingHelper(testGraphJung,testGraphString,differentA,differentB, true);
 		equalityTestingHelper(testGraphJung,testGraphSame,differentA,differentB, true);
 		equalityTestingHelper(testGraphString,testGraphSame,differentA,differentB, true);
@@ -2179,8 +2314,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testFSMStructureEquals5()
 	{
 		String graph = "A-a->B-a->C";
-		LearnerGraph a=buildLearnerGraph(graph,"testFSMStructureEquals5a",config),
-			b=buildLearnerGraph(graph,"testFSMStructureEquals5b",config);
+		LearnerGraph a=buildLearnerGraph(graph,"testFSMStructureEquals5a",config,converter),
+			b=buildLearnerGraph(graph,"testFSMStructureEquals5b",config,converter);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,a,b,differentA, true);
@@ -2198,8 +2333,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testFSMStructureEquals6()
 	{
 		String graph = "A-a->B-a->C";
-		LearnerGraph a=buildLearnerGraph(graph,"testFSMStructureEquals5a",config),
-			b=buildLearnerGraph(graph,"testFSMStructureEquals5b",config);
+		LearnerGraph a=buildLearnerGraph(graph,"testFSMStructureEquals5a",config,converter),
+			b=buildLearnerGraph(graph,"testFSMStructureEquals5b",config,converter);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
 		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
@@ -2226,7 +2361,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph1()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1", "testCopyGraph",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1", "testCopyGraph",config,converter).pathroutines.getGraph();
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gC = new LearnerGraph(copy,config);
 		
@@ -2234,10 +2369,11 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Yet another test that copy works. */
+	@SuppressWarnings("unchecked")
 	@Test
 	public final void testCopyGraph2()
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gCopy = new LearnerGraph(copy,config);
 		
@@ -2256,7 +2392,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph3() // this one tests that clone works
 	{
-		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config);
+		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
 		LearnerGraph orig = new LearnerGraph(g,config);
 		LearnerGraph copy = new LearnerGraph(orig,config);
 		LearnerGraph gS = new LearnerGraph(orig.pathroutines.getGraph(),config),
@@ -2280,8 +2416,9 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testGraphCopying1()
 	{
-		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nB-b->D", "testGraphCopying1",Configuration.getDefaultConfiguration());
-		LearnerGraphND otherGraph = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nB-b->D", "testGraphCopying1",config,converter);
+		Configuration orderedConfig = Configuration.getDefaultConfiguration().copy();orderedConfig.setUseOrderedEntrySet(true);
+		LearnerGraphND otherGraph = new LearnerGraphND(orderedConfig);
 		AbstractLearnerGraph.copyGraphs(graph, otherGraph);
 		Assert.assertTrue(otherGraph.equals(graph));
 	}
@@ -2290,7 +2427,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testGraphCopying2()
 	{
-		final LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C-a->D\nB-b->D\nB-a->A", "testGraphCopying2",Configuration.getDefaultConfiguration());
+		final LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C-a->D\nB-b->D\nB-a->A", "testGraphCopying2",config,converter);
 		final LearnerGraph otherGraph = new LearnerGraph(Configuration.getDefaultConfiguration());
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.copyGraphs(graph, otherGraph);

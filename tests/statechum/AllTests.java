@@ -70,7 +70,8 @@ public class AllTests {
     @RunWith(Suite.class)
     @Suite.SuiteClasses({
         statechum.TestConfiguration.class,
-        statechum.TestHashMapWithSearch.class,
+        collections.TestMapWithSearch.class,
+        collections.TestMapWithSearchMisc.class,
         statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
         statechum.analysis.learning.rpnicore.TestFSMParser.class,
         statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
@@ -80,7 +81,7 @@ public class AllTests {
         statechum.apps.TestQSMTool.class,
         statechum.apps.TestQSMTool.TestInvalidTraces.class,
         statechum.analysis.learning.experiments.TestPaperUAS.class,
-        statechum.TestArrayOperations.class,
+        collections.TestArrayOperations.class,
         statechum.analysis.learning.rpnicore.TestNextID.class,
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
         statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
@@ -114,9 +115,10 @@ public class AllTests {
         statechum.analysis.learning.linear.TestLinear.class,
         statechum.analysis.learning.linear.TestSolverRandomly.class,
         statechum.analysis.learning.linear.TestSolver.class,
-        statechum.analysis.learning.linear.TestLinearWithMultipleThreads.class,
+        statechum.analysis.learning.linear.TestMatrixComputationWithMultipleThreads.class,
         statechum.analysis.learning.linear.TestGD.class,
         statechum.analysis.learning.linear.TestGD_Multithreaded.class,
+        statechum.analysis.learning.linear.TestGD_Multithreaded_NonArray.class,
         statechum.analysis.learning.linear.TestGD_MultipleCasesOfRenaming.class,
         statechum.apps.TestVisualDemo.class
     })

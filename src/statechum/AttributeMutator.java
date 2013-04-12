@@ -38,6 +38,7 @@ import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
 public class AttributeMutator {
@@ -212,7 +213,7 @@ public class AttributeMutator {
 					valueA = Math.abs(varName.hashCode());valueB=Math.abs(setter.hashCode());// just some integers likely to be different from each other between different variables.
 				}
 				else
-				if (var.getType().equals(VertexID.class))
+				if (var.getType().equals(VertID.class))
 				{
 					valueA = new VertexID("A");valueB = new VertexID("B");
 				}

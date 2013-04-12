@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ *  
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -34,14 +34,16 @@ import statechum.Pair;
 import statechum.apps.QSMTool;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class StoredAnswers implements AbstractOracle
 {
 	private final Configuration config;
+	private final ConvertALabel converter;
 	
-	public StoredAnswers(Configuration conf)
+	public StoredAnswers(Configuration conf, ConvertALabel conv)
 	{
-		config = conf;
+		config = conf;converter = conv;
 	}
 	
 	private Map<List<Label>,Pair<Integer,String>> answers = new HashMap<List<Label>, Pair<Integer,String>>();
@@ -85,7 +87,7 @@ public class StoredAnswers implements AbstractOracle
 					{
 				    	Lexer lexer = ErlangLabel.buildLexer(questionAndResponse);
 				    	OtpErlangObject result = ErlangLabel.parseFirstTermInText(lexer);
-				    	question = statechum.StatechumXML.readInputSequenceFromErlangObject(result,config);
+				    	question = statechum.StatechumXML.readInputSequenceFromErlangObject(result,config,converter);
 				    	if (lexer.getLastMatchType() < 0)
 				    		throwEx("question "+questionAndResponse);
 				    	theRestOfResponse = lexer.remaining();

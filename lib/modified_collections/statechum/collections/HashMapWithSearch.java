@@ -10,6 +10,7 @@ package statechum.collections;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -20,8 +21,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.MapWithSearch;
 
 
 public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
@@ -129,27 +130,27 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
      * capacity and load factor.
      *
      * @param  initialCapacity the initial capacity
-     * @param  loadFactor      the load factor
+     * @param  loadFactorArg      the load factor
      * @throws IllegalArgumentException if the initial capacity is negative
      *         or the load factor is non-positive
      */
-    public HashMapWithSearch(int initialCapacityArg, float loadFactor) {
+    public HashMapWithSearch(int initialCapacityArg, float loadFactorArg) {
         if (initialCapacityArg < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacityArg);
         int initialCapacity = initialCapacityArg;
         if (initialCapacity > MAXIMUM_CAPACITY)
             initialCapacity = MAXIMUM_CAPACITY;
-        if (loadFactor <= 0 || Float.isNaN(loadFactor))
-            throw new IllegalArgumentException("Illegal load factor: " + loadFactor);
+        if (loadFactorArg <= 0 || Float.isNaN(loadFactorArg))
+            throw new IllegalArgumentException("Illegal load factor: " + loadFactorArg);
 
         // Find a power of 2 >= initialCapacity
         int capacity = 1;
         while (capacity < initialCapacity)
             capacity <<= 1;
 
-        this.loadFactor = loadFactor;
-        threshold = (int)Math.min(capacity * loadFactor, MAXIMUM_CAPACITY + 1);
+        this.loadFactor = loadFactorArg;
+        threshold = (int)Math.min(capacity * loadFactorArg, MAXIMUM_CAPACITY + 1);
         table = new Entry[capacity];
         init();
     }
@@ -219,7 +220,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
     }
 
 	@Override
-	public K findElementById(VertexID id) {
+	public K findElementById(VertID id) {
 		Entry<K,V> e = getEntry(id);
         if (e == null)
             return null;
@@ -234,10 +235,10 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
      */
     @Override
 	public void clear() {
-        modCount++;
-        Entry<K,V>[] tab = table;
+        modCount++;Arrays.fill(table,null);
+        /*Entry<K,V>[] tab = table;
         for (int i = 0; i < tab.length; i++)
-            tab[i] = null;
+            tab[i] = null;*/
         size = 0;
 
         header.before = header.after = header;
@@ -246,7 +247,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
     /**
      * Entry from {@link LinkedHashMap}.
      */
-    private static class Entry<K,V> implements Map.Entry<K, V>
+    public static class Entry<K,V> implements Map.Entry<K, V>
     {
         final K key;
         V value;
@@ -273,19 +274,22 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
             return value;
         }
 
+        /** Important: this will not invalidate any iterator over values stored in the collection, contrary
+         * to what it is supposed to do. 
+         */
         @Override
-		public final V setValue(@SuppressWarnings("unused") V newValue) {
-            /*V oldValue = value;
+		public final V setValue(V newValue) {
+            V oldValue = value;
             value = newValue;
-            return oldValue;*/
-        	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+            return oldValue;
         }
 
         @Override
 		public final boolean equals(Object o) {
             if (!(o instanceof Map.Entry))
                 return false;
-            Map.Entry<K,V> e = (Map.Entry<K,V>)o;
+            @SuppressWarnings("unchecked")
+			Map.Entry<K,V> e = (Map.Entry<K,V>)o;
             Object k1 = getKey();
             Object k2 = e.getKey();
             if (k1 == k2 || (k1 != null && k1.equals(k2))) {
@@ -353,7 +357,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 
         @Override
 		public void remove() {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+            throw new UnsupportedOperationException("modification of iterator is not allowed for HashMapWithSearch");
         }
 
         /** Checks whether the collection has been unexpectedly modified. Throws an exception, otherwise returns as normal. */ 
@@ -413,8 +417,25 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
     }
     
     class KeyIterator extends HashMapWithSearchIterator<K> {
+    	K lastValue = null;
         @Override
-		public K next() { return nextEntry().getKey(); }
+		public K next() {
+        	lastValue = nextEntry().getKey();
+        	return lastValue;
+        }
+
+		/* (non-Javadoc)
+		 * @see statechum.collections.HashMapWithSearch.HashMapWithSearchAbstractIterator#remove()
+		 */
+		@Override
+		public void remove() {
+			if (lastValue == null)
+				throw new IllegalStateException("next was not yet called or was already called");
+			HashMapWithSearch.this.remove(lastValue);lastValue = null;
+			expectedModCount = modCount;// to permit more than a single remove to take place consecutively
+		}
+        
+        
     }
 
     class KeyOrderedIterator extends HashMapWithSearchOrderedIterator<K> {
@@ -540,7 +561,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
             Object k;
             if (e.hash == hash &&
                 ((k = e.key) == key || (key != null && 
-                	(	key.equals(k) || (key instanceof VertexID && k instanceof CmpVertex && ((CmpVertex)k).getID().equals(key)) )  )))
+                	(	key.equals(k) || (key instanceof VertexID && k instanceof CmpVertex && ((CmpVertex)k).equals(key)) )  )))
                 return e;
             ++collisionNumber;
         }
@@ -564,6 +585,8 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 	public V put(K key, V value) {
         if (key == null)
             throw new IllegalArgumentException("key cannot be null for HashMapWithSearch");
+        if (value == null)
+            throw new IllegalArgumentException("value cannot be null for HashMapWithSearch");
         
         int hash = hash(key);
         int i = indexFor(hash, table.length);
@@ -604,7 +627,8 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
             return;
         }
 
-        Entry<K,V>[] newTable = new Entry[newCapacity];
+        @SuppressWarnings("unchecked")
+		Entry<K,V>[] newTable = new Entry[newCapacity];
         transfer(newTable, false);
         table = newTable;
         threshold = (int)Math.min(newCapacity * loadFactor, MAXIMUM_CAPACITY + 1);
@@ -642,10 +666,12 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 		public boolean contains(Object o) {
             if (!(o instanceof Map.Entry))
                 return false;
-            Map.Entry<K,V> e = (Map.Entry<K,V>) o;
+            @SuppressWarnings("unchecked")
+			Map.Entry<K,V> e = (Map.Entry<K,V>) o;
             Entry<K,V> candidate = getEntry(e.getKey());
             return candidate != null && candidate.equals(e);
         }
+                
         @Override
 		public boolean remove(@SuppressWarnings("unused") Object o) {
             throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
@@ -658,7 +684,35 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 		public void clear() {
             throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
         }
-    }
+        @Override
+        public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+         	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#add(java.lang.Object)
+		 */
+		@Override
+		public boolean add(@SuppressWarnings("unused") java.util.Map.Entry<K, V> e) {
+         	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+		}
+
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+		 */
+		@Override
+		public boolean addAll(@SuppressWarnings("unused") Collection<? extends java.util.Map.Entry<K, V>> c) {
+         	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+		}
+
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#retainAll(java.util.Collection)
+		 */
+		@Override
+		public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+        	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+		}
+     }
 
     /**
      * Returns a {@link Set} view of the mappings contained in this map.
@@ -836,11 +890,29 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
         public boolean remove(Object o) {
             return HashMapWithSearch.this.removeEntryForKey(o) != null;
         }
+        
         @Override
 		public void clear() {
-        	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        	HashMapWithSearch.this.clear();
         }
-    }
+
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#add(java.lang.Object)
+		 */
+		@Override
+		public boolean add(@SuppressWarnings("unused") K e) {
+			throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
+		}
+
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+		 */
+		@Override
+		public boolean addAll(@SuppressWarnings("unused") Collection<? extends K> c) {
+			throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
+		}
+
+   }
 
     @Override
 	public Set<K> getPotentiallyOrderedKeySet(boolean ordered) {
@@ -895,8 +967,30 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
         }
         @Override
  		public boolean remove(@SuppressWarnings("unused") Object o) {
-         	throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+         	throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
          }
+        @Override
+        public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+         	throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+        }
+        @Override
+        public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+         	throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+        }
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#add(java.lang.Object)
+		 */
+		@Override
+		public boolean add(@SuppressWarnings("unused") V e) {
+         	throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+		}
+		/* (non-Javadoc)
+		 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+		 */
+		@Override
+		public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
+         	throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+		}
     }
     
     /** A copy of the {@link AbstractMap#equals(Object)} method.
@@ -928,7 +1022,8 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 
         if (!(o instanceof Map))
             return false;
-        Map<K,V> m = (Map<K,V>) o;
+        @SuppressWarnings("unchecked")
+		Map<K,V> m = (Map<K,V>) o;
         if (m.size() != size())
             return false;
 

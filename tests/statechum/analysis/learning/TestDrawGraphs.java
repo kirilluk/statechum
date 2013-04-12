@@ -213,7 +213,7 @@ public class TestDrawGraphs {
 	{
 		ExperimentRunner.zapDir(testDir);
 	}
-	
+		
 	@Test
 	public void testRunRealPlot() throws IOException
 	{
@@ -223,21 +223,29 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		File output = new File(testDir,"out.pdf");
 		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),null,null)),7,7,output);
+		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", "aphA","aphB"});
 		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
+		StringBuffer buffer = new StringBuffer();
 		try
 		{
 			while((line=reader.readLine()) != null)
+			{
+				buffer.append(line);
 				for(String str:stringsOfInterest)
 					if (line.contains(str)) encounteredStrings.put(str,true);
+			}
 		}
 		finally
 		{
 			reader.close();
 		}
-		Assert.assertEquals(stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings	
+
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
+		
+		
 	}
 	
 	@Test
@@ -253,23 +261,30 @@ public class TestDrawGraphs {
 		g.add("one",2.,"magenta");
 		g.add("two",3.);
 		g.add("three",4.,"blue","");
+		g.add("three",5.);
 		g.drawPdf(gr);
+
 		BufferedReader reader = new BufferedReader(new FileReader(output));
+		StringBuffer buffer = new StringBuffer();
 		String line = null;
-		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y,"(lb","0.000 0.000 1.000 rg","1.000 0.000 1.000 rg","0.000 1.000 0.000 rg","0.000 0.000 0.000 rg"});
+		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y,"(lb","0.000 0.000 1.000 ","1.000 0.000 1.000 ","0.000 1.000 0.000 ","0.000 0.000 0.000 "});
 		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
 		try
 		{
 			while((line=reader.readLine()) != null)
+			{
+				buffer.append(line);
 				for(String str:stringsOfInterest)
 					if (line.contains(str)) encounteredStrings.put(str,true);
+			}
 		}
 		finally
 		{
 			reader.close();
 		}
-		Assert.assertEquals(stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings	
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings	
 	}
+	
 	@Test
 	public void testPlotFail1()
 	{

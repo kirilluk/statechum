@@ -57,7 +57,8 @@
 <node COLOUR="RED" DEPTH="358" VERTEX="P743363" id="P743363"/>
 <node COLOUR="RED" DEPTH="15" VERTEX="P771111" id="P771111"/>
 <node COLOUR="RED" DEPTH="17" VERTEX="P771113" id="P771113"/>
-<node ACCEPTED="false" COLOUR="RED" VERTEX="N219998" id="N219998"/>
+<node VERTEX="P776381" id="P776381"/>
+<node ACCEPTED="false" COLOUR="RED" DEPTH="2" VERTEX="N219998" id="N219998"/>
 <edge EDGE="Calculating_Waypoint" directed="true" source="P1000" target="N219998"/>
 <edge EDGE="Fire_Knowledge_Updated" directed="true" source="P1000" target="P1001"/>
 <edge EDGE="Fire_Observed" directed="true" source="P1000" target="P1003"/>
@@ -515,4 +516,18 @@
 <edge EDGE="Precalculating_Avoidance" directed="true" source="P771113" target="P771111"/>
 <edge EDGE="Receiving_Broadcast" directed="true" source="P771113" target="P450544"/>
 <edge EDGE="Waypoint_Selected" directed="true" source="P771113" target="N219998"/>
+<edge EDGE="Avoidance_Measures_Taken" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Broadcast_Distance_Average" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Broadcast_Distance_Far" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Broadcast_Distance_Near" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Calculating_Waypoint" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Data_Deprecates_Waypoint" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Fire_Observed" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Merging_Broadcasted_Data" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="No_Avoidance_Data_Found" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Old_Avoidance_Data_Removed" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Precalculating_Avoidance" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Receiving_Broadcast" directed="true" source="P776381" target="P776381"/>
+<edge EDGE="Waypoint_Selected" directed="true" source="P776381" target="P776381"/>
 </graph></gml:graphml>

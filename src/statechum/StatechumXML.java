@@ -39,6 +39,7 @@ import com.ericsson.otp.erlang.OtpErlangString;
 
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public enum StatechumXML 
 {
@@ -306,20 +307,22 @@ public enum StatechumXML
 	public static class LabelSequenceWriter extends XMLSequenceWriter<Label>
 	{
 		private final Configuration config;
-		public LabelSequenceWriter(Document d, Configuration conf) {
-			super(d);config = conf;
+		private final ConvertALabel converter;
+		
+		public LabelSequenceWriter(Document d, Configuration conf, ConvertALabel conv) {
+			super(d);config = conf;converter = conv;
 		}
 
 		@Override
 		public List<Label> readInputSequence(String string) 
 		{
-			return statechum.StatechumXML.readInputSequence(string,config);
+			return statechum.StatechumXML.readInputSequence(string,config,converter);
 		}
 
 		@Override
 		public List<List<Label>> readSequenceList(String sequence)
 		{
-			return StatechumXML.readSequenceList(sequence,config);
+			return StatechumXML.readSequenceList(sequence,config,converter);
 		}
 		
 		@Override
@@ -346,26 +349,26 @@ public enum StatechumXML
 	
 	}
 	
-	public static List<List<Label>> readSequenceList(String sequence,Configuration config) 
+	public static List<List<Label>> readSequenceList(String sequence,Configuration config, ConvertALabel conv) 
 	{
-    	return readSequenceList(ErlangLabel.parseText(sequence),config);
+    	return readSequenceList(ErlangLabel.parseText(sequence),config,conv);
 	}
     
-	public static List<List<Label>> readSequenceList(OtpErlangObject obj,Configuration config) 
+	public static List<List<Label>> readSequenceList(OtpErlangObject obj,Configuration config, ConvertALabel conv) 
 	{
 		if (!(obj instanceof OtpErlangList))
 			throw new IllegalArgumentException("expected a sequence, got "+obj);
     	OtpErlangList list = (OtpErlangList)obj;
     	List<List<Label>> outcome = new LinkedList<List<Label>>();
     	for(OtpErlangObject o:list.elements())
-    		outcome.add(readInputSequenceFromErlangObject(o,config));
+    		outcome.add(readInputSequenceFromErlangObject(o,config,conv));
     	return outcome;
 	}
 
-	public static List<Label> readInputSequence(String string, Configuration config) 
+	public static List<Label> readInputSequence(String string, Configuration config, ConvertALabel conv) 
 	{
     	OtpErlangObject obj = ErlangLabel.parseText(string);
-    	return readInputSequenceFromErlangObject(obj,config);
+    	return readInputSequenceFromErlangObject(obj,config,conv);
 	}
 
 	/** Given a string containing the whole of the expression to parse, parses the text and returns the
@@ -376,9 +379,10 @@ public enum StatechumXML
      * @param config configuration to use 
      * Uses the module in the configuration to provide definitions of functions to associated with labels. Will 
      * generic name <em>ErlangLabel.missing</em> if <em>mod</em> is null.
+     * @param conv converter for labels, not used if null.
      * @return the outcome.
      */
-	public static List<Label> readInputSequenceFromErlangObject(OtpErlangObject obj,Configuration config) 
+	public static List<Label> readInputSequenceFromErlangObject(OtpErlangObject obj,Configuration config, ConvertALabel conv) 
 	{
 		if (!(obj instanceof OtpErlangList))
 			throw new IllegalArgumentException("expected a sequence, got "+obj);
@@ -402,7 +406,9 @@ public enum StatechumXML
     			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
     		}
     		
+    		if (conv != null) label = conv.convertLabelToLabel(label);
     		outcome.add(label);
+    		
     	}
     	return outcome;
 	}
@@ -548,10 +554,11 @@ public enum StatechumXML
 	{
 		final protected LEGACY_StringSequenceWriter delegate;
 		final protected Configuration config;
+		final protected ConvertALabel converter;
 		
-		public LEGACY_StringLabelSequenceWriter(Document d,Configuration conf)
+		public LEGACY_StringLabelSequenceWriter(Document d,Configuration conf, ConvertALabel conv)
 		{
-			delegate = new LEGACY_StringSequenceWriter(d);config = conf;
+			delegate = new LEGACY_StringSequenceWriter(d);config = conf;converter = conv;
 		}
 		
 		@Override
@@ -573,7 +580,7 @@ public enum StatechumXML
 			List<List<String>> data = delegate.readSequenceList(elem, expectedName);
 			List<List<Label>> convertedData = new ArrayList<List<Label>>(data.size());
 			for(List<String> str:data)
-				convertedData.add(AbstractLearnerGraph.buildList(str, config));
+				convertedData.add(AbstractLearnerGraph.buildList(str, config, converter));
 
 			return convertedData;
 		}
@@ -587,7 +594,7 @@ public enum StatechumXML
 
 		@Override
 		public List<Label> readInputSequence(String data) {
-			return AbstractLearnerGraph.buildList(delegate.readInputSequence(data),config);
+			return AbstractLearnerGraph.buildList(delegate.readInputSequence(data),config, converter);
 		}
 		
 	}

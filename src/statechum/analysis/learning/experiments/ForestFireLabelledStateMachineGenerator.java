@@ -76,6 +76,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		return true;			
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
 	{
 		Set<Label> vertexAlphabet = new TreeSet<Label>();
@@ -85,7 +86,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			if (edge.getDest() == random)
 				existingEdge = edge;
 			Set<Label>labels = (Set<Label>)edge.getUserDatum(JUConstants.LABEL);
-			assert labels!=null : "vertex "+v.getID().toString()+" has outgoing edges without labels";
+			assert labels!=null : "vertex "+v.getStringId()+" has outgoing edges without labels";
 			vertexAlphabet.addAll(labels);
 		}
 		Set<Label> possibles = new TreeSet<Label>();

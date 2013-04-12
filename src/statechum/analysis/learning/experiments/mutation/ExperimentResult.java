@@ -2,12 +2,15 @@ package statechum.analysis.learning.experiments.mutation;
 
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
+import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
 
+import statechum.Configuration;
+
 
 /** Represents results of test runs. */
-public class ExperimentResult
+public class ExperimentResult implements Serializable
 {
 	/**
 	 * ID for serialization.
@@ -51,6 +54,7 @@ public class ExperimentResult
 		encoder.writeObject(D_varToValue);encoder.writeObject(L_varToValue);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void load(XMLDecoder decoder)
 	{
 		experimentValid = ((Boolean)decoder.readObject()).booleanValue();
@@ -98,6 +102,44 @@ public class ExperimentResult
 			if (exp.L_varToValue.containsKey(varName) && L_varToValue.containsKey(varName))
 				setValue(varName,getValue(varName)+exp.getValue(varName));
 		}
+	}
+	
+	public double maxDiff(ExperimentResult exp) 
+	{
+		if (!experimentValid || !exp.experimentValid) throw new IllegalArgumentException("invalid experiment");
+		double outcome = 0;
+		for(ExperimentResult.DOUBLE_V varName:DOUBLE_V.values())
+		{
+			if (!exp.D_varToValue.containsKey(varName) && D_varToValue.containsKey(varName)) throw new IllegalArgumentException("exp missing value for "+varName);
+			if (exp.D_varToValue.containsKey(varName) && !D_varToValue.containsKey(varName)) throw new IllegalArgumentException("result missing value for "+varName);
+			if (exp.D_varToValue.containsKey(varName) && D_varToValue.containsKey(varName))
+			{
+				double diff = Math.abs(getValue(varName)-exp.getValue(varName));
+				double diffInPercent = 0;
+				if (diff > Configuration.fpAccuracy)
+					diffInPercent = diff/Math.max(getValue(varName),exp.getValue(varName));
+				outcome = Math.max(outcome, diffInPercent);
+				if (diffInPercent > 0.01)
+					System.out.println(varName+" : differ by "+Math.round(diffInPercent*100)+"%, recorded "+exp.getValue(varName)+", obtained "+getValue(varName));
+			}
+		}
+		for(ExperimentResult.LONG_V varName:LONG_V.values())
+		{
+			if (!exp.L_varToValue.containsKey(varName) && L_varToValue.containsKey(varName)) throw new IllegalArgumentException("exp missing value for "+varName);
+			if (exp.L_varToValue.containsKey(varName) && !L_varToValue.containsKey(varName)) throw new IllegalArgumentException("result missing value for "+varName);
+			if (exp.L_varToValue.containsKey(varName) && L_varToValue.containsKey(varName))
+			{
+				double diff = Math.abs(getValue(varName)-exp.getValue(varName));
+				double diffInPercent = 0;
+				if (diff > Configuration.fpAccuracy)
+					diffInPercent = diff/Math.max(getValue(varName),exp.getValue(varName));
+				outcome = Math.max(outcome, diffInPercent);
+				if (diffInPercent > 0.01)
+					System.out.println(varName+" : differ by "+Math.round(diffInPercent*100)+"%, recorded "+exp.getValue(varName)+", obtained "+getValue(varName));
+			}
+		}
+		
+		return outcome;
 	}
 	
 	public ExperimentResult divide(int count) 

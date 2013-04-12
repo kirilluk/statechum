@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.SMTLabel;
 
@@ -50,9 +50,9 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	}
 
         /** A collection associating merged states to hard facts-states they came from. */
-        protected Map<VertexID,Collection<VertexID>> mergedToHardFacts;
+        protected Map<VertID,Collection<VertID>> mergedToHardFacts;
 
-        public Map<VertexID,Collection<VertexID>> getMergedToHardFacts()
+        public Map<VertID,Collection<VertID>> getMergedToHardFacts()
         {
             return mergedToHardFacts;
         }

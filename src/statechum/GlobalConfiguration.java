@@ -44,7 +44,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
  */
 public class GlobalConfiguration {
 	public enum G_PROPERTIES { // internal properties
-		ASSERT// whether to display assert warnings. If this is set, a number of additional consistency checks are enabled.
+		ASSERT_ENABLED// whether to display assert warnings. If this is set, a number of additional consistency checks are enabled.
 		,TEMP // temporary directory to use
 		,LINEARWARNINGS// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
 		,SMTWARNINGS// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
@@ -52,11 +52,11 @@ public class GlobalConfiguration {
 		,STOP // used to stop execution - a workaround re JUnit Eclipse bug on linux amd64.
 		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
 		,TIMEBETWEENHEARTBEATS // How often to check i/o streams and send heartbeat data.
-		,ASSERT_ENABLED // whether assertions are enabled - in this case some additional checks are carried out outside of assert statements
 		,VIZ_DIR// the path to visualisation-related information, such as graph layouts and configuration file.
 		,VIZ_CONFIG// the configuration file containing window positions and whether to display an assert-related warning.
 		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions.
 		,LTL2BA // path to LTL2BA executable, if null the default path will be used.
+		,FORCEFORK // whether to ensure that ExperimentRunner always forks a worker JVM. This is false by default so that experiment runner does not do a fork when it is being debugged, permitted to step into the experiment. Ant runner can permit debugging in order to debug failing tests, but since the aim most of the time is not to debug experiment but to observe test execution, it is a good idea to make sure that forking does happen and this argument makes sure this happens.
 		,ERLANGHOME // path to the Erlang distribution directory 
 		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
 		,SCALE_TEXT // determines the size of the font in Jung graphs, 1.0 means no scaling.
@@ -80,15 +80,15 @@ public class GlobalConfiguration {
 	{
 		defaultValues.put(G_PROPERTIES.LINEARWARNINGS, "false");
 		defaultValues.put(G_PROPERTIES.SMTWARNINGS, "false");
-		defaultValues.put(G_PROPERTIES.ASSERT, "false");
+		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
 		defaultValues.put(G_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN);
 		defaultValues.put(G_PROPERTIES.STOP, "");
 		defaultValues.put(G_PROPERTIES.TEMP, "tmp");
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
-		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
 		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "false");
 		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
 		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");
+		defaultValues.put(G_PROPERTIES.FORCEFORK,"false");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 	
@@ -126,14 +126,16 @@ public class GlobalConfiguration {
 		return properties.getProperty(name.name(), defaultValues.get(name));
 	}
 
+	@SuppressWarnings("unchecked")
 	protected void loadConfiguration()
 	{
 		String configFileName = getConfigurationFileName();
+		XMLDecoder decoder = null;
 		if (configFileName != null && new File(configFileName).canRead())
 		try 
 		{
 			System.out.println("Loaded configuration file "+configFileName);
-			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
+			decoder = new XMLDecoder(new FileInputStream(configFileName));
 			properties = (Properties) decoder.readObject();
 			windowCoords = (HashMap<Integer, WindowPosition>) decoder.readObject();
 			decoder.close();
@@ -142,7 +144,11 @@ public class GlobalConfiguration {
 			System.err.println("Failed to load "+configFileName);
 			e.printStackTrace();
 		}
-		
+		finally
+		{
+			if (decoder != null)
+				decoder.close();
+		}
 		if (windowCoords == null)
 			windowCoords = new HashMap<Integer, WindowPosition>();
 		if (properties == null)
@@ -269,17 +275,23 @@ public class GlobalConfiguration {
 		if (properties == null)
 			properties = new Properties();
 
+		XMLEncoder encoder = null;
 		try {
 			if (configFileName != null)
 			{
-				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(configFileName));
+				encoder = new XMLEncoder(new FileOutputStream(configFileName));
 				encoder.writeObject(properties);
-				encoder.writeObject(windowCoords);encoder.close();
+				encoder.writeObject(windowCoords);encoder.close();encoder = null;
 			}
 		} catch (Exception e) 
 		{// failed loading
 			e.printStackTrace();
-		}		
+		}
+		finally
+		{
+			if (encoder != null)
+				encoder.close();
+		}
 	}
 
 	/** Returns true if the configuration file defines the name of the supplied graph as the one 

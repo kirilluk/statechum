@@ -38,11 +38,11 @@ import statechum.analysis.CodeCoverage.CodeCoverageMap;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.OTPBehaviour;
-import statechum.analysis.Erlang.OTPBehaviour.ConvertALabel;
 
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.observers.QuestionAndRestartCounter;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /**
  *
@@ -189,6 +189,7 @@ public class ErlangQSMOracle {
 		// System.out.println("Stripping wildcards from " + filename);
 		ArrayList<String> lines = new ArrayList<String>();
 		BufferedReader input = null;
+		BufferedWriter out = null; 
 		try {
 			input = new BufferedReader(new FileReader(filename));
 			String line;
@@ -200,17 +201,20 @@ public class ErlangQSMOracle {
 					// System.out.println("Stripping " + line);
 				}
 			}
-			input.close();
 			(new File(filename)).delete();
-			BufferedWriter out = new BufferedWriter(new FileWriter(filename));
+			out = new BufferedWriter(new FileWriter(filename));
 			for (String l : lines) {
 				out.write(l);
 				out.newLine();
 			}
-			out.flush();
-			out.close();
+			out.flush();out.close();out = null;
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		finally
+		{
+			if (input != null) { try { input.close();input=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
+			if (out != null) { try { out.close();out=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 	}
 
@@ -287,12 +291,7 @@ public class ErlangQSMOracle {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) { /* ignore this */
-				}
-			}
+			if (input != null) { try { input.close();input=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 		coverageMapLock = false;
 	}

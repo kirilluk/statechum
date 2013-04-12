@@ -34,6 +34,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 
 import edu.uci.ics.jung.graph.Edge;
@@ -52,9 +53,10 @@ public class TestEVGraphGeneration {
 		e.setUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);		
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static DirectedSparseGraph buildEVGraph(String graphString)
 	{
-		DirectedSparseGraph g = FsmParser.buildGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration());
+		DirectedSparseGraph g = FsmParser.buildLearnerGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration().copy(),null).pathroutines.getGraph();
 		g.getEdgeConstraints().clear();
 		List<Edge> newEdges = new LinkedList<Edge>();
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
@@ -83,6 +85,7 @@ public class TestEVGraphGeneration {
 		return g;
 	}
 
+	@SuppressWarnings("unchecked")
 	public void checkEquivalence(DirectedSparseGraph g, String expected)
 	{
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
@@ -93,8 +96,7 @@ public class TestEVGraphGeneration {
 			 v.addUserDatum(JUConstants.LABEL, v.getUserDatum(VERTEX), UserData.SHARED);
 			 v.removeUserDatum(VERTEX);
 		}
-		//updateFrame(FsmParser.buildGraph(expected,"expected"),g);
-		TestEquivalenceChecking.checkM(expected, g, Configuration.getDefaultConfiguration());
+		TestEquivalenceChecking.checkM(expected, new LearnerGraph(g,Configuration.getDefaultConfiguration()), Configuration.getDefaultConfiguration(),null);
 	}
 	
 	@Test

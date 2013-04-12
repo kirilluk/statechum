@@ -43,6 +43,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
@@ -63,14 +64,15 @@ import static statechum.DeterministicDirectedSparseGraph.findEdge;
  */
 public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	
-	public Test_Orig_RPNIBlueFringeLearner(Frame parent, Configuration c) {
-		super(parent, c);
+	public Test_Orig_RPNIBlueFringeLearner(Frame parent, Configuration c, ConvertALabel conv) {
+		super(parent, c, conv);
 	}
 
 	protected Graph currentGraph = DeterministicDirectedSparseGraph.initialise();
 	protected HashSet<DirectedSparseEdge> doneEdges;
 	protected Collection<List<Label>> sPlus, sMinus;
 
+	@SuppressWarnings("unchecked")
 	public static Collection<Label> getAlphabetForEdges(Collection<Edge> edges){
 		Set<Label> alphabet = new TreeSet<Label>();
 		Iterator<Edge> edgeIt = edges.iterator();
@@ -82,6 +84,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 
 	protected Graph removeNegatives(Graph g){
+		@SuppressWarnings("unchecked")
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		HashSet<Vertex> remove = new HashSet<Vertex>();
 		while(vertexIt.hasNext()){
@@ -106,6 +109,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		Set<Vertex> blues = new HashSet<Vertex>();
 		for(Vertex v: DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, model))
 		{
+			@SuppressWarnings("unchecked")
 			Iterator<DirectedSparseEdge>neighbourIt = v.getOutEdges().iterator();
 			while(neighbourIt.hasNext()){
 				DirectedSparseEdge next = neighbourIt.next();
@@ -138,6 +142,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			return vLabel;
 		}
 		
+		@Override
 		public int compareTo(OrigStatePair pB){
 			int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
 			int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));
@@ -327,6 +332,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	/*
 	 * needs to be refactored into smaller methods
 	 */
+	@SuppressWarnings("unchecked")
 	protected List<List<Label>> generateQuestions(DirectedSparseGraph model, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
@@ -394,6 +400,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 */
 	protected static Set<List<Label>> getShortSuffixes(@SuppressWarnings("unused") DirectedSparseGraph g, Vertex v){
 		Set<List<Label>> returnStrings = new LinkedHashSet<List<Label>>();
+		@SuppressWarnings("unchecked")
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
@@ -407,6 +414,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 	
 	public static boolean hasAcceptedNeighbours(Vertex v){
+		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> neighbourIt = v.getOutEdges().iterator();
 		while (neighbourIt.hasNext()){
 			DirectedSparseEdge e = neighbourIt.next();
@@ -425,6 +433,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param accepted labelling requested.
 	 * @return the list of paths.
 	 */
+	@SuppressWarnings("unchecked")
 	protected Set<List<Label>> getSuffixes(DirectedSparseGraph graph, Vertex r, boolean accepted){
 		Set<List<Label>> setOfPaths = new HashSet<List<Label>>();
 		Iterator<Vertex> vertexIt = graph.getVertices().iterator();
@@ -456,6 +465,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		TreeMap<Integer,Set<List<Label>>> returnSet = new TreeMap<Integer,Set<List<Label>>>();// KIRR: this should not be done in this way since access to this map is not random - you only need the last element in which case simply storing the last set of lists is best
 		for(int i=0;i<l.size();i++){// for each element of the source list
 			Edge e = l.get(i);
+			@SuppressWarnings("unchecked")
 			Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 			Set<List<Label>> strings = new HashSet<List<Label>>();
 			for(Label s:labels)
@@ -485,6 +495,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */
+	@SuppressWarnings("unchecked")
 	protected static List<Label> getShortPrefix(DirectedSparseGraph model, Vertex q){
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
 		UnweightedShortestPath p = new UnweightedShortestPath(model);
@@ -501,6 +512,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 
 	
+	@SuppressWarnings("unchecked")
 	protected static DirectedSparseGraph merge(DirectedSparseGraph model, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex qDash = pair.getR();
@@ -547,6 +559,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param model
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
+	@SuppressWarnings("unchecked")
 	protected static OrigStatePair findMergablePair(DirectedSparseGraph model){
 		List<Vertex> queue = DeterministicDirectedSparseGraph.getBFSList(model);
 		Iterator<Vertex> queueIt = queue.iterator();
@@ -619,9 +632,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				blueStack.addAll(computeBlue(g));
 			}
 			else{
-				Iterator keyIt = singleSet.keySet().iterator();
+				Iterator<Integer> keyIt = singleSet.keySet().iterator();
 				while(keyIt.hasNext()){
-					Integer key = (Integer)keyIt.next();
+					Integer key = keyIt.next();
 					Vector<OrigStatePair> s = scoreToPair.get(key);
 					if(s!=null){
 						s.addAll(singleSet.get(key));
@@ -666,6 +679,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param blueRed the pair of states
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	protected int computeScore(DirectedSparseGraph original, OrigStatePair blueRed){
 		int returnValue = 0;
 		if(different(blueRed))
@@ -758,6 +772,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		
 		for(int i = 0;i<string.size();i++){
 			Label label = string.get(i);
+			@SuppressWarnings("unchecked")
 			DirectedSparseEdge edge = getEdgeWithLabel(current.getOutEdges(), label);
 			if(edge == null)
 				return null;
@@ -774,6 +789,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = edgeIt.next();
+			@SuppressWarnings("unchecked")
 			Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 			if(labels.contains(label))
 				return e;

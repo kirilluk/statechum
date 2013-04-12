@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -36,6 +35,7 @@ import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
+import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
@@ -317,7 +317,7 @@ public class ComputeQuestions {
 	 */
 	public static List<List<Label>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
-		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
+		CmpVertex mergedRed = merged.findVertex(pair.getR());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		
@@ -347,7 +347,7 @@ public class ComputeQuestions {
 	 */
 	public static List<List<Label>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
-		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
+		CmpVertex mergedRed = merged.findVertex(pair.getR());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		
@@ -378,7 +378,7 @@ public class ComputeQuestions {
 	
 	public static Collection<List<Label>> computeQS_getpartA(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
-		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
+		CmpVertex mergedRed = merged.findVertex(pair.getR());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		

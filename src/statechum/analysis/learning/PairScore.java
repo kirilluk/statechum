@@ -18,13 +18,15 @@
 
 package statechum.analysis.learning;
 
-import statechum.Pair;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Pair;
 
 /** Important: although compatibility score is recorded and reported, it is ignored in 
  * all computations since it is considered for information only. The getter for it
  * is provided because this class is not exclusively used for learning, but in other
  * cases when I need to associate two scores to states, such as in GD. 
+ * @param <B>
  */
 public class PairScore extends StatePair
 {
@@ -56,6 +58,95 @@ public class PairScore extends StatePair
 
 	/** This one is used when pairs of states are identified and 
 	 * we'd like to sort them in the order of decreasing score, so that 
+	 * the first one will have the highest score etc. Unlike {@link compareTo}, this one
+	 * uses depth so that states closer to the root state are given a priority. If used in place of 
+	 * {@link compareTo}, some 
+	 * of the tests will fail, such as {@link TestRpniLearner#testLearner2a}
+	 * that would need additional sequences 
+	 * {@code new String[]{"a","b"},new String[]{"b","a","b"}}
+	 * as part of negatives to learn correctly.
+	 * The existing question generator does not generate any questions for the incorrect merge of state P1002
+	 * into P1000, this is the way question generator works which was never aimed to execute an equivalence 
+	 * query.
+	 * <br>
+	 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
+	 * <br>
+	 * Note the type of argument: it has to be a supertype since we're overriding Pair's <em>compareTo</em> method.
+	 * @param b the state pair to compare to.
+	 */
+	public int compareInTermsOfDepth(Pair<CmpVertex,CmpVertex> b)
+	{
+		PairScore pB = (PairScore)b;
+		if (score != pB.score)
+			return score < pB.score? -1:1;
+
+		/*
+		// if scores are the same, we give priority to positive pairs.
+		if (secondElem.isAccept() != pB.secondElem.isAccept())
+			return secondElem.isAccept()?-1:1;
+		*/
+		
+		// Check red state first
+		if (secondElem.getDepth() != pB.secondElem.getDepth())
+		{
+			assert secondElem.getDepth() != JUConstants.intUNKNOWN && pB.secondElem.getDepth() != JUConstants.intUNKNOWN;
+			if (secondElem.getDepth() < pB.secondElem.getDepth())
+				return 1;
+			if (secondElem.getDepth() > pB.secondElem.getDepth())
+				return -1;
+			return 0;
+		}
+
+		// Now blue one
+		if (firstElem.getDepth() != pB.firstElem.getDepth())
+		{
+			assert firstElem.getDepth() != JUConstants.intUNKNOWN && pB.firstElem.getDepth() != JUConstants.intUNKNOWN;
+			if (firstElem.getDepth() < pB.firstElem.getDepth())
+				return 1;
+			if (firstElem.getDepth() > pB.firstElem.getDepth())
+				return -1;
+			return 0;
+		}
+
+		// The comparison routine is modified to ensure that we compare red states first and then blue ones.
+		int secondComp = 0;
+		
+		if (secondElem == null)
+		{
+			if (pB.secondElem != null)
+				secondComp = -1;
+		}
+		else
+		{
+			if (pB.secondElem == null)
+				secondComp = 1;
+			else
+				secondComp = secondElem.compareTo(pB.secondElem);
+		}
+		
+		if(secondComp != 0)
+			return secondComp;
+
+		int firstComp = 0;
+		
+		if (firstElem == null)
+		{
+			if (pB.firstElem != null)
+				firstComp = -1;
+		}
+		else
+		{
+			if (pB.firstElem == null)
+				firstComp = 1;
+			else
+				firstComp = firstElem.compareTo(pB.firstElem);
+		}
+		
+		return firstComp;
+	}
+	
+	/** This one is used when pairs of states are identified and 
+	 * we'd like to sort them in the order of decreasing score, so that 
 	 * the first one will have the highest score etc.
 	 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
 	 * <br>
@@ -63,18 +154,21 @@ public class PairScore extends StatePair
 	 * @param b the state pair to compare to.
 	 */
 	@Override
-	public int compareTo(Pair<CmpVertex,CmpVertex> b){
+	public int compareTo(Pair<CmpVertex,CmpVertex> b)
+	{
 		PairScore pB = (PairScore)b;
 		if (score != pB.score)
 			return score < pB.score? -1:1;
-		return super.compareTo(b);
+
+		return super.compareTo(pB);
 	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object obj) 
+	{
 		if (this == obj)
 			return true;
 		if (!(obj instanceof PairScore))
@@ -87,8 +181,10 @@ public class PairScore extends StatePair
 		return true;
 	}
 	
+	
 	@Override
-	public String toString(){
-		return "[ "+getQ().getID().toString()+"("+getQ().isAccept()+"), "+getR().getID().toString()+"("+getR().isAccept()+") : "+score+","+compatibilityScore+" ]";
+	public String toString()
+	{
+		return "[ "+getQ().getStringId()+"("+getQ().isAccept()+","+getQ().getDepth()+"), "+getR().getStringId()+"("+getR().isAccept()+","+getR().getDepth()+") : "+score+","+compatibilityScore+" ]";
 	}
 }

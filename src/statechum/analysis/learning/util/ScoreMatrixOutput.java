@@ -18,6 +18,7 @@
 package statechum.analysis.learning.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -34,15 +35,18 @@ import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 
 public class ScoreMatrixOutput {
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws IOException
+	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		DirectedSparseGraph dsg = FsmParser.buildGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config);
+		LearnerGraph dsg = FsmParser.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,null);
 		LearnerGraph gr=new LearnerGraph(dsg,config);
 		writeMatrix(gr, "cvsExample.csv");
 	}
 	
 	
-	public static void writeMatrix(LearnerGraph gr, String name){
+	@SuppressWarnings("unchecked")
+	public static void writeMatrix(LearnerGraph gr, String name) throws IOException
+	{
 		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(1));
 		ArrayList<StringVertex> vertexList = new ArrayList<StringVertex>();
 		DirectedSparseGraph dsg = gr.pathroutines.getGraph();
@@ -50,7 +54,7 @@ public class ScoreMatrixOutput {
 		writeMatrix(pairScores,vertexList,vertexList, name);
 	}
 
-	private static void writeMatrix(List<PairScore> ps, List<StringVertex> stateLabelsA, List<StringVertex> stateLabelsB, String name){
+	private static void writeMatrix(List<PairScore> ps, List<StringVertex> stateLabelsA, List<StringVertex> stateLabelsB, String name) throws IOException{
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File output  = new File(fileRef);
 		long[][] matrix = new long[stateLabelsA.size()][stateLabelsB.size()];

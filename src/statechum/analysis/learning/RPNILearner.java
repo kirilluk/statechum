@@ -31,13 +31,14 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.Pair;
 import statechum.StringLabel;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
 
@@ -54,11 +55,22 @@ public abstract class RPNILearner extends Observable implements Learner {
     /** The frame in relation to which to pop dialog boxes. */
     protected Frame parentFrame;
 
-    public RPNILearner(Frame parent, Configuration c) {
+    protected final ConvertALabel labelConverter;
+    
+    @Override
+	public ConvertALabel getLabelConverter()
+    {
+    	return labelConverter;
+    }
+    
+    public RPNILearner(Frame parent, Configuration c, ConvertALabel conv) {
         config = c;
         parentFrame = parent;
+        labelConverter = conv;
     }
 
+    
+    
     /** Retrieves the configuration used by this learner. */
     public Configuration getConfig() {
         return config;
@@ -155,7 +167,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     public void updateGraph(LearnerGraph g, LearnerGraph hardFacts) {
         setChanged();
         if (config.getDebugMode()) {
-            Map<VertexID, Collection<VertexID>> mergedToHard = g.getCache().getMergedToHardFacts();
+            Map<VertID, Collection<VertID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
                 Map<CmpVertex, LinkedList<Label>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
                 Map<CmpVertex,CachedData.ErlangCoverageData> vertexToCoverage = new TreeMap<CmpVertex,CachedData.ErlangCoverageData>();
@@ -164,10 +176,10 @@ public abstract class RPNILearner extends Observable implements Learner {
                 	CachedData.ErlangCoverageData erlCoverage = new CachedData.ErlangCoverageData();
                 	erlCoverage.coverage = new LinkedList<CodeCoverageMap>();
                     Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
-                    Collection<VertexID> verticesInHardFacts=mergedToHard.get(v.getID());
+                    Collection<VertID> verticesInHardFacts=mergedToHard.get(v);
                     if (verticesInHardFacts != null)
                     {
-                        for (VertexID hard : verticesInHardFacts) {
+                        for (VertID hard : verticesInHardFacts) {
                             Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
                             allPrefixTraces.add(path);
 
@@ -204,7 +216,7 @@ public abstract class RPNILearner extends Observable implements Learner {
             result.add(prefix);
         } else {
             for (Map.Entry<Label, CmpVertex> e : edges.entrySet()) {
-                Trace newPath = (Trace) prefix.clone();
+                Trace newPath = prefix.clone();
                 newPath.add(e.getKey());
                 result.addAll(getPaths(newPath, e.getValue(), hardFacts));
             }
@@ -273,7 +285,7 @@ public abstract class RPNILearner extends Observable implements Learner {
      * Options are to be shown as choices in addition to yes/element_not_accepted.
      */
     @Override
-    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
+    public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
     		final List<Label> question, 
     		final int expectedForNoRestart,
             final List<Boolean> consistentFacts, 
@@ -318,7 +330,8 @@ public abstract class RPNILearner extends Observable implements Learner {
                             ++inputCounter;
                             listElements.add(elementHtml);
                         }
-                        final JList javaList = new JList(listElements.toArray());
+                        @SuppressWarnings({ "unchecked", "rawtypes" })
+						final JList<String> javaList = new JList(listElements.toArray());
                         String optionZero = null;
                         Boolean lastFact = consistentFacts.get(consistentFacts.size() - 1);
                         if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject

@@ -22,6 +22,7 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
@@ -156,7 +157,11 @@ public class SpinUtil {
 		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(tempDir+File.separator+"promelaMachine");
-		OutputUtil.write(defines.concat(sw.toString()), promelaMachine);
+		try {
+			OutputUtil.write(defines.concat(sw.toString()), promelaMachine);
+		} catch (IOException e) {
+			Helper.throwUnchecked("could not run Spin", e);
+		}
 		return runSpin('s');
 	}
 
@@ -266,6 +271,7 @@ public class SpinUtil {
 	
 	private static int numAcceptingSuccessors(DirectedSparseVertex v){
 		int succs = 0;
+		@SuppressWarnings("unchecked")
 		Iterator<DirectedEdge> outgoingIt = v.getOutEdges().iterator();
 		while(outgoingIt.hasNext()){
 			DirectedEdge e = outgoingIt.next();
@@ -279,6 +285,7 @@ public class SpinUtil {
 		Map<String, Integer> stateMap = new TreeMap<String, Integer>();
 		functionMap = new HashMap<String, Integer>();
 		setup(g, stateMap);
+		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseVertex> stateIt = g.getVertices().iterator();
 		
 		while (stateIt.hasNext()) {
@@ -301,9 +308,11 @@ public class SpinUtil {
 			}
 			else{
 				sw.write(currentState+":\n"+"\tif");
+				@SuppressWarnings("unchecked")
 				Iterator<DirectedEdge> outEdges = v.getOutEdges().iterator();
 				while(outEdges.hasNext()){
 					DirectedEdge e = outEdges.next();
+					@SuppressWarnings("unchecked")
 					Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 					
 					if(!DeterministicDirectedSparseGraph.isAccept(e.getDest()))
@@ -394,7 +403,7 @@ public class SpinUtil {
 		swArg.write("\n*/");
 	}
 	
-	private List<Label> getCounterExample(int i,Configuration config)
+	private List<Label> getCounterExample(int i,Configuration configArg)
 	{
 		List<Label> counterExample = new ArrayList<Label>();
 		String[] trace = new String[]{"spin", "-t"+(i+1), "-p", "-c", "promelaMachine"};
@@ -422,7 +431,7 @@ public class SpinUtil {
 							.valueOf(line.substring(inputIndex,
 									closingBracket).trim()));
 					if(function !=null)
-						counterExample.add(AbstractLearnerGraph.generateNewLabel(function,config));
+						counterExample.add(AbstractLearnerGraph.generateNewLabel(function,configArg));
 				} 
 				else if (line.contains("<<<<<"))
 					break;

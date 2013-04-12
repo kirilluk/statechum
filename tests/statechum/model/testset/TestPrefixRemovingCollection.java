@@ -21,6 +21,7 @@ package statechum.model.testset;
 import statechum.Configuration;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceSet;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
@@ -37,6 +38,7 @@ import org.junit.Test;
 public class TestPrefixRemovingCollection 
 {
 	final Configuration config = Configuration.getDefaultConfiguration();
+	final ConvertALabel converter = null;
 	
 	@Test 
 	public final void testPrefixRemovingCollection0()
@@ -59,7 +61,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(new LinkedList<Label>());
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -80,7 +82,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(new LinkedList<Label>());
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertFalse(c.getData().isEmpty());
 		Assert.assertTrue(expected.equals(actual));
@@ -100,7 +102,7 @@ public class TestPrefixRemovingCollection
 	 */
 	protected List<Label> labelList(String [] labels)
 	{
-		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config,converter);
 	}
 	
 	@Test 
@@ -111,7 +113,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{"a"}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -133,7 +135,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{"a","a"}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -157,7 +159,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -182,7 +184,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{"a"}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -208,7 +210,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{"a"}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -234,7 +236,7 @@ public class TestPrefixRemovingCollection
 		c.addSequence(labelList(new String[]{"a"}));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -262,7 +264,7 @@ public class TestPrefixRemovingCollection
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -288,11 +290,11 @@ public class TestPrefixRemovingCollection
 			new String[]{"a","b"},
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}},config));
+			new String[]{"a"}},config,converter));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -315,18 +317,18 @@ public class TestPrefixRemovingCollection
 		c.addAll(buildSet(new String[][] {
 			new String[]{"a"},
 			new String[]{},
-			new String[]{"a","b"}},config));
+			new String[]{"a","b"}},config,converter));
 		
 		PTASequenceSet d = new PTASequenceSet();
 		d.addAll(buildSet(new String[][] {		
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}},config));
+			new String[]{"a"}},config,converter));
 		c.addAll(d);
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
@@ -352,11 +354,11 @@ public class TestPrefixRemovingCollection
 			new String[]{"a","b"},
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}},config));
+			new String[]{"a"}},config,converter));
 		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		},config),actual = new HashSet<List<Label>>();actual.addAll(c);
+		},config,converter),actual = new HashSet<List<Label>>();actual.addAll(c);
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());

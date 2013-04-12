@@ -27,12 +27,14 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.LabelVertexPair;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
@@ -211,14 +213,14 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				throw new IncompatibleStatesException("incompatible equivalence classes");
 			
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-			{// TODO: to test this case
+			{// this one is tested with testEqClassHandlingOfIncompatibleVertices_fail7a
 				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(incompatibleStates);incomps.retainAll(to.states);
 				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
 					throw new IncompatibleStatesException("incompatible equivalence classes");
 			}
 			
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-			{// TODO: to test this case
+			{// this one is tested with testEqClassHandlingOfIncompatibleVertices_fail7b
 				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(to.incompatibleStates);incomps.retainAll(states);
 				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
 					throw new IncompatibleStatesException("incompatible equivalence classes");
@@ -271,6 +273,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 			return false;
 		if (!(obj instanceof AMEquivalenceClass))
 			return false;
+		@SuppressWarnings("rawtypes")
 		final AMEquivalenceClass other = (AMEquivalenceClass) obj;
 		if (mergedVertex == null)
 		{
@@ -355,11 +358,11 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 */
 	@Override
 	public String toString() {
-		String mergedDescr = mergedVertex == null?"":mergedVertex.getID().toString()+"->";
+		String mergedDescr = mergedVertex == null?"":mergedVertex.getStringId()+"->";
 		StringBuffer result = new StringBuffer("["+mergedDescr+"{");
 		Iterator<CmpVertex> vertIter = states.iterator();
-		result.append(vertIter.next().getID().toString());
-		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getID().toString());
+		result.append(vertIter.next().getStringId());
+		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getStringId());
 		result.append("}]");
 		return result.toString();
 	}
@@ -382,13 +385,13 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		else
 		{// we have to clone a vertex regardless whether configuration is for it or not - since we'll later change colour,
 		 // and perhaps even origState, we do have to make a copy here.
-			mergedVertex=AbstractLearnerGraph.generateNewCmpVertex(representative.getID(), graph.config);graph.updateIDWith(mergedVertex);
+			mergedVertex=AbstractLearnerGraph.generateNewCmpVertex(representative, graph.config);graph.updateIDWith(mergedVertex);
 			DeterministicDirectedSparseGraph.copyVertexData(representative, mergedVertex);
 			graph.transitionMatrix.put(mergedVertex, graph.createNewRow());
 		}
 		mergedVertex.setColour(currentColour == JUConstants.NONE?null:currentColour);
 		if (setOrigState)
-			mergedVertex.setOrigState(representative.getID());
+			mergedVertex.setOrigState(representative);
 		
 	}
 	
@@ -409,6 +412,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				Collection<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> eqClasses)
 	{
 		final Map<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
+			graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+					new ArrayMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>():
 			new HashMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.getStateNumber());
 		for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
 			for(CmpVertex vertex:eqClass.getStates())

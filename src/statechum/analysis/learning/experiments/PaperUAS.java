@@ -80,10 +80,11 @@ import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.Transform.InternStringLabel;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -262,9 +263,8 @@ public class PaperUAS
             	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),learnerInitConfiguration.config, new TraceAdder() {
 
     				@Override
-    				public void addTrace(List<Label> traceArg, boolean positive) 
+    				public void addTrace(List<Label> trace, boolean positive) 
     				{
-    					final List<Label> trace = internTrace(traceArg);
     					if (positive)
     					{
 	    					addTraceToUAV(UAVAllSeeds,frameNumber,trace,data.get(UAVAllSeeds).collectionOfPositiveTraces);
@@ -279,7 +279,7 @@ public class PaperUAS
     					}
     				}
             		
-            	});
+            	}, labelConverter);
 			}
 		});
 		
@@ -306,25 +306,6 @@ public class PaperUAS
 
    /** Number to be assigned to the next generated label. */
    int labelNumber=0;
-   
-   InternStringLabel labelConverter = new InternStringLabel();
-   
-   /** Converts all elements in a trace to those in the alphabet. Where a label is seen that is not the same as an already known one, it is added to the alphabet. If there is 
-    * an identical one, the known one is used.
-    * 
-    * @param trace trace to intern
-    */
-   public List<Label> internTrace(List<Label> trace)
-   {
-	   if (trace.isEmpty())
-		   return trace;
-	   
-	   List<Label> outcome = new ArrayList<Label>();
-	   for(Label l:trace)
-		   outcome.add(labelConverter.convertLabelToLabel(l));
-	   
-	   return outcome;
-   }
    
     /** Loads traces from the file into the pair of positive/negative maps,
      * parameterised by UAV and timeframe. The process is to assume a specific starting point and concatenate the following 
@@ -388,9 +369,8 @@ public class PaperUAS
             	QSMTool.parseSequenceOfTraces(lexer.group(lexTrace),learnerInitConfiguration.config, new TraceAdder() {
 
     				@Override
-    				public void addTrace(List<Label> traceArg, boolean positive) 
+    				public void addTrace(List<Label> trace, boolean positive) 
     				{
-    					final List<Label> trace = internTrace(traceArg);
     					if (positive)
     					{// The last element should be the same as the starting element in the positive trace, if there is one.
     						int traceLen = trace.size();
@@ -413,7 +393,7 @@ public class PaperUAS
     					}
     				}
             		
-            	});
+            	},labelConverter);
 			}
 		});
 		
@@ -683,6 +663,12 @@ public class PaperUAS
 				}
 
 
+				@Override
+				public ConvertALabel getLabelConverter() {
+					return labelConverter;
+				}
+
+
 				@Override 
 				public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 				{
@@ -770,7 +756,6 @@ public class PaperUAS
 					return graph;
 				}
 			};
-	
 		}
 
 		public LearnerGraph learn(final PTASequenceEngine engineArg, boolean useNegatives)
@@ -888,6 +873,7 @@ public class PaperUAS
 	   return outcome;
    }
    	
+   protected ConvertALabel labelConverter;
    
    public void runExperimentWithSingleAutomaton(String name) throws IOException
    {
@@ -1235,6 +1221,14 @@ public class PaperUAS
 								redVertex = coregraph.getVertex(pair.getR());
 							}
 							return redVertex;
+						}
+
+						@SuppressWarnings("unused")
+						@Override
+						public CmpVertex resolveDeadEnd(LearnerGraph coregraph,
+								Collection<CmpVertex> reds,
+								Collection<PairScore> pairs) {
+							return null;
 						}});
 					if (!outcome.isEmpty())
 					{
@@ -1435,9 +1429,17 @@ public class PaperUAS
         	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]);
         	//paper.loadData(inputFiles);paper.runExperimentWithSingleAutomaton("tmp");
 	    	//paper.loadData(inputFiles);paper.runExperiment();
-	    	paper.loadDataByConcatenation(inputFiles);
+	    	//paper.loadDataByConcatenation(inputFiles);
 	    	//Visualiser.waitForKey();
-	    	paper.runExperimentWithSingleAutomaton("large");
+        	paper.labelConverter = new Transform.InternStringLabel();
+        	paper.loadData(inputFiles);
+            final Configuration learnerConfig = paper.learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
+            learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
+             LearnerGraph fullGraph =  paper.new RPNIBlueFringe(learnerConfig,pairchoiceORIG).learn(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber),true);
+             fullGraph.storage.writeGraphML("resources/largePTA/correctOutcome.xml");
+        	
+        	
+	    	//paper.runExperimentWithSingleAutomaton("large");
 	    	//paper.checkTraces(config);
 	    	//paper.loadData(inputFiles);
 	    	//paper.compareTwoLearners();

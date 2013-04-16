@@ -197,7 +197,7 @@ public class FsmParser
 	public final static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void buildGraph(String fsm,String name,final Configuration config, 
 			final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> target,final ConvertALabel conv)
 	{
-		assert config.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || conv != null : "converter has to be set for an ARRAY transition mantrix";
+		assert config.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || conv != null : "converter has to be set for an ARRAY transition matrix";
 		//assert conv == null || config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY : "non-null converter may only accompany an ARRAY transition matrix in tests";
 		target.setName(name);
 		new FsmParser(fsm).parse(new TransitionReceiver()

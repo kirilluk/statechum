@@ -1073,24 +1073,6 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		Assert.assertEquals(0,PaperUAS.countChoices(stack));
 	}
-
-	
-	@Test
-	public void testInternTrace1()
-	{
-		List<Label> list=new LinkedList<Label>();
-		Assert.assertTrue(paper.internTrace(list).isEmpty());
-	}
-
-	@Test
-	public void testInternTrace2()
-	{
-		List<Label> list=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),AbstractLearnerGraph.generateNewLabel("a", mainConfiguration)});
-		List<Label> internedList = paper.internTrace(list);
-		Assert.assertEquals("a",internedList.get(0).toErlangTerm());Assert.assertEquals("b",internedList.get(1).toErlangTerm());Assert.assertEquals("a",internedList.get(2).toErlangTerm());
-		Assert.assertSame(internedList.get(0),internedList.get(2));
-	}
-	
 	
 	@Test
 	public void testLearnIfThen1()

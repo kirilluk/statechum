@@ -291,6 +291,20 @@ public class Configuration implements Cloneable {
 		this.generalisationThreshold = generalisationThresholdArg;
 	}
 
+	
+	/** This one blocks all mergers between positive pairs with scores less than the specified score. */
+	protected int rejectPositivePairsWithScoresLessThan =-1;
+	
+	public void setRejectPositivePairsWithScoresLessThan(int value)
+	{
+		rejectPositivePairsWithScoresLessThan = value;
+	}
+	
+	public int getRejectPositivePairsWithScoresLessThan()
+	{
+		return rejectPositivePairsWithScoresLessThan;
+	}
+	
 	public int getPairsMergedPerHypothesis() {
 		return pairsMergedPerHypothesis;
 	}

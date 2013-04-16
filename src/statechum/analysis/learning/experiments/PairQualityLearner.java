@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -46,14 +47,17 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
 /** This one aims to learn how to choose pairs and red states in the way that leads to most accurate learning
@@ -104,6 +108,7 @@ public class PairQualityLearner {
 	{
 		public int nrOfAlternatives;
 		public long compatibilityScore;
+		public boolean adjacent;
 	}
 	Map<StatePair,PairMeasurements> measurementsForCurrentStack=new TreeMap<StatePair,PairMeasurements>();
 	
@@ -177,7 +182,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "Number of alternatives with same red (the more alt, the worse)";
+				return "Number of alternatives with same red the more alt the worse";
 			}
 		},
 		
@@ -192,7 +197,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "Depth of Blue, the deeper the worse";
+				return "Depth of Blue the deeper the worse";
 			}
 		},
 		
@@ -207,7 +212,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "Depth of Red, the deeper the worse";
+				return "Depth of Red the deeper the worse";
 			}
 		},
 		
@@ -222,7 +227,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "Pos/Neg, pos preferred to Neg";
+				return "PosNeg pos preferred to Neg";
 			}
 		},
 		
@@ -237,7 +242,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "state identifiers, Red";
+				return "state identifiers Red";
 			}
 		},
 		
@@ -252,7 +257,7 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "state identifiers, Blue";
+				return "state identifiers Blue";
 			}
 		},
 		
@@ -284,9 +289,24 @@ public class PairQualityLearner {
 			@Override
 			public String toString()
 			{
-				return "difference between conventional scores, divided by 3";
+				return "difference between conventional scores divided by 3";
 			}
 		},
+		new Comparator<PairScore>()
+		{// 12
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				int o1Adjacent = measurementsForCurrentStack.get(o1).adjacent? 1:0,  o2Adjacent = measurementsForCurrentStack.get(o2).adjacent? 1:0;
+				return  sgn( o1Adjacent - o2Adjacent );
+			}
+
+			@Override
+			public String toString()
+			{
+				return "whether red and blue are adjacent";
+			}
+		}
 	};
 	
 	int counterPos[]=new int[comparators.length],counterNeg[]=new int[comparators.length];
@@ -294,41 +314,31 @@ public class PairQualityLearner {
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values of greater for some points and less for others. */
 	public static final int comparison_inconclusive=-10;
 	
-	/** Updates the statistics on the pairs, using the correct automaton. Returns one of the correct pairs (throws an exception if there is none). 
+	/** Given a graph and a collection of pairs, this one uses the correct graph to split the collection into "correct" pairs that correspond to the same state in the correct graph and "wrong" pairs which states
+	 * are not merged in the correct graph.
+	 *  
+	 * @param graph the graph to consider
+	 * @param correctGraph states that should be merged
+	 * @param pairs pairs to consider
+	 * @param correct collection into which correct ones will be added. 
+	 * @param wrong collection where the wrong ones will be added.
+	 * @return the index of the first pair in the supplied list of pairs that is deemed correct.
 	 */
-	public PairScore updateMaps(Stack<PairScore> pairs,LearnerGraph graph, LearnerGraph correctResult)
+	public static int SplitSetOfPairsIntoRightAndWrong(LearnerGraph graph, LearnerGraph correctGraph, Collection<PairScore> pairs, Collection<PairScore> correctPairs, Collection<PairScore> wrongPairs)
 	{
-		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-		
-		treeRootedAt.clear();
-		Set<CmpVertex> statesOfInterest = new HashSet<CmpVertex>();measurementsForCurrentStack.clear();
+		Set<CmpVertex> statesOfInterest = new HashSet<CmpVertex>();
 		for(PairScore pair:pairs)
 		{
 			statesOfInterest.add(pair.getQ());statesOfInterest.add(pair.getR());
-			if (!treeRootedAt.containsKey(pair.getQ()))
-				treeRootedAt.put(pair.getQ(),computeTreeSize(graph, pair.getQ()));
-			
-			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
-			for(PairScore p:pairs)
-			{
-				if (p.getR() == pair.getR())
-					++m.nrOfAlternatives;
-			}
-			ScoreMode origScore = graph.config.getLearnerScoreMode();graph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			m.compatibilityScore = graph.pairscores.computePairCompatibilityScore(pair);
-			graph.config.setLearnerScoreMode(origScore);
-
-			measurementsForCurrentStack.put(pair,m);
 		}
-		
 		Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, statesOfInterest);
 
-	
+		
 		int firstCorrectPair = JUConstants.intUNKNOWN, cnt=1;
 		for(PairScore p:pairs)
 		{
-			CmpVertex blue = correctResult.getVertex(stateToPath.get(p.getQ()));
-			CmpVertex red = correctResult.getVertex(stateToPath.get(p.getR()));
+			CmpVertex blue = correctGraph.getVertex(stateToPath.get(p.getQ()));
+			CmpVertex red = correctGraph.getVertex(stateToPath.get(p.getR()));
 			if (blue != null && blue == red)
 			{
 				// it would be right to merge this pair.
@@ -342,19 +352,59 @@ public class PairQualityLearner {
 			
 			++cnt;
 		}
+		return cnt;
+	}
+	
+	/** Updates the statistics on the pairs, using the correct automaton. Returns one of the correct pairs (throws an exception if there is none). 
+	 */
+	public PairScore updateMaps(Stack<PairScore> pairs,LearnerGraph graph, LearnerGraph correctResult)
+	{
+		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+		
+		treeRootedAt.clear();
+		measurementsForCurrentStack.clear();
+		for(PairScore pair:pairs)
+		{
+			if (!treeRootedAt.containsKey(pair.getQ()))
+				treeRootedAt.put(pair.getQ(),computeTreeSize(graph, pair.getQ()));
+			
+			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
+			for(PairScore p:pairs)
+			{
+				if (p.getR() == pair.getR())
+					++m.nrOfAlternatives;
+			}
+			
+			Collection<CmpVertex> adjacentOutgoingBlue = graph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = graph.transitionMatrix.get(pair.getR()).values(); 
+			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
+			ScoreMode origScore = graph.config.getLearnerScoreMode();graph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			m.compatibilityScore = graph.pairscores.computePairCompatibilityScore(pair);
+			graph.config.setLearnerScoreMode(origScore);
+
+			measurementsForCurrentStack.put(pair,m);
+		}
+		
+		SplitSetOfPairsIntoRightAndWrong(graph, correctResult, pairs, correctPairs, wrongPairs);
 		
 		if (correctPairs.isEmpty())
+		{
+			System.out.print("WRONG PAIRS:  ");
+			for(PairScore p:wrongPairs) System.out.println(p+" ");
+			System.out.println();
 			throw new IllegalArgumentException("no correct pairs found");
-
+		}
 		// without sorting the pairs, the learner finds itself in a situation with no valid pairs to choose from.
-		LinkedList<PairScore> sortedCorrectPairs = new LinkedList<PairScore>(correctPairs);
-		Collections.sort(sortedCorrectPairs, new Comparator<PairScore>(){
+		LinkedList<PairScore> sortedPairs = new LinkedList<PairScore>(pairs);
+		Collections.sort(sortedPairs, new Comparator<PairScore>(){
 
 			@Override
-			// The first element is the one where o2 is greater than o1.
+			// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
 			public int compare(PairScore o1, PairScore o2) {
-				int outcome = sgn( (o2.getQ().isAccept()?1:-1) -  (o1.getQ().isAccept()?1:-1));
-				if (outcome == 0)
+				// if o1 is negative and o2 is positive, the outcome is negative.
+				int outcome = sgn( (o1.getQ().isAccept()?1:-1) -  (o2.getQ().isAccept()?1:-1));
+				//if (outcome )
+				/*
+				if (outcome == 1)
 					outcome = sgn(measurementsForCurrentStack.get(o2).compatibilityScore - measurementsForCurrentStack.get(o1).compatibilityScore);
 				if (outcome == 0)
 					outcome = sgn(o2.getR().getIntegerID() - o1.getR().getIntegerID());
@@ -362,9 +412,17 @@ public class PairQualityLearner {
 					outcome = sgn(o2.getR().getDepth() - o1.getR().getDepth());
 				if (outcome == 0)
 					outcome = sgn(measurementsForCurrentStack.get(o2).nrOfAlternatives - measurementsForCurrentStack.get(o1).nrOfAlternatives);
+					
+					*/
 				return outcome;
+				
 			}});
-
+		if (!correctPairs.contains(sortedPairs.iterator().next()))
+		{
+			System.out.println(sortedPairs);
+			System.out.println("the first pair is not the right one "+sortedPairs.iterator().next());
+		}
+/*
 		int pairsThatCannotBeSeparatedFromBadOnes = 0;
 		
 		for(PairScore p:correctPairs)
@@ -481,7 +539,7 @@ public class PairQualityLearner {
 		if (pairsThatCannotBeSeparatedFromBadOnes > 0)
 			System.out.print(" POSITIVE PAIRS NOT CLEARLY BETTER :"+pairsThatCannotBeSeparatedFromBadOnes+" out of "+correctPairs.size());
 		System.out.println();
-		
+		*/
 		/*
 		System.out.println("first correct pair is nr "+firstCorrectPair+", wrong pairs: "+wrongPairs.size());
 		Iterator<PairScore> pairIter = sortedPairs.iterator();
@@ -489,7 +547,7 @@ public class PairQualityLearner {
 		for(int i=0;i<firstCorrectPair;++i)
 			System.out.print(pairIter.next());
 		System.out.println();*/
-		return sortedCorrectPairs.iterator().next();
+		return sortedPairs.iterator().next();
 	}
 	
 	public static ProgressDecorator.InitialData loadInitialAndPopulateInitialConfiguration(PaperUAS paper,String argPTAFileName, Transform.InternStringLabel converter) throws IOException
@@ -500,6 +558,7 @@ public class PairQualityLearner {
 		final java.io.FileInputStream inputStream = new java.io.FileInputStream(argPTAFileName);
 		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,converter);
 		Configuration defaultConfig = Configuration.getDefaultConfiguration().copy();
+		//defaultConfig.setRejectPositivePairsWithScoresLessThan(1);
 		paper.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
 		paper.learnerInitConfiguration.setLabelConverter(converter);
 		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
@@ -526,12 +585,55 @@ public class PairQualityLearner {
 		wekaOutput.append("@data");wekaOutput.append(endl);
 	}
 	
+	public static LearnerGraph trimGraph(LearnerGraph coregraph,int depth)
+	{
+		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMapWithSearch<CmpVertex,LinkedList<Label>>(coregraph.getStateNumber());
+		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
+		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
+		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+		fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+		while(!fringe.isEmpty())
+		{
+			CmpVertex currentState = fringe.remove();
+			Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState);
+			LinkedList<Label> currentPath = stateToPath.get(currentState);
+			Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+			if(targets != null && !targets.isEmpty())
+				for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
+					
+				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
+				{
+					Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(target);
+					if (row == null) 
+					{
+						row = trimmedOne.createNewRow();trimmedOne.transitionMatrix.put(target, row);
+					}
+					trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
+					
+					if (!statesInFringe.contains(target))
+					{
+						@SuppressWarnings("unchecked")
+						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
+						stateToPath.put(target,newPath);
+						
+						if (stateToPath.size() <= depth)
+						{
+							fringe.offer(target);
+							statesInFringe.add(target);
+						}
+					}
+				}
+		}
+		return trimmedOne;
+	}
+	
 	public static void main(String args[]) throws IOException
 	{
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
 		PaperUAS paper = new PaperUAS();
 		final ProgressDecorator.InitialData initial = loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
-		String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_listOpt.xml";
+		String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_correct.xml";
 		final LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
 		final PairQualityLearner qualityLearner = new PairQualityLearner();
 		qualityLearner.initWeka("wekaoutput2.arff",PairQualityLearner.largePTAFileName);
@@ -559,6 +661,22 @@ public class PairQualityLearner {
 					{
 						CmpVertex redVertex = tentativeRedNodes.iterator().next();
 						return redVertex;
+					}
+
+					@Override
+					public CmpVertex resolveDeadEnd(LearnerGraph coregraph,
+							@SuppressWarnings("unused") Collection<CmpVertex> reds,
+							Collection<PairScore> pairs) {
+						CmpVertex stateToMarkRed = null;
+						LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+						SplitSetOfPairsIntoRightAndWrong(coregraph, referenceA, pairs, correctPairs, wrongPairs);
+						if (correctPairs.isEmpty())
+						{
+							stateToMarkRed = wrongPairs.peek().getQ();
+							System.out.println("DEADEND FUDGED: "+wrongPairs);
+						}
+						return stateToMarkRed;
+							
 					}});
 				if (!outcome.isEmpty())
 				{

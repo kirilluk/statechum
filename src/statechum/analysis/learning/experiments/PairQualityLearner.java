@@ -36,6 +36,8 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import junit.framework.Assert;
+
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -57,6 +59,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -337,9 +340,9 @@ public class PairQualityLearner {
 		int firstCorrectPair = JUConstants.intUNKNOWN, cnt=1;
 		for(PairScore p:pairs)
 		{
-			CmpVertex blue = correctGraph.getVertex(stateToPath.get(p.getQ()));
-			CmpVertex red = correctGraph.getVertex(stateToPath.get(p.getR()));
-			if (blue != null && blue == red)
+			CmpVertex blue = correctGraph.getVertex(stateToPath.get(p.getQ()));if (blue != null && !blue.isAccept()) blue = null;
+			CmpVertex red = correctGraph.getVertex(stateToPath.get(p.getR()));if (red != null && !red.isAccept()) red = null;
+			if (blue == red)
 			{
 				// it would be right to merge this pair.
 				correctPairs.add(p);
@@ -352,7 +355,7 @@ public class PairQualityLearner {
 			
 			++cnt;
 		}
-		return cnt;
+		return firstCorrectPair;
 	}
 	
 	/** Updates the statistics on the pairs, using the correct automaton. Returns one of the correct pairs (throws an exception if there is none). 
@@ -387,44 +390,32 @@ public class PairQualityLearner {
 		SplitSetOfPairsIntoRightAndWrong(graph, correctResult, pairs, correctPairs, wrongPairs);
 		
 		if (correctPairs.isEmpty())
-		{
-			System.out.print("WRONG PAIRS:  ");
-			for(PairScore p:wrongPairs) System.out.println(p+" ");
-			System.out.println();
 			throw new IllegalArgumentException("no correct pairs found");
-		}
+
 		// without sorting the pairs, the learner finds itself in a situation with no valid pairs to choose from.
 		LinkedList<PairScore> sortedPairs = new LinkedList<PairScore>(pairs);
-		Collections.sort(sortedPairs, new Comparator<PairScore>(){
+		Comparator<PairScore> PairComparator = new Comparator<PairScore>(){
 
 			@Override
 			// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
 			public int compare(PairScore o1, PairScore o2) {
 				// if o1 is negative and o2 is positive, the outcome is negative.
-				int outcome = sgn( (o1.getQ().isAccept()?1:-1) -  (o2.getQ().isAccept()?1:-1));
-				//if (outcome )
-				/*
-				if (outcome == 1)
-					outcome = sgn(measurementsForCurrentStack.get(o2).compatibilityScore - measurementsForCurrentStack.get(o1).compatibilityScore);
+				int outcome = sgn( (o2.getQ().isAccept()?1:-1) -  (o1.getQ().isAccept()?1:-1));
 				if (outcome == 0)
-					outcome = sgn(o2.getR().getIntegerID() - o1.getR().getIntegerID());
-				if (outcome == 0)
-					outcome = sgn(o2.getR().getDepth() - o1.getR().getDepth());
-				if (outcome == 0)
-					outcome = sgn(measurementsForCurrentStack.get(o2).nrOfAlternatives - measurementsForCurrentStack.get(o1).nrOfAlternatives);
-					
-					*/
+					outcome = sgn( o2.getScore() - o1.getScore() );
 				return outcome;
 				
-			}});
+			}};
+			
+		Collections.sort(sortedPairs, PairComparator);Collections.sort(correctPairs,PairComparator);
 		if (!correctPairs.contains(sortedPairs.iterator().next()))
 		{
 			System.out.println(sortedPairs);
 			System.out.println("the first pair is not the right one "+sortedPairs.iterator().next());
 		}
-/*
+
 		int pairsThatCannotBeSeparatedFromBadOnes = 0;
-		
+
 		for(PairScore p:correctPairs)
 		{
 			int comparisonResults[] = new int[comparators.length];
@@ -483,13 +474,19 @@ public class PairQualityLearner {
 		if (wekaOutput != null)
 			try
 			{
+				List<PairScore> pairsToConsider = new LinkedList<PairScore>();
+				if (!pairs.isEmpty())
+				{
+					for(PairScore p:pairs) if (p.getQ().isAccept()) pairsToConsider.add(p);// only consider non-negatives
+				}
+				
 				// Compute the Weka statistics, where we compare each pair to all others.
-				for(PairScore p:pairs)
+				for(PairScore p:pairsToConsider)
 				{
 					int comparisonResults[] = new int[comparators.length];
 					Arrays.fill(comparisonResults, 0);
 					
-					for(PairScore w:pairs)
+					for(PairScore w:pairsToConsider)
 					{// it does not matter if w==p, the comparison result will be zero so it will not affect anything
 						for(int i=0;i<comparators.length;++i)
 							if (comparisonResults[i] != comparison_inconclusive)
@@ -539,7 +536,7 @@ public class PairQualityLearner {
 		if (pairsThatCannotBeSeparatedFromBadOnes > 0)
 			System.out.print(" POSITIVE PAIRS NOT CLEARLY BETTER :"+pairsThatCannotBeSeparatedFromBadOnes+" out of "+correctPairs.size());
 		System.out.println();
-		*/
+		
 		/*
 		System.out.println("first correct pair is nr "+firstCorrectPair+", wrong pairs: "+wrongPairs.size());
 		Iterator<PairScore> pairIter = sortedPairs.iterator();
@@ -547,7 +544,7 @@ public class PairQualityLearner {
 		for(int i=0;i<firstCorrectPair;++i)
 			System.out.print(pairIter.next());
 		System.out.println();*/
-		return sortedPairs.iterator().next();
+		return correctPairs.iterator().next();
 	}
 	
 	public static ProgressDecorator.InitialData loadInitialAndPopulateInitialConfiguration(PaperUAS paper,String argPTAFileName, Transform.InternStringLabel converter) throws IOException
@@ -639,7 +636,7 @@ public class PairQualityLearner {
 		qualityLearner.initWeka("wekaoutput2.arff",PairQualityLearner.largePTAFileName);
 		
 		
-		new DummyLearner(new RPNIUniversalLearner(null, paper.learnerInitConfiguration)) 
+		LearnerGraph learntMachine = new RPNIUniversalLearner(null, paper.learnerInitConfiguration) 
 		{
 			
 			@Override
@@ -654,19 +651,15 @@ public class PairQualityLearner {
 				Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeDecisionProcedure(){
 
 					@Override
-					public CmpVertex selectRedNode(
-							@SuppressWarnings("unused") LearnerGraph coregraph,
-							@SuppressWarnings("unused") Collection<CmpVertex> reds,
-							Collection<CmpVertex> tentativeRedNodes) 
+					public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 					{
 						CmpVertex redVertex = tentativeRedNodes.iterator().next();
 						return redVertex;
 					}
 
 					@Override
-					public CmpVertex resolveDeadEnd(LearnerGraph coregraph,
-							@SuppressWarnings("unused") Collection<CmpVertex> reds,
-							Collection<PairScore> pairs) {
+					public CmpVertex resolveDeadEnd(LearnerGraph coregraph,	@SuppressWarnings("unused") Collection<CmpVertex> reds,	Collection<PairScore> pairs) 
+					{
 						CmpVertex stateToMarkRed = null;
 						LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 						SplitSetOfPairsIntoRightAndWrong(coregraph, referenceA, pairs, correctPairs, wrongPairs);
@@ -674,6 +667,8 @@ public class PairQualityLearner {
 						{
 							stateToMarkRed = wrongPairs.peek().getQ();
 							System.out.println("DEADEND FUDGED: "+wrongPairs);
+							
+							//Visualiser.updateFrame(trimGraph(coregraph,4),null);Visualiser.waitForKey();
 						}
 						return stateToMarkRed;
 							
@@ -691,7 +686,7 @@ public class PairQualityLearner {
 			@Override 
 			public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 			{
-				LearnerGraph graph = decoratedLearner.init(plus,minus);
+				LearnerGraph graph = super.init(plus,minus);
 				LearnerGraph.copyGraphs(initial.graph, graph);
 				return initial.graph;
 			}
@@ -703,10 +698,12 @@ public class PairQualityLearner {
 				throw new UnsupportedOperationException();
 			}			
 		}.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
-		
 		if (qualityLearner.wekaOutput != null)
 		{
 			qualityLearner.wekaOutput.close();qualityLearner.wekaOutput = null;
 		}
+		//Visualiser.updateFrame(learntMachine, referenceA);Visualiser.waitForKey();
+		Assert.assertNull(WMethod.checkM(learntMachine, referenceA));
+		
 	}
 }

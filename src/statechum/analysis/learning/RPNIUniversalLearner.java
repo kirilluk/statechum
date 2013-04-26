@@ -318,7 +318,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					answerFromSpin = true;
 				else
 				{
-					if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+					if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED) {
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
 						}

@@ -1026,7 +1026,7 @@ public class PathRoutines {
 		}
 		
 		
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			try
 			{
 				WMethod.computeWSet_reducedmemory(result);

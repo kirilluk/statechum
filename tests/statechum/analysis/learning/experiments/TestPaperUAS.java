@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import junit.framework.Assert;
 
@@ -27,7 +28,9 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.StatechumXML;
@@ -35,11 +38,13 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed;
+import statechum.analysis.learning.linear.PairQualityExperiment;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -70,6 +75,10 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void BeforeTests()
 	{
 		paper = new PaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
+		paper.labelConverter = paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
+
+		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitCorrect", mainConfiguration,converter);
+		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitWrong", mainConfiguration,converter);
 	}
 	
 	/** Empty traces */
@@ -1197,6 +1206,66 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 4);
 		Assert.assertNull(WMethod.checkM(graph,trimmed));
 	}
+
 	
+	private LearnerGraph correctGraph = null, tentativeGraph = null;
+
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong1()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
+	
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong2()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		//PairScore a=new PairScore()
+		
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+				
+		}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
+	
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong3()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
+	
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong4()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
+	
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong5()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
+	
+	@Test
+	public void testSplitSetOfPairsIntoRightAndWrong6()
+	{
+		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
+		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
+		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+	}
 	
 }

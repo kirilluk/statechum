@@ -513,7 +513,7 @@ public class PaperUAS
         		PTASequenceEngine traceDetailsUAV = outcomeUAV.get(frame);
         		if (traceDetailsUAV == null)
         		{
-        			traceDetailsUAV = new PTASequenceEngine(true);
+        			traceDetailsUAV = new PTASequenceEngine(learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY);
         			traceDetailsUAV.init(new Automaton());
         			outcomeUAV.put(frame, traceDetailsUAV);
         		}

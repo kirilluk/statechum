@@ -64,8 +64,7 @@ public class Configuration implements Cloneable {
 			originalDefaultConfiguration = new Configuration();
 
 	public static Configuration getDefaultConfiguration() {
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(
-				GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			assert defaultConfig.equals(originalDefaultConfiguration) : "original configuration has been modified - this should not happen";
 		return defaultConfig;
 	}

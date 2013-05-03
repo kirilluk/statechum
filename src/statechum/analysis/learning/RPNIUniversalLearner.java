@@ -217,7 +217,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 			StringBuffer counterExampleHolder = new StringBuffer();
 			if (ifthenAutomata == null) 
-				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, ptaHardFacts, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, ptaHardFacts, config, topLevelListener.getLabelConverter()).toArray(new LearnerGraph[0]);
 
 			if (!topLevelListener.AddConstraints(getTentativeAutomaton(),updatedTentativeAutomaton,counterExampleHolder))
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
@@ -318,7 +318,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					answerFromSpin = true;
 				else
 				{
-					if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+					if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED) {
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
 						}
@@ -372,7 +372,7 @@ public class RPNIUniversalLearner extends RPNILearner
 									whetherToRestart.set(true);
 							}
 							
-						});
+						}, getLabelConverter());
 					
 						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceDescr);
 						// At this point, we attempt to augment the current automaton with the supplied traces,

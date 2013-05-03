@@ -74,6 +74,11 @@ public class PairScoreComputation {
 		 * @return the node to promote.
 		 */
 		CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes);
+		
+		/** Given a collection of pairs, it may happen that none of these pairs can be permitted to be merged. This means that all blue states mentioned in these pairs are not compatible with all the existing red states 
+		 * and hence at least one of them should be considered red. This is the reason the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
+		 */
+		CmpVertex resolveDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs);
 	}
 	
 	public Stack<PairScore> chooseStatePairs(RedNodeDecisionProcedure decisionProcedure)
@@ -132,8 +137,17 @@ public class PairScoreComputation {
 				// mark this blue node as red and rebuild a collection of blue and potentially red states. 
 				newRedNode.setColour(JUConstants.RED);
 				reds.add(newRedNode);
-				//System.out.println("marked "+newRedNode+" as RED");
 			}
+			else
+				if (!coregraph.pairsAndScores.isEmpty() && decisionProcedure != null)
+				{
+					newRedNode = decisionProcedure.resolveDeadEnd(coregraph, reds, coregraph.pairsAndScores);
+					if (newRedNode != null)
+					{
+						newRedNode.setColour(JUConstants.RED);
+						reds.add(newRedNode);RedStatesFound.add(newRedNode);
+					}
+				}
 		}
 		while(!RedStatesFound.isEmpty());
 		
@@ -190,6 +204,9 @@ public class PairScoreComputation {
 				assert compatScore <= computedScore;
 			}
 		}
+
+		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
+			computedScore = -1;
 		
 		return new PairScore(blue,red,computedScore, compatibilityScore);
 	}

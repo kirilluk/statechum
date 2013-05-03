@@ -64,8 +64,7 @@ public class Configuration implements Cloneable {
 			originalDefaultConfiguration = new Configuration();
 
 	public static Configuration getDefaultConfiguration() {
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(
-				GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			assert defaultConfig.equals(originalDefaultConfiguration) : "original configuration has been modified - this should not happen";
 		return defaultConfig;
 	}
@@ -291,6 +290,20 @@ public class Configuration implements Cloneable {
 		this.generalisationThreshold = generalisationThresholdArg;
 	}
 
+	
+	/** This one blocks all mergers between positive pairs with scores less than the specified score. */
+	protected int rejectPositivePairsWithScoresLessThan =-1;
+	
+	public void setRejectPositivePairsWithScoresLessThan(int value)
+	{
+		rejectPositivePairsWithScoresLessThan = value;
+	}
+	
+	public int getRejectPositivePairsWithScoresLessThan()
+	{
+		return rejectPositivePairsWithScoresLessThan;
+	}
+	
 	public int getPairsMergedPerHypothesis() {
 		return pairsMergedPerHypothesis;
 	}

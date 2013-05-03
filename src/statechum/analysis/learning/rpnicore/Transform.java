@@ -757,7 +757,7 @@ public class Transform
 	{
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
 			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			for(CmpVertex state:graph.transitionMatrix.keySet())
 				if (state.getKind() == VertKind.NONEXISTING)
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");

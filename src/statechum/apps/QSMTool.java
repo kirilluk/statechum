@@ -52,6 +52,7 @@ import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -167,7 +168,9 @@ public class QSMTool {
     	public void addTrace(List<Label> trace, boolean positive);
     }
     
-    public static void parseSequenceOfTraces(String traces,Configuration config,TraceAdder collector)
+    protected ConvertALabel converter;
+    
+    public static void parseSequenceOfTraces(String traces,Configuration config,TraceAdder collector, ConvertALabel converter)
     {
     	Lexer lexer = ErlangLabel.buildLexer(traces);
     	int match = lexer.getMatchType();
@@ -185,7 +188,7 @@ public class QSMTool {
 	    				throw new IllegalArgumentException("a collection of traces should start with either "+cmdPositive+" or "+cmdNegative+", got"+lexer.getMatch()+" in "+lexer.remaining());
 	    	if (positiveNegative != null)
 	    	{
-	    		for(List<Label> sequence:StatechumXML.readSequenceList(ErlangLabel.parseFirstTermInText(lexer),config,null))
+	    		for(List<Label> sequence:StatechumXML.readSequenceList(ErlangLabel.parseFirstTermInText(lexer),config,converter))
 	    			collector.addTrace(sequence, positiveNegative.booleanValue());
 	    		match = lexer.getLastMatchType();
 	    	}
@@ -209,7 +212,7 @@ public class QSMTool {
 						sMinus.add(trace);
 				}
         		
-        	});
+        	}, learnerInitConfiguration.getLabelConverter());
         } else if (isCmdWithArgs(fileString, cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON)) {
             if (learnerInitConfiguration.ifthenSequences == null) {
                 learnerInitConfiguration.ifthenSequences = new TreeSet<String>();

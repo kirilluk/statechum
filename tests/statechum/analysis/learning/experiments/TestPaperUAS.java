@@ -8,6 +8,7 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,9 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.StatechumXML;
@@ -40,6 +43,7 @@ import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -70,6 +74,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void BeforeTests()
 	{
 		paper = new PaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
+		paper.labelConverter = paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
 	}
 	
 	/** Empty traces */
@@ -1073,24 +1078,6 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		Assert.assertEquals(0,PaperUAS.countChoices(stack));
 	}
-
-	
-	@Test
-	public void testInternTrace1()
-	{
-		List<Label> list=new LinkedList<Label>();
-		Assert.assertTrue(paper.internTrace(list).isEmpty());
-	}
-
-	@Test
-	public void testInternTrace2()
-	{
-		List<Label> list=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),AbstractLearnerGraph.generateNewLabel("a", mainConfiguration)});
-		List<Label> internedList = paper.internTrace(list);
-		Assert.assertEquals("a",internedList.get(0).toErlangTerm());Assert.assertEquals("b",internedList.get(1).toErlangTerm());Assert.assertEquals("a",internedList.get(2).toErlangTerm());
-		Assert.assertSame(internedList.get(0),internedList.get(2));
-	}
-	
 	
 	@Test
 	public void testLearnIfThen1()
@@ -1215,6 +1202,8 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 4);
 		Assert.assertNull(WMethod.checkM(graph,trimmed));
 	}
+
+	
 	
 	
 }

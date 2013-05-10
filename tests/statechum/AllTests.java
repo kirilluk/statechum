@@ -86,7 +86,7 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
         statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
         statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
-        statechum.analysis.learning.experiments.TestWekaPairClassifier.class
+        statechum.analysis.learning.experiments.PairSelection.TestWekaPairClassifier.class
     })
     public static class BasicTests {// all tests are included in the annotation.
     }

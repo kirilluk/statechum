@@ -14,6 +14,6 @@
 	<classpathentry kind="lib" path="lib/junit-4.8.1.jar" sourcepath="/media/software/java/junit-4.8.2-src.jar"/>
 	<classpathentry kind="lib" path="lib/javaGD.jar"/>
 	<classpathentry kind="lib" path="lib/JRI.jar"/>
-	<classpathentry kind="lib" path="lib/weka.jar" sourcepath="D:/experiment/weka-3-6-9/weka-src.jar"/>
+	<classpathentry kind="lib" path="lib/weka.jar" sourcepath="/home/kirill/experiment/weka-3-6-9/weka-src.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

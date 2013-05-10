@@ -64,7 +64,7 @@ public class PairScoreComputation {
 	}
 
 	
-	public static interface RedNodeDecisionProcedure
+	public static interface RedNodeSelectionProcedure
 	{
 		/** Given a graph, the current collection of red nodes and those not compatible with any current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * 
@@ -76,12 +76,13 @@ public class PairScoreComputation {
 		CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes);
 		
 		/** Given a collection of pairs, it may happen that none of these pairs can be permitted to be merged. This means that all blue states mentioned in these pairs are not compatible with all the existing red states 
-		 * and hence at least one of them should be considered red. This is the reason the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
+		 * and hence at least one of them should be considered red. This method is called whenever there are any red-blue pairs available in order to check whether such a problem occurred.
+		 * Since the idea is to return a state to colour red, the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
 		 */
 		CmpVertex resolveDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs);
 	}
 	
-	public Stack<PairScore> chooseStatePairs(RedNodeDecisionProcedure decisionProcedure)
+	public Stack<PairScore> chooseStatePairs(RedNodeSelectionProcedure decisionProcedure)
 	{
 		coregraph.pairsAndScores.clear();
 		Collection<CmpVertex> reds = new LinkedList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();

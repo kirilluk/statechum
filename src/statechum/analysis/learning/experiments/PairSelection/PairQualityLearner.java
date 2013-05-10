@@ -15,14 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */ 
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,27 +31,21 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Stack;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 import junit.framework.Assert;
 
 import statechum.Configuration;
-import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
-import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.observers.DummyLearner;
+import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -63,10 +54,6 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
-import weka.core.Attribute;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
 
 /** This one aims to learn how to choose pairs and red states in the way that leads to most accurate learning
  * outcomes.
@@ -75,7 +62,7 @@ import weka.core.Instances;
  */
 public class PairQualityLearner {
    	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
-   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
+  	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
 	
    	protected Writer wekaOutput;
    	
@@ -128,176 +115,6 @@ public class PairQualityLearner {
 				return -1;
 		return 0;
 	}
-
-    
-    public static class WekaPairClassifier
-    {
-    	/**
-    	 * Constructs an instance of pair classifier.
-    	 * 
-    	 * @param trainingSetName the name for a tranining set.
-    	 * @param capacity the maximal number of elements in the training set
-    	 */
-    	public WekaPairClassifier(String trainingSetName, int capacity)
-    	{
-    		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
-    		classAttribute = new Attribute("class",vecBool);
-    		FastVector vecAttribute = new FastVector(3);vecAttribute.addElement(MINUSONE);vecAttribute.addElement(ZERO);vecAttribute.addElement(ONE);
-    		FastVector attributes = new FastVector(comparators.size()+1);
-    		for(Comparator<PairScore> cmp:comparators)
-    			attributes.addElement(new Attribute(cmp.toString(),vecAttribute));
-    		trainingData = new Instances(trainingSetName,attributes,capacity);
-    		trainingData.setClass(classAttribute);
-    	}
-
-    	protected final Attribute classAttribute;
-    	protected final Instances trainingData;
-    	
-    	public void addComparator(PairComparator cmp)
-    	{
-    		comparators.add(cmp);
-    	}
-    	
-    	private static final String MINUSONE="-1",ZERO="0",ONE="1";
- 
-    	protected final List<PairComparator> comparators = new ArrayList<PairComparator>();
-    	
-    	Map<StatePair,PairMeasurements> measurementsForComparators=new TreeMap<StatePair,PairMeasurements>();
-    	
-    	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
-   	
-    	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
-    	 * 
-    	 * @param pairs pairs to build sets for
-    	 * @param graph graph to use for construction
-    	 * @returns constructed tree. The return value is only used for testing.
-    	 */
-    	public Map<StatePair,PairMeasurements> buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
-    	{
-    		treeForComparators.clear();
-    		measurementsForComparators.clear();
-    		for(PairScore pair:pairs)
-    		{
-    			if (!treeForComparators.containsKey(pair.getQ()))
-    				treeForComparators.put(pair.getQ(),computeTreeSize(graph, pair.getQ()));
-    			
-    			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
-    			for(PairScore p:pairs)
-    			{
-    				if (p.getR() == pair.getR())
-    					++m.nrOfAlternatives;
-    			}
-    			
-    			Collection<CmpVertex> adjacentOutgoingBlue = graph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = graph.transitionMatrix.get(pair.getR()).values(); 
-    			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
-    			ScoreMode origScore = graph.config.getLearnerScoreMode();graph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-    			m.compatibilityScore = graph.pairscores.computePairCompatibilityScore(pair);
-    			graph.config.setLearnerScoreMode(origScore);
-
-    			measurementsForComparators.put(pair,m);
-    		}
-    		return measurementsForComparators;
-    	}
-    	
-    	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values of greater for some points and less for others. */
-    	public static final int comparison_inconclusive=-10;
-
-    	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph, LearnerGraph correctGraph)
-    	{
-    		buildSetsForComparators(pairs,tentativeGraph);
-    		
-    		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-    		SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, pairs, correctPairs, wrongPairs);
-    		
-			List<PairScore> pairsToConsider = new LinkedList<PairScore>();
-			if (!pairs.isEmpty())
-			{
-				for(PairScore p:pairs) if (p.getQ().isAccept()) pairsToConsider.add(p);// only consider non-negatives
-			}
-			
-			// Compute Weka statistics, where we compare each pair to all others.
-			for(PairScore p:pairsToConsider)
-			{
-				int comparisonResults[] = new int[comparators.size()];
-				Arrays.fill(comparisonResults, 0);
-				
-				for(PairScore w:pairsToConsider)
-				{// it does not matter if w==p, the comparison result will be zero so it will not affect anything
-					int i=0;
-					for(PairComparator cmp:comparators)
-					{
-						if (comparisonResults[i] != comparison_inconclusive)
-						{
-							int newValue = cmp.compare(p, w);
-							assert newValue != comparison_inconclusive;
-							// comparisonResults[i] can be 1,0,-1, same for newValue
-							if (newValue > 0)
-							{
-								if (comparisonResults[i] < 0)
-									comparisonResults[i] = comparison_inconclusive;
-								else
-									comparisonResults[i]=newValue;
-							}
-							else
-								if (newValue < 0)
-								{
-									if (comparisonResults[i] > 0)
-										comparisonResults[i] = comparison_inconclusive;
-									else
-										comparisonResults[i]=newValue;
-								}
-						}
-						
-						++i;
-					}
-				}
-	
-				boolean nonZero = false;
-				for(int i=0;i<comparators.size() && !nonZero;++i)
-				{
-					int result = comparisonResults[i];if (result == comparison_inconclusive) result = 0;
-					if (result != 0) nonZero = true;
-				}
-				
-				if (nonZero)
-				{
-					Instance outcome = new Instance(comparators.size()+1);
-					for(int i=0;i<comparators.size();++i)
-					{
-						String value = null;
-						switch(comparisonResults[i])
-						{
-						case 1:
-							value = ONE;break;
-						case 0:
-							value = ZERO;break;
-						case -1:
-							value = MINUSONE;break;
-						default:
-							throw new IllegalArgumentException("invalid comparison value "+comparisonResults[i]+" for comparator "+comparators.get(i));
-						}
-						outcome.setValue(i, value);
-					}
-					outcome.setValue(classAttribute, Boolean.toString(correctPairs.contains(p)));trainingData.add(outcome);
-				}
-				
-			}
-    	}
-    	
-    	public abstract class PairComparator implements Comparator<PairScore> 
-    	{
-    		public PairMeasurements measurementsForCurrentStack(PairScore p)
-    		{
-    			return measurementsForComparators.get(p);
-    		}
-    	
-    		public int treeRootedAt(CmpVertex p)
-    		{
-    			return treeForComparators.get(p);
-    		}
-    	}
-    }
-	
 
 	/** Given a graph and a collection of pairs, this one uses the correct graph to split the collection into "correct" pairs that correspond to the same state in the correct graph and "wrong" pairs which states
 	 * are not merged in the correct graph.
@@ -637,6 +454,7 @@ public class PairQualityLearner {
 		return trimmedOne;
 	}
 	
+	/** This learner runs an experiment that attempts to determine the best strategy for selection of pairs based on scores and other parameters and subsequently evaluates it. */
 	public static void main(String args[]) throws IOException
 	{
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
@@ -658,8 +476,12 @@ public class PairQualityLearner {
 			@Override 
 			public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 			{
-				Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeDecisionProcedure(){
+				Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
 
+					// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
+					// This can be accomplished by doing a clone of the graph and running chooseStatePairs on it with decision procedure that (a) applies the same rule (of so many) to choose pairs and
+					// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
+					// for a particular pairscore decision procedure.
 					@Override
 					public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 					{

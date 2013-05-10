@@ -1199,7 +1199,7 @@ public class PaperUAS
 						e.printStackTrace();
 					}
 					*/
-					Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeDecisionProcedure(){
+					Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
 
 						@Override
 						public CmpVertex selectRedNode(LearnerGraph coregraph,

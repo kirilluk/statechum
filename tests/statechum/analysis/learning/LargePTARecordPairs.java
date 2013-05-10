@@ -24,7 +24,7 @@ import java.util.List;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.analysis.learning.experiments.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.Transform;

@@ -30,7 +30,7 @@ import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
-public class GraphMLVisualiser extends Visualiser {
+public class ErlangGraphVisualiser extends Visualiser {
 	
 	/**
 	 * ID for serialisation
@@ -48,11 +48,6 @@ public class GraphMLVisualiser extends Visualiser {
 		final LearnerGraph erlangGraph = new LearnerGraph(grOrig.config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,erlangGraph,mod.behaviour.new ConverterErlToMod());
 
-		if (args.length > 1)
-		{
-			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
-			AbstractPersistence.loadGraph(args[1], graph1,null);
-		}
 		Visualiser.updateFrame(grOrig, graph1);Visualiser.waitForKey();
 	}
 	

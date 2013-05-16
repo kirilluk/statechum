@@ -24,8 +24,11 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.awt.Frame;
 import java.io.IOException;
+
+import org.apache.commons.collections.set.CompositeSet.SetMutator;
 
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
@@ -46,6 +49,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 {
 	protected ErlangModule module;
 
+	public AtomicBoolean stopInference = new AtomicBoolean(false), suspendInference = new AtomicBoolean(false);
+	
 	public ErlangModule getModule() {
 		return module;
 	}
@@ -88,9 +93,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 				"delPath");
 	}
 
+	public String getGraphName()
+	{
+		return module.getName();
+	}
+	
 	@Override
 	public LearnerGraph learnMachine() {
-
 		LearnerGraph result = super.learnMachine();
 		finished();
 		setChanged();notifyObservers(getTentativeAutomaton());
@@ -125,7 +134,24 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 			@SuppressWarnings("unused") final int expectedForNoRestart,
 			@SuppressWarnings("unused") final List<Boolean> consistentFacts,
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
-			@SuppressWarnings("unused") final Object[] moreOptions) {
+			@SuppressWarnings("unused") final Object[] moreOptions) 
+	{
+		boolean terminate = stopInference.get();
+		while(suspendInference.get() && !terminate)
+		{
+			setChanged();notifyObservers(getTentativeAutomaton());
+			synchronized(suspendInference)
+			{
+				try {
+					suspendInference.wait();
+				} catch (InterruptedException e) {
+					// assume we are asked to stop waiting
+				}
+			}
+			terminate = stopInference.get();
+		}
+		if (terminate)
+			return new Pair<Integer, String>(AbstractOracle.USER_CANCELLED,null);
 
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;

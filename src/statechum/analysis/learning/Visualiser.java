@@ -376,31 +376,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 }
             }
         });
-        keyToActionMap.put(KeyEvent.VK_S, new graphAction("save", "save graph") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 12L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-            	LearnerGraphND graph = graphsOrig.get(currentGraph);
-        		JFileChooser chooser = new JFileChooser(graph.config.getErlangSourceFile().getPath());
-        		chooser.setAcceptAllFileFilterUsed(true);
-        		File outfile = null;
-        		//chooser.setFileFilter(new Start.TxtFileFilter());
-        		int returnValue = chooser.showSaveDialog(null);
-        		if (returnValue == JFileChooser.APPROVE_OPTION) {
-        				outfile = chooser.getSelectedFile();
-        				try {
-							graph.storage.writeGraphML(outfile.getAbsolutePath());
-						} catch (IOException e1) {
-							e1.printStackTrace();
-						}
-        		}
-        		
-            }
-        });
-    }
+   }
 
     protected static final Set<Visualiser> framesVisible = new HashSet<Visualiser>();
     

@@ -138,16 +138,11 @@ public class ErlangQSMOracle {
 		ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
 		ErlangOracleLearner innerLearner = createLearner(viz,tracesFile);
 		innerLearner.addObserver(viz);
-		innerLearner.setGraphNameSuffix(tracesFile);
+		innerLearner.setGraphNameSuffix(new File(tracesFile).getName());
 		innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
 		QuestionAndRestartCounter counter = new QuestionAndRestartCounter(innerLearner);
 		
 		LearnerGraph result = counter.learnMachine();
-		try {
-			result.storage.writeGraphML(tracesFile+"-outcome.xml");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 		if (innerLearner.getTentativeAutomaton().config.getErlangDisplayStatistics())
 		{
 			System.out.println("STATISTICS: "+counter.getQuestionCounter()+" questions, "+counter.getRestarts()+" restarts");

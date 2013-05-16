@@ -185,7 +185,9 @@ public class Start extends javax.swing.JFrame {
 
             @Override
 			public void run() {
-                new Start(args.length>0?args[0]:null).setVisible(true);
+                new Start(args.length>0?args[0]:
+                	// http://stackoverflow.com/questions/4871051/getting-the-current-working-directory-in-java
+                	System.getProperty("user.dir")).setVisible(true);
             }
         });
     }

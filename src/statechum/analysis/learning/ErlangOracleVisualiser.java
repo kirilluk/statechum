@@ -9,26 +9,34 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import statechum.JUConstants;
 
 import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.CachedData.ErlangCoverageData;
+import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
 import javax.swing.*;
+
 import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.Pair;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
+import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangModule;
 
 /**
  *
@@ -47,10 +55,60 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public static final int NoCoverage = 5;
     public static int mode = 5;
 
+    protected static int strippedFrameNumber = 2;
+    
     @Override
     public void construct(Graph g,LayoutOptions options) {
         super.construct(g,options);
-        JMenuItem item = new JMenuItem("Coverage");
+        JMenuItem item = new JMenuItem("save");
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	try {
+	            	LearnerGraphND grOrig = graphsOrig.get(currentGraph);LearnerGraphND grNew = new LearnerGraphND(grOrig,grOrig.config);
+	        		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,grNew,ErlangModule.loadModule(grOrig.config).behaviour.new ConverterModToErl());
+	        		JFileChooser chooser = new JFileChooser(grNew.config.getErlangSourceFile().getPath());
+	        		chooser.setAcceptAllFileFilterUsed(true);
+	        		File outfile = null;
+	        		//chooser.setFileFilter(new Start.TxtFileFilter());
+	        		int returnValue = chooser.showSaveDialog(null);
+	        		if (returnValue == JFileChooser.APPROVE_OPTION) {
+        				outfile = chooser.getSelectedFile();
+       					grNew.storage.writeGraphML(outfile.getAbsolutePath());
+	        		}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+            }
+        });
+        popupMenu.add(item);
+
+        item = new JMenuItem("strip module name");
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	try {
+	            	LearnerGraphND grOrig = graphsOrig.get(currentGraph);LearnerGraphND grNew = new LearnerGraphND(grOrig,grOrig.config);
+	            	final String moduleName = grOrig.config.getErlangModuleName()+":";
+	            	final ConvertALabel converter = ErlangModule.loadModule(grOrig.config).behaviour.new ConverterModToErl();
+	        		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,grNew,new Transform.ConvertLabel(new ConvertALabel() {
+						
+						@Override
+						public Label convertLabelToLabel(Label label) {
+							ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
+							return new ErlangLabel(null, lbl.callName.replace(moduleName, ""), lbl.input, lbl.expectedOutput);
+						}
+					}));
+	        		updateFrameWithPos(grNew, strippedFrameNumber++);
+	        		
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+            }
+        });
+        popupMenu.add(item);
+        
+        item = new JMenuItem("Coverage");
         item.setEnabled(false);
         item.addActionListener(new ActionListener() {
 

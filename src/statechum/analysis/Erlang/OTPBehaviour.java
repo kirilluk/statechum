@@ -331,7 +331,7 @@ public abstract class OTPBehaviour {
 	/**
 	 * Used to turn real traces into textual traces, suitable for persistence.
 	 */
-	class ConverterModToErl implements LabelConverter, ConvertALabel {
+	public class ConverterModToErl implements LabelConverter, ConvertALabel {
 		@Override
 		public Set<Label> convertLabel(Label lbl) {
 			return Collections.singleton(convertLabelToLabel(lbl));

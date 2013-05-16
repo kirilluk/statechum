@@ -81,27 +81,27 @@ collect_one_file_info(File, Analysis) ->
       typer_s:compile_error(Reason);
     {ok, AbstractCode} ->
       case dialyzer_utils:get_core_from_abstract_code(AbstractCode, Options) of
-	error -> typer_s:compile_error(["Could not get core erlang for "++File]);
-	{ok, Core} ->
-	  case dialyzer_utils:get_record_and_type_info(AbstractCode) of
-	    {error, Reason} -> typer_s:compile_error([Reason]);
-	    {ok, Records} -> 
-	      Mod = list_to_atom(filename:basename(File, ".erl")),
-	      case dialyzer_utils:get_spec_info(Mod, AbstractCode, Records) of
-		{error, Reason} -> typer_s:compile_error([Reason]);
-		{ok, SpecInfo} -> 
-		  analyze_core_tree(Core, Records, SpecInfo, Analysis, File);
-		%% new argument is part of Erlang 5.9.1
-		{ok, SpecInfo, CbInfo} ->
-                  ExpTypes = get_exported_types_from_core(Core),
-		  analyze_core_tree(Core, Records, SpecInfo, CbInfo,
-				    ExpTypes, Analysis, File)
-	      end
+		error -> typer_s:compile_error(["Could not get core erlang for "++File]);
+		{ok, Core} ->
+		  case dialyzer_utils:get_record_and_type_info(AbstractCode) of
+		    {error, Reason} -> typer_s:compile_error([Reason]);
+		    {ok, Records} -> 
+		      Mod = list_to_atom(filename:basename(File, ".erl")),
+		      case dialyzer_utils:get_spec_info(Mod, AbstractCode, Records) of
+				{error, Reason} -> typer_s:compile_error([Reason]);
+				{ok, SpecInfo} -> 
+				  analyze_core_tree(Core, Records, SpecInfo, Analysis, File);
+				%% new argument is part of Erlang 5.9.1
+				{ok, SpecInfo, CbInfo} ->
+		                  ExpTypes = get_exported_types_from_core(Core),
+				  		  analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File)
+		      end
 	  end
       end
   end.
 
 analyze_core_tree(Core, Records, SpecInfo, Analysis, File) ->
+io:format("inside analyze_core_tree ~n",[]),
   Module = list_to_atom(filename:basename(File, ".erl")),
   TmpTree = cerl:from_records(Core),
   CS1 = Analysis#typer_analysis.code_server,
@@ -201,23 +201,22 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
   MergedExpTypes = sets:union(ExpTypes, OldExpTypes),
   CS6 = dialyzer_codeserver:insert_temp_exported_types(MergedExpTypes, CS5),
   Ex_Funcs = [{0,F,A} || {_,_,{F,A}} <- cerl:module_exports(Tree)],
-  TmpCG = Analysis#typer_analysis.callgraph,
-  CG = dialyzer_callgraph:scan_core_tree(Tree, TmpCG),
+  CG = Analysis#typer_analysis.callgraph,
+  {V,E} = dialyzer_callgraph:scan_core_tree(Tree, CG),
+  dialyzer_callgraph:add_edges(E, V, CG),
   Fun = fun analyze_one_function/2,
   All_Defs = cerl:module_defs(Tree),
   Acc = lists:foldl(Fun, #tmpAcc{file = File, module = Module}, All_Defs),
-  Exported_FuncMap = typer_map_s:insert({File, Ex_Funcs},
-				      Analysis#typer_analysis.ex_func),
+  Exported_FuncMap = typer_map_s:insert({File, Ex_Funcs}, Analysis#typer_analysis.ex_func),
   %% we must sort all functions in the file which
   %% originate from this file by *numerical order* of lineNo
   Sorted_Functions = lists:keysort(1, Acc#tmpAcc.funcAcc),
-  FuncMap = typer_map_s:insert({File, Sorted_Functions},
-			     Analysis#typer_analysis.func),
+  FuncMap = typer_map_s:insert({File, Sorted_Functions}, Analysis#typer_analysis.func),
   %% we do not need to sort functions which are imported from included files
   IncFuncMap = typer_map_s:insert({File, Acc#tmpAcc.incFuncAcc}, 
 				Analysis#typer_analysis.inc_func),
-  RecordMap = typer_map_s:insert({File, Records}, Analysis#typer_analysis.record),
   Final_Files = Analysis#typer_analysis.final_files ++ [{File, Module}],
+  RecordMap = typer_map_s:insert({File, Records}, Analysis#typer_analysis.record),
   Analysis#typer_analysis{final_files = Final_Files,
 		    callgraph = CG,
 		    code_server = CS6,
@@ -225,3 +224,14 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
 		    inc_func = IncFuncMap,
 		    record = RecordMap,
 		    func = FuncMap}.
+
+		    
+		    
+		    
+		    
+		    
+		  
+		  
+		    
+		    
+		    

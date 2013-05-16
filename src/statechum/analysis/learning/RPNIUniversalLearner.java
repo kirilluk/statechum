@@ -34,6 +34,8 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.apps.QSMTool;
@@ -60,6 +62,11 @@ public class RPNIUniversalLearner extends RPNILearner
 		setTentativeAutomaton(new LearnerGraph(evalCnf.config));
 	}
 
+	public RPNIUniversalLearner(Frame parent, Configuration conf, ConvertALabel cnv) 
+	{
+		super(parent,conf,cnv);
+		setTentativeAutomaton(new LearnerGraph(conf));
+	}	
 	private LearnerGraph tentativeAutomaton = null;
 
 	@Override

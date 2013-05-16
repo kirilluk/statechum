@@ -108,6 +108,7 @@ public class TestErlangOracleLearner {
 		learner.GenerateInitialTraces();
 		LearnerGraph exporter = learner.learnMachine();
 		Assert.assertEquals(6,exporter.getStateNumber());
+		System.out.println(exporter.pathroutines.computeAlphabet());
 		Assert.assertEquals(7,exporter.pathroutines.computeAlphabet().size());
 		Assert.assertEquals(34,exporter.pathroutines.countEdges());
 	}

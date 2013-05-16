@@ -18,11 +18,17 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.apps;
 
+import java.io.File;
 import java.io.IOException;
 
 import statechum.Configuration;
+import statechum.Configuration.LABELKIND;
+import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.OTPBehaviour.ConverterErlToMod;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
 public class GraphMLVisualiser extends Visualiser {
@@ -36,14 +42,22 @@ public class GraphMLVisualiser extends Visualiser {
 		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
-		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
-		AbstractPersistence.loadGraph(args[0], graph0,null);
+		
+		Configuration cnf = Configuration.getDefaultConfiguration().copy();cnf.setLabelKind(LABELKIND.LABEL_ERLANG);
+		LearnerGraphND grOrig = new LearnerGraphND(cnf),graph1 = null;
+		AbstractPersistence.loadGraph(args[0], grOrig,null);
+
+		File file = new File("ErlangExamples/frequency/frequency.erl");
+		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		final LearnerGraph erlangGraph = new LearnerGraph(grOrig.config);
+		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,erlangGraph,mod.behaviour.new ConverterErlToMod());
+
 		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
 			AbstractPersistence.loadGraph(args[1], graph1,null);
 		}
-		Visualiser.updateFrame(graph0, graph1);Visualiser.waitForKey();
+		Visualiser.updateFrame(grOrig, graph1);Visualiser.waitForKey();
 	}
 	
 

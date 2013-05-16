@@ -93,6 +93,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 		LearnerGraph result = super.learnMachine();
 		finished();
+		setChanged();notifyObservers(getTentativeAutomaton());
 		return result;
 	}
 
@@ -473,6 +474,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(List<? extends Label> question) {
+		System.out.println("ASKING: "+getCount()+" "+questionToString(question));
 		ErlangLabel[] questionDetails = new ErlangLabel[question.size()];
 		int i = 0;
 		for (Label lbl : question) {

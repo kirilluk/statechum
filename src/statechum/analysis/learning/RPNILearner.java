@@ -157,6 +157,12 @@ public abstract class RPNILearner extends Observable implements Learner {
 		return questionString.toString();
     }
     
+    int count = 1;
+    public int getCount()
+    {
+    	return count;
+    }
+
     /** Updates listeners only if this object has been modified and debug mode is on, by calling
      * <pre>
      * setChanged()
@@ -165,7 +171,19 @@ public abstract class RPNILearner extends Observable implements Learner {
      * @param hardFacts the graph from which the current one was built
      */
     public void updateGraph(LearnerGraph g, LearnerGraph hardFacts) {
-        setChanged();
+        setChanged();/*
+        System.out.println("stage "+count);
+        if (count ++ % 15 == 0 && config.getAskQuestions())
+        {
+        	Configuration lConf = config.copy();lConf.setDebugMode(false);lConf.setAskQuestions(false);
+        	RPNIUniversalLearner tmpLearner = new RPNIUniversalLearner(parentFrame, lConf, getLabelConverter());
+        	LearnerGraph gCopy = new LearnerGraph(g,lConf);
+        	tmpLearner.setTentativeAutomaton(gCopy);
+        	//Visualiser.updateFrame(tmpLearner.learnMachine(), null);
+        	notifyObservers(tmpLearner.learnMachine());
+        	Visualiser.waitForKey();        	
+        }*/
+        /*
         if (config.getDebugMode()) {
             Map<VertID, Collection<VertID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
@@ -203,7 +221,9 @@ public abstract class RPNILearner extends Observable implements Learner {
                 g.getCache().setErlangCoverage(vertexToCoverage);
             }
         	notifyObservers(g);
+        	//JOptionPane.showMessageDialog(parentFrame, "Eggs are not supposed to be green.");
         }
+        */
     }
     
     /* This one is actually a specialised version of computeShortPathsToAllStates()
@@ -331,7 +351,7 @@ public abstract class RPNILearner extends Observable implements Learner {
                             listElements.add(elementHtml);
                         }
                         @SuppressWarnings({ "unchecked", "rawtypes" })
-						final JList<String> javaList = new JList(listElements.toArray());
+						final JList javaList = new JList(listElements.toArray());
                         String optionZero = null;
                         Boolean lastFact = consistentFacts.get(consistentFacts.size() - 1);
                         if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject

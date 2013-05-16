@@ -20,10 +20,13 @@ package statechum.analysis.learning;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import edu.uci.ics.jung.visualization.*;
 import edu.uci.ics.jung.visualization.contrib.*;
@@ -42,6 +45,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Interface.Start;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -370,6 +374,30 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 	options.showNegatives = !options.showNegatives; 
                     reloadLayout(false);
                 }
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_S, new graphAction("save", "save graph") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 12L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	LearnerGraphND graph = graphsOrig.get(currentGraph);
+        		JFileChooser chooser = new JFileChooser(graph.config.getErlangSourceFile().getPath());
+        		chooser.setAcceptAllFileFilterUsed(true);
+        		File outfile = null;
+        		//chooser.setFileFilter(new Start.TxtFileFilter());
+        		int returnValue = chooser.showSaveDialog(null);
+        		if (returnValue == JFileChooser.APPROVE_OPTION) {
+        				outfile = chooser.getSelectedFile();
+        				try {
+							graph.storage.writeGraphML(outfile.getAbsolutePath());
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+        		}
+        		
             }
         });
     }

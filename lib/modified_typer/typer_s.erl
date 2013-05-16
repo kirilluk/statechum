@@ -64,6 +64,7 @@ start(FilesToAnalyse,Plt,Outputmode) ->
   All_Files = typer_preprocess_s:get_all_files(Args, analysis),
   Analysis3 = Analysis2#typer_analysis{ana_files = All_Files},
   Analysis4 = typer_info_s:collect(Analysis3),
+  %%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
   TypeInfo = get_type_info(Analysis4),
 %%%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
  typer_annotator_s:annotate(TypeInfo,Outputmode)
@@ -155,7 +156,11 @@ get_type_info(#typer_analysis{callgraph = CallGraph,
 
 remove_external(CallGraph, PLT) ->
   {StrippedCG0, Ext} = dialyzer_callgraph:remove_external(CallGraph),
-  StrippedCG = dialyzer_callgraph:finalize(StrippedCG0),
+  StrippedCG = case string:substr(erlang:system_info(otp_release),1,3) of
+  	'R14'->dialyzer_callgraph:finalize(StrippedCG0);
+  	'R15'->StrippedCG0;
+  	_->reportError('Unsupported Erlang version, only R14 and R15 are supported)§
+  end,
   case get_external(Ext, PLT) of
     [] -> ok;
     Externals ->

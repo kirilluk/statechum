@@ -28,13 +28,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.awt.Frame;
 import java.io.IOException;
 
-import org.apache.commons.collections.set.CompositeSet.SetMutator;
-
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -139,7 +138,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 		boolean terminate = stopInference.get();
 		while(suspendInference.get() && !terminate)
 		{
-			setChanged();notifyObservers(getTentativeAutomaton());
+			setChanged();
+        	Configuration lConf = config.copy();lConf.setDebugMode(false);lConf.setAskQuestions(false);
+        	RPNIUniversalLearner tmpLearner = new RPNIUniversalLearner(parentFrame, lConf, getLabelConverter());
+        	LearnerGraph gCopy = new LearnerGraph(getTentativeAutomaton(),lConf);
+        	tmpLearner.setTentativeAutomaton(gCopy);
+        	LearnerGraph passiveGraph = tmpLearner.learnMachine();passiveGraph.setName("tentative_passive");
+			notifyObservers(passiveGraph);
 			synchronized(suspendInference)
 			{
 				try {

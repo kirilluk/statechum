@@ -22,8 +22,8 @@ import java.io.File;
 import java.io.IOException;
 
 import statechum.Configuration;
-import statechum.Configuration.LABELKIND;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.learning.ErlangOracleVisualiser;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -39,17 +39,18 @@ public class ErlangGraphVisualiser extends Visualiser {
 
 	/* The two arguments to this one are the graph to load and the .erl source of the module it corresponds to. The graphs should be saved via the "save" entry in the pop-up menu of ErlangOracleVisualiser. */
 	public static void main(String[] args) throws IOException{
-		Configuration cnf = Configuration.getDefaultConfiguration().copy();cnf.setLabelKind(LABELKIND.LABEL_ERLANG);
-		LearnerGraphND grOrig = new LearnerGraphND(cnf),graph1 = null;
+		File file = new File(args[1]);
+		Configuration cnf = ErlangModule.setupErlangConfiguration(file);
+		ErlangModule mod = ErlangModule.loadModule(cnf);
+
+		LearnerGraphND grOrig = new LearnerGraphND(cnf);
 		AbstractPersistence.loadGraph(args[0], grOrig,null);
 
-		File file = new File(args[1]);
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
 		final LearnerGraph erlangGraph = new LearnerGraph(grOrig.config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,erlangGraph,mod.behaviour.new ConverterErlToMod());
-
-		Visualiser.updateFrame(grOrig, graph1);Visualiser.waitForKey();
+		
+		Visualiser graphVisualiser = new ErlangOracleVisualiser();
+		graphVisualiser.update(null,erlangGraph);Visualiser.waitForKey();
 	}
 	
-
 }

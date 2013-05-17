@@ -35,7 +35,6 @@ import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.apps.QSMTool;

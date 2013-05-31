@@ -17,26 +17,34 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
-import junit.framework.Assert;
+import org.junit.Assert;
+import org.junit.Before;
 
 import org.junit.Test;
 
+import com.sun.org.apache.xpath.internal.operations.Minus;
+
 import statechum.Configuration;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Helper;
+import statechum.Helper.whatToRun;
+import statechum.JUConstants;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
+import statechum.analysis.learning.experiments.PairSelection.WekaPairClassifier.PairComparator;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -48,8 +56,8 @@ public class TestWekaPairClassifier {
 	final ConvertALabel converter = null;
 	
 	public TestWekaPairClassifier() {
-		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitCorrect", mainConfiguration,converter);
-		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitWrong", mainConfiguration,converter);
+		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitPTA", mainConfiguration,converter);
 	}
 
 	
@@ -174,7 +182,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators1()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		Map<StatePair,PairMeasurements> map = classifier.buildSetsForComparators(Arrays.asList(new PairScore[]{}), tentativeGraph);
 		Assert.assertTrue(map.isEmpty());
 	}
@@ -182,7 +190,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators2()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("A1")),1,0);
 		Map<StatePair,PairMeasurements> map = classifier.buildSetsForComparators(Arrays.asList(new PairScore[]{
 				pairA
@@ -195,7 +203,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators3()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
 		Map<StatePair,PairMeasurements> map = classifier.buildSetsForComparators(Arrays.asList(new PairScore[]{
@@ -209,7 +217,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators4()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
@@ -226,7 +234,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators5()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -246,7 +254,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators6()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -266,7 +274,7 @@ public class TestWekaPairClassifier {
 	/** Adjacency in Blue rather than in Red should not be considered */
 	public void testBuildSetsForComparators7()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("",10);
+		WekaPairClassifier classifier = new WekaPairClassifier();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B2")),2,0) // the score of 2 ensures it will be at the end of the keySet
 				;
@@ -288,16 +296,18 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(-1, PairQualityLearner.sgn(-10));
 	}
 	
+	
+	/** A simple test involving calling Weka functions directly. */
 	@Test
-	public void TestCreateInstances()
+	public void TestCreateInstances1()
 	{
 		int attributeNumber = 4;
-		FastVector vecA = new FastVector(3);vecA.addElement("-1");vecA.addElement("0");vecA.addElement("1");
+		FastVector vecA = new FastVector(3);vecA.addElement(WekaPairClassifier.MINUSONE);vecA.addElement(WekaPairClassifier.ZERO);vecA.addElement(WekaPairClassifier.ONE);
 		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
 		Attribute attrA = new Attribute("a", vecA), attrB= new Attribute("b",vecA), attrC=new Attribute("c",vecA),attrClass=new Attribute("class",vecBool);
 		
 		FastVector attributes = new FastVector(attributeNumber);attributes.addElement(attrA);attributes.addElement(attrB);attributes.addElement(attrC);attributes.addElement(attrClass);
-		Instances trainingData = new Instances("trainingdata",attributes,10);
+		Instances trainingData = new Instances("trainingdata",attributes,10);// this assigns indices to attributes, without these indices I cannot create instances.
 		trainingData.setClassIndex(attrClass.index());
 		Instance inst = new Instance(attributeNumber);
 		inst.setValue(attrA,0);inst.setValue(attrB, 1);inst.setValue(attrC, 1);inst.setValue(attrClass, 0);
@@ -307,4 +317,378 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(4,trainingData.numAttributes());
 		Assert.assertEquals(1,trainingData.numInstances());
 	}
+	
+	@Test
+	public void testConstructEmptyInstance1()
+	{
+		WekaPairClassifier classifier = new WekaPairClassifier();
+		classifier.initialise("TestCreateInstances2", 10, new ArrayList<PairComparator>());
+		Instance instance = classifier.constructInstance(new int []{},false);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
+		Assert.assertFalse(instance.hasMissingValue());
+		Assert.assertTrue(instance.classAttribute().isNominal());
+		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+		Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+		Assert.assertEquals("false",instance.stringValue(instance.classAttribute()));
+	}
+	
+	/** Construction of instances. */
+	@Test
+	public void testConstructEmptyInstance2()
+	{
+		final WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		classifier.initialise("TestCreateInstances2", 10, comps);
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run() throws NumberFormatException
+			{
+				classifier.constructInstance(new int []{1},false);
+			}
+		}, IllegalArgumentException.class, "does not match");
+		
+	}
+	
+	/** Construction of instances. */
+	@Test
+	public void TestCreateInstances2()
+	{
+		WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(classifier.new PairComparator("conventional score")
+		{// 1
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		classifier.initialise("TestCreateInstances2", 0, comps);
+		
+		Instance instance = classifier.constructInstance(new int []{1},true);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(2,instance.numValues());
+		Assert.assertFalse(instance.hasMissingValue());
+		Assert.assertTrue(instance.classAttribute().isNominal());
+		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+		Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+		Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(comps.get(0).att));
+	}
+
+	/** Construction of instances. Same as TestCreateInstances2 but initialises with zero max number of values in the training set. */
+	@Test
+	public void TestCreateInstances3()
+	{
+		WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(classifier.new PairComparator("conventional score")
+		{// 1
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		classifier.initialise("TestCreateInstances2", 10, comps);
+		
+		Instance instance = classifier.constructInstance(new int []{1},true);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(2,instance.numValues());
+		Assert.assertFalse(instance.hasMissingValue());
+		Assert.assertTrue(instance.classAttribute().isNominal());
+		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+		Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+		Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(comps.get(0).att));
+		Assert.assertTrue(comps.get(0).att.isNominal());
+		Assert.assertEquals("conventional score",comps.get(0).att.name());
+	}
+	
+	/** Construction of instances. Invalid value for an attribute. */
+	@Test
+	public void TestCreateInstances4()
+	{
+		final WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(classifier.new PairComparator("conventional score")
+		{// 1
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		classifier.initialise("TestCreateInstances2", 10, comps);
+
+		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+			{
+				classifier.constructInstance(new int []{2},true);
+			}
+		}, IllegalArgumentException.class, "invalid");
+		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+			{
+				classifier.constructInstance(new int []{-2},true);
+			}
+		}, IllegalArgumentException.class, "invalid");
+	}
+	
+	/** Construction of instances. Same as TestCreateInstances2 but initialises with zero max number of values in the training set. */
+	@Test
+	public void TestCreateInstances5()
+	{
+		WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(classifier.new PairComparator("conventional score")
+		{// 1
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		comps.add(classifier.new PairComparator("another score")
+		{// 2
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		classifier.initialise("TestCreateInstances2", 10, comps);
+		
+		Instance instance = classifier.constructInstance(new int []{1,0},true);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
+		Assert.assertFalse(instance.hasMissingValue());
+		Assert.assertTrue(instance.classAttribute().isNominal());
+		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+		Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+
+		Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(comps.get(0).att));
+		Assert.assertTrue(comps.get(0).att.isNominal());
+		Assert.assertEquals("conventional score",comps.get(0).att.name());
+
+		Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(comps.get(1).att));
+		Assert.assertTrue(comps.get(1).att.isNominal());
+		Assert.assertEquals("another score",comps.get(1).att.name());
+	}
+	
+	
+	WekaPairClassifier testClassifier;
+	
+	@Before
+	public void beforeTest()
+	{
+		testClassifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(testClassifier.new PairComparator("statechum score")
+		{// 1
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getScore() - o2.getScore());
+			}
+
+		});
+		comps.add(testClassifier.new PairComparator("statechum compatibility score")
+		{// 2
+
+			@Override
+			public int compare(PairScore o1, PairScore o2) {
+				return  PairQualityLearner.sgn(o1.getAnotherScore() - o2.getAnotherScore());
+			}
+
+		});
+		testClassifier.initialise("TestCreateInstances2", 10, comps);
+	}
+	
+	/** Tests comparison of a pair to other pairs. All values are equal. */
+	@Test
+	public void TestCreateComparePairs1()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,0),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
+
+		Assert.assertArrayEquals(new int[]{0,0},testClassifier.comparePairWithOthers(pairA, Arrays.asList(new PairScore[]{pairB,pairC})));
+	}	
+	
+	/** Tests comparison of a pair to other pairs. The case of domination. */
+	@Test
+	public void TestCreateComparePairs2()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,0),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
+
+		Assert.assertArrayEquals(new int[]{1,0},testClassifier.comparePairWithOthers(pairA, Arrays.asList(new PairScore[]{pairB,pairC})));
+	}	
+	
+	/** Tests comparison of a pair to other pairs. The case of dominates or equals and that of being dominated */
+	@Test
+	public void TestCreateComparePairs3()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,0),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
+
+		Assert.assertArrayEquals(new int[]{1,-1},testClassifier.comparePairWithOthers(pairA, Arrays.asList(new PairScore[]{pairB,pairC})));
+	}	
+	
+	/** Tests comparison of a pair to other pairs. Tests that contradictory responses are flagged. */
+	@Test
+	public void TestCreateComparePairs4()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
+
+		Assert.assertArrayEquals(new int[]{0,-1},testClassifier.comparePairWithOthers(pairA, Arrays.asList(new PairScore[]{pairB,pairC})));
+	}
+	
+	/** Tests comparison of a pair to other pairs. Tests that contradictory responses are flagged. */
+	@Test
+	public void TestCreateComparePairs5()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
+
+		Assert.assertArrayEquals(new int[]{-1,1},testClassifier.comparePairWithOthers(pairB, Arrays.asList(new PairScore[]{pairA,pairC})));
+	}
+	
+	/** Construction of instances. */
+	@Test
+	public void TestAddToDataset1()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
+
+		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		@SuppressWarnings("unchecked")
+		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
+
+		{// pairA - the correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
+			Assert.assertFalse(instance.hasMissingValue());
+			Assert.assertTrue(instance.classAttribute().isNominal());
+			Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+	
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertTrue(testClassifier.comparators.get(0).att.isNominal());
+			Assert.assertEquals("statechum score",testClassifier.comparators.get(0).att.name());
+	
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(1).att));
+			Assert.assertTrue(testClassifier.comparators.get(1).att.isNominal());
+			Assert.assertEquals("statechum compatibility score",testClassifier.comparators.get(1).att.name());
+		}
+		
+		{// pairB - another correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
+			Assert.assertFalse(instance.hasMissingValue());
+			Assert.assertTrue(instance.classAttribute().isNominal());
+			Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+	
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertTrue(testClassifier.comparators.get(0).att.isNominal());
+			Assert.assertEquals("statechum score",testClassifier.comparators.get(0).att.name());
+	
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(1).att));
+			Assert.assertTrue(testClassifier.comparators.get(1).att.isNominal());
+			Assert.assertEquals("statechum compatibility score",testClassifier.comparators.get(1).att.name());
+		}
+		
+		{// pairC - incorrect pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
+			Assert.assertFalse(instance.hasMissingValue());
+			Assert.assertTrue(instance.classAttribute().isNominal());
+			Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
+			Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+	
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertTrue(testClassifier.comparators.get(0).att.isNominal());
+			Assert.assertEquals("statechum score",testClassifier.comparators.get(0).att.name());
+	
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(1).att));
+			Assert.assertTrue(testClassifier.comparators.get(1).att.isNominal());
+			Assert.assertEquals("statechum compatibility score",testClassifier.comparators.get(1).att.name());
+		}
+		
+		Assert.assertFalse(instEnum.hasMoreElements());
+	}
+	
+	/** Construction of instances. */
+	@Test
+	public void TestAddToDataset2()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
+
+		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		@SuppressWarnings("unchecked")
+		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
+
+		{// pairA - the correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		{// pairB - another correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		{// pairC - incorrect pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		Assert.assertFalse(instEnum.hasMoreElements());
+	}
+	
+	/** Classification of instances. 
+	 * @throws Exception */
+	@Test
+	public void TestClassification() throws Exception
+	{
+		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{1,0},true));
+		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{0,1},true));
+		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{-1,-1},false));
+		weka.classifiers.trees.J48 cl = new weka.classifiers.trees.J48();
+		cl.buildClassifier(testClassifier.trainingData);
+		
+		Assert.assertEquals(1,cl.classifyInstance(testClassifier.constructInstance(new int []{1,0},false)), Configuration.fpAccuracy);
+	}
+
 }
+
+

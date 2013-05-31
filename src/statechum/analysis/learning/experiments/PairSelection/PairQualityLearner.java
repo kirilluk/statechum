@@ -20,6 +20,7 @@ package statechum.analysis.learning.experiments.PairSelection;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,6 +45,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.WekaPairClassifier.PairComparator;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -160,143 +162,90 @@ public class PairQualityLearner {
 	
 	public WekaPairClassifier createPairClassifier()
 	{
-		WekaPairClassifier classifier = new WekaPairClassifier("HindsightExperiment",10000);
-		classifier.addComparator(classifier.new PairComparator()
+		WekaPairClassifier classifier = new WekaPairClassifier();
+		List<PairComparator> comps = new ArrayList<PairComparator>(20);
+		comps.add(classifier.new PairComparator("conventional score")
 		{// 1
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn(measurementsForCurrentStack(o1).compatibilityScore - measurementsForCurrentStack(o2).compatibilityScore);
 			}
-
-			@Override
-			public String toString()
-			{
-				return "conventional score";
-			}
 		});
 				
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("statechum score")
 		{// 2
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return sgn(o1.getScore() - o2.getScore());
 			}
-
-			@Override
-			public String toString()
-			{
-				return "statechum score";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("size of tree rooted at Blue")
 		{// 3
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return sgn(treeRootedAt(o1.getQ()) - treeRootedAt(o2.getQ()));
 			}
-
-			@Override
-			public String toString()
-			{
-				return "size of tree rooted at Blue";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("Number of alternatives with same red the more alt the worse")
 		{// 4
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn(measurementsForCurrentStack(o2).nrOfAlternatives - measurementsForCurrentStack(o1).nrOfAlternatives);
 			}
-
-			@Override
-			public String toString()
-			{
-				return "Number of alternatives with same red the more alt the worse";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("Depth of Blue the deeper the worse")
 		{// 5
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn(o2.getQ().getDepth() - o1.getQ().getDepth());
 			}
-
-			@Override
-			public String toString()
-			{
-				return "Depth of Blue the deeper the worse";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("Depth of Red the deeper the worse")
 		{// 6
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn(o2.getR().getDepth() - o1.getR().getDepth());
 			}
-
-			@Override
-			public String toString()
-			{
-				return "Depth of Red the deeper the worse";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("PosNeg pos preferred to Neg")
 		{// 7
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn( (o1.getQ().isAccept()?1:-1) -  (o2.getQ().isAccept()?1:-1));
 			}
-
-			@Override
-			public String toString()
-			{
-				return "PosNeg pos preferred to Neg";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("state identifiers Red")
 		{// 8
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return sgn( o1.getR().getIntegerID() - o2.getR().getIntegerID());
 			}
-
-			@Override
-			public String toString()
-			{
-				return "state identifiers Red";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("state identifiers Blue")
 		{// 9
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return sgn( o1.getQ().getIntegerID() - o2.getQ().getIntegerID());
 			}
-
-			@Override
-			public String toString()
-			{
-				return "state identifiers Blue";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("proximity of the red and blue by depth")
 		{// 10
 
 			@Override
@@ -306,30 +255,18 @@ public class PairQualityLearner {
 				
 				return sgn(prox1-prox2);
 			}
-
-			@Override
-			public String toString()
-			{
-				return "proximity of the red and blue by depth";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("difference between conventional scores divided by 3")
 		{// 11
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
 				return  sgn( (measurementsForCurrentStack(o1).compatibilityScore - measurementsForCurrentStack(o2).compatibilityScore)/3);
 			}
-
-			@Override
-			public String toString()
-			{
-				return "difference between conventional scores divided by 3";
-			}
 		});
 		
-		classifier.addComparator(classifier.new PairComparator()
+		comps.add(classifier.new PairComparator("whether red and blue are adjacent")
 		{// 12
 
 			@Override
@@ -337,14 +274,9 @@ public class PairQualityLearner {
 				int o1Adjacent = measurementsForCurrentStack(o1).adjacent? 1:0,  o2Adjacent = measurementsForCurrentStack(o2).adjacent? 1:0;
 				return  sgn( o1Adjacent - o2Adjacent );
 			}
-
-			@Override
-			public String toString()
-			{
-				return "whether red and blue are adjacent";
-			}
 		});
 		
+		classifier.initialise("HindsightExperiment",10000,comps);
 		return classifier;
 	}
 	

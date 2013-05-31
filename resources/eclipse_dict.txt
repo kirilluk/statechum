@@ -24,3 +24,4 @@ covariance
 sheffield
 dialyzer
 plugin
+weka

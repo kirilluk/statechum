@@ -343,49 +343,6 @@ public class PairQualityLearner {
 		return initial;
 	}
 	
-	public static LearnerGraph trimGraph(LearnerGraph coregraph,int depth)
-	{
-		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMapWithSearch<CmpVertex,LinkedList<Label>>(coregraph.getStateNumber());
-		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
-		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
-		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-		fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
-		while(!fringe.isEmpty())
-		{
-			CmpVertex currentState = fringe.remove();
-			Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState);
-			LinkedList<Label> currentPath = stateToPath.get(currentState);
-			Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
-			if(targets != null && !targets.isEmpty())
-				for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
-					
-				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
-				{
-					Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(target);
-					if (row == null) 
-					{
-						row = trimmedOne.createNewRow();trimmedOne.transitionMatrix.put(target, row);
-					}
-					trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
-					
-					if (!statesInFringe.contains(target))
-					{
-						@SuppressWarnings("unchecked")
-						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
-						stateToPath.put(target,newPath);
-						
-						if (stateToPath.size() <= depth)
-						{
-							fringe.offer(target);
-							statesInFringe.add(target);
-						}
-					}
-				}
-		}
-		return trimmedOne;
-	}
-	
 	/** This learner runs an experiment that attempts to determine the best strategy for selection of pairs based on scores and other parameters and subsequently evaluates it. */
 	public static void main(String args[]) throws IOException
 	{

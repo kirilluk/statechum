@@ -17,7 +17,6 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -247,7 +246,7 @@ public class WekaPairClassifier
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
 		if (!pairs.isEmpty())
 		{
-			for(PairScore p:pairs) if (p.getQ().isAccept()) pairsToConsider.add(p);// only consider non-negatives
+			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
 		}
 		PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
 		
@@ -255,20 +254,9 @@ public class WekaPairClassifier
 		// Compute Weka statistics, where we compare each pair to all others.
 		for(PairScore p:correctPairs)
 		{
-			int []comparisonResults = comparePairWithOthers(p, wrongPairs);
-			/*
-			boolean nonZero = false;
-			for(int i=0;i<comparators.size() && !nonZero;++i)
-			{
-				int result = comparisonResults[i];if (result == comparison_inconclusive) result = 0;
-				if (result != 0) nonZero = true;
-			}
-			
-			if (nonZero)
-			*/
-			
-			trainingData.add(constructInstance(comparisonResults, true));
+			int []comparisonResults = comparePairWithOthers(p, wrongPairs);trainingData.add(constructInstance(comparisonResults, true));
 		}
+		
 		for(PairScore p:wrongPairs)
 		{
 			int []comparisonResults = comparePairWithOthers(p, correctPairs);trainingData.add(constructInstance(comparisonResults, false));

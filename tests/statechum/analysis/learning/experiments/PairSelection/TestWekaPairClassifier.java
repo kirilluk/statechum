@@ -31,8 +31,6 @@ import org.junit.Before;
 
 import org.junit.Test;
 
-import com.sun.org.apache.xpath.internal.operations.Minus;
-
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
@@ -675,18 +673,97 @@ public class TestWekaPairClassifier {
 		Assert.assertFalse(instEnum.hasMoreElements());
 	}
 	
+	/** Construction of instances, reject-pairs are ignored. */
+	@Test
+	public void TestAddToDataset3()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairD1=new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("A2"),0,0),// wrong pair
+			pairD2=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("C2"),0,0),// wrong pair
+			pairE=new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("C2"),0,-1);// correct pair
+
+		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD1,pairD2,pairE}), tentativeGraph, correctGraph);
+		Assert.assertEquals(0,testClassifier.trainingData.numInstances());
+	}
+	
+	/** Construction of instances, multiple adds. */
+	@Test
+	public void TestAddToDataset4()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,0),// correct pair
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),// correct pair
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),// wrong pair
+			pairD=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("A2"),0,0),// wrong pair
+			pairE=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,-1);// wrong pair
+
+		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD,pairE}), tentativeGraph, correctGraph);
+		@SuppressWarnings("unchecked")
+		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
+
+		{// pairA - the correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		{// pairB - another correct pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("true",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.ONE,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		{// pairC - incorrect pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(0).att));
+			Assert.assertEquals(WekaPairClassifier.MINUSONE,instance.stringValue(testClassifier.comparators.get(1).att));
+		}
+		
+		{// pairD - incorrect pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(0).att));// these are all zeroes because we have called updateDatasetWithPairs having passed no correct pairs
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(1).att));// these are all zeroes because we have called updateDatasetWithPairs having passed no correct pairs
+		}
+		
+		{// pairE - incorrect pair
+			Instance instance = instEnum.nextElement();
+			Assert.assertEquals("false",instance.classAttribute().value((int) instance.value(instance.classAttribute())));
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(0).att));// these are all zeroes because we have called updateDatasetWithPairs having passed no correct pairs
+			Assert.assertEquals(WekaPairClassifier.ZERO,instance.stringValue(testClassifier.comparators.get(1).att));// these are all zeroes because we have called updateDatasetWithPairs having passed no correct pairs
+		}
+		
+		Assert.assertFalse(instEnum.hasMoreElements());
+	}
+	
 	/** Classification of instances. 
-	 * @throws Exception */
+	 * @throws Exception if classification fails which signifies a test failure 
+	 */
 	@Test
 	public void TestClassification() throws Exception
 	{
-		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{1,0},true));
-		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{0,1},true));
-		testClassifier.trainingData.add(testClassifier.constructInstance(new int []{-1,-1},false));
+		for(int i=0;i<10;++i)
+		{// we add a lot of duplicate data because the learner expects a minimal number of entries per class  
+			testClassifier.trainingData.add(testClassifier.constructInstance(new int []{1,0},true));
+			testClassifier.trainingData.add(testClassifier.constructInstance(new int []{0,1},true));
+			testClassifier.trainingData.add(testClassifier.constructInstance(new int []{-1,-1},false));
+		}
 		weka.classifiers.trees.J48 cl = new weka.classifiers.trees.J48();
 		cl.buildClassifier(testClassifier.trainingData);
+		Instance instance = testClassifier.constructInstance(new int []{1,0},true);
+		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
 		
-		Assert.assertEquals(1,cl.classifyInstance(testClassifier.constructInstance(new int []{1,0},false)), Configuration.fpAccuracy);
+		instance = testClassifier.constructInstance(new int []{-1,0},false);
+		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
+		
+		instance = testClassifier.constructInstance(new int []{0,0},true);
+		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
 	}
 
 }

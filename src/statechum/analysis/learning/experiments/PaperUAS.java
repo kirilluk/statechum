@@ -603,37 +603,6 @@ public class PaperUAS
     	return top;
     }
     
-    /** Given a graph, leaves only the states that are connected to the root state with paths of length at most the specified number.
-     * Very useful to visualise parts of complex graphs where Jung will take forever to run it spring-based algorithm and all states will be pushed towards the edges of the 
-     * window.
-     * @param graph graph to trim
-     * @param pathsToLeave the maximal length of paths to root state
-     * @return trimmed graph. The original is not modified.
-     */
-    public static LearnerGraph trimGraphTo(LearnerGraph graph, int pathsToLeave)
-    {
-		Set<CmpVertex> whatToRemove = new TreeSet<CmpVertex>();
-		for(Entry<CmpVertex,LinkedList<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
-		{
-			if (entry.getValue().size() > pathsToLeave)
-				whatToRemove.add(entry.getKey());
-		}
-		
-		LearnerGraph trimmedOne = new LearnerGraph(graph.config);
-		AbstractLearnerGraph.copyGraphs(graph, trimmedOne);
-		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-			if (whatToRemove.contains(entry.getKey())) trimmedOne.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
-			else
-			{
-				Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(entry.getKey());
-				for(Entry<Label,CmpVertex> targetRow:entry.getValue().entrySet())
-					for(CmpVertex target:graph.getTargets(targetRow.getValue()))
-						if (whatToRemove.contains(target)) trimmedOne.removeTransition(row, targetRow.getKey(), target);
-			}
-		return trimmedOne;
-    }
-    
    	public class RPNIBlueFringe
     {
     	private Learner learner;

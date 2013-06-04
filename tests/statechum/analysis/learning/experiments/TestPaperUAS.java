@@ -5,10 +5,8 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import java.io.ByteArrayOutputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +26,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -44,7 +41,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
@@ -1129,81 +1125,5 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);
 	}
-	
-	
-	@Test
-	public void testTrimGraph1()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, -1);
-		Assert.assertTrue(trimmed.transitionMatrix.isEmpty());
-	}
-	
-	@Test
-	public void testTrimGraph2()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 0);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->A","testTrimGraph2", mainConfiguration,converter);
-		expected.transitionMatrix.get(expected.transitionMatrix.findElementById(VertexID.parseID("A"))).clear();
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testTrimGraph3", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph4()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph5()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph6()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 2);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	/** Trimming does not trim transitions, only states that are reachable by a shortest path longer than the specified length, this is why there are many transitions that on the first glance should be filtered out. */
-	@Test
-	public void testTrimGraph7()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 3);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph8()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 4);
-		Assert.assertNull(WMethod.checkM(graph,trimmed));
-	}
-
-	
-	
 	
 }

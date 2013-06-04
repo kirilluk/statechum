@@ -57,6 +57,7 @@ import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
+/** Miscellaneous graph transformation routines. */
 public class Transform 
 {
 	final LearnerGraph coregraph;
@@ -1310,4 +1311,67 @@ public class Transform
 		
 		return (DuA+DuB)/2;
 	}
+	
+	/** Given a large graph, this method chops all states more than a specific number of transitions away from the root node. 
+	 * Very useful for visualisation of complex graphs where Jung will choke doing a layout and the part of interest is close to the root node.
+	 * 
+	 * @param coregraph graph to trim.
+	 * @param depth the diameter of the graph to leave.
+	 * @return trimmed graph
+	 */
+	public LearnerGraph trimGraph(int depth)
+	{
+		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
+		trimmedOne.initEmpty();
+		
+		if (depth < 0)
+			return trimmedOne;
+		
+		// we should not change attributes of coregraph's matrix here since we are re-using the vertices
+		trimmedOne.transitionMatrix.put(coregraph.getInit(),trimmedOne.createNewRow());
+		trimmedOne.setInit(coregraph.getInit());
+		trimmedOne.learnerCache.invalidate();
+
+		Queue<CmpVertex> newFringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// since the subset of the filtered vertices is very small, it is enough to use an ordinary HashSet. A HashMapWithSearch will be an overkill.
+		newFringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+		int waveNumber=0;
+		do
+		{
+			Queue<CmpVertex> fringe = newFringe;newFringe = new LinkedList<CmpVertex>();
+			while(!fringe.isEmpty())
+			{
+				CmpVertex currentState = fringe.remove();
+				Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState==coregraph.getInit()?trimmedOne.getInit():currentState);
+				Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+				if(targets != null && !targets.isEmpty())
+					for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
+						
+					for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
+					{
+						// in the last pass we limit the set of states to those that have been encountered earlier
+						if (waveNumber <= depth -1 || statesInFringe.contains(target))
+						{
+							Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(target);
+							if (row == null) 
+							{
+								row = trimmedOne.createNewRow();trimmedOne.transitionMatrix.put(target, row);
+							}
+							trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
+							
+							if (!statesInFringe.contains(target))
+							{
+								newFringe.offer(target);
+								statesInFringe.add(target);
+							}
+						}
+					}
+			}
+			
+			++waveNumber;
+		}
+		while(!newFringe.isEmpty() && waveNumber <= depth);
+		return trimmedOne;
+	}
+	
 }

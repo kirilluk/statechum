@@ -17,19 +17,23 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.awt.Frame;
 import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.Stack;
 
@@ -39,23 +43,32 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.WekaPairClassifier.PairComparator;
+import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
+import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
+import weka.classifiers.Classifier;
+import weka.core.Instance;
 
 /** This one aims to learn how to choose pairs and red states in the way that leads to most accurate learning
  * outcomes.
@@ -66,8 +79,6 @@ public class PairQualityLearner {
    	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
 	
-   	protected Writer wekaOutput;
-   	
 	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
 	 * 
 	 * @param graph graph to go through
@@ -160,7 +171,7 @@ public class PairQualityLearner {
 	}
 	
 	
-	public WekaPairClassifier createPairClassifier()
+	public static WekaPairClassifier createPairClassifier()
 	{
 		WekaPairClassifier classifier = new WekaPairClassifier();
 		List<PairComparator> comps = new ArrayList<PairComparator>(20);
@@ -285,11 +296,11 @@ public class PairQualityLearner {
 	
 	/** Updates the statistics on the pairs, using the correct automaton. Returns one of the correct pairs (throws an exception if there is none). 
 	 */
-	public PairScore updateMaps(Stack<PairScore> pairs,LearnerGraph graph, LearnerGraph correctResult)
+	public static PairScore pickCorrectPair(Stack<PairScore> pairs,LearnerGraph tentativeGraph, LearnerGraph correctGraph)
 	{
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 				
-		SplitSetOfPairsIntoRightAndWrong(graph, correctResult, pairs, correctPairs, wrongPairs);
+		SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, pairs, correctPairs, wrongPairs);
 		
 		if (correctPairs.isEmpty())
 			throw new IllegalArgumentException("no correct pairs found");
@@ -326,105 +337,438 @@ public class PairQualityLearner {
 		return correctPairs.iterator().next();
 	}
 	
-	public static ProgressDecorator.InitialData loadInitialAndPopulateInitialConfiguration(PaperUAS paper,String argPTAFileName, Transform.InternStringLabel converter) throws IOException
+	public static class InitialConfigurationAndData
+	{
+		public ProgressDecorator.InitialData initial;
+		public LearnerEvaluationConfiguration learnerInitConfiguration;
+	}
+	
+	public static InitialConfigurationAndData loadInitialAndPopulateInitialConfiguration(String argPTAFileName, Transform.InternStringLabel converter) throws IOException
 	{// this part is nested in order to ensure that an instance of LearnerSimulator
 	 // goes out of scope and is garbage collected as soon as possible. It holds a great deal
 	 // of Xerces objects used for recording execution traces that is not used in this test but takes
 	 // a lot of memory.
+		InitialConfigurationAndData outcome = new InitialConfigurationAndData();
+		
 		final java.io.FileInputStream inputStream = new java.io.FileInputStream(argPTAFileName);
 		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,converter);
 		Configuration defaultConfig = Configuration.getDefaultConfiguration().copy();
 		//defaultConfig.setRejectPositivePairsWithScoresLessThan(1);
-		paper.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
-		paper.learnerInitConfiguration.setLabelConverter(converter);
+		outcome.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
+		outcome.learnerInitConfiguration.setLabelConverter(converter);
 		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
-		ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
+		outcome.initial = simulator.readInitialData(nextElement);
 		inputStream.close();
-		return initial;
+		return outcome;
 	}
 	
+	/** Makes it possible to run the same learner with different choices of pairs to see how it affects the outcome. It is possible not only to record pair selection but also to replay the one recorded before. */
+	public static class RPNIBlueFringeTestVariability
+    {
+    	private Learner learner;
+    	final List<PairOfPaths> listOfPairsToWrite;
+    	final Iterator<PairOfPaths> listOfPairsToCheckAgainstIterator;
+    	final boolean useOptimizedMerge;
+    	LearnerGraph initPta = null;
+    	final Configuration config;
+    	
+    	VertexID phantomVertex = null;
+    	
+    	public Learner getLearner()
+    	{
+    		return learner;
+    	}
+    	
+    	/** Constructs an instance of this learner. 
+    	 * 
+    	 * @param evaluationConfiguration configuration to initialise with. Uses ifthensequences, configuration and converter.
+    	 * @param optimisedMerge whether to use a slow ({@link PairScoreComputation#computePairCompatibilityScore_general} or a fast {@link MergeStates#mergeAndDeterminize}. 
+    	 * Fast merger is much faster but expects to merge a PTA into a graph; the slow one can merge arbitrary states in a graph.
+    	 * @param lw if non-<i>null</i>, stores the list of pairs encountered while learning.
+    	 * @param lc if non-<i>null</i>, uses this as a source of pairs to merge. This is used to check that a learner will learn the same automaton when it goes through the same sequences of mergers.
+    	 */
+		public RPNIBlueFringeTestVariability(final LearnerEvaluationConfiguration evaluationConfiguration, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
+		{
+			listOfPairsToWrite = lw;useOptimizedMerge = optimisedMerge;
+			if (lc != null) listOfPairsToCheckAgainstIterator = lc.iterator();else listOfPairsToCheckAgainstIterator = null;
+			final LearnerEvaluationConfiguration bfLearnerInitConfiguration = new LearnerEvaluationConfiguration(evaluationConfiguration.config);
+			bfLearnerInitConfiguration.ifthenSequences = evaluationConfiguration.ifthenSequences;
+			bfLearnerInitConfiguration.setLabelConverter(evaluationConfiguration.getLabelConverter());
+			config = bfLearnerInitConfiguration.config;// our config is a copy of the one supplied as an argument.
+			config.setAskQuestions(false); 
+			learner = new DummyLearner(new RPNIUniversalLearner(null, bfLearnerInitConfiguration)) 
+			{
+				
+				@Override
+				public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+				{
+					LearnerGraph outcome = null;
+					int extraPhantomVertices = 0;
+					if (useOptimizedMerge)
+						// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
+						outcome = MergeStates.mergeAndDeterminize(original, pair);
+					else
+					{
+						Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						long score = original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices);
+						outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
+						
+						if (score != original.getStateNumber()-outcome.getStateNumber())
+						{// This is either a bug somewhere in the merger or (most likely) that the phantomVertex has been removed by the generalised learner. 
+						 // We are checking which of these two has happened in the code below.
+						 // The computation below is expensive on large graphs but only needs to be done once.
+							LinkedHashSet<CmpVertex> removedStates = new LinkedHashSet<CmpVertex>();removedStates.addAll(original.transitionMatrix.keySet());
+							removedStates.removeAll(outcome.transitionMatrix.keySet());removedStates.remove(pair.getQ());removedStates.remove(pair.getR());
+							Assert.assertEquals(1,removedStates.size());// if it were a phantom vertex, there would only be one of them.
+							CmpVertex tentativePhantom = removedStates.iterator().next();
+							Set<Label> alphabetUsedOnPhantom = new TreeSet<Label>();alphabetUsedOnPhantom.addAll(original.pathroutines.computeAlphabet());
+							for(Entry<Label,CmpVertex> transition:original.transitionMatrix.get(tentativePhantom).entrySet())
+							{
+								Assert.assertSame(tentativePhantom,transition.getValue());alphabetUsedOnPhantom.remove(transition.getKey());
+							}
+							Assert.assertEquals(0, alphabetUsedOnPhantom.size());
+							extraPhantomVertices = 1;// now certain it was indeed a phantom vertex added when the PTA was initially built.
+						}
+						
+						Assert.assertEquals(score+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
+					}
+					ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+					long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);
+					original.config.setLearnerScoreMode(origScore);
+					
+					Assert.assertEquals(compatibilityScore+1+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
+					return outcome;
+				}
+
+				@Override 
+				public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+				{
+					Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
+
+						@Override
+						public CmpVertex selectRedNode(LearnerGraph coregraph,
+								@SuppressWarnings("unused") Collection<CmpVertex> reds,
+								Collection<CmpVertex> tentativeRedNodes) 
+						{
+							CmpVertex redVertex = null;
+							if (listOfPairsToWrite != null)
+							{
+								redVertex = tentativeRedNodes.iterator().next();
+								listOfPairsToWrite.add(new PairOfPaths(coregraph, new PairScore(null, redVertex, 0, 0)));
+							}
+							
+							if(listOfPairsToCheckAgainstIterator != null)
+							{
+								PairOfPaths pair = listOfPairsToCheckAgainstIterator.next();
+								Assert.assertNull(pair.getQ());
+								redVertex = coregraph.getVertex(pair.getR());
+							}
+							return redVertex;
+						}
+
+						@SuppressWarnings("unused")
+						@Override
+						public CmpVertex resolveDeadEnd(LearnerGraph coregraph,
+								Collection<CmpVertex> reds,
+								Collection<PairScore> pairs) {
+							return null;
+						}});
+					
+					if (!outcome.isEmpty())
+					{
+						if (listOfPairsToWrite != null)
+						{
+							//System.out.println("Optimized: "+useOptimizedMerge+", matrix: "+graph.config.getTransitionMatrixImplType()+", pair : "+outcome.peek());
+							listOfPairsToWrite.add(new PairOfPaths(graph, outcome.peek()));
+						}
+						
+						if(listOfPairsToCheckAgainstIterator != null)
+						{
+							PairOfPaths pair = listOfPairsToCheckAgainstIterator.next();
+							//System.out.println("chosen "+outcome.peek()+", expected "+new PairScore(graph.getVertex(pair.getQ()),graph.getVertex(pair.getR()),0,0));
+							pair.rebuildStack(graph, outcome);
+						}
+					}
+					
+					return outcome;
+				}
+			
+				@Override 
+				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+				{
+					if (initPta != null)
+					{
+						LearnerGraph graph = decoratedLearner.init(plus,minus);
+						LearnerGraph.copyGraphs(initPta, graph);
+						return initPta;
+					}
+					throw new IllegalArgumentException("should not be called");
+				}
+				
+				@Override 
+				public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+				{
+					LearnerGraph graph = decoratedLearner.init(engine,plusSize,minusSize);
+
+					if (initPta != null)
+					{
+						LearnerGraph.copyGraphs(initPta, graph);
+					}
+					else
+					{
+						Set<Label> alphabet = graph.pathroutines.computeAlphabet();
+						// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
+						phantomVertex = graph.nextID(true);
+						CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(phantomVertex, bfLearnerInitConfiguration.config);
+						Map<Label,CmpVertex> row = graph.createNewRow();
+						for(Label lbl:alphabet) graph.addTransition(row, lbl, dummyState);
+						graph.transitionMatrix.put(dummyState, row);
+					}
+					return graph;
+				}
+			};
+	
+		}
+		
+		/** After this method is called, the learner used above no longer looks at the PTA is it given but assumes that the PTA supplied to this call should be returned as a result of initialisation.
+		 * This is used to get around the problem of  
+		 * @param initPTAArg
+		 */
+		public void setInitPta(LearnerGraph initPTAArg)
+		{
+			initPta = initPTAArg;
+		}
+		
+		/** Learns starting with the supplied PTA. */
+		public LearnerGraph learn(LearnerGraph initPTAArg)
+		{
+			setInitPta(initPTAArg);
+			LearnerGraph outcome = learner.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
+			if (phantomVertex != null) 
+				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
+			return outcome;
+		}
+		
+		public LearnerGraph learn(PTASequenceEngine engineArg, boolean useNegatives)
+		{
+			PTASequenceEngine engine = null;
+			if (!useNegatives)
+			{
+				PTASequenceEngine positives = new PTASequenceEngine();positives.init(new Automaton());
+    			SequenceSet initSeq = positives.new SequenceSet();initSeq.setIdentity();
+    			initSeq.cross(engineArg.getData());
+    			engine = positives;
+			}
+			else
+				engine = engineArg;
+			
+			LearnerGraph outcome = learner.learnMachine(engine,0,0);
+			if (phantomVertex != null) 
+				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
+			return outcome;
+		}
+		
+    }
+
 	/** This learner runs an experiment that attempts to determine the best strategy for selection of pairs based on scores and other parameters and subsequently evaluates it. */
 	public static void main(String args[]) throws IOException
 	{
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		PaperUAS paper = new PaperUAS();
-		final ProgressDecorator.InitialData initial = loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
+		final InitialConfigurationAndData initialConfigAndData = loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, converter);
 		String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_correct.xml";
-		final LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
-		final PairQualityLearner qualityLearner = new PairQualityLearner();
+		final LearnerGraph referenceA = new LearnerGraph(initialConfigAndData.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
+		//runWekaOnPairSelection(referenceA,initialConfigAndData.initial.graph,initialConfigAndData.learnerInitConfiguration);
+		//Assert.assertNull(WMethod.checkM(learntMachine, referenceGraph));
 		
-		LearnerGraph learntMachine = new RPNIUniversalLearner(null, paper.learnerInitConfiguration) 
-		{
-			
-			@Override
-			public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
-			{// fast merger
-				return MergeStates.mergeAndDeterminize(original, pair);
-			}
-			
-			@Override 
-			public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-			{
-				Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
-
-					// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
-					// This can be accomplished by doing a clone of the graph and running chooseStatePairs on it with decision procedure that (a) applies the same rule (of so many) to choose pairs and
-					// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
-					// for a particular pairscore decision procedure.
-					@Override
-					public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-					{
-						CmpVertex redVertex = tentativeRedNodes.iterator().next();
-						return redVertex;
-					}
-
-					@Override
-					public CmpVertex resolveDeadEnd(LearnerGraph coregraph,	@SuppressWarnings("unused") Collection<CmpVertex> reds,	Collection<PairScore> pairs) 
-					{
-						CmpVertex stateToMarkRed = null;
-						LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-						SplitSetOfPairsIntoRightAndWrong(coregraph, referenceA, pairs, correctPairs, wrongPairs);
-						if (correctPairs.isEmpty())
-						{
-							stateToMarkRed = wrongPairs.peek().getQ();
-							System.out.println("DEADEND FUDGED: "+wrongPairs);
-							
-							//Visualiser.updateFrame(trimGraph(coregraph,4),null);Visualiser.waitForKey();
-						}
-						return stateToMarkRed;
-							
-					}});
-				if (!outcome.isEmpty())
-				{
-					PairScore correctPair = qualityLearner.updateMaps(outcome, graph, referenceA);
-					//System.out.println("pairs : "+outcome+", chosen: "+correctPair);
-					outcome.clear();outcome.push(correctPair);
-				}
-				
-				return outcome;
-			}
+	}
+	
+	public static class LearnerThatUpdatesWekaResults extends RPNIUniversalLearner
+	{
+		final WekaPairClassifier classifier = createPairClassifier();
 		
-			@Override 
-			public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
-			{
-				LearnerGraph graph = super.init(plus,minus);
-				LearnerGraph.copyGraphs(initial.graph, graph);
-				return initial.graph;
-			}
-			
-			@SuppressWarnings("unused")
-			@Override 
-			public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
-			{
-				throw new UnsupportedOperationException();
-			}			
-		}.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
-		if (qualityLearner.wekaOutput != null)
+		/** Builds a decision tree and returns it. Throws an exception if something goes wrong. */
+		public Classifier getClassifier() throws Exception
 		{
-			qualityLearner.wekaOutput.close();qualityLearner.wekaOutput = null;
+			weka.classifiers.trees.J48 cl = new weka.classifiers.trees.J48();
+			cl.buildClassifier(classifier.trainingData);return cl;
 		}
-		//Visualiser.updateFrame(learntMachine, referenceA);Visualiser.waitForKey();
-		Assert.assertNull(WMethod.checkM(learntMachine, referenceA));
+		
+		final LearnerGraph referenceGraph, initialPTA;
+		
+		public LearnerThatUpdatesWekaResults(Frame parent, LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		{
+			super(parent, evalCnf);referenceGraph = argReferenceGraph;initialPTA = argInitialPTA;
+		}
+		
+		@Override
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+		{// fast merger
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+		
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
+
+				// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
+				// This can be accomplished by doing a clone of the graph and running chooseStatePairs on it with decision procedure that 
+				// (a) applies the same rule (of so many) to choose pairs and
+				// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
+				// for a particular pairscore decision procedure.
+				@Override
+				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				{
+					CmpVertex redVertex = tentativeRedNodes.iterator().next();
+					return redVertex;
+				}
+
+				@Override
+				public CmpVertex resolveDeadEnd(LearnerGraph coregraph,	@SuppressWarnings("unused") Collection<CmpVertex> reds,	Collection<PairScore> pairs) 
+				{//XXX I think we should return a wrong pair here if any are available because it is a vertex that should not be merged anywhere
+					CmpVertex stateToMarkRed = null;
+					LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+					SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
+					if (correctPairs.isEmpty())
+						stateToMarkRed = wrongPairs.peek().getQ();
+					
+					return stateToMarkRed;
+						
+				}});
+			if (!outcome.isEmpty())
+			{
+				classifier.updateDatasetWithPairs(outcome, graph, referenceGraph);
+				PairScore correctPair = pickCorrectPair(outcome, graph, referenceGraph);
+				//System.out.println("pairs : "+outcome+", chosen: "+correctPair);
+				outcome.clear();outcome.push(correctPair);
+			}
+			
+			return outcome;
+		}
+	
+		@Override 
+		public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+		{
+			LearnerGraph graph = super.init(plus,minus);
+			LearnerGraph.copyGraphs(initialPTA, graph);
+			return initialPTA;
+		}
+		
+		@SuppressWarnings("unused")
+		@Override 
+		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+		{
+			throw new UnsupportedOperationException();
+		}			
+		
+	} // class that builds a classifier tree.
+	
+	public static class LearnerThatUsesWekaResults extends RPNIUniversalLearner
+	{
+		final Classifier classifier;
+		final WekaPairClassifier weka = createPairClassifier();
+		final LearnerGraph initialPTA;
+		
+		final int classTrue,classFalse;
+		
+		public LearnerThatUsesWekaResults(Frame parent, LearnerEvaluationConfiguration evalCnf, Classifier wekaClassifier, final LearnerGraph argInitialPTA) 
+		{
+			super(parent, evalCnf);initialPTA = argInitialPTA;classifier=wekaClassifier;
+			classTrue=weka.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=weka.classAttribute.indexOfValue(Boolean.FALSE.toString());
+		}
+		
+		@Override
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+		{// fast merger
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+		
+		/** This method orders the supplied pairs in the order of best to merge to worst to merge. */
+		protected PairScore [] classifyPairs(Collection<PairScore> pairs)
+		{
+			PairScore possibleResults[] = new PairScore[pairs.size()];
+			int i=0;
+			for(PairScore p:pairs)
+			{
+				assert p.getScore() >= 0;
+				
+				if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
+					possibleResults[i++]=new PairScore(p.getQ(), p.getR(), p.getScore(), 0);
+				else
+				{// meaningful pairs, check with the classifier
+					try
+					{
+						int []comparisonResults = weka.comparePairWithOthers(p, pairs);
+						Instance instance = weka.constructInstance(comparisonResults, true);
+						if ( classTrue == (int) classifier.classifyInstance(instance))
+						{
+							double distribution[]=classifier.distributionForInstance(instance);
+							assert distribution.length == 2;
+							possibleResults[i++]=new PairScore(p.getQ(), p.getR(), p.getScore(), (long)(1000*distribution[classTrue]));
+						}
+					}
+					catch(Exception ex)
+					{
+						throw new IllegalArgumentException("failed to classify pair "+p, ex);
+					}
+				}
+			}
+			Arrays.sort(possibleResults, new Comparator<PairScore>(){
+
+				@Override
+				public int compare(PairScore o1, PairScore o2) {
+					return (int)(o1.getAnotherScore() - o2.getAnotherScore());// scores are between 1000 and 0, hence it is appropriate to cast to int without a risk of overflow.
+				}}); 
+			
+			return possibleResults;
+		}
+		
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
+
+				// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
+				// This can be accomplished by doing a clone of the graph and running chooseStatePairs on it with decision procedure that 
+				// (a) applies the same rule (of so many) to choose pairs and
+				// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
+				// for a particular pairscore decision procedure.
+				@Override
+				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				{
+					CmpVertex redVertex = tentativeRedNodes.iterator().next();
+					return redVertex;
+				}
+
+				@Override
+				public CmpVertex resolveDeadEnd(@SuppressWarnings("unused") LearnerGraph coregraph,	@SuppressWarnings("unused") Collection<CmpVertex> reds,	Collection<PairScore> pairs) 
+				{
+					PairScore possibleResults[] = classifyPairs(pairs);
+					return possibleResults[0].getQ();
+						
+				}});
+			if (!outcome.isEmpty())
+			{
+					PairScore possibleResults[] = classifyPairs(outcome);
+					outcome.clear();outcome.push(possibleResults[0]);
+			}
+			return outcome;
+		}
+	
+		@Override 
+		public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+		{
+			LearnerGraph graph = super.init(plus,minus);
+			LearnerGraph.copyGraphs(initialPTA, graph);
+			return initialPTA;
+		}
+		
+		@SuppressWarnings("unused")
+		@Override 
+		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+		{
+			throw new UnsupportedOperationException();
+		}			
 		
 	}
 }

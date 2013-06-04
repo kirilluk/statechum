@@ -25,8 +25,7 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.Transform;
 
 /** Records the choices of pairs made during the learning of a large PTA. */
@@ -37,15 +36,14 @@ public class LargePTARecordPairs
 	{
 		final Configuration.STATETREE trTypeFinal = Configuration.STATETREE.STATETREE_LINKEDHASH;
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		PaperUAS paper = new PaperUAS();
-		ProgressDecorator.InitialData initial = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
-		Configuration learnerConf = paper.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(trTypeFinal);
-		
+		InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, converter);
+		Configuration learnerConf = initialConfigAndData.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(trTypeFinal);
+		initialConfigAndData.learnerInitConfiguration.config = learnerConf;// replace the configuration with the one we shall use for learning.
 		for(boolean merger:new Boolean[]{true,false})
 		{
 			List<PairOfPaths> listOfPairs = new java.util.ArrayList<PairOfPaths>(1000);
 	        long tmStarted = new Date().getTime();
-	        paper.new RPNIBlueFringeTestVariability(learnerConf,merger,listOfPairs,null).learn(initial.graph);
+	        new PairQualityLearner.RPNIBlueFringeTestVariability(initialConfigAndData.learnerInitConfiguration,merger,listOfPairs,null).learn(initialConfigAndData.initial.graph);
 	        long tmFinished = new Date().getTime();
 	        System.out.println("Learning ("+merger+"), "+merger+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
 	        java.io.FileOutputStream pairsStream = new java.io.FileOutputStream(PairQualityLearner.largePTALogsDir+TestLearnerFromLargePTA.mergerTypeToXml(merger));

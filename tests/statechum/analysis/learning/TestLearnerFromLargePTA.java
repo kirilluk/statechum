@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -140,21 +140,21 @@ Total time: 20492 sec
 	public void runCompareTwoLearners() throws IOException
     {
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		PaperUAS paper = new PaperUAS();
-		ProgressDecorator.InitialData initial = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, converter);
 		
-		Configuration learnerConf = paper.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(matrixToUse);
+		Configuration learnerConf = initialConfigurationData.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(matrixToUse);
+		initialConfigurationData.learnerInitConfiguration.config = learnerConf;// update the initial configuration with the one we shall use during learning.
         FileReader listOptReader = new FileReader(PairQualityLearner.largePTALogsDir+pairsToUse);
-        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, paper.learnerInitConfiguration.config,converter);
+        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, initialConfigurationData.learnerInitConfiguration.config,converter);
         listOptReader.close();
 
         long tmStarted = new Date().getTime();
-        LearnerGraph graphD=paper.new RPNIBlueFringeTestVariability(learnerConf,mergerToUse,null,listOpt).learn(initial.graph);
+        LearnerGraph graphD=new PairQualityLearner.RPNIBlueFringeTestVariability(initialConfigurationData.learnerInitConfiguration,mergerToUse,null,listOpt).learn(initialConfigurationData.initial.graph);
         long tmFinished = new Date().getTime();
         System.out.println("Learning ("+mergerToUse+"), "+pairsToUse+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_"+pairsToUse;
         //graphD.storage.writeGraphML(outcomeName);
-        LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
+        LearnerGraph referenceA = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
         Assert.assertEquals(matrixToUse,graphD.config.getTransitionMatrixImplType());
         DifferentFSMException diff = WMethod.checkM(referenceA, graphD);
         if (diff != null)

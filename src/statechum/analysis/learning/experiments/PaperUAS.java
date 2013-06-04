@@ -46,8 +46,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,21 +61,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Assert;
-
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -88,7 +81,6 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
-import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
 import statechum.Label;
@@ -1091,208 +1083,6 @@ public class PaperUAS
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
     }
     
-	public class RPNIBlueFringeTestVariability
-    {
-    	private Learner learner;
-    	final List<PairOfPaths> listOfPairsToWrite;
-    	final Iterator<PairOfPaths> listOfPairsToCheckAgainstIterator;
-    	final boolean useOptimizedMerge;
-    	LearnerGraph initPta = null;
-    	final Configuration config;
-    	
-    	VertexID phantomVertex = null;
-    	
-    	public Learner getLearner()
-    	{
-    		return learner;
-    	}
-    	
-		public RPNIBlueFringeTestVariability(final Configuration conf, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
-		{
-			listOfPairsToWrite = lw;useOptimizedMerge = optimisedMerge;
-			if (lc != null) listOfPairsToCheckAgainstIterator = lc.iterator();else listOfPairsToCheckAgainstIterator = null;
-			final LearnerEvaluationConfiguration bfLearnerInitConfiguration = new LearnerEvaluationConfiguration(conf);bfLearnerInitConfiguration.ifthenSequences = PaperUAS.this.learnerInitConfiguration.ifthenSequences;
-			bfLearnerInitConfiguration.setLabelConverter(PaperUAS.this.learnerInitConfiguration.getLabelConverter());
-			config = bfLearnerInitConfiguration.config;// our config is a copy of the one supplied as an argument.
-			config.setAskQuestions(false); 
-			learner = new DummyLearner(new RPNIUniversalLearner(null, bfLearnerInitConfiguration)) 
-			{
-				
-				@Override
-				public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
-				{
-					LearnerGraph outcome = null;
-					int extraPhantomVertices = 0;
-					if (useOptimizedMerge)
-						// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
-						outcome = MergeStates.mergeAndDeterminize(original, pair);
-					else
-					{
-						Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						long score = original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices);
-						outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
-						
-						if (score != original.getStateNumber()-outcome.getStateNumber())
-						{// This is either a bug somewhere in the merger or (most likely) that the phantomVertex has been removed by the generalised learner. 
-						 // The computation below is expensive on large graphs but only needs to be done once.
-							LinkedHashSet<CmpVertex> removedStates = new LinkedHashSet<CmpVertex>();removedStates.addAll(original.transitionMatrix.keySet());
-							removedStates.removeAll(outcome.transitionMatrix.keySet());removedStates.remove(pair.getQ());removedStates.remove(pair.getR());
-							Assert.assertEquals(1,removedStates.size());// if it were a phantom vertex, there would only be one of them.
-							CmpVertex tentativePhantom = removedStates.iterator().next();
-							Set<Label> alphabetUsedOnPhantom = new TreeSet<Label>();alphabetUsedOnPhantom.addAll(original.pathroutines.computeAlphabet());
-							for(Entry<Label,CmpVertex> transition:original.transitionMatrix.get(tentativePhantom).entrySet())
-							{
-								Assert.assertSame(tentativePhantom,transition.getValue());alphabetUsedOnPhantom.remove(transition.getKey());
-							}
-							Assert.assertEquals(0, alphabetUsedOnPhantom.size());
-							extraPhantomVertices = 1;// now certain it was indeed a phantom vertex added when the PTA was initially built.
-						}
-						
-						Assert.assertEquals(score+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
-					}
-					ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-					long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);
-					original.config.setLearnerScoreMode(origScore);
-					
-					Assert.assertEquals(compatibilityScore+1+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
-					return outcome;
-				}
-
-				@Override 
-				public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-				{
-					/*
-					try {
-						graph.storage.writeGraphML("D:/experiment/data/"+graph.config.getTransitionMatrixImplType().toString()+"-"+(i++)+"-THU.xml");
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					*/
-					Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
-
-						@Override
-						public CmpVertex selectRedNode(LearnerGraph coregraph,
-								@SuppressWarnings("unused") Collection<CmpVertex> reds,
-								Collection<CmpVertex> tentativeRedNodes) 
-						{
-							CmpVertex redVertex = null;
-							if (listOfPairsToWrite != null)
-							{
-								redVertex = tentativeRedNodes.iterator().next();
-								listOfPairsToWrite.add(new PairOfPaths(coregraph, new PairScore(null, redVertex, 0, 0)));
-							}
-							
-							if(listOfPairsToCheckAgainstIterator != null)
-							{
-								PairOfPaths pair = listOfPairsToCheckAgainstIterator.next();
-								Assert.assertNull(pair.getQ());
-								redVertex = coregraph.getVertex(pair.getR());
-							}
-							return redVertex;
-						}
-
-						@SuppressWarnings("unused")
-						@Override
-						public CmpVertex resolveDeadEnd(LearnerGraph coregraph,
-								Collection<CmpVertex> reds,
-								Collection<PairScore> pairs) {
-							return null;
-						}});
-					if (!outcome.isEmpty())
-					{
-						if (listOfPairsToWrite != null)
-						{
-							//System.out.println("Optimized: "+useOptimizedMerge+", matrix: "+graph.config.getTransitionMatrixImplType()+", pair : "+outcome.peek());
-							listOfPairsToWrite.add(new PairOfPaths(graph, outcome.peek()));
-						}
-						
-						if(listOfPairsToCheckAgainstIterator != null)
-						{
-							PairOfPaths pair = listOfPairsToCheckAgainstIterator.next();
-							//System.out.println("chosen "+outcome.peek()+", expected "+new PairScore(graph.getVertex(pair.getQ()),graph.getVertex(pair.getR()),0,0));
-							pair.rebuildStack(graph, outcome);
-						}
-					}
-					
-					return outcome;
-				}
-			
-				@Override 
-				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
-				{
-					if (initPta != null)
-					{
-						LearnerGraph graph = decoratedLearner.init(plus,minus);
-						LearnerGraph.copyGraphs(initPta, graph);
-						return initPta;
-					}
-					throw new IllegalArgumentException("should not be called");
-				}
-				
-				@Override 
-				public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
-				{
-					LearnerGraph graph = decoratedLearner.init(engine,plusSize,minusSize);
-
-					if (initPta != null)
-					{
-						LearnerGraph.copyGraphs(initPta, graph);
-					}
-					else
-					{
-						Set<Label> alphabet = graph.pathroutines.computeAlphabet();
-						// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
-						phantomVertex = graph.nextID(true);
-						CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(phantomVertex, bfLearnerInitConfiguration.config);
-						Map<Label,CmpVertex> row = graph.createNewRow();
-						for(Label lbl:alphabet) graph.addTransition(row, lbl, dummyState);
-						graph.transitionMatrix.put(dummyState, row);
-					}
-					return graph;
-				}
-			};
-	
-		}
-		
-		/** After this method is called, the learner used above no longer looks at the PTA is it given but assumes that the PTA supplied to this call should be returned as a result of initialisation.
-		 * This is used to get around the problem of  
-		 * @param initPTAArg
-		 */
-		public void setInitPta(LearnerGraph initPTAArg)
-		{
-			initPta = initPTAArg;
-		}
-		
-		/** Learns starting with the supplied PTA. */
-		public LearnerGraph learn(LearnerGraph initPTAArg)
-		{
-			setInitPta(initPTAArg);
-			LearnerGraph outcome = learner.learnMachine(new LinkedList<List<Label>>(), new LinkedList<List<Label>>());
-			if (phantomVertex != null) 
-				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
-			return outcome;
-		}
-		
-		public LearnerGraph learn(PTASequenceEngine engineArg, boolean useNegatives)
-		{
-			PTASequenceEngine engine = null;
-			if (!useNegatives)
-			{
-				PTASequenceEngine positives = new PTASequenceEngine();positives.init(new Automaton());
-    			SequenceSet initSeq = positives.new SequenceSet();initSeq.setIdentity();
-    			initSeq.cross(engineArg.getData());
-    			engine = positives;
-			}
-			else
-				engine = engineArg;
-			
-			LearnerGraph outcome = learner.learnMachine(engine,0,0);
-			if (phantomVertex != null) 
-				outcome.transitionMatrix.remove(outcome.findVertex(phantomVertex));
-			return outcome;
-		}
-		
-    }
     
     void checkTraces(Configuration config) throws IOException
     {
@@ -1375,7 +1165,7 @@ public class PaperUAS
             if (in != null) { try { in.close();in=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
         }    	
     }
-    
+   
     /**
 	 * @param args trace file to load.
      * @throws IOException 

@@ -75,11 +75,12 @@ public class PairScoreComputation {
 		 */
 		CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes);
 		
-		/** Given a collection of pairs, it may happen that none of these pairs can be permitted to be merged. This means that all blue states mentioned in these pairs are not compatible with all the existing red states 
-		 * and hence at least one of them should be considered red. This method is called whenever there are any red-blue pairs available in order to check whether such a problem occurred.
+		/** Given a collection of pairs, it may happen that none of these pairs selected so far are valid mergers (compared to the reference automaton). 
+		 * This means that all blue states mentioned in these pairs are not compatible with all the existing red states 
+		 * and hence at least one of them should be considered red. This method is called whenever there are any red-blue pairs available in order to check whether such a problem actually occurred.
 		 * Since the idea is to return a state to colour red, the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
 		 */
-		CmpVertex resolveDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs);
+		CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs);
 	}
 	
 	public Stack<PairScore> chooseStatePairs(RedNodeSelectionProcedure decisionProcedure)
@@ -141,8 +142,8 @@ public class PairScoreComputation {
 			}
 			else
 				if (!coregraph.pairsAndScores.isEmpty() && decisionProcedure != null)
-				{
-					newRedNode = decisionProcedure.resolveDeadEnd(coregraph, reds, coregraph.pairsAndScores);
+				{// the pairs chosen so far might all be the wrong ones, hence we could attempt to avoid the disaster if we can do something clever and whoever registered a decision procedure is given a chance to do it.  
+					newRedNode = decisionProcedure.resolvePotentialDeadEnd(coregraph, reds, coregraph.pairsAndScores);
 					if (newRedNode != null)
 					{
 						newRedNode.setColour(JUConstants.RED);
@@ -171,7 +172,7 @@ public class PairScoreComputation {
 		return result;		
 	}
 	
-	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
+	public PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
 		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);

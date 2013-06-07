@@ -40,6 +40,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
@@ -445,7 +446,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	/** Computes an alphabet of a given graph and adds transitions to a 
 	 * reject state from all states A and inputs a from which there is no B such that A-a->B
 	 * (A-a-#REJECT) gets added. Note: (1) such transitions are even added to reject vertices.
-	 * (2) if such a vertex already exists, an IllegalArgumentException is thown.
+	 * (2) if such a vertex already exists, an IllegalArgumentException is thrown.
 	 * 
 	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
 	 * @return true if any transitions have been added
@@ -454,8 +455,19 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		if (coregraph.findVertex(reject) != null)
 			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");
-		
-		CmpVertex rejectVertex = null;
+		return completeGraphPossiblyUsingExistingVertex(reject);
+	}
+	
+	/** Computes an alphabet of a given graph and adds transitions to a 
+	 * state from all states A and inputs a from which there is no B such that A-a->B
+	 * (A-a-VERTEX) gets added. Note: such transitions are even added to reject vertices. If a vertex with the supplied ID does not exist, it is added.
+	 * 
+	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
+	 * @return true if any transitions have been added
+	 */   
+	public boolean completeGraphPossiblyUsingExistingVertex(VertID reject)
+	{
+		CmpVertex rejectVertex = coregraph.findVertex(reject);
 		
 		// first pass - computing an alphabet
 		Set<Label> alphabet = coregraph.learnerCache.getAlphabet();

@@ -377,7 +377,7 @@ public class RandomPathGenerator {
 	
 	protected int chunksGenerated = 0;
 	
-	interface RandomLengthGenerator 
+	public interface RandomLengthGenerator 
 	{
 		public int getLength();
 		public int getPrefixLength(int len);
@@ -411,14 +411,6 @@ public class RandomPathGenerator {
 	 */
 	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure)
 	{
-		if (pathLength < 1)
-			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
-		if (numberPerChunk % 2 != 0)
-			throw new IllegalArgumentException("Number of sequences per chunk must be even");
-		chunksGenerated = 0;
-
-		int seqNumber = chunks*numberPerChunk/2;
-		int distribution [] = new int[seqNumber];
 		RandomLengthGenerator rnd = new RandomLengthGenerator(){
 
 			@Override
@@ -432,6 +424,26 @@ public class RandomPathGenerator {
 			}
 			
 		};
+		generateRandomPosNeg(numberPerChunk,chunks,exceptionOnFailure,rnd);
+	}
+
+	/** Generates random positive and negative paths. 
+	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 * @param exceptionOnFailure whether to throw an exception if paths cannot be generated.  
+	 */
+	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator rnd)
+	{
+		if (pathLength < 1)
+			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
+		if (numberPerChunk % 2 != 0)
+			throw new IllegalArgumentException("Number of sequences per chunk must be even");
+		chunksGenerated = 0;
+
+		int seqNumber = chunks*numberPerChunk/2;
+		int distribution [] = new int[seqNumber];
 		
 		for(int i=0;i < seqNumber;++i)
 			distribution[i]=rnd.getLength();

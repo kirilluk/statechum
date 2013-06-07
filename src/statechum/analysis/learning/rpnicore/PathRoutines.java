@@ -383,7 +383,7 @@ public class PathRoutines {
 					StringBuffer result = new StringBuffer();
 					for(PTAExplorationNode node:pathToInit) { if (first) first=false;else result.insert(0,ArrayOperations.separator);result.insert(0,node.getInput()); }
 					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+result);
-				}					
+				}
 			}
 	
 			@Override

@@ -422,7 +422,7 @@ public class DrawGraphs {
 	/**
 	 * Represents a graph.
 	 * 
-	 * @param <ELEM> type of elements for the X axis, veritical is always a Double
+	 * @param <ELEM> type of elements for the X axis, vertical is always a Double
 	 */
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>>
 	{

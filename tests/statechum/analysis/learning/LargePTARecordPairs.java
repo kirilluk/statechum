@@ -43,7 +43,7 @@ public class LargePTARecordPairs
 		{
 			List<PairOfPaths> listOfPairs = new java.util.ArrayList<PairOfPaths>(1000);
 	        long tmStarted = new Date().getTime();
-	        new PairQualityLearner.RPNIBlueFringeTestVariability(initialConfigAndData.learnerInitConfiguration,merger,listOfPairs,null).learn(initialConfigAndData.initial.graph);
+	        new TestLearnerFromLargePTA.RPNIBlueFringeTestVariability(initialConfigAndData.learnerInitConfiguration,merger,listOfPairs,null).learn(initialConfigAndData.initial.graph);
 	        long tmFinished = new Date().getTime();
 	        System.out.println("Learning ("+merger+"), "+merger+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
 	        java.io.FileOutputStream pairsStream = new java.io.FileOutputStream(PairQualityLearner.largePTALogsDir+TestLearnerFromLargePTA.mergerTypeToXml(merger));

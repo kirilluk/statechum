@@ -138,7 +138,7 @@ public class WekaDataCollector
 	}
 	
 	protected final Attribute classAttribute;
-	protected Instances trainingData;
+	public Instances trainingData;
 	
 	static final String MINUSTWO="-2";
 	static final String MINUSONE="-1";

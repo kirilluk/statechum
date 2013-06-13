@@ -191,6 +191,15 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return count;
 	}
 
+	/** Returns the number of red states in the state machine. */
+	public int getRedStateNumber()
+	{
+		int count = 0;
+		for(CmpVertex vert:transitionMatrix.keySet()) 
+			if (vert.getColour() == JUConstants.RED) ++count;
+		return count;
+	}
+
 	/** Returns the number of accept states. */
 	public int getAcceptStateNumber()
 	{

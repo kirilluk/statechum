@@ -37,6 +37,7 @@ package statechum.analysis.learning.experiments;
 // Add the following to the path,
 // C:\Program Files\Java\jre6\bin\server;C:\Program Files\R\R-2.15.1\bin\x64
 
+import java.awt.Frame;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -62,6 +63,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
@@ -87,7 +89,16 @@ import statechum.Label;
 import statechum.Pair;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUpdatesWekaResults;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.linear.GD;
@@ -1170,10 +1181,13 @@ public class PaperUAS
 	 * @param args trace file to load.
      * @throws IOException 
 	 */
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception 
+	{
 		PaperUAS paper = new PaperUAS();
     	Configuration config = Configuration.getDefaultConfiguration().copy();config.setDebugMode(false);
     	paper.learnerInitConfiguration.config = config;config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+    	
+    	/*
     	paper.loadReducedConfigurationFile(args[0]);
     	
 		int offset=1;
@@ -1189,13 +1203,56 @@ public class PaperUAS
 	    	//paper.loadData(inputFiles);paper.runExperiment();
 	    	//paper.loadDataByConcatenation(inputFiles);
 	    	//Visualiser.waitForKey();
+	    	 * 
+	    	 */
         	paper.labelConverter = new Transform.InternStringLabel();
-        	paper.loadData(inputFiles);
+        	//paper.loadData(inputFiles);
             final Configuration learnerConfig = paper.learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
             learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
+            
+            LearnerGraph referenceGraph = new LearnerGraph(learnerConfig);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraph, paper.labelConverter);
+    		final InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, paper.labelConverter);
+    		final Frame frame = null;
+    		final RBoxPlot<String> gr_PairQuality = new RBoxPlot<String>("Correct v.s. wrong","%%",new File("percentage_correctwrong.pdf"));
+    		final RBoxPlot<String> gr_ErrorsAndDeadends = new RBoxPlot<String>("Errors and deadends","Red states",new File("errors_deadends.pdf"));
+    		SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig.pdf"),0,1,true);
+			WekaDataCollector dataCollector = PairQualityLearner.createDataCollector();
+			
+			// Run the learner that will find out how to select the correct pairs.
+			LearnerThatCanClassifyPairs learnerOfPairs = new LearnerThatUpdatesWekaResults(frame,initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph,gr_ErrorsAndDeadends);
+			LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			
+			final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
+			classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
+			// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
+			// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
+			
+			// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
+			classifier.buildClassifier(dataCollector.trainingData);
+			System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
+			System.out.println(classifier);
+			dataCollector=null;// throw all the training data away.
+
+			learnerOfPairs = new LearnerThatUsesWekaResults(frame,initialConfigAndData.learnerInitConfiguration,referenceGraph,classifier,initialConfigAndData.initial.graph, gr_PairQuality,initialConfigAndData.initial.graph.getStateNumber()+"");
+			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			VertID rejectVertexID = null;
+			for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
+				if (!v.isAccept())
+				{
+					assert rejectVertexID == null : "multiple reject vertices in learnt automaton, such as "+rejectVertexID+" and "+v;
+					rejectVertexID = v;break;
+				}
+			
+			actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
+			SampleData dataSampleWeka = new SampleData(null,null);
+			dataSampleWeka.difference = PairQualityLearner.estimationOfDifference(referenceGraph, actualAutomaton, config, 1);
+			dataSampleWeka.differenceForReferenceLearner = PairQualityLearner.estimationOfDifference(referenceGraph, new ReferenceLearner(frame,initialConfigAndData.learnerInitConfiguration,referenceGraph,initialConfigAndData.initial.graph).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), config, 1);
+		
+			System.out.println("Difference between learnt and reference, using Weka: "+dataSampleWeka.difference+" and without is "+dataSampleWeka.differenceForReferenceLearner);
+            /*
              LearnerGraph fullGraph =  paper.new RPNIBlueFringe(learnerConfig,pairchoiceORIG).learn(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber),true);
              fullGraph.storage.writeGraphML("resources/largePTA/correctOutcome.xml");
-        	
+        	*/
         	
 	    	//paper.runExperimentWithSingleAutomaton("large");
 	    	//paper.checkTraces(config);
@@ -1203,7 +1260,7 @@ public class PaperUAS
 	    	//paper.compareTwoLearners();
 	    	//paper.evaluateVariability();
 	    	//paper.learnIfThenFromTraces();
-    	}
+    	//}
 	}
 
 }

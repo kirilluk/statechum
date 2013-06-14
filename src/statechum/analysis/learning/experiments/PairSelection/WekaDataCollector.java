@@ -151,6 +151,8 @@ public class WekaDataCollector
 	
 	Map<StatePair,PairMeasurements> measurementsForComparators=new TreeMap<StatePair,PairMeasurements>();
 	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
+	LearnerGraph tentativeGraph = null;
+	
 	double valueAverage[]=new double[0], valueSD[]=new double[0];
 	
 	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
@@ -163,6 +165,7 @@ public class WekaDataCollector
 	{
 		treeForComparators.clear();
 		measurementsForComparators.clear();
+		tentativeGraph = graph;
 		
 		Arrays.fill(valueAverage, 0);Arrays.fill(valueSD, 0);
 		
@@ -340,6 +343,10 @@ public class WekaDataCollector
 			return treeForComparators.get(p);
 		}
 		
+		public LearnerGraph tentativeGraph()
+		{
+			return tentativeGraph;
+		}
 	}
 	
 	/** Used to compute values permitting one to train a classifier to recognise good/bad pairs. 

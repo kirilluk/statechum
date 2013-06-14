@@ -1205,6 +1205,7 @@ public class PaperUAS
 	    	//Visualiser.waitForKey();
 	    	 * 
 	    	 */
+			DrawGraphs gr = new DrawGraphs();
         	paper.labelConverter = new Transform.InternStringLabel();
         	//paper.loadData(inputFiles);
             final Configuration learnerConfig = paper.learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
@@ -1249,7 +1250,8 @@ public class PaperUAS
 			dataSampleWeka.differenceForReferenceLearner = PairQualityLearner.estimationOfDifference(referenceGraph, new ReferenceLearner(frame,initialConfigAndData.learnerInitConfiguration,referenceGraph,initialConfigAndData.initial.graph).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), config, 1);
 		
 			System.out.println("Difference between learnt and reference, using Weka: "+dataSampleWeka.difference+" and without is "+dataSampleWeka.differenceForReferenceLearner);
-            /*
+			if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
+          /*
              LearnerGraph fullGraph =  paper.new RPNIBlueFringe(learnerConfig,pairchoiceORIG).learn(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber),true);
              fullGraph.storage.writeGraphML("resources/largePTA/correctOutcome.xml");
         	*/

@@ -20,11 +20,17 @@ package statechum.analysis.learning.experiments.PairSelection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,16 +38,23 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
 import statechum.Helper.whatToRun;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.CollectionOfPairsEstimator;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.core.Attribute;
 import weka.core.FastVector;
@@ -920,34 +933,288 @@ public class TestWekaPairClassifier {
 		instance = testClassifier.constructInstance(new int []{0,0},new int []{1,0},true);
 		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
 	}
-
+	
 	@Test
-	public void TestUniqueIntoInitial1()
+	public void TestUniqueIntoState1()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertNull(PairQualityLearner.uniqueIntoInitial(graph));
+		Assert.assertTrue(PairQualityLearner.uniqueIntoState(graph).isEmpty());
 	}
 	
 	@Test
-	public void TestUniqueIntoInitial2()
+	public void TestUniqueIntoState2()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Assert.assertEquals("b",PairQualityLearner.uniqueIntoInitial(graph).toString());
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		Assert.assertEquals(2, map.size());
+		Iterator<Entry<Label,CmpVertex>> entryIter = map.entrySet().iterator();
+		Entry<Label,CmpVertex> entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 
 	@Test
-	public void TestUniqueIntoInitial3()
+	public void TestUniqueIntoState3()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
-		Assert.assertNull(PairQualityLearner.uniqueIntoInitial(graph));
+		Assert.assertTrue(PairQualityLearner.uniqueIntoState(graph).isEmpty());
 	}
 
 	/** Multiple labels to choose from. */
 	@Test
-	public void TestUniqueIntoInitial4()
+	public void TestUniqueIntoState4()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
-		Assert.assertEquals("b",PairQualityLearner.uniqueIntoInitial(graph).toString());
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		Assert.assertEquals(3, map.size());
+		Iterator<Entry<Label,CmpVertex>> entryIter = map.entrySet().iterator();
+		Entry<Label,CmpVertex> entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+	}
+
+	/** Multiple labels to choose from. */
+	@Test
+	public void TestUniqueIntoState5()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-e-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		Assert.assertEquals(5, map.size());
+		Iterator<Entry<Label,CmpVertex>> entryIter = map.entrySet().iterator();
+		Entry<Label,CmpVertex> entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		entry = entryIter.next();
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("C"),entry.getValue());
+	}
+	
+	
+	@Test
+	public void TestConstructIfThenForUniques1()
+	{
+		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		Assert.assertNull(evaluationConfiguration.ifthenSequences);
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
+		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
+		Assert.assertEquals("Mandatory_1_to_A A- !b || toMerge_1_A ->A-b->B - b ->B / B- !b || toMerge_1_A ->A / B == THEN == C / C-toMerge_1_A->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_2_to_B A- !c || toMerge_2_B ->A-c->B - c ->B / B- !c || toMerge_2_B ->A / B == THEN == C / C-toMerge_2_B->D",ifthenIterator.next());
+	}
+
+	@Test
+	public void TestConstructIfThenForUniques2()
+	{
+		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
+		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
+		Assert.assertEquals("junk",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_1_to_A A- !b || toMerge_1_A ->A-b->B - b ->B / B- !b || toMerge_1_A ->A / B == THEN == C / C-toMerge_1_A->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_2_to_B A- !c || toMerge_2_B ->A-c->B - c ->B / B- !c || toMerge_2_B ->A / B == THEN == C / C-toMerge_2_B->D",ifthenIterator.next());
+	}
+	
+	@Test
+	public void TestConstructIfThenForUniques3()
+	{
+		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
+		LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
+		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		Assert.assertEquals(1,evaluationConfiguration.ifthenSequences.size());
+		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
+		Assert.assertEquals("junk",ifthenIterator.next());
+	}
+	
+	/** No states are marked blue in the graph, hence the outcome is zero. */
+	@Test
+	public void TestComputeBlueStates1()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->D / B-c->E","TestComputeBlueStates1",mainConfiguration, converter);
+		Set<CmpVertex> reds = new TreeSet<CmpVertex>();reds.add(graph.findVertex("B"));// only B is red
+		Set<CmpVertex> tentativeReds = new TreeSet<CmpVertex>();tentativeReds.add(graph.findVertex("C"));
+		
+		List<CmpVertex> blueStates = LearnerThatUsesWekaResults.computeBlueStates(graph, reds, tentativeReds);
+		Assert.assertEquals(0, blueStates.size());
+	}
+	
+	@Test
+	public void TestComputeBlueStates2()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->D / B-c->E","TestComputeBlueStates1",mainConfiguration, converter);
+		graph.findVertex("C").setColour(JUConstants.BLUE);graph.findVertex("D").setColour(JUConstants.BLUE);graph.findVertex("E").setColour(JUConstants.BLUE);
+		Set<CmpVertex> reds = new TreeSet<CmpVertex>();reds.add(graph.findVertex("B"));// only B is red
+		Set<CmpVertex> tentativeReds = new TreeSet<CmpVertex>();tentativeReds.add(graph.findVertex("C"));
+		
+		List<CmpVertex> blueStates = LearnerThatUsesWekaResults.computeBlueStates(graph, reds, tentativeReds);
+		Assert.assertEquals(2, blueStates.size());Assert.assertTrue(blueStates.contains(graph.findVertex("D")));Assert.assertTrue(blueStates.contains(graph.findVertex("E")));
+	}
+	
+	/** All blue states are tentative red ones, hence not returned. */  
+	@Test
+	public void TestComputeBlueStates3()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->D / B-c->E","TestComputeBlueStates1",mainConfiguration, converter);
+		graph.findVertex("C").setColour(JUConstants.BLUE);graph.findVertex("D").setColour(JUConstants.BLUE);graph.findVertex("E").setColour(JUConstants.BLUE);
+		Set<CmpVertex> reds = new TreeSet<CmpVertex>();reds.add(graph.findVertex("B"));// only B is red
+		Set<CmpVertex> tentativeReds = new TreeSet<CmpVertex>();tentativeReds.add(graph.findVertex("C"));tentativeReds.add(graph.findVertex("B"));tentativeReds.add(graph.findVertex("D"));tentativeReds.add(graph.findVertex("E"));
+		
+		List<CmpVertex> blueStates = LearnerThatUsesWekaResults.computeBlueStates(graph, reds, tentativeReds);
+		Assert.assertEquals(0, blueStates.size());
+	}
+	
+	/** Unconnected states, not marked as blue. */
+	@Test
+	public void TestComputeBlueStates4()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->D / B-c->E / F-a->G","TestComputeBlueStates4",mainConfiguration, converter);
+		graph.findVertex("C").setColour(JUConstants.BLUE);graph.findVertex("D").setColour(JUConstants.BLUE);graph.findVertex("E").setColour(JUConstants.BLUE);
+		Set<CmpVertex> reds = new TreeSet<CmpVertex>();reds.add(graph.findVertex("B"));reds.add(graph.findVertex("F"));// only B and F are red
+		Set<CmpVertex> tentativeReds = new TreeSet<CmpVertex>();tentativeReds.add(graph.findVertex("C"));
+		
+		List<CmpVertex> blueStates = LearnerThatUsesWekaResults.computeBlueStates(graph, reds, tentativeReds);
+		Assert.assertEquals(2, blueStates.size());Assert.assertTrue(blueStates.contains(graph.findVertex("D")));Assert.assertTrue(blueStates.contains(graph.findVertex("E")));
+	}
+	
+	/** Unconnected states, marked as blue. */
+	@Test
+	public void TestComputeBlueStates5()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->D / B-c->E / F-a->G","TestComputeBlueStates4",mainConfiguration, converter);
+		graph.findVertex("C").setColour(JUConstants.BLUE);graph.findVertex("D").setColour(JUConstants.BLUE);graph.findVertex("E").setColour(JUConstants.BLUE);graph.findVertex("G").setColour(JUConstants.BLUE);
+		Set<CmpVertex> reds = new TreeSet<CmpVertex>();reds.add(graph.findVertex("B"));reds.add(graph.findVertex("F"));// only B and F are red
+		Set<CmpVertex> tentativeReds = new TreeSet<CmpVertex>();tentativeReds.add(graph.findVertex("C"));
+		
+		List<CmpVertex> blueStates = LearnerThatUsesWekaResults.computeBlueStates(graph, reds, tentativeReds);
+		Assert.assertEquals(3, blueStates.size());Assert.assertTrue(blueStates.contains(graph.findVertex("D")));Assert.assertTrue(blueStates.contains(graph.findVertex("E")));Assert.assertTrue(blueStates.contains(graph.findVertex("G")));
+	}
+	
+	
+	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
+	 * and compares them to choices made by the evaluator of the quality of the selection of red states. 
+	 */
+	@Test
+	public void TestDecisionProcedureForRedStates1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / F-a->G-a-#Rg","TestDecisionProcedureForRedStates1",mainConfiguration, converter);
+		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E"),graph.findVertex("G")}));
+		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B"),graph.findVertex("F")}));
+		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, new LinkedList<CmpVertex>());
+	}
+	
+	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
+	 * and compares them to choices made by the evaluator of the quality of the selection of red states. 
+	 */
+	@Test
+	public void TestDecisionProcedureForRedStates2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / B-d->F","TestDecisionProcedureForRedStates2",mainConfiguration, converter);
+		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E")}));
+		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
+		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{graph.findVertex("F")}));
+	}
+	
+	protected void TestDecisionProcedureForRedStatesHelper(final LearnerGraph graph, final Collection<CmpVertex> redToBeExpected, final Collection<CmpVertex> redsAlways,final Collection<CmpVertex> blueStates)
+	{
+		final Map<CmpVertex,Collection<PairScore>> redToPairsObtained = new TreeMap<CmpVertex,Collection<PairScore>>();
+		final Set<CmpVertex> tentativeRedsChosen = new TreeSet<CmpVertex>();// vertices already chosen.
+		
+		for(CmpVertex bestVertex:redToBeExpected)
+		{
+			graph.clearColours();
+			for(CmpVertex vertRed:redsAlways) vertRed.setColour(JUConstants.RED);
+			for(CmpVertex vertToColourBlue:redToBeExpected)	vertToColourBlue.setColour(JUConstants.BLUE);for(CmpVertex vertToColourBlue:blueStates)	vertToColourBlue.setColour(JUConstants.BLUE);
+			final CmpVertex bestVertexFinal = bestVertex;
+			
+			Collection<PairScore> pairsReturned = graph.pairscores.chooseStatePairs(new RedNodeSelectionProcedure() {
+				
+				CmpVertex redChosen = null;
+				
+				@Override
+				public CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				{
+					Assert.assertNull(redChosen);
+					Assert.assertSame(graph,coregraph);
+					Assert.assertTrue(reds.contains(graph.findVertex("A")));Assert.assertTrue(reds.contains(graph.findVertex("B")));
+					Assert.assertTrue(redToBeExpected.equals(tentativeRedNodes));
+					
+					Set<CmpVertex> available = new TreeSet<CmpVertex>();available.addAll(tentativeRedNodes);available.removeAll(tentativeRedsChosen);
+					redChosen = bestVertexFinal;
+					return redChosen;
+				}
+				
+				@SuppressWarnings("unused")
+				@Override
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) 
+				{
+					Assert.assertNotNull(redChosen);
+					ArrayList<PairScore> copyOfPairs = new ArrayList<PairScore>(pairs);Collections.sort(copyOfPairs);
+					redToPairsObtained.put(redChosen,copyOfPairs);
+					return null;// no resolution
+				}
+			});
+			
+			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturned);
+		}
+		
+		
+		// Now I verify that if my quality selection routine returns the expected value for a collection of pairs corre
+		for(CmpVertex bestVertex:redToBeExpected)
+		{
+			graph.clearColours();
+			for(CmpVertex vertRed:redsAlways) vertRed.setColour(JUConstants.RED);
+			for(CmpVertex vertToColourBlue:redToBeExpected)	vertToColourBlue.setColour(JUConstants.BLUE);for(CmpVertex vertToColourBlue:blueStates)	vertToColourBlue.setColour(JUConstants.BLUE);
+
+			final CmpVertex bestVertexFinal = bestVertex;
+			Collection<PairScore> pairsReturned = graph.pairscores.chooseStatePairs(new RedNodeSelectionProcedure() {
+				
+				@Override
+				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				{
+					final Set<Collection<PairScore>> collectionOfPairsToSee = new HashSet<Collection<PairScore>>();collectionOfPairsToSee.addAll(redToPairsObtained.values());
+					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNode(coregraph, reds, tentativeRedNodes, new CollectionOfPairsEstimator() {
+	
+						@Override
+						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, Collection<PairScore> pairs) 
+						{
+							Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
+							Assert.assertTrue(collectionOfPairsToSee.remove(pairs));// we check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
+								// It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
+							
+							if (pairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above. 
+								return 1;
+							return 0;
+						}
+						
+					});
+					Assert.assertTrue(collectionOfPairsToSee.isEmpty());
+					Assert.assertEquals(bestVertexFinal,nodeSelected);// check that the expected vertex has been selected
+					return bestVertexFinal;
+				}
+	
+				@SuppressWarnings("unused")
+				@Override
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) {
+					return null;
+				}
+			});
+			
+			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturned);
+		}
 	}
 }
 

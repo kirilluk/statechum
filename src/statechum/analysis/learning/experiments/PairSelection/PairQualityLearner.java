@@ -34,6 +34,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -282,6 +283,26 @@ public class PairQualityLearner
 			}
 		});
 		
+		assessors.add(classifier.new PairRank("number of new outgoing transitions from blue")
+		{// 13
+			@Override
+			public long getValue(PairScore p) {
+				Set<Label> outgoingRed = new TreeSet<Label>();outgoingRed.addAll(tentativeGraph().transitionMatrix.get(p.getR()).keySet());
+				Set<Label> outgoingBlue = new TreeSet<Label>();outgoingBlue.addAll(tentativeGraph().transitionMatrix.get(p.getQ()).keySet());
+				outgoingBlue.removeAll(outgoingRed);return outgoingRed.size();
+			}
+		});
+		
+		assessors.add(classifier.new PairRank("number of new outgoing transitions from red")
+		{// 14
+			@Override
+			public long getValue(PairScore p) {
+				Set<Label> outgoingRed = new TreeSet<Label>();outgoingRed.addAll(tentativeGraph().transitionMatrix.get(p.getR()).keySet());
+				Set<Label> outgoingBlue = new TreeSet<Label>();outgoingBlue.addAll(tentativeGraph().transitionMatrix.get(p.getQ()).keySet());
+				outgoingRed.removeAll(outgoingBlue);return outgoingRed.size();
+			}
+		});
+		
 		classifier.initialise("HindsightExperiment",100000,assessors);
 		return classifier;
 	}
@@ -359,7 +380,7 @@ public class PairQualityLearner
 		 */
 		public PairScore pickCorrectPair(Stack<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
-			List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
 					
 			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
 			
@@ -421,10 +442,10 @@ public class PairQualityLearner
 		{
 			
 			CmpVertex stateToMarkRed = null;
-			LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
 			SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
 			if (correctPairs.isEmpty())
-				stateToMarkRed = wrongPairs.peek().getQ();// no correct pairs found to merge, return the first wrong pair so the corresponding state is marked as red.
+				stateToMarkRed = wrongPairs.get(0).getQ();// no correct pairs found to merge, return the first wrong pair so the corresponding state is marked as red.
 			
 			return stateToMarkRed;
 		}
@@ -715,7 +736,7 @@ public class PairQualityLearner
 		
 		protected void updateStatistics(LearnerGraph tentativeGraph, Collection<PairScore> rankedPairs)
 		{
-			LinkedList<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+			List<PairScore> correctPairs = new ArrayList<PairScore>(rankedPairs.size()), wrongPairs = new ArrayList<PairScore>(rankedPairs.size());
 			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, rankedPairs, correctPairs, wrongPairs);
 			if (!rankedPairs.isEmpty())
 			{
@@ -733,7 +754,14 @@ public class PairQualityLearner
 			}
 		}
 		
-		/** Obtains states that are currently blue and not marked as tentatively red. */
+		/** Obtains states that are currently blue and not marked as tentatively red. 
+		 * In other words, given a collection of red states and those earmarked to be possibly red, identifies all the currently blue nodes not included among the red-to-be.
+		 * 
+		 * @param coregraph graph to consider
+		 * @param reds currently red states
+		 * @param tentativeRedNodes
+		 * @return
+		 */
 		public static List<CmpVertex> computeBlueStates(final LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes)
 		{
 			List<CmpVertex> outcome = new LinkedList<CmpVertex>();
@@ -744,6 +772,79 @@ public class PairQualityLearner
 						outcome.add(entry.getValue());
 			
 			return outcome;
+		}
+		
+		public static interface CollectionOfPairsEstimator
+		{
+			double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph coregraph, Collection<PairScore> pairs);
+		}
+		
+		/** Used to select the best red node based on what the subsequent collection of pairs will be. */
+		public static CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes, CollectionOfPairsEstimator pairQualityEstimator) 
+		{
+			CmpVertex redVertex = null;double bestScore=-1;
+			Collection<CmpVertex> blueStates = computeBlueStates(coregraph,reds,tentativeRedNodes);
+			
+			// At this point, pairs is a collection of pairs obtained by evaluating the collection of current blue vertices against all current reds
+			
+			ArrayList<PairScore> pairs = new ArrayList<PairScore>();
+			for(CmpVertex b:blueStates)
+				for(CmpVertex r:reds)
+				{
+					PairScore p=coregraph.pairscores.obtainPair(b,r);
+					if (p.getScore() >= 0)
+						pairs.add(p);
+				}
+				
+			ArrayList<PairScore> additionalPairs = new ArrayList<PairScore>( pairs.size()+tentativeRedNodes.size() );
+			for(CmpVertex v:tentativeRedNodes)
+			{
+				additionalPairs.clear();additionalPairs.addAll(pairs);
+				
+				// now compare with the node v considered to become red with all blue nodes 
+				for(CmpVertex b:blueStates)
+				{
+					PairScore p=coregraph.pairscores.obtainPair(b,v);
+					if (p.getScore() >= 0)
+						additionalPairs.add(p);
+				}
+				
+				for(CmpVertex b:tentativeRedNodes)
+					if (b != v)
+					{
+						for(CmpVertex r:reds)
+						{// if I choose v to be red, all the other tentative reds may remain blue
+							PairScore p=coregraph.pairscores.obtainPair(b,r);
+							if (p.getScore() >= 0)
+								additionalPairs.add(p);
+						}
+						
+						// comparing the considered node v with all the other tentative reds since they may remain blue
+						PairScore p=coregraph.pairscores.obtainPair(b,v);
+						if (p.getScore() >= 0)
+							additionalPairs.add(p);
+					}
+				// additionalPairs are now a collection of all pairs where existing blue states are compared with all existing and the considered red one
+				double estimate = pairQualityEstimator.obtainEstimateOfTheQualityOfTheCollectionOfPairs(coregraph, additionalPairs);
+				if (estimate > bestScore)
+				{
+					bestScore = estimate;redVertex = v;
+				}
+			}
+			
+			return redVertex;
+		}
+
+		protected class QualityEstimator implements CollectionOfPairsEstimator
+		{
+
+			@Override
+			public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph coregraph, Collection<PairScore> pairs) 
+			{
+				dataCollector.buildSetsForComparators(pairs, coregraph);
+				return LearnerThatUsesWekaResults.this.obtainEstimateOfTheQualityOfTheCollectionOfPairs(pairs);
+			}
+			
 		}
 		
 		@Override 
@@ -864,37 +965,62 @@ public class PairQualityLearner
 		}
 	}
 	
-	/** Looks for a label that is only used on transitions entering the initial state.
+	/** Looks for a labels each of which is only used on transitions entering a specific state.
 	 * 
 	 * @param graph the graph where to look for such labels.
-	 * @return one of such labels or null if no such label exists.
+	 * @return a map from labels to states.
 	 */
-	public static Label uniqueIntoInitial(LearnerGraph graph)
+	public static Map<Label,CmpVertex> uniqueIntoState(LearnerGraph graph)
 	{
-		Map<Label,Boolean> counterOfIncoming = new TreeMap<Label,Boolean>();
+		Set<Label> deadLabels = new HashSet<Label>();
+		
+		Map<Label,CmpVertex> labelToState = new TreeMap<Label,CmpVertex>();
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
 			{
-				Boolean value = counterOfIncoming.get(target.getKey());
-				if (target.getValue() == graph.getInit())
-				{// the target state is our initial one
-					if (value == null)
-						value = new Boolean(true);// if value is not null, it is either true (everything is fine) or false (found a transition with this label to a non-Init state). In either case, value has to remain unchanged.
+				CmpVertex recordedState = labelToState.get(target.getKey());
+				if (!deadLabels.contains(recordedState))
+				{// the label is not already recorded as leading to multiple different states.
+					if (recordedState == null)
+						// first time we've seen this label in use
+						labelToState.put(target.getKey(),target.getValue());
+					else
+						if (recordedState != target.getValue())
+						{
+							// record the label as leading to multiple states
+							deadLabels.add(target.getKey());
+							labelToState.remove(target.getKey());
+						}
 				}
-				else
-					value = new Boolean(false);
-
-				counterOfIncoming.put(target.getKey(),value);
 			}
+/*		
+		int lowestDepth = -1;
+		for(Entry<Label,CmpVertex> entry:labelToState.entrySet())
+			if (lowestDepth == -1 || entry.getValue().getDepth() < lowestDepth)
+				lowestDepth = entry.getValue().getDepth();
+				*/
 		
-		Label lbl = null;
-		for(Entry<Label,Boolean> entry:counterOfIncoming.entrySet())
-			if (entry.getValue().booleanValue())
-			{
-				lbl = entry.getKey();break;
-			}
-		return lbl;
+		return labelToState;
 	}
+	
+	/** All label starting from this prefix are going to be merged. */
+	public static final String prefixOfMandatoryMergeTransition = "toMerge";
+	
+	public static void addIfThenForMandatoryMerge(LearnerEvaluationConfiguration initialData, Map<Label,CmpVertex> dataOnUniqueTransitions)
+	{
+		if (initialData.ifthenSequences == null)
+			initialData.ifthenSequences = new LinkedList<String>();
+		
+		int transitionNumber = 1;
+		for(Entry<Label,CmpVertex> entry:dataOnUniqueTransitions.entrySet())
+		{
+			String lbl = entry.getKey().toString(), mandatory = prefixOfMandatoryMergeTransition+"_"+transitionNumber+"_"+entry.getValue().getStringId();
+			initialData.ifthenSequences.add("Mandatory_"+transitionNumber+"_to_"+entry.getValue()+" A- !"+lbl+" || "+mandatory+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" || "+mandatory+" ->A / B == THEN == C / C-"+mandatory+"->D");
+			++transitionNumber;
+		}
+	}
+	
+	
 	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
@@ -1031,13 +1157,11 @@ public class PairQualityLearner
 					{
 						runner.submit(new LearnerRunner(states,sample,1+numberOfTasks,numberOfTraces, false,config)
 						{
-	
 							@Override
 							public LearnerThatCanClassifyPairs createLearner(Frame parent,LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 							{
 								return new LearnerThatUpdatesWekaResults(parent,evalCnf,argReferenceGraph,argDataCollector,argInitialPTA,gr_ErrorsAndDeadends);
 							}
-							
 						});
 						++numberOfTasks;
 					}

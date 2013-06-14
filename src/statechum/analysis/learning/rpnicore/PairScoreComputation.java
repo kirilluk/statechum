@@ -132,7 +132,7 @@ public class PairScoreComputation {
 			CmpVertex newRedNode = null;
 			if (!RedStatesFound.isEmpty())
 			{
-				if (decisionProcedure != null)
+				if (RedStatesFound.size() > 1 && decisionProcedure != null)
 					newRedNode = decisionProcedure.selectRedNode(coregraph, reds, RedStatesFound);
 				else
 					newRedNode = RedStatesFound.iterator().next();

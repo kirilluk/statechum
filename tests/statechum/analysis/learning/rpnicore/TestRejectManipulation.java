@@ -177,6 +177,35 @@ public class TestRejectManipulation {
 		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("REJ"),expected,expected.findVertex("REJ"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 	
+	
+	@Test
+	public void completeGraphUsingExisting1()
+	{// based on completeGraphTest5
+		LearnerGraph graph = buildLearnerGraph("A-a->A-b->B-c->B / A-c-#REJ", "completeGraphUsingExisting1",config,converter);
+		Assert.assertTrue(graph.pathroutines.completeGraphPossiblyUsingExistingVertex(VertexID.parseID("REJ")));
+		LearnerGraph expectedOutcome = buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#REJ#-a-B-b-#REJ", "completeGraphTest5b",config,converter);
+		Assert.assertNull(WMethod.checkM(graph, expectedOutcome));				
+	}
+	
+	@Test
+	public void completeGraphUsingExisting2()
+	{// based on completeGraphTest5
+		LearnerGraph graph = buildLearnerGraph("A-a->A-b->B-c->B / A-c-#REJ#-a-B-b-#REJ", "completeGraphTest5b",config,converter);
+		Assert.assertTrue(graph.pathroutines.completeGraphPossiblyUsingExistingVertex(VertexID.parseID("REJ")));
+		LearnerGraph expectedOutcome = buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#REJ#-a-B-b-#REJ", "completeGraphTest5b",config,converter);
+		Assert.assertNull(WMethod.checkM(graph, expectedOutcome));				
+	}
+
+	// This time I'm using an ordinary (positive) vertex as a reject. This causes the new transitions to enter the supplied state. 
+	@Test
+	public void completeGraphUsingExisting3()
+	{// based on completeGraphTest5
+		LearnerGraph graph = buildLearnerGraph("A-a->A-b->B-c->B / A-c->REJ", "completeGraphTest5b",config,converter);
+		Assert.assertTrue(graph.pathroutines.completeGraphPossiblyUsingExistingVertex(VertexID.parseID("REJ")));
+		LearnerGraph expectedOutcome = buildLearnerGraph("A-a->A-b->B-c->B\nA-c->REJ<-a-B-b->REJ", "completeGraphTest5b",config,converter);
+		Assert.assertNull(WMethod.checkM(graph, expectedOutcome));				
+	}
+	
 	@Test
 	public final void testLTL_complete2()
 	{

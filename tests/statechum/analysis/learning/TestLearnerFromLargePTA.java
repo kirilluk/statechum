@@ -38,6 +38,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -171,7 +172,7 @@ Total time: 20492 sec
 					else
 					{
 						Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						long score = original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices);
+						long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices);
 						outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
 						
 						if (score != original.getStateNumber()-outcome.getStateNumber())
@@ -368,7 +369,7 @@ Total time: 20492 sec
 	public void runCompareTwoLearners() throws IOException
     {
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, converter);
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, STATETREE.STATETREE_ARRAY, converter);
 		
 		Configuration learnerConf = initialConfigurationData.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(matrixToUse);
 		initialConfigurationData.learnerInitConfiguration.config = learnerConf;// update the initial configuration with the one we shall use during learning.

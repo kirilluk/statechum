@@ -267,7 +267,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
-			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
@@ -1313,14 +1313,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			}
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> result = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = -2;
-		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("A")),fsm.findVertex(VertexID.parseID("B"))),result);
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("A")),fsm.findVertex(VertexID.parseID("B"))),null,result);
 		//Visualiser.updateFrame(g, result);Visualiser.waitForKey();
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);
 		
 		result.clear();score = -2;
-		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("B")),fsm.findVertex(VertexID.parseID("A"))),result);
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(VertexID.parseID("B")),fsm.findVertex(VertexID.parseID("A"))),null,result);
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);

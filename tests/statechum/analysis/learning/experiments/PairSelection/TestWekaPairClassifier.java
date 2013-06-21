@@ -51,9 +51,11 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.core.Attribute;
@@ -997,6 +999,27 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("C"),entry.getValue());
 	}
 	
+	@Test
+	public void TestMergeBasedOnUniques()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
+		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		List<StatePair> pairsList = PairQualityLearner.LearnerThatUsesWekaResults.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
+		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration))));
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A1"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration))));
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration))));
+		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge) >= 0);
+	}
+	
+	@Test
+	public void TestMergeBasedOnUniquesFail()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
+		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		List<StatePair> pairsList = PairQualityLearner.LearnerThatUsesWekaResults.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
+		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge) < 0);
+	}
 	
 	@Test
 	public void TestConstructIfThenForUniques1()
@@ -1005,11 +1028,11 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
 		Assert.assertNull(evaluationConfiguration.ifthenSequences);
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals("Mandatory_1_to_A A- !b || toMerge_1_A ->A-b->B - b ->B / B- !b || toMerge_1_A ->A / B == THEN == C / C-toMerge_1_A->D",ifthenIterator.next());
-		Assert.assertEquals("Mandatory_2_to_B A- !c || toMerge_2_B ->A-c->B - c ->B / B- !c || toMerge_2_B ->A / B == THEN == C / C-toMerge_2_B->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_1_via_b A- !b || toMerge_1_b ->A-b->B - b ->B / B- !b || toMerge_1_b ->A / B == THEN == C / C-toMerge_1_b->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_2_via_c A- !c || toMerge_2_c ->A-c->B - c ->B / B- !c || toMerge_2_c ->A / B == THEN == C / C-toMerge_2_c->D",ifthenIterator.next());
 	}
 
 	@Test
@@ -1019,12 +1042,25 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals("junk",ifthenIterator.next());
-		Assert.assertEquals("Mandatory_1_to_A A- !b || toMerge_1_A ->A-b->B - b ->B / B- !b || toMerge_1_A ->A / B == THEN == C / C-toMerge_1_A->D",ifthenIterator.next());
-		Assert.assertEquals("Mandatory_2_to_B A- !c || toMerge_2_B ->A-c->B - c ->B / B- !c || toMerge_2_B ->A / B == THEN == C / C-toMerge_2_B->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_1_via_b A- !b || toMerge_1_b ->A-b->B - b ->B / B- !b || toMerge_1_b ->A / B == THEN == C / C-toMerge_1_b->D",ifthenIterator.next());
+		Assert.assertEquals("Mandatory_2_via_c A- !c || toMerge_2_c ->A-c->B - c ->B / B- !c || toMerge_2_c ->A / B == THEN == C / C-toMerge_2_c->D",ifthenIterator.next());
+	}
+	
+	@Test
+	public void TestDetectionOfMandatoryTransitions()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_1->C-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
+		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("B"),graph.findVertex("A"),0,0),graph));
+		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("A"),0,0),graph));
+		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("B"),0,0),graph));
+		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("C"),graph.findVertex("A"),0,0),graph));
+		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("C"),0,0),graph));
+		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("D"),graph.findVertex("A"),0,0),graph));
+		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("D"),0,0),graph));
 	}
 	
 	@Test
@@ -1034,7 +1070,7 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
 		Map<Label,CmpVertex> map=PairQualityLearner.uniqueIntoState(graph);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map);
+		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(1,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals("junk",ifthenIterator.next());

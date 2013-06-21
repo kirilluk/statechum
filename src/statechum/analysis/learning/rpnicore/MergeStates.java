@@ -161,11 +161,10 @@ public class MergeStates {
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
-			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 
-		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
+		if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices) < 0)
 		{/*
 			try {
 				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();

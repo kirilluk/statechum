@@ -518,7 +518,7 @@ public class TestTransform
 		
 		StatePair whatToMerge = new StatePair(fsm.getInit(),newA);
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge));
+		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,null,collectionOfVerticesToMerge));
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(fsm, whatToMerge,collectionOfVerticesToMerge);
 		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(),result,result.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE));
 

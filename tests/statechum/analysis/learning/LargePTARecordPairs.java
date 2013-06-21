@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -36,7 +37,7 @@ public class LargePTARecordPairs
 	{
 		final Configuration.STATETREE trTypeFinal = Configuration.STATETREE.STATETREE_LINKEDHASH;
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, converter);
+		InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, STATETREE.STATETREE_ARRAY, converter);
 		Configuration learnerConf = initialConfigAndData.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(trTypeFinal);
 		initialConfigAndData.learnerInitConfiguration.config = learnerConf;// replace the configuration with the one we shall use for learning.
 		for(boolean merger:new Boolean[]{true,false})

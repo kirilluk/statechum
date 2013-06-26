@@ -49,7 +49,19 @@ import javax.swing.JOptionPane;
 public class RPNIUniversalLearner extends RPNILearner 
 {
 
+	/** If-then automata in a text form. */
 	private Collection<String> ifthenAutomataAsText;
+	
+	/** If-then automata can be defined with a larger alphabet than is present on the graph being augmented, in which case it is not possible to apply the considered if-then automata. 
+	 * In addition, if-then automata can use negations on transitions which are interpreted as a complement but the universe is not usually made clear. This variable contains such a universal set.
+	 * Where null, the alphabet of the graph being augmented is used. 
+	 */
+	protected Set<Label> alphabetUsedForIfThen = null; 
+
+	public void setAlphabetUsedForIfThen(Set<Label> alph)
+	{
+		alphabetUsedForIfThen = alph;
+	}
 	
 	public RPNIUniversalLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) 
 	{
@@ -138,7 +150,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
-			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.computeQS(pair, getTentativeAutomaton(),tempNew, ifthenAutomata);
 	}
 
@@ -154,7 +166,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
-			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.RecomputeQS(pair, getTentativeAutomaton(),temp, ifthenAutomata);
 	}
 	
@@ -217,7 +229,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 			StringBuffer counterExampleHolder = new StringBuffer();
 			if (ifthenAutomata == null) 
-				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, ptaHardFacts, config, topLevelListener.getLabelConverter()).toArray(new LearnerGraph[0]);
+				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, ptaHardFacts, config, topLevelListener.getLabelConverter()).toArray(new LearnerGraph[0]);
 
 			if (!topLevelListener.AddConstraints(getTentativeAutomaton(),updatedTentativeAutomaton,counterExampleHolder))
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
@@ -465,7 +477,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							}
 							else
 							{
-								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, getTentativeAutomaton(), config, getLabelConverter()).toArray(new LearnerGraph[0]);
+								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, alphabetUsedForIfThen, getTentativeAutomaton(), config, getLabelConverter()).toArray(new LearnerGraph[0]);
 								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 
 								LearnerGraph.copyGraphs(getTentativeAutomaton(), updatedTentativeAutomaton);
@@ -488,7 +500,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							
 							// make sure constraints are rebuilt if in use
 							if (config.isUseConstraints())
-								ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, ptaHardFacts, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+								ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, ptaHardFacts, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 							
 							restartLearning = RestartLearningEnum.restartHARD;
 						}

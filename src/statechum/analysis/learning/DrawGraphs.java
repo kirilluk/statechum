@@ -84,7 +84,6 @@ import org.rosuda.JRI.Rengine;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).

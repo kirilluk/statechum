@@ -1008,7 +1008,7 @@ public class Transform
 		return result;
 	}
 	
-	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, LearnerGraph graph, Configuration config, ConvertALabel conv)
+	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, Set<Label> alphabet, LearnerGraph graph, Configuration config, ConvertALabel conv)
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
 		LTL_to_ba converter = new LTL_to_ba(config,conv);
@@ -1031,9 +1031,12 @@ public class Transform
 				int endOfName = automatonAndName.indexOf(' ');
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
-				LearnerGraph tmpPropertyAutomaton = 
+				Set<Label> alphabetToUse = alphabet;
+				if (alphabetToUse == null)
+					alphabetToUse = graph.pathroutines.computeAlphabet();
+				LearnerGraph tmpPropertyAutomaton =
 						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
-							.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet(),conv); // this is inefficient but I can afford this because if-then automata are small.
+							.transform.interpretLabelsAsReg(alphabetToUse,conv); // this is inefficient but I can afford this because if-then automata are small.
 				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
 				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
 				checkTHEN_disjoint_from_IF(propertyAutomaton);

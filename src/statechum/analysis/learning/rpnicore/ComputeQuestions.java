@@ -460,10 +460,6 @@ public class ComputeQuestions {
 		else
 			questions = getQuestionPta(pair,original,merged,properties).getData();// This one will return only those questions which were not answered by property automata
 		
-		//System.out.println(getQuestionPta(pair,original,merged,properties).getData(PTASequenceEngine.truePred));
-		
-		//Visualiser.updateFrame(constructGraphWithQuestions(pair,original,merged), null);
-		//System.out.println(((NonExistingPaths)getQuestionPta(pair,original,merged,properties).getFSM()).getNonExistingVertices());
 		return ArrayOperations.sort(questions);
 			// this appears important to ensure termination without using amber states
 			// because in an unsorted collection long paths may appear first and they will hence be added to PTA and we'll

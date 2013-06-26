@@ -360,6 +360,9 @@ public class PairQualityLearner
 		catch(Exception ex)
 		{
 			ex.printStackTrace();
+		}
+		finally
+		{
 			DrawGraphs.end();
 		}
 	}
@@ -768,39 +771,35 @@ public class PairQualityLearner
 			{// not all pairs contain negative nodes, hence we have to build the sets necessary to evaluate those pairs. Strictly speaking, only those that are used in a tree need to be computed but this 
 			 // would make the whole process significantly more complex and hence not done.
 				dataCollector.buildSetsForComparators(pairs,tentativeGraph);
-				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 	
 				for(PairScore p:pairs)
 				{
 					assert p.getScore() >= 0;
-					verticesToMerge.clear();
-					if (tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) >= 0)
-					{// given the existing arrangement of states and transitions, vertices that should be merged, can be.
+					// By the time we get here, it is assumed that all mandatory merge conditions are satisfied and hence every pair can be merged.
 						
-						if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-							possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), 0));
-						else
-						if (checkForMerge(p,tentativeGraph))
-							possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), Long.MAX_VALUE));
-						else
-						{// meaningful pairs, check with the classifier
-							try
+					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
+						possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), 0));
+/*					else
+					if (checkForMerge(p,tentativeGraph))
+						possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), Long.MAX_VALUE));
+						*/
+					else
+					{// meaningful pairs, check with the classifier
+						try
+						{
+							int []comparisonResults = dataCollector.comparePairWithOthers(p, pairs), assessmentResults = dataCollector.assessPair(p);
+							Instance instance = dataCollector.constructInstance(comparisonResults, assessmentResults, true);
+							double distribution[]=classifier.distributionForInstance(instance);
+							long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
+							if ( quality >= 0 )// && p.getScore() > 0)
 							{
-								int []comparisonResults = dataCollector.comparePairWithOthers(p, pairs), assessmentResults = dataCollector.assessPair(p);
-								Instance instance = dataCollector.constructInstance(comparisonResults, assessmentResults, true);
-								double distribution[]=classifier.distributionForInstance(instance);
-								long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
-								if ( quality >= 0 )// && p.getScore() > 0)
-								{
-									possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), obtainMeasureOfQualityFromDistribution(distribution,classTrue)));
-								}
+								possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), quality));
 							}
-							catch(Exception ex)
-							{
-								ex.printStackTrace();
-								throw new IllegalArgumentException("failed to classify pair "+p, ex);
-							}
+						}
+						catch(Exception ex)
+						{
+							ex.printStackTrace();
+							throw new IllegalArgumentException("failed to classify pair "+p, ex);
 						}
 					}
 				}
@@ -837,8 +836,9 @@ public class PairQualityLearner
 			
 			for(PairScore p:pairs)
 			{
-				if (tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) < 0)
-				// this pair cannot be merged, return as red.
+				if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) < 0)
+				// This pair cannot be merged, return as red. Note that this computation is deferred to this stage from computePairScores in order to consider 
+				// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory merge conditions are taken into account.
 					return p;
 				
 				// potentially meaningful pair, check with the classifier
@@ -874,17 +874,20 @@ public class PairQualityLearner
 		
 		protected void reportPairRight(LearnerGraph tentativeGraph, PairScore firstPair)
 		{
-			Collection<PairScore> pairs=Arrays.asList(new PairScore[]{firstPair});
-			List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
-			
-			//boolean firstCorrect = !firstPair.getQ().isAccept() || !firstPair.getR().isAccept() || correctPairs.contains(firstPair);
-			long currentMillis = System.currentTimeMillis();
-			boolean rejectPair=!firstPair.getQ().isAccept() || !firstPair.getR().isAccept();
-			System.out.println( (currentMillis-timeOfLastTick)+" "+gr_PairQuality.size()+" chosen pair"+firstPair+" "+
-					(rejectPair? "":
-						(correctPairs.contains(firstPair)? "T":"WRONG")));
-			timeOfLastTick = currentMillis;
+			if (gr_PairQuality != null)
+			{
+				Collection<PairScore> pairs=Arrays.asList(new PairScore[]{firstPair});
+				List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+				SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
+				
+				//boolean firstCorrect = !firstPair.getQ().isAccept() || !firstPair.getR().isAccept() || correctPairs.contains(firstPair);
+				long currentMillis = System.currentTimeMillis();
+				boolean rejectPair=!firstPair.getQ().isAccept() || !firstPair.getR().isAccept();
+				System.out.println( (currentMillis-timeOfLastTick)+" "+gr_PairQuality.size()+" chosen pair"+firstPair+" "+
+							(rejectPair? "":
+								(correctPairs.contains(firstPair)? "T":"WRONG")));
+				timeOfLastTick = currentMillis;
+			}
 		}
 		
 		protected void updateStatistics(LearnerGraph tentativeGraph, Collection<PairScore> rankedPairs)
@@ -1179,8 +1182,6 @@ public class PairQualityLearner
 		}
 	}
 	
-	
-	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -1211,6 +1212,7 @@ public class PairQualityLearner
 				Assert.assertFalse(WMethod.checkEquivalentStates(referenceGraph));
 			}
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);
+			final Collection<List<Label>> testSet = referenceGraph.wmethod.computeNewTestSet(1);
 			for(int attempt=0;attempt<10;++attempt)
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
@@ -1255,9 +1257,9 @@ public class PairQualityLearner
 				
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				SampleData dataSample = new SampleData(null,null);
-				dataSample.difference = estimationOfDifference(referenceGraph, actualAutomaton, config, 1);
+				dataSample.difference = estimationOfDifference(referenceGraph, actualAutomaton, testSet, config, 1);
 				if (learnUsingReferenceLearner)
-					dataSample.differenceForReferenceLearner = estimationOfDifference(referenceGraph, new ReferenceLearner(frame,learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), config, 1);
+					dataSample.differenceForReferenceLearner = estimationOfDifference(referenceGraph, new ReferenceLearner(frame,learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), testSet, config, 1);
 				outcome.samples.add(dataSample);
 			}
 			
@@ -1266,9 +1268,16 @@ public class PairQualityLearner
 		}
 	}
 	
-	/** Given two graphs, estimates the difference between the two, using linear. */
+	/** Given two graphs, estimates the difference between the two. 
+	 *
+	 * @param refenceGraph reference automaton
+	 * @param actualAutomaton the automaton to compare the reference with
+	 * @param testSet a test set to use for comparison, useful when language-based measures such as an f-measure are utulised.
+	 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
+	 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
+	 */
 	@SuppressWarnings("unused")
-	public static double estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Configuration config, int cpuNumber)
+	public static double estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet, Configuration config, int cpuNumber)
 	{
 		/*
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
@@ -1283,7 +1292,7 @@ public class PairQualityLearner
 		System.out.println(eq);
 		Visualiser.updateFrame(referenceGraph, actualAutomaton);
 		return difference;*/
-		return DiffExperiments.classify(referenceGraph.wmethod.computeNewTestSet(1), referenceGraph, actualAutomaton).fMeasure();
+		return DiffExperiments.classify(testSet, referenceGraph, actualAutomaton).fMeasure();
 	}
 
 	public static void runExperiment() throws Exception
@@ -1293,7 +1302,7 @@ public class PairQualityLearner
 		final RBoxPlot<String> gr_PairQuality = null;//new RBoxPlot<String>("Correct v.s. wrong","%%",new File("percentage_correctwrong.pdf"));
 		final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces.pdf"));
 		final RBoxPlot<String> gr_ErrorsAndDeadends = null;//new RBoxPlot<String>("Errors and deadends","Red states",new File("errors_deadends.pdf"));
-		SquareBagPlot gr_NewToOrig = null;//new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig.pdf"),0,1,true);
+		SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig.pdf"),0,1,true);
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();

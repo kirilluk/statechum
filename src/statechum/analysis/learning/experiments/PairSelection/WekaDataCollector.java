@@ -296,12 +296,16 @@ public class WekaDataCollector
 		// Compute Weka statistics, where we compare each pair to all others.
 		for(PairScore p:correctPairs)
 		{
-			int []comparisonResults = comparePairWithOthers(p, pairs);trainingData.add(constructInstance(comparisonResults, assessPair(p), true));
+			int []comparisonResults = comparePairWithOthers(p, pairs);
+			//System.out.println(p+" "+Arrays.toString(comparisonResults));
+			trainingData.add(constructInstance(comparisonResults, assessPair(p), true));
 		}
 		
 		for(PairScore p:wrongPairs)
 		{
-			int []comparisonResults = comparePairWithOthers(p, pairs);trainingData.add(constructInstance(comparisonResults, assessPair(p), false));
+			int []comparisonResults = comparePairWithOthers(p, pairs);
+			//System.out.println(p+" "+Arrays.toString(comparisonResults));
+			trainingData.add(constructInstance(comparisonResults, assessPair(p), false));
 		}
 	}
 	

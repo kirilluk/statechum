@@ -70,7 +70,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void BeforeTests()
 	{
 		paper = new PaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
-		paper.labelConverter = paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
+		paper.learnerInitConfiguration.setLabelConverter( paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null );
 	}
 	
 	/** Empty traces */

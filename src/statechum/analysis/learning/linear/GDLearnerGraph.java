@@ -46,6 +46,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -105,13 +106,13 @@ public class GDLearnerGraph
 		// should be 1, however it will be zero if #C and #D are ignored.
 		if (direction)
 		{
-			LearnerGraphND.buildForward(coregraph,filter,matrixInverse);
-			LearnerGraphND.buildInverse(coregraph,LearnerGraphND.ignoreNone,matrixForward);
+			AbstractPathRoutines.buildForward(coregraph,filter,matrixInverse);
+			AbstractPathRoutines.buildInverse(coregraph,LearnerGraphND.ignoreNone,matrixForward);
 		}
 		else
 		{
-			LearnerGraphND.buildForward(coregraph,LearnerGraphND.ignoreNone,matrixForward);
-			LearnerGraphND.buildInverse(coregraph,filter,matrixInverse);
+			AbstractPathRoutines.buildForward(coregraph,LearnerGraphND.ignoreNone,matrixForward);
+			AbstractPathRoutines.buildInverse(coregraph,filter,matrixInverse);
 		}
 		matrixForward.pathroutines.checkConsistency(coregraph);
 		matrixInverse.pathroutines.checkConsistency(coregraph);

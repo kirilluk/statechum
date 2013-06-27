@@ -153,7 +153,7 @@ public class PairScoreComputation {
 				}
 		}
 		while(!RedStatesFound.isEmpty());
-		
+
 		return getSortedPairsAndScoresStackFromUnsorted();
 	}		
 

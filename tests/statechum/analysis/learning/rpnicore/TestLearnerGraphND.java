@@ -431,7 +431,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		Assert.assertEquals(A.getInit(),B.getInit());
 	}
 	
-	/** An empty graph. */
+	/** Simple graph. */
 	@Test
 	public final void testBuildInverse1()
 	{
@@ -439,11 +439,23 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		LearnerGraphND expected = buildLearnerGraphND("A-a->A","testConvertToND2",config,converter);
 
 		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
 	}
 	
 	/** Simple graph. */
+	@Test
+	public final void testBuildForward1()
+	{
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A","testConvertToND2",config,converter);
+		LearnerGraphND expected = buildLearnerGraphND("A-a->A","testConvertToND2",config,converter);
+
+		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+	
+	/** An empty graph. */
 	@Test
 	public final void testBuildInverse2()
 	{
@@ -451,7 +463,19 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		LearnerGraphND expected = new LearnerGraphND(config);expected.initPTA();
 
 		LearnerGraphND actual = new LearnerGraphND(config);
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+	
+	/** An empty graph. */
+	@Test
+	public final void testBuildForward2()
+	{
+		LearnerGraphND graph = new LearnerGraphND(config);graph.initPTA();
+		LearnerGraphND expected = new LearnerGraphND(config);expected.initPTA();
+
+		LearnerGraphND actual = new LearnerGraphND(config);
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
 	}
 	
@@ -465,7 +489,21 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		expected.getInit().setAccept(false);
 
 		LearnerGraphND actual = new LearnerGraphND(config);
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+	
+	/** A graph with a single state-reject state. */
+	@Test
+	public final void testBuildForward3()
+	{
+		LearnerGraphND graph = new LearnerGraphND(config);graph.initPTA();
+		graph.getInit().setAccept(false);
+		LearnerGraphND expected = new LearnerGraphND(config);expected.initPTA();
+		expected.getInit().setAccept(false);
+
+		LearnerGraphND actual = new LearnerGraphND(config);
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
 	}
 	
@@ -479,7 +517,20 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 			"testConvertToND4",config,converter);
 		expected.findVertex("D").setAccept(false);
 		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+	
+	/** A not so simple graph. */
+	@Test
+	public final void testBuildForward4()
+	{
+		String graphStr = "A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C";
+		LearnerGraphND graph = buildLearnerGraphND(graphStr,"testConvertToND4",config,converter);
+		LearnerGraphND expected = buildLearnerGraphND(graphStr,"testConvertToND4",config,converter);
+		expected.findVertex("D").setAccept(false);
+		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
 	}
 	
@@ -496,7 +547,23 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), graph.config), graph.createNewRow());
 		
 		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+	
+	/** A not so simple graph with multiple disconnected parts. One state has no outgoing or incoming transitions. */
+	@Test
+	public final void testBuildForward5()
+	{
+		String graphStr = "A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C";
+		LearnerGraphND graph = buildLearnerGraphND(graphStr,"testConvertToND5",config,converter);
+		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), graph.config), graph.createNewRow());
+		
+		LearnerGraphND expected = buildLearnerGraphND(graphStr,"testConvertToND5",config,converter);
+		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), graph.config), graph.createNewRow());
+		
+		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
 	}
 	
@@ -510,8 +577,97 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 			"testConvertToND6",config,converter);
 
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
 		compareGraphs(expected, actual);
+	}
+
+	/** A not so simple graph with multiple disconnected parts. */
+	@Test
+	public final void testBuildForward6()
+	{
+		String graphStr = "A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U";
+		LearnerGraphND graph = buildLearnerGraphND(graphStr,"testConvertToND6",config,converter);
+		LearnerGraphND expected = buildLearnerGraphND(graphStr,"testConvertToND6",config,converter);
+
+		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		AbstractPathRoutines.buildForward(graph, LearnerGraphND.ignoreNone, actual);
+		compareGraphs(expected, actual);
+	}
+
+	/** A not so simple graph with multiple disconnected parts and a filter. */
+	@Test
+	public final void testBuildInverse7()
+	{
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U",
+			"testConvertToND6",config,converter);
+		LearnerGraphND expected = buildLearnerGraphND("C-c->A\nU-a->V-b->U","testBuildInverse7",config,converter);
+		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), graph.config), graph.createNewRow());
+		expected.setInit(expected.findVertex("A"));
+		
+		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
+
+			@Override
+			public boolean stateToConsider(CmpVertex vert) {
+				return !vert.getStringId().equals("B");
+			}
+		}, actual);
+		compareGraphs(expected, actual);
+	}
+
+	/** A not so simple graph with multiple disconnected parts and a filter. */
+	@Test
+	public final void testBuildInverse8()
+	{
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U",
+			"testConvertToND6",config,converter);
+		
+		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
+
+			@Override
+			public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
+				return false;
+			}
+		}, actual);
+		Assert.assertTrue(actual.transitionMatrix.isEmpty());Assert.assertNull(actual.getInit());
+	}
+
+	/** A not so simple graph with multiple disconnected parts and a filter. */
+	@Test
+	public final void testBuildForward7()
+	{
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U","testConvertToND6",config,converter);
+		LearnerGraphND expected = buildLearnerGraphND("A-c->C\nU-b->V-a->U","testBuildForward7",config,converter);
+		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), graph.config), graph.createNewRow());
+		
+		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
+
+			@Override
+			public boolean stateToConsider(CmpVertex vert) {
+				return !vert.getStringId().equals("B");
+			}
+		}, actual);
+
+		compareGraphs(expected, actual);
+	}
+
+	/** A not so simple graph with multiple disconnected parts and a filter. */
+	@Test
+	public final void testBuildForward8()
+	{
+		final LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U","testConvertToND6",config,converter);
+		final LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
+				@Override
+				public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
+					return false;
+				}
+			},actual);
+		}}, IllegalArgumentException.class,"initial state was filtered out");		
 	}
 
 	/** A helper method to create an instance of a filter. The trouble with filters is that

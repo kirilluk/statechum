@@ -614,10 +614,10 @@ public class DrawGraphs {
 		
 		public boolean graphOk()
 		{
-			Rectangle2D.Double size = getSize();
-			if (size.width < Configuration.fpAccuracy)
+			Rectangle2D.Double graphSize = getSize();
+			if (graphSize.width < Configuration.fpAccuracy)
 				return false;
-			if (size.height < Configuration.fpAccuracy)
+			if (graphSize.height < Configuration.fpAccuracy)
 				return false;
 		
 			return true;
@@ -626,14 +626,14 @@ public class DrawGraphs {
 		/** Computes the data for abline to draw a diagonal. */
 		public String computeDiagonal()
 		{
-			Rectangle2D.Double size = getSize();
-			if (size.width < Configuration.fpAccuracy)
+			Rectangle2D.Double graphSize = getSize();
+			if (graphSize.width < Configuration.fpAccuracy)
 				throw new IllegalArgumentException("width is too small");
-			if (size.height < Configuration.fpAccuracy)
+			if (graphSize.height < Configuration.fpAccuracy)
 				throw new IllegalArgumentException("height is too small");
 			
-			double k = size.height/size.width;
-			double diff = size.y-k*size.x;
+			double k = graphSize.height/graphSize.width;
+			double diff = graphSize.y-k*graphSize.x;
 			
 			return "abline("+diff+","+k+")";
 		}

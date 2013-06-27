@@ -35,6 +35,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -546,12 +547,19 @@ public class DiffExperiments {
 		return average.divide(count);
 	}
 
-	public static class MachineGenerator{
+	public static class MachineGenerator {
 		
 		private final List<Integer> sizeSequence = new LinkedList<Integer>(); 
 		private final int actualTargetSize, error, phaseSize;
 		private int artificialTargetSize;
 
+		/** Whether to generate a machine that has every state reachable from every other state. */
+		private boolean generateConnected = false;
+		
+		public void setGenerateConnected(boolean value)
+		{
+			generateConnected = value;
+		}
 		
 		public MachineGenerator(int target, int phaseArg, int errorArg){
 			this.phaseSize = phaseArg;
@@ -563,24 +571,59 @@ public class DiffExperiments {
 		//0.31,0.385
 		public LearnerGraphND nextMachine(int alphabet, int counter, Configuration config){
 			LearnerGraph machine = null;
+			LearnerGraph bestMachine = null;int bestMachineStateNumber = Integer.MAX_VALUE;
 			boolean found = false;
+			int diff=0;
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
 					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
 					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter,config);
 					
 					machine = gen.buildMachine(artificialTargetSize);
+					
+					
+					if (generateConnected)
+					{// remove states from which the initial state cannot be reached.
+						LearnerGraph trimmedMachine = new LearnerGraph(config);
+						machine.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(trimmedMachine);
+						machine = trimmedMachine;
+					}
+					
+					
 					machine.setName("forestfire_"+counter);
 					int machineSize = machine.getStateNumber();
 					sizeSequence.add(machineSize);
-					if(Math.abs(machineSize - actualTargetSize)<=error){
+					
+					int obtainedDifference = Math.abs(machineSize - actualTargetSize); 
+					if(obtainedDifference <= error)
+					{
 						found = true;
 						break;
 					}
-						
+					
+					if (obtainedDifference < bestMachineStateNumber)
+					{
+						bestMachine = machine;bestMachineStateNumber = obtainedDifference; 
+					}
+					
+					diff+= machineSize - actualTargetSize;
 				}
+				
 				if(!found)
-					throw new RuntimeException();//adjustArtificialTargetSize();
+				{
+					if (diff/phaseSize > Math.max(20,error)) // too many additional states, with a clamp of 10 for small machines
+					{
+						String messageText = "FSM with "+actualTargetSize+" states (with error of "+error+") and alphabet of "+alphabet+" after at least "+phaseSize+" attempts, the seed is "+counter;
+						if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+						{
+							System.out.println("FAILED TO PRODUCE A GOOD ENOUGH AUTOMATON FOR "+messageText+"\nRETURNING "+bestMachine.getStateNumber()+" states");
+							found = true;
+						}
+						else
+							throw new RuntimeException("failed to generate "+messageText);//adjustArtificialTargetSize();
+					}
+					++artificialTargetSize;
+				}
 			}
 			
 			LearnerGraphND outcome = new LearnerGraphND(machine.config);AbstractLearnerGraph.copyGraphs(machine,outcome);

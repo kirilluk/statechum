@@ -50,6 +50,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
@@ -802,7 +803,150 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public boolean checkUnreachableStates()
 	{
-		return computeStateCover(coregraph.getInit()).size() != coregraph.transitionMatrix.size();
+		return computeReachableStates().size() != coregraph.transitionMatrix.size();
+	}
+
+	/** Computes a set of reachable states in a graph. Intended to be used with small automata. */
+	public Set<CmpVertex> computeReachableStates()
+	{
+		Queue<CmpVertex> currentFringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// For big graphs, HashMapWithSearch will be needed.
+		if (coregraph.getInit() != null)
+		{// if the graph has an initial state
+			currentFringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+			do
+			{
+				Queue<CmpVertex> fringe = currentFringe;currentFringe = new LinkedList<CmpVertex>();
+				while(!fringe.isEmpty())
+				{
+					CmpVertex currentState = fringe.remove();
+					for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(currentState).entrySet())
+						for(CmpVertex target:coregraph.getTargets(transition.getValue()))
+							if (!statesInFringe.contains(target))
+							{
+								currentFringe.offer(target);
+								statesInFringe.add(target);
+							}
+				}
+				
+			}
+			while(!currentFringe.isEmpty());
+		}
+		return statesInFringe;
+	}
+
+	/** Computes the set of reachable states from which the initial state is not reachable. */
+	public Set<CmpVertex> computeReachableStatesFromWhichInitIsNotReachable()
+	{
+		Set<CmpVertex> reachableStates = coregraph.pathroutines.computeReachableStates();
+		LearnerGraphND inverse = new LearnerGraphND(coregraph.config);
+		AbstractPathRoutines.buildInverse(coregraph, LearnerGraphND.ignoreNone, inverse);
+		reachableStates.removeAll(inverse.pathroutines.computeReachableStates());// buildInverse sets the initial state in the inverse to the initial one in the source.
+		return reachableStates;
+	}
+
+	public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>> void removeReachableStatesFromWhichInitIsNotReachable(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> outcome)
+	{
+		final Set<CmpVertex> reachableStates = computeReachableStatesFromWhichInitIsNotReachable();
+		
+		buildForward(coregraph, new StatesToConsider(){
+
+			@Override
+			public boolean stateToConsider(CmpVertex vert) {
+				return !reachableStates.contains(vert);
+			}}, outcome);
+		
+	}
+	
+	/** Returns true if there is a path to an initial state from every state of the supplied automaton that is accessible from the initial state. */
+	public boolean automatonConnected()
+	{
+		Set<CmpVertex> reachableStates = coregraph.pathroutines.computeReachableStates();
+		if (!reachableStates.equals(coregraph.transitionMatrix.keySet()))
+			return false;
+		return computeReachableStatesFromWhichInitIsNotReachable().isEmpty();
+	}
+
+	/** Converts the existing state-transition matrix into the one with the signature of <em>transitionMatrixND</em>. 
+	 * Filtered out states will never be part of the constructed graph but some other states that had transitions in/out of the filtered states
+	 * may become unreachable and contain no outgoing transitions ({@link TestLearnerGraphND#testBuildForward7}). 
+	 * 
+	 * @param coregraph the graph to build <em>transitionMatrixND</em> from.
+	 * @param filter the filter to use when deciding which states to consider and which to throw away.
+	 * @param matrixND matrix to build
+	 */
+	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>,TARGET_B_TYPE,CACHE_B_TYPE extends CachedData<TARGET_B_TYPE,CACHE_B_TYPE>>
+		void buildForward(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> coregraph,StatesToConsider filter, AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> matrixND)
+	{
+		matrixND.initEmpty();
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+			if (filter.stateToConsider(entry.getKey()))
+				matrixND.transitionMatrix.put(entry.getKey(),matrixND.createNewRow());
+
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+			if (filter.stateToConsider(entry.getKey()))
+			{
+				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+					for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
+						if (filter.stateToConsider(targetState))
+						{
+							Map<Label,TARGET_B_TYPE> entryForState = matrixND.transitionMatrix.get(entry.getKey());
+							if (entryForState == null)
+							{
+								entryForState = matrixND.createNewRow();matrixND.transitionMatrix.put(entry.getKey(), entryForState);
+							}
+							matrixND.addTransition(entryForState, transition.getKey(), targetState);
+						}
+			}
+		
+		// It cannot happen that some target states will not be included in the set
+		// of source states because routines building LearnerGraph ensure
+		// that all states are mentioned on the left-hand side
+		// LearnerGraph's transition matrix.
+
+		if (filter.stateToConsider(coregraph.getInit()))
+			matrixND.setInit(coregraph.getInit());// assign an initial state if not filtered out
+	}
+		
+	/** Builds a (non-deterministic in general) transition matrix where all 
+	 * transitions point in an opposite direction to the current one. 
+	 * The matrix produced is used to scan  the state comparison matrix columnwise.
+	 * Filtered out states will never be part of the constructed graph but some other states that had transitions in/out of the filtered states
+	 * may become unreachable and contain no outgoing transitions ({@link TestLearnerGraphND#testBuildInverse7}). 
+	 *
+	 * @param graph the graph to build <em>transitionMatrixND</em> from.
+	 * @param filter the filter to use when deciding which states 
+	 * to consider and which to throw away.
+	 * @param matrixND matrix to build
+	 */
+	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
+		void buildInverse(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> graph,StatesToConsider filter, LearnerGraphND matrixND)
+	{
+		// First, we fill the map with empty entries - 
+		// it is crucially important to fill in all the entries which can be accessed during the triangular exploration, 
+		// otherwise holes will lead to the sequence of numbers explored to be discontinuous, causing a failure.
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+			if (filter.stateToConsider(entry.getKey()))
+				matrixND.transitionMatrix.put(entry.getKey(),matrixND.createNewRow());
+		
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+			if (filter.stateToConsider(entry.getKey()))
+			{
+				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+					for(CmpVertex target:graph.getTargets(transition.getValue()))
+						if (filter.stateToConsider(target))
+						{
+							Map<Label,List<CmpVertex>> row = matrixND.transitionMatrix.get(target);
+							List<CmpVertex> sourceStates = row.get(transition.getKey());
+							if (sourceStates == null)
+							{
+								sourceStates=new LinkedList<CmpVertex>();row.put(transition.getKey(), sourceStates);
+							}
+							sourceStates.add(entry.getKey());
+						}
+			}
+		if (matrixND.transitionMatrix.isEmpty()) matrixND.setInit(null);
+		else matrixND.setInit(graph.getInit());
 	}
 
 	/** Returns a state, randomly chosen according to the supplied random number generator. */

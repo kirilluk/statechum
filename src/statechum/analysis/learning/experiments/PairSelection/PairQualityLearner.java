@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
 
+import javax.management.RuntimeErrorException;
+
 import junit.framework.Assert;
 
 import statechum.Configuration;
@@ -381,9 +383,19 @@ public class PairQualityLearner
 
 		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<Label>(),labelsLeadingFromStatesToBeMerged = new LinkedList<Label>();
 		
+		public Collection<Label> getLabelsLeadingToStatesToBeMerged()
+		{
+			return labelsLeadingToStatesToBeMerged;
+		}
+		
 		public void setLabelsLeadingToStatesToBeMerged(Collection<Label> labels)
 		{
 			labelsLeadingToStatesToBeMerged = labels;
+		}
+		
+		public Collection<Label> getLabelsLeadingFromStatesToBeMerged()
+		{
+			return labelsLeadingFromStatesToBeMerged;
 		}
 		
 		public void setLabelsLeadingFromStatesToBeMerged(Collection<Label> labels)
@@ -761,38 +773,43 @@ public class PairQualityLearner
 			 // would make the whole process significantly more complex and hence not done.
 				dataCollector.buildSetsForComparators(pairs,tentativeGraph);
 	
+				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+				
 				for(PairScore p:pairs)
-				{
-					assert p.getScore() >= 0;
-					// By the time we get here, it is assumed that all mandatory merge conditions are satisfied and hence every pair can be merged.
-						
-					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), 0));
-/*					else
-					if (checkForMerge(p,tentativeGraph))
-						possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), Long.MAX_VALUE));
-						*/
-					else
-					{// meaningful pairs, check with the classifier
-						try
-						{
-							int []comparisonResults = dataCollector.comparePairWithOthers(p, pairs), assessmentResults = dataCollector.assessPair(p);
-							Instance instance = dataCollector.constructInstance(comparisonResults, assessmentResults, true);
-							double distribution[]=classifier.distributionForInstance(instance);
-							long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
-							if ( quality >= 0 )// && p.getScore() > 0)
+					if (pairsList.isEmpty() || tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) >= 0)
+					{
+						assert p.getScore() >= 0;
+							
+						// By the time we get here, it is assumed that all mandatory merge conditions are satisfied and hence every pair can be merged.
+							
+						if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
+							possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), 0));
+	/*					else
+						if (checkForMerge(p,tentativeGraph))
+							possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), Long.MAX_VALUE));
+							*/
+						else
+						{// meaningful pairs, check with the classifier
+							try
 							{
-								possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), quality));
+								int []comparisonResults = dataCollector.comparePairWithOthers(p, pairs), assessmentResults = dataCollector.assessPair(p);
+								Instance instance = dataCollector.constructInstance(comparisonResults, assessmentResults, true);
+								double distribution[]=classifier.distributionForInstance(instance);
+								long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
+								if ( quality >= 0 )// && p.getScore() > 0)
+								{
+									possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), quality));
+								}
+							}
+							catch(Exception ex)
+							{
+								ex.printStackTrace();
+								throw new IllegalArgumentException("failed to classify pair "+p, ex);
 							}
 						}
-						catch(Exception ex)
-						{
-							ex.printStackTrace();
-							throw new IllegalArgumentException("failed to classify pair "+p, ex);
-						}
 					}
-				}
-				
+					
 				Collections.sort(possibleResults, new Comparator<PairScore>(){
 	
 					@Override
@@ -1338,13 +1355,30 @@ public class PairQualityLearner
 					});
 				pta.paths.augmentPTA(generator.getAllSequences(0));pta.clearColours();
 				
-				if (pickUniqueFromInitial)
-					pta = mergeStatesForUniqueFromInitial(pta,uniqueFromInitial);
-				LearnerThatCanClassifyPairs learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
-				if (pickUniqueFromInitial)
-					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
+				LearnerThatCanClassifyPairs learnerOfPairs = null;
+				LearnerGraph actualAutomaton = null;
 				
-				LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				if (pickUniqueFromInitial)
+				{
+					pta = mergeStatesForUniqueFromInitial(pta,uniqueFromInitial);
+					learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
+					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
+					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+
+					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					List<StatePair> pairsList = LearnerThatUsesWekaResults.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
+					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+					if (score < 0)
+						System.out.println("last merge in the learning process was not possible");
+					else
+						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+				}
+				else
+				{// not merging based on a unique transition from an initial state
+					learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
+					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				}
+				
 				VertID rejectVertexID = null;
 				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
 					if (!v.isAccept())
@@ -1414,7 +1448,7 @@ public class PairQualityLearner
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 
-		for(int numberOfTraces=2;numberOfTraces<=4;++numberOfTraces)
+		for(int numberOfTraces=3;numberOfTraces<=6;++numberOfTraces)
 		{
 			WekaDataCollector dataCollector = createDataCollector();
 			List<SampleData> samples = new LinkedList<SampleData>();

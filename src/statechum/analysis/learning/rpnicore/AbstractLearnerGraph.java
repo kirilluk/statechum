@@ -302,15 +302,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Given a string representation of a label, this one generates an instance of a specific label.
 	 * @param text what to turn into a label, using the supplied configuration.
 	 * @param config determines which label to generate.
-	 */
-	public static Label generateNewLabel(String label, Configuration config)
-	{
-		return generateNewLabel(label,config,null);
-	}
-	
-	/** Given a string representation of a label, this one generates an instance of a specific label.
-	 * @param text what to turn into a label, using the supplied configuration.
-	 * @param config determines which label to generate.
 	 * @param conv converter to intern labels, ignored if null.
 	 */
 	public static Label generateNewLabel(String label, Configuration config, ConvertALabel conv)

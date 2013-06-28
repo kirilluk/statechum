@@ -77,13 +77,13 @@ public class TestGD {
 	public final void beforeTest()
 	{
 		 cloneConfig = Configuration.getDefaultConfiguration().copy();cloneConfig.setLearnerCloneGraph(false);		
-		label_a = AbstractLearnerGraph.generateNewLabel("a", cloneConfig);
-		label_b = AbstractLearnerGraph.generateNewLabel("b", cloneConfig);
-		label_c = AbstractLearnerGraph.generateNewLabel("c", cloneConfig);
-		label_d = AbstractLearnerGraph.generateNewLabel("d", cloneConfig);
-		label_e = AbstractLearnerGraph.generateNewLabel("e", cloneConfig);
-		label_q = AbstractLearnerGraph.generateNewLabel("q", cloneConfig);
-		label_u = AbstractLearnerGraph.generateNewLabel("u", cloneConfig);
+		label_a = AbstractLearnerGraph.generateNewLabel("a", cloneConfig,converter);
+		label_b = AbstractLearnerGraph.generateNewLabel("b", cloneConfig,converter);
+		label_c = AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter);
+		label_d = AbstractLearnerGraph.generateNewLabel("d", cloneConfig,converter);
+		label_e = AbstractLearnerGraph.generateNewLabel("e", cloneConfig,converter);
+		label_q = AbstractLearnerGraph.generateNewLabel("q", cloneConfig,converter);
+		label_u = AbstractLearnerGraph.generateNewLabel("u", cloneConfig,converter);
 	}
 	
 	protected Label
@@ -311,7 +311,7 @@ public class TestGD {
 		LearnerGraph gr = buildLearnerGraph("T-a-#C","testAddTransitions0B", Configuration.getDefaultConfiguration(),converter);
 		LearnerGraph grAnother = buildLearnerGraph("B-d->C","testAddTransitions0A",Configuration.getDefaultConfiguration(),converter);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		patcher.addTransition(grAnother.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig), grAnother.findVertex("C"));
+		patcher.addTransition(grAnother.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter), grAnother.findVertex("C"));
 	}
 	
 	/** Tests that inconsistent acceptance conditions are detected. */
@@ -321,7 +321,7 @@ public class TestGD {
 		LearnerGraph gr = buildLearnerGraph("T-a-#C","testAddTransitions0B", Configuration.getDefaultConfiguration(),converter);
 		LearnerGraph grAnother = buildLearnerGraph("C-d->A","testAddTransitions0A",Configuration.getDefaultConfiguration(),converter);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		patcher.addTransition(grAnother.findVertex("C"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig), grAnother.findVertex("A"));
+		patcher.addTransition(grAnother.findVertex("C"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter), grAnother.findVertex("A"));
 	}
 	
 	/** Tests that I cannot replace an existing transition. Deterministic case. */
@@ -840,7 +840,7 @@ public class TestGD {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4",Configuration.getDefaultConfiguration(),converter);
 		ChangesRecorder patcher = new ChangesRecorder(null);
-		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig), graph.findVertex("B"));
+		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter), graph.findVertex("B"));
 		patcher.removeTransition(graph.findVertex("A"), label_a, graph.findVertex("B"));
 		patcher.addTransition(graph.findVertex("A"), label_q, graph.findVertex("B"));
 		patcher.setInitial(graph.findVertex("A"));
@@ -855,7 +855,7 @@ public class TestGD {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4",Configuration.getDefaultConfiguration(),converter);
 		final ChangesRecorder patcher = new ChangesRecorder(null);
-		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig), graph.findVertex("B"));
+		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter), graph.findVertex("B"));
 		patcher.removeTransition(graph.findVertex("A"), label_a, graph.findVertex("B"));
 		patcher.addTransition(graph.findVertex("A"), label_q, graph.findVertex("B"));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -872,7 +872,7 @@ public class TestGD {
 		
 		graph.addToCompatibility(graph.findVertex("A"), graph.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		ChangesRecorder patcher = new ChangesRecorder(null);
-		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig), graph.findVertex("B"));
+		patcher.addTransition(graph.findVertex("B"), AbstractLearnerGraph.generateNewLabel("c", cloneConfig,converter), graph.findVertex("B"));
 		patcher.removeTransition(graph.findVertex("A"), label_a, graph.findVertex("B"));
 		patcher.removeFromCompatibility(graph.findVertex("B"), graph.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		patcher.addToCompatibility(graph.findVertex("B"), graph.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);

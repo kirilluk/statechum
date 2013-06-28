@@ -1151,16 +1151,16 @@ public class Transform
 			return Collections.singleton(convertLabelToLabel(label));
 		}
 
-		public ConvertTypeOfLabels(Configuration cnf)
+		public ConvertTypeOfLabels(Configuration cnf,ConvertALabel conv)
 		{
-			config = cnf;
+			config = cnf;converter = conv;
 		}
 		private final Configuration config;
-		
+		private final ConvertALabel converter;
 		@Override
 		public Label convertLabelToLabel(Label label) 
 		{
-			return AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config);
+			return AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config,converter);
 		}
 	}
 	

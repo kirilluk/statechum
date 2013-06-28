@@ -325,7 +325,7 @@ public class TestLTL_to_ba
 	public final void testLabelInterpretationA()
 	{
 		Set<Label> set = ba.interpretInputLabel("a");
-		Assert.assertEquals(1, set.size());Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config),set.iterator().next());
+		Assert.assertEquals(1, set.size());Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config,converter),set.iterator().next());
 	}
 	
 	@Test
@@ -390,8 +390,8 @@ public class TestLTL_to_ba
 	@Test
 	public final void testOp4()
 	{
-		checkOperation(new String[]{"b","c"},new Label[]{AbstractLearnerGraph.generateNewLabel("c",config)},OPERATION.OR,"b");
-		checkOperation(new String[]{},new Label[]{AbstractLearnerGraph.generateNewLabel("c",config)},OPERATION.AND,"b");
+		checkOperation(new String[]{"b","c"},new Label[]{AbstractLearnerGraph.generateNewLabel("c",config,converter)},OPERATION.OR,"b");
+		checkOperation(new String[]{},new Label[]{AbstractLearnerGraph.generateNewLabel("c",config,converter)},OPERATION.AND,"b");
 	}
 
 	protected Set<Label> interpretUnary(String str)

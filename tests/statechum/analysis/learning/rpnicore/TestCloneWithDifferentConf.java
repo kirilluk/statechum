@@ -26,7 +26,7 @@ public final class TestCloneWithDifferentConf
 	private final List<AbstractLearnerGraph> sameA,sameB,different;
 	
 	@SuppressWarnings("rawtypes")
-	public TestCloneWithDifferentConf(int listNumber,AbstractLearnerGraph argGraph, 
+	public TestCloneWithDifferentConf(@SuppressWarnings("unused") int listNumber,AbstractLearnerGraph argGraph, 
 			List<AbstractLearnerGraph> argSameA,List<AbstractLearnerGraph> argSameB,List<AbstractLearnerGraph> argDifferent) {
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
@@ -93,12 +93,13 @@ public final class TestCloneWithDifferentConf
 		}
 		
 
+		ConvertALabel converter = new Transform.InternStringLabel();
 		LearnerGraph differentGraphA = new LearnerGraph(graphD,graphD.config);differentGraphA.transitionMatrix.get(differentGraphA.findVertex("A2"))
-			.put(AbstractLearnerGraph.generateNewLabel("t",differentGraphA.config),
+			.put(AbstractLearnerGraph.generateNewLabel("t",differentGraphA.config,converter),
 					differentGraphA.findVertex("A3"));
 		differentGraphA.setName("differentA");
 		LearnerGraphND differentGraphB = new LearnerGraphND(graphND,graphD.config);differentGraphB.transitionMatrix.get(differentGraphB.findVertex("A2"))
-			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config))
+			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config,converter))
 			.add(differentGraphB.findVertex("S"));
 		differentGraphB.setName("differentB");
 		

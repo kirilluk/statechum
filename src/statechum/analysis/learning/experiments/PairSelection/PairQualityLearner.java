@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -375,6 +377,18 @@ public class PairQualityLearner
 		public boolean checkAllMergersCorrect()
 		{
 			return allMergersCorrect;
+		}
+
+		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<Label>(),labelsLeadingFromStatesToBeMerged = new LinkedList<Label>();
+		
+		public void setLabelsLeadingToStatesToBeMerged(Collection<Label> labels)
+		{
+			labelsLeadingToStatesToBeMerged = labels;
+		}
+		
+		public void setLabelsLeadingFromStatesToBeMerged(Collection<Label> labels)
+		{
+			labelsLeadingFromStatesToBeMerged = labels;
 		}
 
 		/** Returns one of the correct pairs.
@@ -723,19 +737,7 @@ public class PairQualityLearner
 			
 			return pairsList;
 		}
-		
-		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<Label>(),labelsLeadingFromStatesToBeMerged = new LinkedList<Label>();
-		
-		public void setLabelsLeadingToStatesToBeMerged(Collection<Label> labels)
-		{
-			labelsLeadingToStatesToBeMerged = labels;
-		}
-		
-		public void setLabelsLeadingFromStatesToBeMerged(Collection<Label> labels)
-		{
-			labelsLeadingFromStatesToBeMerged = labels;
-		}
-		
+				
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly. 
 		 */
@@ -1142,6 +1144,24 @@ public class PairQualityLearner
 		
 		return labelToState;
 	}
+
+	/** Finds a label that uniquely identifies the initial state. Assumes that all states are reachable from an initial state, otherwise it may decide that some labels are not unique to 
+	 * the initial state while in reality they are unique to all states that are reachable from it.
+	 */ 
+	public static Label uniqueFromInitial(LearnerGraph graph)
+	{
+		if (graph.getInit() == null)
+			return null;
+		Set<Label> liveLabels = new HashSet<Label>();liveLabels.addAll(graph.transitionMatrix.get(graph.getInit()).keySet());
+		
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+			if (entry.getKey() != graph.getInit()) liveLabels.removeAll(entry.getValue().keySet());
+		
+		if (liveLabels.isEmpty())
+			return null;
+		
+		return liveLabels.iterator().next();
+	}
 	
 	/** All label starting from this prefix are going to be merged. */
 	public static final String prefixOfMandatoryMergeTransition = "toMerge";
@@ -1160,17 +1180,76 @@ public class PairQualityLearner
 		}
 	}
 	
+	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. The collection of pairs initial-original is then returned. */
+	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
+	{
+		List<CmpVertex> sourceStates = new LinkedList<CmpVertex>(), statesOfInterest = new LinkedList<CmpVertex>();
+		List<Label> sourceOutgoing = new LinkedList<Label>();
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:pta.transitionMatrix.entrySet())
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				if (transition.getValue().isAccept())
+				{
+					for(Entry<Label,CmpVertex> nextTransition:pta.transitionMatrix.get(transition.getValue()).entrySet())
+					{
+						if (nextTransition.getValue().isAccept() && nextTransition.getKey().equals(uniqueFromInitial))
+						{
+							sourceStates.add(entry.getKey());sourceOutgoing.add(transition.getKey());
+							statesOfInterest.add(transition.getValue());
+						}
+					}
+				}
+
+		Iterator<Label> sourceOutgoingIter = sourceOutgoing.iterator();
+		for(CmpVertex vert:sourceStates)
+		{
+			CmpVertex newState = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
+			Map<Label,CmpVertex> row = pta.createNewRow();
+			pta.transitionMatrix.put(newState,row);
+			pta.transitionMatrix.get(vert).put(sourceOutgoingIter.next(), newState);
+		}
+		return statesOfInterest;
+	}
+	
+	public static LearnerGraph mergeStatesForUniqueFromInitial(LearnerGraph pta, Label uniqueFromInitial)
+	{
+		List<StatePair> pairs = new LinkedList<StatePair>();
+		for(CmpVertex vert:constructPairsToMergeWithOutgoing(pta,uniqueFromInitial))
+			pairs.add(new StatePair(pta.getInit(),vert));
+		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		if (pta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
+			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+uniqueFromInitial);
+		return MergeStates.mergeCollectionOfVertices(pta, null, verticesToMerge);
+	}
+	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
 		protected final int states,sample;
-		protected final boolean learnUsingReferenceLearner;
+		protected boolean learnUsingReferenceLearner, onlyUsePositives, pickUniqueFromInitial;
 		protected final int seed;
-		protected final int numberOfTraces;
+		protected final int traceQuantity;
 		
-		public LearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, boolean argLearnUsingReferenceLearner, Configuration conf)
+		/** Whether to compute the value from QSM as a reference learner. */
+		public void setEvaluateAlsoUsingReferenceLearner(boolean value)
 		{
-			states = argStates;sample = argSample;config = conf;learnUsingReferenceLearner = argLearnUsingReferenceLearner;seed = argSeed;numberOfTraces=nrOfTraces;
+			learnUsingReferenceLearner = value;
+		}
+		
+		/** Whether to filter the collection of traces such that only positive traces are used. */
+		public void setOnlyUsePositives(boolean value)
+		{
+			onlyUsePositives = value;
+		}
+		
+		/** Where a transition that can be uniquely identifying an initial state be used both for mergers and for building a partly-merged PTA. */
+		public void setPickUniqueFromInitial(boolean value)
+		{
+			pickUniqueFromInitial = value;
+		}
+		
+		public LearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf)
+		{
+			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;
 		}
 		
 		public abstract LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
@@ -1190,22 +1269,33 @@ public class PairQualityLearner
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
 			WekaDataCollector dataCollector = createDataCollector();
-			synchronized(AbstractLearnerGraph.syncObj)
+			Label uniqueFromInitial = null;
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			do
 			{
-				MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 				referenceGraph = mg.nextMachine(alphabet,seed, config).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 				Assert.assertFalse(WMethod.checkEquivalentStates(referenceGraph));
+				if (pickUniqueFromInitial)
+				{
+					Map<Label,CmpVertex> uniques = uniqueFromState(referenceGraph);
+					if(!uniques.isEmpty())
+					{
+						Entry<Label,CmpVertex> entry = uniques.entrySet().iterator().next();
+						referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();
+					}
+				}
 			}
+			while(pickUniqueFromInitial && uniqueFromInitial == null);
 			
+			/*
 			Map<Label,CmpVertex> uniqueFrom = PairQualityLearner.uniqueFromState(referenceGraph), uniqueInto = PairQualityLearner.uniqueIntoState(referenceGraph);
-			if (!uniqueFrom.isEmpty() || uniqueInto.isEmpty())
+			if (!uniqueFrom.isEmpty() || !uniqueInto.isEmpty())
 			{
 				synchronized(AbstractLearnerGraph.syncObj)
 				{
 					System.out.println("FSM with "+referenceGraph.getStateNumber()+"states : unique from: "+uniqueFrom+" and unique to: "+uniqueInto);System.out.flush();
 				}
-			}
-			
+			}*/
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);
 			final Collection<List<Label>> testSet = referenceGraph.wmethod.computeNewTestSet(1);
 			for(int attempt=0;attempt<10;++attempt)
@@ -1214,18 +1304,17 @@ public class PairQualityLearner
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
 				// test sequences will be distributed around 
 				final int pathLength = generator.getPathLength();
-				final int sequencesPerChunkTypical = makeEven(alphabet*states*numberOfTraces);
-				// The total number of elements in test sequences will be distributed around (random(pathLength)+1)*sequencesPerChunkTypical
+				final int sequencesPerChunk = makeEven(alphabet*states*traceQuantity);// we are only using one chunk here but the name is unchanged.
+				// Usually, the total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 				// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
-				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunkTypical/states and there will be a total of states traces generated.
+				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
 				final int tracesToGenerate = makeEven(states);
 				final Random rnd = new Random(seed+attempt);
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false
-					, new RandomLengthGenerator() {
+				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
 						public int getLength() {
-							return (rnd.nextInt(pathLength)+1)*sequencesPerChunkTypical/tracesToGenerate;
+							return (rnd.nextInt(pathLength)+1)*sequencesPerChunk/tracesToGenerate;
 						}
 		
 						@Override
@@ -1240,10 +1329,21 @@ public class PairQualityLearner
 				}*/
 				//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));// this one will not set any states as rejects because it uses shouldbereturned
 				//referenceGraph.pathroutines.completeGraph(referenceGraph.nextID(false));
-				
+				if (onlyUsePositives)
+					generator.getAllSequences(0).filter(new FilterPredicate() {
+						@Override
+						public boolean shouldBeReturned(Object name) {
+							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+						}
+					});
 				pta.paths.augmentPTA(generator.getAllSequences(0));pta.clearColours();
 				
+				if (pickUniqueFromInitial)
+					pta = mergeStatesForUniqueFromInitial(pta,uniqueFromInitial);
 				LearnerThatCanClassifyPairs learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
+				if (pickUniqueFromInitial)
+					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
+				
 				LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				VertID rejectVertexID = null;
 				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
@@ -1309,27 +1409,31 @@ public class PairQualityLearner
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSM = 2;
 
+		final boolean pickUniqueFromInitial = true;
+		
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 
-		for(int numberOfTraces=1;numberOfTraces<=4;++numberOfTraces)
+		for(int numberOfTraces=2;numberOfTraces<=4;++numberOfTraces)
 		{
 			WekaDataCollector dataCollector = createDataCollector();
 			List<SampleData> samples = new LinkedList<SampleData>();
 			try
-			{	
+			{
 				int numberOfTasks = 0;
 				for(int states=minStateNumber;states < minStateNumber+15;states+=5)
 					for(int sample=0;sample<samplesPerFSM;++sample)
 					{
-						runner.submit(new LearnerRunner(states,sample,1+numberOfTasks,numberOfTraces, false,config)
+						LearnerRunner learnerRunner = new LearnerRunner(states,sample,1+numberOfTasks,numberOfTraces, config)
 						{
 							@Override
 							public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 							{
 								return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA,gr_ErrorsAndDeadends);
 							}
-						});
+						};
+						learnerRunner.setPickUniqueFromInitial(pickUniqueFromInitial);
+						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
 				ProgressIndicator progress = new ProgressIndicator("running "+numberOfTasks+" tasks", numberOfTasks);
@@ -1372,7 +1476,7 @@ public class PairQualityLearner
 				for(int states=minStateNumber;states < minStateNumber+15;states+=5)
 					for(int sample=0;sample<samplesPerFSM;++sample)
 					{
-						runner.submit(new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,numberOfTraces, true,config)
+						LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,numberOfTraces, config)
 						{
 							@Override
 							public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,@SuppressWarnings("unused") WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
@@ -1384,7 +1488,9 @@ public class PairQualityLearner
 								return outcome;
 							}
 							
-						});
+						};
+						learnerRunner.setPickUniqueFromInitial(pickUniqueFromInitial);learnerRunner.setEvaluateAlsoUsingReferenceLearner(true);
+						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
 				ProgressIndicator progress = new ProgressIndicator("evaluating "+numberOfTasks+" tasks", numberOfTasks);

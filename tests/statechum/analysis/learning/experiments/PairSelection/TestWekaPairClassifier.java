@@ -969,9 +969,9 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(2, mapUniqueInto.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueInto.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 
 	@Test
@@ -982,9 +982,9 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(2, mapUniqueFrom.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueFrom.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 
 	@Test
@@ -1010,11 +1010,11 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(3, mapUniqueInfo.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueInfo.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 	}
 
 	/** Multiple labels to choose from. */
@@ -1026,9 +1026,9 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(2, mapUniqueInfo.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueInfo.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 	}
 
 	/** Multiple labels to choose from. */
@@ -1040,11 +1040,11 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(3, mapUniqueFrom.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueFrom.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 
 	/** Multiple labels to choose from. */
@@ -1056,9 +1056,9 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(2, mapUniqueFrom.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueFrom.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 
 	/** Multiple labels to choose from. */
@@ -1071,15 +1071,15 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(5, mapUniqueInto.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueInto.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("C"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("C"),entry.getValue());
 	}
 	
 	/** Multiple labels to choose from. */
@@ -1092,15 +1092,15 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(5, mapUniqueFrom.size());
 		Iterator<Entry<Label,CmpVertex>> entryIter = mapUniqueFrom.entrySet().iterator();
 		Entry<Label,CmpVertex> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("A"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("A"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue());
 	}
 	
 	@Test
@@ -1361,6 +1361,7 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected1()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.initEmpty();
+		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		Assert.assertTrue(actual.transitionMatrix.isEmpty());Assert.assertNull(actual.getInit());
@@ -1370,6 +1371,7 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected2()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		LearnerGraph expected = new LearnerGraph(mainConfiguration);
@@ -1381,10 +1383,24 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
+		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		DifferentFSMException ex = WMethod.checkM(graph, actual);
 		if (ex != null) throw ex;
+	}
+	
+	@Test
+	public void testUniqueFromInitial1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter), PairQualityLearner.uniqueFromInitial(graph));
+	}
+	@Test
+	public void testUniqueFromInitial2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A-b->B / C-a->A-t->A","testAutomatonConnected3",mainConfiguration, converter);
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("t", mainConfiguration, converter), PairQualityLearner.uniqueFromInitial(graph));
 	}
 	
 	@Test
@@ -1409,6 +1425,85 @@ public class TestWekaPairClassifier {
 		if (ex != null) throw ex;
 	}
 	
+	@Test
+	public void testConstructPairsToMergeWithOutgoing1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
+		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter)));
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("M2"),graph.findVertex("M3"),graph.findVertex("M4")}));
+		Assert.assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testConstructPairsToMergeWithOutgoing2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
+		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter)));
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("M2"),graph.findVertex("M3"),graph.findVertex("M4")}));
+		Assert.assertEquals(expected, actual);
+	}
+	
+	// Here transition from M3 goes to a reject state, hence M3 is not considered a candidate for a valid merge with other M-transitions. 
+	@Test
+	public void testConstructPairsToMergeWithOutgoing3()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
+		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter)));
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("M2"),graph.findVertex("M4")}));
+		Assert.assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testConstructPairsToMergeWithOutgoing4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
+		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+		Assert.assertTrue(actual.isEmpty());
+	}
+	
+	@Test
+	public void testConstructPairsToMergeWithOutgoing5()
+	{
+		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
+		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+		Assert.assertTrue(actual.isEmpty());
+	}
+	
+	@Test
+	public void testMergeStatesForUniqueFromInitial1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		LearnerGraph actual = PairQualityLearner.mergeStatesForUniqueFromInitial(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4 / M1-b->B / M1 -a->A2-b->M2","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
+		DifferentFSMException ex = WMethod.checkM(expected, actual);
+		if (ex != null)
+			throw ex;
+	}
+	
+	@Test
+	public void testMergeStatesForUniqueFromInitial2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		LearnerGraph actual = PairQualityLearner.mergeStatesForUniqueFromInitial(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
+		DifferentFSMException ex = WMethod.checkM(expected, actual);
+		if (ex != null)
+			throw ex;
+	}
+	
+	@Test
+	public void testMergeStatesForUniqueFromInitial3()
+	{
+		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		LearnerGraph actual = PairQualityLearner.mergeStatesForUniqueFromInitial(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
+		Assert.assertEquals(1,actual.getStateNumber());
+		Assert.assertTrue(actual.transitionMatrix.get(actual.getInit()).isEmpty());
+	}
 }
 
 

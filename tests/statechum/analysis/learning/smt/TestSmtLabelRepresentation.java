@@ -171,8 +171,8 @@ public class TestSmtLabelRepresentation
 		lbls.parseLabel(INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST.name()+" memory2");
 		Assert.assertEquals(1,lbls.labelMapConstructionOfOperations.size());
 		SMTLabel l = lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getValue();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel(INITMEM, config),lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getKey());
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel(INITMEM, config),l.getName());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel(INITMEM, config,converter),lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getKey());
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel(INITMEM, config,converter),l.getName());
 		Assert.assertEquals("memory0\nmemory1\nmemory2",l.post.text);
 		Assert.assertEquals("varDecl\nvarDecl2",l.pre.text);
 	}
@@ -189,7 +189,7 @@ public class TestSmtLabelRepresentation
 		Assert.assertEquals(3,lbls.labelMapConstructionOfOperations.size());
 
 		{
-			Label initmem = AbstractLearnerGraph.generateNewLabel(INITMEM, config);
+			Label initmem = AbstractLearnerGraph.generateNewLabel(INITMEM, config,converter);
 			SMTLabel l = lbls.labelMapConstructionOfOperations.get(initmem);
 			Assert.assertEquals(initmem,l.getName());
 			Assert.assertNull(l.post.text);
@@ -197,7 +197,7 @@ public class TestSmtLabelRepresentation
 		}
 
 		{
-			Label labelA = AbstractLearnerGraph.generateNewLabel("A", config);
+			Label labelA = AbstractLearnerGraph.generateNewLabel("A", config,converter);
 			SMTLabel l = lbls.labelMapConstructionOfOperations.get(labelA);
 			Assert.assertEquals(labelA,l.getName());
 			Assert.assertNull(l.pre.text);
@@ -205,7 +205,7 @@ public class TestSmtLabelRepresentation
 		}
 
 		{
-			Label labelB = AbstractLearnerGraph.generateNewLabel("B", config);
+			Label labelB = AbstractLearnerGraph.generateNewLabel("B", config,converter);
 			SMTLabel l = lbls.labelMapConstructionOfOperations.get(labelB);
 			Assert.assertEquals(labelB,l.getName());
 			Assert.assertNull(l.post.text);
@@ -530,8 +530,8 @@ public class TestSmtLabelRepresentation
 		{
 			lbls.getConjunctionForPath(
 					Arrays.asList(new SMTLabel[]{
-							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),
+							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),
 					Arrays.asList(new SmtLabelRepresentation.CompositionOfFunctions[]{}));
 		}}, IllegalArgumentException.class,"mismatched length");
 	}
@@ -553,8 +553,8 @@ public class TestSmtLabelRepresentation
 		{
 			lbls.getConjunctionForPath(
 					Arrays.asList(new SMTLabel[]{
-							lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-							lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),null);
+							lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+							lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),null);
 		}}, IllegalArgumentException.class,"construction incomplete");
 	}
 		
@@ -573,8 +573,8 @@ public class TestSmtLabelRepresentation
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
 				Arrays.asList(new SMTLabel[]{
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),null);
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),null);
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -635,9 +635,9 @@ public class TestSmtLabelRepresentation
 		int number0 = 10,number1=15,number2=20;
 		AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),number0);
 		AbstractState stateAfterA = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),null,number1);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),null,number1);
 		AbstractState stateAfterB = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterB"),config),stateAfterA,
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config)),null,number2);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter)),null,number2);
 		Assert.assertEquals("varDeclP"+__P+number0+" varDeclQ"+__P+number0+ENDL+
 				"varDeclP"+__P+number1+" varDeclQ"+__P+number1+ENDL+
 				"varDeclP"+__P+number2+" varDeclQ"+__P+number2,stateAfterB.variableDeclarations);
@@ -652,7 +652,7 @@ public class TestSmtLabelRepresentation
 				"somePostcondB"+__P+number2,
 				stateAfterB.abstractState);
 		Assert.assertEquals("AfterB",stateAfterB.vertex.toString());
-		Assert.assertSame(lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config)),stateAfterB.lastLabel);
+		Assert.assertSame(lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter)),stateAfterB.lastLabel);
 		Assert.assertEquals(number2,stateAfterB.stateNumber);
 	}
 	
@@ -666,11 +666,11 @@ public class TestSmtLabelRepresentation
 		int number0 = 10,number1=15,number2=20;
 		AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),number0);
 		AbstractState stateAfterA = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,number1);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config,lbls.converter)).post,number1);
 		AbstractState stateAfterB = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterB"),config),stateAfterA,
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config)),
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO2",lbls.config)).post,number2);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter)),
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO2",lbls.config,lbls.converter)).post,number2);
 		Assert.assertEquals("varDeclP"+__P+number0+" varDeclQ"+__P+number0+ENDL+
 				"varDeclP"+__P+number1+" varDeclQ"+__P+number1+ENDL+
 				"varDeclP"+__P+number2+" varDeclQ"+__P+number2,stateAfterB.variableDeclarations);
@@ -687,7 +687,7 @@ public class TestSmtLabelRepresentation
 				"somePostcondB"+__P+number2,
 				stateAfterB.abstractState);
 		Assert.assertEquals("AfterB",stateAfterB.vertex.toString());
-		Assert.assertSame(lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config)),stateAfterB.lastLabel);
+		Assert.assertSame(lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter)),stateAfterB.lastLabel);
 		Assert.assertEquals(number2,stateAfterB.stateNumber);
 	}
 
@@ -702,8 +702,8 @@ public class TestSmtLabelRepresentation
 		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
 		public @Override void run() {
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),null,
-					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,7);
+					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+							lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config,lbls.converter)).post,7);
 		}},IllegalArgumentException.class, "previous state");
 	}
 	
@@ -734,7 +734,7 @@ public class TestSmtLabelRepresentation
 		public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,null,
-					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,7);
+					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config,lbls.converter)).post,7);
 		}},IllegalArgumentException.class, "previous state");
 	}
 	
@@ -750,8 +750,8 @@ public class TestSmtLabelRepresentation
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
 				Arrays.asList(new SMTLabel[]{
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),null);
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),null);
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -784,8 +784,8 @@ public class TestSmtLabelRepresentation
 		SmtLabelRepresentation lbls = testCreateConjunction2_internal();
 		Pair<String,String> state = lbls.getConjunctionForPath(
 				Arrays.asList(new SMTLabel[]{
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),null);
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),null);
 		int number = 7;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -819,11 +819,11 @@ public class TestSmtLabelRepresentation
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
 				Arrays.asList(new SMTLabel[]{
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config)),
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config))}),
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("B",lbls.config,lbls.converter))}),
 				Arrays.asList(new SmtLabelRepresentation.CompositionOfFunctions[]{
-						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config)).post,
-								lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO2",lbls.config)).post}));
+						lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO1",lbls.config,lbls.converter)).post,
+								lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("IO2",lbls.config,lbls.converter)).post}));
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -1280,21 +1280,21 @@ public class TestSmtLabelRepresentation
 
 		Pair<String,String> state = null;
 		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config))}),null);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter))}),null);
 		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
 		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{}),null);
 		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
 		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config)),
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config))}),null);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config,lbls.converter)),
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter))}),null);
 		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
 		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config)),
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config)),
-				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config))}),null);
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config,lbls.converter)),
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter)),
+				lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter))}),null);
 		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 	}
 	
@@ -1467,7 +1467,7 @@ public class TestSmtLabelRepresentation
 			graph.transitionMatrix.put(newState, graph.createNewRow());
 			graph.addTransition(graph.transitionMatrix.get(
 					graph.paths.getVertex(labelList(new String[]{"add","remove"}))), 
-					AbstractLearnerGraph.generateNewLabel("remove",graph.config), newState);
+					AbstractLearnerGraph.generateNewLabel("remove",graph.config,converter), newState);
 			Assert.assertEquals(origVertices.size()+1,graph.getStateNumber());
 			
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1605,10 +1605,10 @@ public class TestSmtLabelRepresentation
 		final String expectedCompDeclarations = SmtLabelRepresentation.encloseInBeginEndIfNotEmpty(
 				expectedDecls.toString(),SmtLabelRepresentation.blockVARDECLS);
 
-		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config)).pre.varDeclarations);
-		Assert.assertEquals(expectedCompDeclarations,lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config)).post.varDeclarations);
-		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config)).pre.varDeclarations);
-		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config)).post.varDeclarations);
+		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config,lbls.converter)).pre.varDeclarations);
+		Assert.assertEquals(expectedCompDeclarations,lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config,lbls.converter)).post.varDeclarations);
+		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter)).pre.varDeclarations);
+		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter)).post.varDeclarations);
 		
 		StringBuffer expectedTrace = new StringBuffer();
 		String init = "(define m"+_N+"::nat) (define a"+_N+"::nat)";
@@ -1728,8 +1728,8 @@ public class TestSmtLabelRepresentation
 				,
 				SmtLabelRepresentation.blockVALUES));
 
-		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config)).pre.finalText);
-		Assert.assertEquals("(> m"+_M+" 0)",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config)).pre.finalText);
-		Assert.assertEquals("(= m"+_N+" (- m"+_M+" 1))",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config)).post.finalText);		
+		Assert.assertEquals("",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("add",lbls.config,lbls.converter)).pre.finalText);
+		Assert.assertEquals("(> m"+_M+" 0)",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter)).pre.finalText);
+		Assert.assertEquals("(= m"+_N+" (- m"+_M+" 1))",lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("remove",lbls.config,lbls.converter)).post.finalText);		
 	}
 }

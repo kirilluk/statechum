@@ -1092,7 +1092,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.5, entry.get(a),Configuration.fpAccuracy);
 	}
 	
@@ -1101,7 +1101,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.75, entry.get(a),Configuration.fpAccuracy);
 	}
 	
@@ -1122,7 +1122,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);
 	}
 	

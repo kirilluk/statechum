@@ -28,6 +28,7 @@ import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.util.*;
 import statechum.analysis.learning.rpnicore.*;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -56,10 +57,11 @@ public class SpinUtil {
 	Map<Integer, String> inverseFunctionMap;
 	
 	final Configuration config;
+	final ConvertALabel converter;
 	
-	public SpinUtil(Configuration c)
+	public SpinUtil(Configuration c, ConvertALabel conv)
 	{
-		config = c;
+		config = c;converter = conv;
 	}
 	
 	public SpinResult check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
@@ -431,7 +433,7 @@ public class SpinUtil {
 							.valueOf(line.substring(inputIndex,
 									closingBracket).trim()));
 					if(function !=null)
-						counterExample.add(AbstractLearnerGraph.generateNewLabel(function,configArg));
+						counterExample.add(AbstractLearnerGraph.generateNewLabel(function,configArg,converter));
 				} 
 				else if (line.contains("<<<<<"))
 					break;

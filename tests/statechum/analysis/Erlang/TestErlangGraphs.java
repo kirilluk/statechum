@@ -48,7 +48,7 @@ public class TestErlangGraphs {
 	@Test
 	public void testLabelBuilding1()
 	{
-		Assert.assertEquals(prefixFun+ "'a','b','c'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{a,b,c}", config)).toErlangTerm());
+		Assert.assertEquals(prefixFun+ "'a','b','c'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{a,b,c}", config,converter)).toErlangTerm());
 	}
 	
 	protected final String lblTextA = "{a,[b,g,56],\"c\"}", lblDumpA = prefixFun+ "'a',['b','g',56],\"c\"}";
@@ -56,7 +56,7 @@ public class TestErlangGraphs {
 	@Test
 	public void testLabelBuilding2()
 	{
-		Assert.assertEquals(lblDumpA,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextA, config)).toErlangTerm());
+		Assert.assertEquals(lblDumpA,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextA, config,converter)).toErlangTerm());
 	}
 	
 	protected final String lblTextB = "{a,\"smth\",\"c\"}", lblDumpB = prefixFun+ "'a',\"smth\",\"c\"}";
@@ -64,7 +64,7 @@ public class TestErlangGraphs {
 	@Test
 	public void testLabelBuilding3()
 	{
-		Assert.assertEquals(lblDumpB,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextB, config)).toErlangTerm());
+		Assert.assertEquals(lblDumpB,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextB, config,converter)).toErlangTerm());
 	}
 	
 	protected final String lblTextC = "{a,<< 156 >>}", lblDumpC = prefixFun+ "'a',<< 156>>}";
@@ -72,19 +72,19 @@ public class TestErlangGraphs {
 	@Test
 	public void testLabelBuilding4()
 	{
-		Assert.assertEquals(lblDumpC,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextC, config)).toErlangTerm());
+		Assert.assertEquals(lblDumpC,((ErlangLabel)AbstractLearnerGraph.generateNewLabel(lblTextC, config,converter)).toErlangTerm());
 	}
 		
 	@Test
 	public void testLabelBuilding5()
 	{
-		Assert.assertEquals("{"+ErlangLabel.missingFunction+",'a','b','c'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'a','b','c'}", config)).toErlangTerm());
+		Assert.assertEquals("{"+ErlangLabel.missingFunction+",'a','b','c'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'a','b','c'}", config,converter)).toErlangTerm());
 	}
 	
 	@Test
 	public void testLabelBuilding6()
 	{
-		Assert.assertEquals("{"+ErlangLabel.missingFunction+",'a','b'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'a','b'}", config)).toErlangTerm());
+		Assert.assertEquals("{"+ErlangLabel.missingFunction+",'a','b'}",((ErlangLabel)AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'a','b'}", config,converter)).toErlangTerm());
 	}
 	
 	@Test
@@ -92,7 +92,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{a,b,c", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{a,b,c", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 	}
 	
@@ -101,7 +101,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{a,b,c,d,e}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{a,b,c,d,e}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"arity 5");
 	}
 	
@@ -110,7 +110,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{b}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{b}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"arity 1");
 	}
 
@@ -119,7 +119,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("b", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("b", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"expected a tuple");
 	}
 	
@@ -128,7 +128,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{\"a\",b,c}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{\"a\",b,c}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
 	
@@ -137,7 +137,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{98,c,d}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{98,c,d}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
 
@@ -146,7 +146,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{98,c}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{98,c}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
 
@@ -155,7 +155,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
 
@@ -164,7 +164,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c,d}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c,d}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
 
@@ -173,7 +173,7 @@ public class TestErlangGraphs {
 	{
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel("{56,a,c,d}", config).toErlangTerm();
+			AbstractLearnerGraph.generateNewLabel("{56,a,c,d}", config,converter).toErlangTerm();
 		}},IllegalArgumentException.class,"should start with "+ErlangLabel.missingFunction);
 	}
 	
@@ -243,7 +243,7 @@ public class TestErlangGraphs {
 		
 		Configuration cnf = config.copy();cnf.setLabelKind(LABELKIND.LABEL_ERLANG);
 		LearnerGraph grErl = new LearnerGraph(grStr.config);
-		AbstractLearnerGraph.interpretLabelsOnGraph(grStr,grErl,new Transform.ConvertTypeOfLabels(cnf));
+		AbstractLearnerGraph.interpretLabelsOnGraph(grStr,grErl,new Transform.ConvertTypeOfLabels(cnf,converter));
 		{
 			Set<Label> alphabet = grErl.pathroutines.computeAlphabet();
 			Set<String> labels = new TreeSet<String>();Iterator<Label> iter = alphabet.iterator();labels.add(iter.next().toErlangTerm());labels.add(iter.next().toErlangTerm());

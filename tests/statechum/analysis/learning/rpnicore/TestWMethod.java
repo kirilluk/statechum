@@ -996,7 +996,7 @@ public class TestWMethod {
 		LearnerGraph expectedB = new LearnerGraph(expectedL,config);
 		expectedB.removeTransition(expectedL.transitionMatrix.get(
 				expectedB.findVertex(VertexID.parseID("A"))), 
-				AbstractLearnerGraph.generateNewLabel("a",config),
+				AbstractLearnerGraph.generateNewLabel("a",config,converter),
 				expectedB.findVertex(VertexID.parseID("A")));
 		WMethod.checkM(expectedB, fsmL.paths.reduce());
 	}
@@ -1065,7 +1065,7 @@ public class TestWMethod {
 	{
 		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"a"});
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config),WMethod.computeTopLabel(distinguishingLabels));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config,converter),WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test
@@ -1074,7 +1074,7 @@ public class TestWMethod {
 		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"a"});
 		addDistLabels(distinguishingLabels, "0","2",new String[] {"a"});
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config),WMethod.computeTopLabel(distinguishingLabels));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config,converter),WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test
@@ -1084,7 +1084,7 @@ public class TestWMethod {
 		addDistLabels(distinguishingLabels, "1","2",new String[] {"a"});
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"b"});
 		addDistLabels(distinguishingLabels, "3","1",new String[] {"b"});
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b",config),WMethod.computeTopLabel(distinguishingLabels));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b",config,converter),WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test
@@ -1095,7 +1095,7 @@ public class TestWMethod {
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"b"});
 		addDistLabels(distinguishingLabels, "3","1",new String[] {"b"});
 		addDistLabels(distinguishingLabels, "4","1",new String[] {});// empty entry
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b",config),WMethod.computeTopLabel(distinguishingLabels));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b",config,converter),WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test

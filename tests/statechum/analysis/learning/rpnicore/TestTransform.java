@@ -1771,7 +1771,7 @@ public class TestTransform
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-1->C","testInterpretLabelsOnGraph3a",config,converter);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->A\nB-c->C-a->C-c->C","testInterpretLabelsOnGraph3b",config,converter);
-		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config));
+		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config,converter));
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(alphabet,converter);
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
@@ -1782,7 +1782,7 @@ public class TestTransform
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->A\nB-c->C-(1 && (a || b))->C","testInterpretLabelsOnGraph3a",config,converter);
 		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->A\nB-c->C-a->C-b->C","testInterpretLabelsOnGraph3b",config,converter);
-		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config));alphabet.add(AbstractLearnerGraph.generateNewLabel("b",config,converter));
+		Set<Label> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove(AbstractLearnerGraph.generateNewLabel("1", config,converter));alphabet.add(AbstractLearnerGraph.generateNewLabel("b",config,converter));
 		final LearnerGraph outcome = graph.transform.interpretLabelsAsReg(alphabet,converter);
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);

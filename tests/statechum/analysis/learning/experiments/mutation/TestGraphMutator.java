@@ -38,16 +38,18 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class TestGraphMutator {
 
 	Configuration config = Configuration.getDefaultConfiguration();
 	GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = null;
+	ConvertALabel converter = null;
 	
 	void checkContainsTransition(String from, String to, String labelAsString)
 	{
 		LearnerGraphND mut = (LearnerGraphND)mutator.getMutated();Map<CmpVertex,Map<Label,List<CmpVertex>>> matrix = mut.getTransitionMatrix();
-		Label label = AbstractLearnerGraph.generateNewLabel(labelAsString, mut.config);
+		Label label = AbstractLearnerGraph.generateNewLabel(labelAsString, mut.config,converter);
 		Assert.assertTrue(matrix.get(mut.findVertex(VertexID.parseID(from))).get(label).contains(mut.findVertex(VertexID.parseID(to))));
 	}
 	

@@ -725,6 +725,8 @@ public class PaperUAS
 	  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
 	  			LearnerThatCanClassifyPairs learner = new LearnerThatUsesWekaResults(learnerInitConfiguration,referenceGraph,classifiers[i],initPTA);
 	  			learner.setAlphabetUsedForIfThen(alphabetForIfThen);
+	  			learner.setLabelsLeadingToStatesToBeMerged(Collections.<Label>emptyList());
+	  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter())}));
 	 	        final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        long tmFinished = new Date().getTime();
 		        System.out.println("Learning complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;

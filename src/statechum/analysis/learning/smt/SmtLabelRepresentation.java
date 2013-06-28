@@ -810,7 +810,7 @@ public class SmtLabelRepresentation
 		// PHASE 2 of construction
 		
 		// Assign an initial memory value.
-		init = labelMapConstructionOfOperations.get(AbstractLearnerGraph.generateNewLabel(AbstractLearnerGraph.inventParsableLabel(INITMEM,config),config));
+		init = labelMapConstructionOfOperations.get(AbstractLearnerGraph.generateNewLabel(AbstractLearnerGraph.inventParsableLabel(INITMEM,config),config,converter));
 		if (init == null) throw new IllegalArgumentException("missing initial memory value");
 		
 		// Check that no references to old values are being made in the declaration of the initial memory value. 
@@ -935,7 +935,7 @@ public class SmtLabelRepresentation
 		String labelNameString = appendToString(labelNameToken, null);
 		if (labelNameString == null)
 			throw new IllegalArgumentException("invalid label name "+labelNameToken);
-		Label labelName = AbstractLearnerGraph.generateNewLabel(labelNameString, config);
+		Label labelName = AbstractLearnerGraph.generateNewLabel(labelNameString, config,converter);
 		
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for label "+labelName);
 		OP_DATA kind = null;String prepost = tokenizer.nextToken();

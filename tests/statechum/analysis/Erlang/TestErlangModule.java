@@ -404,8 +404,8 @@ public class TestErlangModule {
     	// The above loads a module, this one gets that module and subsequently updates its alphabet.
     	ErlangModule mod = ErlangModule.findModule(evalConf.config.getErlangModuleName());
     	
-    	final ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config)), 
-			labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config));
+    	final ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config,evalConf.getLabelConverter())), 
+			labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config,evalConf.getLabelConverter()));
 		final ErlangLabel labelInvalidRead = new ErlangLabel(labelLock.function,labelLock.callName,labelLock.input,new OtpErlangInt(88));
 		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 			public @Override void run() {
@@ -427,7 +427,7 @@ public class TestErlangModule {
     	ErlangModule modExporter = ErlangModule.loadModule(exporterConfiguration);
     	
     	final ErlangLabel pushLabel = modExporter.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel(
-    			"{"+ErlangLabel.missingFunction+",'exporter:push/1',['JustAnythingA'],'ok'}", exporterConfiguration));
+    			"{"+ErlangLabel.missingFunction+",'exporter:push/1',['JustAnythingA'],'ok'}", exporterConfiguration,evalConf.getLabelConverter()));
 		//final ErlangLabel labelInvalidArity = new ErlangLabel(initLabel.function,initLabel.callName,initLabel.input,initLabel.expectedOutput);
 		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 			public @Override void run() {
@@ -449,10 +449,10 @@ public class TestErlangModule {
     	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
     	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	
-    	ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config)), 
-    		labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config)),
-    		labelRead = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','read','AnyWibble'}", evalConf.config)), 
-    		labelWrite = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call',{'write','AnyWibble'},{'ok','AnyWibble'}}", evalConf.config));
+    	ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config,evalConf.getLabelConverter())), 
+    		labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config,evalConf.getLabelConverter())),
+    		labelRead = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','read','AnyWibble'}", evalConf.config,evalConf.getLabelConverter())), 
+    		labelWrite = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call',{'write','AnyWibble'},{'ok','AnyWibble'}}", evalConf.config,evalConf.getLabelConverter()));
     	mod.behaviour.getAlphabet().add(initLabel);
     	mod.behaviour.getAlphabet().add(labelLock);
     	mod.behaviour.getAlphabet().add(labelRead);

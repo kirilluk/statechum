@@ -579,8 +579,10 @@ public class DiffExperiments {
 					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
 					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter,config);
 					
-					machine = gen.buildMachine(artificialTargetSize);
-					
+					synchronized(AbstractLearnerGraph.syncObj)
+					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
+						machine = gen.buildMachine(artificialTargetSize);
+					}
 					
 					if (generateConnected)
 					{// remove states from which the initial state cannot be reached.

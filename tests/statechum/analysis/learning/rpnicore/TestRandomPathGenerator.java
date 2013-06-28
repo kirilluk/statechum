@@ -227,7 +227,7 @@ public class TestRandomPathGenerator {
 		for(Object []seq:expectedSeq)
 		{
 			List<Label> sequence = new LinkedList<Label>();for(int i=0;i<seq.length;++i) sequence.add(
-					seq[i] instanceof Label?(Label)seq[i]:AbstractLearnerGraph.generateNewLabel((String)seq[i], config));
+					seq[i] instanceof Label?(Label)seq[i]:AbstractLearnerGraph.generateNewLabel((String)seq[i], config,converter));
 			expected.add(sequence);
 		}
 		for(int i=0;i<count;++i) 

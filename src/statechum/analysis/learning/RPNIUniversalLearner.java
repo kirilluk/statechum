@@ -236,7 +236,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			setTentativeAutomaton(updatedTentativeAutomaton);
 		}
 		if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
-			spin = new SpinUtil(config);
+			spin = new SpinUtil(config,getLabelConverter());
 			SpinResult sr = spin.check(ptaHardFacts, ifthenAutomataAsText);
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, sr.getCounters()));

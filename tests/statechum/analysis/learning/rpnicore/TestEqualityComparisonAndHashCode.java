@@ -84,7 +84,7 @@ public class TestEqualityComparisonAndHashCode {
 	/** The configuration to use when running tests. */
 	Configuration config = null;
 
-	private final ConvertALabel converter;
+	final ConvertALabel converter;
 	
 	private Configuration mainConfiguration = null;
 	
@@ -637,7 +637,7 @@ public class TestEqualityComparisonAndHashCode {
 	
 	protected LabelVertexPair constructLabelVertexPair(String label,CmpVertex vertex)
 	{
-		return new LabelVertexPair(AbstractLearnerGraph.generateNewLabel(label, config), vertex);
+		return new LabelVertexPair(AbstractLearnerGraph.generateNewLabel(label, config,converter), vertex);
 	}
 	
 	@Test
@@ -2079,7 +2079,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 	// "A-a->A-b->B-c->B\nA-c-#C\nB-b->B"	
 		Assert.assertTrue(testGraphSame.equals(testGraphString));
-		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("d",config),testGraphString.findVertex("A"));
+		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("d",config,converter),testGraphString.findVertex("A"));
 		Assert.assertTrue(testGraphSame.equals(testGraphString));
 	}
 
@@ -2089,7 +2089,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_remove1()
 	{
 		Assert.assertTrue(testGraphSame.equals(testGraphString));
-		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),testGraphString.findVertex("A"));
+		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),testGraphString.findVertex("A"));
 		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(testGraphString));
 	}
 
@@ -2100,7 +2100,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_remove2()
 	{
 	// "A-a->A-b->B-c->B\nA-c-#C\nB-b->B"	
-		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),testGraphString.findVertex("B"));
+		testGraphString.removeTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),testGraphString.findVertex("B"));
 		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(testGraphString));
 	}
 
@@ -2111,7 +2111,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_add1()
 	{
 	// "A-a->A-b->B-c->B\nA-c-#C\nB-b->B"	
-		testGraphString.addTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("d",config),testGraphString.findVertex("A"));
+		testGraphString.addTransition(testGraphString.transitionMatrix.get(testGraphString.findVertex("B")),AbstractLearnerGraph.generateNewLabel("d",config,converter),testGraphString.findVertex("A"));
 		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B-d->A", "updateDiagram_add1", config,converter).equals(testGraphString));
 	}
 	
@@ -2122,7 +2122,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraph graph = testGraphString;
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
+			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
 		}},IllegalArgumentException.class,"non-determinism");
 	}
 	
@@ -2133,7 +2133,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraph graph = testGraphString;
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("B"));
+			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("B"));
 		}},IllegalArgumentException.class,"non-determinism");
 	}
 	
@@ -2144,7 +2144,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_remove1()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
+		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
 		Assert.assertTrue(testGraphString.equals(graph));
 	}
 
@@ -2155,8 +2155,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_remove2()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("B"));
-		Assert.assertNull(graph.transitionMatrix.get(graph.findVertex("B")).get(AbstractLearnerGraph.generateNewLabel("c",config)));
+		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("B"));
+		Assert.assertNull(graph.transitionMatrix.get(graph.findVertex("B")).get(AbstractLearnerGraph.generateNewLabel("c",config,converter)));
 		Assert.assertTrue(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(graph));
 	}
 
@@ -2167,10 +2167,10 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_remove3()
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
-		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("a",config),graph.findVertex("C"));
+		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("a",config,converter),graph.findVertex("C"));
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config))));
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config,converter))));
 		Assert.assertEquals(targets,actual);
 	}
 
@@ -2182,7 +2182,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() { 
-			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("B"));
+			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("B"));
 		}},IllegalArgumentException.class,"duplicate transition");
 	}
 
@@ -2193,7 +2193,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_add2()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
+		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
 		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A", "updateDiagramND_add2",config,converter).equals(graph));
 	}
 
@@ -2204,8 +2204,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_add3()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
-		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("b",config),graph.findVertex("C"));
+		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
+		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("A")),AbstractLearnerGraph.generateNewLabel("b",config,converter),graph.findVertex("C"));
 		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->B\nA-c-#C\nB-b->B\nB-c->A-b-#C", "updateDiagramND_add2",config,converter).equals(graph));
 	}
 
@@ -2216,7 +2216,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_add2()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config),graph.findVertex("A"));
+		graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
 		Assert.assertTrue(buildLearnerGraphND("A-a->A-b->B-c->A\nB-c->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config,converter).equals(graph));
 	}
 	
@@ -2227,7 +2227,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));targets.add(graph.findVertex("C"));
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config))));
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config,converter))));
 		Assert.assertEquals(targets,actual);
 	}
 	
@@ -2236,7 +2236,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testAccessToTargetStates2()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2",config,converter);
-		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config)));
+		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get(AbstractLearnerGraph.generateNewLabel("a",config,converter)));
 		Assert.assertFalse(targets.isEmpty());Assert.assertEquals(1,targets.size());
 		Assert.assertTrue(targets.contains(graph.findVertex("B")));
 		Iterator<CmpVertex> data = targets.iterator();
@@ -2381,7 +2381,7 @@ public class TestEqualityComparisonAndHashCode {
 		
 		// now test if all clones are faithful
 		for(Edge e:(Set<Edge>)g.getEdges())
-			((Set<Label>)e.getUserDatum(JUConstants.LABEL)).add(AbstractLearnerGraph.generateNewLabel("junk",config));
+			((Set<Label>)e.getUserDatum(JUConstants.LABEL)).add(AbstractLearnerGraph.generateNewLabel("junk",config,converter));
 		
 		LearnerGraph gS_Modified = new LearnerGraph(copy,config);
 		

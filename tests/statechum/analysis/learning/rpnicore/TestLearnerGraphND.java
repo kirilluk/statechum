@@ -660,14 +660,13 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U","testConvertToND6",config,converter);
 		final LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
-				@Override
-				public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
-					return false;
-				}
-			},actual);
-		}}, IllegalArgumentException.class,"initial state was filtered out");		
+		AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
+			@Override
+			public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
+				return false;
+			}
+		},actual);
+		Assert.assertNull(actual.getInit());
 	}
 
 	/** A helper method to create an instance of a filter. The trouble with filters is that

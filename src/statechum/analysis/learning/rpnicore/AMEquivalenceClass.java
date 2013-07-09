@@ -17,6 +17,7 @@
  */
 package statechum.analysis.learning.rpnicore;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -33,16 +34,15 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.LabelVertexPair;
 import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
-	implements Comparable<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>
+	implements Comparable<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, ConvertibleToInt
 {
 	/** The list of outgoing transitions from this equivalence class. */ 
-	private TreeSet<LabelVertexPair> outgoingTransitions = new TreeSet<LabelVertexPair>(),
-		newOutgoingTransitions = null;
+	private Map<Label,ArrayList<CmpVertex>> outgoingTransitions = new TreeMap<Label,ArrayList<CmpVertex>>();
 	
 	/**	Vertices in the original graph corresponding to the merged vertex. 
 	 * A tree is used to permit easy comparison between equivalence classes. 
@@ -76,15 +76,9 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	}
 	
 	/** Returns transitions leaving states contained in this equivalence class. */ 
-	public TreeSet<LabelVertexPair> getOutgoing()
+	public Map<Label,ArrayList<CmpVertex>> getOutgoing()
 	{
 		return outgoingTransitions;
-	}
-	
-	/** Returns transitions leaving states contained in this equivalence class. */ 
-	public TreeSet<LabelVertexPair> getNewOutgoing()
-	{
-		return newOutgoingTransitions;
 	}
 	
 	public Set<CmpVertex> getStates()
@@ -172,40 +166,69 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		private static final long serialVersionUID = 1792082290362715752L;
 	}
 	
+	/** Adds a supplied transition to the collection of outgoing transitions. Returns true if the outcome is a singleton set (since we only add transitions and never remove them, we cannot get an empty set).
+	 * The idea of a singleton is significant because in this case we do not need to consider that specific input where we merge subsequent states: only those entered by transitions with the same inputs need to be merged.
+	 * 
+	 * @param where collection of transitions to update
+	 * @param label label associated with the transition to add.
+	 * @param target the target state of the transition of interest.
+	 * @return True if there is only one transition with that input after the supplied one has been added.
+	 */
+	public static boolean addTransition(Map<Label,ArrayList<CmpVertex>> where, Label label, CmpVertex target)
+	{
+		ArrayList<CmpVertex> targetStates = where.get(label);
+		if (targetStates == null)
+		{
+			targetStates = new ArrayList<CmpVertex>();where.put(label,targetStates);
+		}
+		targetStates.add(target);return targetStates.size() == 1;
+	}
+
+	/** Adds a supplied collection of transitions to the existing collection of outgoing transitions. Returns true if the outcome is a singleton set (since we only add transitions and never remove them, we cannot get an empty set).
+	 * The idea of a singleton is significant because in this case we do not need to consider that specific input where we merge subsequent states: only those entered by transitions with the same inputs need to be merged.
+	 * 
+	 * @param where collection of transitions to update
+	 * @param label label associated with the transition to add.
+	 * @param target the target state of the transition of interest.
+	 * @return True if there is only one transition with that input after the supplied one has been added.
+	 */
+	public static boolean addAllTransitions(Map<Label,ArrayList<CmpVertex>> where, Map<Label,ArrayList<CmpVertex>> what)
+	{
+		boolean singleton = true;
+		for(Entry<Label,ArrayList<CmpVertex>> entry:what.entrySet())
+		{
+			ArrayList<CmpVertex> targetStates = where.get(entry.getKey());
+			if (targetStates == null)
+			{
+				targetStates = new ArrayList<CmpVertex>();where.put(entry.getKey(),targetStates);
+			}
+			targetStates.addAll(entry.getValue());singleton &= targetStates.size() == 1; 
+		}
+		return singleton;
+	}
+	
 	/** Adds transitions from the supplied collection.
 	 * 
 	 * @param from transitions to add from.
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
 	 */
-	public void addFrom(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
+	public boolean mergeWith(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
 	{
 		addState(vert);
+		boolean singleton = true;
 		if (from != null)
 			for(Entry<Label,CmpVertex> entry:from)
-				outgoingTransitions.add(new LabelVertexPair(entry.getKey(),entry.getValue()));
+				singleton &= addTransition(outgoingTransitions,entry.getKey(),entry.getValue());
+		
+		return singleton;
 	}
 	
-	/** Adds transitions from the supplied collection.
-	 * 
-	 * @param from transitions to add from.
-	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
-	 */
-	public void mergeWith(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
-	{
-		addState(vert);
-
-		newOutgoingTransitions = new TreeSet<LabelVertexPair>();
-		for(Entry<Label,CmpVertex> entry:from)
-			newOutgoingTransitions.add(new LabelVertexPair(entry.getKey(),entry.getValue()));
-	}
-	
-	/** Adds the contents of the supplied argument to outgoing 
-	 * transitions of this class.
+	/** Adds the contents of the supplied argument to outgoing transitions of this class.
 	 * 
 	 * @param to the equivalence class to merge with
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
 	 */
-	public void mergeWith(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> to) throws IncompatibleStatesException
+	public boolean mergeWith(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> to) throws IncompatibleStatesException
 	{
 		if (!states.isEmpty())
 		{ 
@@ -227,19 +250,12 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 			}
 		}
 		accept = to.accept;incompatibleStates.addAll(to.incompatibleStates);
-
-		newOutgoingTransitions = to.outgoingTransitions;updateRep(to.getRepresentative());
+		boolean singleton = addAllTransitions(outgoingTransitions,to.outgoingTransitions);
+		
+		updateRep(to.getRepresentative());
 		if (!to.getStates().isEmpty()) updateColour(to.currentColour);
 		states.addAll(to.states);
-	}
-
-	/** When equivalence classes are updated, I do not update "real" data, just store the changes.
-	 * This is necessary to avoid scanning all pairs of old outgoing transitions, if there is 1000
-	 * of them it takes a while. This method is invoked when such a scanning is finished to update the data.
-	 */
-	public void populate()
-	{
-		outgoingTransitions.addAll(newOutgoingTransitions);newOutgoingTransitions = null;
+		return singleton;
 	}
 	
 	@Override 
@@ -254,6 +270,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		
 		// representative is not used here because it can be derived from the states in this collection.
 		result = prime * result + (mergedVertex == null? 0:mergedVertex.hashCode());
 		result = prime * result + states.size();
@@ -435,6 +452,11 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 						graph.addToCompatibility(eqClass.getMergedVertex(), incompClass.getMergedVertex(),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 			}
 		
+	}
+
+	@Override
+	public int toInt() {
+		return getNumber();
 	}
 	
 }

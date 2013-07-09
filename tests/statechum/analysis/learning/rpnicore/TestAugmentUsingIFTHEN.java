@@ -565,7 +565,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	 * @param vertexName name of a vertex to look for
 	 * @return depth of the vertex
 	 */
-	private static int getDepthOfVertex(LearnerGraph whereToLook, Map<CmpVertex,LinkedList<Label>> stateCover,
+	private static int getDepthOfVertex(LearnerGraph whereToLook, Map<CmpVertex,List<Label>> stateCover,
 			String vertexName)
 	{
 		return whereToLook.getVertex(stateCover.get(VertexID.parseID(vertexName))).getDepth();
@@ -588,7 +588,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		LearnerGraph expectedGraph = buildLearnerGraph("A-a->B-d->N1 / B-b->C-a->B1-b->C1/ B1-d->N2 / C-c->S1-c->S2", "testPerformAugment5a",mainConfiguration,converter);
 		compareGraphs(expectedGraph, graph);
-		Map<CmpVertex,LinkedList<Label>> stateCover =expectedGraph.pathroutines.computeShortPathsToAllStates(expectedGraph.getInit());
+		Map<CmpVertex,List<Label>> stateCover =expectedGraph.pathroutines.computeShortPathsToAllStates(expectedGraph.getInit());
 		Assert.assertEquals(0,getDepthOfVertex(graph,stateCover,"A"));
 		Assert.assertEquals(1,getDepthOfVertex(graph,stateCover,"B"));
 		Assert.assertEquals(2,getDepthOfVertex(graph,stateCover,"C"));

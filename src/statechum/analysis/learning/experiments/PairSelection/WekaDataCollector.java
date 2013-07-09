@@ -278,12 +278,12 @@ public class WekaDataCollector
 	 * We do not compare correct pairs with each other, or wrong pairs with each other. Pairs that have negative scores are ignored.
 	 * 
 	 * @param pairs pairs to add
-	 * @param tentativeGraph the current graph
+	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,tentativeGraph);
+		buildSetsForComparators(pairs,currentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
@@ -291,7 +291,7 @@ public class WekaDataCollector
 		{
 			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
 		}
-		PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
+		PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
 		
 		
 		// Compute Weka statistics, where we compare each pair to all others.
@@ -395,7 +395,10 @@ public class WekaDataCollector
 		 */
 		public int getRanking(PairScore pair, double average, double sd)
 		{
-			double value = getValue(pair);
+			long value = getValue(pair);
+			if (isAbsolute())
+				return (int)value;
+			
 			if (value > average+sd)
 			{
 				if (value > average+sd+sd)
@@ -410,6 +413,9 @@ public class WekaDataCollector
 			}
 			return 0;
 		}
+		
+		/** Returns true if {@link PairRank#getRanking} should not use average/standard deviation in order to normalise results across different sets of pairs. This is important where we aim to distinguish between zero/above-zero scores. */
+		abstract public boolean isAbsolute();
 		
 		/** Obtains a value from a supplied pair that can be used in order to calculate the ranking. */
 		abstract public long getValue(PairScore pair);

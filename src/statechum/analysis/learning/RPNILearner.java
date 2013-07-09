@@ -169,7 +169,7 @@ public abstract class RPNILearner extends Observable implements Learner {
         if (config.getDebugMode()) {
             Map<VertID, Collection<VertID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
-                Map<CmpVertex, LinkedList<Label>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
+                Map<CmpVertex, List<Label>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
                 Map<CmpVertex,CachedData.ErlangCoverageData> vertexToCoverage = new TreeMap<CmpVertex,CachedData.ErlangCoverageData>();
                 for(CmpVertex v:g.transitionMatrix.keySet())
                 {

@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import org.junit.Assert;
+
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -52,6 +54,7 @@ import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
@@ -688,7 +691,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		if (!coregraph.transitionMatrix.containsKey(initialState)) throw new IllegalArgumentException("the supplied state "+initialState+" is not in the graph");
 
 		int eqClassNumber = 0;
-		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.addFrom(initialState,null);
+		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.mergeWith(initialState,null);
 		initial.constructMergedVertex(result,true,false);
 		result.setInit(initial.getMergedVertex());
 		Queue<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
@@ -713,7 +716,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 						inputToTargetClass.put(transition.getKey(),targets);
 					}
 					for(CmpVertex targetVertex:coregraph.getTargets(transition.getValue()))
-						targets.addFrom(targetVertex,null);// the reason for adding sequentially is to make sure AMEquivalentClass figures out which state is to be chosen as a representative
+						targets.mergeWith(targetVertex,null);// the reason for adding sequentially is to make sure AMEquivalentClass figures out which state is to be chosen as a representative
 				}
 			}
 
@@ -753,11 +756,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	}
 	
 	/** Computes a mapping from every state to a shortest path to that state. The term
-	 * "a shorest path" is supposed to mean that we are talking of one of the shortest pats.
+	 * "a shortest path" is supposed to mean that we are talking of one of the shortest pats.
 	 *  
 	 * @return map from states to paths reaching those states.
 	 */
-	public Map<CmpVertex,LinkedList<Label>> computeShortPathsToAllStates()
+	public Map<CmpVertex,List<Label>> computeShortPathsToAllStates()
 	{
 		return computeShortPathsToAllStates(coregraph.getInit());
 	}
@@ -767,34 +770,66 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param from the vertex to start from
 	 * @return map from states to paths reaching those states.
 	 */
-	public Map<CmpVertex,LinkedList<Label>> computeShortPathsToAllStates(CmpVertex from)
+	public Map<CmpVertex,List<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMapWithSearch<CmpVertex,LinkedList<Label>>(coregraph.getStateNumber());
+		int coreGraphStateNumber = coregraph.getStateNumber();
+		Map<CmpVertex,List<Label>> stateToPath = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex, List<Label>>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,List<Label>>(coreGraphStateNumber);
 		stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-		fringe.add(from);statesInFringe.add(from);
+		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				
+		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())
 		{
 			CmpVertex currentState = fringe.remove();
-			LinkedList<Label> currentPath = stateToPath.get(currentState);
+			List<Label> currentPath = stateToPath.get(currentState);
 			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
 			if(targets != null && !targets.isEmpty())
 				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
-					
 				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
 				{
-					if (!statesInFringe.contains(target))
+					if (!statesInFringe.containsKey(target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
 					{
-						@SuppressWarnings("unchecked")
-						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
+						List<Label> newPath = new LinkedList<Label>(currentPath);newPath.add(labelstate.getKey());
 						stateToPath.put(target,newPath);
-						fringe.offer(target);
-						statesInFringe.add(target);
+						fringe.offer(target);statesInFringe.put(target, target);
 					}
 				}
 		}
 		return stateToPath;
+	}
+
+	/** When merging states using {@link MergeStates#mergeAndDeterminize}, depth does not always get updated because we re-jig the tree without touching most of the states. Although this was done for efficiency,
+	 * in some cases we need an up-to-date depth information. This is significant when using Weka with the learner, hence we recompute depth here.
+	 */
+	public void updateDepthLabelling()
+	{
+		int coreGraphStateNumber = coregraph.getStateNumber();
+		CmpVertex from = coregraph.getInit();
+		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				
+		fringe.add(from);statesInFringe.put(from,from);
+		while(!fringe.isEmpty())
+		{
+			CmpVertex currentState = fringe.remove();
+			int currentDepth = currentState.getDepth();
+			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
+			if(targets != null && !targets.isEmpty())
+				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
+				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
+				{
+					if (null == statesInFringe.put(target,target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
+					{
+						int newDepth = currentDepth+1;
+						target.setDepth(newDepth);
+						fringe.offer(target);
+					}
+				}
+		}
 	}
 
 	/** Checks if the supplied FSM has unreachable states.

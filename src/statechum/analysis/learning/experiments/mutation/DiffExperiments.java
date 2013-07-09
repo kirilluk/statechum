@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -50,6 +51,7 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -68,6 +70,8 @@ public class DiffExperiments {
 	
 	
 	Configuration config = Configuration.getDefaultConfiguration().copy();
+	ConvertALabel converter = null;
+	
 	boolean skipLanguage = false;
 	final int experimentsPerMutationCategory, mutationStages, graphComplexityMax;
 
@@ -161,7 +165,7 @@ public class DiffExperiments {
 					while(!outcome.experimentValid)
 					{
 						int mutations = mutationsPerStage * (mutationStage+1);
-						LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment,config);
+						LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment,config,converter);
 						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
 						mutator.mutate(mutations);
 						LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
@@ -569,15 +573,16 @@ public class DiffExperiments {
 		}
 		
 		//0.31,0.385
-		public LearnerGraphND nextMachine(int alphabet, int counter, Configuration config){
+		public LearnerGraphND nextMachine(int alphabet, int counter, Configuration config,ConvertALabel converter){
 			LearnerGraph machine = null;
 			LearnerGraph bestMachine = null;int bestMachineStateNumber = Integer.MAX_VALUE;
 			boolean found = false;
 			int diff=0;
+			Random connectTransitions = new Random(counter);
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
 					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
-					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter,config);
+					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter,config,converter);
 					
 					synchronized(AbstractLearnerGraph.syncObj)
 					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
@@ -585,10 +590,38 @@ public class DiffExperiments {
 					}
 					
 					if (generateConnected)
-					{// remove states from which the initial state cannot be reached.
+					{
+						// First, add transitions from states that do not lead anywhere
+						final Set<CmpVertex> deadendStates = machine.pathroutines.computeReachableStatesFromWhichInitIsNotReachable();
+						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
+						for(CmpVertex v:deadendStates)
+						{
+							Set<CmpVertex> visited = new HashSet<CmpVertex>();visited.addAll(machine.transitionMatrix.keySet());visited.removeAll(machine.transitionMatrix.get(v).values());visited.remove(v);
+							CmpVertex possibleStates [] = visited.toArray(new CmpVertex[]{});
+							CmpVertex chosenState = null;
+							assert possibleStates.length > 0;// at least the initial state is not reachable
+							if (possibleStates.length < 2)
+								chosenState = possibleStates[0];
+							else
+								chosenState = possibleStates[connectTransitions.nextInt(possibleStates.length)];
+							
+							Set<Label> inputsPossible = new TreeSet<Label>();inputsPossible.addAll(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(v).keySet());
+							Label possibleElementsOfAlphabet[] = inputsPossible.toArray(new Label[]{});
+							Label possibleLabel = null;
+							if (possibleElementsOfAlphabet.length == 1)
+								possibleLabel = possibleElementsOfAlphabet[0];
+							else
+								if (possibleElementsOfAlphabet.length > 1)
+									possibleLabel = possibleElementsOfAlphabet[connectTransitions.nextInt(possibleElementsOfAlphabet.length)];
+							if (possibleLabel != null)
+								machine.addTransition(machine.transitionMatrix.get(v),possibleLabel, chosenState);
+							// if we cannot find a label because there are too many transitions from the state of interest, ignore this state and it will be removed by calling removeReachableStatesFromWhichInitIsNotReachable
+						}
+
+						// Now remove states from which the initial state cannot be reached.
 						LearnerGraph trimmedMachine = new LearnerGraph(config);
 						machine.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(trimmedMachine);
-						machine = trimmedMachine;
+						machine = trimmedMachine.paths.reduce();
 					}
 					
 					

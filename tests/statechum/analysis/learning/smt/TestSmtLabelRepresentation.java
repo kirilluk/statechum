@@ -1406,9 +1406,9 @@ public class TestSmtLabelRepresentation
 		public final void testDataTracesToAbstractStates1()
 		{
 			
-			Map<CmpVertex,LinkedList<statechum.Label>> paths = graph.pathroutines.computeShortPathsToAllStates();
+			Map<CmpVertex,List<statechum.Label>> paths = graph.pathroutines.computeShortPathsToAllStates();
 			CmpVertex vertexWithTwoAbstractStates = null;
-			for(Entry<CmpVertex,LinkedList<statechum.Label>> entry:paths.entrySet())
+			for(Entry<CmpVertex,List<statechum.Label>> entry:paths.entrySet())
 			{
 				Collection<AbstractState> abstractStates = graph.getVertexToAbstractState().get(entry.getKey());//graph.findVertex(VertexID.parseID(stateName)));
 				Assert.assertEquals(entry.getValue().size() == 1?2:1,abstractStates.size());

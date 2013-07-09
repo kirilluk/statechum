@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +42,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
-
-import javax.management.RuntimeErrorException;
-
-import junit.framework.Assert;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -74,14 +69,16 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -98,6 +95,7 @@ public class PairQualityLearner
 {
    	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
+  	public static final String veryLargePTAFileName = largePTALogsDir+"VeryLargePTA.zip";
 	
 	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
 	 * 
@@ -203,6 +201,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return measurementsForCurrentStack(p).compatibilityScore;
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("statechum score")
@@ -210,6 +213,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return p.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -219,6 +227,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return treeRootedAt(p.getQ());
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("Number of alternatives with same red")
@@ -226,6 +239,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return  measurementsForCurrentStack(p).nrOfAlternatives;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -235,6 +253,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return  p.getQ().getDepth();
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("Depth of Red")
@@ -242,6 +265,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return  p.getR().getDepth();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -251,6 +279,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return  p.getScore() > 0?1:0;
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return true;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("state identifiers Red")
@@ -258,6 +291,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return p.getR().getIntegerID();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -267,6 +305,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return p.getQ().getIntegerID();
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("proximity of the red and blue by depth")
@@ -274,6 +317,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return p.getQ().getDepth()-p.getR().getDepth();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -283,6 +331,11 @@ public class PairQualityLearner
 			public long getValue(PairScore p) {
 				return  measurementsForCurrentStack(p).compatibilityScore/3;
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("whether red and blue are adjacent")
@@ -290,6 +343,11 @@ public class PairQualityLearner
 			@Override
 			public long getValue(PairScore p) {
 				return measurementsForCurrentStack(p).adjacent? 1:0;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -301,6 +359,11 @@ public class PairQualityLearner
 				Set<Label> outgoingBlue = new TreeSet<Label>();outgoingBlue.addAll(tentativeGraph().transitionMatrix.get(p.getQ()).keySet());
 				outgoingBlue.removeAll(outgoingRed);return outgoingRed.size();
 			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
 		});
 		
 		assessors.add(classifier.new PairRank("number of new outgoing transitions from red")
@@ -310,6 +373,11 @@ public class PairQualityLearner
 				Set<Label> outgoingRed = new TreeSet<Label>();outgoingRed.addAll(tentativeGraph().transitionMatrix.get(p.getR()).keySet());
 				Set<Label> outgoingBlue = new TreeSet<Label>();outgoingBlue.addAll(tentativeGraph().transitionMatrix.get(p.getQ()).keySet());
 				outgoingRed.removeAll(outgoingBlue);return outgoingRed.size();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
 			}
 		});
 		
@@ -323,20 +391,32 @@ public class PairQualityLearner
 		public LearnerEvaluationConfiguration learnerInitConfiguration;
 	}
 	
-	public static InitialConfigurationAndData loadInitialAndPopulateInitialConfiguration(String argPTAFileName, STATETREE matrixType, ConvertALabel converter) throws IOException
-	{// this part is nested in order to ensure that an instance of LearnerSimulator
-	 // goes out of scope and is garbage collected as soon as possible. It holds a great deal
-	 // of Xerces objects used for recording execution traces that is not used in this test but takes
-	 // a lot of memory.
+	/** Loads a (potentially large) graph and a small version of it from a supplied file. Much faster than constructing it out of traces. 
+	 * Loaded graphs will be using the configuration loaded from a file rather the one that was passed in, hence
+	 * they need to be copied if you need then with a different type of transition matrix. 
+	 * <br>
+	 * Another reason this is placed in a separate method in order to ensure that an instance of LearnerSimulator
+	 * goes out of scope and is garbage collected as soon as possible. It holds a great deal
+	 * of Xerces objects used for recording execution traces that is not used in this test but takes
+	 * a lot of memory.	
+	 *  
+	 * @param argPTAFileName where to load from.
+	 * @param configToUse configuration that will be used for loading
+	 * @param converter label interning converter, cannot be null but can be thrown away after loading.
+	 * @return Initial configuration and evaluation configuration.
+	 * @throws IOException
+	 */
+	public static InitialConfigurationAndData loadInitialAndPopulateInitialConfiguration(String argPTAFileName, Configuration configToUse, ConvertALabel converter) throws IOException
+	{
 		InitialConfigurationAndData outcome = new InitialConfigurationAndData();
 		
 		final java.io.FileInputStream inputStream = new java.io.FileInputStream(argPTAFileName);
 		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,converter);
-		Configuration defaultConfig = Configuration.getDefaultConfiguration().copy();
+		Configuration defaultConfig = configToUse.copy();
 		//defaultConfig.setRejectPositivePairsWithScoresLessThan(1);
+		assert converter != null : "we expect this methods to be used with large graphs and Array matrix types hence converter must be set";
 		outcome.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
 		outcome.learnerInitConfiguration.setLabelConverter(converter);
-		if (matrixType != null) outcome.learnerInitConfiguration.config.setTransitionMatrixImplType(matrixType);
 		
 		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 		outcome.initial = simulator.readInitialData(nextElement);
@@ -610,6 +690,11 @@ public class PairQualityLearner
 		
 		/** Used to select next red state based on the subjective quality of the subsequent set of red-blue pairs, as determined by the classifier. */
 		protected boolean useClassifierToChooseNextRed = false;
+		
+		public void configureLearner(boolean classifierForRed, boolean zeroScoringAsRed)
+		{
+			considerZeroScoringPairsForRed = zeroScoringAsRed;useClassifierToChooseNextRed = classifierForRed;
+		}
 		
 		/** Used for benchmarking. */
 		long timeOfLastTick = 0;
@@ -920,83 +1005,31 @@ public class PairQualityLearner
 			}
 		}
 		
-		/** Obtains states that are currently blue and not marked as tentatively red. 
-		 * In other words, given a collection of red states and those earmarked to be possibly red, identifies all the currently blue nodes not included among the red-to-be.
-		 * 
-		 * @param coregraph graph to consider
-		 * @param reds currently red states
-		 * @param tentativeRedNodes
-		 * @return
-		 */
-		public static List<CmpVertex> computeBlueStates(final LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes)
-		{
-			List<CmpVertex> outcome = new LinkedList<CmpVertex>();
-			
-			for(CmpVertex r:reds)
-				for(Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(r).entrySet())
-					if (entry.getValue().getColour() == JUConstants.BLUE && !tentativeRedNodes.contains(entry.getValue()))
-						outcome.add(entry.getValue());
-			
-			return outcome;
-		}
-		
 		public static interface CollectionOfPairsEstimator
 		{
 			double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph coregraph, Collection<PairScore> pairs);
 		}
-		
+
 		/** Used to select the best red node based on what the subsequent collection of pairs will be. */
-		public static CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes, CollectionOfPairsEstimator pairQualityEstimator) 
+		public static CmpVertex selectRedNode(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes, CollectionOfPairsEstimator pairQualityEstimator) 
 		{
 			CmpVertex redVertex = null;double bestScore=-1;
-			Collection<CmpVertex> blueStates = computeBlueStates(coregraph,reds,tentativeRedNodes);
 			
-			// At this point, pairs is a collection of pairs obtained by evaluating the collection of current blue vertices against all current reds
-			
-			ArrayList<PairScore> pairs = new ArrayList<PairScore>();
-			for(CmpVertex b:blueStates)
-				for(CmpVertex r:reds)
-				{
-					PairScore p=coregraph.pairscores.obtainPair(b,r);
-					if (p.getScore() >= 0)
-						pairs.add(p);
-				}
-				
-			ArrayList<PairScore> additionalPairs = new ArrayList<PairScore>( pairs.size()+tentativeRedNodes.size() );
-			for(CmpVertex v:tentativeRedNodes)
+			// It is not hard to calculate what blue states will directly surround a specific state chosen to become red, however those blue states may in turn immediately become red after evaluation and the same would apply
+			// to the newly-discovered red states, so we effectively have to re-implement blue state calculation here. For this reason, it is chosen no to do this but instead clone the state machine (possibly in a trimmed form)
+			// and ask it for a list of pairs.
+			Configuration configCloneAll = coregraph.config.copy();configCloneAll.setLearnerCloneGraph(true);// we need to clone vertices because chooseStatePairs would colour some of the vertices red or blue.
+			for(CmpVertex tentativeRed:tentativeRedNodes)
 			{
-				additionalPairs.clear();additionalPairs.addAll(pairs);
-				
-				// now compare with the node v considered to become red with all blue nodes 
-				for(CmpVertex b:blueStates)
-				{
-					PairScore p=coregraph.pairscores.obtainPair(b,v);
-					if (p.getScore() >= 0)
-						additionalPairs.add(p);
-				}
-				
-				for(CmpVertex b:tentativeRedNodes)
-					if (b != v)
-					{
-						for(CmpVertex r:reds)	
-						{// if I choose v to be red, all the other tentative reds may remain blue
-							PairScore p=coregraph.pairscores.obtainPair(b,r);
-							if (p.getScore() >= 0)
-								additionalPairs.add(p);
-						}
-						
-						// comparing the considered node v with all the other tentative reds since they may remain blue
-						PairScore p=coregraph.pairscores.obtainPair(b,v);
-						if (p.getScore() >= 0)
-							additionalPairs.add(p);
-					}
-				// additionalPairs are now a collection of all pairs where existing blue states are compared with all existing and the considered red one
-				double estimate = pairQualityEstimator.obtainEstimateOfTheQualityOfTheCollectionOfPairs(coregraph, additionalPairs);
+				LearnerGraph graph = new LearnerGraph(configCloneAll);LearnerGraph.copyGraphs(coregraph,graph);
+				graph.findVertex(tentativeRed).setColour(JUConstants.RED);// mark the tentative blue as red
+				Stack<PairScore> pairs = graph.pairscores.chooseStatePairs(null);// calculate the subsequent red-blue pairs
+				double estimate = pairs.isEmpty()? 0:pairQualityEstimator.obtainEstimateOfTheQualityOfTheCollectionOfPairs(coregraph, pairs);
 				if (estimate > bestScore)
 				{
-					bestScore = estimate;redVertex = v;
+					bestScore = estimate;redVertex = tentativeRed;
 				}
-			}
+			}			
 			
 			return redVertex;
 		}
@@ -1018,7 +1051,7 @@ public class PairQualityLearner
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
 		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure() {
 
 				// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
 				// This can be accomplished by doing a clone of the graph and running chooseStatePairs on it with decision procedure that 
@@ -1197,50 +1230,80 @@ public class PairQualityLearner
 		}
 	}
 	
+	public static void printTraceLeadingTo(LearnerGraph graph, String vert)
+	{
+		LearnerGraphND ptaInverse = new LearnerGraphND(graph.config);
+		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
+			@Override public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex v) { return true; }}
+			, ptaInverse);
+		CmpVertex v=ptaInverse.findVertex(vert);
+		for(int i=0;i<10;++i)
+		{
+			Map<Label,List<CmpVertex>> transitions = ptaInverse.transitionMatrix.get(v);
+			if (transitions.size() > 1)
+			{
+				System.out.println(transitions);break;
+			}
+			List<CmpVertex> next = transitions.entrySet().iterator().next().getValue();
+			if (next.size() > 1)
+			{
+				System.out.println(next);break;
+			}
+			CmpVertex nextState = next.iterator().next();
+			System.out.println(v+"-"+transitions.entrySet().iterator().next().getKey()+"->"+nextState);
+			v  = nextState;
+		}
+		
+	}
+
 	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. The collection of pairs initial-original is then returned. */
 	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
 	{
 		List<CmpVertex> sourceStates = new LinkedList<CmpVertex>(), statesOfInterest = new LinkedList<CmpVertex>();
-		List<Label> sourceOutgoing = new LinkedList<Label>();
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:pta.transitionMatrix.entrySet())
-			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				if (transition.getValue().isAccept())
-				{
-					for(Entry<Label,CmpVertex> nextTransition:pta.transitionMatrix.get(transition.getValue()).entrySet())
+			if (entry.getKey().isAccept())
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+					if (transition.getValue().isAccept() && transition.getKey().equals(uniqueFromInitial))
 					{
-						if (nextTransition.getValue().isAccept() && nextTransition.getKey().equals(uniqueFromInitial))
-						{
-							sourceStates.add(entry.getKey());sourceOutgoing.add(transition.getKey());
-							statesOfInterest.add(transition.getValue());
-						}
+						sourceStates.add(entry.getKey());
 					}
-				}
 
-		Iterator<Label> sourceOutgoingIter = sourceOutgoing.iterator();
 		for(CmpVertex vert:sourceStates)
-		{
-			CmpVertex newState = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
-			Map<Label,CmpVertex> row = pta.createNewRow();
-			pta.transitionMatrix.put(newState,row);
-			pta.transitionMatrix.get(vert).put(sourceOutgoingIter.next(), newState);
-		}
+			if (vert != pta.getInit())
+			{
+				CmpVertex newSource = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
+				Map<Label,CmpVertex> row = pta.createNewRow();
+				pta.transitionMatrix.put(newSource,row);row.put(uniqueFromInitial, pta.transitionMatrix.get(vert).get(uniqueFromInitial));
+				statesOfInterest.add(newSource);
+				
+				CmpVertex tailState = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
+				Map<Label,CmpVertex> tailRow = pta.createNewRow();
+				pta.transitionMatrix.put(tailState,tailRow);pta.transitionMatrix.get(vert).put(uniqueFromInitial,tailState);
+			}
+			else
+				statesOfInterest.add(vert);
+		
 		return statesOfInterest;
 	}
 	
-	public static LearnerGraph mergeStatesForUniqueFromInitial(LearnerGraph pta, Label uniqueFromInitial)
+	public static LearnerGraph mergeStatesForUnique(LearnerGraph pta, Label unique)
 	{
 		List<StatePair> pairs = new LinkedList<StatePair>();
-		for(CmpVertex vert:constructPairsToMergeWithOutgoing(pta,uniqueFromInitial))
-			pairs.add(new StatePair(pta.getInit(),vert));
-		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		if (pta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
-			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+uniqueFromInitial);
-		return MergeStates.mergeCollectionOfVertices(pta, null, verticesToMerge);
+		LearnerGraph sourcePta = new LearnerGraph(pta,pta.config);
+		List<CmpVertex> whatToMerge = constructPairsToMergeWithOutgoing(sourcePta,unique);
+		for(CmpVertex vert:whatToMerge)
+			pairs.add(new StatePair(whatToMerge.get(0),vert));
+		List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		
+		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
+			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+unique);
+		return MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge);
 	}
 	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
+		protected final ConvertALabel converter;
 		protected final int states,sample;
 		protected boolean learnUsingReferenceLearner, onlyUsePositives, pickUniqueFromInitial;
 		protected final int seed;
@@ -1264,9 +1327,9 @@ public class PairQualityLearner
 			pickUniqueFromInitial = value;
 		}
 		
-		public LearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf)
+		public LearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
 		{
-			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;
+			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
 		}
 		
 		public abstract LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
@@ -1290,8 +1353,7 @@ public class PairQualityLearner
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 			do
 			{
-				referenceGraph = mg.nextMachine(alphabet,seed, config).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				Assert.assertFalse(WMethod.checkEquivalentStates(referenceGraph));
+				referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 				if (pickUniqueFromInitial)
 				{
 					Map<Label,CmpVertex> uniques = uniqueFromState(referenceGraph);
@@ -1360,18 +1422,21 @@ public class PairQualityLearner
 				
 				if (pickUniqueFromInitial)
 				{
-					pta = mergeStatesForUniqueFromInitial(pta,uniqueFromInitial);
+					pta = mergeStatesForUnique(pta,uniqueFromInitial);
 					learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
 					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					List<StatePair> pairsList = LearnerThatUsesWekaResults.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
-					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
-					if (score < 0)
-						System.out.println("last merge in the learning process was not possible");
-					else
+					if (!pairsList.isEmpty())
+					{
+						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+						if (score < 0)
+							throw new RuntimeException("last merge in the learning process was not possible");
+						
 						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+					}
 				}
 				else
 				{// not merging based on a unique transition from an initial state
@@ -1411,31 +1476,28 @@ public class PairQualityLearner
 	@SuppressWarnings("unused")
 	public static double estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet, Configuration config, int cpuNumber)
 	{
-		/*
-		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, actualAutomaton, null);
+/*		
+		statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, actualAutomaton, null);
 		gd.computeGD(referenceGraph, actualAutomaton, cpuNumber,changesCounter,config);
 		
 		int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = actualAutomaton.pathroutines.countEdges();
-		//System.out.println(changesCounter.getRemoved()+","+changesCounter.getAdded()+", difference is "+(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2);
-		double difference = ( ((double)changesCounter.getRemoved()/referenceEdges)+((double)changesCounter.getAdded()/actualEdges) )/2;
-				//(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
-		boolean eq=WMethod.checkEquivalentStates(actualAutomaton);
-		System.out.println(eq);
-		Visualiser.updateFrame(referenceGraph, actualAutomaton);
-		return difference;*/
-		return DiffExperiments.classify(testSet, referenceGraph, actualAutomaton).fMeasure();
+		double similarity =
+				(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
+		*/
+		double similarity = DiffExperiments.classify(testSet, referenceGraph, actualAutomaton).fMeasure();
+		
+		return similarity;
 	}
 
 	public static void runExperiment() throws Exception
 	{
 		DrawGraphs gr = new DrawGraphs();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
+		ConvertALabel converter = null;
 		//config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		final RBoxPlot<String> gr_PairQuality = null;//new RBoxPlot<String>("Correct v.s. wrong","%%",new File("percentage_correctwrong.pdf"));
-		final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces.pdf"));
 		final RBoxPlot<String> gr_ErrorsAndDeadends = null;//new RBoxPlot<String>("Errors and deadends","Red states",new File("errors_deadends.pdf"));
-		SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig.pdf"),0,1,true);
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
@@ -1443,123 +1505,131 @@ public class PairQualityLearner
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSM = 2;
 
-		final boolean pickUniqueFromInitial = true;
-		
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-
-		for(int numberOfTraces=3;numberOfTraces<=6;++numberOfTraces)
-		{
-			WekaDataCollector dataCollector = createDataCollector();
-			List<SampleData> samples = new LinkedList<SampleData>();
-			try
+		for(final boolean zeroScoringAsRed:new boolean[]{true,false})
+			for(final boolean selectingRed:new boolean[]{true,false})
+			for(final boolean useUnique:new boolean[]{true,false})
 			{
-				int numberOfTasks = 0;
-				for(int states=minStateNumber;states < minStateNumber+15;states+=5)
-					for(int sample=0;sample<samplesPerFSM;++sample)
-					{
-						LearnerRunner learnerRunner = new LearnerRunner(states,sample,1+numberOfTasks,numberOfTraces, config)
-						{
-							@Override
-							public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
-							{
-								return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA,gr_ErrorsAndDeadends);
-							}
-						};
-						learnerRunner.setPickUniqueFromInitial(pickUniqueFromInitial);
-						runner.submit(learnerRunner);
-						++numberOfTasks;
-					}
-				ProgressIndicator progress = new ProgressIndicator("running "+numberOfTasks+" tasks", numberOfTasks);
-				for(int count=0;count < numberOfTasks;++count)
+				String selection = (selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
+				SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection+".pdf"),0,1,true);
+				final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection+".pdf"));
+		
+				for(int numberOfTraces=3;numberOfTraces<=6;++numberOfTraces)
 				{
-					ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-					samples.addAll(result.samples);
-					result.addAllInstancesTo(dataCollector.trainingData);
-					if (gr_ErrorsAndDeadends != null)
-						synchronized(gr_ErrorsAndDeadends)
-						{
-							gr_ErrorsAndDeadends.drawInteractive(gr);
-						}
-					progress.next();
-				}
-			}
-			catch(Exception ex)
-			{
-				IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-				if (executorService != null) { executorService.shutdown();executorService = null; }
-				throw e;
-			}
-					
-			// Run the evaluation
-			
-			final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
-			classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
-			// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
-			// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
-			
-			// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
-			classifier.buildClassifier(dataCollector.trainingData);
-			System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
-			System.out.println(classifier);
-			dataCollector=null;// throw all the training data away.
-			final int totalTaskNumber = numberOfTraces;
-			try
-			{
-				int numberOfTasks = 0;
-				for(int states=minStateNumber;states < minStateNumber+15;states+=5)
-					for(int sample=0;sample<samplesPerFSM;++sample)
+					WekaDataCollector dataCollector = createDataCollector();
+					List<SampleData> samples = new LinkedList<SampleData>();
+					try
 					{
-						LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,numberOfTraces, config)
-						{
-							@Override
-							public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,@SuppressWarnings("unused") WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+						int numberOfTasks = 0;
+						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
+							for(int sample=0;sample<samplesPerFSM;++sample)
 							{
-								LearnerThatUsesWekaResults outcome = new LearnerThatUsesWekaResults(evalCnf,argReferenceGraph,classifier,argInitialPTA);
-								if (gr_PairQuality != null)
-									outcome.setBoxPlotPairQuality(gr_PairQuality, argReferenceGraph.getStateNumber()+"");
-								
-								return outcome;
+								LearnerRunner learnerRunner = new LearnerRunner(states,sample,1+numberOfTasks,numberOfTraces, config, converter)
+								{
+									@Override
+									public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+									{
+										return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA,gr_ErrorsAndDeadends);
+									}
+								};
+								learnerRunner.setPickUniqueFromInitial(useUnique);
+								runner.submit(learnerRunner);
+								++numberOfTasks;
+							}
+						ProgressIndicator progress = new ProgressIndicator("running "+numberOfTasks+" tasks", numberOfTasks);
+						for(int count=0;count < numberOfTasks;++count)
+						{
+							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+							samples.addAll(result.samples);
+							result.addAllInstancesTo(dataCollector.trainingData);
+							if (gr_ErrorsAndDeadends != null)
+								synchronized(gr_ErrorsAndDeadends)
+								{
+									gr_ErrorsAndDeadends.drawInteractive(gr);
+								}
+							progress.next();
+						}
+					}
+					catch(Exception ex)
+					{
+						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+						if (executorService != null) { executorService.shutdown();executorService = null; }
+						throw e;
+					}
+							
+					// Run the evaluation
+					
+					final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
+					classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
+					// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
+					// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
+					
+					// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
+					classifier.buildClassifier(dataCollector.trainingData);
+					System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
+					System.out.println(classifier);
+					dataCollector=null;// throw all the training data away.
+					final int totalTaskNumber = numberOfTraces;
+					try
+					{
+						int numberOfTasks = 0;
+						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
+							for(int sample=0;sample<samplesPerFSM;++sample)
+							{
+								LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,numberOfTraces, config, converter)
+								{
+									@Override
+									public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,@SuppressWarnings("unused") WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+									{
+										LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(evalCnf,argReferenceGraph,classifier,argInitialPTA);
+										if (gr_PairQuality != null)
+											l.setBoxPlotPairQuality(gr_PairQuality, argReferenceGraph.getStateNumber()+"");
+										
+										l.configureLearner(selectingRed, zeroScoringAsRed);
+										return l;
+									}
+									
+								};
+								learnerRunner.setPickUniqueFromInitial(useUnique);learnerRunner.setEvaluateAlsoUsingReferenceLearner(true);
+								runner.submit(learnerRunner);
+								++numberOfTasks;
+							}
+						ProgressIndicator progress = new ProgressIndicator("evaluating "+numberOfTasks+" tasks", numberOfTasks);
+						for(int count=0;count < numberOfTasks;++count)
+						{
+							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+							if (gr_PairQuality != null)
+								synchronized(gr_PairQuality)
+								{
+									gr_PairQuality.drawInteractive(gr);
+								}
+
+							if (gr_NewToOrig != null)
+							{
+								for(SampleData sample:result.samples)
+									gr_NewToOrig.add(sample.differenceForReferenceLearner,sample.difference);
+								gr_NewToOrig.drawInteractive(gr);
 							}
 							
-						};
-						learnerRunner.setPickUniqueFromInitial(pickUniqueFromInitial);learnerRunner.setEvaluateAlsoUsingReferenceLearner(true);
-						runner.submit(learnerRunner);
-						++numberOfTasks;
-					}
-				ProgressIndicator progress = new ProgressIndicator("evaluating "+numberOfTasks+" tasks", numberOfTasks);
-				for(int count=0;count < numberOfTasks;++count)
-				{
-					ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-					if (gr_PairQuality != null)
-						synchronized(gr_PairQuality)
-						{
-							gr_PairQuality.drawInteractive(gr);
+							for(SampleData sample:result.samples)
+								if (sample.differenceForReferenceLearner > 0)
+									gr_QualityForNumberOfTraces.add(numberOfTraces+"",sample.difference/sample.differenceForReferenceLearner);
+							if (gr_QualityForNumberOfTraces.size() > 0)
+								gr_QualityForNumberOfTraces.drawInteractive(gr);
+							progress.next();
 						}
-					
-					if (gr_NewToOrig != null)
-					{
-						for(SampleData sample:result.samples)
-							gr_NewToOrig.add(sample.differenceForReferenceLearner,sample.difference);
-						gr_NewToOrig.drawInteractive(gr);
 					}
-					
-					for(SampleData sample:result.samples)
-						if (sample.differenceForReferenceLearner > 0)
-							gr_QualityForNumberOfTraces.add(numberOfTraces+"",sample.difference/sample.differenceForReferenceLearner);
-					if (gr_QualityForNumberOfTraces.size() > 0)
-						gr_QualityForNumberOfTraces.drawInteractive(gr);
-					progress.next();
+					catch(Exception ex)
+					{
+						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+						if (executorService != null) { executorService.shutdown();executorService = null; }
+						throw e;
+					}
 				}
+				if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
+				if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 			}
-			catch(Exception ex)
-			{
-				IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-				if (executorService != null) { executorService.shutdown();executorService = null; }
-				throw e;
-			}
-		}
-		
 		/*
 		for(SampleData sample:samples)
 		{// try learning the same machine a few times
@@ -1573,7 +1643,5 @@ public class PairQualityLearner
 		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 		
-		if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
-		if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 	}
 }

@@ -42,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -65,10 +66,11 @@ public class ForestFireStateMachineGenerator {
 	protected RandomEngine generator;
 	protected Random boolGenerator;
 	final protected Configuration config;
+	final protected ConvertALabel converter;
 	
-	public ForestFireStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed, Configuration conf)
+	public ForestFireStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed, Configuration conf,ConvertALabel conv)
 	{
-		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;config=conf;
+		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;config=conf;converter=conv;
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
 			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
 		visited = new HashSet<DeterministicVertex>();
@@ -76,11 +78,14 @@ public class ForestFireStateMachineGenerator {
 		vertices = new ArrayList<DeterministicVertex>();
 		generator  = new MersenneTwister(seed);
 		boolGenerator = new Random(seed);
-		DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
-		annotateVertex(v);
-		machine.addVertex(v);
-		vertices.add(v);// permits v to be chosen as a target, creating self-loops
-		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		synchronized(AbstractLearnerGraph.syncObj)
+		{
+			DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
+			annotateVertex(v);
+			machine.addVertex(v);
+			vertices.add(v);// permits v to be chosen as a target, creating self-loops
+			v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		}
 	}
 
 	/** Annotates a vertex with various things such as accept conditions. Expected to be overridden by subclasses. */

@@ -19,13 +19,12 @@ package statechum.analysis.learning;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -38,7 +37,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
-import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -49,7 +47,6 @@ import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -167,11 +164,13 @@ Total time: 20492 sec
 					LearnerGraph outcome = null;
 					int extraPhantomVertices = 0;
 					if (useOptimizedMerge)
+					{
 						// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
-						outcome = MergeStates.mergeAndDeterminize(original, pair);
+						outcome = MergeStates.mergeAndDeterminize(original, pair);outcome.pathroutines.updateDepthLabelling();
+					}
 					else
 					{
-						Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 						long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices);
 						outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
 						
@@ -245,6 +244,9 @@ Total time: 20492 sec
 						if(listOfPairsToCheckAgainstIterator != null)
 						{
 							PairOfPaths pair = listOfPairsToCheckAgainstIterator.next();
+							while(pair.getQ() == null)
+								pair = listOfPairsToCheckAgainstIterator.next();// skip red pairs, we are no longer checking with selectRedNode collections of reds where there there is only one choice.
+							//System.out.println("Choosing "+pair+" from "+outcome);
 							//System.out.println("chosen "+outcome.peek()+", expected "+new PairScore(graph.getVertex(pair.getQ()),graph.getVertex(pair.getR()),0,0));
 							pair.rebuildStack(graph, outcome);
 						}
@@ -273,16 +275,6 @@ Total time: 20492 sec
 					if (initPta != null)
 					{
 						LearnerGraph.copyGraphs(initPta, graph);
-					}
-					else
-					{
-						Set<Label> alphabet = graph.pathroutines.computeAlphabet();
-						// Create a state to ensure that the entire alphabet is visible when if-then automata are loaded.
-						phantomVertex = graph.nextID(true);
-						CmpVertex dummyState = AbstractLearnerGraph.generateNewCmpVertex(phantomVertex, bfLearnerInitConfiguration.config);
-						Map<Label,CmpVertex> row = graph.createNewRow();
-						for(Label lbl:alphabet) graph.addTransition(row, lbl, dummyState);
-						graph.transitionMatrix.put(dummyState, row);
 					}
 					return graph;
 				}
@@ -360,31 +352,30 @@ Total time: 20492 sec
 
 	/** Name of the file containing pairs to be chosen from those determined by ChooseStatePairs. */
 	final String pairsToUse;
+
 	/** Whether to use an old merger that relies on merging a PTA into an automaton or a general one that mergers an arbitrary pairs of states. */ 
 	final boolean mergerToUse;
+
 	/** The kind of transition matrix to create. */
 	final Configuration.STATETREE matrixToUse;
 	
 	@Test
 	public void runCompareTwoLearners() throws IOException
     {
-		Transform.InternStringLabel converter = new Transform.InternStringLabel();
-		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, STATETREE.STATETREE_ARRAY, converter);
-		
-		Configuration learnerConf = initialConfigurationData.learnerInitConfiguration.config.copy();learnerConf.setTransitionMatrixImplType(matrixToUse);
-		initialConfigurationData.learnerInitConfiguration.config = learnerConf;// update the initial configuration with the one we shall use during learning.
+		Transform.InternStringLabel converter = new Transform.InternStringLabel();Configuration learnerConf = Configuration.getDefaultConfiguration().copy();
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, learnerConf, converter);
+		initialConfigurationData.learnerInitConfiguration.config.setTransitionMatrixImplType(matrixToUse);// set the expected matrix type
+		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,initialConfigurationData.learnerInitConfiguration.config);// change the transition matrix type of the graph
         FileReader listOptReader = new FileReader(PairQualityLearner.largePTALogsDir+pairsToUse);
-        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, initialConfigurationData.learnerInitConfiguration.config,converter);
+        List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, learnerConf,converter);
         listOptReader.close();
-
-        long tmStarted = new Date().getTime();
-        LearnerGraph graphD=new RPNIBlueFringeTestVariability(initialConfigurationData.learnerInitConfiguration,mergerToUse,null,listOpt).learn(initialConfigurationData.initial.graph);
-        long tmFinished = new Date().getTime();
-        System.out.println("Learning ("+mergerToUse+"), "+pairsToUse+" completed in "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
+        TestPTAConstruction.checkDepthLabelling(hugeGraph);
+        LearnerGraph graphD=new RPNIBlueFringeTestVariability(initialConfigurationData.learnerInitConfiguration,mergerToUse,null,listOpt).learn(hugeGraph);
         String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_"+pairsToUse;
         //graphD.storage.writeGraphML(outcomeName);
-        LearnerGraph referenceA = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
+        LearnerGraph referenceA = new LearnerGraph(learnerConf);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
         Assert.assertEquals(matrixToUse,graphD.config.getTransitionMatrixImplType());
+        TestPTAConstruction.checkDepthLabelling(graphD);// checks that depth is set up correctly regardless of the state merger being used.
         DifferentFSMException diff = WMethod.checkM(referenceA, graphD);
         if (diff != null)
         	throw diff;

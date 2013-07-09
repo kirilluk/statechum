@@ -351,7 +351,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * Could be more elaborate than just a number: for Erlang, this could generated trees. In addition, this one does not 
 	 * really assign numbers to labels, hence the outcome cannot be used where {@link ConvertibleToInt#toInt()} is used. 
 	 */
-	public static Label generateNewLabel(int number, Configuration config)
+	public static Label generateNewLabel(int number, Configuration config, ConvertALabel conv)
 	{
 		Label result = null;
 		switch(config.getLabelKind())
@@ -362,6 +362,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}
+		if (conv != null)
+			result = conv.convertLabelToLabel(result);
 		return result;
 	}
 	

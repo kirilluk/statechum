@@ -269,7 +269,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				if(counterExamples.size()>0)
 					restartLearning = RestartLearningEnum.restartSOFT;
 			}
-			
+
 			if (config.isUseConstraints()) 
 			{
 				LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
@@ -383,14 +383,14 @@ public class RPNIUniversalLearner extends RPNILearner
 								if (tailVertex != null && tailVertex.isAccept() != positive)
 									whetherToRestart.set(true);
 							}
-							
+
 						}, getLabelConverter());
-					
+
 						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceDescr);
 						// At this point, we attempt to augment the current automaton with the supplied traces,
 						// which may be successful or not (if we did some erroneous mergers earlier), in which case we restart.
 
-			            for(List<Label> positive:extraTracesPlus) 
+			            for(List<Label> positive:extraTracesPlus)
 			            	AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,positive, true,colour);
 						for(List<Label> negative:extraTracesMinus) 
 							AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,negative, false,colour);

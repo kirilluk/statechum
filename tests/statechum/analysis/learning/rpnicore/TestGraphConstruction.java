@@ -134,7 +134,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	{
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_ERLANG);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel(33,conf);
+			AbstractLearnerGraph.generateNewLabel(33,conf,converter);
 		}},IllegalArgumentException.class,"No parser");
 	}
 	

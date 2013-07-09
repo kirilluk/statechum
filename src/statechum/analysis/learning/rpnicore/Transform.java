@@ -1322,7 +1322,7 @@ public class Transform
 	 * @param depth the diameter of the graph to leave.
 	 * @return trimmed graph
 	 */
-	public LearnerGraph trimGraph(int depth)
+	public LearnerGraph trimGraph(int depth,CmpVertex startingState)
 	{
 		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
 		trimmedOne.initEmpty();
@@ -1331,13 +1331,13 @@ public class Transform
 			return trimmedOne;
 		
 		// we should not change attributes of coregraph's matrix here since we are re-using the vertices
-		trimmedOne.transitionMatrix.put(coregraph.getInit(),trimmedOne.createNewRow());
-		trimmedOne.setInit(coregraph.getInit());
+		trimmedOne.transitionMatrix.put(startingState,trimmedOne.createNewRow());
+		trimmedOne.setInit(startingState);
 		trimmedOne.learnerCache.invalidate();
 
 		Queue<CmpVertex> newFringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// since the subset of the filtered vertices is very small, it is enough to use an ordinary HashSet. A HashMapWithSearch will be an overkill.
-		newFringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+		newFringe.add(startingState);statesInFringe.add(startingState);
 		int waveNumber=0;
 		do
 		{
@@ -1345,7 +1345,7 @@ public class Transform
 			while(!fringe.isEmpty())
 			{
 				CmpVertex currentState = fringe.remove();
-				Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState==coregraph.getInit()?trimmedOne.getInit():currentState);
+				Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState==startingState?startingState:currentState);
 				Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
 				if(targets != null && !targets.isEmpty())
 					for(Entry<Label,CmpVertex> labelstate:targets.entrySet())

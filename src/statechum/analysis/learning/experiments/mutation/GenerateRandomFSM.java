@@ -11,6 +11,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class GenerateRandomFSM extends DiffExperiments {
 
@@ -25,6 +26,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
+			ConvertALabel converter = null;
 			int initStates = 25, graphComplexityMax=6, experimentsPerCategory = 100;
 			for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
 			{
@@ -35,7 +37,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 				
 				for(int experiment=0;experiment<experimentsPerCategory;experiment++)
 				{
-					LearnerGraphND generatedFSM = mg.nextMachine(alphabet, experiment,config);
+					LearnerGraphND generatedFSM = mg.nextMachine(alphabet, experiment,config, converter);
 					if (generatedFSM.getInit() != generatedFSM.transitionMatrix.entrySet().iterator().next().getKey())
 						throw new RuntimeException("first state is not the initial state");
 					

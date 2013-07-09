@@ -216,7 +216,6 @@ public class MergeStates {
 			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
 			if (mergedVertices.containsKey(vert))
 			{// there are some vertices to merge with this one.
-				
 				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
 				for(CmpVertex toMerge:mergedVertices.get(vert))
 				{// for every input, I'll have a unique target state - this is a feature of PTA

@@ -20,6 +20,7 @@ package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 
@@ -52,12 +54,14 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -65,6 +69,8 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceSet;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
@@ -95,7 +101,6 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		return Configuration.parametersToString(config);
 	}
-	
 	
 	public TestRpniLearner(Configuration conf) 
 	{
@@ -1505,8 +1510,163 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		}
 		);
 	}
+	
+	@Test
+	public final void testPairCompatible_general_E()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Ea",config,getLabelConverter());
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(null,Arrays.asList(new StatePair[]{
+				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
+				}), verticesToMerge);
+		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
+		LearnerGraph expected = FsmParser.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1", "testPairCompatible_general_Eb",config,getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+	}
 
+	@Test
+	public final void testPairCompatible_general_F()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-a->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Fa",config,getLabelConverter());
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(null,Arrays.asList(new StatePair[]{
+				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
+				}), verticesToMerge);
+		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
+		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I", "testPairCompatible_general_Fb",config,getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+	}
 
+	@Test
+	public final void testPairCompatible_general_G()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-e->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ga",config,getLabelConverter());
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(null,Arrays.asList(new StatePair[]{
+				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
+				}), verticesToMerge);
+		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
+		LearnerGraph expected = FsmParser.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1 / I-e->B2", "testPairCompatible_general_Gb",config,getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	@Test
+	public final void testPairCompatible_general_H()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-d->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ha",config,getLabelConverter());
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(null,Arrays.asList(new StatePair[]{
+				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
+				}), verticesToMerge);
+		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
+		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I-d->I", "testPairCompatible_general_Hb",config,getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	@RunWith(Parameterized.class)
+	public static class TestRandomFSMMergers
+	{
+		@Parameters
+		public static Collection<Object[]> data() 
+		{
+			Collection<Object[]> outcome = new LinkedList<Object[]>();
+			for(Object[] data:Configuration.configurationsForTesting())
+				for(int i=1;i<10;++i)
+				{
+					Object[] outcomeEntry = new Object[data.length+1];System.arraycopy(data, 0, outcomeEntry, 0, data.length);outcomeEntry[data.length]=i;
+					outcome.add(outcomeEntry);
+				}
+			
+			return outcome;
+		}
+		
+		/** Given a test configuration, returns a textual description of its purpose. 
+		 * 
+		 * @param config configuration to consider
+		 * @parma i the parameter used to generate random FSMs
+		 * @return description.
+		 */ 
+		public static String parametersToString(Configuration config, Integer i)
+		{
+			return Configuration.parametersToString(config)+" "+i;
+		}		
+		
+		protected final Configuration config;
+		protected final ConvertALabel converter;
+		protected final int fsmNumber;
+		
+		public ConvertALabel getLabelConverter()
+		{
+			return converter;
+		}
+		
+		public TestRandomFSMMergers(Configuration conf, Integer i) 
+		{
+			converter = conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
+			config = conf;fsmNumber = i;
+		}
+		
+		
+		// This one generates a number of random machines; for every pair of vertices in those machines that can be merged, it constructs the set of vertices to merge and then
+		// merges some of them (randomly) in one go. Such a merge should generate the same number of states and give the same score.
+		@Test 
+		public final void testRandomFSMMergers() throws IncompatibleStatesException
+		{
+			final int states = 50;
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			LearnerGraph referenceGraph = mg.nextMachine(states/2,fsmNumber, config,getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, in the mergers below we can still attempt to merge arbitrary subsets of states.
+
+			for(CmpVertex a:referenceGraph.transitionMatrix.keySet())
+				for(CmpVertex b:referenceGraph.transitionMatrix.keySet())
+				{
+					Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					int score = referenceGraph.pairscores.computePairCompatibilityScore_general(new StatePair(a,b),null,verticesToMerge);
+					if (score >= 0)
+					{
+						Set<Set<CmpVertex>> origVertexPairs = new HashSet<Set<CmpVertex>>();
+						for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> cls:verticesToMerge)
+							origVertexPairs.add(cls.getStates());
+						Random rnd = new Random(fsmNumber);
+						for(int experiment=0;experiment < 10;++experiment)
+						{
+							List<StatePair> pairs = new ArrayList<StatePair>(1000);
+							for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> cls:verticesToMerge)
+							{
+								origVertexPairs.add(cls.getStates());
+								CmpVertex bufferOfVertices[] = cls.getStates().toArray(new CmpVertex[]{});
+								for(int i=0;i<10;++i)
+									pairs.add(new StatePair(bufferOfVertices[rnd.nextInt(bufferOfVertices.length)],bufferOfVertices[rnd.nextInt(bufferOfVertices.length)]));
+									
+							}
+							Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> newVerticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+							int newScore = referenceGraph.pairscores.computePairCompatibilityScore_general(new StatePair(a,b),pairs,newVerticesToMerge);
+							/*
+							System.out.println("scores: "+score+" "+newScore);
+							if (score != newScore)
+							{
+								System.out.println("State pair: "+(new StatePair(a,b))+"states originally merged: "+verticesToMerge+" states to be merged: "+newVerticesToMerge);
+								Visualiser.updateFrame(referenceGraph, null);
+								LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> new2VerticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+								int anotherScore = referenceGraph.pairscores.computePairCompatibilityScore_general(new StatePair(a,b),pairs,new2VerticesToMerge);
+								
+							}*/
+							Assert.assertEquals(score,newScore);
+							Set<Set<CmpVertex>> newVertexPairs = new HashSet<Set<CmpVertex>>();for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> cls:newVerticesToMerge) newVertexPairs.add(cls.getStates());
+							Assert.assertEquals(origVertexPairs,newVertexPairs);
+						}
+					}
+				}
+		}
+	}
+	
 	@Test
 	public final void testPairCompatible3()
 	{

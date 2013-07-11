@@ -1024,6 +1024,9 @@ public class Transform
 				Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
 			}
 		
+		Set<Label> alphabetToUse = alphabet;
+		if (alphabetToUse == null)
+			alphabetToUse = graph.pathroutines.computeAlphabet();
 		for(String property:ltl)
 			if (property.startsWith(QSMTool.cmdIFTHENAUTOMATON))
 			{
@@ -1031,9 +1034,6 @@ public class Transform
 				int endOfName = automatonAndName.indexOf(' ');
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
-				Set<Label> alphabetToUse = alphabet;
-				if (alphabetToUse == null)
-					alphabetToUse = graph.pathroutines.computeAlphabet();
 				LearnerGraph tmpPropertyAutomaton =
 						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
 							.transform.interpretLabelsAsReg(alphabetToUse,conv); // this is inefficient but I can afford this because if-then automata are small.

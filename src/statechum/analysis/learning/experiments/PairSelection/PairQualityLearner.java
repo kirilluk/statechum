@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -61,6 +62,7 @@ import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -77,8 +79,10 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.apps.QSMTool;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -442,6 +446,24 @@ public class PairQualityLearner
 		}
 	}
 		
+	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence. This is subsequently used to construct if-then automata.
+	 * 
+	 */
+	public static Map<Label,Set<Label>> computeInfeasiblePairs(LearnerGraph tentativeGraph)
+	{
+		Map<Label,Set<Label>> labelToSet = new TreeMap<Label,Set<Label>>();
+		Set<Label> alphabet = tentativeGraph.pathroutines.computeAlphabet();
+		for(Label lbl:alphabet)
+		{
+			Set<Label> labels = new TreeSet<Label>();labels.addAll(alphabet);labelToSet.put(lbl,labels);
+		}
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+			for(Entry<Label,CmpVertex> firstTransition:entry.getValue().entrySet())
+				labelToSet.get(firstTransition.getKey()).removeAll(tentativeGraph.transitionMatrix.get(firstTransition.getValue()).keySet());
+			
+		return labelToSet;
+	}
+
 	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
 	public static abstract class LearnerThatCanClassifyPairs extends RPNIUniversalLearner
 	{
@@ -485,7 +507,7 @@ public class PairQualityLearner
 
 		/** Returns one of the correct pairs.
 		 */
-		public PairScore pickCorrectPair(Stack<PairScore> pairs, LearnerGraph tentativeGraph)
+		public PairScore pickCorrectPair(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
 			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
 					
@@ -512,16 +534,100 @@ public class PairQualityLearner
 			}
 			return correctPairs.iterator().next();
 		}
-
+		
+		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, there will be a set of states that is supposed to be merged. 
+		 * It is important to point out that only positive states are taken into account, there are frequent cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
+		 * except for a transition from that very state that is often to be rejected.
+		 *  
+		 * @param tentativeGraph graph to process
+		 * @param transitionsToTheSameState labels that are supposed to lead to the same state
+		 * @param transitionsFromTheSameState labels that are supposed to uniquely identify a state
+		 * @return a collection of pairs of state that are supposed to be merged.
+		 */
+		public static List<StatePair> buildVerticesToMerge(LearnerGraph tentativeGraph, Collection<Label> transitionsToTheSameState,Collection<Label> transitionsFromTheSameState)
+		{
+			List<StatePair> pairsList = new ArrayList<StatePair>();
+			if (transitionsToTheSameState.isEmpty() && transitionsFromTheSameState.isEmpty() )
+				return pairsList;
+			
+			Map<Label,Collection<CmpVertex>> labelToStates = 
+					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+			Map<Label,Collection<CmpVertex>> labelFromStates = 
+					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+						
+			for(Label lbl:transitionsToTheSameState) labelToStates.put(lbl,new ArrayList<CmpVertex>());
+			for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
+			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+				if (entry.getKey().isAccept())
+					for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+					{
+						Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
+						if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
+	
+						Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
+						if (sourceStatesToMerge != null && transition.getValue().isAccept()) sourceStatesToMerge.add(entry.getKey());
+					}
+			
+			for(Collection<CmpVertex> vertices:labelToStates.values())
+			{
+				CmpVertex prevVertex = null;
+				for(CmpVertex v:vertices)
+				{
+					if (prevVertex != null)
+						pairsList.add(new StatePair(prevVertex,v));
+					prevVertex = v;
+				}
+			}
+			for(Collection<CmpVertex> vertices:labelFromStates.values())
+			{
+				CmpVertex prevVertex = null;
+				for(CmpVertex v:vertices)
+				{
+					if (prevVertex != null)
+						pairsList.add(new StatePair(prevVertex,v));
+					prevVertex = v;
+				}
+			}
+			/*
+			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			long score = tentativeGraph.pairscores.computePairCompatibilityScore_general(pairsList, verticesToMerge);
+			return score >= 0;// negative if the merge fails*/
+			
+			return pairsList;
+		}
+				
+		
+		/** Returns a subset of pairs that are not in contradiction with mandatory merge constraints.
+		 *  
+		 * @param pairs pairs to merge
+		 * @return the outcome of merging.
+		 */
+		public List<PairScore> filterPairsBasedOnMandatoryMerge(Stack<PairScore> pairs, LearnerGraph tentativeGraph)
+		{
+			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+			if (pairsList.isEmpty())
+				return pairs;
+			
+			List<PairScore> outcome = new ArrayList<PairScore>();
+			for(PairScore p:pairs)
+				if (
+						!p.getQ().isAccept() || !p.getR().isAccept() || // if any is a negative, it can always be merged.
+						tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) >= 0 // the pair does not contradict mandatory merge.
+				)
+				outcome.add(p);
+			assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
+			return outcome;
+		}
+		
 		/** Returns the best pair according to the score.
 		 */
-		public PairScore pickPairQSMLike(Stack<PairScore> pairs)
+		public PairScore pickPairQSMLike(Collection<PairScore> pairs)
 		{
-			PairScore bestPair = pairs.iterator().next();
+			PairScore bestPair = null;
 			for(PairScore p:pairs)
-				if (p.getScore() > bestPair.getScore())
-					bestPair=p;
-			
+				if (bestPair == null || p.getScore() > bestPair.getScore()) // if we've not yet seen a pair or the current one is the best one ...
+					bestPair=p; // ... then select the pair as a feasible merge.
 			return bestPair;
 		}
 		
@@ -595,7 +701,7 @@ public class PairQualityLearner
 				}});
 			if (!outcome.isEmpty())
 			{
-				PairScore chosenPair = pickPairQSMLike(outcome);
+				PairScore chosenPair = pickPairQSMLike(filterPairsBasedOnMandatoryMerge(outcome,graph));
 				outcome.clear();outcome.push(chosenPair);
 			}
 			
@@ -653,9 +759,10 @@ public class PairQualityLearner
 				}});
 			if (!outcome.isEmpty())
 			{
-				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);
-				PairScore chosenPair = pickCorrectPair(outcome, graph);
-				PairScore qsmPair = pickPairQSMLike(outcome);
+				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
+				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
+				PairScore chosenPair = pickCorrectPair(filteredPairs, graph);
+				PairScore qsmPair = pickPairQSMLike(filteredPairs);
 				if (!qsmPair.equals(chosenPair) && gr_ErrorsAndDeadends != null)
 					synchronized(gr_ErrorsAndDeadends)
 					{
@@ -774,67 +881,6 @@ public class PairQualityLearner
 		}
 		
 		
-		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, there will be a set of states that is supposed to be merged. 
-		 * It is important to point out that only positive states are taken into account, there are frequent cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
-		 * except for a transition from that very state that is often to be rejected.
-		 *  
-		 * @param tentativeGraph graph to process
-		 * @param transitionsToTheSameState labels that are supposed to lead to the same state
-		 * @param transitionsFromTheSameState labels that are supposed to uniquely identify a state
-		 * @return a collection of pairs of state that are supposed to be merged.
-		 */
-		public static List<StatePair> buildVerticesToMerge(LearnerGraph tentativeGraph, Collection<Label> transitionsToTheSameState,Collection<Label> transitionsFromTheSameState)
-		{
-			List<StatePair> pairsList = new ArrayList<StatePair>();
-			if (transitionsToTheSameState.isEmpty() && transitionsFromTheSameState.isEmpty() )
-				return pairsList;
-			
-			Map<Label,Collection<CmpVertex>> labelToStates = 
-					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
-			Map<Label,Collection<CmpVertex>> labelFromStates = 
-					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
-						
-			for(Label lbl:transitionsToTheSameState) labelToStates.put(lbl,new ArrayList<CmpVertex>());
-			for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
-				if (entry.getKey().isAccept())
-					for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-					{
-						Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
-						if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
-	
-						Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
-						if (sourceStatesToMerge != null && transition.getValue().isAccept()) sourceStatesToMerge.add(entry.getKey());
-					}
-			
-			for(Collection<CmpVertex> vertices:labelToStates.values())
-			{
-				CmpVertex prevVertex = null;
-				for(CmpVertex v:vertices)
-				{
-					if (prevVertex != null)
-						pairsList.add(new StatePair(prevVertex,v));
-					prevVertex = v;
-				}
-			}
-			for(Collection<CmpVertex> vertices:labelFromStates.values())
-			{
-				CmpVertex prevVertex = null;
-				for(CmpVertex v:vertices)
-				{
-					if (prevVertex != null)
-						pairsList.add(new StatePair(prevVertex,v));
-					prevVertex = v;
-				}
-			}
-			/*
-			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			long score = tentativeGraph.pairscores.computePairCompatibilityScore_general(pairsList, verticesToMerge);
-			return score >= 0;// negative if the merge fails*/
-			
-			return pairsList;
-		}
-				
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly. 
 		 */
@@ -1085,10 +1131,11 @@ public class PairQualityLearner
 				}});
 			if (!outcome.isEmpty())
 			{
-				ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
+				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
+				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
 				updateStatistics(graph,possibleResults);
 				if (possibleResults.isEmpty())
-					possibleResults.add(pickPairQSMLike(outcome));// no pairs have been provided by the modified algorithm, hence using the default one.
+					possibleResults.add(pickPairQSMLike(filteredPairs));// no pairs have been provided by the modified algorithm, hence using the default one.
 				
 				PairScore result = possibleResults.iterator().next();
 
@@ -1214,7 +1261,7 @@ public class PairQualityLearner
 	}
 	
 	/** All label starting from this prefix are going to be merged. */
-	public static final String prefixOfMandatoryMergeTransition = "toMerge";
+	public static final String prefixOfMandatoryMergeTransition = "toMerge", pairwiseAutomata = "pairwiseConstraints";
 	
 	public static void addIfThenForMandatoryMerge(LearnerEvaluationConfiguration initialData, Collection<Label> dataOnUniqueTransitions)
 	{
@@ -1225,9 +1272,27 @@ public class PairQualityLearner
 		for(Label l:dataOnUniqueTransitions)
 		{
 			String lbl = l.toString(), mandatory = prefixOfMandatoryMergeTransition+"_"+transitionNumber+"_"+lbl;
-			initialData.ifthenSequences.add("Mandatory_"+transitionNumber+"_via_"+lbl+" A- !"+lbl+" || "+mandatory+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" || "+mandatory+" ->A / B == THEN == C / C-"+mandatory+"->D");
+			initialData.ifthenSequences.add(QSMTool.cmdIFTHENAUTOMATON + " Mandatory_"+transitionNumber+"_via_"+lbl+" A- !"+lbl+" || "+mandatory+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" || "+mandatory+" ->A / B == THEN == C / C-"+mandatory+"->D");
 			++transitionNumber;
 		}
+	}
+	
+	public static void addIfThenForPairwiseConstraints(LearnerEvaluationConfiguration initialData, Map<Label,Set<Label>> pairwiseConstraints)
+	{
+		if (initialData.ifthenSequences == null)
+			initialData.ifthenSequences = new LinkedList<String>();
+		
+		for(Entry<Label,Set<Label>> entry:pairwiseConstraints.entrySet())
+			if (!entry.getValue().isEmpty())
+			{
+				String lbl = entry.getKey().toString();
+				StringBuffer rejects = new StringBuffer();
+				for(Label l:entry.getValue())
+				{
+					rejects.append("/ C -");rejects.append(l);rejects.append("-#D");
+				}
+				initialData.ifthenSequences.add(QSMTool.cmdIFTHENAUTOMATON + " "+ pairwiseAutomata+"_"+lbl+" A- !"+lbl+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" ->A "+rejects.toString()+"/ B == THEN == C");
+			}
 	}
 	
 	public static void printTraceLeadingTo(LearnerGraph graph, String vert)
@@ -1300,6 +1365,13 @@ public class PairQualityLearner
 		return MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge);
 	}
 	
+	public static int makeEven(int number)
+	{
+		if (number % 2 == 0)
+			return number;
+		return number + 1;
+	}
+
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -1334,17 +1406,11 @@ public class PairQualityLearner
 		
 		public abstract LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
 		
-		public static int makeEven(int number)
-		{
-			if (number % 2 == 0)
-				return number;
-			return number + 1;
-		}
 		
 		@Override
 		public ThreadResult call() throws Exception 
 		{
-			final int alphabet = states*2;
+			final int alphabet = 2*states;
 			Frame frame = null;
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
@@ -1376,7 +1442,7 @@ public class PairQualityLearner
 				}
 			}*/
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);
-			final Collection<List<Label>> testSet = referenceGraph.wmethod.computeNewTestSet(1);
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph);
 			for(int attempt=0;attempt<10;++attempt)
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
@@ -1415,7 +1481,29 @@ public class PairQualityLearner
 							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
 						}
 					});
-				pta.paths.augmentPTA(generator.getAllSequences(0));pta.clearColours();
+				
+				pta.paths.augmentPTA(generator.getAllSequences(0));pta.clearColours();// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
+					// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
+					
+				if (!onlyUsePositives)
+				{
+					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
+					Map<Label,Set<Label>> infeasiblePairs = computeInfeasiblePairs(referenceGraph);
+					Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
+					for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
+					{
+						Set<Label> value = new TreeSet<Label>();
+						if (!entry.getValue().isEmpty()) value.add(entry.getValue().iterator().next());
+						subsetOfPairs.put(entry.getKey(),value);
+					}
+					addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
+					LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, null, referenceGraph, learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
+					learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
+					int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
+					//System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
+					Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
+					//System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
+				}
 				
 				LearnerThatCanClassifyPairs learnerOfPairs = null;
 				LearnerGraph actualAutomaton = null;
@@ -1428,13 +1516,18 @@ public class PairQualityLearner
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					List<StatePair> pairsList = LearnerThatUsesWekaResults.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
+					List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
 					if (!pairsList.isEmpty())
 					{
 						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 						if (score < 0)
+						{
+							learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
+							learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
+							actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+							score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 							throw new RuntimeException("last merge in the learning process was not possible");
-						
+						}
 						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
 					}
 				}
@@ -1451,12 +1544,13 @@ public class PairQualityLearner
 						assert rejectVertexID == null : "multiple reject vertices in learnt automaton, such as "+rejectVertexID+" and "+v;
 						rejectVertexID = v;break;
 					}
-				
+				if (rejectVertexID == null)
+					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				SampleData dataSample = new SampleData(null,null);
-				dataSample.difference = estimationOfDifference(referenceGraph, actualAutomaton, testSet, config, 1);
+				dataSample.difference = estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
 				if (learnUsingReferenceLearner)
-					dataSample.differenceForReferenceLearner = estimationOfDifference(referenceGraph, new ReferenceLearner(frame,learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), testSet, config, 1);
+					dataSample.differenceForReferenceLearner = estimationOfDifferenceFmeasure(referenceGraph, new ReferenceLearner(frame,learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), testSet);
 				outcome.samples.add(dataSample);
 			}
 			
@@ -1473,21 +1567,22 @@ public class PairQualityLearner
 	 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
 	 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
 	 */
-	@SuppressWarnings("unused")
-	public static double estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet, Configuration config, int cpuNumber)
+	public static double estimationOfDifferenceFmeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 	{
-/*		
+		return DiffExperiments.classify(testSet, referenceGraph, actualAutomaton).fMeasure();
+	}
+	
+	public static double estimationOfDifferenceDiffMeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Configuration config, int cpuNumber)
+	{
+
 		statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, actualAutomaton, null);
 		gd.computeGD(referenceGraph, actualAutomaton, cpuNumber,changesCounter,config);
 		
 		int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = actualAutomaton.pathroutines.countEdges();
-		double similarity =
+		return
 				(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
-		*/
-		double similarity = DiffExperiments.classify(testSet, referenceGraph, actualAutomaton).fMeasure();
 		
-		return similarity;
 	}
 
 	public static void runExperiment() throws Exception
@@ -1595,7 +1690,7 @@ public class PairQualityLearner
 								runner.submit(learnerRunner);
 								++numberOfTasks;
 							}
-						ProgressIndicator progress = new ProgressIndicator("evaluating "+numberOfTasks+" tasks", numberOfTasks);
+						ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks", numberOfTasks);
 						for(int count=0;count < numberOfTasks;++count)
 						{
 							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.

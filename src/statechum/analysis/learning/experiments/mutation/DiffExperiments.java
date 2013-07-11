@@ -650,12 +650,10 @@ public class DiffExperiments {
 					{
 						String messageText = "FSM with "+actualTargetSize+" states (with error of "+error+") and alphabet of "+alphabet+" after at least "+phaseSize+" attempts, the seed is "+counter;
 						if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-						{
 							System.out.println("FAILED TO PRODUCE A GOOD ENOUGH AUTOMATON FOR "+messageText+"\nRETURNING "+bestMachine.getStateNumber()+" states");
-							found = true;
-						}
-						else
-							throw new RuntimeException("failed to generate "+messageText);//adjustArtificialTargetSize();
+
+						found = true;
+							//throw new RuntimeException("failed to generate "+messageText);//adjustArtificialTargetSize();
 					}
 					++artificialTargetSize;
 				}

@@ -418,7 +418,44 @@ public class RandomPathGenerator {
 	 */
 	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure)
 	{
-		RandomLengthGenerator rnd = new RandomLengthGenerator(){
+		generateRandomPosNeg(numberPerChunk,chunks,exceptionOnFailure,null);
+	}
+
+	/** Generates random positive and negative paths. 
+	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 * @param exceptionOnFailure whether to throw an exception if paths cannot be generated.  
+	 */
+	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator rnd)
+	{
+		generateRandomPosNeg(numberPerChunk, chunks, exceptionOnFailure, rnd, true, true, null);
+	}
+	
+	/** Generates random positive and negative paths. 
+	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 * @param exceptionOnFailure whether to throw an exception if paths cannot be generated.  
+	 * @param attemptPositive whether to attempt to generate positive sequences. If false, positives are not generated (but the number of negatives if requested is still numberPerChunk/2).
+	 * @param attemptNegative whether to attempt to generate positive sequences. If false, negatives are not generated (but the number of positives if requested is still numberPerChunk/2).
+	 * @param initialSet if non-null, the collection to initialise our sequences with. Useful for the purpose of augmenting an existing set with new sequences that are supposed to be different from the existing ones.
+	 */
+	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator argRnd, boolean attemptPositive, boolean attemptNegative, Collection<List<Label>> initialSet)
+	{
+		if (pathLength < 1)
+			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
+		if (numberPerChunk % 2 != 0)
+			throw new IllegalArgumentException("Number of sequences per chunk must be even");
+		chunksGenerated = 0;
+
+		int seqNumber = chunks*numberPerChunk/2;
+		int distribution [] = new int[seqNumber];
+		
+		RandomLengthGenerator rnd = argRnd;
+		if (rnd == null) rnd = new RandomLengthGenerator(){
 
 			@Override
 			public int getLength() {
@@ -431,31 +468,12 @@ public class RandomPathGenerator {
 			}
 			
 		};
-		generateRandomPosNeg(numberPerChunk,chunks,exceptionOnFailure,rnd);
-	}
 
-	/** Generates random positive and negative paths. 
-	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
-	 * 
-	 * @param numberPerChunk number of sequences per chunk.
-	 * @param chunks the number of chunks to generate.
-	 * @param exceptionOnFailure whether to throw an exception if paths cannot be generated.  
-	 */
-	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator rnd)
-	{
-		if (pathLength < 1)
-			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
-		if (numberPerChunk % 2 != 0)
-			throw new IllegalArgumentException("Number of sequences per chunk must be even");
-		chunksGenerated = 0;
-
-		int seqNumber = chunks*numberPerChunk/2;
-		int distribution [] = new int[seqNumber];
-		
 		for(int i=0;i < seqNumber;++i)
 			distribution[i]=rnd.getLength();
 		Arrays.sort(distribution);
 		initAllSequences();
+		if (initialSet != null) for (List<Label> seq:initialSet) allSequences.add(seq);
 
 		StateName [] positives = new StateName[chunks], negatives = new StateName[chunks];
 		for(int i=0;i< chunks;++i) { positives[i]=new StateName(i,true);negatives[i]=new StateName(i,false); }
@@ -465,25 +483,30 @@ public class RandomPathGenerator {
 			tag = negatives[i % chunks];
 			List<Label> path = null;
 			
-			path = generateRandomWalkWithFudge(distribution[i],rnd,false);
-			if (path != null)
-				allSequences.add(path);
-			else
-				if (exceptionOnFailure)
-					throw new IllegalArgumentException("failed to generate a negative"+
-						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
-						g.config.getRandomPathAttemptFudgeThreshold()+" times");
-
+			if (attemptNegative)
+			{
+				path = generateRandomWalkWithFudge(distribution[i],rnd,false);
+				if (path != null)
+					allSequences.add(path);
+				else
+					if (exceptionOnFailure)
+						throw new IllegalArgumentException("failed to generate a negative"+
+							" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
+							g.config.getRandomPathAttemptFudgeThreshold()+" times");
+			}
 			tag = positives[i % chunks];
 			
-			path=generateRandomWalkWithFudge(distribution[i],rnd,true);
-			if (path != null)
-				allSequences.add(path);
-			else
-				if (exceptionOnFailure)
-					throw new IllegalArgumentException("failed to generate a positive"+
-						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
-						g.config.getRandomPathAttemptFudgeThreshold()+" times");
+			if (attemptPositive)
+			{
+				path=generateRandomWalkWithFudge(distribution[i],rnd,true);
+				if (path != null)
+					allSequences.add(path);
+				else
+					if (exceptionOnFailure)
+						throw new IllegalArgumentException("failed to generate a positive"+
+							" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
+							g.config.getRandomPathAttemptFudgeThreshold()+" times");
+			}
 		}
 		chunksGenerated = chunks;
 	}

@@ -377,7 +377,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	@Override
 	public void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
 	{
-		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
+		if (row.containsKey(input)) 
+			throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
 		assert input != null;
 		assert target != null;
 		row.put(input, target);

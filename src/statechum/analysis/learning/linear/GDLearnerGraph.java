@@ -1243,7 +1243,7 @@ public class GDLearnerGraph
 							int expectedMaxSize = pos+colEntriesNumber+1;
 							if (Ax.elements().length < expectedMaxSize)
 							{
-								if (linearWarningsEnabled)
+								if (linearWarningsEnabled && config.getDebugMode())
 									System.out.println("buildMatrix: warning - resizing arrays Ax[thread "+threadNo+"] and Ai[thread "+threadNo+"] from "+Ax.elements().length+" to "+expectedMaxSize);
 								Ax.ensureCapacity(expectedMaxSize);
 								Ai.ensureCapacity(expectedMaxSize);

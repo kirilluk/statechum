@@ -357,7 +357,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		switch(config.getLabelKind())
 		{
 		case LABEL_STRING:
-			result = new StringLabel(Integer.toString(number));
+			result = new StringLabel("L"+Integer.toString(number));// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
 			break;
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());

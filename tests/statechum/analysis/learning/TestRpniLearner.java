@@ -171,12 +171,6 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertNull(WMethod.checkM(learntStructureA, learntStructureB));
 		LearnerGraph learntMachineNoRejects = new LearnerGraph(expected.config);
 		AbstractPathRoutines.removeRejectStates(learntStructureA,learntMachineNoRejects);
-		/*
-		if (null != WMethod.checkM(learntMachineNoRejects, expected))
-		{
-			Visualiser.updateFrame(learntMachineNoRejects, expected);Visualiser.waitForKey();
-		}
-		*/
 		Assert.assertNull(WMethod.checkM(learntMachineNoRejects, expected));
 	}
 	

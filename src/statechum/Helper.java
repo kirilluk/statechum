@@ -41,7 +41,8 @@ public class Helper {
 	 */
 	public static void throwUnchecked(String description, Throwable e)
 	{
-		IllegalArgumentException ex = new IllegalArgumentException(description+": "+e.getMessage());ex.initCause(e);
+		String descr = e.getMessage() == null? "":(": "+e.getMessage());
+		IllegalArgumentException ex = new IllegalArgumentException(description+descr);ex.initCause(e);
 		throw ex;
 	}
 

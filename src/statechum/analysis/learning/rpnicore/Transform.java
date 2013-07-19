@@ -1193,10 +1193,12 @@ public class Transform
 		protected int nextID;
 		
 		/** Given a label, returns an interned label. Could return the same label but should not return null. 
+		 * For multi-core operation, this method has to be synchronized.
+		 * 
 		 * @param lbl label to intern. 
 		 */
 		@Override
-		public Label convertLabelToLabel(Label label)
+		public synchronized Label convertLabelToLabel(Label label)
 		{
 			Label outcome = labelDatabase.get(label);
 			if (outcome == null)

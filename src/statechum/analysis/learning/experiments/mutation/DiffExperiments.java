@@ -52,6 +52,8 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -581,14 +583,11 @@ public class DiffExperiments {
 			Random connectTransitions = new Random(counter);
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
-					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
-					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter,config,converter);
-					
+					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
 					synchronized(AbstractLearnerGraph.syncObj)
 					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
 						machine = gen.buildMachine(artificialTargetSize);
 					}
-					
 					if (generateConnected)
 					{
 						// First, add transitions from states that do not lead anywhere
@@ -623,7 +622,6 @@ public class DiffExperiments {
 						machine.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(trimmedMachine);
 						machine = trimmedMachine.paths.reduce();
 					}
-					
 					
 					machine.setName("forestfire_"+counter);
 					int machineSize = machine.getStateNumber();

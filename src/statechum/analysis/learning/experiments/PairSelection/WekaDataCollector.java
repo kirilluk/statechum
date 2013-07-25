@@ -43,6 +43,23 @@ public class WekaDataCollector
 {
 	Classifier classifier;
 	
+	/** The maximal number of attributes to use as part of a conditional statement. Where 0, no conditionals are considered, for QSM (Score/Red/Blue) it has to be 2.
+	 */
+	int maxLevel;
+	
+	/**
+	 * The length of an instance, taking {@link WekaDataCollector#maxLevel} into account.
+	 */
+	int instanceLength;
+	
+	/** Attributes associated with each instance. These are not the same as attributes of comparators because comparators are only considering individual comparisons and here we are working with if-then chains. */
+	Attribute[] attributesOfAnInstance;
+	
+	public int getInstanceLength()
+	{
+		return instanceLength;
+	}
+	
 	/**
 	 * Begins construction of an instance of pair classifier.
 	 */
@@ -52,31 +69,86 @@ public class WekaDataCollector
 		classAttribute = new Attribute("class",vecBool);
 	}
 
+	protected int n,L;
+	
+	/** Number of values for attributes to consider. */
+	protected final static int V=2;
 	/**
 	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
 	 * @param trainingSetName the name for a training set.
 	 * @param capacity the maximal number of elements in the training set
 	 * @param argAssessor a collection of assessors to use.
+	 * @param level the maximal number of attributes to use as part of a conditional statement.
 	 */
-	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor)
+	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor, int level)
 	{
-		assessors = argAssessor;valueAverage = new double[assessors.size()];valueSD=new double[assessors.size()];
+		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
+		
+		assessors = argAssessor;measurementsForUnfilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForUnfilteredCollectionOfPairs.valueSD=new double[assessors.size()];
 		comparators = new ArrayList<PairComparator>(assessors.size());
 		for(PairRank pr:assessors)
 			comparators.add(new PairComparator(pr));
-		FastVector attributes = new FastVector(comparators.size()+1);
-		for(PairComparator cmp:comparators)
-			attributes.addElement(cmp.getAttribute());
-		for(PairRank pr:assessors)
-			attributes.addElement(pr.getAttribute());
+		if (comparators.size() > Long.SIZE-1)
+			throw new IllegalArgumentException("attributes will not fit into long");
+		
+		maxLevel = level;
+
+		n = comparators.size();// the number of indices we go through
+		L = comparators.size()*2;// the length of the attributes accumulated for each pair.
+		long instanceLen = L, sectionLen=1;
+		if (V*n<maxLevel)
+			throw new IllegalArgumentException("too many levels for the considered number of attributes");
+			
+		for(int i=0;i<maxLevel;++i)
+		{
+			sectionLen*=V*(n-i);
+			instanceLen+=L*sectionLen;
+			if (sectionLen > Integer.MAX_VALUE)
+				throw new IllegalArgumentException("too many attributes per instance");
+		}
+		instanceLength = (int)instanceLen;
+
+		
+		FastVector attributes = new FastVector(instanceLength+1);
+		attributesOfAnInstance = new Attribute[instanceLength];
+		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.addElement(attributesOfAnInstance[i]);
 		attributes.addElement(classAttribute);
 		trainingData = new Instances(trainingSetName,attributes,capacity);
 		trainingData.setClass(classAttribute);
 	}
 
-	
-	protected String convertAssessmentResultToString(int assessmentResult, PairRankingSupport attributeForException)
+	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int section_size, long xyz, String pathToThisLevel, int currentLevel)
+	{
+		final int sectionPlusOffset = section_start + L*idx_in_section;
+
+		int i=0;
+
+		for(PairComparator cmp:comparators)
+			whatToFillIn[sectionPlusOffset+i++]=cmp.getAttribute().copy(pathToThisLevel+cmp.getAttribute().name());
+		for(PairRank pr:assessors)
+			whatToFillIn[sectionPlusOffset+i++]=pr.getAttribute().copy(pathToThisLevel+pr.getAttribute().name());
+
+		if (currentLevel < maxLevel)
+		{
+			final int rowNumber = V*(n-currentLevel);
+			final int nextSectionStart = section_start+L*section_size;
+			int z=0;
+			for(int attr=0;attr<n;++attr)
+			{
+				long positionalBit = 1 << attr;
+				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
+				{
+
+					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+0,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==-1 then ",currentLevel+1);
+					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+1,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==1 then ",currentLevel+1);
+					z+=V;
+				}
+			}
+		}
+	}
+
+	protected String convertAssessmentResultToString(int assessmentResult, Attribute attributeForException)
 	{
 		String value = null;
 		switch(assessmentResult)
@@ -93,31 +165,25 @@ public class WekaDataCollector
 			value = MINUSTWO;break;
 			
 		default:
-			throw new IllegalArgumentException("invalid comparison value "+assessmentResult+" for comparator "+attributeForException);
+			throw new IllegalArgumentException("invalid comparison value "+assessmentResult+" for attribute "+attributeForException);
 			
 		}
 		return value;
 	}
 	
-	/** Given a pair and a collection of possible pairs to merge, compares the specified pairs to others to determine its attributes that may make it more likely to be a valid merge.
-	 *  Constructs a Weka {@link Instance}.
+	/**  Constructs a Weka {@link Instance} for a pair of interest.
 	 * 
-	 * @param comparisonResults results of comparison of this pair to other pairs.
-	 * @param assessmentResults results of comparing this pair's values to an average and SD.
+	 * @param comparisonResults metrics related to the considered pair.
 	 * @param classification whether this is a correct pair
 	 * @return an instance of a test or a training sample. 
 	 */
-	Instance constructInstance(int []comparisonResults, int [] assessmentResults, boolean classification)
+	Instance constructInstance(int []comparisonResults, boolean classification)
 	{
-		Instance outcome = new Instance(comparators.size()+assessors.size()+1);outcome.setDataset(trainingData);
-		if (comparisonResults.length != comparators.size())
+		Instance outcome = new Instance(instanceLength+1);outcome.setDataset(trainingData);
+		if (comparisonResults.length != instanceLength)
 			throw new IllegalArgumentException("results' length does not match the number of comparators");
-		if (assessmentResults.length != assessors.size())
-			throw new IllegalArgumentException("results' length does not match the number of assessors");
-		for(int i=0;i<comparisonResults.length;++i)
-			outcome.setValue(comparators.get(i).getAttribute(), convertAssessmentResultToString(comparisonResults[i],comparators.get(i)));
-		for(int i=0;i<assessmentResults.length;++i)
-			outcome.setValue(assessors.get(i).getAttribute(), convertAssessmentResultToString(assessmentResults[i],assessors.get(i)));
+		for(int i=0;i<instanceLength;++i)
+			outcome.setValue(attributesOfAnInstance[i], convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]));
 		outcome.setValue(classAttribute, Boolean.toString(classification));
 		return outcome;
 	}
@@ -128,14 +194,13 @@ public class WekaDataCollector
 	 * For instance, this can based on counting the attributes that contributed to a decision
 	 * by a learner to consider the pair as either good or bad. At present, we evaluate the probability that the given result belongs to the specific class. 
 	 *  
-	 * @param comparisonResults the outcome of {@link #comparePairWithOthers(PairScore, Collection)}.
-	 * @param assessmentResults the outcome of {@link #assessPair(PairScore)}.
+	 * @param comparisonResults the outcome of {@link #fillInPairDetails(int[], PairScore, Collection)}.
 	 * @return a non-negative "quality" of a pair. 
 	 * @throws Exception 
 	 */
-	double getPairQuality(int[]comparisonResults, int [] assessmentResults) throws Exception
+	double getPairQuality(int[]comparisonResults) throws Exception
 	{
-		return classifier.distributionForInstance(constructInstance(comparisonResults,assessmentResults, false))[0];
+		return classifier.distributionForInstance(constructInstance(comparisonResults, false))[0];
 	}
 	
 	protected final Attribute classAttribute;
@@ -150,31 +215,48 @@ public class WekaDataCollector
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
 	
-	Map<StatePair,PairMeasurements> measurementsForComparators=new HashMap<StatePair,PairMeasurements>();
+	class MeasurementsForCollectionOfPairs
+	{
+		Map<StatePair,PairMeasurements> measurementsForComparators=new HashMap<StatePair,PairMeasurements>();
+		double valueAverage[]=new double[0], valueSD[]=new double[0];
+	}
+	
 	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
+	MeasurementsForCollectionOfPairs measurementsForUnfilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
+	
 	LearnerGraph tentativeGraph = null;
 	
-	double valueAverage[]=new double[0], valueSD[]=new double[0];
 	
-	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
-	 * 
-	 * @param pairs pairs to build sets for
-	 * @param graph graph to use for construction
-	 * @returns constructed tree. The return value is only used for testing.
-	 */
-	Map<StatePair,PairMeasurements> buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
+	void buildSetsForComparatorsThatDoNotDependOnFiltering(Collection<PairScore> pairs, LearnerGraph graph)
 	{
 		treeForComparators.clear();
-		measurementsForComparators.clear();
 		tentativeGraph = graph;
-		
-		Arrays.fill(valueAverage, 0);Arrays.fill(valueSD, 0);
 		
 		for(PairScore pair:pairs)
 		{
 			if (!treeForComparators.containsKey(pair.getQ()))
 				treeForComparators.put(pair.getQ(),PairQualityLearner.computeTreeSize(graph, pair.getQ()));
-			
+		}
+		buildSetsForComparatorsDependingOnFiltering(measurementsForUnfilteredCollectionOfPairs,pairs);
+	}
+	
+	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
+	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparatorsThatDoNotDependOnFiltering(Collection, LearnerGraph)}.
+	 * @param pairs pairs to build sets for
+	 * @param measurements where to store the result of measurement.
+	 */
+	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
+	{
+		measurements.measurementsForComparators.clear();
+		if (measurements.valueAverage.length < n)
+			measurements.valueAverage = new double[n];
+		if (measurements.valueSD.length < n)
+			measurements.valueSD = new double[n];
+		
+		Arrays.fill(measurements.valueAverage, 0);Arrays.fill(measurements.valueSD, 0);
+		
+		for(PairScore pair:pairs)
+		{
 			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
 			for(PairScore p:pairs)
 			{
@@ -182,98 +264,263 @@ public class WekaDataCollector
 					++m.nrOfAlternatives;
 			}
 			
-			Collection<CmpVertex> adjacentOutgoingBlue = graph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = graph.transitionMatrix.get(pair.getR()).values(); 
+			Collection<CmpVertex> adjacentOutgoingBlue = tentativeGraph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = tentativeGraph.transitionMatrix.get(pair.getR()).values(); 
 			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
-			ScoreMode origScore = graph.config.getLearnerScoreMode();graph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			m.compatibilityScore = graph.pairscores.computePairCompatibilityScore(pair);
-			graph.config.setLearnerScoreMode(origScore);
+			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
+			tentativeGraph.config.setLearnerScoreMode(origScore);
 			
-			measurementsForComparators.put(pair,m);
+			measurements.measurementsForComparators.put(pair,m);
 		}
-		
+
 		if (assessors != null)
 			for(PairScore pair:pairs)
 				for(int i=0;i<assessors.size();++i)
 				{
 					long value = assessors.get(i).getValue(pair);
-					valueAverage[i]+=value;valueSD[i]+=value*value;
+					measurements.valueAverage[i]+=value;measurements.valueSD[i]+=value*value;
 				}
 		
 		if (assessors != null)
 			for(int i=0;i<assessors.size();++i)
 			{
-				valueAverage[i]/=pairs.size();valueSD[i]=Math.sqrt(valueSD[i]/pairs.size()-valueAverage[i]*valueAverage[i]);
+				measurements.valueAverage[i]/=pairs.size();measurements.valueSD[i]=Math.sqrt(measurements.valueSD[i]/pairs.size()-measurements.valueAverage[i]*measurements.valueAverage[i]);
 			}
-
-		return measurementsForComparators;
 	}
-	
+
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values of greater for some points and less for others. */
 	public static final int comparison_inconclusive=-10;
 
+	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> others)
+	{
+		int comparisonResult = 0;
+		for(PairScore w:others)
+		{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
+				int newValue = cmp.compare(pair, w);
+				assert newValue != comparison_inconclusive;
+				// comparisonResults[i] can be 1,0,-1, same for newValue
+				if (newValue > 0)
+				{
+					if (comparisonResult < 0)
+					{
+						comparisonResult= comparison_inconclusive;break;
+					}
+					comparisonResult=newValue;
+				}
+				else
+					if (newValue < 0)
+					{
+						if (comparisonResult > 0)
+						{
+							comparisonResult = comparison_inconclusive;break;
+						}
+						comparisonResult=newValue;
+					}
+		}
+		return comparisonResult;
+	}
+	
 	/** Given a pair and a collection of possible pairs to merge, compares the specified pairs to others to determine its attributes that may make it more likely to be a valid merge.
 	 * Where the returned value is +1 or -1 in a specific cell, this means that the pair of interest is not dominated in the specific component by all other pairs.
 	 * The outcome of 1 means that it is equal to some other pairs and above others but never below.
 	 * In a similar way, -1 means that it does not dominate any other pairs.
-	 *  
+	 * 
 	 * @param pair pair to consider
 	 * @param others other pairs (possibly, both valid and invalid mergers).
-	 * @return the vector of comparison results.
+	 * @param whatToFillIn array to populate with results
+	 * @param offset the starting position to fill in.
 	 */
-	int [] comparePairWithOthers(PairScore pair, Collection<PairScore> others)
+	void comparePairWithOthers(PairScore pair, Collection<PairScore> others, int []whatToFillIn, int offset)
 	{
 		assert !comparators.isEmpty();
-		int comparisonResults[] = new int[comparators.size()];
-		Arrays.fill(comparisonResults, 0);
 		
-		for(PairScore w:others)
-		{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
-			int i=0;
-			for(PairComparator cmp:comparators)
-			{
-				if (comparisonResults[i] != comparison_inconclusive)
-				{
-					int newValue = cmp.compare(pair, w);
-					assert newValue != comparison_inconclusive;
-					// comparisonResults[i] can be 1,0,-1, same for newValue
-					if (newValue > 0)
-					{
-						if (comparisonResults[i] < 0)
-							comparisonResults[i] = comparison_inconclusive;
-						else
-							comparisonResults[i]=newValue;
-					}
-					else
-						if (newValue < 0)
-						{
-							if (comparisonResults[i] > 0)
-								comparisonResults[i] = comparison_inconclusive;
-							else
-								comparisonResults[i]=newValue;
-						}
-				}
-				
-				++i;
-			}
+		int i=0;
+		for(PairComparator cmp:comparators)
+		{
+			whatToFillIn[i+offset] = comparePairWithOthers(cmp, pair, others);
+			++i;
 		}
 		
 		for(int cnt=0;cnt<comparators.size();++cnt)
-			if (comparisonResults[cnt] == comparison_inconclusive) comparisonResults[cnt]=0;
-		return comparisonResults;
+			if (whatToFillIn[cnt+offset] == comparison_inconclusive) whatToFillIn[cnt+offset]=0;
 	}
-	
-	/** Assesses a supplied pair based on the values. */
-	int [] assessPair(PairScore pair)
+
+	/** Assesses a supplied pair based on the values.
+	 * 
+	 * @param pair pair to consider
+	 * @param measurements set of measurements to use for assessment
+	 * @param whatToFillIn array to populate with results
+	 * @param offset the starting position to fill in.
+	 */
+	void assessPair(PairScore pair, MeasurementsForCollectionOfPairs measurements, int []whatToFillIn, int offset)
 	{
 		assert !assessors.isEmpty();
-		int assessmentResults[] = new int[assessors.size()];
-		Arrays.fill(assessmentResults, 0);
+		//Arrays.fill(whatToFillIn, offset, comparators.size(), 0);
 		for(int i=0;i<assessors.size();++i)
-			assessmentResults[i]=assessors.get(i).getRanking(pair, valueAverage[i], valueSD[i]);
-		
-		return assessmentResults;
+			whatToFillIn[i+offset]=assessors.get(i).getRanking(pair, measurements.valueAverage[i], measurements.valueSD[i]);
+	}
+/*
+	protected void fillInEntry3(int [] whatToFillIn,int section_start, int idx_in_section, @SuppressWarnings("unused") int section_size, @SuppressWarnings("unused") int x, @SuppressWarnings("unused") int y, @SuppressWarnings("unused") int z, PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	{
+		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
+		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
+		final int sectionPlusOffset = section_start + idx_in_section;
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
+		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		if (currentLevel != maxLevel)
+			throw new IllegalArgumentException("cannot go beyond level 3");
 	}
 	
+	protected void fillInEntry2(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, int x, int y, PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	{
+		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
+		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
+		final int sectionPlusOffset = section_start + idx_in_section;
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
+		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		if (currentLevel < maxLevel)
+		{
+			final int rowNumber = V*n-currentLevel;
+			final int nextSectionStart = section_start+section_size;
+			int z=0;
+			for(int attr=0;attr<n;++attr)
+				if (attr != x && attr != y) // a need to compare an attr with those already used is the only reason we've unrolled fillInColumn into a number of different functions.
+				{
+					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
+					if (attributeREL != 0)
+					{
+						assert attributeREL == 1 || attributeREL == -1;
+						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+						for(PairScore other:pairs) 
+						{
+							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
+							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+								others.add(other);
+						}
+						if (!others.isEmpty())
+							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+							fillInEntry3(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+attributeREL>0?1:0,section_size*rowNumber, x,y,z+attributeREL>0?1:0,pairOfInterest,others,currentLevel+1);
+					}				
+					z+=V;
+				}
+		}
+	}
+	
+	protected void fillInEntry1(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, int x, PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	{
+		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
+		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
+		final int sectionPlusOffset = section_start + idx_in_section;
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
+		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		if (currentLevel < maxLevel)
+		{
+			final int rowNumber = V*n-currentLevel;
+			final int nextSectionStart = section_start+section_size;
+			int y=0;
+			for(int attr=0;attr<n;++attr)
+				if (attr != x) // a need to compare an attr with those already used is the only reason we've unrolled fillInColumn into a number of different functions.
+				{
+					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
+					if (attributeREL != 0)
+					{
+						assert attributeREL == 1 || attributeREL == -1;
+						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+						for(PairScore other:pairs) 
+						{
+							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
+							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+								others.add(other);
+						}
+						if (!others.isEmpty())
+							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+							fillInEntry2(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+y+attributeREL>0?1:0,section_size*rowNumber, x,y+attributeREL>0?1:0,pairOfInterest,others,currentLevel+1);
+					}				
+					y+=V;
+				}
+		}
+	}
+	
+	protected void fillInEntry0(int [] whatToFillIn,PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	{
+		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
+		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
+		final int sectionPlusOffset = 0;
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
+		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		if (currentLevel < maxLevel)
+		{
+			final int rowNumber = V*n-currentLevel;
+			final int nextSectionStart = L;
+			int x=0;
+			for(int attr=0;attr<n;++attr)
+				{
+					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
+					if (attributeREL != 0)
+					{
+						assert attributeREL == 1 || attributeREL == -1;
+						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+						for(PairScore other:pairs) 
+						{
+							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
+							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+								others.add(other);
+						}
+						if (!others.isEmpty())
+							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+							fillInEntry1(whatToFillIn,nextSectionStart,rowNumber,x+attributeREL>0?1:0,x+attributeREL>0?1:0,pairOfInterest,others,currentLevel+1);
+					}				
+					x+=V;
+				}
+		}
+	}*/
+
+	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, long xyz, PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	{
+		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
+		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
+		final int sectionPlusOffset = section_start + L*idx_in_section;
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
+		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		if (currentLevel < maxLevel)
+		{
+			final int rowNumber = V*(n-currentLevel);
+			final int nextSectionStart = section_start+L*section_size;
+			int z=0;
+			for(int attr=0;attr<n;++attr)
+			{
+				long positionalBit = 1 << attr;
+				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
+				{
+					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
+					if (attributeREL != 0)
+					{
+						assert attributeREL == 1 || attributeREL == -1;
+						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+						for(PairScore other:pairs) 
+						{
+							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
+							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+								others.add(other);
+						}
+						if (others.size()>1)
+							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+							fillInEntry(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+(attributeREL>0?1:0),section_size*rowNumber, xyz|positionalBit,pairOfInterest,others,currentLevel+1);
+					}				
+					z+=V;
+				}
+			}
+		}
+	}
+
+	/** Fills in the array with comparison results. For correct operation, the supplied pair of interest has to be included in the collection of pairs. */
+	public void fillInPairDetails(int [] whatToFillIn, PairScore pairOfInterest, Collection<PairScore> pairs)
+	{
+		if (whatToFillIn.length < getInstanceLength())
+			throw new IllegalArgumentException("array is too short");
+		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,0);
+	}
+
 	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
 	 * We do not compare correct pairs with each other, or wrong pairs with each other. Pairs that have negative scores are ignored.
 	 * 
@@ -283,7 +530,7 @@ public class WekaDataCollector
 	 */
 	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,currentGraph);
+		buildSetsForComparatorsThatDoNotDependOnFiltering(pairs,currentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
@@ -293,7 +540,15 @@ public class WekaDataCollector
 		}
 		PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
 		
-		
+		for(PairScore p:pairsToConsider)
+		{
+			int []comparisonResults = new int[instanceLength];
+			fillInPairDetails(comparisonResults,p, pairsToConsider);// only compare with other non-negatives
+			boolean correctPair = correctPairs.contains(p);//p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
+			trainingData.add(constructInstance(comparisonResults, correctPair));
+		}
+
+		/*
 		// Compute Weka statistics, where we compare each pair to all others.
 		for(PairScore p:correctPairs)
 		{
@@ -307,7 +562,7 @@ public class WekaDataCollector
 			int []comparisonResults = comparePairWithOthers(p, pairs);
 			//System.out.println(p+" "+Arrays.toString(comparisonResults));
 			trainingData.add(constructInstance(comparisonResults, assessPair(p), false));
-		}
+		}*/
 	}
 	
 	/**
@@ -340,7 +595,7 @@ public class WekaDataCollector
 		}
 		public PairMeasurements measurementsForCurrentStack(PairScore p)
 		{
-			return measurementsForComparators.get(p);
+			return measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(p);
 		}
 	
 		public int treeRootedAt(CmpVertex p)

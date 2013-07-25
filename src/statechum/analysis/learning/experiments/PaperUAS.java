@@ -755,28 +755,39 @@ public class PaperUAS
 		  			learner.setAlphabetUsedForIfThen(alphabetForIfThen);
 		  			learner.setLabelsLeadingToStatesToBeMerged(Collections.<Label>emptyList());learner.setLabelsLeadingFromStatesToBeMerged(Collections.<Label>emptyList());
 		  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", initConfiguration.config,initConfiguration.getLabelConverter())}));
-		 	        final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		 	        LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			        actualAutomaton.storage.writeGraphML("resources/"+name+"-mm_"+frame+"_"+i+".xml");
+
+			        // Now merge everything that we need to merge
+			        LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
+					if (!pairsList.isEmpty())
+					{
+						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+						if (score < 0) throw new RuntimeException("last merge in the learning process was not possible");
+						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+					}
 
 			        double differenceF = PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, evaluationTestSet);
 			        double differenceD = PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, initConfiguration.config, ExperimentRunner.getCpuNumber());
 			        System.out.println(new Date().toString()+" _M: For frame : "+frame+" (classifier "+i+"), long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 					uas_F.add(frame+"_M",differenceF,"blue");uas_Diff.add(frame+"_M",differenceD,"blue");gr_diff_to_f.add(differenceF,differenceD);
 	  			}
-	  			{
-			        LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.ReferenceLearner(null, initConfiguration, referenceGraph, initPTA);
-			        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-			        referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+"_"+i+".xml");
-			        
-			        double differenceF = PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
-			        double differenceD = PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
-			        System.out.println(new Date().toString()+" _R: For frame : "+frame+" (classifier "+i+"), long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
-					uas_F.add(frame+"_R",differenceF,"red");uas_Diff.add(frame+"_R",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
-	  			}
-	  			uas_F.drawInteractive(gr);uas_Diff.drawInteractive(gr);gr_diff_to_f.drawInteractive(gr);
 	
 	  			progress.next();
 	  		}
+  			
+  			{
+		        LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.ReferenceLearner(null, initConfiguration, referenceGraph, initPTA);
+		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		        referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
+		        
+		        double differenceF = PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
+		        double differenceD = PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
+		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
+				uas_F.add(frame+"_R",differenceF,"red");uas_Diff.add(frame+"_R",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
+  			}
+  			uas_F.drawInteractive(gr);uas_Diff.drawInteractive(gr);gr_diff_to_f.drawInteractive(gr);
   		}
   		uas_F.drawPdf(gr);uas_Diff.drawPdf(gr);gr_diff_to_f.drawPdf(gr);
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
@@ -861,20 +872,30 @@ public class PaperUAS
 			LearnerThatCanClassifyPairs learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(learnerInitConfiguration,referenceGraph,c,initPTA):
 					new PairQualityLearner.ReferenceLearner(null,learnerInitConfiguration,referenceGraph,initPTA);
 			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
-        final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+        LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+        
+        // Now merge everything that we need to merge
+        LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
+		if (!pairsList.isEmpty())
+		{
+			int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+			if (score < 0) throw new RuntimeException("last merge in the learning process was not possible");
+			actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+		}
        	LearnerGraph learntGraph = new LearnerGraph(learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
 
        return PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
    }
    
-    public void runExperiment(String arffName, final LearnerGraph referenceGraph, final Collection<Label> labelsToMergeTo, final Collection<Label> labelsToMergeFrom) throws IOException
+    public void runExperimentWithSmallAutomata(final String arffName, final LearnerGraph referenceGraph) throws IOException
     {
  	   //final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph);
        
 		// Here I need to moderate the effort because choosing traces for all seeds is good but I need
 		// that many times more traces, so I have to create a graph in terms of effort v.s. quailty (or even better, scale
 		// the existing one).
-		DrawGraphs gr = new DrawGraphs();
+		final DrawGraphs gr = new DrawGraphs();
 
 		final RBoxPlot<Pair<Integer,String>> 
 			uas_outcome = new RBoxPlot<Pair<Integer,String>>("Time","f-measure",new File("time_f.pdf"));
@@ -885,8 +906,7 @@ public class PaperUAS
 			;
 		final RBoxPlot<Integer>
 			uas_threshold=new RBoxPlot<Integer>("Threshold","f-measure",new File("threshold_f.pdf"));
-		final Classifier classifiers[] = loadClassifierFromArff(arffName);
-		Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
+		final Set<Integer> allFrames = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).keySet();
 		
 		/** The runner of computational threads. */
 		int threadNumber = ExperimentRunner.getCpuNumber();
@@ -895,38 +915,56 @@ public class PaperUAS
 		try
 		{
 			List<Future<?>> outcomes = new LinkedList<Future<?>>();
-			for(final Integer frame:allFrames)
-			{
-				{// For all frames and all seeds
-					Runnable interactiveRunner = new Runnable() {
-	
-						@Override
-						public void run() {
-							for(Classifier c:classifiers)
+			Runnable interactiveRunner = new Runnable() {
+
+				@Override
+				public void run() 
+				{
+					for(final Integer frame:allFrames)
+					{
+						final Classifier classifiers[] = loadClassifierFromArff(arffName);
+						for(Classifier c:classifiers)
+						{
 							{
 					  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
-					  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,c,labelsToMergeTo,labelsToMergeFrom);
-
+					  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,c,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+	
 						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference);
-								uas_S.add(""+frame,difference);
+								uas_S.add(frame+"C",difference);
 							}
-							
-				  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
-				  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,null,labelsToMergeTo,labelsToMergeFrom);
-				  			uas_S.add(""+frame+"R",difference);
+		
+							{
+								final Collection<Label> labelsToMergeTo=Collections.emptyList(), labelsToMergeFrom=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter())});
+					  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
+					  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,c,labelsToMergeTo,labelsToMergeFrom);
+	
+						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference);
+								uas_S.add(frame+"CM",difference);								
+							}
 						}
-						
-					};
-					outcomes.add(executorService.submit(interactiveRunner));
+			  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
+			  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+			  			uas_S.add(""+frame+"R",difference);
+			  			synchronized(gr)
+			  			{
+			  				uas_S.drawInteractive(gr);
+			  			}
+					}
 				}
 				
-				for(final String seed:collectionOfTraces.keySet())
-					if (!seed.equals(UAVAllSeeds))
-					{// Just for all frames of the a single seed
-						Runnable interactiveRunner = new Runnable() {
+			};
+			outcomes.add(executorService.submit(interactiveRunner));
+				/*
+			for(final String seed:collectionOfTraces.keySet())
+				if (!seed.equals(UAVAllSeeds))
+				{// Just for all frames of the a single seed
+					interactiveRunner = new Runnable() {
 
-							@Override
-							public void run() {
+						@Override
+						public void run() {
+							final Classifier classifiers[] = loadClassifierFromArff(arffName);
+							for(final Integer frame:allFrames)
+							{
 								TracesForSeed tracesForThisSeed = collectionOfTraces.get(seed);
 								
 								for(Classifier c:classifiers)
@@ -942,19 +980,23 @@ public class PaperUAS
 					  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,null,labelsToMergeTo,labelsToMergeFrom);
 					  			uas_A.add(""+frame+"R",difference);
 							}
-							
-						};
-						outcomes.add(executorService.submit(interactiveRunner));
-					}
-				for(final String UAV:collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.keySet())
-					if (!UAV.equals(UAVAllSeeds) && !UAV.equals(UAVAll))
-						for(final String seed:collectionOfTraces.keySet())
-							if (!seed.equals(UAVAllSeeds))
-							{
-								Runnable interactiveRunner = new Runnable() {
+						}
+						
+					};
+					outcomes.add(executorService.submit(interactiveRunner));
+				}
+			for(final String UAV:collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.keySet())
+				if (!UAV.equals(UAVAllSeeds) && !UAV.equals(UAVAll))
+					for(final String seed:collectionOfTraces.keySet())
+						if (!seed.equals(UAVAllSeeds))
+						{
+							interactiveRunner = new Runnable() {
 
-									@Override
-									public void run() {
+								@Override
+								public void run() {
+									final Classifier classifiers[] = loadClassifierFromArff(arffName);
+									for(final Integer frame:allFrames)
+									{
 										for(Classifier c:classifiers)
 										{
 								  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAV).get(frame));
@@ -966,13 +1008,10 @@ public class PaperUAS
 							  			double difference = learnAndEstimateDifference(initPTA,referenceGraph,null,labelsToMergeTo,labelsToMergeFrom);
 							  			uas_U.add(""+frame+"R",difference);
 									}
-									
-								};
-								outcomes.add(executorService.submit(interactiveRunner));
-							}
-							
-							
-			}
+								}
+							};
+							outcomes.add(executorService.submit(interactiveRunner));
+						}
 			/*
 			for(int i=0;i<5;++i)
 			{
@@ -1279,8 +1318,9 @@ public class PaperUAS
  		if (different != null)
  			throw different;
 		 */
+          	
     	paper.writeArff(referenceGraph,arffName);
-    	paper.runExperiment(arffName,referenceGraph,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+    	paper.runExperimentWithSmallAutomata(arffName,referenceGraph);
     			//Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", paper.learnerInitConfiguration.config,paper.learnerInitConfiguration.getLabelConverter())}));
 	}
 
@@ -1295,8 +1335,8 @@ public class PaperUAS
 			//checkSmallPTA();
 			//checkDataConsistency();
 			//mainCheckMerging(args);
-	       	mainSingleHugeAutomaton(args);
-			//mainSmallAutomata(args);
+	       	//mainSingleHugeAutomaton(args);
+			mainSmallAutomata(args);
 		}
 		finally
 		{

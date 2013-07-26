@@ -148,7 +148,7 @@ public class WekaDataCollector
 		}
 	}
 
-	protected String convertAssessmentResultToString(int assessmentResult, Attribute attributeForException)
+	protected double convertAssessmentResultToString(int assessmentResult, Attribute attribute)
 	{
 		String value = null;
 		switch(assessmentResult)
@@ -165,10 +165,14 @@ public class WekaDataCollector
 			value = MINUSTWO;break;
 			
 		default:
-			throw new IllegalArgumentException("invalid comparison value "+assessmentResult+" for attribute "+attributeForException);
+			throw new IllegalArgumentException("invalid comparison value "+assessmentResult+" for attribute "+attribute);
 			
 		}
-		return value;
+		double outcome = attribute.indexOfValue(value);
+		if (outcome < 0)
+			throw new IllegalArgumentException("value "+value+" was not defined for attribute "+attribute);
+
+		return outcome;
 	}
 	
 	/**  Constructs a Weka {@link Instance} for a pair of interest.
@@ -179,12 +183,15 @@ public class WekaDataCollector
 	 */
 	Instance constructInstance(int []comparisonResults, boolean classification)
 	{
-		Instance outcome = new Instance(instanceLength+1);outcome.setDataset(trainingData);
 		if (comparisonResults.length != instanceLength)
 			throw new IllegalArgumentException("results' length does not match the number of comparators");
+
+		double []instanceValues=new double[instanceLength+1];
 		for(int i=0;i<instanceLength;++i)
-			outcome.setValue(attributesOfAnInstance[i], convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]));
-		outcome.setValue(classAttribute, Boolean.toString(classification));
+			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
+		
+		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
+		Instance outcome = new Instance(1,instanceValues);outcome.setDataset(trainingData);
 		return outcome;
 	}
 	
@@ -544,7 +551,8 @@ public class WekaDataCollector
 		{
 			int []comparisonResults = new int[instanceLength];
 			fillInPairDetails(comparisonResults,p, pairsToConsider);// only compare with other non-negatives
-			boolean correctPair = correctPairs.contains(p);//p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
+			boolean correctPair = correctPairs.contains(p);
+			//boolean correctPair = p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
 

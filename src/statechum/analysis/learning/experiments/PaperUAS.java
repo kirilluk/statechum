@@ -797,7 +797,7 @@ public class PaperUAS
    /** Used to training a few different classifiers from a full PTA by comparing metrics on pairs considered by QSM and checking them against the reference solution. */ 
    protected Classifier []loadClassifierFromArff(String arffWithTrainingData)
    {
-		weka.classifiers.trees.REPTree tree =new weka.classifiers.trees.REPTree();tree.setMaxDepth(4); 		
+		weka.classifiers.trees.REPTree tree =new weka.classifiers.trees.REPTree();tree.setMaxDepth(3); 		
 		tree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
    		// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
  		// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
@@ -806,9 +806,9 @@ public class PaperUAS
    		// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
   		// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
 		weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
-		
+		weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 		weka.classifiers.functions.MultilayerPerceptron perceptron = new weka.classifiers.functions.MultilayerPerceptron();
-		Classifier []outcome = new Classifier[]{tree,tree48,ibk,perceptron};
+		Classifier []outcome = new Classifier[]{tree};//tree};//,tree48,ibk};//,perceptron};
 		for(Classifier c:outcome) trainClassifierFromArff(c,arffWithTrainingData);
 		return outcome;
    }
@@ -915,12 +915,12 @@ public class PaperUAS
 		try
 		{
 			List<Future<?>> outcomes = new LinkedList<Future<?>>();
-			Runnable interactiveRunner = new Runnable() {
+			for(final Integer frame:allFrames)
+			{
+				Runnable interactiveRunner = new Runnable() {
 
-				@Override
-				public void run() 
-				{
-					for(final Integer frame:allFrames)
+					@Override
+					public void run() 
 					{
 						final Classifier classifiers[] = loadClassifierFromArff(arffName);
 						for(Classifier c:classifiers)
@@ -950,10 +950,10 @@ public class PaperUAS
 			  				uas_S.drawInteractive(gr);
 			  			}
 					}
-				}
+				};
+				outcomes.add(executorService.submit(interactiveRunner));
+			}
 				
-			};
-			outcomes.add(executorService.submit(interactiveRunner));
 				/*
 			for(final String seed:collectionOfTraces.keySet())
 				if (!seed.equals(UAVAllSeeds))
@@ -1319,7 +1319,7 @@ public class PaperUAS
  			throw different;
 		 */
           	
-    	paper.writeArff(referenceGraph,arffName);
+    	//paper.writeArff(referenceGraph,arffName);
     	paper.runExperimentWithSmallAutomata(arffName,referenceGraph);
     			//Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", paper.learnerInitConfiguration.config,paper.learnerInitConfiguration.getLabelConverter())}));
 	}
@@ -1335,8 +1335,8 @@ public class PaperUAS
 			//checkSmallPTA();
 			//checkDataConsistency();
 			//mainCheckMerging(args);
-	       	//mainSingleHugeAutomaton(args);
-			mainSmallAutomata(args);
+	       mainSingleHugeAutomaton(args);
+			//mainSmallAutomata(args);
 		}
 		finally
 		{

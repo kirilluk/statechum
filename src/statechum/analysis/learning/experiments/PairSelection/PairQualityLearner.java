@@ -763,6 +763,7 @@ public class PairQualityLearner
 							gr_ErrorsAndDeadends.add("D", (double)coregraph.getRedStateNumber());
 						}
 					return red;
+					
 					//return null;// for no resolution
 				}});
 			if (!outcome.isEmpty())
@@ -959,7 +960,10 @@ public class PairQualityLearner
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						return sgn( o2.getAnotherScore() - o1.getAnotherScore() );// scores are between 100 and 0, hence it is appropriate to cast to int without a risk of overflow.
+						int outcome = sgn( o2.getAnotherScore() - o1.getAnotherScore() );// scores are between 100 and 0, hence it is appropriate to cast to int without a risk of overflow.
+						if (outcome != 0)
+							return outcome;
+						return o2.compareTo(o1);
 					}}); 
 				
 			}				
@@ -1139,7 +1143,8 @@ public class PairQualityLearner
 					
 					if (worstPair != null)
 						stateToLabelRed = worstPair.getQ();
-					
+
+					//return null;
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
 					//return LearnerThatUsesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
 					
@@ -1155,7 +1160,7 @@ public class PairQualityLearner
 					System.out.println("no suitable pair was found");
 				}
 				else
-				{
+				{/*
 					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, possibleResults, correctPairs, wrongPairs);
 					System.out.print("Pairs: ");boolean first=true;
@@ -1171,6 +1176,7 @@ public class PairQualityLearner
 								System.out.print(p.toString()+"[F]");
 					}
 					System.out.println();
+					System.out.println("QSM pair would have been : "+pickPairQSMLike(outcome));*/
 				}
 				PairScore result = possibleResults.iterator().next();
 

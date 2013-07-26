@@ -702,7 +702,7 @@ public class TestWekaPairClassifier {
 			{
 			classifier.constructInstance(new int []{2,0,0,-2}, true);
 			}
-		}, IllegalArgumentException.class, "Value not defined");
+		}, IllegalArgumentException.class, "was not defined");
 	}
 	
 	@Test

@@ -34,6 +34,7 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.StringLabel;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayOperations;
@@ -98,41 +99,66 @@ public class TestRandomPathGenerator {
 	LearnerGraph simpleGraph = null;
 	
 	@Test
-	public void test_generateRandomWalk1a()
+	public void test_generateRandomWalk1a1()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
-		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
+		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true,null));
+		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true,null));
 	}
 	
+	@Test
+	public void test_generateRandomWalk1a2()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
+		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true,Arrays.asList(new Label[]{})));
+		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true,Arrays.asList(new Label[]{})));
+	}
+
+	@Test
+	public void test_generateRandomWalk1a3()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,simpleGraph.findVertex("B"));
+		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(1,1, true,Arrays.asList(new Label[]{new StringLabel("a")})));
+		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(2,2, true,Arrays.asList(new Label[]{new StringLabel("a")})));
+	}
+	
+	/** Here an invalid element of an alphabet is used as a prefix for all sequences which does not matter because validity of paths is only considered elementwise rather than as whole sequences, hence the outcome is unaffected. */
+	@Test
+	public void test_generateRandomWalk1a4()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,simpleGraph.findVertex("B"));
+		Assert.assertEquals(labelList(new String[]{"z","b"}), generator.generateRandomWalk(1,1, true,Arrays.asList(new Label[]{new StringLabel("z")})));
+		Assert.assertEquals(labelList(new String[]{"z","b","c"}), generator.generateRandomWalk(2,2, true,Arrays.asList(new Label[]{new StringLabel("z")})));
+	}
+
 	@Test
 	public void test_generateRandomWalk1b1()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		Assert.assertEquals(labelList(new String[]{"a"}), generator.generateRandomWalk(1,1, true));
-		List<Label> seq = generator.generateRandomWalk(1,1, false);
+		Assert.assertEquals(labelList(new String[]{"a"}), generator.generateRandomWalk(1,1, true,null));
+		List<Label> seq = generator.generateRandomWalk(1,1, false,null);
 		Assert.assertEquals(labelList(new String[]{"c"}), seq);generator.allSequences.add(seq);
-		seq = generator.generateRandomWalk(1,1, false);
+		seq = generator.generateRandomWalk(1,1, false,null);
 		Assert.assertEquals(labelList(new String[]{"b"}), seq);generator.allSequences.add(seq);
-		Assert.assertNull(generator.generateRandomWalk(1,1, false));
+		Assert.assertNull(generator.generateRandomWalk(1,1, false,null));
 		
 		// ignore prefixes
-		Assert.assertEquals(labelList(new String[]{"c"}), generator.generateRandomWalk(1,0, false));
+		Assert.assertEquals(labelList(new String[]{"c"}), generator.generateRandomWalk(1,0, false,null));
 	}
 
 	@Test
 	public void test_generateRandomWalk1b2()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		List<Label> seq = generator.generateRandomWalk(1,1, true);
+		List<Label> seq = generator.generateRandomWalk(1,1, true,null);
 		Assert.assertEquals(labelList(new String[]{"a"}), seq);generator.allSequences.add(seq);
 
-		Assert.assertNull(generator.generateRandomWalk(1,1, true));
+		Assert.assertNull(generator.generateRandomWalk(1,1, true,null));
 		
 		// ignore prefixes
-		Assert.assertEquals(labelList(new String[]{"a"}), generator.generateRandomWalk(1,0, true));
+		Assert.assertEquals(labelList(new String[]{"a"}), generator.generateRandomWalk(1,0, true,null));
 		
-		Assert.assertNull(generator.generateRandomWalk(2,1, true));// the only path from the initial state goes through "a" hence no paths can be generated
+		Assert.assertNull(generator.generateRandomWalk(2,1, true,null));// the only path from the initial state goes through "a" hence no paths can be generated
 	}
 	
 	/** Using a supplied alphabet. */
@@ -141,19 +167,19 @@ public class TestRandomPathGenerator {
 	{
 		Set<Label> alphabet = new TreeSet<Label>();alphabet.addAll(labelList(new String[]{"a","b","c","d","e","f"}));
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null,alphabet);
-		List<Label> seq = generator.generateRandomWalk(1,1, true);
+		List<Label> seq = generator.generateRandomWalk(1,1, true,null);
 		Assert.assertEquals(labelList(new String[]{"a"}), seq);generator.allSequences.add(seq);
 
-		Assert.assertNull(generator.generateRandomWalk(1,1, true));
+		Assert.assertNull(generator.generateRandomWalk(1,1, true,null));
 
 		// All the ones below should be successful because we have a large alphabet.
-		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"f"}), seq);
-		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"e"}), seq);
-		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"d"}), seq);
-		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"c"}), seq);
-		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"b"}), seq);
+		seq=generator.generateRandomWalk(1,1, false,null);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"f"}), seq);
+		seq=generator.generateRandomWalk(1,1, false,null);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"e"}), seq);
+		seq=generator.generateRandomWalk(1,1, false,null);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"d"}), seq);
+		seq=generator.generateRandomWalk(1,1, false,null);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"c"}), seq);
+		seq=generator.generateRandomWalk(1,1, false,null);generator.allSequences.add(seq);Assert.assertEquals(labelList(new String[]{"b"}), seq);
 		
-		Assert.assertNull(generator.generateRandomWalk(1,1, false));
+		Assert.assertNull(generator.generateRandomWalk(1,1, false,null));
 	}
 	
 	/** Using a supplied alphabet. */
@@ -173,18 +199,18 @@ public class TestRandomPathGenerator {
 	{
 		LearnerGraph graph = buildLearnerGraph("WW-s->WW\n"+"A-a->B\nB-b->D-c->E","test_generateRandomWalk1",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,graph.findVertex(VertexID.parseID("A")));
-		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
-		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
+		Assert.assertEquals(labelList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true,null));
+		Assert.assertEquals(labelList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true,null));
 	}
 
 	@Test
 	public void test_generateRandomWalk2()
 	{
 		final RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		List<Label> path = generator.generateRandomWalk(2,2, true);
+		List<Label> path = generator.generateRandomWalk(2,2, true,null);
 		Assert.assertEquals(labelList(new String[]{"a","b"}), path);
 		generator.allSequences.add(path);
-		Assert.assertNull(generator.generateRandomWalk(2,2, true));// no more paths of this length
+		Assert.assertNull(generator.generateRandomWalk(2,2, true,null));// no more paths of this length
 	}
 
 	@Test
@@ -192,36 +218,36 @@ public class TestRandomPathGenerator {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B\nA-c->B\nB-b->D-c->E\nB-d->D","test_generateRandomWalkAlt",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
-		List<Label> seq = generator.generateRandomWalk(2,2, true);
+		List<Label> seq = generator.generateRandomWalk(2,2, true,null);
 		Assert.assertEquals(labelList(new String[]{"c","d"}), seq);generator.allSequences.add(seq);
-		seq = generator.generateRandomWalk(2,2, true);
+		seq = generator.generateRandomWalk(2,2, true,null);
 		Assert.assertEquals(labelList(new String[]{"a","d"}), seq);generator.allSequences.add(seq);
 		
-		Assert.assertNull(generator.generateRandomWalk(2,1, true));// both letters from the initial state have been used hence no way to generate seq not using them.
+		Assert.assertNull(generator.generateRandomWalk(2,1, true,null));// both letters from the initial state have been used hence no way to generate seq not using them.
 		
-		Assert.assertEquals(labelList(new String[]{"a","b"}),generator.generateRandomWalk(2,2, true));
+		Assert.assertEquals(labelList(new String[]{"a","b"}),generator.generateRandomWalk(2,2, true,null));
 	}
 	
 	@Test
 	public void test_generateRandomWalk3a()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		Assert.assertNull(generator.generateRandomWalk(20,20, true));// no paths of this length
+		Assert.assertNull(generator.generateRandomWalk(20,20, true,null));// no paths of this length
 	}
 	
 	@Test
 	public void test_generateRandomWalk3b()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		Assert.assertNull(generator.generateRandomWalk(20,20, false));// no paths of this length
+		Assert.assertNull(generator.generateRandomWalk(20,20, false,null));// no paths of this length
 	}
 	
 	private void generateSeq(int length, int count,RandomPathGenerator generator,Object [][]expectedSeq)
 	{
-		generateSeq(length, length,count,generator,expectedSeq);
+		generateSeq(length, length,count,generator,null,expectedSeq);
 	}
 	
-	private void generateSeq(int length, int prefixLength,int count,RandomPathGenerator generator,Object [][]expectedSeq)
+	private void generateSeq(int length, int prefixLength,int count,RandomPathGenerator generator,List<Label> theStartingSequence,Object [][]expectedSeq)
 	{
 		Set<List<Label>> expected = new HashSet<List<Label>>();
 		for(Object []seq:expectedSeq)
@@ -232,11 +258,11 @@ public class TestRandomPathGenerator {
 		}
 		for(int i=0;i<count;++i) 
 		{
-			List<Label> path = generator.generateRandomWalk(length, prefixLength, false);generator.allSequences.add(path);
+			List<Label> path = generator.generateRandomWalk(length, prefixLength, false,theStartingSequence);generator.allSequences.add(path);
 		}
 		Set<List<Label>> actualA = new HashSet<List<Label>>();actualA.addAll(generator.allSequences.getData(PTASequenceEngine.truePred));
 		Assert.assertEquals(expected, actualA);
-		Assert.assertNull(generator.generateRandomWalk(length, prefixLength, false));
+		Assert.assertNull(generator.generateRandomWalk(length, prefixLength, false,theStartingSequence));
 		Set<List<Label>> actualB = new HashSet<List<Label>>();actualB.addAll(generator.allSequences.getData(PTASequenceEngine.truePred));
 		Assert.assertEquals(expected, actualB);
 	}
@@ -252,21 +278,21 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk5a()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generateSeq(2,2, 2,generator,new String[][]{new String[]{"a","c"},new String[]{"a","a"}});
+		generateSeq(2,2, 2,generator,null,new String[][]{new String[]{"a","c"},new String[]{"a","a"}});
 	}	
 
 	@Test
 	public void test_generateRandomWalk5b()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generateSeq(2,1, 1,generator,new String[][]{new String[]{"a","c"}});
+		generateSeq(2,1, 1,generator,null,new String[][]{new String[]{"a","c"}});
 	}	
 
 	@Test
 	public void test_generateRandomWalk5c()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generateSeq(2,1, 1,generator,new String[][]{new String[]{"a","c"}});// this could be new String[]{"a","c"} just as well
+		generateSeq(2,1, 1,generator,null,new String[][]{new String[]{"a","c"}});// this could be new String[]{"a","c"} just as well
 	}	
 
 	@Test
@@ -317,12 +343,27 @@ public class TestRandomPathGenerator {
 				}}));
 	}	
 
+	/** Same as above but with a specified prefix. */
+	@Test
+	public void test_generateRandomWalk7d()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7",config,converter);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,graph.findVertex("D"));
+		generateSeq(2,2,3,generator,Arrays.asList(new Label[]{new StringLabel("p"),new StringLabel("q")}),
+				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
+						// of a sequence, the second Object[] means that the first sequence contains alternatives,
+						// defined in the second Object, the two sequences below denote these alternatives.
+						new Object[]{"p","q","a","b"},
+						new Object[]{"p","q","c",new String[]{"b","c"}}
+				}}));
+	}	
+
 	@Test
 	public void test_generateRandomWalk8a()
 	{
 		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
-		generateSeq(4,4, 7,generator,
+		generateSeq(4,4, 7,generator,null,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
 						// defined in the second Object, the sequences below denote these alternatives.
@@ -339,7 +380,7 @@ public class TestRandomPathGenerator {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8",config,converter);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
-		generateSeq(4,3, 5,generator,
+		generateSeq(4,3, 5,generator,null,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
 						// defined in the second Object, the two sequences below denote these alternatives.
@@ -355,35 +396,35 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk_tooshort1()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generator.generateRandomWalk(-1,1, true);
+		generator.generateRandomWalk(-1,1, true,null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort2()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generator.generateRandomWalk(0,0, true);
+		generator.generateRandomWalk(0,0, true,null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort3()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generator.generateRandomWalk(0,0, false);
+		generator.generateRandomWalk(0,0, false,null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort4()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generator.generateRandomWalk(2,3, false);
+		generator.generateRandomWalk(2,3, false,null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort5()
 	{
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		generator.generateRandomWalk(2,-1, false);
+		generator.generateRandomWalk(2,-1, false,null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

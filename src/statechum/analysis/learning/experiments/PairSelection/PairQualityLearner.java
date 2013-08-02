@@ -1424,12 +1424,14 @@ public class PairQualityLearner
 		LearnerGraph sourcePta = new LearnerGraph(pta,pta.config);
 		List<CmpVertex> whatToMerge = constructPairsToMergeWithOutgoing(sourcePta,unique);
 		for(CmpVertex vert:whatToMerge)
-			pairs.add(new StatePair(whatToMerge.get(0),vert));
+			pairs.add(new StatePair(sourcePta.getInit(),vert));
 		List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		
 		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
 			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+unique);
-		return MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge);
+		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge);
+		outcome.pathroutines.updateDepthLabelling();
+		return outcome;
 	}
 	
 	public static int makeEven(int number)
@@ -1597,7 +1599,7 @@ public class PairQualityLearner
 					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 					
 					synchronized (AbstractLearnerGraph.syncObj) {
-						PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" with unique: ", pta, referenceGraph);
+						//PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" with unique: ", pta, referenceGraph);
 					}
 
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -1622,7 +1624,7 @@ public class PairQualityLearner
 				{// not merging based on a unique transition from an initial state
 					learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
 					synchronized (AbstractLearnerGraph.syncObj) {
-						PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" no unique: ", pta, referenceGraph);
+						//PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" no unique: ", pta, referenceGraph);
 					}
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				}
@@ -1715,7 +1717,7 @@ public class PairQualityLearner
 					try
 					{
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
+						for(int states=minStateNumber;states < minStateNumber+10;states+=2)
 							for(int sample=0;sample<samplesPerFSM*2;++sample)
 							{
 								LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,1+numberOfTasks,traceQuantity, config, converter)
@@ -1817,7 +1819,7 @@ public class PairQualityLearner
 					try
 					{
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
+						for(int states=minStateNumber;states < minStateNumber+10;states+=2)
 							for(int sample=0;sample<samplesPerFSM;++sample)
 							{
 								LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter)

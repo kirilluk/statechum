@@ -195,7 +195,7 @@ public class TestForestFireGenerator {
 	public void testAddEdgeFail1()
 	{
 		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,0,0 ,config,converter);
-		gen.machine = FsmParser.buildLearnerGraph("A-0->B / A-1->C / A-2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);
@@ -207,7 +207,7 @@ public class TestForestFireGenerator {
 	public void testAddEdgeFail2()
 	{
 		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,2,0 ,config,converter);
-		gen.machine = FsmParser.buildLearnerGraph("A-0->B / A-1->C / A-2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);

@@ -88,7 +88,7 @@ public class SmallvsHugeExperiment {
 	
 	public ThreadResult call() throws Exception 
 	{
-		final int alphabet = 3*states;
+		final int alphabet = 2*states;
 		LearnerGraph referenceGraph = null;
 		ThreadResult outcome = new ThreadResult();
 		Label uniqueFromInitial = null;
@@ -101,9 +101,13 @@ public class SmallvsHugeExperiment {
 			{
 				Map<Label,CmpVertex> uniques = PairQualityLearner.uniqueFromState(referenceGraph);
 				if(!uniques.isEmpty())
-				{
-					Entry<Label,CmpVertex> entry = uniques.entrySet().iterator().next();
-					referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();
+				{ 
+					// some uniques are loops, hence eliminate them to match our case study
+					for(Entry<Label,CmpVertex> entry:uniques.entrySet())
+						if (referenceGraph.transitionMatrix.get(entry.getValue()).get(entry.getKey()) != entry.getValue())
+						{
+							referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();break;// found a unique of interest
+						}
 				}
 			}
 		}
@@ -115,27 +119,30 @@ public class SmallvsHugeExperiment {
 		for(int attempt=0;attempt<3;++attempt)
 		{// try learning the same machine a few times
 			LearnerGraph pta = new LearnerGraph(config);
-			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
+			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 			// test sequences will be distributed around 
 			final int pathLength = generator.getPathLength();
-			final int sequencesPerChunk = PairQualityLearner.makeEven(alphabet*states*traceQuantity*20);// we are only using one chunk here but the name is unchanged.
+			final int sequencesPerChunk = PairQualityLearner.makeEven(alphabet*states*traceQuantity*5);// we are only using one chunk here but the name is unchanged.
 			// Usually, the total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 			// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 			// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
-			final int tracesToGenerate = PairQualityLearner.makeEven(states*traceQuantity/4);
+			final int tracesToGenerate = 2;//PairQualityLearner.makeEven(states*traceQuantity*3);
 			final Random rnd = new Random(seed*31+attempt);
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
 					public int getLength() {
-						return (rnd.nextInt(pathLength)+1)*sequencesPerChunk/tracesToGenerate;
+						return 7000;//rnd.nextInt(pathLength*2)+1;// (rnd.nextInt(pathLength)+1)*sequencesPerChunk/tracesToGenerate;
 					}
 	
 					@Override
 					public int getPrefixLength(int len) {
 						return len;
 					}
-				});
+				},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
+			
+			
+			
 			/*
 			for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(1))
 			{
@@ -154,6 +161,13 @@ public class SmallvsHugeExperiment {
 				pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
 				// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
 				
+			/*
+			synchronized (AbstractLearnerGraph.syncObj) {
+				PaperUAS.computePTASize(selectionID+" with unique "+uniqueFromInitial+" : ", pta, referenceGraph);
+			}*/
+			//Visualiser.updateFrame(referenceGraph, pta);
+			//Visualiser.waitForKey();
+			
 			pta.clearColours();
 			
 			if (!onlyUsePositives)
@@ -187,13 +201,22 @@ public class SmallvsHugeExperiment {
 			LearnerThatCanClassifyPairs learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
 			
+			for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
 			{
+				boolean accept = path.getKey().isAccept();
+				CmpVertex vert = referenceGraph.getVertex(path.getValue());
+				boolean shouldBe = vert==null?false:vert.isAccept();
+				assert accept == shouldBe;
+			}
+			
+			{
+				
 				LearnerGraph reducedPTA = PairQualityLearner.mergeStatesForUnique(pta,uniqueFromInitial);
 				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA);
 				//learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 				
 				synchronized (AbstractLearnerGraph.syncObj) {
-					PaperUAS.computePTASize(selectionID+" with unique: ", reducedPTA, referenceGraph);
+					PaperUAS.computePTASize(selectionID+" with unique "+uniqueFromInitial+" : ", reducedPTA, referenceGraph);
 				}
 
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -222,13 +245,18 @@ public class SmallvsHugeExperiment {
 				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, pta);
 				synchronized (AbstractLearnerGraph.syncObj) {
 					PaperUAS.computePTASize(selectionID+" no unique: ", pta, referenceGraph);
-					System.out.println();
 				}
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				double similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
 				System.out.println("similarity = "+similarityMeasure);
-				Visualiser.updateFrame(pta.transform.trimGraph(3, pta.getInit()), null);
+				System.out.println();
+				/*
+				LearnerGraph reducedPTA = PairQualityLearner.mergeStatesForUnique(pta,uniqueFromInitial);
+				reducedPTA = reducedPTA.transform.trimGraph(3, reducedPTA.getInit());reducedPTA.setName("random_reduced");
+				LearnerGraph largePTA = pta.transform.trimGraph(3, pta.getInit());largePTA.setName("random_large");
+				Visualiser.updateFrame(largePTA, reducedPTA);
 				Visualiser.waitForKey();
+				*/
 			}
 			
 		}

@@ -702,7 +702,7 @@ public class PaperUAS
 		int wPos=0;
 		for(List<Label> seq:evaluationTestSet)
 			if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
-		pathGen.generateRandomPosNeg(2*(evaluationTestSet.size()-2*wPos), 1, false, null, true,false,evaluationTestSet);
+		pathGen.generateRandomPosNeg(2*(evaluationTestSet.size()-2*wPos), 1, false, null, true,false,evaluationTestSet,null);
 		evaluationTestSet = pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);// we replacing the test set with new sequences rather than adding to it because existing sequences could be prefixes of the new ones.
 		wPos = 0;
 		for(List<Label> seq:evaluationTestSet) if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
@@ -809,10 +809,10 @@ public class PaperUAS
 
   			initPTA.storage.writeGraphML("hugegraph.xml");
 			LearnerGraph ptaSmall = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
-  			Visualiser.updateFrame(initPTA.transform.trimGraph(4, initPTA.getInit()), ptaSmall.transform.trimGraph(4, ptaSmall.getInit()));
-  			Visualiser.waitForKey();
+  			//Visualiser.updateFrame(initPTA.transform.trimGraph(4, initPTA.getInit()), ptaSmall.transform.trimGraph(4, ptaSmall.getInit()));
+  			//Visualiser.waitForKey();
   			
-  			/*
+  			
   			{
   	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
   				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
@@ -827,8 +827,8 @@ public class PaperUAS
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 				uas_F.add(frame+"_R",differenceF,"red");uas_Diff.add(frame+"_R",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
 
-				PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
-				gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
+				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
+				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
 			}
 
   			{
@@ -846,10 +846,10 @@ public class PaperUAS
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 				uas_F.add(frame+"_RM",differenceF,"red");uas_Diff.add(frame+"_RM",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
 
-				PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
-				gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
+				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
+				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
 			}
-*/
+
 			
 			uas_F.drawInteractive(gr);uas_Diff.drawInteractive(gr);gr_diff_to_f.drawInteractive(gr);
   		}
@@ -857,6 +857,22 @@ public class PaperUAS
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
   }
    	
+   
+   protected static void noveltyInCaseStudyExperiment(String [] args) throws IOException
+   {
+		PaperUAS paper = new PaperUAS();
+    	paper.learnerInitConfiguration.setLabelConverter(new Transform.InternStringLabel());
+        final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
+        learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+        learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
+        paper.loadReducedConfigurationFile(args[0]);
+        
+       	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
+       	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
+       	
+       	Visualiser.updateFrame(referenceGraph, null);
+       	Visualiser.waitForKey();
+   }
    
    /** Used to training a few different classifiers from a full PTA by comparing metrics on pairs considered by QSM and checking them against the reference solution. */ 
    protected Classifier []loadClassifierFromArff(String arffWithTrainingData)
@@ -1432,7 +1448,8 @@ public class PaperUAS
 			//checkSmallPTA();
 			//checkDataConsistency();
 			//mainCheckMerging(args);
-	       mainSingleHugeAutomaton(args);
+	       //mainSingleHugeAutomaton(args);
+			noveltyInCaseStudyExperiment(args);
 			//mainSmallAutomata(args);
 	       /*
 			PaperUAS paper = new PaperUAS();

@@ -36,7 +36,9 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.StringLabel;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -856,5 +858,167 @@ public class TestRandomPathGenerator {
 		// the following calls should not throw
 		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
 	}
+
 	
+	@Test
+	public void test_generatePathThatEndsAtInitialState1()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,graph.findVertex("B"));
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 4;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a1", config, converter)}));
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c3-#REJ / D-b3->Anew","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
+	
+	@Test
+	public void test_generatePathThatEndsAtInitialState2a()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,graph.findVertex("B"));
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(4, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 4;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a1", config, converter)}));
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c3-#REJ/E-b2-#REJ2 / D-b3->Anew","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
+	
+	@Test
+	public void test_generatePathThatEndsAtInitialState2b()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,graph.findVertex("B"));
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(4, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 5;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a1", config, converter)}));
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c2->F / F-b3-#REJ/F-b2-#REJ2","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
+	
+	@Test
+	public void test_generatePathThatEndsAtInitialState2c()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a1->B-a2->C-a4->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState2c",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,graph.findVertex("B"));
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(4, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 5;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a1", config, converter)}));
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a4->C1-a3->D-c1->E / C1-a4->C2-a4->C3-b2->Anew1 / D-b3->Anew2 / E-b3-#REJ/E-b1-#REJ2","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
+	
+	@Test
+	public void test_generatePathThatEndsAtInitialState3()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a1->B-a2->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,graph.findVertex("B"));
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(4, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 2;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a1", config, converter)}));
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C / C-c5-#REJ/C-c4-#REJ2 / C-b2->Anew","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
+	
+	@Test
+	public void test_generatePathThatEndsAtInitialState4()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->A-a1->B-a2->C-a3->D-c1->E-c2->F-c3->G-c4->H-c5->A / B-b1->A / C-b2->A / D-b3->A","test_generatePathThatEndsAtInitialState4",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		generator.generateRandomPosNeg(4, 1, false, new RandomLengthGenerator() {
+			
+			@Override
+			public int getLength() {
+				return 2;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,true,null,null);
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B / B-c1-#REJ/B-c4-#REJ2 / B-b1->Anew","test_generatePathThatEndsAtInitialState1",config,converter);
+		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
+		if (diff != null)
+			throw diff;
+	}
 }

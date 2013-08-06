@@ -50,6 +50,7 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.Pair;
 import statechum.ProgressIndicator;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -1248,37 +1249,50 @@ public class PairQualityLearner
 	}
 	
 	/** Looks for a labels each of which is only used on transitions entering a specific state.
+	 * <p/>
+	 * It also looks for labels that are only present on a single transition in a graph, hence uniquely identifying both their source and their target states.
+	 * <p/>
+	 * Assumes that all states are reachable from an initial state, otherwise it may decide that some labels are not unique to 
+	 * the initial state while in reality they are unique to all states that are reachable from it.
 	 * 
 	 * @param graph the graph where to look for such labels.
-	 * @return a map from labels to states.
+	 * @return a map from labels to pairs of states, where the first element is the state the label of interest is uniqueFrom and the second is the state it is uniqueTo. The first of the two can be null, the second cannot.
+	 * <p>Justification: if a label is uniqueTo, it can be used on a number of transitions to the state of interest. Each of such transitions may have a different source state. Where it is uniqueFrom, this is a 
+	 * label that is only used on a single transition in a graph, hence it is also uniqueTo. UniqueTo can only be uniqueFrom if it is only used on a single transition.
 	 */
-	public static Map<Label,CmpVertex> uniqueIntoState(LearnerGraph graph)
+	public static Map<Label,Pair<CmpVertex,CmpVertex> > uniqueIntoState(LearnerGraph graph)
 	{
 		Set<Label> deadLabels = new HashSet<Label>();
 		
-		Map<Label,CmpVertex> labelToState = new TreeMap<Label,CmpVertex>();
+		Map<Label, Pair<CmpVertex,CmpVertex> > labelToStatePair = new TreeMap<Label,Pair<CmpVertex,CmpVertex>>();
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
 				if (!deadLabels.contains(target.getKey()))
-				{
-					CmpVertex recordedState = labelToState.get(target.getKey());
-					{// the label is not already recorded as leading to multiple different states.
-						if (recordedState == null)
-							// first time we've seen this label in use
-							labelToState.put(target.getKey(),target.getValue());
+				{// the label is not already recorded as leading to multiple different states.
+					Pair<CmpVertex,CmpVertex> recordedSourceTarget = labelToStatePair.get(target.getKey());
+					if (recordedSourceTarget == null)
+						// first time we've seen this label in use
+						labelToStatePair.put(target.getKey(),new Pair<CmpVertex,CmpVertex>(entry.getKey(),target.getValue()));
+					else
+						if (recordedSourceTarget.secondElem != target.getValue())
+						{
+							// record the label as leading to multiple states
+							deadLabels.add(target.getKey());
+							labelToStatePair.remove(target.getKey());
+						}
 						else
-							if (recordedState != target.getValue())
-							{
-								// record the label as leading to multiple states
-								deadLabels.add(target.getKey());
-								labelToState.remove(target.getKey());
-							}
-					}
+							// a different state leading to the same target, clear the first element of the pair since the label of interest is not longer uniqueFrom
+							labelToStatePair.put(target.getKey(),new Pair<CmpVertex,CmpVertex>(null,recordedSourceTarget.secondElem));
 				}
 		
-		return labelToState;
+		return labelToStatePair;
 	}
 	
+	/** 
+	 *  
+	 * @param graph graph in which to calculate those labels
+	 * @return map from a label to a vertex that can be identified by a transition with a label of interest. 
+	 */
 	public static Map<Label,CmpVertex> uniqueFromState(LearnerGraph graph)
 	{
 		Set<Label> deadLabels = new HashSet<Label>();
@@ -1307,8 +1321,7 @@ public class PairQualityLearner
 		return labelToState;
 	}
 
-	/** Finds a label that uniquely identifies the initial state. Assumes that all states are reachable from an initial state, otherwise it may decide that some labels are not unique to 
-	 * the initial state while in reality they are unique to all states that are reachable from it.
+	/** Finds a label that uniquely identifies the initial state. 
 	 */ 
 	public static Label uniqueFromInitial(LearnerGraph graph)
 	{

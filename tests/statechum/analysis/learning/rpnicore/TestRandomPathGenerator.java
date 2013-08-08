@@ -1017,8 +1017,123 @@ public class TestRandomPathGenerator {
 		pta.paths.augmentPTA(generator.getAllSequences(0));
 		
 		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B / B-c1-#REJ/B-c4-#REJ2 / B-b1->Anew","test_generatePathThatEndsAtInitialState1",config,converter);
+		//Visualiser.updateFrame(graph, pta);
+		//Visualiser.waitForKey();
 		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
 		if (diff != null)
 			throw diff;
+	}
+	
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths1()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / D-b->E-b->B-a->A / A-t1->F<-t2-C","test_computeMaxPaths1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+	}
+	
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths2()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / F-c->D / D-b->E-b->B-a->A / A-t1->F<-t2-C","test_computeMaxPaths2",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+	}
+	
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths3()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / D-b->E-b->B-a->A / E-c->G-c->H-c->A / A-t1->F<-t2-C / H-t3->F","test_computeMaxPaths3",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+		Assert.assertEquals(new Integer(2), generator.longestPathsNotLeadingToInit.get(graph.findVertex("G")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("H")));
+
+	}
+	
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths4()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / E-b->B-a->A / E-c->G-c->H-c->A / A-t1->F<-t2-C / H-t3->F","test_computeMaxPaths4",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(3), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+		Assert.assertEquals(new Integer(2), generator.longestPathsNotLeadingToInit.get(graph.findVertex("G")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("H")));
+
+	}
+	
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths5()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / E-b->B-a->A / E-c->G-c->H-c->A-q->E / A-t1->F<-t2-C / H-t3->F","test_computeMaxPaths5",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("G")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("H")));
+
+	}
+
+	/** Tests calculation of maximal length of paths from states of an automaton such that those paths do not lead to the initial state. */ 
+	@Test
+	public void test_computeMaxPaths6()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / D-b->E-b->B-a->A / B-b->C / E-c->G-c->H-c->H / A-t1->F / C-t2->F / H-t3->F","test_computeMaxPaths6",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("G")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("H")));
+
+	}
+	
+	// some paths not leading to an initial state, hence they have null associated to the length of longest paths
+	@Test
+	public void test_computeMaxPaths7()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->E-a->D-a->C / D-b->E-b->B-a->A / E-c->G-c->H-c->H / A-t1->F / C-t2->F","test_computeMaxPaths6",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalksShouldLeadToInitialState();
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("A")));
+		Assert.assertEquals(new Integer(1), generator.longestPathsNotLeadingToInit.get(graph.findVertex("B")));
+		Assert.assertEquals(new Integer(0), generator.longestPathsNotLeadingToInit.get(graph.findVertex("C")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("D")));
+		Assert.assertEquals(new Integer(Integer.MAX_VALUE), generator.longestPathsNotLeadingToInit.get(graph.findVertex("E")));
+		Assert.assertNull(generator.longestPathsNotLeadingToInit.get(graph.findVertex("G")));
+		Assert.assertNull(generator.longestPathsNotLeadingToInit.get(graph.findVertex("H")));
+
 	}
 }

@@ -197,6 +197,14 @@ public class RandomPathGenerator {
 	 */
 	List<Label> generateRandomWalk(int walkLength, int prefixLen, boolean positive, List<Label> prefixForAllSequences)
 	{
+		if (walkLength < 1) 
+			throw new IllegalArgumentException("cannot generate paths with length less than one");
+		if (prefixLen < 0 || prefixLen > walkLength)
+			throw new IllegalArgumentException("invalid prefix length");
+		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
+		if (prefixForAllSequencesLength > prefixLen)
+			throw new IllegalArgumentException("prefix to add to all sequences should be shorter than the length of prefix to check for existence in the list of generated paths");
+
 		List<Label> outcome = null;
 		if (walksShouldLeadToInitialState)
 			outcome = generateRandomWalkLeadingToTheInitialState(walkLength, prefixLen, positive, prefixForAllSequences);
@@ -208,11 +216,6 @@ public class RandomPathGenerator {
 	
 	List<Label> generateUnrestrictedRandomWalk(int walkLength, int prefixLen, boolean positive, List<Label> prefixForAllSequences)
 	{
-		if (walkLength < 1) 
-			throw new IllegalArgumentException("cannot generate paths with length less than one");
-		if (prefixLen < 0 || prefixLen > walkLength)
-			throw new IllegalArgumentException("invalid prefix length");
-		
 		int generationAttempt = 0;
 		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
 		List<Label> path = new ArrayList<Label>(walkLength+prefixForAllSequencesLength);
@@ -344,21 +347,6 @@ public class RandomPathGenerator {
 				}
 				for(CmpVertex leadingTo:statesLeadingToCurrentOne) vertexToThoseReachableFromIt.get(leadingTo).addAll(statesReachableFromCurrent);
 			}
-			/*
-			// Now detect loops ...
-			for(Entry<CmpVertex,Set<CmpVertex>> entry:vertexToThoseReachableFromIt.entrySet())
-				if (entry.getValue().contains(entry.getKey()))
-					longestPathsNotLeadingToInit.put(entry.getKey(), Integer.MAX_VALUE);
-				else
-					longestPathsNotLeadingToInit.put(entry.getKey(),0);
-			// ... and propagate information about them, so that states leading to loop are also labelled as such
-			for(Entry<CmpVertex,Set<CmpVertex>> entry:vertexToThoseFromWhichItIsReachable.entrySet())
-				if (Integer.MAX_VALUE == longestPathsNotLeadingToInit.get(entry.getKey()))
-					for(CmpVertex v:entry.getValue())
-						longestPathsNotLeadingToInit.put(v,Integer.MAX_VALUE);
-				*/		
-			// If lengthWave is empty at this point, it means that for every state, there is an outgoing transition, implying that we can loop forever regardless which state we have started from.
-			// This means that the maximal loop length is infinity and we are hence done. 
 
 			// At this point, we know where loops are, so the goal is to calculate maximal length paths. This one does a different exploration to the loop exploration 
 			// above (it can follow previously explored states if this increases the length of maximal possible paths), hence we do it separately.
@@ -399,7 +387,10 @@ public class RandomPathGenerator {
 		if (currentRow == null) currentRow = new ArrayList<Entry<Label,CmpVertex>>();else currentRow.clear();
 		for(Entry<Label,CmpVertex> transition:transitions.get(currentState))
 		{
-			int newLength = 1+lengthOfShortestPathsIntoInit.get(transition.getValue());
+			Integer shortestPathToInit = lengthOfShortestPathsIntoInit.get(transition.getValue());
+			if (shortestPathToInit == null)
+				throw new IllegalArgumentException("there is no path to the initial state ("+g.getInit()+") from the "+transition.getValue()+" state");
+			int newLength = 1+shortestPathToInit;
 			if (newLength <= lengthMax && longestPathsNotLeadingToInit.get(transition.getValue()) >= lengthMin) // the comparison will do NullPointer if the initial state is not reachable from some vertices, but this is ensure by construction
 				// we should consider this transition if we will not be forced to take a long way to the initial state at the end ...
 				// ... and additionally there has to be a way to reach the desired way, no point visiting deadends.
@@ -418,60 +409,47 @@ public class RandomPathGenerator {
 	Map<CmpVertex,Integer> longestPathsNotLeadingToInit = null;
 	/** How imprecise in walk generation we are prepared to be. */
 	protected final int deltaInGenerationOfWalkLeadingToTheInitialState = 1;
-	
+
+	/** Here prefixForAllSequences is included in the length of the walk. */
 	protected List<Label> generateRandomWalkLeadingToTheInitialState(int walkLength, int prefixLen, boolean positive, List<Label> prefixForAllSequences)
 	{
-		if (walkLength < 1) 
-			throw new IllegalArgumentException("cannot generate paths with length less than one");
-		if (prefixLen < 0 || prefixLen > walkLength)
-			throw new IllegalArgumentException("invalid prefix length");
+		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
 		
 		int generationAttempt = 0;
-		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
-		List<Label> path = new ArrayList<Label>(walkLength+prefixForAllSequencesLength+deltaInGenerationOfWalkLeadingToTheInitialState);
-		
+		List<Label> path = new ArrayList<Label>(walkLength+deltaInGenerationOfWalkLeadingToTheInitialState);
+		boolean generationFailed = false;
 		do
 		{
+			generationFailed = false;
 			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
 			CmpVertex current = initialState;
 
 			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
 			if (positiveLength>0)
-			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
-				for(int i=0;i<positiveLength;i++)
+			{// If we are asked to generate negative paths of length 1, we cannot start with anything positive.
+				
+			 // Where we are offered a prefix longer than a maximal sequence we could generate, generate nothing positive.
+				int currentLength = prefixForAllSequencesLength+(positive?lengthOfShortestPathsIntoInit.get(current):0);// for a positive trace, the length is the one we obtain by the walk plus the length of a path to init, for negative traces, this is just zero since we are not aiming to reach init. 
+				while(currentLength < positiveLength)
 				{
 					Entry<Label,CmpVertex> inputState = null;
-					if (positive)
-					{
-						int currentLength = i+lengthOfShortestPathsIntoInit.get(current);
-						if (currentLength >= positiveLength)
-							break;// we got a path that is long enough, stop now. The current path is not too long (beyond positiveLength+delta) because in that case pickNextState would have returned null and we would have stopped before making a step.
-						
-						// Our current length is positiveLength-currentLength short, the subsequent step may get us closer to the target or we may overshoot. 
-						// In case of overshoot, the step may get us further away from the target, hence we should not take the step even if it is within delta of the target.
-						// This is the reason why lengthMax should be set accordingly in the call to pickNextState below.
-						// The absolute max is positiveLength+delta-i
-						// The desirable one is where a smaller positiveLength-currentLength-1 is used instead of delta.
-						// The shortest path is positiveLength-i-deltaInGenerationOfWalkLeadingToTheInitialState
-						inputState = pickNextState(current,positiveLength-i-deltaInGenerationOfWalkLeadingToTheInitialState,
-								positiveLength-i+ Math.min(deltaInGenerationOfWalkLeadingToTheInitialState, positiveLength-currentLength-1));
-						if (inputState == null)
-							// any subsequent step is either impossible (no more transitions from this state, this should be impossible because of the way the automata are generated),
-							// or a subsequent step leads us to an extremely long path, hence our only choice is to stop now.
-							break;
-					}
-					else
-					{
-						ArrayList<Entry<Label,CmpVertex>> row = transitions.get(current);
-						if(row.isEmpty())
-							break;// cannot make a transition
-						inputState = row.get(randomNumberGenerator.nextInt(row.size()));
-					}
-					// Now we need to decide whether to make a transition, in the negative case this is always so but in the positive it is not because we are aiming at returning back to the initial state.
-					// The current length of a path is i+lengthOfShortestPathsIntoInit.get(current), the targetLength is positiveLength
-					// We would want to generate as much as possible randomly, only 
-					path.add(inputState.getKey());current = inputState.getValue();
+					//if (currentLength >= positiveLength)
+					//	break;// we got a path that is long enough, stop now. The current path is not too long (beyond positiveLength+delta) because in that case pickNextState would have returned null and we would have stopped before making a step.
 					
+					// Our current length is positiveLength-currentLength short, the subsequent step may get us closer to the target or we may overshoot. 
+					// In case of overshoot, the step may get us further away from the target, hence we should not take the step even if it is within delta of the target.
+					// This is the reason why lengthMax should be set accordingly in the call to pickNextState below.
+					// The absolute max that should be added is positiveLength+deltaInGenerationOfWalkLeadingToTheInitialState-i
+					// The desirable one is where positiveLength-currentLength-1 is used instead of deltaInGenerationOfWalkLeadingToTheInitialState, if smaller.
+					// The shortest path to init is positiveLength-i-deltaInGenerationOfWalkLeadingToTheInitialState
+					int maxLength = positive? positiveLength-path.size()+ Math.min(deltaInGenerationOfWalkLeadingToTheInitialState, positiveLength-currentLength-1) : Integer.MAX_VALUE;// for negative paths, we are not constrained by the maximal length because there is no need to enter an initial sate
+					inputState = pickNextState(current,positiveLength-path.size()-deltaInGenerationOfWalkLeadingToTheInitialState, maxLength);
+					if (inputState == null)
+						// any subsequent step is either impossible (no more transitions from this state, this should be impossible because of the way the automata are generated),
+						// or a subsequent step leads us to an extremely long path, hence our only choice is to stop now, possibly way short of target.
+						break;
+					path.add(inputState.getKey());current = inputState.getValue();
+					currentLength = path.size()+(positive?lengthOfShortestPathsIntoInit.get(current):0);
 				}
 				
 				if (positive)
@@ -480,16 +458,18 @@ public class RandomPathGenerator {
 				}
 			}
 			
-			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)
+			if (!positive)
 			{// successfully generated a positive path of the requested length, append a negative transition.
-				// In the situation where we'd like to generate both negatives and 
-				// one element shorter positives, we'd have to copy our positive 
-				// and then append a negative to the copy. It takes as long to take 
-				// all negatives and make copy of all but one elements, given that 
-				// they are ArrayLists. 
+			 // In the situation where we'd like to generate both negatives and 
+			 // one element shorter positives, we'd have to copy our positive 
+			 // and then append a negative to the copy. It takes as long to take 
+			 // all negatives and make copy of all but one element, given that 
+			 // they are ArrayLists. 
 				ArrayList<Label> rejects = inputsRejected.get(current);
 				if (!rejects.isEmpty())
 					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
+				else
+					generationFailed = true;// report a failure to generate a negative sequence.
 			}
 			
 			generationAttempt++;
@@ -497,7 +477,8 @@ public class RandomPathGenerator {
 			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
 				return null;
 		}
-		while(prefixLen > 0 && (path.size() < prefixForAllSequencesLength+walkLength-deltaInGenerationOfWalkLeadingToTheInitialState || allSequences.contains(path.subList(0, Math.min(path.size(),prefixForAllSequencesLength+prefixLen)))));
+		while(generationFailed || path.size() < walkLength-deltaInGenerationOfWalkLeadingToTheInitialState || path.size() > walkLength+deltaInGenerationOfWalkLeadingToTheInitialState
+				|| (prefixLen > 0 && allSequences.contains(path.subList(0, Math.min(path.size(),prefixLen)))));
 		// we terminate if the path is at most deltaInGenerationOfWalkLeadingToTheInitialState short of the expected length. 
 		// The use of Math.min is to account for paths constructed being shorter than prefixForAllSequencesLength+prefixLen
 		
@@ -715,7 +696,7 @@ public class RandomPathGenerator {
 	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator argRnd, boolean attemptPositive, boolean attemptNegative, Collection<List<Label>> initialSet, List<Label> prefix)
 	{
 		if (pathLength < 1)
-			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
+			throw new IllegalArgumentException("Cannot generate paths of length less than 1");
 		if (numberPerChunk % 2 != 0)
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
 		chunksGenerated = 0;
@@ -820,5 +801,6 @@ public class RandomPathGenerator {
 		}
 		return null;
 	}
+
 	
 }

@@ -121,21 +121,21 @@ public class SmallvsHugeExperiment {
 		{// try learning the same machine a few times
 			LearnerGraph pta = new LearnerGraph(config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
-			//generator.setWalksShouldLeadToInitialState();
+			generator.setWalksShouldLeadToInitialState();
 			// test sequences will be distributed around 
 			final int pathLength = generator.getPathLength();
 			final int sequencesPerChunk = PairQualityLearner.makeEven(alphabet*states*traceQuantity);// we are only using one chunk here but the name is unchanged.
 			// Usually, the total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 			// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 			// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
-			final int tracesToGenerate = 2;//PairQualityLearner.makeEven(states*traceQuantity*3);
+			final int tracesToGenerate = 20;//PairQualityLearner.makeEven(states*traceQuantity*3);
 			final Random rnd = new Random(seed*31+attempt);
 			
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
 					public int getLength() {
-						return  100*(rnd.nextInt(pathLength)+1)*sequencesPerChunk/tracesToGenerate;
+						return  6;//10*(rnd.nextInt(pathLength)+1)*sequencesPerChunk/tracesToGenerate;
 					}
 	
 					@Override

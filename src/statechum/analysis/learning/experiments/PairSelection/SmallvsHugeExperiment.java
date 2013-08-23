@@ -297,6 +297,7 @@ public class SmallvsHugeExperiment {
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSM = 4;
+		final int minStateNumber = 10;
 /*
 		for(final double threshold:new double[]{1,1.2,1.5,3,10})
 		for(final int ifDepth:new int []{0,1})
@@ -313,7 +314,7 @@ public class SmallvsHugeExperiment {
 					try
 					{
 						int numberOfTasks = 0;
-						for(int states=PairQualityLearner.minStateNumber;states < PairQualityLearner.minStateNumber+15;states+=5)
+						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
 							for(int sample=0;sample<samplesPerFSM*2;++sample)
 							{
 								SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,1+numberOfTasks,traceQuantity, config, converter);

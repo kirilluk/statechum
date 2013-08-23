@@ -1082,9 +1082,9 @@ public class PairQualityLearner
 					Instance instance = dataCollector.constructInstance(comparisonResults, true);
 					double distribution[]=classifier.distributionForInstance(instance);
 					long quality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
-					if ( quality >= 0 )
+					if ( quality > 0 )
 					{
-						if (pairBestToReturnAsRed == null) // || quality >pairBestToReturnAsRed.getAnotherScore())
+						if (pairBestToReturnAsRed == null || quality >pairBestToReturnAsRed.getAnotherScore())
 							pairBestToReturnAsRed = new PairScore(p.getQ(), p.getR(), p.getScore(), quality);// this is the pair to return.
 					}
 					else // we are here because Weka was not confident that this pair should not be merged, hence check the score and if zero, consider blocking the merge. 
@@ -1213,14 +1213,14 @@ public class PairQualityLearner
 						if (worstPair != null)
 							stateToLabelRed = worstPair.getQ();
 
+						System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
-					//return LearnerThatUsesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
-					
 				}});
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
+				System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" ( before filtering "+outcome.size()+")");
 				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
 				updateStatistics(pairQuality, graph,referenceGraph, filteredPairs);
 				if (possibleResults.isEmpty())
@@ -1228,28 +1228,8 @@ public class PairQualityLearner
 					possibleResults.add(pickPairQSMLike(filteredPairs));// no pairs have been provided by the modified algorithm, hence using the default one.
 					//System.out.println("no suitable pair was found");
 				}
-				else
-				{/*
-					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, possibleResults, correctPairs, wrongPairs);
-					System.out.print("Pairs: ");boolean first=true;
-					for(PairScore p:possibleResults)
-					{
-						if (first) first = false;else System.out.print(", ");
-						if (!p.getQ().isAccept() || !p.getR().isAccept())
-							System.out.print(p.toString());
-						else
-							if (correctPairs.contains(p))
-								System.out.print(p.toString()+"[T]");
-							else
-								System.out.print(p.toString()+"[F]");
-					}
-					System.out.println();
-					System.out.println("QSM pair would have been : "+pickPairQSMLike(outcome));*/
-				}
 				PairScore result = possibleResults.iterator().next();
 
-				//PairScore result= pickPairQSMLike(outcome);
 				outcome.clear();outcome.push(result);
 			}
 			return outcome;
@@ -1257,8 +1237,6 @@ public class PairQualityLearner
 
 	} // uses a classifier in order to rank pairs.
 	
-	static final int minStateNumber = 40;
-
 	/** The outcome of an experiment using a single FSM and a collection of walks represented as a PTA. */
 
 	public static class SampleData
@@ -1720,16 +1698,19 @@ public class PairQualityLearner
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				SampleData dataSample = new SampleData(null,null);
-				dataSample.difference = estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
+				dataSample.difference = estimationOfDifferenceDiffMeasure(referenceGraph,actualAutomaton,config,1);//estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
 				if (learnUsingReferenceLearner)
-					dataSample.differenceForReferenceLearner = estimationOfDifferenceFmeasure(referenceGraph, new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), testSet);
+					dataSample.differenceForReferenceLearner = 
+						//estimationOfDifferenceFmeasure(
+							estimationOfDifferenceDiffMeasure(referenceGraph, new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), 
+									config,1);
+									//testSet);
 				outcome.samples.add(dataSample);
 				for(int i=0;i< dataCollector.trainingData.numInstances();++i)
 					sampleCollector.trainingData.add(dataCollector.trainingData.instance(i));
 				dataCollector.trainingData.delete();
 			}
 			
-			//outcome.instances = dataCollector.trainingData;
 			timerToDetectLongRunningAutomata.cancel();
 			return outcome;
 		}
@@ -1775,28 +1756,29 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int samplesPerFSM = 4;
+		final int minStateNumber = 10;
+		final int samplesPerFSM = 1;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{1,10})
+		for(final int lengthMultiplier:new int[]{10})
 		for(final double threshold:new double[]{2.0})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
-			for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
-				for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-
-			for(final boolean selectingRed:new boolean[]{false})
-			for(final boolean useUnique:new boolean[]{false})
+			for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 			{
-				String selection = "TRUNK;"+"ifDepth="+ifDepth+";threshold="+threshold+
-						";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";";
-				SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection+".pdf"),0,1,true);
-				final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection+".pdf"));
-		
-				for(int traceQuantity=2;traceQuantity<=2;++traceQuantity)
+				final boolean zeroScoringAsRed = false;
+				// for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
+				final int traceQuantity=2;
+				for(final boolean selectingRed:new boolean[]{false})
+				for(final boolean useUnique:new boolean[]{false})
 				{
+					String selection = "TRUNK;"+"ifDepth="+ifDepth+";threshold="+threshold+
+							";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";";
+					SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection+".pdf"),0,1,true);
+					final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection+".pdf"));
+			
 					WekaDataCollector dataCollector = createDataCollector(ifDepth);
 					List<SampleData> samples = new LinkedList<SampleData>();
 					try
@@ -1967,9 +1949,9 @@ public class PairQualityLearner
 						if (executorService != null) { executorService.shutdown();executorService = null; }
 						throw e;
 					}
+					if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
+					if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 				}
-				if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
-				if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 			}
 		/*
 		for(SampleData sample:samples)

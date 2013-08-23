@@ -1831,7 +1831,7 @@ public class TestWekaPairClassifier {
 				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
 					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<Collection<PairScore>>();
-					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNode(coregraph, reds, tentativeRedNodes, new CollectionOfPairsEstimator() {
+					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingWeka(coregraph, tentativeRedNodes, new CollectionOfPairsEstimator() {
 	
 						@Override
 						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, Collection<PairScore> pairs) 

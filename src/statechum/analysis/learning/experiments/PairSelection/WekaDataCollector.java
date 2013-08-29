@@ -367,10 +367,8 @@ public class WekaDataCollector
 			whatToFillIn[i+offset]=assessors.get(i).getRanking(pair, measurements.valueAverage[i], measurements.valueSD[i]);
 	}
 
-	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, long xyz, PairScore pairOfInterest, Collection<PairScore> pairs, int currentLevel)
+	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, long xyz, PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
 	{
-		MeasurementsForCollectionOfPairs measurements = new MeasurementsForCollectionOfPairs();
-		buildSetsForComparatorsDependingOnFiltering(measurements,pairs);
 		final int sectionPlusOffset = section_start + L*idx_in_section;
 		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
 		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
@@ -396,8 +394,12 @@ public class WekaDataCollector
 								others.add(other);
 						}
 						if (others.size()>1)
+						{
+							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
+							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,pairs);
 							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
-							fillInEntry(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+(attributeREL>0?1:0),section_size*rowNumber, xyz|positionalBit,pairOfInterest,others,currentLevel+1);
+							fillInEntry(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+(attributeREL>0?1:0),section_size*rowNumber, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
+						}
 					}				
 					z+=V;
 				}
@@ -410,7 +412,7 @@ public class WekaDataCollector
 	{
 		if (whatToFillIn.length < getInstanceLength())
 			throw new IllegalArgumentException("array is too short");
-		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,0);
+		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForUnfilteredCollectionOfPairs,0);
 	}
 
 	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.

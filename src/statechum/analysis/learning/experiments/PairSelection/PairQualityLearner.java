@@ -779,7 +779,6 @@ public class PairQualityLearner
 	public static class LearnerThatUpdatesWekaResults extends LearnerThatCanClassifyPairs
 	{
 		final WekaDataCollector dataCollector;
-		final RBoxPlot<String> gr_ErrorsAndDeadends;
 		
 		/** Builds a decision tree and returns it. Throws an exception if something goes wrong. */
 		public Classifier getClassifier() throws Exception
@@ -788,9 +787,9 @@ public class PairQualityLearner
 			cl.buildClassifier(dataCollector.trainingData);return cl;
 		}
 				
-		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA, RBoxPlot<String> argErrorsAndDeadends) 
+		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph, argInitialPTA);dataCollector = argDataCollector;gr_ErrorsAndDeadends = argErrorsAndDeadends;
+			super(evalCnf,argReferenceGraph, argInitialPTA);dataCollector = argDataCollector;
 		}
 		
 		@Override 
@@ -815,11 +814,6 @@ public class PairQualityLearner
 				{
 					dataCollector.updateDatasetWithPairs(pairs, coregraph, referenceGraph);
 					CmpVertex red = LearnerThatUpdatesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
-					if (red != null && gr_ErrorsAndDeadends != null)
-						synchronized(gr_ErrorsAndDeadends)
-						{
-							gr_ErrorsAndDeadends.add("D", (double)coregraph.getRedStateNumber());
-						}
 					return red;
 					
 					//return null;// for no resolution
@@ -829,21 +823,6 @@ public class PairQualityLearner
 				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
 				PairScore chosenPair = pickCorrectPair(filteredPairs, graph);
-				
-				PairScore qsmPair = pickPairQSMLike(outcome);
-				if (!qsmPair.equals(chosenPair))
-				{
-					if(gr_ErrorsAndDeadends != null)
-						synchronized(gr_ErrorsAndDeadends)
-						{
-							gr_ErrorsAndDeadends.add("E", (double)graph.getRedStateNumber());
-						}
-					
-					//int []comparisonResults = dataCollector.comparePairWithOthers(qsmPair, filteredPairs);
-					//System.out.println(p+" "+Arrays.toString(comparisonResults));
-					//System.out.println("QSM pair: "+qsmPair+" is not the best choice out of \n"+outcome+"\n vector is: "+dataCollector.constructInstance(comparisonResults, dataCollector.assessPair(qsmPair), true));
-				}
-					
 				outcome.clear();outcome.push(chosenPair);
 			}
 			
@@ -1213,14 +1192,14 @@ public class PairQualityLearner
 						if (worstPair != null)
 							stateToLabelRed = worstPair.getQ();
 
-						System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
+						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
 				}});
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
-				System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" ( before filtering "+outcome.size()+")");
+				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
 				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
 				updateStatistics(pairQuality, graph,referenceGraph, filteredPairs);
 				if (possibleResults.isEmpty())
@@ -1568,13 +1547,13 @@ public class PairQualityLearner
 				// The total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 				// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
-				final int tracesToGenerate = makeEven(states*traceQuantity);//states*traceQuantity/2);
+				final int tracesToGenerate = makeEven(states*traceQuantity);
 				final Random rnd = new Random(seed*31+attempt);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
 						public int getLength() {
-							return (rnd.nextInt(pathLength)+1)*traceQuantity*lengthMultiplier;
+							return (rnd.nextInt(pathLength)+1)*lengthMultiplier;
 						}
 		
 						@Override
@@ -1600,14 +1579,17 @@ public class PairQualityLearner
 					pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
 					// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
 					
+				//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));
+				
 				pta.clearColours();
 				synchronized (AbstractLearnerGraph.syncObj) {
-					PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" with unique: ", pta, referenceGraph);
+					//PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" with unique: ", pta, referenceGraph);
 				}
 				
 				if (!onlyUsePositives)
 				{
 					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
+					/*
 					Map<Label,Set<Label>> infeasiblePairs = computeInfeasiblePairs(referenceGraph);
 					Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
 					for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
@@ -1627,9 +1609,8 @@ public class PairQualityLearner
 					LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, null, referenceGraph, learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
 					learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 					int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
-					//System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
 					Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
-					//System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
+					*/
 				}
 				else assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 				
@@ -1700,14 +1681,22 @@ public class PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 				dataSample.difference = estimationOfDifferenceDiffMeasure(referenceGraph,actualAutomaton,config,1);//estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
 				if (learnUsingReferenceLearner)
+				{
+					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.differenceForReferenceLearner = 
 						//estimationOfDifferenceFmeasure(
-							estimationOfDifferenceDiffMeasure(referenceGraph, new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()), 
+							estimationOfDifferenceDiffMeasure(referenceGraph, outcomeOfReferenceLearner, 
 									config,1);
 									//testSet);
+					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber());
+				}
 				outcome.samples.add(dataSample);
-				for(int i=0;i< dataCollector.trainingData.numInstances();++i)
-					sampleCollector.trainingData.add(dataCollector.trainingData.instance(i));
+				if (sampleCollector != null)
+					synchronized(sampleCollector.trainingData)
+					{
+						for(int i=0;i< dataCollector.trainingData.numInstances();++i)
+							sampleCollector.trainingData.add(dataCollector.trainingData.instance(i));
+					}
 				dataCollector.trainingData.delete();
 			}
 			
@@ -1750,34 +1739,28 @@ public class PairQualityLearner
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 		ConvertALabel converter = new Transform.InternStringLabel();
-		final RBoxPlot<String> gr_ErrorsAndDeadends = null;//new RBoxPlot<String>("Errors and deadends","Red states",new File("errors_deadends.pdf"));
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int minStateNumber = 10;
-		final int samplesPerFSM = 1;
+		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
+		final int trainingDataMultiplier = 10;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{10})
-		for(final double threshold:new double[]{2.0})
+		for(final int lengthMultiplier:new int[]{2})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
-			for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 			{
-				final boolean zeroScoringAsRed = false;
-				// for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-				final int traceQuantity=2;
-				for(final boolean selectingRed:new boolean[]{false})
+				//final boolean zeroScoringAsRed = false;
+				final int traceQuantity=20;
 				for(final boolean useUnique:new boolean[]{false})
 				{
-					String selection = "TRUNK;"+"ifDepth="+ifDepth+";threshold="+threshold+
-							";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";";
-					SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection+".pdf"),0,1,true);
-					final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection+".pdf"));
+					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
+							";onlyPositives="+onlyPositives+";useUnique="+useUnique+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
 			
 					WekaDataCollector dataCollector = createDataCollector(ifDepth);
 					List<SampleData> samples = new LinkedList<SampleData>();
@@ -1785,14 +1768,14 @@ public class PairQualityLearner
 					{
 						int numberOfTasks = 0;
 						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-							for(int sample=0;sample<samplesPerFSM;++sample)
+							for(int sample=0;sample<samplesPerFSM*trainingDataMultiplier;++sample)
 							{
 								LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,1+numberOfTasks,traceQuantity, config, converter)
 								{
 									@Override
 									public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 									{
-										return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA,gr_ErrorsAndDeadends);
+										return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA);
 									}
 								};
 								learnerRunner.setPickUniqueFromInitial(useUnique);learnerRunner.setOnlyUsePositives(onlyPositives);learnerRunner.setIfdepth(ifDepth);learnerRunner.setLengthMultiplier(lengthMultiplier);
@@ -1805,12 +1788,6 @@ public class PairQualityLearner
 						{
 							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
 							samples.addAll(result.samples);
-							//result.addAllInstancesTo(dataCollector.trainingData);
-							if (gr_ErrorsAndDeadends != null)
-								synchronized(gr_ErrorsAndDeadends)
-								{
-									gr_ErrorsAndDeadends.drawInteractive(gr);
-								}
 							progress.next();
 						}
 					}
@@ -1823,21 +1800,38 @@ public class PairQualityLearner
 
 					int nonZeroes = 0;
 					long numberOfValues = 0;
-					for(int attrNum=0;attrNum<dataCollector.attributesOfAnInstance.length;++attrNum)
-					{
-						assert dataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
-						int counterForAttribute = 0;
-						for(int i=0;i<dataCollector.trainingData.numInstances();++i)
-							if (dataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
-								++counterForAttribute;
-						
-						if (counterForAttribute>0) 
+					System.out.println("number of instances: "+dataCollector.trainingData.numInstances());
+					int freqData[] = new int[dataCollector.attributesOfAnInstance.length];
+					for(int i=0;i<dataCollector.trainingData.numInstances();++i)
+						for(int attrNum=0;attrNum<dataCollector.attributesOfAnInstance.length;++attrNum)
 						{
-							++nonZeroes;numberOfValues+=counterForAttribute;
+							assert dataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
+							if (dataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
+							{
+								++freqData[attrNum];++numberOfValues;
+							}
 						}
-					}
+					for(int attrNum=0;attrNum<dataCollector.attributesOfAnInstance.length;++attrNum)
+						if (freqData[attrNum]>0) 
+							++nonZeroes;
 					
 					System.out.println("Total instances: "+dataCollector.trainingData.numInstances()+" with "+dataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes);
+					Arrays.sort(freqData);
+					int numOfcolumns=20;
+					int stepWidth = dataCollector.attributesOfAnInstance.length/numOfcolumns;
+					
+					final RBoxPlot<Long> gr_HistogramOfAttributeValues = new RBoxPlot<Long>("Attributes","Number of values",new File("attributes_use"+selection+".pdf"));
+					for(int i=0;i<numOfcolumns;++i)
+					{
+						int columnData=0;
+						for(int j=i*stepWidth;j<(i+1)*stepWidth;++j)
+							if (j < dataCollector.attributesOfAnInstance.length)
+								columnData+=freqData[j];
+						
+						gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
+					}
+					gr_HistogramOfAttributeValues.drawInteractive(gr);
+					gr_HistogramOfAttributeValues.drawPdf(gr);
 					/*
 					// write arff
 					FileWriter wekaInstances = null;
@@ -1883,74 +1877,85 @@ public class PairQualityLearner
 					System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
 					System.out.println(classifier);
 					dataCollector=null;// throw all the training data away.
-					final int totalTaskNumber = traceQuantity;
-					final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score"+selection+".pdf"));
-					final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 					
-					try
+					for(final boolean selectingRed:new boolean[]{false,true})
+					for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
+					for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
+					for(final double threshold:new double[]{1.0,2.0,4.0,10.0})
 					{
-						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-							for(int sample=0;sample<samplesPerFSM;++sample)
-							{
-								LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter)
+						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+
+								";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+
+						final int totalTaskNumber = traceQuantity;
+						final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score"+selection+".pdf"));
+						final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection+".pdf"));
+						SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection+".pdf"),0,1,true);
+						final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
+						try
+						{
+							int numberOfTasks = 0;
+							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+								for(int sample=0;sample<samplesPerFSM;++sample)
 								{
-									@Override
-									public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,@SuppressWarnings("unused") WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+									LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter)
 									{
-										LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(ifDepth,evalCnf,argReferenceGraph,classifier,argInitialPTA);
-										if (gr_PairQuality != null)
-											l.setPairQualityCounter(pairQualityCounter);
+										@Override
+										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,@SuppressWarnings("unused") WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+										{
+											LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(ifDepth,evalCnf,argReferenceGraph,classifier,argInitialPTA);
+											if (gr_PairQuality != null)
+												l.setPairQualityCounter(pairQualityCounter);
+											
+											l.setUseClassifierForRed(selectingRed);l.setUseClassifierToChooseNextRed(classifierToBlockAllMergers);
+											l.setBlacklistZeroScoringPairs(zeroScoringAsRed);
+											l.setThreshold(threshold);
+											return l;
+										}
 										
-										l.setUseClassifierForRed(selectingRed);l.setUseClassifierToChooseNextRed(classifierToBlockAllMergers);
-										l.setBlacklistZeroScoringPairs(zeroScoringAsRed);
-										l.setThreshold(threshold);
-										return l;
-									}
-									
-								};
-								learnerRunner.setPickUniqueFromInitial(useUnique);learnerRunner.setEvaluateAlsoUsingReferenceLearner(true);
-								learnerRunner.setOnlyUsePositives(onlyPositives);learnerRunner.setIfdepth(ifDepth);learnerRunner.setLengthMultiplier(lengthMultiplier);
-								learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
-								runner.submit(learnerRunner);
-								++numberOfTasks;
-							}
-						ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection, numberOfTasks);
-						for(int count=0;count < numberOfTasks;++count)
-						{
-							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-							if (gr_NewToOrig != null)
+									};
+									learnerRunner.setPickUniqueFromInitial(useUnique);learnerRunner.setEvaluateAlsoUsingReferenceLearner(true);
+									learnerRunner.setOnlyUsePositives(onlyPositives);learnerRunner.setIfdepth(ifDepth);learnerRunner.setLengthMultiplier(lengthMultiplier);
+									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+									runner.submit(learnerRunner);
+									++numberOfTasks;
+								}
+							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection, numberOfTasks);
+							for(int count=0;count < numberOfTasks;++count)
 							{
+								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+								if (gr_NewToOrig != null)
+								{
+									for(SampleData sample:result.samples)
+										gr_NewToOrig.add(sample.differenceForReferenceLearner,sample.difference);
+								}
+								
 								for(SampleData sample:result.samples)
-									gr_NewToOrig.add(sample.differenceForReferenceLearner,sample.difference);
+									if (sample.differenceForReferenceLearner > 0)
+										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference/sample.differenceForReferenceLearner);
+								progress.next();
 							}
-							
-							for(SampleData sample:result.samples)
-								if (sample.differenceForReferenceLearner > 0)
-									gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference/sample.differenceForReferenceLearner);
-							progress.next();
-						}
-						if (gr_PairQuality != null)
-						{
-							synchronized(pairQualityCounter)
+							if (gr_PairQuality != null)
 							{
-								updateGraph(gr_PairQuality,pairQualityCounter);
-								gr_PairQuality.drawInteractive(gr);
-								gr_NewToOrig.drawInteractive(gr);
-								if (gr_QualityForNumberOfTraces.size() > 0)
-									gr_QualityForNumberOfTraces.drawInteractive(gr);
+								synchronized(pairQualityCounter)
+								{
+									updateGraph(gr_PairQuality,pairQualityCounter);
+									//gr_PairQuality.drawInteractive(gr);
+									//gr_NewToOrig.drawInteractive(gr);
+									//if (gr_QualityForNumberOfTraces.size() > 0)
+									//	gr_QualityForNumberOfTraces.drawInteractive(gr);
+								}
 							}
+							if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);
 						}
-						if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);
+						catch(Exception ex)
+						{
+							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+							if (executorService != null) { executorService.shutdown();executorService = null; }
+							throw e;
+						}
+						if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);
+						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 					}
-					catch(Exception ex)
-					{
-						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-						if (executorService != null) { executorService.shutdown();executorService = null; }
-						throw e;
-					}
-					if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);if (gr_ErrorsAndDeadends != null) gr_ErrorsAndDeadends.drawPdf(gr);
-					if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
 				}
 			}
 		/*

@@ -1292,7 +1292,7 @@ public class PaperUAS
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
 		// Run the learner that will find out how to select the correct pairs.
-		LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initConfiguration,referenceGraph,dataCollector,initialPTA,null);
+		LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initConfiguration,referenceGraph,dataCollector,initialPTA);
 		LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		
 		// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
@@ -1482,7 +1482,7 @@ public class PaperUAS
 
 		LearnerGraph referenceGraph = new LearnerGraph(initialConfigAndData.initial.graph.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraph, initialConfigAndData.learnerInitConfiguration.getLabelConverter());
     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
-    	LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph,null);
+    	LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph);
 		learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		
 		FileWriter wekaInstances=new FileWriter("resources/largePTA/pairsEncountered3.arff");

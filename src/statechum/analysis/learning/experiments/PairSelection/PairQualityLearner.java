@@ -45,6 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -64,12 +66,14 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -80,6 +84,7 @@ import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -201,7 +206,7 @@ public class PairQualityLearner
 	{
 		WekaDataCollector classifier = new WekaDataCollector();
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
-		
+			
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
 			@Override
@@ -214,7 +219,7 @@ public class PairQualityLearner
 				return false;
 			}
 		});
-		
+
 		assessors.add(classifier.new PairRank("statechum score")
 		{// 2
 			@Override
@@ -1689,6 +1694,14 @@ public class PairQualityLearner
 									config,1);
 									//testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber());
+					/*
+					if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())
+					{
+						GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+						DirectedSparseGraph gr = gd.showGD(
+								actualAutomaton,outcomeOfReferenceLearner,
+								ExperimentRunner.getCpuNumber());
+					}*/
 				}
 				outcome.samples.add(dataSample);
 				if (sampleCollector != null)
@@ -1744,18 +1757,17 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 10;
+		final int minStateNumber = 40;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final int trainingDataMultiplier = 10;
+		final int trainingDataMultiplier = 30;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{2})
-		for(final int ifDepth:new int []{0})
+		for(final int lengthMultiplier:new int[]{10})
+		for(final int ifDepth:new int []{0,1})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				//final boolean zeroScoringAsRed = false;
 				final int traceQuantity=20;
 				for(final boolean useUnique:new boolean[]{false})
 				{
@@ -1878,11 +1890,12 @@ public class PairQualityLearner
 					System.out.println(classifier);
 					dataCollector=null;// throw all the training data away.
 					
-					for(final boolean selectingRed:new boolean[]{false,true})
+					for(final boolean selectingRed:new boolean[]{false})
 					for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
-					for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-					for(final double threshold:new double[]{1.0,2.0,4.0,10.0})
+					//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
+					for(final double threshold:new double[]{4.0})
 					{
+						final boolean zeroScoringAsRed = false;
 						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+
 								";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
 
@@ -1950,7 +1963,7 @@ public class PairQualityLearner
 						catch(Exception ex)
 						{
 							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-							if (executorService != null) { executorService.shutdown();executorService = null; }
+							if (executorService != null) { executorService.shutdownNow();executorService = null; }
 							throw e;
 						}
 						if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);

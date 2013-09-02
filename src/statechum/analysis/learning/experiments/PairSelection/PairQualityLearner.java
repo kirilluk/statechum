@@ -460,6 +460,7 @@ public class PairQualityLearner
 		{
 			DrawGraphs.end();
 		}
+		System.exit(0);
 	}
 		
 	
@@ -1757,18 +1758,18 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 40;
+		final int minStateNumber = 10;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
 		final int trainingDataMultiplier = 30;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{10})
-		for(final int ifDepth:new int []{0,1})
+		for(final int lengthMultiplier:new int[]{1})
+		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				final int traceQuantity=20;
+				final int traceQuantity=5;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
@@ -1842,7 +1843,7 @@ public class PairQualityLearner
 						
 						gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
 					}
-					gr_HistogramOfAttributeValues.drawInteractive(gr);
+					//gr_HistogramOfAttributeValues.drawInteractive(gr);
 					gr_HistogramOfAttributeValues.drawPdf(gr);
 					/*
 					// write arff

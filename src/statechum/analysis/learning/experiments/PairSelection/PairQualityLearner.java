@@ -18,8 +18,10 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,13 +47,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
-import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -66,14 +65,12 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
-import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -84,7 +81,6 @@ import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -1208,6 +1204,7 @@ public class PairQualityLearner
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
 				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
 				updateStatistics(pairQuality, graph,referenceGraph, filteredPairs);
+
 				if (possibleResults.isEmpty())
 				{
 					possibleResults.add(pickPairQSMLike(filteredPairs));// no pairs have been provided by the modified algorithm, hence using the default one.
@@ -1685,14 +1682,12 @@ public class PairQualityLearner
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				SampleData dataSample = new SampleData(null,null);
-				dataSample.difference = estimationOfDifferenceDiffMeasure(referenceGraph,actualAutomaton,config,1);//estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
 				if (learnUsingReferenceLearner)
 				{
+					dataSample.difference = estimateDifference(referenceGraph,actualAutomaton,testSet);
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					dataSample.differenceForReferenceLearner = 
-							// estimationOfDifferenceDiffMeasure(referenceGraph, outcomeOfReferenceLearner,config,1);
-						estimationOfDifferenceFmeasure(referenceGraph, outcomeOfReferenceLearner,testSet);
-					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber());
+					dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
 					/*
 					if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())
 					{
@@ -1715,7 +1710,14 @@ public class PairQualityLearner
 			timerToDetectLongRunningAutomata.cancel();
 			return outcome;
 		}
+
+		// Delegates to a specific estimator
+		double estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
+		{
+			return estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+		}
 	}
+	
 	
 	/** Given two graphs, estimates the difference between the two. 
 	 *
@@ -1763,11 +1765,11 @@ public class PairQualityLearner
 		final int trainingDataMultiplier = 30;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{1})
+		for(final int lengthMultiplier:new int[]{10})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				final int traceQuantity=5;
+				final int traceQuantity=1;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
@@ -1883,16 +1885,23 @@ public class PairQualityLearner
 					// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 					// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
 					
-					// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
+					//final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
 					classifier.buildClassifier(dataCollector.trainingData);
 					System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
 					System.out.println(classifier);
 					dataCollector=null;// throw all the training data away.
 					
+					{// serialise the classifier, this is the only way to store it.
+						OutputStream os = new FileOutputStream(selection+".ser");
+						ObjectOutputStream oo = new ObjectOutputStream(os); 
+	                    oo.writeObject(classifier);
+	                    os.close();
+					}
+                    
 					for(final boolean selectingRed:new boolean[]{false})
-					for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
+					for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 					//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-					for(final double threshold:new double[]{4.0})
+					for(final double threshold:new double[]{1.0})
 					{
 						final boolean zeroScoringAsRed = false;
 						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+

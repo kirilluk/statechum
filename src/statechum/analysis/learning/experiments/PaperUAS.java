@@ -690,12 +690,16 @@ public class PaperUAS
 	   return outcome;
    }
    	
-   public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph)
+   public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
    {
 	   for(CmpVertex vert:referenceGraph.transitionMatrix.keySet()) 
 		   if (!vert.isAccept())
 			   throw new IllegalArgumentException("test set generation should not be attempted on an automaton with reject-states");
-	   
+	   assert numberOfSeq > 0 && seqLength > 0;
+		RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),seqLength,referenceGraph.getInit());
+		pathGen.generateRandomPosNeg(numberOfSeq, 1, false, null, true,true,null,null);
+		return  pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);
+	   /*
 		Collection<List<Label>> evaluationTestSet = referenceGraph.wmethod.getFullTestSet(1);
 		
 		RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),5,referenceGraph.getInit());
@@ -707,11 +711,12 @@ public class PaperUAS
 		wPos = 0;
 		for(List<Label> seq:evaluationTestSet) if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
 		return evaluationTestSet;
+	    */
    }
    
    public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
    {
-	   final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph);
+	   final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph,-1,-1);
 	   
    		DrawGraphs gr = new DrawGraphs();
 		final RBoxPlot<String>

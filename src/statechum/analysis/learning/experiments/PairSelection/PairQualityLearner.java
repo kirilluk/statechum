@@ -1542,7 +1542,7 @@ public class PairQualityLearner
 			while(pickUniqueFromInitial && uniqueFromInitial == null);
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph);
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 			
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -1690,10 +1690,8 @@ public class PairQualityLearner
 				{
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.differenceForReferenceLearner = 
-						//estimationOfDifferenceFmeasure(
-							estimationOfDifferenceDiffMeasure(referenceGraph, outcomeOfReferenceLearner, 
-									config,1);
-									//testSet);
+							// estimationOfDifferenceDiffMeasure(referenceGraph, outcomeOfReferenceLearner,config,1);
+						estimationOfDifferenceFmeasure(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber());
 					/*
 					if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())

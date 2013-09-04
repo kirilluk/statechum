@@ -47,6 +47,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -65,12 +67,14 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -1680,7 +1684,6 @@ public class PairQualityLearner
 					}
 				if (rejectVertexID == null)
 					rejectVertexID = actualAutomaton.nextID(false);
-				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				SampleData dataSample = new SampleData(null,null);
 				if (learnUsingReferenceLearner)
 				{
@@ -1688,14 +1691,17 @@ public class PairQualityLearner
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
+					
+					//if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())
 					/*
-					if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())
 					{
 						GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 						DirectedSparseGraph gr = gd.showGD(
-								actualAutomaton,outcomeOfReferenceLearner,
+								actualAutomaton,referenceGraph,
 								ExperimentRunner.getCpuNumber());
-					}*/
+						Visualiser.updateFrame(gr, null);
+					}
+					*/
 				}
 				outcome.samples.add(dataSample);
 				if (sampleCollector != null)
@@ -1762,10 +1768,10 @@ public class PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final int trainingDataMultiplier = 30;
+		final int trainingDataMultiplier = 10;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{10})
+		for(final int lengthMultiplier:new int[]{1})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
@@ -1880,11 +1886,12 @@ public class PairQualityLearner
 					}
 					*/
 					// Run the evaluation
-					final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
-					classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
+					//final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
+					//classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
 					// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 					// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
-					
+					final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
+					final Classifier classifier = ib1;
 					//final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
 					classifier.buildClassifier(dataCollector.trainingData);
 					System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
@@ -1899,7 +1906,7 @@ public class PairQualityLearner
 					}
                     
 					for(final boolean selectingRed:new boolean[]{false})
-					for(final boolean classifierToBlockAllMergers:new boolean[]{true})
+					for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
 					//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
 					for(final double threshold:new double[]{1.0})
 					{
@@ -1991,6 +1998,5 @@ public class PairQualityLearner
 		 */
 		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
-		
 	}
 }

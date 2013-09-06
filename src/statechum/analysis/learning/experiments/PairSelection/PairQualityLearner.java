@@ -1661,7 +1661,7 @@ public class PairQualityLearner
 		@Override
 		public ThreadResult call() throws Exception 
 		{
-			final int alphabet = 2*states;
+			final int alphabet = states;
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
 			WekaDataCollector dataCollector = createDataCollector(ifDepth);
@@ -1923,7 +1923,7 @@ public class PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final double trainingDataMultiplier = 10;
+		final double trainingDataMultiplier = 30;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{1})
@@ -1934,7 +1934,7 @@ public class PairQualityLearner
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
-							";onlyPositives="+onlyPositives+";useUnique="+useUnique+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+							";onlyPositives="+onlyPositives+";useUnique="+useUnique+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
 			
 					WekaDataCollector dataCollector = createDataCollector(ifDepth);
 					List<SampleData> samples = new LinkedList<SampleData>();
@@ -2041,8 +2041,8 @@ public class PairQualityLearner
 					}
 					*/
 					// Run the evaluation
-					//final weka.classifiers.trees.REPTree classifier = new weka.classifiers.trees.REPTree();classifier.setMaxDepth(4);
-					//classifier.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
+					//final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
+					//repTree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
 					// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 					// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
 					final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
@@ -2066,8 +2066,8 @@ public class PairQualityLearner
 					for(final double threshold:new double[]{1})
 					{
 						final boolean zeroScoringAsRed = false;
-						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+
-								";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";useUnique="+useUnique+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+// ";useUnique="+useUnique+";onlyPositives="+onlyPositives+
+								";selectingRed="+selectingRed+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
 
 						final int totalTaskNumber = traceQuantity;
 						final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score"+selection+".pdf"));

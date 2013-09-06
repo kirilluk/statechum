@@ -98,9 +98,11 @@ import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguage;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
@@ -827,10 +829,10 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        double differenceF = PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
-		        double differenceD = PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
-		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
-				uas_F.add(frame+"_R",differenceF,"red");uas_Diff.add(frame+"_R",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
+		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
+		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
+				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
 				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
 				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -846,10 +848,10 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        double differenceF = PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
-		        double differenceD = PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
+		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
-				uas_F.add(frame+"_RM",differenceF,"red");uas_Diff.add(frame+"_RM",differenceD,"red");gr_diff_to_f.add(differenceF,differenceD);
+				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
 				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
 				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -947,7 +949,7 @@ public class PaperUAS
     * @param labelsToMergeFrom specific transitions may identify the states they lead from, we could use this to ensure that mergers are consistent with those expectations
     * @return difference between the learnt graph and the reference one.
     */
-   public double learnAndEstimateDifference(int ifDepth,LearnerGraph initPTA, LearnerGraph referenceGraph,Classifier c, final Collection<Label> labelsToMergeTo, final Collection<Label> labelsToMergeFrom)
+   public DifferenceToReference learnAndEstimateDifference(int ifDepth,LearnerGraph initPTA, LearnerGraph referenceGraph,Classifier c, final Collection<Label> labelsToMergeTo, final Collection<Label> labelsToMergeFrom)
    {
 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, null, referenceGraph, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 			try {
@@ -971,7 +973,7 @@ public class PaperUAS
 		}
        	LearnerGraph learntGraph = new LearnerGraph(learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
 
-       return PairQualityLearner.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
+       return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
    }
    
     public void runExperimentWithSmallAutomata(final int ifDepth, final String arffName, final LearnerGraph referenceGraph) throws IOException
@@ -1013,24 +1015,24 @@ public class PaperUAS
 						{
 							{
 					  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
-					  			double difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,c,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+					  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,c,Collections.<Label>emptyList(),Collections.<Label>emptyList());
 	
-						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference);
-								uas_S.add(frame+"C",difference);
+						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference.getValue());
+								uas_S.add(frame+"C",difference.getValue());
 							}
 		
 							{
 								final Collection<Label> labelsToMergeTo=Collections.emptyList(), labelsToMergeFrom=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter())});
 					  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
-					  			double difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,c,labelsToMergeTo,labelsToMergeFrom);
+					  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,c,labelsToMergeTo,labelsToMergeFrom);
 	
-						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference);
-								uas_S.add(frame+"CM",difference);								
+						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference.getValue());
+								uas_S.add(frame+"CM",difference.getValue());								
 							}
 						}
 			  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
-			  			double difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
-			  			uas_S.add(""+frame+"R",difference);
+			  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+			  			uas_S.add(""+frame+"R",difference.getValue());
 			  			synchronized(gr)
 			  			{
 			  				uas_S.drawInteractive(gr);

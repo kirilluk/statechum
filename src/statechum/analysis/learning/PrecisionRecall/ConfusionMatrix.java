@@ -12,6 +12,14 @@ public class ConfusionMatrix {
 		this.fn = fnArg;
 	}
 	
+	public ConfusionMatrix(ConfusionMatrix mat) {
+		super();
+		this.tp = mat.tp;
+		this.tn = mat.tn;
+		this.fp = mat.fp;
+		this.fn = mat.fn;
+	}
+
 	private static double divide(double a, double b)
 	{
 		assert !Double.isNaN(a);assert !Double.isNaN(b);

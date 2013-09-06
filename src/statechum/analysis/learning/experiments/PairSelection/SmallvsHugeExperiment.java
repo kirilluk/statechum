@@ -1,6 +1,5 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -11,8 +10,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,14 +20,12 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerRunner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguage;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -239,7 +234,7 @@ public class SmallvsHugeExperiment {
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
 				}
 				
-				double similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
+				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
 				System.out.println("similarity = "+similarityMeasure);
 			}
 
@@ -249,7 +244,7 @@ public class SmallvsHugeExperiment {
 					PaperUAS.computePTASize(selectionID+" no unique: ", pta, referenceGraph);
 				}
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				double similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
+				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
 				System.out.println("similarity = "+similarityMeasure);
 				System.out.println();
 				/*
@@ -267,7 +262,7 @@ public class SmallvsHugeExperiment {
 		return outcome;
 	}
 
-	public static double getMeasure(LearnerGraph actualAutomaton, LearnerGraph referenceGraph, final Collection<List<Label>> testSet)
+	public static DifferenceToReference getMeasure(LearnerGraph actualAutomaton, LearnerGraph referenceGraph, final Collection<List<Label>> testSet)
 	{
 		VertID rejectVertexID = null;
 		for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
@@ -279,7 +274,7 @@ public class SmallvsHugeExperiment {
 		if (rejectVertexID == null)
 			rejectVertexID = actualAutomaton.nextID(false);
 		actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-		return PairQualityLearner.estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
+		return DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
 	}
 	
 	public static void main(String []args)

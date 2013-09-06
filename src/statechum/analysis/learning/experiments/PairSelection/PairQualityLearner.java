@@ -47,8 +47,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Stack;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -67,14 +65,13 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
-import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -1222,13 +1219,87 @@ public class PairQualityLearner
 		}
 
 	} // uses a classifier in order to rank pairs.
+
+	/** Used to encapulate computation of a typical difference using different methods. */
+	public static interface DifferenceToReference
+	{
+		public double getValue();
+	}
+	
+	public static class DifferenceToReferenceLanguage extends ConfusionMatrix implements DifferenceToReference
+	{		
+		protected DifferenceToReferenceLanguage(int tpArg, int tnArg, int fpArg, int fnArg) 
+		{
+			super(tpArg, tnArg, fpArg, fnArg);
+		}
+		
+		protected DifferenceToReferenceLanguage(ConfusionMatrix mat) 
+		{
+			super(mat);
+		}
+
+		@Override
+		public double getValue()
+		{
+			return fMeasure();
+		}
+		
+		/** Given two graphs, estimates the difference between the two. 
+		 *
+		 * @param refenceGraph reference automaton
+		 * @param actualAutomaton the automaton to compare the reference with
+		 * @param testSet a test set to use for comparison, useful when language-based measures such as an f-measure are utulised.
+		 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
+		 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
+		 */
+		public static DifferenceToReferenceLanguage estimationOfDifferenceFmeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
+		{
+	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
+			return new DifferenceToReferenceLanguage(mat);
+		}
+	}
+	
+	public static class DifferenceToReferenceDiff implements DifferenceToReference
+	{
+		protected double valueA, valueB;
+		
+		protected DifferenceToReferenceDiff(double A, double B)
+		{
+			valueA=A;valueB=B;
+		}
+		
+		@Override
+		public double getValue()
+		{
+			return (valueA+valueB)/2;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return String.format("< %g, %g >",valueA,valueB);
+		}
+
+		public static DifferenceToReferenceDiff estimationOfDifferenceDiffMeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Configuration config, int cpuNumber)
+		{
+	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+			statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, learntGraph, null);
+			gd.computeGD(referenceGraph, learntGraph, cpuNumber,changesCounter,config);
+			
+			int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
+			//return (((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
+			return new DifferenceToReferenceDiff(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges,
+					(((double)actualEdges-changesCounter.getAdded())/actualEdges));
+		}
+	}
 	
 	/** The outcome of an experiment using a single FSM and a collection of walks represented as a PTA. */
-
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public double difference, differenceForReferenceLearner;
+		public DifferenceToReference difference, differenceForReferenceLearner;
 		
 		public SampleData(LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA)
 		{
@@ -1238,7 +1309,7 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return difference+"";
+			return difference.toString();
 		}
 	}
 	
@@ -1718,40 +1789,12 @@ public class PairQualityLearner
 		}
 
 		// Delegates to a specific estimator
-		double estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
+		DifferenceToReference estimateDifference(LearnerGraph reference, LearnerGraph actual,@SuppressWarnings("unused") Collection<List<Label>> testSet)
 		{
-			return estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
 		}
 	}
-	
-	
-	/** Given two graphs, estimates the difference between the two. 
-	 *
-	 * @param refenceGraph reference automaton
-	 * @param actualAutomaton the automaton to compare the reference with
-	 * @param testSet a test set to use for comparison, useful when language-based measures such as an f-measure are utulised.
-	 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
-	 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
-	 */
-	public static double estimationOfDifferenceFmeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
-	{
-       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-		return DiffExperiments.classify(testSet, referenceGraph, learntGraph).fMeasure();
-	}
-	
-	public static double estimationOfDifferenceDiffMeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Configuration config, int cpuNumber)
-	{
-       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-		statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-		statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, learntGraph, null);
-		gd.computeGD(referenceGraph, learntGraph, cpuNumber,changesCounter,config);
 		
-		int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
-		return
-				(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
-		
-	}
-
 	@SuppressWarnings("null")
 	public static void runExperiment() throws Exception
 	{
@@ -1764,18 +1807,18 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 10;
+		final int minStateNumber = 25;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final int trainingDataMultiplier = 10;
+		final double trainingDataMultiplier = 0.3;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{1})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				final int traceQuantity=1;
+				final int traceQuantity=20;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
@@ -1787,7 +1830,7 @@ public class PairQualityLearner
 					{
 						int numberOfTasks = 0;
 						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-							for(int sample=0;sample<samplesPerFSM*trainingDataMultiplier;++sample)
+							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 							{
 								LearnerRunner learnerRunner = new LearnerRunner(dataCollector,states,sample,1+numberOfTasks,traceQuantity, config, converter)
 								{
@@ -1906,7 +1949,7 @@ public class PairQualityLearner
 					}
                     
 					for(final boolean selectingRed:new boolean[]{false})
-					for(final boolean classifierToBlockAllMergers:new boolean[]{false,true})
+					for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 					//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
 					for(final double threshold:new double[]{1.0})
 					{
@@ -1954,12 +1997,12 @@ public class PairQualityLearner
 								if (gr_NewToOrig != null)
 								{
 									for(SampleData sample:result.samples)
-										gr_NewToOrig.add(sample.differenceForReferenceLearner,sample.difference);
+										gr_NewToOrig.add(sample.differenceForReferenceLearner.getValue(),sample.difference.getValue());
 								}
 								
 								for(SampleData sample:result.samples)
-									if (sample.differenceForReferenceLearner > 0)
-										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference/sample.differenceForReferenceLearner);
+									if (sample.differenceForReferenceLearner.getValue() > 0)
+										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference.getValue()/sample.differenceForReferenceLearner.getValue());
 								progress.next();
 							}
 							if (gr_PairQuality != null)

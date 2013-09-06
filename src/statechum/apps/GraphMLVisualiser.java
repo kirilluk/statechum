@@ -19,11 +19,18 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.apps;
 
 import java.io.IOException;
+import java.util.List;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 
 public class GraphMLVisualiser extends Visualiser {
 	
@@ -42,8 +49,16 @@ public class GraphMLVisualiser extends Visualiser {
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
 			AbstractPersistence.loadGraph(args[1], graph1,null);
+			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+			DirectedSparseGraph gr = gd.showGD(
+					graph0,graph1,
+					ExperimentRunner.getCpuNumber());
+			Visualiser.updateFrame(gr,null);
 		}
-		Visualiser.updateFrame(graph0, graph1);Visualiser.waitForKey();
+		else
+			Visualiser.updateFrame(graph0, null);
+		
+		Visualiser.waitForKey();
 	}
 	
 

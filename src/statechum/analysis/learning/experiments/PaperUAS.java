@@ -864,7 +864,7 @@ public class PaperUAS
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
   }
    	
-   
+   /*
    protected static void noveltyInCaseStudyExperiment(String [] args) throws IOException
    {
 		PaperUAS paper = new PaperUAS();
@@ -880,7 +880,7 @@ public class PaperUAS
        	Visualiser.updateFrame(referenceGraph, null);
        	Visualiser.waitForKey();
    }
-   
+   */
    /** Used to training a few different classifiers from a full PTA by comparing metrics on pairs considered by QSM and checking them against the reference solution. */ 
    protected Classifier []loadClassifierFromArff(String arffWithTrainingData)
    {
@@ -1455,8 +1455,8 @@ public class PaperUAS
 			//checkSmallPTA();
 			//checkDataConsistency();
 			//mainCheckMerging(args);
-	       //mainSingleHugeAutomaton(args);
-			noveltyInCaseStudyExperiment(args);
+	       mainSingleHugeAutomaton(args);
+			//noveltyInCaseStudyExperiment(args);
 			//mainSmallAutomata(args);
 	       /*
 			PaperUAS paper = new PaperUAS();

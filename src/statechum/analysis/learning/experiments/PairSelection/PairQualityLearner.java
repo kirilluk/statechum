@@ -448,6 +448,7 @@ public class PairQualityLearner
 		try
 		{
 			runExperiment();
+			//generateFSM();
 		}
 		catch(Exception ex)
 		{
@@ -1193,8 +1194,21 @@ public class PairQualityLearner
 					{
 						PairScore worstPair = getPairToBeLabelledRed(pairs,coregraph);
 						if (worstPair != null)
+						{
 							stateToLabelRed = worstPair.getQ();
-
+/*
+							long highestScore=-1;
+							for(PairScore p:pairs)
+								if (p.getScore() > highestScore) highestScore = p.getScore();
+							{
+								List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
+								List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
+								SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+								// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
+								System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
+							}
+							*/
+						}
 						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
@@ -1212,8 +1226,15 @@ public class PairQualityLearner
 					//System.out.println("no suitable pair was found");
 				}
 				PairScore result = possibleResults.iterator().next();
-
 				outcome.clear();outcome.push(result);
+/*
+				{
+					List<PairScore> correctPairs = new ArrayList<PairScore>(outcome.size()), wrongPairs = new ArrayList<PairScore>(outcome.size());
+					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, outcome, correctPairs, wrongPairs);
+					if (correctPairs.isEmpty())
+						System.out.println("wrong merge at "+result);
+				}
+				*/
 			}
 			return outcome;
 		}
@@ -1533,6 +1554,55 @@ public class PairQualityLearner
 		return number + 1;
 	}
 
+	public static class GenerateFSM implements Callable<ThreadResult>
+	{
+		protected final Configuration config;
+		protected final ConvertALabel converter;
+		protected final int states,sample;
+		protected boolean learnUsingReferenceLearner, onlyUsePositives, pickUniqueFromInitial;
+		protected final int seed;
+		protected int ifDepth = 0;
+		protected int lengthMultiplier = 1;
+		protected String selectionID;
+
+		/** Where a transition that can be uniquely identifying an initial state be used both for mergers and for building a partly-merged PTA. */
+		public void setPickUniqueFromInitial(boolean value)
+		{
+			pickUniqueFromInitial = value;
+		}
+		
+		public GenerateFSM(int argStates, int argSample, int argSeed, Configuration conf, ConvertALabel conv)
+		{
+			states = argStates;sample = argSample;config = conf;seed = argSeed;converter=conv;
+		}
+
+		@Override
+		public ThreadResult call() throws Exception 
+		{
+			final int alphabet = states;
+			LearnerGraph referenceGraph = null;
+			ThreadResult outcome = new ThreadResult();
+			Label uniqueFromInitial = null;
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			do
+			{
+				referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+				if (pickUniqueFromInitial)
+				{
+					Map<Label,CmpVertex> uniques = uniqueFromState(referenceGraph);
+					if(!uniques.isEmpty())
+					{
+						Entry<Label,CmpVertex> entry = uniques.entrySet().iterator().next();
+						referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();
+					}
+				}
+			}
+			while(pickUniqueFromInitial && uniqueFromInitial == null);
+			referenceGraph.storage.writeGraphML("randomfsm/connectedfsm_"+states+"_alphabet_"+alphabet+"_seed_"+seed);
+			return null;
+		}		
+	}
+	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -1762,8 +1832,8 @@ public class PairQualityLearner
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
-					
-					//if (actualAutomaton.getStateNumber() > 2*outcomeOfReferenceLearner.getStateNumber())
+					actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");
+					referenceGraph.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-reference.xml");
 					/*
 					{
 						GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
@@ -1795,6 +1865,48 @@ public class PairQualityLearner
 		}
 	}
 		
+	public static void generateFSM() throws Exception
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+		ConvertALabel converter = new Transform.InternStringLabel();
+		//gr_NewToOrig.setLimit(7000);
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
+		final int ThreadNumber = ExperimentRunner.getCpuNumber();
+		
+		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
+		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
+		final int minStateNumber = 10;
+		final int maxStateNumber = 200;
+		final int samplesPerFSM=100;
+		try
+		{
+			int numberOfTasks = 0;
+			for(int states=minStateNumber;states < maxStateNumber;states<<=1)
+				for(int sample=0;sample<samplesPerFSM;++sample)
+				{
+					GenerateFSM learnerRunner = new GenerateFSM(states,sample,1+numberOfTasks, config, converter);
+					learnerRunner.setPickUniqueFromInitial(false);
+					runner.submit(learnerRunner);
+					++numberOfTasks;
+				}
+			ProgressIndicator progress = new ProgressIndicator("running "+numberOfTasks+" tasks", numberOfTasks);
+			for(int count=0;count < numberOfTasks;++count)
+			{
+				runner.take().get();// this will throw an exception if any of the tasks failed.
+				progress.next();
+			}
+		}
+		catch(Exception ex)
+		{
+			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+			if (executorService != null) { executorService.shutdown();executorService = null; }
+			throw e;
+		}
+
+		
+	}
+	
 	@SuppressWarnings("null")
 	public static void runExperiment() throws Exception
 	{
@@ -1807,18 +1919,18 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 25;
+		final int minStateNumber = 10;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final double trainingDataMultiplier = 0.3;
+		final double trainingDataMultiplier = 10;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{1})
 		for(final int ifDepth:new int []{0})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				final int traceQuantity=20;
+				final int traceQuantity=5;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
@@ -1951,7 +2063,7 @@ public class PairQualityLearner
 					for(final boolean selectingRed:new boolean[]{false})
 					for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 					//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-					for(final double threshold:new double[]{1.0})
+					for(final double threshold:new double[]{1})
 					{
 						final boolean zeroScoringAsRed = false;
 						selection = "TRUNK;EVALUATION;"+"ifDepth="+ifDepth+";threshold="+threshold+
@@ -2029,17 +2141,6 @@ public class PairQualityLearner
 					}
 				}
 			}
-		/*
-		for(SampleData sample:samples)
-		{// try learning the same machine a few times
-			
-			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);
-			LearnerThatUsesWekaResults evaluator = new LearnerThatUsesWekaResults(null,learnerEval,sample.referenceGraph,classifier,sample.initialPTA,gr_PairQuality,sample.toString());
-			LearnerGraph actualAutomaton = evaluator.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-			gr_NewToOrig.add(sample.difference,estimationOfDifference(sample.referenceGraph, actualAutomaton, config, ExperimentRunner.getCpuNumber()));
-		}
-		 */
-		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}
 }

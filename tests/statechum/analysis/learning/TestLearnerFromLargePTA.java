@@ -229,7 +229,7 @@ Total time: 20492 sec
 
 						@SuppressWarnings("unused")
 						@Override
-						public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) {
+						public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) {
 							return null;// do not resolve in any way
 						}});
 					

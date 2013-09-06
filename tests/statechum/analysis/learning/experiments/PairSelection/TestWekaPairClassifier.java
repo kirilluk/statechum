@@ -1803,7 +1803,7 @@ public class TestWekaPairClassifier {
 				
 				@SuppressWarnings("unused")
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) 
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					Assert.assertNotNull(redChosen);// ensure that selectRedNode was called.
 					Set<PairScore> copyOfPairs = new TreeSet<PairScore>(pairs);
@@ -1855,7 +1855,7 @@ public class TestWekaPairClassifier {
 	
 				@SuppressWarnings("unused")
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) {
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) {
 					return null;
 				}
 			});

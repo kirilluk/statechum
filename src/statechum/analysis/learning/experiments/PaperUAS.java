@@ -895,7 +895,7 @@ public class PaperUAS
 		weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
 		weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 		weka.classifiers.functions.MultilayerPerceptron perceptron = new weka.classifiers.functions.MultilayerPerceptron();
-		Classifier []outcome = new Classifier[]{tree};//tree};//,tree48,ibk};//,perceptron};
+		Classifier []outcome = new Classifier[]{ib1};//tree};//,tree48,ibk};//,perceptron};
 		for(Classifier c:outcome) trainClassifierFromArff(c,arffWithTrainingData);
 		return outcome;
    }
@@ -1029,10 +1029,25 @@ public class PaperUAS
 						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference.getValue());
 								uas_S.add(frame+"CM",difference.getValue());								
 							}
+
+							{
+								final Collection<Label> labelsToMergeTo=Collections.emptyList(), labelsToMergeFrom=Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter())});
+					  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
+
+								List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(1000000);
+								List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(initPTA,labelsToMergeTo,labelsToMergeFrom);
+								int mergeScore = initPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+								assert mergeScore >= 0:"initial PTA is inconsistent with the expectation that transitions lead to an initial state";
+					  			initPTA = MergeStates.mergeCollectionOfVertices(initPTA, null, verticesToMerge);verticesToMerge = null;
+					  			initPTA.pathroutines.updateDepthLabelling();
+					  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
+						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference.getValue());
+								uas_S.add(frame+"T",difference.getValue());								
+							}
 						}
 			  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
 			  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
-			  			uas_S.add(""+frame+"R",difference.getValue());
+			  			uas_S.add(frame+"R",difference.getValue());
 			  			synchronized(gr)
 			  			{
 			  				uas_S.drawInteractive(gr);
@@ -1401,6 +1416,7 @@ public class PaperUAS
         final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
+        learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.GENERAL);
         paper.loadReducedConfigurationFile(args[0]);
         
 		final int offset=1;
@@ -1438,8 +1454,8 @@ public class PaperUAS
  		if (different != null)
  			throw different;
 		 */
-        final int ifDepth = 1;
-    	//paper.writeArff(ifDepth, referenceGraph,arffName);
+        final int ifDepth = 0;
+    	paper.writeArff(ifDepth, referenceGraph,arffName);
     	paper.runExperimentWithSmallAutomata(ifDepth, arffName,referenceGraph);
     			//Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", paper.learnerInitConfiguration.config,paper.learnerInitConfiguration.getLabelConverter())}));
 	}
@@ -1455,9 +1471,9 @@ public class PaperUAS
 			//checkSmallPTA();
 			//checkDataConsistency();
 			//mainCheckMerging(args);
-	       mainSingleHugeAutomaton(args);
+	        //mainSingleHugeAutomaton(args);
 			//noveltyInCaseStudyExperiment(args);
-			//mainSmallAutomata(args);
+			mainSmallAutomata(args);
 	       /*
 			PaperUAS paper = new PaperUAS();
 			paper.learnerInitConfiguration.setLabelConverter(new Transform.InternStringLabel());

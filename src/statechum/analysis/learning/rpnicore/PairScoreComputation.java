@@ -78,7 +78,7 @@ public class PairScoreComputation {
 		 * and hence at least one of them should be considered red. This method is called whenever there are any red-blue pairs available in order to check whether such a problem actually occurred.
 		 * Since the idea is to return a state to colour red, the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
 		 */
-		CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs);
+		CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs);
 	}
 	
 	public Stack<PairScore> chooseStatePairs(RedNodeSelectionProcedure decisionProcedure)

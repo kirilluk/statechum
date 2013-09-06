@@ -67,7 +67,6 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
@@ -656,7 +655,7 @@ public class PairQualityLearner
 		 * @param pairs pairs to merge
 		 * @return the outcome of merging.
 		 */
-		public List<PairScore> filterPairsBasedOnMandatoryMerge(Stack<PairScore> pairs, LearnerGraph tentativeGraph)
+		public List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
 			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
@@ -670,7 +669,6 @@ public class PairQualityLearner
 						tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) >= 0 // the pair does not contradict mandatory merge.
 				)
 				outcome.add(p);
-			assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
 			return outcome;
 		}
 		
@@ -764,7 +762,7 @@ public class PairQualityLearner
 
 				@SuppressWarnings("unused")
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) 
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					return null;
 				}});
@@ -814,7 +812,7 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<PairScore> pairs) 
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					dataCollector.updateDatasetWithPairs(pairs, coregraph, referenceGraph);
 					CmpVertex red = LearnerThatUpdatesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
@@ -826,6 +824,7 @@ public class PairQualityLearner
 			{
 				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
+				assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
 				PairScore chosenPair = pickCorrectPair(filteredPairs, graph);
 				outcome.clear();outcome.push(chosenPair);
 			}
@@ -1187,35 +1186,41 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<PairScore> pairs) 
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					CmpVertex stateToLabelRed = null;
-					if (classifierToChooseWhereNoMergeIsAppropriate)
-					{
-						PairScore worstPair = getPairToBeLabelledRed(pairs,coregraph);
-						if (worstPair != null)
+					List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(pairs,graph);
+					if (filteredPairs.isEmpty())
+						stateToLabelRed = pairs.get(0).getQ();// if mandatory merge rules out all mergers, return any of the states to be marked red
+					else
+						if (classifierToChooseWhereNoMergeIsAppropriate)
 						{
-							stateToLabelRed = worstPair.getQ();
-/*
-							long highestScore=-1;
-							for(PairScore p:pairs)
-								if (p.getScore() > highestScore) highestScore = p.getScore();
+							PairScore worstPair = getPairToBeLabelledRed(filteredPairs,coregraph);
+							if (worstPair != null)
 							{
-								List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
-								List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
-								SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
-								// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
-								System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
+								stateToLabelRed = worstPair.getQ();
+	/*
+								long highestScore=-1;
+								for(PairScore p:pairs)
+									if (p.getScore() > highestScore) highestScore = p.getScore();
+								{
+									List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
+									List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
+									SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+									// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
+									System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
+								}
+								*/
 							}
-							*/
+							//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 						}
-						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
-					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
 				}});
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
+				assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
+
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
 				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
 				updateStatistics(pairQuality, graph,referenceGraph, filteredPairs);
@@ -1684,7 +1689,7 @@ public class PairQualityLearner
 			while(pickUniqueFromInitial && uniqueFromInitial == null);
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
+			final Collection<List<Label>> testSet = null;//PaperUAS.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 			
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -1919,11 +1924,11 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 10;
+		final int minStateNumber = 25;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final double trainingDataMultiplier = 30;
+		final double trainingDataMultiplier = 2;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{1})

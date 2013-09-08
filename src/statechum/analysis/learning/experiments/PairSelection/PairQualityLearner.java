@@ -702,14 +702,14 @@ public class PairQualityLearner
 			
 			return stateToMarkRed;
 		}
-
+/*
 		@Override
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 		{// fast merger
 			LearnerGraph outcome = MergeStates.mergeAndDeterminize(original, pair);outcome.pathroutines.updateDepthLabelling();
 			return outcome;
 		}
-		
+		*/
 
 		@Override 
 		public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 

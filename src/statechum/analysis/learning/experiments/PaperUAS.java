@@ -66,6 +66,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.AbstractOracle;
@@ -79,6 +81,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -106,6 +109,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
@@ -972,7 +976,13 @@ public class PaperUAS
 			actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
 		}
        	LearnerGraph learntGraph = new LearnerGraph(learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-
+       /*System.out.println("state number: "+referenceGraph.getStateNumber()+" for reference and "+learntGraph.getStateNumber()+" for the actual one");
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		DirectedSparseGraph gr = gd.showGD(
+					learntGraph,referenceGraph,
+					ExperimentRunner.getCpuNumber());
+			Visualiser.updateFrame(gr,null);
+			Visualiser.waitForKey();*/
        return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
    }
    
@@ -1041,7 +1051,7 @@ public class PaperUAS
 					  			initPTA = MergeStates.mergeCollectionOfVertices(initPTA, null, verticesToMerge);verticesToMerge = null;
 					  			initPTA.pathroutines.updateDepthLabelling();
 					  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
-						        uas_outcome.add(new Pair<Integer,String>(frame,"S"),difference.getValue());
+						        uas_outcome.add(new Pair<Integer,String>(frame,"T"),difference.getValue());
 								uas_S.add(frame+"T",difference.getValue());								
 							}
 						}

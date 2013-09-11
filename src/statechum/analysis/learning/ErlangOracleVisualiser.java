@@ -99,6 +99,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 							return new ErlangLabel(null, lbl.callName.replace(moduleName, ""), lbl.input, lbl.expectedOutput);
 						}
 					}));
+	        		grNew.setName(grOrig.getNameNotNull()+"-nomodule");
 	        		updateFrameWithPos(grNew, strippedFrameNumber++);
 	        		
 				} catch (IOException e1) {

@@ -155,6 +155,16 @@ public class PairQualityLearner
 				return -1;
 		return 0;
 	}
+	
+	public static int sgn(double value)
+	{
+		if (value>0)
+			return 1;
+		else
+			if (value < 0)
+				return -1;
+		return 0;
+	}
 
 	/** Given a graph and a collection of pairs, this one uses the correct graph to split the collection into "correct" pairs that correspond to the same state in the correct graph and "wrong" pairs which states
 	 * are not merged in the correct graph.
@@ -1099,7 +1109,7 @@ public class PairQualityLearner
 		}
 
 		/** Used to select the best red node based on what the subsequent collection of pairs will be. */
-		public static CmpVertex selectRedNodeUsingWeka(LearnerGraph coregraph, Collection<CmpVertex> tentativeRedNodes, CollectionOfPairsEstimator pairQualityEstimator) 
+		public static CmpVertex selectRedNodeUsingQualityEstimator(LearnerGraph coregraph, Collection<CmpVertex> tentativeRedNodes, CollectionOfPairsEstimator pairQualityEstimator) 
 		{
 			CmpVertex redVertex = null;double bestScore=-1;
 			
@@ -1341,16 +1351,7 @@ public class PairQualityLearner
 	
 	public static class ThreadResult 
 	{
-		public List<SampleData> samples = new LinkedList<SampleData>();;
-		//public Instances instances;
-		/*
-		public void addAllInstancesTo(Instances whereToAdd)
-		{
-			@SuppressWarnings("unchecked")
-			Enumeration<Instance> instancesEnum = instances.enumerateInstances();
-			while(instancesEnum.hasMoreElements())
-				whereToAdd.add(instancesEnum.nextElement());
-		}*/
+		public List<SampleData> samples = new LinkedList<SampleData>();
 	}
 	
 	/** Looks for a labels each of which is only used on transitions entering a specific state.
@@ -1837,8 +1838,8 @@ public class PairQualityLearner
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
-					actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");
-					referenceGraph.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-reference.xml");
+					//actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");
+					//referenceGraph.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-reference.xml");
 					/*
 					{
 						GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();

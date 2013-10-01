@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?><gml:graphml xmlns:gml="http://graphml.graphdrawing.org/xmlns/graphml"><graph edgedefault="directed" xmlns="gml">
-<node COLOUR="RED" DEPTH="0" VERTEX="Initial P1000" id="P1000"/>
-<node ACCEPTED="false" COLOUR="RED" DEPTH="2" VERTEX="N4351" id="N4351"/>
-<node COLOUR="RED" DEPTH="1" VERTEX="P1001" id="P1001"/>
-<node COLOUR="RED" DEPTH="2" VERTEX="P1002" id="P1002"/>
-<node COLOUR="RED" DEPTH="5" VERTEX="P20733" id="P20733"/>
+<node COLOUR="RED" DEPTH="0" ORIGSTATE="P1000" VERTEX="Initial P1000" id="P1000"/>
+<node ACCEPTED="false" COLOUR="RED" DEPTH="2" ORIGSTATE="N4351" VERTEX="N4351" id="N4351"/>
+<node COLOUR="RED" DEPTH="1" ORIGSTATE="P1001" VERTEX="P1001" id="P1001"/>
+<node COLOUR="RED" DEPTH="2" ORIGSTATE="P1002" VERTEX="P1002" id="P1002"/>
+<node COLOUR="RED" DEPTH="3" ORIGSTATE="P14345" VERTEX="P14345" id="P14345"/>
 <edge EDGE="Waypoint_Selected" directed="true" source="P1000" target="P1001"/>
 <edge EDGE="Calculating_Waypoint" directed="true" source="P1000" target="P1002"/>
 <edge EDGE="No_Avoidance_Data_Found" directed="true" source="P1000" target="N4351"/>
 <edge EDGE="Old_Avoidance_Data_Removed" directed="true" source="P1000" target="N4351"/>
 <edge EDGE="Fire_Observed" directed="true" source="P1000" target="P1001"/>
-<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P1000" target="P20733"/>
+<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P1000" target="P14345"/>
 <edge EDGE="Receiving_Broadcast" directed="true" source="P1000" target="P1002"/>
 <edge EDGE="Merging_Broadcasted_Data" directed="true" source="P1000" target="N4351"/>
 <edge EDGE="Avoidance_Measures_Taken" directed="true" source="P1000" target="N4351"/>
-<edge EDGE="Data_Deprecates_Waypoint" directed="true" source="P1000" target="P20733"/>
+<edge EDGE="Data_Deprecates_Waypoint" directed="true" source="P1000" target="P14345"/>
 <edge EDGE="Waypoint_Selected" directed="true" source="P1001" target="N4351"/>
 <edge EDGE="Calculating_Waypoint" directed="true" source="P1001" target="P1002"/>
 <edge EDGE="Fire_Observed" directed="true" source="P1001" target="P1001"/>
-<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P1001" target="P20733"/>
+<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P1001" target="P14345"/>
 <edge EDGE="Receiving_Broadcast" directed="true" source="P1001" target="P1002"/>
 <edge EDGE="Broadcast_Distance_Far" directed="true" source="P1001" target="N4351"/>
 <edge EDGE="Broadcast_Distance_Near" directed="true" source="P1001" target="N4351"/>
 <edge EDGE="Broadcast_Distance_Average" directed="true" source="P1001" target="N4351"/>
 <edge EDGE="Merging_Broadcasted_Data" directed="true" source="P1001" target="P1000"/>
-<edge EDGE="Precalculating_Avoidance" directed="true" source="P1001" target="P20733"/>
+<edge EDGE="Precalculating_Avoidance" directed="true" source="P1001" target="P1002"/>
 <edge EDGE="Waypoint_Selected" directed="true" source="P1002" target="N4351"/>
 <edge EDGE="Calculating_Waypoint" directed="true" source="P1002" target="N4351"/>
 <edge EDGE="No_Avoidance_Data_Found" directed="true" source="P1002" target="P1000"/>
@@ -32,12 +32,12 @@
 <edge EDGE="Broadcast_Distance_Far" directed="true" source="P1002" target="P1001"/>
 <edge EDGE="Broadcast_Distance_Near" directed="true" source="P1002" target="P1001"/>
 <edge EDGE="Broadcast_Distance_Average" directed="true" source="P1002" target="P1001"/>
+<edge EDGE="Merging_Broadcasted_Data" directed="true" source="P1002" target="P1000"/>
+<edge EDGE="Precalculating_Avoidance" directed="true" source="P1002" target="N4351"/>
 <edge EDGE="Avoidance_Measures_Taken" directed="true" source="P1002" target="P1000"/>
-<edge EDGE="Calculating_Waypoint" directed="true" source="P20733" target="P1002"/>
-<edge EDGE="Fire_Observed" directed="true" source="P20733" target="P1001"/>
-<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P20733" target="N4351"/>
-<edge EDGE="Receiving_Broadcast" directed="true" source="P20733" target="P1002"/>
-<edge EDGE="Merging_Broadcasted_Data" directed="true" source="P20733" target="P1000"/>
-<edge EDGE="Precalculating_Avoidance" directed="true" source="P20733" target="N4351"/>
-<edge EDGE="Data_Deprecates_Waypoint" directed="true" source="P20733" target="N4351"/>
+<edge EDGE="Calculating_Waypoint" directed="true" source="P14345" target="P1002"/>
+<edge EDGE="Fire_Observed" directed="true" source="P14345" target="P1001"/>
+<edge EDGE="Fire_Knowledge_Updated" directed="true" source="P14345" target="N4351"/>
+<edge EDGE="Receiving_Broadcast" directed="true" source="P14345" target="P1002"/>
+<edge EDGE="Data_Deprecates_Waypoint" directed="true" source="P14345" target="N4351"/>
 </graph></gml:graphml>

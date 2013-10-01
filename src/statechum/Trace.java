@@ -73,7 +73,7 @@ public class Trace implements Comparable<Trace> {
      */
     @Override
 	public int compareTo(Trace o) {
-    	// TODO: should not be done with toString()
+    	// FIXME: should not be done with toString()
         return this.toString().compareTo(o.toString());
     }
 
@@ -107,20 +107,6 @@ public class Trace implements Comparable<Trace> {
         return result;
     }
 
-    public boolean equals(Trace tr) {
-        Iterator<Label> it = trace.iterator();
-        Iterator<Label> tit = tr.iterator();
-        while (it.hasNext()) {
-            if (!tit.hasNext()) {
-                return false;
-            } else {
-                if (!(it.next().equals(tit.next()))) {
-                    return false;
-                }
-            }
-        }
-        return !tit.hasNext();
-    }
     protected static String wildcard = "'*'";
 
     public static boolean matchWithWildcard(Trace x, Trace y) {
@@ -206,4 +192,29 @@ public class Trace implements Comparable<Trace> {
         }
         return true;
     }
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (negative ? 1231 : 1237);
+		result = prime * result + ((trace == null) ? 0 : trace.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Trace other = (Trace) obj;
+		if (negative != other.negative)
+			return false;
+		if (!trace.equals(other.trace))
+			return false;
+		return true;
+	}
 }

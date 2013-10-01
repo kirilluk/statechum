@@ -31,7 +31,7 @@ import statechum.Pair;
 public class PairScore extends StatePair
 {
 	private final long score, compatibilityScore;
-
+	
 	public PairScore(CmpVertex q, CmpVertex r, long sc, long compat) {
 		super(q, r);
 		score = sc;compatibilityScore = compat;
@@ -159,6 +159,8 @@ public class PairScore extends StatePair
 		PairScore pB = (PairScore)b;
 		if (score != pB.score)
 			return score < pB.score? -1:1;
+		if (compatibilityScore != pB.compatibilityScore)
+			return compatibilityScore < pB.compatibilityScore? -1:1;
 
 		return super.compareTo(pB);
 	}
@@ -175,6 +177,8 @@ public class PairScore extends StatePair
 			return false;
 		final PairScore other = (PairScore) obj;
 		if (score != other.score)
+			return false;
+		if (compatibilityScore != other.compatibilityScore)
 			return false;
 		if (!super.equals(obj))
 			return false;

@@ -497,8 +497,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
-		if (transitionMatrix.containsKey(newVertex))
-			transitionMatrix.containsKey(newVertex);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
 		transitionMatrix.put(newVertex, createNewRow());

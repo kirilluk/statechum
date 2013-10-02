@@ -1134,7 +1134,7 @@ public class PairQualityLearner
 		}
 
 		/** Used to select the best red node based on what the subsequent collection of pairs will be. */
-		public static CmpVertex selectRedNodeUsingNumberOfNewRedStates(LearnerGraph coregraph, Collection<CmpVertex> tentativeRedNodes, @SuppressWarnings("unused") CollectionOfPairsEstimator pairQualityEstimator) 
+		public static CmpVertex selectRedNodeUsingNumberOfNewRedStates(LearnerGraph coregraph, Collection<CmpVertex> tentativeRedNodes) 
 		{
 			CmpVertex redVertex = null;double bestScore=-1;
 			
@@ -1188,7 +1188,7 @@ public class PairQualityLearner
 				{
 					CmpVertex redVertex = null;
 					if (useClassifierToChooseNextRed) 
-						redVertex = LearnerThatUsesWekaResults.selectRedNodeUsingNumberOfNewRedStates(coregraph, tentativeRedNodes, redStateEstimator);
+						redVertex = LearnerThatUsesWekaResults.selectRedNodeUsingNumberOfNewRedStates(coregraph, tentativeRedNodes);
 					else 
 						redVertex = tentativeRedNodes.iterator().next();
 					
@@ -1559,55 +1559,6 @@ public class PairQualityLearner
 			return number;
 		return number + 1;
 	}
-
-	public static class GenerateFSM implements Callable<ThreadResult>
-	{
-		protected final Configuration config;
-		protected final ConvertALabel converter;
-		protected final int states,sample;
-		protected boolean learnUsingReferenceLearner, onlyUsePositives, pickUniqueFromInitial;
-		protected final int seed;
-		protected int ifDepth = 0;
-		protected int lengthMultiplier = 1;
-		protected String selectionID;
-
-		/** Where a transition that can be uniquely identifying an initial state be used both for mergers and for building a partly-merged PTA. */
-		public void setPickUniqueFromInitial(boolean value)
-		{
-			pickUniqueFromInitial = value;
-		}
-		
-		public GenerateFSM(int argStates, int argSample, int argSeed, Configuration conf, ConvertALabel conv)
-		{
-			states = argStates;sample = argSample;config = conf;seed = argSeed;converter=conv;
-		}
-
-		@Override
-		public ThreadResult call() throws Exception 
-		{
-			final int alphabet = states;
-			LearnerGraph referenceGraph = null;
-			ThreadResult outcome = new ThreadResult();
-			Label uniqueFromInitial = null;
-			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			do
-			{
-				referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				if (pickUniqueFromInitial)
-				{
-					Map<Label,CmpVertex> uniques = uniqueFromState(referenceGraph);
-					if(!uniques.isEmpty())
-					{
-						Entry<Label,CmpVertex> entry = uniques.entrySet().iterator().next();
-						referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();
-					}
-				}
-			}
-			while(pickUniqueFromInitial && uniqueFromInitial == null);
-			referenceGraph.storage.writeGraphML("randomfsm/connectedfsm_"+states+"_alphabet_"+alphabet+"_seed_"+seed);
-			return null;
-		}		
-	}
 	
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{
@@ -1869,48 +1820,6 @@ public class PairQualityLearner
 		{
 			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
 		}
-	}
-		
-	public static void generateFSM() throws Exception
-	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
-		ConvertALabel converter = new Transform.InternStringLabel();
-		//gr_NewToOrig.setLimit(7000);
-		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();
-		
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		final int minStateNumber = 10;
-		final int maxStateNumber = 200;
-		final int samplesPerFSM=100;
-		try
-		{
-			int numberOfTasks = 0;
-			for(int states=minStateNumber;states < maxStateNumber;states<<=1)
-				for(int sample=0;sample<samplesPerFSM;++sample)
-				{
-					GenerateFSM learnerRunner = new GenerateFSM(states,sample,1+numberOfTasks, config, converter);
-					learnerRunner.setPickUniqueFromInitial(false);
-					runner.submit(learnerRunner);
-					++numberOfTasks;
-				}
-			ProgressIndicator progress = new ProgressIndicator("running "+numberOfTasks+" tasks", numberOfTasks);
-			for(int count=0;count < numberOfTasks;++count)
-			{
-				runner.take().get();// this will throw an exception if any of the tasks failed.
-				progress.next();
-			}
-		}
-		catch(Exception ex)
-		{
-			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-			if (executorService != null) { executorService.shutdown();executorService = null; }
-			throw e;
-		}
-
-		
 	}
 	
 	@SuppressWarnings("null")

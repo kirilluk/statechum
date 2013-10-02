@@ -38,7 +38,6 @@ import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Trace;
-import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -48,7 +47,20 @@ import statechum.model.testset.PTASequenceSetAutomaton;
 
 public class MarkovUniversalLearner
 {
-	public static  class UpdatablePairDouble 
+	private Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
+	private Map<Trace, UpdatablePairDouble> MarkovMatrix =  new HashMap<Trace,UpdatablePairDouble>();
+	private final int chunk_Length;
+    private LearnerGraph Extension_Graph;
+
+    public MarkovUniversalLearner(int chunkLen)
+    {
+    	if (chunkLen < 2)
+    		throw new IllegalArgumentException("chunkLen should be at least 2");
+    	chunk_Length = chunkLen;
+    }
+    
+    
+    public static  class UpdatablePairDouble 
 	{
 		public double firstElem, secondElem;
 		public UpdatablePairDouble(double a, double b) {
@@ -69,6 +81,12 @@ public class MarkovUniversalLearner
 		{
 			return accept?firstElem:secondElem;
 		}
+		
+		@Override
+		public String toString()
+		{
+			return "(pos: "+firstElem+", neg: "+secondElem+")";
+		}
 	}
 	public static  class UpdatablePairInteger
 	{
@@ -87,33 +105,43 @@ public class MarkovUniversalLearner
 			add(d.firstElem,d.secondElem);return this;
 		}
 		
-		
+		@Override
+		public String toString()
+		{
+			return "(pos: "+firstElem+", neg: "+secondElem+")";
+		}		
 	}
-	final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(null);
-    public LearnerEvaluationConfiguration learnerEvaluatorConfig = new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null); 
-	public Configuration configuration = Configuration.getDefaultConfiguration().copy();
-	private Map<Trace, UpdatablePairInteger> occurrence_matrix =  new HashMap<Trace,UpdatablePairInteger>();
-	private Map<Trace, UpdatablePairDouble> MarkovMatrix =  new HashMap<Trace,UpdatablePairDouble>();
-	private int chunk_Length=2;
-    private LearnerGraph Extension_Graph;
 	
-	/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-	private Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=new HashMap<CmpVertex,Map<Label,UpdatablePairDouble>>();
-	/** Maps states to a function associating labels to a sum of probabilities from a Markov matrix. Such a sum is supposed to predict the likelyhood of a transition with this label from every state. */
-	private Map<CmpVertex,Map<Label,UpdatablePairInteger>> state_outgoing_occurence=new HashMap<CmpVertex,Map<Label,UpdatablePairInteger>>();
-
-	private Map<Trace,Boolean> visited_seq_events = new HashMap<Trace,Boolean>();
+	public static final UpdatablePairDouble zero = new UpdatablePairDouble(0, 0);
 	
-	public  Map<Trace, UpdatablePairDouble> CreatingMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg, Set<Label> alphabets)
+	/** Constructs the tables used by the learner, from positive and negative traces.
+	 */
+	public  Map<Trace, UpdatablePairDouble> createMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg)
 	{
-		// initialize the occurrence matrix with all alphabets
+		// initialize the occurrence matrix with all elements of the alphabet
+		int traceLength = 0;
+		Set<Label> alphabet = new HashSet<Label>();
+		for(List<Label> p:pos) 
+		{ 
+			for(Label l:p) alphabet.add(l);
+			traceLength+=p.size();
+		}
+		for(List<Label> n:neg)
+		{
+			for(Label l:n) alphabet.add(l);
+			traceLength+=n.size();
+		}
+		
+		if (traceLength == 0)
+			throw new IllegalArgumentException("empty trace data");
+		
 		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTASequenceEngine.SequenceSet allPathsOfLengthi = engine.new SequenceSet();allPathsOfLengthi.setIdentity(); 
 		for(int i=0;i<chunk_Length;++i)
 		{
-			allPathsOfLengthi=allPathsOfLengthi.crossWithSet(alphabets);
+			allPathsOfLengthi=allPathsOfLengthi.crossWithSet(alphabet);
 			for(List<Label> seq:engine.getData())
-				occurrence_matrix.put(new Trace(seq), new UpdatablePairInteger(0,0));
+				occurrenceMatrix.put(new Trace(seq), new UpdatablePairInteger(0,0));
 		}
 		// going through all positive traces
 		//and partitioning each positive traces into a list of events ( a list of labels based on the chunk length)
@@ -123,13 +151,8 @@ public class MarkovUniversalLearner
 			for(int i=0;i<chunk_Length;i++)
 			{
 				List<Trace> List_traces=get_chunks(current_positive_trace,i+1);
-				for (int j=0; j< List_traces.size();j++)
-				{
-					Trace trace_to_markov=List_traces.get(j);
-					initialization(trace_to_markov,true);
-					if(trace_to_markov.size()==chunk_Length)
-						visited_seq_events.put(trace_to_markov, true);
-				}
+				for (Trace tracePos:List_traces)
+					initialization(tracePos,true);
 			}
 		}
 		
@@ -140,41 +163,37 @@ public class MarkovUniversalLearner
 			{
 				Trace trace=new Trace(negative_trace);
 				List<Trace> List_traces=get_chunks(trace,i+1);
-				for (int j=0;j< List_traces.size()-1;j++)
+				int chunkNumber = List_traces.size();
+				if (chunkNumber >= 1)
 				{
-					Trace trace_to_markov=List_traces.get(j);
-					if(occurrence_matrix.get(trace_to_markov)==null)
-					{
-						initialization(trace_to_markov,true);
-						visited_seq_events.put(trace_to_markov, false);
-					}
+					Trace traceNeg=List_traces.get(chunkNumber-1);
+					initialization(traceNeg,false);
+					for (Trace tracePos:List_traces)
+						if (tracePos != traceNeg)
+							initialization(tracePos,true);
 				}
-				Trace trace_to_markov=List_traces.get(List_traces.size()-1);
-				// the occurrence of the last chunk is decrement by one
-				//if(trace_to_markov.size() > 1)
-				initialization(trace_to_markov,false);
-				if(trace_to_markov.size()==chunk_Length)
-					visited_seq_events.put(trace_to_markov, false);
 			}
 		}
 
-		Trace pretrace=null;
 		Trace trace_to_account_its_probability=null;
-		for (Entry<Trace, UpdatablePairInteger> e : occurrence_matrix.entrySet())
+		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrix.entrySet())
 		{
 			trace_to_account_its_probability=e.getKey();
-			pretrace=new Trace(trace_to_account_its_probability.getList().subList(0,trace_to_account_its_probability.size()-1));  // get its prefix
+			Trace pretrace=new Trace(trace_to_account_its_probability.getList().subList(0,trace_to_account_its_probability.size()-1));  // get its prefix
 			// counting the number of times of occurrence the random generated path
-			UpdatablePairInteger prefix_occurence=occurrence_matrix.get(pretrace);
-			UpdatablePairInteger Trace_occurence = occurrence_matrix.get(trace_to_account_its_probability);
-			MarkovMatrix.put(trace_to_account_its_probability, new UpdatablePairDouble(Trace_occurence.firstElem/(double)prefix_occurence.firstElem,Trace_occurence.secondElem/(double)prefix_occurence.secondElem));
+			int prefix_occurence=trace_to_account_its_probability.size()>1?occurrenceMatrix.get(pretrace).firstElem : traceLength;
+			UpdatablePairInteger Trace_occurence = e.getValue();
+			if (Trace_occurence.firstElem > 0 || Trace_occurence.secondElem > 0)
+				MarkovMatrix.put(trace_to_account_its_probability, new UpdatablePairDouble(Trace_occurence.firstElem/(double)prefix_occurence,Trace_occurence.secondElem/(double)prefix_occurence));
+			else
+				MarkovMatrix.put(trace_to_account_its_probability,zero);
 		}
 		return MarkovMatrix;
 	}
 
 	protected void initialization(Trace traceToMarkov , boolean positive)
 	{
-		UpdatablePairInteger occurence_of_trace=occurrence_matrix.get(traceToMarkov);
+		UpdatablePairInteger occurence_of_trace=occurrenceMatrix.get(traceToMarkov);
 		if(positive)
 			occurence_of_trace.add(1,0);
 		else  // if negative
@@ -183,13 +202,17 @@ public class MarkovUniversalLearner
 
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
 	 *  
-	 * @param occurrenceMAtrix 
 	 * @param tentativeAutomaton tentative Automaton 
-	 * @param  Markovmatrix, a probability matrix of occurrence of list of labels. 
-	 * @return a list of possible of outgoing transitions from each state
+	 * @param highThreshold if the predicted probability of a transition is above this value, it seems plausible to add this transition.
+	 * @param lowThreshold if the predicted probability of a transition is below this value, it is believed that the impact of this transition is insignificant.
 	 */
-	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> Markov_tentative(LearnerGraph tentativeAutomaton, Map<Trace, UpdatablePairDouble> markovMatrix2, Map<Trace, UpdatablePairInteger> occurrenceMAtrix)
+	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> Markov_tentative(LearnerGraph tentativeAutomaton, double highThreshold, double lowThreshold)
 	{
+		/** Maps states to a function associating labels to a sum of probabilities from a Markov matrix. Such a sum is supposed to predict the likelyhood of a transition with this label from every state. */
+		Map<CmpVertex,Map<Label,UpdatablePairInteger>> state_outgoing_occurence=new HashMap<CmpVertex,Map<Label,UpdatablePairInteger>>();
+		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
+		Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=new HashMap<CmpVertex,Map<Label,UpdatablePairDouble>>();
+
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Extension_Graph= new LearnerGraph(shallowCopy);
 		LearnerGraph.copyGraphs(tentativeAutomaton, Extension_Graph);
@@ -204,11 +227,10 @@ public class MarkovUniversalLearner
 		        Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
 		        Map<Label,UpdatablePairInteger> outgoing_labels_occurrences=new HashMap<Label,UpdatablePairInteger>();
 				LinkedList<FrontLineElem> ListofFrontElem=new LinkedList<FrontLineElem>();
-				LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();//newfrontline = new LinkedList<FrontLineElem>();
+				LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
 	            FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
 			    frontline.add(e);
 			    UpdatablePairInteger sum=new UpdatablePairInteger(0,0);
-			    int count = 0;
 			    while(!frontline.isEmpty())
 			    {
 			    	e=frontline.pop();	
@@ -228,9 +250,8 @@ public class MarkovUniversalLearner
 			    					Collections.reverse(Predicted_trace.getList());
 			    					Predicted_trace.add(label);
 
-			    					UpdatablePairInteger occurrence_of_predicted_form_Markov=occurrenceMAtrix.get(Predicted_trace);
+			    					UpdatablePairInteger occurrence_of_predicted_form_Markov=occurrenceMatrix.get(Predicted_trace);
 
-			    					++count;
 			    					if(outgoing_labels_occurrences.containsKey(label))
 			    					{
 			    						UpdatablePairInteger labels_ocuurence= outgoing_labels_occurrences.get(label);
@@ -260,34 +281,32 @@ public class MarkovUniversalLearner
 			    state_outgoing.put(vert, outgoing_labels_probabilities);
 			    state_outgoing_occurence.put(vert, outgoing_labels_occurrences);
 			}
-		  
-    	
-    	 	double highThreshold = get_high_Threshold(markovMatrix2,chunk_Length), lowThreshold = get_high_Threshold(markovMatrix2,chunk_Length)/2;// get_low_Threshold(markovMatrix2, chunk_Length);
+
     		// in this part the tree is extended depend on their outgoing transition probabilities
     	 	for(Entry<CmpVertex, Map<Label, UpdatablePairDouble>> outgoing:state_outgoing.entrySet())
     	 	{
-    	 		CmpVertex Currrent_state_to_expolore_outgoing= outgoing.getKey();
+    	 		CmpVertex currrent_state_to_explore_outgoing= outgoing.getKey();
     	 		Map<Label, UpdatablePairDouble> list_of_outgoing = outgoing.getValue();
     	 		for(Entry<Label, UpdatablePairDouble> out:list_of_outgoing.entrySet())
     	 		{
-    	 			Map<Label, CmpVertex> already_outgoing = tentativeAutomaton.transitionMatrix.get(Currrent_state_to_expolore_outgoing);
-    	 			assert already_outgoing!=null : "state "+Currrent_state_to_expolore_outgoing+" is not mentioned in the transition diagram";
+    	 			Map<Label, CmpVertex> already_outgoing = tentativeAutomaton.transitionMatrix.get(currrent_state_to_explore_outgoing);
+    	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
 
     	 			if(!already_outgoing.containsKey(out.getKey()))
     	 			{  	   						
-    	 				if(out.getValue().firstElem >  highThreshold && out.getValue().secondElem < lowThreshold && Currrent_state_to_expolore_outgoing.isAccept()==true)
+    	 				if(out.getValue().firstElem >  highThreshold && out.getValue().secondElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
     	 				{  
-    	 					if(!Extension_Graph.transitionMatrix.get(Currrent_state_to_expolore_outgoing).keySet().contains(out.getKey()))
+    	 					if(!Extension_Graph.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
     	 					{
-    	 						extendWithLabel(Extension_Graph,Currrent_state_to_expolore_outgoing, true, out.getKey());
+    	 						extendWithLabel(Extension_Graph,currrent_state_to_explore_outgoing, true, out.getKey());
     	 					}     					      
     	 				} 
 
-    	 				if(out.getValue().secondElem >  highThreshold && out.getValue().firstElem < lowThreshold && Currrent_state_to_expolore_outgoing.isAccept()==true)
+    	 				if(out.getValue().secondElem >  highThreshold && out.getValue().firstElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
     	 				{  
-    	 					if(!Extension_Graph.transitionMatrix.get(Currrent_state_to_expolore_outgoing).keySet().contains(out.getKey()))
+    	 					if(!Extension_Graph.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
     	 					{
-    	 						extendWithLabel(Extension_Graph,Currrent_state_to_expolore_outgoing, false, out.getKey());
+    	 						extendWithLabel(Extension_Graph,currrent_state_to_explore_outgoing, false, out.getKey());
     	 					}     					      
     	 				} 	 					
     	 			}					   
@@ -296,6 +315,104 @@ public class MarkovUniversalLearner
       return state_outgoing;
 	}
 	
+	/** This function is predicts transitions from each state and then adds them to the supplied graph.
+	 *  
+	 * @param occurrenceMAtrix 
+	 * @param tentativeAutomaton tentative Automaton 
+	 * @param  Markovmatrix, a probability matrix of occurrence of list of labels. 
+	 * @return a list of possible of outgoing transitions from each state
+	 */
+	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> constructMarkovTentative(LearnerGraph tentativeAutomaton, double highThreshold, double lowThreshold)
+	{
+		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
+		Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=new HashMap<CmpVertex,Map<Label,UpdatablePairDouble>>();
+
+		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		Extension_Graph= new LearnerGraph(shallowCopy);
+		LearnerGraph.copyGraphs(tentativeAutomaton, Extension_Graph);
+		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
+		// mapping map to store all paths leave each state in different length
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+    	for(CmpVertex vert:Inverse_Graph.transitionMatrix.keySet())
+           if(vert.isAccept() )
+            {
+		        Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
+				LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+	            FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+			    frontline.add(e);
+			    while(!frontline.isEmpty())
+			    {
+			    	e=frontline.pop();	
+			    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
+			    	{		
+			    		for(CmpVertex target:entry.getValue())
+			    		{
+			    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunk_Length);
+			    			PathToNewState.addAll(e.pathToFrontLine);
+			    			PathToNewState.add(entry.getKey());
+			    			if(PathToNewState.size()==chunk_Length-1)
+			    			{
+			    				for(Label label:alphabet)
+			    				{
+			    					Trace Predicted_trace= new Trace();
+			    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+
+			    					UpdatablePairDouble predicted_form_Markov=MarkovMatrix.get(Predicted_trace);
+			    					if (predicted_form_Markov != zero)
+			    					{
+				    					if(outgoing_labels_probabilities.containsKey(label))
+				    					{
+				    						UpdatablePairDouble labels_ocuurence= outgoing_labels_probabilities.get(label);
+				    						labels_ocuurence.firstElem=Math.max(labels_ocuurence.firstElem,predicted_form_Markov.firstElem);											 
+				    						labels_ocuurence.secondElem=Math.max(labels_ocuurence.secondElem,predicted_form_Markov.secondElem);											 
+				    					}
+				    					else
+				    						outgoing_labels_probabilities.put(label, predicted_form_Markov);
+			    					}
+			    				}
+			    			}
+			    			else
+			    			{// not reached the maximal length of paths to explore
+			    				frontline.add(new FrontLineElem(PathToNewState,target));
+			    			}
+			    		}
+			    	}
+			    }
+
+			    if (!outgoing_labels_probabilities.isEmpty())
+			    	state_outgoing.put(vert, outgoing_labels_probabilities);
+			}
+
+    		// in this part the tree is extended depend on their outgoing transition probabilities
+    	 	for(Entry<CmpVertex, Map<Label, UpdatablePairDouble>> outgoing:state_outgoing.entrySet())
+    	 	{
+    	 		CmpVertex currrent_state_to_explore_outgoing= outgoing.getKey();
+    	 		Map<Label, UpdatablePairDouble> list_of_outgoing = outgoing.getValue();
+    	 		for(Entry<Label, UpdatablePairDouble> out:list_of_outgoing.entrySet())
+    	 		{
+    	 			Map<Label, CmpVertex> already_outgoing = tentativeAutomaton.transitionMatrix.get(currrent_state_to_explore_outgoing);
+    	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
+
+    	 			if(!already_outgoing.containsKey(out.getKey()))
+    	 			{  	   						
+    	 				if(out.getValue().firstElem >  highThreshold && out.getValue().secondElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
+    	 				{  
+    	 					if(!Extension_Graph.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
+    	 						extendWithLabel(Extension_Graph,currrent_state_to_explore_outgoing, true, out.getKey());
+    	 				} 
+
+    	 				if(out.getValue().secondElem >  highThreshold && out.getValue().firstElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
+    	 				{  
+    	 					if(!Extension_Graph.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
+    	 						extendWithLabel(Extension_Graph,currrent_state_to_explore_outgoing, false, out.getKey());
+    	 				} 	 					
+    	 			}					   
+    	 		}          	       	      
+    	 	}
+      return state_outgoing;
+	}
+
 	public static void extendWithLabel(LearnerGraph what, CmpVertex prevState, boolean isAccept, Label input)
 	{
 		CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(what.nextID(isAccept),what.config);
@@ -305,14 +422,14 @@ public class MarkovUniversalLearner
 		what.addTransition(what.transitionMatrix.get(prevState),input,newVertex);
 	}
 	
-	protected List<Trace> get_chunks (Trace t,int chunk)
+	public static List<Trace> get_chunks (Trace t,int chunkLen)
 	{
 		List<Trace> chunks=new ArrayList<Trace>();
 	   	for(int f=0; f < t.size(); f++)
 	    {
-	   		if(f < (t.size()-chunk+1))
+	   		if(f < (t.size()-chunkLen+1))
 	   		{
-	   			Trace traceToMarkov=new Trace(t.getList().subList(f, f+chunk)); // get trace from the path
+	   			Trace traceToMarkov=new Trace(t.getList().subList(f, f+chunkLen)); // get trace from the path
 	   			chunks.add(traceToMarkov);
 	   		}
 	    }
@@ -321,7 +438,7 @@ public class MarkovUniversalLearner
 	
 	public Map<Trace, UpdatablePairInteger> get_Markov_model_occurence() 
 	{
-		return occurrence_matrix;
+		return occurrenceMatrix;
 	}
 	
 	public Map<Trace, UpdatablePairDouble> get_Markov_model() 
@@ -518,13 +635,13 @@ public class MarkovUniversalLearner
 		return score;		
 	}
 	
-	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph , @SuppressWarnings("unused") Map<CmpVertex, Map<Label, UpdatablePairDouble>> l,LearnerGraph extensiongraph)
+	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph , @SuppressWarnings("unused") Map<CmpVertex, Map<Label, UpdatablePairDouble>> l)
 	{
 		double score = 0;
 		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();
 		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();						
-		Set<Label> predicted_from_blue_node = extensiongraph.transitionMatrix.get(P.getQ()).keySet();
-		Set<Label> predicted_from_red_node = extensiongraph.transitionMatrix.get(P.getR()).keySet();
+		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
+		Set<Label> predicted_from_red_node = Extension_Graph.transitionMatrix.get(P.getR()).keySet();
 		
 		predicted_from_blue_node.removeAll(outgoing_from_blue_node);
 		predicted_from_red_node.removeAll(outgoing_from_red_node);
@@ -532,13 +649,15 @@ public class MarkovUniversalLearner
 		Set<Label> all_outgoing = new HashSet<Label>() ;
 		all_outgoing.addAll(predicted_from_red_node);
 		all_outgoing.addAll(predicted_from_blue_node);
+		if (all_outgoing.isEmpty())
+			return 0;
 		
 		for(Label out_red:outgoing_from_red_node)
 		{			
 			if(predicted_from_blue_node.contains(out_red))  // if outgoing transitions from a red node exist in a blue state
 			{
 				boolean target_from_red_acceptance  = coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
-				boolean target_form_blue_acceptance = extensiongraph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();	
+				boolean target_form_blue_acceptance = Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();	
 	    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )	
 	    			score++;	
 	    		else
@@ -550,7 +669,7 @@ public class MarkovUniversalLearner
 		{			
 			if(predicted_from_red_node.contains(out_blue))  // if outgoing transitions from a red node exist in a blue state
 			{	
-				boolean target_from_red_acceptance  = extensiongraph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
+				boolean target_from_red_acceptance  = Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
 				boolean target_form_blue_acceptance = coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
 	    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )
 	    			score++;
@@ -560,12 +679,6 @@ public class MarkovUniversalLearner
 		}		
 		return score+(score/all_outgoing.size());		
 	}
-
-	public static Double get_high_Threshold(Map<Trace, UpdatablePairDouble> markovMatrix2, int chunk_Length)
-	{
-		return 0.75;
-	}
-	
 	
 	public static Collection<CmpVertex> numOFsimilarRED(Stack<PairScore> possibleMerges)
 	{
@@ -586,7 +699,7 @@ public class MarkovUniversalLearner
 				blues.add(v.firstElem);
 		return blues;
 	}
-	
+	/*
 	public static Double get_high_Threshold(int numoutgoing)
 	{
 		double high=0.0;
@@ -596,7 +709,7 @@ public class MarkovUniversalLearner
 			high=0.7;
 		return high;
 	}
-	
+	*/
 	/*
 	  public static void main(String[] args) throws IncompatibleStatesException 
 	  {

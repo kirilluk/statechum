@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class Trace implements Comparable<Trace> {
 
-    LinkedList<Label> trace;
+    List<Label> trace;
     public boolean negative;
 
     public Trace() {
@@ -49,7 +49,7 @@ public class Trace implements Comparable<Trace> {
     
     @Override
     public Trace clone() {
-        return new Trace((LinkedList<Label>) trace.clone());
+        return new Trace(new LinkedList<Label>(trace));
     }
 
     public void add(Label s) {

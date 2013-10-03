@@ -663,6 +663,8 @@ public class MarkovUniversalLearner
 	    		else
 	    			return REJECT;
 			}
+			else
+				return REJECT;
 		}
 				
 		for(Label out_blue:outgoing_from_blue_node)
@@ -676,6 +678,8 @@ public class MarkovUniversalLearner
 	    		else
 	    			return REJECT;
 			}
+			else
+				return REJECT;
 		}		
 		return score+(score/all_outgoing.size());		
 	}

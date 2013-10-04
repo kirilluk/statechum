@@ -267,7 +267,7 @@ public class PairScoreComputation {
 	 * @param mergedVertices records which vertices have to be merged.
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
-	protected int computePairCompatibilityScore_internal(StatePair origPair,Map<CmpVertex,List<CmpVertex>> mergedVertices) 
+	public int computePairCompatibilityScore_internal(StatePair origPair,Map<CmpVertex,List<CmpVertex>> mergedVertices) 
 	{
 		mergedVertices.clear();// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 			// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.

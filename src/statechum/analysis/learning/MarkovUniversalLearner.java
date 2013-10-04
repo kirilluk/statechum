@@ -321,6 +321,57 @@ public class MarkovUniversalLearner
       return state_outgoing;
 	}
 	
+	
+	public Map<Label, UpdatablePairDouble> predictTransitionsFromState(LearnerGraphND Inverse_Graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	{
+		assert vert.isAccept();
+
+		Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+	    frontline.add(e);
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();	
+	    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
+	    	{		
+	    		for(CmpVertex target:entry.getValue())
+	    		{
+	    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunkLength);
+	    			PathToNewState.addAll(e.pathToFrontLine);
+	    			PathToNewState.add(entry.getKey());
+	    			if(PathToNewState.size()==chunkLength-1)
+	    			{
+	    				for(Label label:alphabet)
+	    				{
+	    					Trace Predicted_trace= new Trace();
+	    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+
+	    					UpdatablePairDouble predicted_form_Markov=MarkovMatrix.get(Predicted_trace);
+	    					if (predicted_form_Markov != zero)
+	    					{
+		    					if(outgoing_labels_probabilities.containsKey(label))
+		    					{
+		    						UpdatablePairDouble labels_ocuurence= outgoing_labels_probabilities.get(label);
+		    						labels_ocuurence.firstElem=Math.max(labels_ocuurence.firstElem,predicted_form_Markov.firstElem);											 
+		    						labels_ocuurence.secondElem=Math.max(labels_ocuurence.secondElem,predicted_form_Markov.secondElem);											 
+		    					}
+		    					else
+		    						outgoing_labels_probabilities.put(label, predicted_form_Markov);
+	    					}
+	    				}
+	    			}
+	    			else
+	    			{// not reached the maximal length of paths to explore
+	    				frontline.add(new FrontLineElem(PathToNewState,target));
+	    			}
+	    		}
+	    	}
+	    }
+
+	    return outgoing_labels_probabilities;
+	}
+	
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
 	 *  
 	 * @param tentativeAutomaton tentative Automaton 
@@ -339,50 +390,8 @@ public class MarkovUniversalLearner
     	for(CmpVertex vert:Inverse_Graph.transitionMatrix.keySet())
            if(vert.isAccept() )
             {
-		        Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
-				LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-	            FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-			    frontline.add(e);
-			    while(!frontline.isEmpty())
-			    {
-			    	e=frontline.pop();	
-			    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
-			    	{		
-			    		for(CmpVertex target:entry.getValue())
-			    		{
-			    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunk_Length);
-			    			PathToNewState.addAll(e.pathToFrontLine);
-			    			PathToNewState.add(entry.getKey());
-			    			if(PathToNewState.size()==chunk_Length-1)
-			    			{
-			    				for(Label label:alphabet)
-			    				{
-			    					Trace Predicted_trace= new Trace();
-			    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
-
-			    					UpdatablePairDouble predicted_form_Markov=MarkovMatrix.get(Predicted_trace);
-			    					if (predicted_form_Markov != zero)
-			    					{
-				    					if(outgoing_labels_probabilities.containsKey(label))
-				    					{
-				    						UpdatablePairDouble labels_ocuurence= outgoing_labels_probabilities.get(label);
-				    						labels_ocuurence.firstElem=Math.max(labels_ocuurence.firstElem,predicted_form_Markov.firstElem);											 
-				    						labels_ocuurence.secondElem=Math.max(labels_ocuurence.secondElem,predicted_form_Markov.secondElem);											 
-				    					}
-				    					else
-				    						outgoing_labels_probabilities.put(label, predicted_form_Markov);
-			    					}
-			    				}
-			    			}
-			    			else
-			    			{// not reached the maximal length of paths to explore
-			    				frontline.add(new FrontLineElem(PathToNewState,target));
-			    			}
-			    		}
-			    	}
-			    }
-
-			    if (!outgoing_labels_probabilities.isEmpty())
+        	   Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=predictTransitionsFromState(Inverse_Graph,vert,alphabet,chunk_Length);
+			   if (!outgoing_labels_probabilities.isEmpty())
 			    	state_outgoing.put(vert, outgoing_labels_probabilities);
 			}
     	return state_outgoing;
@@ -413,7 +422,10 @@ public class MarkovUniversalLearner
     	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
 
     	 			if(!already_outgoing.containsKey(out.getKey()))
-    	 			{  	   						
+    	 			{  	   
+//    	 				if (Math.abs(out.getValue().firstElem-out.getValue().secondElem) < 0.2)
+//    	 					System.out.println("similar values for pos and neg");
+//    	 				
     	 				if(out.getValue().firstElem >  highThreshold && out.getValue().secondElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
     	 				{  
     	 					if(!Extension_Graph.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
@@ -654,7 +666,7 @@ public class MarkovUniversalLearner
 		return score;		
 	}
 	
-	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph , @SuppressWarnings("unused") Map<CmpVertex, Map<Label, UpdatablePairDouble>> l)
+	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph)
 	{
 		double score = 0;
 		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();

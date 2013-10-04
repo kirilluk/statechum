@@ -34,17 +34,13 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import samples.preview_new_graphdraw.iter.UpdatableIterableLayout;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
@@ -53,7 +49,6 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
@@ -74,19 +69,154 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph.ScoreComputationCallback;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class MarkovPassivePairSelection extends PairQualityLearner
 {
-	protected static long classifyPairBasedOnUnexpectedTransitions(PairScore p,LearnerGraph tentativeGraph,MarkovUniversalLearner Markov)
+	public static long computeScoreBasedOnMarkov(LearnerGraph original,StatePair pair,MarkovUniversalLearner Markov)
+	{
+
+		assert pair.getQ() != pair.getR();
+		assert original.transitionMatrix.containsKey(pair.firstElem);
+		assert original.transitionMatrix.containsKey(pair.secondElem);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph result = new LearnerGraph(original,shallowCopy);
+		assert result.transitionMatrix.containsKey(pair.firstElem);
+		assert result.transitionMatrix.containsKey(pair.secondElem);
+
+		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
+		if (pairScore < 0)
+			throw new IllegalArgumentException("elements of the pair are incompatible");
+		if (pair.getR().getDepth() < Markov.getChunkLen() && pairScore <= 0)
+			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
+
+		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
+		Collection<Label> redLabelsAdded = new LinkedList<Label>();labelsAdded.put(pair.getR(), redLabelsAdded);
+		redLabelsAdded.addAll(result.transitionMatrix.get(pair.getR()).keySet());
+		// make a loop
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
+				if (rowEntry.getValue() == pair.getQ())
+				{
+					// the transition from entry.getKey() leads to the original blue state, record it to be rerouted.
+					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
+					
+					Collection<Label> newLabelsAdded = labelsAdded.get(entry.getKey());
+					if (newLabelsAdded == null)
+					{
+						newLabelsAdded = new LinkedList<Label>();labelsAdded.put(entry.getKey(), newLabelsAdded);
+					}
+					newLabelsAdded.add(rowEntry.getKey());
+				}
+		}
+		
+		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
+		Set<Label> inputsUsed = new HashSet<Label>();
+
+		// I iterate over the elements of the original graph in order to be able to update the target one.
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			CmpVertex vert = entry.getKey();
+			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
+			if (mergedVertices.containsKey(vert))
+			{// there are some vertices to merge with this one.
+				Collection<Label> newLabelsAddedToVert = labelsAdded.get(entry.getKey());
+				if (newLabelsAddedToVert == null)
+				{
+					newLabelsAddedToVert = new LinkedList<Label>();labelsAdded.put(entry.getKey(), newLabelsAddedToVert);
+				}
+
+				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
+				for(CmpVertex toMerge:mergedVertices.get(vert))
+				{// for every input, I'll have a unique target state - this is a feature of PTA
+				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
+				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
+				// (as long as this combination is the one _not_ already present from the corresponding red state).
+					boolean somethingWasAdded = false;
+					for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
+						if (!inputsUsed.contains(input_and_target.getKey()))
+						{
+							// We are adding a transition to state vert with label input_and_target.getKey() and target state input_and_target.getValue();
+							resultRow.put(input_and_target.getKey(), input_and_target.getValue());
+							
+							newLabelsAddedToVert.add(input_and_target.getKey());
+							
+							inputsUsed.add(input_and_target.getKey());
+							ptaVerticesUsed.add(input_and_target.getValue());somethingWasAdded = true;
+							// Since PTA is a tree, a tree rooted at ptaVerticesUsed will be preserved in a merged automaton, however 
+							// other parts of a tree could be merged into it. In this case, each time there is a fork corresponding to 
+							// a step by that other chunk which the current tree cannot follow, that step will end in a tree and a root
+							// of that tree will be added to ptaVerticesUsed.
+						}
+					assert somethingWasAdded : "RedAndBlueToBeMerged was not set correctly at an earlier stage";
+				}
+			}
+		}
+		
+		// Now we have a graph with all the transitions added (but old ones are not removed, no point doing this). Check if there are any new inconsistencies with 
+		// transitions in the vicinity of the added ones. For instance, where a path has been folded in with some transitions sticking out, those new ones
+		// may be inconsistent with predictions, based on the transitions in the red part of the graph.
+		Set<Label> alphabet = result.learnerCache.getAlphabet(); 
+		// mapping map to store all paths leave each state in different length
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(result,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+
+		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
+			if (!entry.getValue().isEmpty())
+			{
+				Map<Label,CmpVertex> outgoingActual = result.transitionMatrix.get(entry.getKey());
+				Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=Markov.predictTransitionsFromState(Inverse_Graph,entry.getKey(),alphabet,Markov.getChunkLen());
+				for(Label addedLabel:entry.getValue())
+				{
+					UpdatablePairDouble predictedProbability = outgoing_labels_probabilities.get(addedLabel);
+					if (outgoingActual.get(addedLabel).isAccept())
+					{
+						if (predictedProbability == null || predictedProbability.firstElem < 0.01) // WARNING: hardwired constant
+						// a good candidate for rejection
+							--pairScore;
+					}
+					else
+						if (predictedProbability != null)
+						{
+							if (predictedProbability.firstElem > 0.2) // WARNING: hardwired constant
+									return Long.MIN_VALUE;
+	//						--pairScore;
+						}
+				}
+				
+				for(Entry<Label,UpdatablePairDouble> outgoingPredicted:outgoing_labels_probabilities.entrySet() )
+				{
+					if (outgoingPredicted.getValue().firstElem > 0.1)
+					{
+						CmpVertex target = outgoingActual.get(outgoingPredicted.getKey());
+						if (target == null)
+							--pairScore;
+						else
+							if (!target.isAccept())
+								return Long.MIN_VALUE;
+					}
+				}
+			}
+	
+		return pairScore;
+	}
+	
+	protected static long classifyPairBasedOnUnexpectedTransitions(LearnerGraph tentativeGraph,PairScore p,MarkovUniversalLearner Markov)
 	{
 		/*
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -337,7 +467,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
 			Label uniqueFromInitial = null;
-			Timer timerToDetectLongRunningAutomata = new Timer("timer_to_detect_lengthy_tasks");
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 			do
 			{
@@ -467,20 +596,29 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					final LearnerGraph finalReferenceGraph = referenceGraph;
 					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
+
 					pta.setScoreComputationCallback(new ScoreComputationCallback() {
 						
 						@Override
 						public long overrideScoreComputation(LearnerGraph graph, PairScore p) {
-							long score = classifyPairBasedOnUnexpectedTransitions(p,graph,m);
-							
+							long score = computeScoreBasedOnMarkov(graph,p,m);
+							/*
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 							SplitSetOfPairsIntoRightAndWrong(graph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
 
-							System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
+							if ( (score >= 0 && correctPairs.isEmpty()) || (score < 0 && !correctPairs.isEmpty()))
+							{
+								System.out.println(p+" "+score+" INCORRECT");
+								Visualiser.updateFrame(graph.transform.trimGraph(3, p.getR()), finalReferenceGraph);
+								//Visualiser.waitForKey();
+								computeScoreBasedOnMarkov(graph,p,m);
+								//System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
+							}*/
 							return score;
 						}
 					});
+
 					synchronized (AbstractLearnerGraph.syncObj) {
 						//PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" no unique: ", pta, referenceGraph);
 					}
@@ -512,13 +650,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 //					config.setLearnerScoreMode(ScoreMode.CONVENTIONAL);
 				dataSample.difference = estimateDifference(referenceGraph,actualAutomaton,testSet);
+				pta.setScoreComputationCallback(null);
 				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
 				outcome.samples.add(dataSample);
 			}
 			
-			timerToDetectLongRunningAutomata.cancel();
 			return outcome;
 		}
 
@@ -722,9 +860,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//if(d > 0.0)
 					//	possibleResults.add(new PairScoreWithDistance(p, d));
 					
-					long pairScore = classifyPairBasedOnUnexpectedTransitions(p,tentativeGraph,Markov);
+					double d = Markov.computeMMScoreImproved(p, tentativeGraph);
+					if(d > 0.0)
+						possibleResults.add(new PairScoreWithDistance(p, d));
+					/*long pairScore = classifyPairBasedOnUnexpectedTransitions(p,tentativeGraph,Markov);
 					if (pairScore >= 0)
 						possibleResults.add(p);
+						*/
 				}
 			
 					
@@ -732,9 +874,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						//int outcome = sgn( ((PairScoreWithDistance)o2).getDistanceScore() - ((PairScoreWithDistance)o1).getDistanceScore());  
-						//if (outcome != 0)
-						//	return outcome;
+						int outcome = sgn( ((PairScoreWithDistance)o2).getDistanceScore() - ((PairScoreWithDistance)o1).getDistanceScore());  
+						if (outcome != 0)
+							return outcome;
 						return o2.compareTo(o1);
 					}}); 
 			}				
@@ -779,11 +921,16 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			long worstPairScore=0;
 			for(PairScore p:pairs)
 			{
+				/*
 				long pairScore = classifyPairBasedOnUnexpectedTransitions(p,tentativeGraph,Markov);
 				if (pairScore >= 0)
 					return null;
-				
-//				double d=m.computeMMScoreImproved(p, tentativeGraph, l);
+				*/
+				double d=m.computeMMScoreImproved(p, tentativeGraph);
+				if (d>0)
+					return null;
+				return p;
+				/*
 //				double d=m.get_extension_model().pairscores.computePairCompatibilityScore(p);
 //				double d=howbadPairs(p, tentativeGraph, l, learnerGraph, m);
 				if (worstPairScore == 0 || worstPairScore < pairScore)
@@ -791,6 +938,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					worstPairScore = pairScore;
 					pairBestToReturnAsRed = p;
 				}
+				*/
 			}
 
 			System.out.println("to be marked as red: "+pairBestToReturnAsRed+" with score "+worstPairScore);
@@ -804,7 +952,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			{	
 				if(p.firstElem.isAccept()==true && p.secondElem.isAccept()==true)
 				{
-					double d=Markov.computeMMScoreImproved(p, graph, l);
+					double d=Markov.computeMMScoreImproved(p, graph);
 					if(d == MarkovUniversalLearner.REJECT)
 					{
 						WrongPairs.add(new PairScoreWithDistance(p, d));
@@ -858,9 +1006,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				
 				@Override
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, List<PairScore> pairs) 
-				{
-					return null;
-					/*
+				{/*
 					List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
 					SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
 
@@ -877,10 +1023,11 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						System.out.println("WRONG choice "+tentativePair);
-						classifyPairBasedOnUnexpectedTransitions(tentativePair,coregraph);
+						//classifyPairBasedOnUnexpectedTransitions(tentativePair,coregraph);
 					}
-					return tentativePair.getQ();
-					*/
+					return tentativePair.getQ();*/
+					
+					return null;
 				}
 /*
 				private StatePair classify_bad(List<PairScore> filterbad)
@@ -922,7 +1069,8 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				result=classifyingByMarkovScore(outcome, graph);
 				assert result!=null;
 				assert result.getScore()>=0;
-				List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+/*
+ 				List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 				List<PairScore> pairs = new ArrayList<PairScore>(1);pairs.add(result);
 				SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 				if (!correctPairs.isEmpty())
@@ -933,6 +1081,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 //					Visualiser.updateFrame(graph.transform.trimGraph(3, graph.getInit()), referenceGraph);
 //					Visualiser.waitForKey();
 				}
+				*/
 				outcome.clear();outcome.push(result);
 			}	
 			return outcome;
@@ -941,24 +1090,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		
 		public PairScore classifyingByMarkovScore(Stack<PairScore> outcome, LearnerGraph graph)
 		{
-			//Map<CmpVertex, Map<Label, UpdatablePairDouble>> l = constructExtensionGraph(graph);
+			Map<CmpVertex, Map<Label, UpdatablePairDouble>> l = constructExtensionGraph(graph);
 			PairScore result = null;
-			List<PairScore> possibleResults = classifyPairs(outcome,graph);
+			ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
  			if(!possibleResults.isEmpty())
 			{
  				result = possibleResults.iterator().next();
- 				/*					
-				Stack<PairScore> topofstack1 = MarkovScoreComputation.getChoicesother_Score(possibleResults);
-
-				assert topofstack1!=null;
-				if(topofstack1.size() == 1)
-					result=topofstack1.pop();
-				else
-				{
-					possibleResults.add(pickPairQSMLike(topofstack1));// no pairs have been provided by the modified algorithm, hence using the default one.
-					result = possibleResults.iterator().next();
-				}
-				*/
 			}
  			if(result==null)
  			{

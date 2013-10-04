@@ -49,6 +49,12 @@ public class MarkovUniversalLearner
 {
 	private Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
 	private Map<Trace, UpdatablePairDouble> MarkovMatrix =  new HashMap<Trace,UpdatablePairDouble>();
+	
+	public int getChunkLen()
+	{
+		return chunk_Length;
+	}
+	
 	private final int chunk_Length;
     private LearnerGraph Extension_Graph;
 
@@ -317,19 +323,15 @@ public class MarkovUniversalLearner
 	
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
 	 *  
-	 * @param occurrenceMAtrix 
 	 * @param tentativeAutomaton tentative Automaton 
-	 * @param  Markovmatrix, a probability matrix of occurrence of list of labels. 
 	 * @return a list of possible of outgoing transitions from each state
 	 */
-	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> constructMarkovTentative(LearnerGraph tentativeAutomaton, double highThreshold, double lowThreshold)
+	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> predictTransitions(LearnerGraph tentativeAutomaton)
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
 		Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=new HashMap<CmpVertex,Map<Label,UpdatablePairDouble>>();
 
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		Extension_Graph= new LearnerGraph(shallowCopy);
-		LearnerGraph.copyGraphs(tentativeAutomaton, Extension_Graph);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
 		// mapping map to store all paths leave each state in different length
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
@@ -383,6 +385,22 @@ public class MarkovUniversalLearner
 			    if (!outgoing_labels_probabilities.isEmpty())
 			    	state_outgoing.put(vert, outgoing_labels_probabilities);
 			}
+    	return state_outgoing;
+	}	
+	
+	/** This function is predicts transitions from each state and then adds them to the supplied graph.
+	 *  
+	 * @param tentativeAutomaton tentative Automaton 
+	 * @return a list of possible of outgoing transitions from each state
+	 */
+	public Map<CmpVertex, Map<Label, UpdatablePairDouble>> constructMarkovTentative(LearnerGraph tentativeAutomaton, double highThreshold, double lowThreshold)
+	{
+		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
+		Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=predictTransitions(tentativeAutomaton);
+
+		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		Extension_Graph= new LearnerGraph(shallowCopy);
+		LearnerGraph.copyGraphs(tentativeAutomaton, Extension_Graph);
 
     		// in this part the tree is extended depend on their outgoing transition probabilities
     	 	for(Entry<CmpVertex, Map<Label, UpdatablePairDouble>> outgoing:state_outgoing.entrySet())
@@ -410,6 +428,7 @@ public class MarkovUniversalLearner
     	 			}					   
     	 		}          	       	      
     	 	}
+    	 	
       return state_outgoing;
 	}
 

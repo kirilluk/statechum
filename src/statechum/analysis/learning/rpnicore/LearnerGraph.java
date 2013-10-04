@@ -36,6 +36,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.linear.Linear;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
@@ -206,6 +207,19 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 */
 	public ArrayList<PairScore> pairsAndScores;
 
+	/** Makes it possible to register callbacks for score computation. Currently used with Markov but should be useful for Weka. */ 
+	public static interface ScoreComputationCallback
+	{
+		public long overrideScoreComputation(LearnerGraph graph,PairScore p);
+	}
+	
+	ScoreComputationCallback scoreComputation = null;
+	
+	public void setScoreComputationCallback(ScoreComputationCallback s)
+	{
+		scoreComputation = s;
+	}
+	
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 
@@ -321,6 +335,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{
 		AbstractLearnerGraph.copyGraphs(from, result);
 		copyVertexToAbstractState(from,result);
+		result.scoreComputation=from.scoreComputation;
 	}
 	
 	/** Converts a transition into an FSM structure, by taking a copy.

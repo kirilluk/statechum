@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -49,13 +50,16 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
+import statechum.Trace;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovUniversalLearner;
-import statechum.analysis.learning.MarkovUniversalLearner.UpdatablePairDouble;
+import statechum.analysis.learning.MarkovUniversalLearner.FrontLineElem;
+import statechum.analysis.learning.MarkovUniversalLearner.UpdatableOutcome;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -84,6 +88,59 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class MarkovPassivePairSelection extends PairQualityLearner
 {
+	public static long computeScoreUsingMarkovFanouts(LearnerGraph graph, LearnerGraphND origInverse, MarkovUniversalLearner Markov, Set<Label> alphabet, StatePair p)
+	{
+		long currentScore=0;
+		Map<Label,CmpVertex> transitionsFromBlue = graph.transitionMatrix.get(p.getQ());
+		for(Entry<Label,CmpVertex> outgoing:graph.transitionMatrix.get(p.getR()).entrySet())
+		{
+			CmpVertex targetFromBlue = transitionsFromBlue.get(outgoing.getKey());
+			if (targetFromBlue != null)
+			{// we have matching outgoing transitions
+				currentScore+=comparePredictedFanouts(graph,origInverse,Markov,outgoing.getValue(),targetFromBlue,alphabet);
+			}
+		}
+		return currentScore;
+	}
+
+	protected static long comparePredictedFanouts(LearnerGraph graph, LearnerGraphND origInverse, MarkovUniversalLearner Markov, CmpVertex red, CmpVertex blue, Set<Label> alphabet)
+	{
+		long outcome = 0;
+		Map<Label,UpdatableOutcome> outgoing_red_probabilities=Markov.predictTransitionsFromState(origInverse,red,alphabet,Markov.getChunkLen());
+		Map<Label,UpdatableOutcome> outgoing_blue_probabilities=Markov.predictTransitionsFromState(origInverse,blue,alphabet,Markov.getChunkLen());
+		
+		if (outgoing_red_probabilities.equals(outgoing_blue_probabilities))
+			outcome = 1;
+		return outcome;
+	}
+	
+	/** Identifies states <i>steps</i> away from the root state and labels the first of them red and others blue. The aim is to permit Markov predictive power to be used on arbitrary states, 
+	 * without this we cannot predict anything in the vicinity of the root state. 
+	 */ 
+	public static void labelStatesAwayFromRoot(LearnerGraph graph, int steps)
+	{
+		graph.clearColours();
+		
+		Set<CmpVertex> visited = new HashSet<CmpVertex>();
+		Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();
+		frontLine.add(graph.getInit());visited.add(graph.getInit());
+		for(int line=0;line < steps;++line)
+		{
+			for(CmpVertex vert:frontLine)
+				for(CmpVertex next:graph.transitionMatrix.get(vert).values())
+					if (!visited.contains(next))
+					{
+						nextLine.add(next);visited.add(next);
+					}
+			
+			frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
+		}
+		for(CmpVertex blue:frontLine) blue.setColour(JUConstants.BLUE);
+		if (frontLine.isEmpty())
+			throw new IllegalArgumentException("no states beyond the steps");
+		frontLine.iterator().next().setColour(JUConstants.RED);
+	}
+	
 	public static long computeScoreBasedOnMarkov(LearnerGraph original,StatePair pair,MarkovUniversalLearner Markov)
 	{
 
@@ -101,7 +158,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
 		if (pairScore < 0)
 			throw new IllegalArgumentException("elements of the pair are incompatible");
-		if (pair.getR().getDepth() < Markov.getChunkLen() && pairScore <= 0)
+		if ((pair.getR().getDepth() < Markov.getChunkLen() || pair.getQ().getDepth() < Markov.getChunkLen()) && pairScore <= 0)
 			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
 
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
@@ -179,7 +236,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
-				pairScore-=2*Markov.checkFanoutInconsistency(Inverse_Graph,original,entry.getKey(),alphabet,Markov.getChunkLen());
+				pairScore-=2*Markov.checkFanoutInconsistency(Inverse_Graph,result,entry.getKey(),alphabet,Markov.getChunkLen());
 			}
 /*
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
@@ -222,44 +279,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return pairScore;
 	}
 	
-	protected static long classifyPairBasedOnUnexpectedTransitions(LearnerGraph tentativeGraph,PairScore p,MarkovUniversalLearner Markov)
-	{
-		/*
-		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		long score = tentativeGraph.pairscores.computePairCompatibilityScore_general(p,null,verticesToMerge);//LearnerRunner.getVerticesToMergeFor(tentativeGraph,pairsToMerge), verticesToMerge);
-		assert score >= 0;
-		LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(tentativeGraph, null, verticesToMerge);
-		*/
-		if (p.getR().getDepth() < Markov.getChunkLen() && p.getScore() <= 0)
-			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
-		LearnerGraph mergedAutomaton = MergeStates.mergeAndDeterminize(tentativeGraph, p);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> predicted =Markov.predictTransitions(mergedAutomaton);
-		long pairScore = 0;
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:mergedAutomaton.transitionMatrix.entrySet())
-		{
-			Map<Label,UpdatablePairDouble> predictedForVert = predicted.get(entry.getKey());
-			if (predictedForVert != null)
-				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				{
-					UpdatablePairDouble predictedProbability = predictedForVert.get(transition.getKey());
-					if (transition.getValue().isAccept())
-					{
-						if (predictedProbability == null || predictedProbability.firstElem < 0.01) // WARNING: hardwired constant
-						// a good candidate for rejection
-							--pairScore;
-					}
-					else
-						if (predictedProbability != null)
-						{
-							if (predictedProbability.firstElem > 0.2) // WARNING: hardwired constant
-//								return Long.MIN_VALUE;
-							--pairScore;
-						}
-				}
-		}
-		return pairScore+p.getScore();
-	}
-
 	public static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -361,98 +380,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			private LearnerRunner getOuterType() {
 				return LearnerRunner.this;
 			}
-		}
-		
-		
-		List<List<List<Label>>> checkVertices(LearnerGraph coregraph,LearnerGraph referenceGraph,MarkovUniversalLearner m)
-		{
-			Set<CmpVertex> statesOfInterest = new HashSet<CmpVertex>();
-			Map<CmpVertex, Map<Label, UpdatablePairDouble>> l =m.constructMarkovTentative(coregraph,0.8,0.1);
-
-			System.out.println();
-			
-			//for(CmpVertex vert:LearnerMarkovPassive.this.Markov.get_extension_model().transitionMatrix.keySet())
-			for(CmpVertex vert:coregraph.transitionMatrix.keySet())
-				if (vert.isAccept())
-					statesOfInterest.add(vert);
-			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(coregraph, statesOfInterest);
-			Map<List<Label>,CmpVertex> mispredictedActualTransitions = new HashMap<List<Label>,CmpVertex>();
-			Set<CmpVertex> ptaVertices = new HashSet<CmpVertex>();
-			CmpVertex placeholder = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("placeholder"), config);
-			Map<List<Label>,List<CmpVertex>> vertsOfInterest = new HashMap<List<Label>,List<CmpVertex>>();
-			for(Entry<CmpVertex, Map<Label, UpdatablePairDouble>> entry:l.entrySet())
-			{
-				CmpVertex referenceVertex = referenceGraph.getVertex(stateToPath.get(entry.getKey()));
-				List<Label> lbls = new ArrayList<Label>();
-				for(Entry<Label,UpdatablePairDouble> predicted:entry.getValue().entrySet())
-					if ( 
-					(predicted.getValue().firstElem > 0.1 && coregraph.transitionMatrix.get(entry.getKey()).containsKey(predicted.getKey()) && !coregraph.transitionMatrix.get(entry.getKey()).get(predicted.getKey()).isAccept())
-							||
-					((predicted.getValue().firstElem < 0.1 && predicted.getValue().secondElem < 0.1) && coregraph.transitionMatrix.get(entry.getKey()).containsKey(predicted.getKey()) && coregraph.transitionMatrix.get(entry.getKey()).get(predicted.getKey()).isAccept())
-					)
-						lbls.add(predicted.getKey());
-				if (!lbls.isEmpty())
-				{
-					ptaVertices.add(entry.getKey());
-					if (mispredictedActualTransitions.containsKey(lbls))
-					{
-						vertsOfInterest.get(lbls).add(entry.getKey());
-						if (referenceVertex != mispredictedActualTransitions.get(lbls))
-						{
-							mispredictedActualTransitions.put(lbls, placeholder);
-
-							//uselessLabels.addAll(lbls);
-							System.out.println("mispredicted state, previous "+mispredictedActualTransitions.get(lbls)+", new one "+referenceVertex+" labels are "+lbls);
-							System.out.println("observed fanout : "+entry.getValue().keySet());
-							//System.out.println("actual fanout : "+referenceGraph.transitionMatrix.get(mispredictedActualTransitions.get(lbls)).keySet()+" v.s. "+referenceGraph.transitionMatrix.get(referenceVertex).keySet());
-						}
-					}
-					else
-					{
-						mispredictedActualTransitions.put(lbls,referenceVertex);
-						vertsOfInterest.put(lbls, new LinkedList<CmpVertex>(Arrays.asList(new CmpVertex[]{entry.getKey()})));
-					}
-				}
-			}
-			
-			System.out.println(mispredictedActualTransitions.size());
-			
-			for(Entry<List<Label>,CmpVertex> entry:mispredictedActualTransitions.entrySet())
-				if (entry.getValue() != placeholder)
-				System.out.println(entry.getKey()+" - "+entry.getValue()+" "+referenceGraph.transitionMatrix.get(entry.getValue()).keySet());
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
-				System.out.println(entry.getKey()+" "+entry.getValue().keySet());
-			
-			List<UnusualVertices> unusualVertices = new ArrayList<UnusualVertices>(); 
-			for(Entry<List<Label>,List<CmpVertex>> vertsToMerge:vertsOfInterest.entrySet())
-			{
-				List<StatePair> pairsList = new LinkedList<StatePair>();
-				CmpVertex first=vertsToMerge.getValue().get(0);
-				for(CmpVertex v:vertsToMerge.getValue())
-					pairsList.add(new StatePair(first,v));
-				List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				long score=coregraph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
-				System.out.println("merge attempt for "+vertsToMerge.getKey()+", score "+score+" mispredicted: "+(mispredictedActualTransitions.get(vertsToMerge.getKey()) == placeholder));
-				unusualVertices.add(new UnusualVertices(score,vertsToMerge.getValue(),pairsList));
-			}
-			Collections.sort(unusualVertices);
-			List<StatePair> fullListOfPairs = new LinkedList<StatePair>();
-			List<List<List<Label>>> pathsToMerge = new LinkedList<List<List<Label>>>();
-			for(UnusualVertices u:unusualVertices) // goes through the list starting with the smallest one
-			{
-				List<StatePair> listOfPairs = new LinkedList<StatePair>();listOfPairs.addAll(fullListOfPairs);listOfPairs.addAll(u.verticesToMerge);
-				List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				long score=coregraph.pairscores.computePairCompatibilityScore_general(null, listOfPairs, verticesToMerge);
-				if (score >= 0)
-				{
-					fullListOfPairs = listOfPairs;
-					List<List<Label>> labelsForThisLot = new LinkedList<List<Label>>();
-					for(CmpVertex v:u.vertices) labelsForThisLot.add(stateToPath.get(v));
-					pathsToMerge.add(labelsForThisLot);
-				}
-			}
-			System.out.println("number of pairs to merge: "+fullListOfPairs.size());
-			return pathsToMerge;
 		}
 
 		public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
@@ -602,29 +529,43 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//learnerEval.config.setGeneralisationThreshold(1);
 					final LearnerGraph finalReferenceGraph = referenceGraph;
 					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
-					//checkVertices(pta, referenceGraph, m);
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 
 					pta.setScoreComputationCallback(new ScoreComputationCallback() {
+						LearnerGraph coregraph = null;
+						Set<Label> alphabet = null;
+						LearnerGraphND origInverse = null;
 						
 						@Override
-						public long overrideScoreComputation(LearnerGraph graph, PairScore p) {
-							long score = computeScoreBasedOnMarkov(graph,p,m);
+						public void initComputation(LearnerGraph graph) {
+							coregraph = graph;
+							alphabet = coregraph.learnerCache.getAlphabet(); 
+							Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+							// mapping map to store all paths leave each state in different length
+							origInverse = new LearnerGraphND(shallowCopy);
+							AbstractPathRoutines.buildInverse(coregraph,LearnerGraphND.ignoreNone,origInverse);  // do the inverse to the tentative graph 
+						}
+						
+						@Override
+						public long overrideScoreComputation(PairScore p) {
+							long score = computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);//computeScoreBasedOnMarkov(coregraph,p,m);
 							
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-							SplitSetOfPairsIntoRightAndWrong(graph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
+							SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
 
 							if ( (score >= 0 && correctPairs.isEmpty()) || (score < 0 && !correctPairs.isEmpty()))
 							{
 								System.out.println(p+" "+score+" INCORRECT");
-								Visualiser.updateFrame(graph.transform.trimGraph(3, graph.getInit()), finalReferenceGraph);
+								Visualiser.updateFrame(coregraph.transform.trimGraph(3, coregraph.getInit()), finalReferenceGraph);
+								computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
 								//Visualiser.waitForKey();
-								computeScoreBasedOnMarkov(graph,p,m);
+								//computeScoreBasedOnMarkov(coregraph,p,m);
 								//System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
 							}
 							return score;
 						}
+
 					});
 
 					synchronized (AbstractLearnerGraph.syncObj) {
@@ -632,6 +573,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 					
 					final int attemptAsFinal = attempt;
+					
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 //					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 //					long score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null,getVerticesToMergeFor(actualAutomaton,learnerOfPairs.getPairsToMerge()), verticesToMerge);
@@ -913,7 +855,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		}
 		
 		/** Where there does not seem to be anything useful to merge, return the pair clearly incorrectly labelled. */
-		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph, Map<CmpVertex, Map<Label, UpdatablePairDouble>> l,MarkovUniversalLearner m)
+		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph, Map<CmpVertex, Map<Label, UpdatableOutcome>> l,MarkovUniversalLearner m)
 		{
 			for(PairScore p:pairs)
 			{
@@ -953,7 +895,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			return pairBestToReturnAsRed;
 		}
 
-		public ArrayList<PairScoreWithDistance> SplitSetOfPairsIntoWrong(LearnerGraph graph, Collection<PairScore> pairs, Map<CmpVertex, Map<Label, UpdatablePairDouble>> l)
+		public ArrayList<PairScoreWithDistance> SplitSetOfPairsIntoWrong(LearnerGraph graph, Collection<PairScore> pairs, Map<CmpVertex, Map<Label, UpdatableOutcome>> l)
 		{						
 			ArrayList<PairScoreWithDistance>  WrongPairs= new ArrayList<PairScoreWithDistance>();
 			for(PairScore p:pairs)
@@ -980,9 +922,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		}
 		
 		
-		protected Map<CmpVertex, Map<Label, UpdatablePairDouble>> constructExtensionGraph(LearnerGraph graph)
+		protected Map<CmpVertex, Map<Label, UpdatableOutcome>> constructExtensionGraph(LearnerGraph graph)
 		{
-			return Markov.constructMarkovTentative(graph,0.8,0.01);
+			return Markov.constructMarkovTentative(graph);
 		}
 		
 		public static String refToString(Object obj)
@@ -1098,7 +1040,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		
 		public PairScore classifyingByMarkovScore(Stack<PairScore> outcome, LearnerGraph graph)
 		{
-			Map<CmpVertex, Map<Label, UpdatablePairDouble>> l = constructExtensionGraph(graph);
+			Map<CmpVertex, Map<Label, UpdatableOutcome>> l = constructExtensionGraph(graph);
 			PairScore result = null;
 			ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
  			if(!possibleResults.isEmpty())

@@ -177,7 +177,7 @@ public class PairScoreComputation {
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
 			if (computedScore >= 0 && coregraph.scoreComputation != null)
-				computedScore = coregraph.scoreComputation.overrideScoreComputation(coregraph,new PairScore(blue,red,computedScore, compatibilityScore));
+				computedScore = coregraph.scoreComputation.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		}
 		else		
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
@@ -195,7 +195,7 @@ public class PairScoreComputation {
 					computedScore = -1;
 				
 				if (computedScore >= 0 && coregraph.scoreComputation != null)
-					computedScore = coregraph.scoreComputation.overrideScoreComputation(coregraph,new PairScore(blue,red,computedScore, compatibilityScore));
+					computedScore = coregraph.scoreComputation.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 			}
 			
 			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)

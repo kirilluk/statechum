@@ -3,11 +3,12 @@ package statechum.analysis.learning.experiments.PairSelection;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
@@ -20,10 +21,12 @@ import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.MarkovUniversalLearner;
-import statechum.analysis.learning.MarkovUniversalLearner.UpdatablePairDouble;
+import statechum.analysis.learning.MarkovUniversalLearner.UpdatableOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -96,40 +99,29 @@ public class TestMarkovLearner {
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}, new String[]{"a","u"} },config,converter);
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(11,matrix.size());
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.2, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))));
 
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblD,lblC}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblD,lblC}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblD,lblC}))));
 
-		Assert.assertEquals(0.6666666666666666, matrix.get(new Trace(Arrays.asList(new Label[]{lblB,lblC}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblB,lblC}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblB,lblC}))));
 
-		Assert.assertEquals(0.6, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblB}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblB}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblB}))));
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblC,lblD}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.3333333333333333, matrix.get(new Trace(Arrays.asList(new Label[]{lblC,lblD}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblC,lblD}))));
 
-		Assert.assertEquals(0.2, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblD}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblD}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblD}))));
 
-		Assert.assertEquals(0.35714285714285715, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))));
 		
-		Assert.assertEquals(0.21428571428571427, matrix.get(new Trace(Arrays.asList(new Label[]{lblB}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblB}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblB}))));
 		
-		Assert.assertEquals(0.21428571428571427, matrix.get(new Trace(Arrays.asList(new Label[]{lblC}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblC}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblC}))));
 		
-		Assert.assertEquals(MarkovUniversalLearner.failure.firstElem, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(MarkovUniversalLearner.failure.secondElem, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.failure, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))));
 		
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.07142857142857142, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}	
 
 	@Test
@@ -137,17 +129,14 @@ public class TestMarkovLearner {
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter), minusStrings = new HashSet<List<Label>>();
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(3,matrix.size());
 		
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))));
 
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))));
 
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}
 	
 	@Test
@@ -155,17 +144,14 @@ public class TestMarkovLearner {
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(3,matrix.size());
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))));
 
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))));
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}
 	
 	/** Only differs from 3a by the use of chunk_length of 3. The outcome should be the same. */
@@ -174,17 +160,14 @@ public class TestMarkovLearner {
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(3,matrix.size());
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))));
 
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))));
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}
 	
 	@Test
@@ -192,11 +175,10 @@ public class TestMarkovLearner {
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"u"} },config,converter);
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(1,matrix.size());
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}
 	
 	/** Same as testCreateMarkovMatrix3 but contains an empty trace which is ignored since it does not match any of the valid chunk sizes. */
@@ -205,17 +187,14 @@ public class TestMarkovLearner {
 	{
 		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		final Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{},new String[]{"a","u"} },config,converter);
-		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
+		Map<Trace, UpdatableOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings);
 		Assert.assertEquals(3,matrix.size());
 		
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))));
 
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, matrix.get(new Trace(Arrays.asList(new Label[]{lblA}))));
 
-		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))));
 	}
 	
 	@Test
@@ -254,7 +233,7 @@ public class TestMarkovLearner {
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","p"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-u->B-p->B","testConstructExtendedGraph1",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertTrue(newTransitions.isEmpty());// not enough evidence to update, hence nothing should be recorded.
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-u->B-p->B","testConstructExtendedGraph1",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -271,7 +250,7 @@ public class TestMarkovLearner {
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","p"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B","testConstructExtendedGraph2",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertTrue(newTransitions.isEmpty());// not enough evidence to update, hence nothing should be recorded.
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testConstructExtendedGraph2",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -280,7 +259,7 @@ public class TestMarkovLearner {
 		Assert.assertNotSame(graph, m.get_extension_model());
 	}
 	
-	/** Nothing to add because thresholds are zero. */
+	/** A bit has been added. */
 	@Test
 	public void testConstructExtendedGraph3()
 	{
@@ -288,38 +267,12 @@ public class TestMarkovLearner {
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,1,0);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
 
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.negative, newTransitions.get(graph.findVertex("B")).get(lblU));
 		
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
-
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
-		if (ex != null)
-			throw ex;
-		Assert.assertNotSame(graph, m.get_extension_model());
-	}
-	
-	/** A bit has been added. */
-	@Test
-	public void testConstructExtendedGraph4()
-	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
-		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
-		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
-
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
-		
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -330,19 +283,18 @@ public class TestMarkovLearner {
 	
 	/** A bit has been added, but reject-transition was not because is present both in the positive and negative light in the initial traces. */
 	@Test
-	public void testConstructExtendedGraph5()
+	public void testConstructExtendedGraph4()
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
 
 		Assert.assertFalse(newTransitions.get(graph.findVertex("B")).containsKey(lblU));// failure ignored
 		
-		Assert.assertEquals(0.333333333333, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -354,20 +306,18 @@ public class TestMarkovLearner {
 	
 	/** A bit has been added, but reject-transition was not because is present both in the positive and negative light in the initial traces. */
 	@Test
-	public void testConstructExtendedGraph6()
+	public void testConstructExtendedGraph5()
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);// w below is to ensure that all elements of the alphabet are included in traces.
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"},new String[]{"w"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);// the purpose of the w-transition is to ensure transition c is taken into account in graph comparison
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
-		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
+		Assert.assertEquals(1,newTransitions.size());
 
-		Assert.assertEquals(1, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
+		Assert.assertEquals(1,newTransitions.get(graph.findVertex("B")).size());
 		
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive,newTransitions.get(graph.findVertex("B")).get(lblB));
 
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -376,48 +326,21 @@ public class TestMarkovLearner {
 		Assert.assertNotSame(graph, m.get_extension_model());
 	}
 	
-	/** A bit has been added. u has been seen both in the positive and negative light and thresholds permit it to be added in the positive way. */
+	/** Nothing has been added. u has been seen both in the positive and negative light and lead to inconsistency. */
 	@Test
-	public void testConstructExtendedGraph7()
+	public void testConstructExtendedGraph6()
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,1);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		
-		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
+		Assert.assertEquals(1,newTransitions.size());
 
-		Assert.assertEquals(1, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
+		Assert.assertEquals(1,newTransitions.get(graph.findVertex("B")).size());
 		
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
-
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b->C / B-u->D / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
-		if (ex != null)
-			throw ex;
-		Assert.assertNotSame(graph, m.get_extension_model());
-	}
-	
-	/** A bit has been added. u has been seen both in the positive and negative light and thresholds do not permit it to be added. */
-	@Test
-	public void testConstructExtendedGraph8()
-	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
-		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
-		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
-		
-		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
-
-		Assert.assertEquals(1, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
-		
-		Assert.assertEquals(0.5, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);
+		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
@@ -425,4 +348,95 @@ public class TestMarkovLearner {
 			throw ex;
 		Assert.assertNotSame(graph, m.get_extension_model());
 	}
+	
+	/** A bit has been added. u has been seen both in the positive and negative light. */
+	@Test
+	public void testConstructExtendedGraph7()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
+		
+		Assert.assertEquals(2,newTransitions.size());
+
+		Assert.assertEquals(1,newTransitions.get(graph.findVertex("B")).size());
+		Assert.assertEquals(1,newTransitions.get(graph.findVertex("Z")).size());
+		
+		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
+		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("Z")).get(lblU));
+
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z-u->Y / B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
+		if (ex != null)
+			throw ex;
+		Assert.assertNotSame(graph, m.get_extension_model());
+	}
+	
+	/** Two inconsistencies, transition u and transition b which should exist after a. */
+	@Test
+	public void testCheckFanoutInconsistency1()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		
+		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+	}
+	
+	/** Two inconsistencies, transition u and transition b which should not exist after c. */
+	@Test
+	public void testCheckFanoutInconsistency2()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		
+		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+	}
+	
+	/** One inconsistency: transition u. */
+	@Test
+	public void testCheckFanoutInconsistency3()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		
+		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+	}
+	
+	/** One inconsistency: transition u. */
+	@Test
+	public void testCheckFanoutInconsistency4()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		
+		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));// everything as expected.
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),alphabet,m.getChunkLen()));// missing reject-transition with label u.
+	}
+	
 }

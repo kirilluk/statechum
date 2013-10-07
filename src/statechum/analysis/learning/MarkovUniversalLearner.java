@@ -118,7 +118,7 @@ public class MarkovUniversalLearner
 		}		
 	}
 	
-	public static final UpdatablePairDouble zero = new UpdatablePairDouble(0, 0);
+	public static final UpdatablePairDouble failure = new UpdatablePairDouble(-1, -1);
 	
 	/** Constructs the tables used by the learner, from positive and negative traces.
 	 */
@@ -140,7 +140,7 @@ public class MarkovUniversalLearner
 		
 		if (traceLength == 0)
 			throw new IllegalArgumentException("empty trace data");
-		
+		/*
 		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTASequenceEngine.SequenceSet allPathsOfLengthi = engine.new SequenceSet();allPathsOfLengthi.setIdentity(); 
 		for(int i=0;i<chunk_Length;++i)
@@ -149,6 +149,8 @@ public class MarkovUniversalLearner
 			for(List<Label> seq:engine.getData())
 				occurrenceMatrix.put(new Trace(seq), new UpdatablePairInteger(0,0));
 		}
+		*/
+		
 		// going through all positive traces
 		//and partitioning each positive traces into a list of events ( a list of labels based on the chunk length)
 		for(List<Label> positive_trace:pos)
@@ -189,21 +191,27 @@ public class MarkovUniversalLearner
 			// counting the number of times of occurrence the random generated path
 			int prefix_occurence=trace_to_account_its_probability.size()>1?occurrenceMatrix.get(pretrace).firstElem : traceLength;
 			UpdatablePairInteger Trace_occurence = e.getValue();
+			if (Trace_occurence.firstElem > 0 && Trace_occurence.secondElem > 0)
+				MarkovMatrix.put(trace_to_account_its_probability, failure);
+			else
 			if (Trace_occurence.firstElem > 0 || Trace_occurence.secondElem > 0)
 				MarkovMatrix.put(trace_to_account_its_probability, new UpdatablePairDouble(Trace_occurence.firstElem/(double)prefix_occurence,Trace_occurence.secondElem/(double)prefix_occurence));
-			else
-				MarkovMatrix.put(trace_to_account_its_probability,zero);
 		}
 		return MarkovMatrix;
 	}
 
 	protected void initialization(Trace traceToMarkov , boolean positive)
 	{
-		UpdatablePairInteger occurence_of_trace=occurrenceMatrix.get(traceToMarkov);
+		UpdatablePairInteger occurrence_of_trace=occurrenceMatrix.get(traceToMarkov);
+		if (occurrence_of_trace == null)
+		{
+			occurrence_of_trace = new UpdatablePairInteger(0, 0);occurrenceMatrix.put(traceToMarkov,occurrence_of_trace);
+		}
+		
 		if(positive)
-			occurence_of_trace.add(1,0);
+			occurrence_of_trace.add(1,0);
 		else  // if negative
-			occurence_of_trace.add(0,1);
+			occurrence_of_trace.add(0,1);
 	}
 
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
@@ -347,17 +355,17 @@ public class MarkovUniversalLearner
 	    					Trace Predicted_trace= new Trace();
 	    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
 
-	    					UpdatablePairDouble predicted_form_Markov=MarkovMatrix.get(Predicted_trace);
-	    					if (predicted_form_Markov != zero)
+	    					UpdatablePairDouble predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+	    					if (predicted_from_Markov != null && predicted_from_Markov != failure)
 	    					{
 		    					if(outgoing_labels_probabilities.containsKey(label))
 		    					{
 		    						UpdatablePairDouble labels_ocuurence= outgoing_labels_probabilities.get(label);
-		    						labels_ocuurence.firstElem=Math.max(labels_ocuurence.firstElem,predicted_form_Markov.firstElem);											 
-		    						labels_ocuurence.secondElem=Math.max(labels_ocuurence.secondElem,predicted_form_Markov.secondElem);											 
+		    						labels_ocuurence.firstElem=Math.max(labels_ocuurence.firstElem,predicted_from_Markov.firstElem);											 
+		    						labels_ocuurence.secondElem=Math.max(labels_ocuurence.secondElem,predicted_from_Markov.secondElem);											 
 		    					}
 		    					else
-		    						outgoing_labels_probabilities.put(label, predicted_form_Markov);
+		    						outgoing_labels_probabilities.put(label, predicted_from_Markov);
 	    					}
 	    				}
 	    			}
@@ -371,6 +379,101 @@ public class MarkovUniversalLearner
 
 	    return outgoing_labels_probabilities;
 	}
+	
+	protected static UpdatablePairDouble zero=new UpdatablePairDouble(0,0);
+	
+	public int checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	{
+		assert vert.isAccept();
+
+		int inconsistentElements = 0;
+		Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+	    frontline.add(e);
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();	
+	    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
+	    	{		
+	    		for(CmpVertex target:entry.getValue())
+	    		{
+	    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunkLength);
+	    			PathToNewState.addAll(e.pathToFrontLine);
+	    			PathToNewState.add(entry.getKey());
+	    			if(PathToNewState.size()==chunkLength-1)
+	    			{
+	    				for(Label label:alphabet)
+	    				{
+	    					Trace Predicted_trace= new Trace();
+	    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+
+    						UpdatablePairDouble predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+	    					if (predicted_from_Markov != failure)
+	    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
+
+	    						if (predicted_from_Markov == null)
+		    					// the current path does not expect a specific label to follow, check our records, we may have seen other paths predict it.
+		    						predicted_from_Markov = zero;
+
+	    						UpdatablePairDouble labels_occurrence= outgoing_labels_probabilities.get(label);
+	    						if (labels_occurrence == null)
+	    						{
+	    							if (vert.getDepth() < chunkLength-1)
+	    							{// we cannot predict anything for states close to root unless we've created a loop (which also happens). Hence assume that for states near root, the present fanout is the one expected.
+	    								CmpVertex targetState = graph.transitionMatrix.get(vert).get(label);
+	    								if (targetState == null)
+	    									labels_occurrence = new UpdatablePairDouble(0,0);// no transition with this label, set prediction to zero
+	    								else
+	    									if (targetState.isAccept()) labels_occurrence = new UpdatablePairDouble(1,0);// there is already a transition to an accept state, record it.
+	    									else
+	    										labels_occurrence = new UpdatablePairDouble(0,1);// a reject-transition
+	    							}
+	    							else
+	    								labels_occurrence = new UpdatablePairDouble(predicted_from_Markov.firstElem, predicted_from_Markov.secondElem);
+	    							
+	    							outgoing_labels_probabilities.put(label, labels_occurrence);
+	    						}
+	
+	    						if (labels_occurrence != failure)
+	    						{// if there is not inconsistency already detected for this label
+		
+		    						if (
+		    								(predicted_from_Markov.firstElem > 0 && labels_occurrence.firstElem <= 0) ||
+		    								(predicted_from_Markov.firstElem <= 0 && labels_occurrence.firstElem > 0)
+		    							)
+		    						{
+		    							outgoing_labels_probabilities.put(label, failure);// one is predicted, the other one is not, report as a failure
+		    							++inconsistentElements;
+		    						}
+		    						else
+		    						{
+			    						labels_occurrence.firstElem=Math.max(labels_occurrence.firstElem,predicted_from_Markov.firstElem);											 
+			    						labels_occurrence.secondElem=Math.max(labels_occurrence.secondElem,predicted_from_Markov.secondElem);
+			    						
+			    						if (labels_occurrence.firstElem > 0 && labels_occurrence.secondElem > 0)
+			    						{
+			    							outgoing_labels_probabilities.put(label, failure);// inconsistent prediction, report as a failure
+			    							++inconsistentElements;
+			    						}
+		    						}
+		    					}
+    						}
+	    				}
+	    			}
+	    			else
+	    			{// not reached the maximal length of paths to explore
+	    				frontline.add(new FrontLineElem(PathToNewState,target));
+	    			}
+	    		}
+	    	}
+	    }
+
+	    return inconsistentElements;
+	}
+	
+	
+	
 	
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
 	 *  
@@ -421,7 +524,7 @@ public class MarkovUniversalLearner
     	 			Map<Label, CmpVertex> already_outgoing = tentativeAutomaton.transitionMatrix.get(currrent_state_to_explore_outgoing);
     	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
 
-    	 			if(!already_outgoing.containsKey(out.getKey()))
+    	 			if(!already_outgoing.containsKey(out.getKey()) && out.getValue() != failure)
     	 			{  	   
 //    	 				if (Math.abs(out.getValue().firstElem-out.getValue().secondElem) < 0.2)
 //    	 					System.out.println("similar values for pos and neg");

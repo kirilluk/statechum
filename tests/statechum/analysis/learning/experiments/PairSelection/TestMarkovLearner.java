@@ -97,10 +97,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}, new String[]{"a","u"} },config,converter);
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(11,counter);
+		Assert.assertEquals(11,matrix.size());
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(0.2, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
 
@@ -128,8 +125,8 @@ public class TestMarkovLearner {
 		Assert.assertEquals(0.21428571428571427, matrix.get(new Trace(Arrays.asList(new Label[]{lblC}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblC}))).secondElem,Configuration.fpAccuracy);
 		
-		Assert.assertEquals(0.07142857142857142, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.07142857142857142, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).secondElem,Configuration.fpAccuracy);
+		Assert.assertEquals(MarkovUniversalLearner.failure.firstElem, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).firstElem,Configuration.fpAccuracy);
+		Assert.assertEquals(MarkovUniversalLearner.failure.secondElem, matrix.get(new Trace(Arrays.asList(new Label[]{lblD}))).secondElem,Configuration.fpAccuracy);
 		
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(0.07142857142857142, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
@@ -141,10 +138,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter), minusStrings = new HashSet<List<Label>>();
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(3,counter);
+		Assert.assertEquals(3,matrix.size());
 		
 		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
@@ -162,10 +156,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(3,counter);
+		Assert.assertEquals(3,matrix.size());
 
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
@@ -184,10 +175,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(3,counter);
+		Assert.assertEquals(3,matrix.size());
 
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
@@ -205,10 +193,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"u"} },config,converter);
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(1,counter);
+		Assert.assertEquals(1,matrix.size());
 
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblU}))).secondElem,Configuration.fpAccuracy);
@@ -221,10 +206,7 @@ public class TestMarkovLearner {
 		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		final Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{},new String[]{"a","u"} },config,converter);
 		Map<Trace, UpdatablePairDouble> matrix = m.createMarkovLearner(plusStrings, minusStrings);
-		int counter=0;
-		for(Entry<Trace,UpdatablePairDouble> entry:matrix.entrySet())
-			if (entry.getValue() != MarkovUniversalLearner.zero) ++counter;
-		Assert.assertEquals(3,counter);
+		Assert.assertEquals(3,matrix.size());
 		
 		Assert.assertEquals(0, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(1, matrix.get(new Trace(Arrays.asList(new Label[]{lblA,lblU}))).secondElem,Configuration.fpAccuracy);
@@ -357,8 +339,7 @@ public class TestMarkovLearner {
 		Map<CmpVertex, Map<Label, UpdatablePairDouble>> newTransitions = m.constructMarkovTentative(graph,0.1,0);
 		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
 
-		Assert.assertEquals(0.333333333333, newTransitions.get(graph.findVertex("B")).get(lblU).firstElem,Configuration.fpAccuracy);
-		Assert.assertEquals(0.333333333333, newTransitions.get(graph.findVertex("B")).get(lblU).secondElem,Configuration.fpAccuracy);
+		Assert.assertFalse(newTransitions.get(graph.findVertex("B")).containsKey(lblU));// failure ignored
 		
 		Assert.assertEquals(0.333333333333, newTransitions.get(graph.findVertex("B")).get(lblB).firstElem,Configuration.fpAccuracy);
 		Assert.assertEquals(0, newTransitions.get(graph.findVertex("B")).get(lblB).secondElem,Configuration.fpAccuracy);

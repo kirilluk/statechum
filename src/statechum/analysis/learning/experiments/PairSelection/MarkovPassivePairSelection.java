@@ -107,6 +107,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
 		Collection<Label> redLabelsAdded = new LinkedList<Label>();labelsAdded.put(pair.getR(), redLabelsAdded);
 		redLabelsAdded.addAll(result.transitionMatrix.get(pair.getR()).keySet());
+		
 		// make a loop
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
@@ -175,7 +176,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		// mapping map to store all paths leave each state in different length
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(result,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-
+		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
+			if (!entry.getValue().isEmpty())
+			{
+				pairScore-=2*Markov.checkFanoutInconsistency(Inverse_Graph,original,entry.getKey(),alphabet,Markov.getChunkLen());
+			}
+/*
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
@@ -193,7 +199,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 						if (predictedProbability != null)
 						{
-							if (predictedProbability.firstElem > 0.2) // WARNING: hardwired constant
+							if (predictedProbability.firstElem > 0) // WARNING: hardwired constant
 									return Long.MIN_VALUE;
 	//						--pairScore;
 						}
@@ -201,7 +207,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				
 				for(Entry<Label,UpdatablePairDouble> outgoingPredicted:outgoing_labels_probabilities.entrySet() )
 				{
-					if (outgoingPredicted.getValue().firstElem > 0.1)
+					if (outgoingPredicted.getValue().firstElem > 0)
 					{
 						CmpVertex target = outgoingActual.get(outgoingPredicted.getKey());
 						if (target == null)
@@ -212,7 +218,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 			}
-	
+	*/
 		return pairScore;
 	}
 	
@@ -356,6 +362,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				return LearnerRunner.this;
 			}
 		}
+		
 		
 		List<List<List<Label>>> checkVertices(LearnerGraph coregraph,LearnerGraph referenceGraph,MarkovUniversalLearner m)
 		{
@@ -595,6 +602,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//learnerEval.config.setGeneralisationThreshold(1);
 					final LearnerGraph finalReferenceGraph = referenceGraph;
 					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+					//checkVertices(pta, referenceGraph, m);
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 
 					pta.setScoreComputationCallback(new ScoreComputationCallback() {
@@ -602,7 +610,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						@Override
 						public long overrideScoreComputation(LearnerGraph graph, PairScore p) {
 							long score = computeScoreBasedOnMarkov(graph,p,m);
-							/*
+							
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 							SplitSetOfPairsIntoRightAndWrong(graph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
@@ -610,11 +618,11 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							if ( (score >= 0 && correctPairs.isEmpty()) || (score < 0 && !correctPairs.isEmpty()))
 							{
 								System.out.println(p+" "+score+" INCORRECT");
-								Visualiser.updateFrame(graph.transform.trimGraph(3, p.getR()), finalReferenceGraph);
+								Visualiser.updateFrame(graph.transform.trimGraph(3, graph.getInit()), finalReferenceGraph);
 								//Visualiser.waitForKey();
 								computeScoreBasedOnMarkov(graph,p,m);
 								//System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
-							}*/
+							}
 							return score;
 						}
 					});
@@ -1218,12 +1226,20 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
+		final int traceQuantity=3;
+		
+		
+		LearnerRunner oneExperimentRunner = new LearnerRunner(minStateNumber,0,traceQuantity+2,traceQuantity, config, converter);
+		oneExperimentRunner.setPickUniqueFromInitial(false);
+		oneExperimentRunner.setOnlyUsePositives(false);oneExperimentRunner.setLengthMultiplier(50);
+		//learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+		oneExperimentRunner.call();
+		/*
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{50})
 		for(final boolean onlyPositives:new boolean[]{false})
 			{
-				final int traceQuantity=3;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection;
@@ -1293,6 +1309,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 			}
 		if (executorService != null) { executorService.shutdown();executorService = null; }
+		*/
 		
 	}
 }

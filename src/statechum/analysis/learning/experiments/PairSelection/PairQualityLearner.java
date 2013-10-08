@@ -1288,11 +1288,45 @@ public class PairQualityLearner
 		 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
 		 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
 		 */
-		public static DifferenceToReferenceLanguage estimationOfDifferenceFmeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
+		public static DifferenceToReferenceLanguage estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 		{
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
 	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
 			return new DifferenceToReferenceLanguage(mat);
+		}
+	}
+	
+	public static class DifferenceToReferenceLanguageBCR extends ConfusionMatrix implements DifferenceToReference
+	{		
+		protected DifferenceToReferenceLanguageBCR(int tpArg, int tnArg, int fpArg, int fnArg) 
+		{
+			super(tpArg, tnArg, fpArg, fnArg);
+		}
+		
+		protected DifferenceToReferenceLanguageBCR(ConfusionMatrix mat) 
+		{
+			super(mat);
+		}
+
+		@Override
+		public double getValue()
+		{
+			return BCR();
+		}
+		
+		/** Given two graphs, estimates the difference between the two. 
+		 *
+		 * @param refenceGraph reference automaton
+		 * @param actualAutomaton the automaton to compare the reference with
+		 * @param testSet a test set to use for comparison, useful when language-based measures such as an f-measure are utulised.
+		 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
+		 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
+		 */
+		public static DifferenceToReferenceLanguageBCR estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
+		{
+	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
+			return new DifferenceToReferenceLanguageBCR(mat);
 		}
 	}
 	

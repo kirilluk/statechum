@@ -274,7 +274,7 @@ public class SmallvsHugeExperiment {
 		if (rejectVertexID == null)
 			rejectVertexID = actualAutomaton.nextID(false);
 		actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-		return DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, actualAutomaton, testSet);
+		return DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, actualAutomaton, testSet);
 	}
 	
 	public static void main(String []args)

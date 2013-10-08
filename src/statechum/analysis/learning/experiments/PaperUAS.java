@@ -723,7 +723,6 @@ public class PaperUAS
    public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
    {
 	   final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph,-1,-1);
-	   
    		DrawGraphs gr = new DrawGraphs();
 		final RBoxPlot<String>
 			uas_F=new RBoxPlot<String>("Time","F-measure",new File("time_"+name+"_f.pdf")),
@@ -833,7 +832,7 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
 				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
@@ -852,7 +851,7 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifferenceFmeasure(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
@@ -976,13 +975,13 @@ public class PaperUAS
 			actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
 		}
        	LearnerGraph learntGraph = new LearnerGraph(learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-       /*System.out.println("state number: "+referenceGraph.getStateNumber()+" for reference and "+learntGraph.getStateNumber()+" for the actual one");
+       System.out.println("state number: "+referenceGraph.getStateNumber()+" for reference and "+learntGraph.getStateNumber()+" for the actual one");
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		DirectedSparseGraph gr = gd.showGD(
 					learntGraph,referenceGraph,
 					ExperimentRunner.getCpuNumber());
 			Visualiser.updateFrame(gr,null);
-			Visualiser.waitForKey();*/
+			Visualiser.waitForKey();
        return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
    }
    
@@ -1013,13 +1012,14 @@ public class PaperUAS
 		try
 		{
 			List<Future<?>> outcomes = new LinkedList<Future<?>>();
+			System.out.println(allFrames);
 			for(final Integer frame:allFrames)
 			{
 				Runnable interactiveRunner = new Runnable() {
 
 					@Override
 					public void run() 
-					{
+					{/*
 						final Classifier classifiers[] = loadClassifierFromArff(arffName);
 						for(Classifier c:classifiers)
 						{
@@ -1055,6 +1055,7 @@ public class PaperUAS
 								uas_S.add(frame+"T",difference.getValue());								
 							}
 						}
+					 */
 			  			LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(frame));
 			  			DifferenceToReference difference = learnAndEstimateDifference(ifDepth, initPTA,referenceGraph,null,Collections.<Label>emptyList(),Collections.<Label>emptyList());
 			  			uas_S.add(frame+"R",difference.getValue());

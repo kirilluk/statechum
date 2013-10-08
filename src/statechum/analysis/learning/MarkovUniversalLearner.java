@@ -128,7 +128,17 @@ public class MarkovUniversalLearner
 				if (a == unknown)
 				{// unknown is overridden by b, whatever it is, including unknown
 					outcome = b;
-				}
+				}/*
+				if (a == negative)
+				{
+					outcome = a;
+					
+					if (b != null)
+					{
+						if (b != unknown && a != b)
+							outcome = failure;
+					}
+				}*/
 				else
 				{
 					outcome = a;
@@ -146,7 +156,7 @@ public class MarkovUniversalLearner
 				if (b != null)
 				{
 					if (b != unknown)
-						outcome = failure;// null v.s. non-null
+						outcome = failure;
 				}
 			return outcome;
 		}
@@ -458,7 +468,7 @@ public class MarkovUniversalLearner
 	public int checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
 	{
 		assert vert.isAccept();
-
+		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
 		int inconsistentElements = 0;
 		Map<Label,UpdatableOutcome> outgoing_labels_probabilities=new HashMap<Label,UpdatableOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
@@ -479,7 +489,7 @@ public class MarkovUniversalLearner
 	    			PathToNewState.add(entry.getKey());
 	    			if(PathToNewState.size()==chunkLength-1)
 	    			{
-	    				for(Label label:alphabet)
+	    				for(Label label:outgoingLabels)
 	    				{
     						UpdatableOutcome labels_occurrence= outgoing_labels_probabilities.get(label);
     						if (labels_occurrence != UpdatableOutcome.failure)
@@ -744,9 +754,6 @@ public class MarkovUniversalLearner
 		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
 		Set<Label> predicted_from_red_node = Extension_Graph.transitionMatrix.get(P.getR()).keySet();
 		
-		predicted_from_blue_node.removeAll(outgoing_from_blue_node);
-		predicted_from_red_node.removeAll(outgoing_from_red_node);
-	
 		Set<Label> all_outgoing = new HashSet<Label>() ;
 		all_outgoing.addAll(predicted_from_red_node);
 		all_outgoing.addAll(predicted_from_blue_node);
@@ -783,6 +790,85 @@ public class MarkovUniversalLearner
 				return REJECT;
 		}		
 		return score+(score/all_outgoing.size());		
+	}
+	
+	
+	public double computeMMScoreImproved_revised(PairScore P, LearnerGraph	coregraph)
+	{
+		double score = 0;
+		Set<Label> outgoing_from_blue_node =	coregraph.transitionMatrix.get(P.getQ()).keySet();
+		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();
+		Set<Label> predicted_from_blue_node =	Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
+		Set<Label> predicted_from_red_node =	Extension_Graph.transitionMatrix.get(P.getR()).keySet();
+
+
+		Set<Label> all_outgoing = new HashSet<Label>() ;
+		all_outgoing.addAll(predicted_from_red_node);
+		all_outgoing.addAll(predicted_from_blue_node);
+
+		//  if ((P.getR().getDepth() < getChunkLen() || P.getQ().getDepth() <	getChunkLen()) && P.getScore() <= 0)
+		//   return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
+
+		// THIS ONE IS BETTER THAN ABOVE
+		Map<CmpVertex, List<Label>> Path = coregraph.pathroutines.computeShortPathsToAllStates(coregraph.getInit());
+		List<Label> PathTORed = Path.get(P.getR());
+		List<Label> PathTOBlue = Path.get(P.getQ());
+
+		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() < getChunkLen()) && P.getScore() < 0)
+			return -1;
+
+
+		if(P.getQ().isAccept()==false)
+			return 1;
+
+		for(Label out_red:outgoing_from_red_node)
+		{
+			if(predicted_from_blue_node.contains(out_red))  // if outgoing transitions from a red node exist in a blue state
+			{
+				boolean target_from_red_acceptance  =
+						coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
+				boolean target_form_blue_acceptance =
+						Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();
+				if(target_form_blue_acceptance  ==  target_from_red_acceptance )
+					score++;
+			}
+			else
+			{
+				return REJECT;            // this one make a very good rejection
+			}
+		}
+
+
+
+		for(Label out_blue:outgoing_from_blue_node)
+		{
+			if(predicted_from_red_node.contains(out_blue))  // if outgoing transitions from a red node exist in a blue state
+			{
+				boolean target_from_red_acceptance  =
+						Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
+				boolean target_form_blue_acceptance =
+						coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
+				if(target_form_blue_acceptance  ==  target_from_red_acceptance )
+					score++;
+
+			}
+			else
+			{
+				return REJECT; // this one make a very good rejection
+			}
+		}
+
+		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() <	getChunkLen()) && score > P.getScore()) // no statistical evidence found
+			return 0; // possibly to Merge
+		/*
+		if(PathTORed.size() > 0 && PathTOBlue.size() > 0 && P.getScore() < 1) //	looking for existing incoming transitions
+		{
+			if(PathTORed.get(PathTORed.size()-1)!=
+					PathTOBlue.get(PathTOBlue.size()-1))       // if the incoming transitions is different and the score is low
+				return REJECT;
+		}
+*/
+		return (score/all_outgoing.size());
 	}
 	
 	public static Collection<CmpVertex> numOFsimilarRED(Stack<PairScore> possibleMerges)

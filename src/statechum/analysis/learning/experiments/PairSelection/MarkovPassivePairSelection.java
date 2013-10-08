@@ -18,11 +18,13 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +90,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	public static long computeScoreUsingMarkovFanouts(LearnerGraph graph, LearnerGraphND origInverse, MarkovUniversalLearner Markov, Set<Label> alphabet, StatePair p)
 	{
 		long currentScore=comparePredictedFanouts(graph,origInverse,Markov,p.getR(),p.getQ(),alphabet,new LinkedList<Label>(),2);
-		/* The one below compares states based on actual outgoing transitions, the one above only uses Markov predictions, current outgoing are taken into account when I count inconsistencies.
+		// The one below compares states based on actual outgoing transitions, the one above only uses Markov predictions, current outgoing are taken into account when I count inconsistencies.
 		Map<Label,CmpVertex> transitionsFromBlue = graph.transitionMatrix.get(p.getQ());
 		for(Entry<Label,CmpVertex> outgoing:graph.transitionMatrix.get(p.getR()).entrySet())
 		{
@@ -98,7 +100,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				currentScore+=comparePredictedFanouts(graph,origInverse,Markov,outgoing.getValue(),targetFromBlue,alphabet,new LinkedList<Label>(),2);
 			}
 		}
-		*/
+		
 		return currentScore;
 	}
 
@@ -116,7 +118,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		{
 			UpdatableOutcome outcomeBlue = outgoing_blue_probabilities.get(entry.getKey());
 			if (outcomeBlue == null && entry.getValue() == UpdatableOutcome.negative) 
-				++score; // red negative, blue absent, hence the two are consistent
+				++scoreCurrentFanout; // red negative, blue absent, hence the two are consistent
 			if (outcomeBlue == entry.getValue()) // or if the two are consistent
 			{
 				if (stepNumber > 1)
@@ -132,7 +134,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		{
 			UpdatableOutcome outcomeRed = outgoing_red_probabilities.get(entry.getKey());
 			if (outcomeRed == null && entry.getValue() == UpdatableOutcome.negative) 
-				++score; // blue negative, red absent, hence the two are consistent
+				++scoreCurrentFanout; // blue negative, red absent, hence the two are consistent
 			if (outcomeRed == entry.getValue()) // or if the two are consistent
 			{
 				if (stepNumber > 1)
@@ -198,7 +200,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		if (pairScore < 0)
 			throw new IllegalArgumentException("elements of the pair are incompatible");
 
-		if ((pair.getR().getDepth() < Markov.getChunkLen() || pair.getQ().getDepth() < Markov.getChunkLen()) && pairScore <= 0)
+		if ((pair.getR().getDepth() < Markov.getChunkLen()-1 || pair.getQ().getDepth() < Markov.getChunkLen()-1) && pairScore <= 0)
 			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
 
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
@@ -590,9 +592,17 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						
 						@Override
 						public long overrideScoreComputation(PairScore p) {
+							long score = p.getScore();
+							if (computeScoreBasedOnMarkov(coregraph,p,m,0) < 0)
+								score = -1;
+							
+							if ( (p.getR().getDepth() < m.getChunkLen()-1 || p.getQ().getDepth() < m.getChunkLen()-1 ) && computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p) <= 0)
+								score =-1;
+							/*
 							long score = computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
 							
 							score = computeScoreBasedOnMarkov(coregraph,p,m,score);
+							*/
 							/*
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
@@ -600,12 +610,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 
 							if ( (score >= 0 && correctPairs.isEmpty()) || (score < 0 && !correctPairs.isEmpty()))
 							{
-								System.out.println(p+" "+score+" INCORRECT"+" using inconsistencies it will be "+computeScoreBasedOnMarkov(coregraph,p,m,0));
-								Visualiser.updateFrame(coregraph.transform.trimGraph(3, p.getQ()), coregraph.transform.trimGraph(3, p.getR()));
-								Visualiser.updateFrame(finalReferenceGraph,null);
+								System.out.println(p+" "+score+" INCORRECT"+" with fanouts it is "+computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p)+" using inconsistencies it will be "+computeScoreBasedOnMarkov(coregraph,p,m,0));
+//								Visualiser.updateFrame(coregraph.transform.trimGraph(3, p.getQ()), coregraph.transform.trimGraph(3, p.getR()));
+//								Visualiser.updateFrame(finalReferenceGraph,null);
 								SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
-								score = computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
-								score = computeScoreBasedOnMarkov(coregraph,p,m,score);
+								computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
+								computeScoreBasedOnMarkov(coregraph,p,m,score);
 								//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
 								//Visualiser.waitForKey();
 								//computeScoreBasedOnMarkov(coregraph,p,m);
@@ -661,7 +671,8 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		// Delegates to a specific estimator
 		DifferenceToReference estimateDifference(LearnerGraph reference, LearnerGraph actual,@SuppressWarnings("unused") Collection<List<Label>> testSet)
 		{
-			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+			return DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual, testSet);
+			//return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
 		}
 	}
 	
@@ -858,6 +869,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//if(d > 0.0)
 					//	possibleResults.add(new PairScoreWithDistance(p, d));
 					
+					//long score = computeScoreBasedOnMarkov(tentativeGraph,p,Markov,0);
 					double d = Markov.computeMMScoreImproved(p, tentativeGraph);
 					if(d > 0.0)
 						possibleResults.add(new PairScoreWithDistance(p, d));
@@ -1090,15 +1102,16 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		{
 			Map<CmpVertex, Map<Label, UpdatableOutcome>> l = constructExtensionGraph(graph);
 			PairScore result = null;
+			/*
 			ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
  			if(!possibleResults.isEmpty())
 			{
  				result = possibleResults.iterator().next();
 			}
+			*/
  			if(result==null)
  			{
- 				possibleResults.add(pickPairQSMLike(outcome));// no pairs have been provided by the modified algorithm, hence using the default one.
- 				result = possibleResults.iterator().next();
+ 				result = pickPairQSMLike(outcome);// no pairs have been provided by the modified algorithm, hence using the default one.
  			}
  			assert result != null;
 			return result;
@@ -1212,23 +1225,23 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();	
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 10;
+		final int minStateNumber = 20;
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
 		final int traceQuantity=3;
 		
-		
+/*
 		LearnerRunner oneExperimentRunner = new LearnerRunner(minStateNumber,0,traceQuantity+2,traceQuantity, config, converter);
 		oneExperimentRunner.setPickUniqueFromInitial(false);
 		oneExperimentRunner.setOnlyUsePositives(false);oneExperimentRunner.setLengthMultiplier(50);
 		//learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 		oneExperimentRunner.call();
-		/*
+*/
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{50})
-		for(final boolean onlyPositives:new boolean[]{false})
+		for(final int lengthMultiplier:new int[]{10})
+		for(final boolean onlyPositives:new boolean[]{true})
 			{
 				for(final boolean useUnique:new boolean[]{false})
 				{
@@ -1299,7 +1312,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 			}
 		if (executorService != null) { executorService.shutdown();executorService = null; }
-		*/
-		
+	
+
 	}
 }

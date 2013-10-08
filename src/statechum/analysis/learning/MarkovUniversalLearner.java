@@ -396,10 +396,12 @@ public class MarkovUniversalLearner
 	
 	
 	
-	public Map<Label, UpdatableOutcome> predictTransitionsFromState(LearnerGraphND Inverse_Graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	public Map<Label, UpdatableOutcome> predictTransitionsFromState(LearnerGraphND Inverse_Graph, CmpVertex vert, Collection<Label> alphabet, List<Label> pathBeyondCurrentState, int chunkLength)
 	{
 		assert vert.isAccept();
-
+		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
+		if (lengthOfPathBeyond+2 > chunkLength)
+			throw new IllegalArgumentException("supplied pathBeyondCurrentState is too long and does not permit exploration");
 		Set<Label> failureLabels = new TreeSet<Label>();
 		Map<Label,UpdatableOutcome> outgoing_labels_probabilities=new HashMap<Label,UpdatableOutcome>();
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
@@ -415,7 +417,7 @@ public class MarkovUniversalLearner
 	    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunkLength);
 	    			PathToNewState.addAll(e.pathToFrontLine);
 	    			PathToNewState.add(entry.getKey());
-	    			if(PathToNewState.size()==chunkLength-1)
+	    			if(PathToNewState.size()==chunkLength-1-lengthOfPathBeyond)
 	    			{
 	    				for(Label label:alphabet)
 	    				{
@@ -423,7 +425,8 @@ public class MarkovUniversalLearner
 	    					{// if the labels is not already recorded as being inconsistently predicted
 	    						UpdatableOutcome predictedFromEalierTrace = outgoing_labels_probabilities.get(label);
 		    					Trace Predicted_trace= new Trace();
-		    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+		    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
+		    					Predicted_trace.add(label);
 		    					
 		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
 	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions(predictedFromEalierTrace, predicted_from_Markov);
@@ -529,7 +532,7 @@ public class MarkovUniversalLearner
     	for(CmpVertex vert:Inverse_Graph.transitionMatrix.keySet())
            if(vert.isAccept() )
             {
-        	   Map<Label,UpdatableOutcome> outgoing_labels_probabilities=predictTransitionsFromState(Inverse_Graph,vert,alphabet,chunk_Length);
+        	   Map<Label,UpdatableOutcome> outgoing_labels_probabilities=predictTransitionsFromState(Inverse_Graph,vert,alphabet,null,chunk_Length);
 			   if (!outgoing_labels_probabilities.isEmpty())
 			    	state_outgoing.put(vert, outgoing_labels_probabilities);
 			}

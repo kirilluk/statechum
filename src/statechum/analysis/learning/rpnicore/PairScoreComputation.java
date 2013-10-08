@@ -96,6 +96,7 @@ public class PairScoreComputation {
 		{
 			RedStatesFound.clear();coregraph.pairsAndScores.clear();
 			currentExplorationBoundary.addAll(reds);
+			if (coregraph.additionalExplorationRoot != null) currentExplorationBoundary.addAll(coregraph.additionalExplorationRoot);
 			while(!currentExplorationBoundary.isEmpty())
 			{
 				CmpVertex currentRed = currentExplorationBoundary.remove();

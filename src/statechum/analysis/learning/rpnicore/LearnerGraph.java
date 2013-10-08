@@ -213,6 +213,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public long overrideScoreComputation(PairScore p);
 	}
 	
+	public Collection<CmpVertex> additionalExplorationRoot = null;
 	public ScoreComputationCallback scoreComputation = null;
 	
 	public void setScoreComputationCallback(ScoreComputationCallback s)

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import junit.framework.Assert;
 
@@ -16,6 +17,7 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
 import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -266,7 +268,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3a",config, converter);
 		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
 
@@ -274,7 +276,7 @@ public class TestMarkovLearner {
 		
 		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / T-b->T-u->T","testConstructExtendedGraph3b",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
 		if (ex != null)
 			throw ex;
@@ -288,7 +290,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3a",config, converter);
 		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertEquals(1,newTransitions.size());// not enough evidence to update, hence nothing should be recorded.
 
@@ -296,7 +298,7 @@ public class TestMarkovLearner {
 		
 		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / T-b->T-u->T","testConstructExtendedGraph4b",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
 		if (ex != null)
 			throw ex;
@@ -311,7 +313,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);// w below is to ensure that all elements of the alphabet are included in traces.
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"},new String[]{"w"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);// the purpose of the w-transition is to ensure transition c is taken into account in graph comparison
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph5a",config, converter);// the purpose of the w-transition is to ensure transition c is taken into account in graph comparison
 		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		Assert.assertEquals(1,newTransitions.size());
 
@@ -319,7 +321,7 @@ public class TestMarkovLearner {
 		
 		Assert.assertSame(UpdatableOutcome.positive,newTransitions.get(graph.findVertex("B")).get(lblB));
 
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-b->C / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph5b",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
 		if (ex != null)
 			throw ex;
@@ -333,7 +335,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph6a",config, converter);
 		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		
 		Assert.assertEquals(1,newTransitions.size());
@@ -342,7 +344,7 @@ public class TestMarkovLearner {
 		
 		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b->C / T-b->T-u->T","testConstructExtendedGraph6b",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
 		if (ex != null)
 			throw ex;
@@ -356,7 +358,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z / T-b->T-u->T","testConstructExtendedGraph7a",config, converter);
 		Map<CmpVertex, Map<Label, UpdatableOutcome>> newTransitions = m.constructMarkovTentative(graph);
 		
 		Assert.assertEquals(2,newTransitions.size());
@@ -367,7 +369,7 @@ public class TestMarkovLearner {
 		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("B")).get(lblB));
 		Assert.assertSame(UpdatableOutcome.positive, newTransitions.get(graph.findVertex("Z")).get(lblU));
 
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z-u->Y / B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z-u->Y / B-b->C / T-b->T-u->T","testConstructExtendedGraph7b",config, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, m.get_extension_model());
 		if (ex != null)
 			throw ex;
@@ -381,7 +383,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testCheckFanoutInconsistency1",config, converter);
 		
 		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
@@ -397,7 +399,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
 		
 		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
@@ -413,7 +415,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
 		
 		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
@@ -429,7 +431,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testConstructExtendedGraph3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testCheckFanoutInconsistency4",config, converter);
 		
 		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
@@ -439,4 +441,59 @@ public class TestMarkovLearner {
 		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),alphabet,m.getChunkLen()));// missing reject-transition with label u.
 	}
 	
+	
+	@Test
+	public void testLabelStatesAwayFromRoot1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
+		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,0);
+		Assert.assertSame(JUConstants.RED, graph.findVertex("A").getColour());
+		Assert.assertNull(graph.findVertex("B").getColour());
+		
+		Assert.assertNull(graph.findVertex("C").getColour());Assert.assertNull(graph.findVertex("D").getColour());
+		
+		Assert.assertNull(graph.additionalExplorationRoot);
+	}
+
+
+	@Test
+	public void testLabelStatesAwayFromRoot2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
+		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,1);
+		Assert.assertSame(JUConstants.RED, graph.findVertex("C").getColour());
+		Assert.assertSame(JUConstants.BLUE, graph.findVertex("B").getColour());
+		
+		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("D").getColour());
+
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("A")})), actual = new TreeSet<CmpVertex>(graph.additionalExplorationRoot);
+		Assert.assertEquals(expected,actual);
+	}
+	
+	@Test
+	public void testLabelStatesAwayFromRoot3()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
+		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,2);
+		
+		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("B").getColour());Assert.assertNull(graph.findVertex("C").getColour());
+		Assert.assertSame(JUConstants.RED, graph.findVertex("D").getColour());
+
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("B"),graph.findVertex("C")})), actual = new TreeSet<CmpVertex>(graph.additionalExplorationRoot);
+		Assert.assertEquals(expected,actual);
+	}
+	
+	@Test
+	public void testLabelStatesAwayFromRoot4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
+		
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,3);
+			}
+		}, IllegalArgumentException.class, "no states");
+	}
 }

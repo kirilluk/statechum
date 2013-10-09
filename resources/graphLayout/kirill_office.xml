@@ -6,16 +6,16 @@
    <string>true</string>
   </void>
   <void method="put">
-   <string>VIZ_CONFIG</string>
-   <string>kirill_office</string>
+   <string>ERLANGHOME</string>
+   <string>C:/Program Files/erl5.9.1</string>
   </void>
   <void method="put">
    <string>LTL2BA</string>
    <string>lib/ltl2ba-1.1/ltl2ba.exe</string>
   </void>
   <void method="put">
-   <string>ERLANGHOME</string>
-   <string>C:/Program Files/erl5.9.1</string>
+   <string>VIZ_CONFIG</string>
+   <string>kirill_office</string>
   </void>
   <void method="put">
    <string>ERLANGOUTPUT_ENABLED</string>
@@ -56,19 +56,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle0"/>
-                 <int>809</int>
+                 <int>631</int>
                 </void>
                </void>
               </object>
-              <int>1086</int>
+              <int>861</int>
              </void>
             </void>
            </object>
-           <int>1</int>
+           <int>401</int>
           </void>
          </void>
         </object>
-        <int>1927</int>
+        <int>2559</int>
        </void>
       </void>
      </object>
@@ -121,26 +121,34 @@
     <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle2">
       <void class="java.awt.Rectangle" method="getField">
-       <string>y</string>
+       <string>x</string>
        <void method="set">
         <object idref="Rectangle2">
          <void class="java.awt.Rectangle" method="getField">
-          <string>width</string>
+          <string>y</string>
           <void method="set">
            <object idref="Rectangle2">
             <void class="java.awt.Rectangle" method="getField">
-             <string>height</string>
+             <string>width</string>
              <void method="set">
-              <object idref="Rectangle2"/>
-              <int>300</int>
+              <object idref="Rectangle2">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle2"/>
+                 <int>609</int>
+                </void>
+               </void>
+              </object>
+              <int>745</int>
              </void>
             </void>
            </object>
-           <int>400</int>
+           <int>404</int>
           </void>
          </void>
         </object>
-        <int>330</int>
+        <int>3487</int>
        </void>
       </void>
      </object>
@@ -628,7 +636,7 @@
    </object>
   </void>
   <void method="put">
-   <int>113</int>
+   <string>LOWER</string>
    <object class="statechum.GlobalConfiguration$WindowPosition">
     <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle15">
@@ -648,19 +656,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle15"/>
-                 <int>300</int>
+                 <int>622</int>
                 </void>
                </void>
               </object>
-              <int>400</int>
+              <int>774</int>
              </void>
             </void>
            </object>
-           <int>613</int>
+           <int>341</int>
           </void>
          </void>
         </object>
-        <int>1452</int>
+        <int>697</int>
        </void>
       </void>
      </object>
@@ -668,7 +676,7 @@
    </object>
   </void>
   <void method="put">
-   <string>LOWER</string>
+   <int>113</int>
    <object class="statechum.GlobalConfiguration$WindowPosition">
     <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle16">
@@ -688,19 +696,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle16"/>
-                 <int>622</int>
+                 <int>300</int>
                 </void>
                </void>
               </object>
-              <int>774</int>
+              <int>400</int>
              </void>
             </void>
            </object>
-           <int>341</int>
+           <int>613</int>
           </void>
          </void>
         </object>
-        <int>697</int>
+        <int>1452</int>
        </void>
       </void>
      </object>

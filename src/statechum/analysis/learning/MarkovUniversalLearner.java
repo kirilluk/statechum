@@ -32,6 +32,7 @@ import java.util.Stack;
 import java.util.TreeSet;
 
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
@@ -43,6 +44,8 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 
 public class MarkovUniversalLearner
 {
@@ -104,6 +107,38 @@ public class MarkovUniversalLearner
 				if (b != null && b != unknown)
 				// a == null, b != null
 					outcome = b;
+
+			return outcome;
+		}
+		
+		/** Given two outcomes of a prediction of a transition (any of which could be a null), computes the expected outcome where the two predictions are reconciled.
+		 *  Unknown values are treated the same way as nulls.
+		 *  
+		 * @param a first opinion
+		 * @param b second opinion
+		 * @return outcome, possibly null where both opinions are null.
+		 */
+		public static UpdatableOutcome reconcileOpinionsAllHaveToMatch(UpdatableOutcome a, UpdatableOutcome b)
+		{
+			UpdatableOutcome outcome = null;
+
+			if (a == failure || b == failure)
+				outcome = failure;
+			else
+			if (a != null)
+			{// b could be null
+				if (a != unknown)
+					outcome = a;
+
+				if (b != null)
+				{
+					if (b != unknown && a != b)
+						outcome = failure;
+				}
+				else
+					// b is null a is not null
+					outcome = null;
+			}
 
 			return outcome;
 		}
@@ -439,7 +474,7 @@ public class MarkovUniversalLearner
 		    					Predicted_trace.add(label);
 		    					
 		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions(predictedFromEalierTrace, predicted_from_Markov);
+	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinionsAllHaveToMatch(predictedFromEalierTrace, predicted_from_Markov);
 	    						if (outcome != predictedFromEalierTrace)
 	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
 	    							if (outcome == UpdatableOutcome.failure)
@@ -793,82 +828,80 @@ public class MarkovUniversalLearner
 	}
 	
 	
-	public double computeMMScoreImproved_revised(PairScore P, LearnerGraph	coregraph)
+	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph,LearnerGraph Extension_Graph, int chunk)
 	{
 		double score = 0;
-		Set<Label> outgoing_from_blue_node =	coregraph.transitionMatrix.get(P.getQ()).keySet();
-		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();
-		Set<Label> predicted_from_blue_node =	Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
-		Set<Label> predicted_from_red_node =	Extension_Graph.transitionMatrix.get(P.getR()).keySet();
-
-
+		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();
+		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();						
+		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
+		Set<Label> predicted_from_red_node = Extension_Graph.transitionMatrix.get(P.getR()).keySet();
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
+	
 		Set<Label> all_outgoing = new HashSet<Label>() ;
 		all_outgoing.addAll(predicted_from_red_node);
 		all_outgoing.addAll(predicted_from_blue_node);
-
-		//  if ((P.getR().getDepth() < getChunkLen() || P.getQ().getDepth() <	getChunkLen()) && P.getScore() <= 0)
-		//   return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
-
-		// THIS ONE IS BETTER THAN ABOVE
-		Map<CmpVertex, List<Label>> Path = coregraph.pathroutines.computeShortPathsToAllStates(coregraph.getInit());
-		List<Label> PathTORed = Path.get(P.getR());
-		List<Label> PathTOBlue = Path.get(P.getQ());
-
-		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() < getChunkLen()) && P.getScore() < 0)
+		long pairScore = coregraph.pairscores.computePairCompatibilityScore_internal(P,mergedVertices);
+		if (pairScore < 0)
 			return -1;
-
-
-		if(P.getQ().isAccept()==false)
+		else if(P.getQ().isAccept()==false || P.getR().isAccept()==false)
 			return 1;
-
-		for(Label out_red:outgoing_from_red_node)
+			
+		// THIS ONE IS BETTER THAN ABOVE
+		
+		// Do not merge any things worried about it in case of no statsitical information
+//		Map<CmpVertex, List<Label>> Path = coregraph.pathroutines.computeShortPathsToAllStates(coregraph.getInit());
+//		List<Label> PathTORed = Path.get(P.getR());
+//		List<Label> PathTOBlue = Path.get(P.getQ());
+//		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() < getChunkLen()) && P.getScore() < 0)
+//			return -1;
+		
+		
+		// Negative States are forced to merge first
+		
+		else
 		{
-			if(predicted_from_blue_node.contains(out_red))  // if outgoing transitions from a red node exist in a blue state
-			{
-				boolean target_from_red_acceptance  =
-						coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
-				boolean target_form_blue_acceptance =
-						Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();
-				if(target_form_blue_acceptance  ==  target_from_red_acceptance )
-					score++;
+			for(Label out_red:outgoing_from_red_node)
+			{			
+				if(predicted_from_blue_node.contains(out_red))  // if outgoing transitions from a red node exist in a blue state
+				{
+					boolean target_from_red_acceptance  = coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
+					boolean target_form_blue_acceptance = Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();	
+		    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )	
+		    			score++;	
+				}
+				else
+				{
+					if(!predicted_from_blue_node.isEmpty() &&  P.getR().getDepth() >=chunk_Length)
+						return REJECT;            // this one make a very good rejection
+				}
 			}
-			else
-			{
-				return REJECT;            // this one make a very good rejection
-			}
+			
+					
+			for(Label out_blue:outgoing_from_blue_node)
+			{			
+				if(predicted_from_red_node.contains(out_blue))  // if outgoing transitions from a red node exist in a blue state
+				{	
+					boolean target_from_red_acceptance  = Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
+					boolean target_form_blue_acceptance = coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
+		    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )
+		    			score++;
+
+				}
+				else
+				{
+					if(predicted_from_red_node.contains(out_blue) && P.getQ().getDepth() >=chunk_Length);
+	    				return REJECT; // this one make a very good rejection
+				}
+			}	
 		}
+		
+//	 if (P.getQ().getDepth() < chunk && P.getQ().getDepth() < chunk && P.getScore() ==0)
+//			return -1;
 
-
-
-		for(Label out_blue:outgoing_from_blue_node)
-		{
-			if(predicted_from_red_node.contains(out_blue))  // if outgoing transitions from a red node exist in a blue state
-			{
-				boolean target_from_red_acceptance  =
-						Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
-				boolean target_form_blue_acceptance =
-						coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
-				if(target_form_blue_acceptance  ==  target_from_red_acceptance )
-					score++;
-
-			}
-			else
-			{
-				return REJECT; // this one make a very good rejection
-			}
-		}
-
-		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() <	getChunkLen()) && score > P.getScore()) // no statistical evidence found
-			return 0; // possibly to Merge
-		/*
-		if(PathTORed.size() > 0 && PathTOBlue.size() > 0 && P.getScore() < 1) //	looking for existing incoming transitions
-		{
-			if(PathTORed.get(PathTORed.size()-1)!=
-					PathTOBlue.get(PathTOBlue.size()-1))       // if the incoming transitions is different and the score is low
-				return REJECT;
-		}
-*/
-		return (score/all_outgoing.size());
+	 
+		return (score/all_outgoing.size());		
 	}
 	
 	public static Collection<CmpVertex> numOFsimilarRED(Stack<PairScore> possibleMerges)

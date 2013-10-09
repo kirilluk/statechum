@@ -104,8 +104,115 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return currentScore;
 	}
 
-	
-	
+
+	public static LearnerGraph buildFirstOrderMarkovGraph(LearnerGraph graph, LearnerGraph referenceGraph, MarkovUniversalLearner m)
+	{
+		LearnerGraph outcome = new LearnerGraph(graph.config);
+		if (m.getChunkLen() < 2)
+			throw new IllegalArgumentException("not enough data for a first-order Markov model");
+		Map<Label,CmpVertex> states = new TreeMap<Label,CmpVertex>();
+		for(Label l:graph.getCache().getAlphabet())
+		{
+			CmpVertex state = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(l.toString()), graph.config);states.put(l,state);
+			outcome.transitionMatrix.put(state, outcome.createNewRow());
+		}
+		for(Entry<Label,CmpVertex> state:states.entrySet())
+		{
+			for(Label label:graph.getCache().getAlphabet())
+			{
+				UpdatableOutcome transition = m.get_Markov_model().get(new Trace(Arrays.asList(new Label[]{state.getKey(),label})));
+				if (transition != null)
+					if (transition == UpdatableOutcome.positive) outcome.transitionMatrix.get(state.getValue()).put(label,states.get(label));
+			}
+		}		
+		
+		List<List<Label>> uniqueSequences = new LinkedList<List<Label>>();
+		for(Label l1:graph.getCache().getAlphabet())
+		{
+			boolean nonUnique = false;
+			Label unique = null;
+			for(Label lbl:graph.getCache().getAlphabet())
+			{
+				if (m.get_Markov_model().containsKey(new Trace(Arrays.asList(new Label[]{l1,lbl}))))
+				{
+					if (unique == null)
+						unique = lbl;
+					else
+					{
+						nonUnique = true;break;
+					}
+				}
+			}
+			if (unique != null && !nonUnique)
+				uniqueSequences.add(Arrays.asList(new Label[]{l1,unique}));
+			
+		}
+		
+		List<List<Label>> sequencesUnique2=new LinkedList<List<Label>>();
+		for(List<Label> prefix:uniqueSequences)
+			{
+				boolean nonUnique = false;
+				List<Label> unique = null;
+				for(Label lbl:graph.getCache().getAlphabet())
+				{
+					List<Label> seq = new LinkedList<Label>(prefix);seq.add(lbl);
+					if (m.get_Markov_model().containsKey(new Trace(seq)))
+					{
+						if (unique == null)
+							unique = seq;
+						else
+						{
+							nonUnique = true;break;
+						}
+					}
+				}
+				
+				if (nonUnique == false && unique!= null)
+					sequencesUnique2.add(unique);
+			}
+		
+		for(List<Label> seq:sequencesUnique2)
+		{
+			int count=0;
+			for(CmpVertex vert:referenceGraph.transitionMatrix.keySet())
+			{
+				CmpVertex target=referenceGraph.getVertex(seq);
+				if (target != null) ++count;
+			}
+			//System.out.println(seq+" "+(count == 0 || count == referenceGraph.transitionMatrix.size()));
+		}
+		/*
+		int singleout=0, total=0;
+		Collection<Label> singleLabels = new LinkedList<Label>();
+		for(Entry<Label,CmpVertex> state:states.entrySet())
+		{
+			if (!outcome.transitionMatrix.get(state.getValue()).isEmpty()) ++total;
+			if (outcome.transitionMatrix.get(state.getValue()).size() == 1)
+			{
+				singleout++;
+				singleLabels.add(state.getKey());
+			}
+				
+		}		
+		System.out.println("total: "+total+" single: "+singleout);
+		for(Label lbl:singleLabels)
+		{
+			Label nextLabel = outcome.transitionMatrix.get(states.get(lbl)).keySet().iterator().next();
+			System.out.println(lbl+"-"+nextLabel);
+			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
+			{
+				if (entry.getValue().containsKey(lbl))
+				{
+					Map<Label,CmpVertex> targets =  referenceGraph.transitionMatrix.get(entry.getValue().get(lbl));
+					if (!targets.containsKey(nextLabel))
+						System.out.println();
+					System.out.println("\t"+entry.getKey()+" : "+entry.getValue()+" from there "+targets+" and finally to "+targets.get(nextLabel));
+				}
+			}
+		}*/
+		return outcome;
+	}
+
 	protected static long comparePredictedFanouts(LearnerGraph graph, LearnerGraphND origInverse, MarkovUniversalLearner Markov, CmpVertex red, CmpVertex blue, Set<Label> alphabet, List<Label> pathLenBeyondCurrentState,int stepNumber)
 	{
 		if (!red.isAccept() || !blue.isAccept())
@@ -374,7 +481,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		protected final int states,sample;
 		protected boolean onlyUsePositives, pickUniqueFromInitial;
 		protected final int seed;
-		protected int chunkLen=3;
+		protected int chunkLen=4;
 		protected final int traceQuantity;
 		protected int lengthMultiplier = 1;
 		protected String selectionID;
@@ -618,19 +725,23 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						public void initComputation(LearnerGraph graph) {
 							coregraph = graph;
 							//labelStatesAwayFromRoot(coregraph,m.getChunkLen()-1);
-							System.out.println("label states called");
 							callbackAlphabet = coregraph.learnerCache.getAlphabet(); 
 							// mapping map to store all paths leave each state in different length
 							final Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 							origInverse = new LearnerGraphND(shallowCopy);
 							AbstractPathRoutines.buildInverse(coregraph,LearnerGraphND.ignoreNone,origInverse);  // do the inverse to the tentative graph 
+							
 						}
 						
 						@Override
 						public long overrideScoreComputation(PairScore p) {
 							long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
-							if (computeScoreBasedOnMarkov(coregraph,p,m) < 0)
-								score = -1;
+							m.constructMarkovTentative(coregraph);
+							score = (long)m.computeMMScoreImproved(p,coregraph,m.get_extension_model(),m.getChunkLen());
+							// computeScoreBasedOnMarkov(coregraph,p,m) < 0 || 
+							//if (computeScoreSicco(coregraph, p) < 0)
+							//	score = -1;
+							
 							/*
 							if ( (p.getR().getDepth() < m.getChunkLen()-1 || p.getQ().getDepth() < m.getChunkLen()-1 ) && computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p) <= 0)
 								score =-1;
@@ -647,17 +758,19 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 
 							if ( (score >= 0 && correctPairs.isEmpty()) || (score < 0 && !correctPairs.isEmpty()))
 							{
-								System.out.println(p+" "+score+" INCORRECT"+" with fanouts it is "+computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p)+" using inconsistencies it will be "+computeScoreBasedOnMarkov(coregraph,p,m));
+								System.out.println(p+" "+score+" INCORRECT"+" with fanouts it is "+computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p)+" using inconsistencies it will be "+computeScoreBasedOnMarkov(coregraph,p,m)+" Sicco reports "+computeScoreSicco(coregraph, p));
+								
 //								Visualiser.updateFrame(coregraph.transform.trimGraph(3, p.getQ()), coregraph.transform.trimGraph(3, p.getR()));
 //								Visualiser.updateFrame(finalReferenceGraph,null);
-								SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
-								computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
-								computeScoreBasedOnMarkov(coregraph,p,m);
+								//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
+								//computeScoreBasedOnMarkov(coregraph,p,m);
+								
 								//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
 								//Visualiser.waitForKey();
 								//computeScoreBasedOnMarkov(coregraph,p,m);
 								//System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
-							}*/
+							}
+						*/
 							return score;
 						}
 
@@ -695,7 +808,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						return score;
 					}
 				});
-				System.out.println("started reference learner");
+				buildFirstOrderMarkovGraph(pta,referenceGraph,m);
+				////Visualiser.updateFrame(referenceGraph, buildFirstOrderMarkovGraph(pta,referenceGraph,m));
+				//Visualiser.waitForKey();
 				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
@@ -709,7 +824,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		DifferenceToReference estimateDifference(LearnerGraph reference, LearnerGraph actual,@SuppressWarnings("unused") Collection<List<Label>> testSet)
 		{
 			return DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual, testSet);
-			//DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+			//return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
 		}
 	}
 	
@@ -1017,13 +1132,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			
 			return WrongPairs;
 		}
-		
-		
-		protected Map<CmpVertex, Map<Label, UpdatableOutcome>> constructExtensionGraph(LearnerGraph graph)
-		{
-			return Markov.constructMarkovTentative(graph);
-		}
-		
+
 		public static String refToString(Object obj)
 		{
 			return obj == null?"null":obj.toString();

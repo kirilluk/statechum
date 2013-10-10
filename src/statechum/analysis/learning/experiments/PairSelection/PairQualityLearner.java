@@ -1868,18 +1868,18 @@ public class PairQualityLearner
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 25;
-		final int samplesPerFSM = 10;
+		final int minStateNumber = 20;
+		final int samplesPerFSM = 4;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
 		final double trainingDataMultiplier = 2;
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{1})
-		for(final int ifDepth:new int []{0})
-		for(final boolean onlyPositives:new boolean[]{false})
+		for(final int lengthMultiplier:new int[]{50})
+		for(final int ifDepth:new int []{1})
+		for(final boolean onlyPositives:new boolean[]{true})
 			{
-				final int traceQuantity=5;
+				final int traceQuantity=1;
 				for(final boolean useUnique:new boolean[]{false})
 				{
 					String selection = "TRUNK;TRAINING;"+"ifDepth="+ifDepth+
@@ -1990,13 +1990,13 @@ public class PairQualityLearner
 					}
 					*/
 					// Run the evaluation
-					//final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
+					final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
 					//repTree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
 					// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 					// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
-					final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
-					final Classifier classifier = ib1;
+					//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 					//final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
+					final Classifier classifier = repTree;
 					classifier.buildClassifier(dataCollector.trainingData);
 					System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
 					System.out.println(classifier);

@@ -231,7 +231,6 @@ public class MarkovUniversalLearner
 	 */
 	public  Map<Trace, UpdatableOutcome> createMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg)
 	{
-		// initialize the occurrence matrix with all elements of the alphabet
 		int traceLength = 0;
 		Set<Label> alphabet = new HashSet<Label>();
 		for(List<Label> p:pos) 
@@ -499,6 +498,13 @@ public class MarkovUniversalLearner
 	}
 	
 	protected static UpdatablePairInteger zero=new UpdatablePairInteger(0,0);
+	
+	public long computeConsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, Collection<Label> alphabet, int chunkLength)
+	{
+		long count = 0;
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) count+=checkFanoutInconsistency(Inverse_Graph,graph,v,alphabet,chunkLength);
+		return count;
+	}
 	
 	public int checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
 	{

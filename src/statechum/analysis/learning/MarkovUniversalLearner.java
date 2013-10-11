@@ -26,7 +26,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -499,22 +501,25 @@ public class MarkovUniversalLearner
 	
 	protected static UpdatablePairInteger zero=new UpdatablePairInteger(0,0);
 	
-	public long computeConsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, Collection<Label> alphabet, int chunkLength)
+	public double computeConsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, int chunkLength)
 	{
-		long count = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) count+=checkFanoutInconsistency(Inverse_Graph,graph,v,alphabet,chunkLength);
-		return count;
+		double accumulatedInconsistency = 0;
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,graph,v,chunkLength);
+		return accumulatedInconsistency;
 	}
 	
-	public int checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	public double checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, int chunkLength)
 	{
 		assert vert.isAccept();
 		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
-		int inconsistentElements = 0;
-		Map<Label,UpdatableOutcome> outgoing_labels_probabilities=new HashMap<Label,UpdatableOutcome>();
+		Map<Label,UpdatablePairInteger> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairInteger>();
+		Map<Label,UpdatableOutcome> outgoing_labels_value=new HashMap<Label,UpdatableOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
 		for(Entry<Label,CmpVertex> entry:graph.transitionMatrix.get(vert).entrySet())
-			outgoing_labels_probabilities.put(entry.getKey(),entry.getValue().isAccept()?UpdatableOutcome.positive:UpdatableOutcome.negative);
+		{
+			outgoing_labels_value.put(entry.getKey(),entry.getValue().isAccept()?UpdatableOutcome.positive:UpdatableOutcome.negative);
+			outgoing_labels_probabilities.put(entry.getKey(),new UpdatablePairInteger(0, 0));
+		}
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
         FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
 	    frontline.add(e);
@@ -532,26 +537,24 @@ public class MarkovUniversalLearner
 	    			{
 	    				for(Label label:outgoingLabels)
 	    				{
-    						UpdatableOutcome labels_occurrence= outgoing_labels_probabilities.get(label);
-    						if (labels_occurrence != UpdatableOutcome.failure)
-    						{// if there is no inconsistency already detected for this label
+    						UpdatableOutcome labels_occurrence= outgoing_labels_value.get(label);
 	
-		    					Trace Predicted_trace= new Trace();
-		    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
-	
-		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-		    					if (predicted_from_Markov != UpdatableOutcome.failure)
-		    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
-		    						
-		    						UpdatableOutcome outcome = UpdatableOutcome.ensureConsistencyBetweenOpinions(labels_occurrence, predicted_from_Markov);
-		    						if (outcome != labels_occurrence)
-		    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
-		    							outgoing_labels_probabilities.put(label, outcome);
-		    							if (outcome == UpdatableOutcome.failure)
-		    								++inconsistentElements;
-		    						}
-		    					}
-    						}
+	    					Trace Predicted_trace= new Trace();
+	    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+
+	    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+	    					if (predicted_from_Markov != UpdatableOutcome.failure)
+	    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
+
+	    						UpdatablePairInteger counters = outgoing_labels_probabilities.get(label);counters.secondElem++;
+	    						UpdatableOutcome outcome = UpdatableOutcome.ensureConsistencyBetweenOpinions(labels_occurrence, predicted_from_Markov);
+	    						if (outcome != labels_occurrence)
+	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+	    							assert outcome == UpdatableOutcome.failure;
+    								++counters.firstElem;// record inconsistency
+	    						}
+	    						
+	    					}
 	    				}
 	    			}
 	    			else
@@ -562,7 +565,13 @@ public class MarkovUniversalLearner
 	    	}
 	    }
 
-	    return inconsistentElements;
+	    double inconsistencies = 0;
+	    for(UpdatablePairInteger p:outgoing_labels_probabilities.values())
+	    	if (p.secondElem > 0)
+	    		if (p.firstElem > 0)
+	    			inconsistencies++;
+	    		//inconsistencies+=p.firstElem/(double)p.secondElem;
+	    return inconsistencies;
 	}
 	
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
@@ -833,83 +842,190 @@ public class MarkovUniversalLearner
 		return score+(score/all_outgoing.size());		
 	}
 	
-	
-	public double computeMMScoreImproved(PairScore P, LearnerGraph coregraph,LearnerGraph Extension_Graph, int chunk)
+	public static long computeScoreSicco(LearnerGraph original,StatePair pair)
 	{
-		double score = 0;
-		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();
-		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();						
-		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
-		Set<Label> predicted_from_red_node = Extension_Graph.transitionMatrix.get(P.getR()).keySet();
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber()):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
-	
-		Set<Label> all_outgoing = new HashSet<Label>() ;
-		all_outgoing.addAll(predicted_from_red_node);
-		all_outgoing.addAll(predicted_from_blue_node);
-		long pairScore = coregraph.pairscores.computePairCompatibilityScore_internal(P,mergedVertices);
-		if (pairScore < 0)
-			return -1;
-		else if(P.getQ().isAccept()==false || P.getR().isAccept()==false)
-			return 1;
-			
-		// THIS ONE IS BETTER THAN ABOVE
-		
-		// Do not merge any things worried about it in case of no statsitical information
-//		Map<CmpVertex, List<Label>> Path = coregraph.pathroutines.computeShortPathsToAllStates(coregraph.getInit());
-//		List<Label> PathTORed = Path.get(P.getR());
-//		List<Label> PathTOBlue = Path.get(P.getQ());
-//		if((PathTORed.size() < getChunkLen() || PathTOBlue.size() < getChunkLen()) && P.getScore() < 0)
-//			return -1;
-		
-		
-		// Negative States are forced to merge first
-		
-		else
-		{
-			for(Label out_red:outgoing_from_red_node)
-			{			
-				if(predicted_from_blue_node.contains(out_red))  // if outgoing transitions from a red node exist in a blue state
-				{
-					boolean target_from_red_acceptance  = coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
-					boolean target_form_blue_acceptance = Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();	
-		    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )	
-		    			score++;	
-				}
-				else
-				{
-					if(!predicted_from_blue_node.isEmpty() &&  P.getR().getDepth() >=chunk_Length)
-						return REJECT;            // this one make a very good rejection
-				}
-			}
-			
-					
-			for(Label out_blue:outgoing_from_blue_node)
-			{			
-				if(predicted_from_red_node.contains(out_blue))  // if outgoing transitions from a red node exist in a blue state
-				{	
-					boolean target_from_red_acceptance  = Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
-					boolean target_form_blue_acceptance = coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
-		    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )
-		    			score++;
+		assert pair.getQ() != pair.getR();
+		assert original.transitionMatrix.containsKey(pair.firstElem);
+		assert original.transitionMatrix.containsKey(pair.secondElem);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph result = new LearnerGraph(original,shallowCopy);
+		assert result.transitionMatrix.containsKey(pair.firstElem);
+		assert result.transitionMatrix.containsKey(pair.secondElem);
 
-				}
-				else
+		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
+		if (pairScore < 0)
+			throw new IllegalArgumentException("elements of the pair are incompatible");
+
+		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
+		
+		// make a loop
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
+				if (rowEntry.getValue() == pair.getQ())
 				{
-					if(predicted_from_red_node.contains(out_blue) && P.getQ().getDepth() >=chunk_Length);
-	    				return REJECT; // this one make a very good rejection
+					// the transition from entry.getKey() leads to the original blue state, record it to be rerouted.
+					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
 				}
-			}	
 		}
 		
-//	 if (P.getQ().getDepth() < chunk && P.getQ().getDepth() < chunk && P.getScore() ==0)
-//			return -1;
+		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
+		Set<Label> inputsUsed = new HashSet<Label>();
 
-	 
-		return (score/all_outgoing.size());		
+		// I iterate over the elements of the original graph in order to be able to update the target one.
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			CmpVertex vert = entry.getKey();
+			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
+			if (mergedVertices.containsKey(vert))
+			{// there are some vertices to merge with this one.
+				Collection<Label> newLabelsAddedToVert = labelsAdded.get(entry.getKey());
+				if (newLabelsAddedToVert == null)
+				{
+					newLabelsAddedToVert = new TreeSet<Label>();labelsAdded.put(entry.getKey(), newLabelsAddedToVert);
+				}
+
+				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
+				for(CmpVertex toMerge:mergedVertices.get(vert))
+				{// for every input, I'll have a unique target state - this is a feature of PTA
+				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
+				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
+				// (as long as this combination is the one _not_ already present from the corresponding red state).
+					boolean somethingWasAdded = false;
+					for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
+						if (!inputsUsed.contains(input_and_target.getKey()))
+						{
+							// We are adding a transition to state vert with label input_and_target.getKey() and target state input_and_target.getValue();
+							resultRow.put(input_and_target.getKey(), input_and_target.getValue());
+							
+							newLabelsAddedToVert.add(input_and_target.getKey());
+							
+							inputsUsed.add(input_and_target.getKey());
+							ptaVerticesUsed.add(input_and_target.getValue());somethingWasAdded = true;
+							// Since PTA is a tree, a tree rooted at ptaVerticesUsed will be preserved in a merged automaton, however 
+							// other parts of a tree could be merged into it. In this case, each time there is a fork corresponding to 
+							// a step by that other chunk which the current tree cannot follow, that step will end in a tree and a root
+							// of that tree will be added to ptaVerticesUsed.
+						}
+					assert somethingWasAdded : "RedAndBlueToBeMerged was not set correctly at an earlier stage";
+				}
+			}
+		}
+		
+		if (labelsAdded.containsKey(pair.getR()) && !labelsAdded.get(pair.getR()).isEmpty())
+			return -1;
+		
+		return 0;
 	}
 	
+	
+	public long computeMarkovScoring(PairScore pair, LearnerGraph graph, LearnerGraph extension_model, int chunkLen)
+	{
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>():
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(graph.getStateNumber());
+		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),graph.pairCompatibility))
+			return -1;
+		if(pair.getR().isAccept()==false && pair.getQ().isAccept()==false)
+			return 1;
+		
+		if(graph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
+			return -1;		
+		
+		if (computeScoreSicco(graph,pair) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
+			return  -1;
+		long matchscore= 0;
+		assert pair.getQ() != pair.getR();
+			
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		currentExplorationBoundary.add(pair);currentExplorationBoundary.offer(null);
+			
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			StatePair currentPair = currentExplorationBoundary.remove();
+			if (currentPair == null)
+			{// we got to the end of a wave
+				if (currentExplorationBoundary.isEmpty())
+					break;// we are at the end of the last wave, stop looping.
+
+				// mark the end of a wave.
+				currentExplorationBoundary.offer(null);
+			}
+			else
+			{
+				Map<Label,CmpVertex> targetRed = graph.transitionMatrix.get(currentPair.getR()),
+						targetBlue = graph.transitionMatrix.get(currentPair.getQ());
+		
+					for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
+					{
+						CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
+						if (nextBlueState != null)
+						{// both states can make a transition
+							if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,graph.pairCompatibility))
+								return -1;// incompatible states
+																		
+							List<Label> outgoing_form_blue_node = new ArrayList<Label>(graph.transitionMatrix.get(currentPair.getQ()).keySet());
+							List<Label> outgoing_form_red_node = new ArrayList<Label>(graph.transitionMatrix.get(currentPair.getR()).keySet());	
+							List<Label> exoutgoing_form_blue_node = new ArrayList<Label>(extension_model.transitionMatrix.get(currentPair.getQ()).keySet());
+							List<Label> exoutgoing_form_red_node = new ArrayList<Label>(extension_model.transitionMatrix.get(currentPair.getR()).keySet());	
+							Set<Label> all_outgoing = new HashSet<Label>() ;
+							all_outgoing.addAll(exoutgoing_form_blue_node);
+							all_outgoing.addAll(exoutgoing_form_red_node);
+
+							for(Label out_red:outgoing_form_red_node)
+							{	
+								Boolean target_from_red_acceptance  = graph.getTransitionMatrix().get(currentPair.getR()).get(out_red).isAccept();		
+								if(outgoing_form_blue_node.contains(out_red))  
+								{				
+							    	Boolean target_form_blue_acceptance = graph.getTransitionMatrix().get(currentPair.getQ()).get(out_red).isAccept();	
+							    	assert target_from_red_acceptance!=null; assert target_form_blue_acceptance!=null;			
+
+						    		if(target_form_blue_acceptance ==  target_from_red_acceptance )		
+										matchscore++;	
+						    		else
+							    		return -1;	
+								}
+								else if(exoutgoing_form_blue_node.contains(out_red) && target_from_red_acceptance.booleanValue())
+								{
+							    	Boolean extensiontarget_form_blue_acceptance = extension_model.getTransitionMatrix().get(currentPair.getQ()).get(out_red).isAccept();	
+									if(extensiontarget_form_blue_acceptance == true && target_from_red_acceptance==true )		
+										matchscore++;	
+								}
+								else
+								{
+									return -1;
+								}
+							}
+							
+							for(Label out_blue:outgoing_form_blue_node)
+							{
+								Boolean target_form_blue_acceptance = graph.getTransitionMatrix().get(currentPair.getQ()).get(out_blue).isAccept();	
+
+								if(exoutgoing_form_red_node.contains(out_blue) && target_form_blue_acceptance.booleanValue())
+								{
+							    	Boolean extensiontarget_form_red_acceptance = extension_model.getTransitionMatrix().get(currentPair.getR()).get(out_blue).isAccept();	
+									if(extensiontarget_form_red_acceptance == true && target_form_blue_acceptance ==true )		
+										matchscore++;
+								}
+								else
+								{
+									return -1;
+								}
+								
+							}
+							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+							currentExplorationBoundary.offer(nextStatePair);
+							}	
+						
+						// if the red can make a move, but the blue one cannot, ignore this case.
+					}
+				}
+			}     
+			return matchscore;
+	}	
 	public static Collection<CmpVertex> numOFsimilarRED(Stack<PairScore> possibleMerges)
 	{
 		Set<CmpVertex> reds = new HashSet<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();

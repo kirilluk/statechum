@@ -428,16 +428,11 @@ public class MarkovScoreComputation
 		}
 		
 		
-		public double computePairMarkovScore_new(LearnerGraph coregraph, StatePair pair,Map<CmpVertex,List<CmpVertex>> mergedVertices) 
+		public double computePairMarkovScore_new(LearnerGraph coregraph, StatePair pair) 
 		{
 			if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
 				return -1;
 			double matchscore=0;
-			double cn=0.0;
-			double distance=-1;
-
-			
-			int currentExplorationDepth=1;
 			assert pair.getQ() != pair.getR();
 			boolean foundKTail = false;
 			
@@ -453,7 +448,7 @@ public class MarkovScoreComputation
 						break;// we are at the end of the last wave, stop looping.
 
 					// mark the end of a wave.
-					currentExplorationBoundary.offer(null);currentExplorationDepth++;
+					currentExplorationBoundary.offer(null);
 				}
 				else
 				{

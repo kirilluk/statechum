@@ -385,11 +385,10 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testCheckFanoutInconsistency1",config, converter);
 		
-		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */
@@ -401,11 +400,10 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
 		
-		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
 	}
 	
 	/** One inconsistency: transition u. */
@@ -417,11 +415,10 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
 		
-		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
 	}
 	
 	/** One inconsistency: transition u. */
@@ -433,12 +430,11 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testCheckFanoutInconsistency4",config, converter);
 		
-		Set<Label> alphabet = graph.learnerCache.getAlphabet(); 
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),alphabet,m.getChunkLen()));// everything as expected.
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),alphabet,m.getChunkLen()));// missing reject-transition with label u.
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);// everything as expected.
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),m.getChunkLen()),Configuration.fpAccuracy);// missing reject-transition with label u.
 	}
 	
 	

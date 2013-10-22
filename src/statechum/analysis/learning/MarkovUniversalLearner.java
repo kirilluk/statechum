@@ -87,7 +87,7 @@ public class MarkovUniversalLearner
 		 * @param b second opinion
 		 * @return outcome, possibly null where both opinions are null.
 		 */
-		public static UpdatableOutcome reconcileOpinions(UpdatableOutcome a, UpdatableOutcome b)
+		public static UpdatableOutcome reconcileOpinions_PosNeg_Overrides_Null(UpdatableOutcome a, UpdatableOutcome b)
 		{
 			UpdatableOutcome outcome = null;
 
@@ -141,6 +141,9 @@ public class MarkovUniversalLearner
 					// b is null a is not null
 					outcome = null;
 			}
+			else
+				if (b != null)
+					outcome = failure;
 
 			return outcome;
 		}
@@ -475,7 +478,7 @@ public class MarkovUniversalLearner
 		    					Predicted_trace.add(label);
 		    					
 		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinionsAllHaveToMatch(predictedFromEalierTrace, predicted_from_Markov);
+	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
 	    						if (outcome != predictedFromEalierTrace)
 	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
 	    							if (outcome == UpdatableOutcome.failure)
@@ -499,6 +502,92 @@ public class MarkovUniversalLearner
 	    return outgoing_labels_probabilities;
 	}
 	
+	public void predictTransitionsFromStateAndUpdateMarkov(LearnerGraphND Inverse_Graph, CmpVertex vert, Collection<Label> alphabet, List<Label> pathBeyondCurrentState, int chunkLength)
+	{
+		assert vert.isAccept();
+		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
+		if (lengthOfPathBeyond+2 > chunkLength)
+			throw new IllegalArgumentException("supplied pathBeyondCurrentState is too long and does not permit exploration");
+		Set<Label> failureLabels = new TreeSet<Label>();
+		Map<Label,UpdatableOutcome> outgoing_labels_probabilities=new HashMap<Label,UpdatableOutcome>();
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+        List<List<Label>> markovEntriesToUpdate = new LinkedList<List<Label>>();
+        
+	    frontline.add(e);
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();	
+	    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
+	    	{		
+	    		for(CmpVertex target:entry.getValue())
+	    		{
+	    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunkLength);
+	    			PathToNewState.addAll(e.pathToFrontLine);
+	    			PathToNewState.add(entry.getKey());
+	    			if(PathToNewState.size()==chunkLength-1-lengthOfPathBeyond)
+	    			{
+	    				for(Label label:alphabet)
+	    				{
+	    					if (!failureLabels.contains(label))
+	    					{// if the labels is not already recorded as being inconsistently predicted
+	    						UpdatableOutcome predictedFromEalierTrace = outgoing_labels_probabilities.get(label);
+		    					Trace Predicted_trace= new Trace();
+		    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
+		    					Predicted_trace.add(label);
+		    					
+		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+		    					markovEntriesToUpdate.add(PathToNewState);
+	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
+	    						if (outcome != predictedFromEalierTrace)
+	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+	    							if (outcome == UpdatableOutcome.failure)
+	    								failureLabels.add(label);
+    								outgoing_labels_probabilities.put(label, outcome);
+	    						}
+	    					}
+	    				}
+	    			}
+	    			else
+	    			{// not reached the maximal length of paths to explore
+	    				frontline.add(new FrontLineElem(PathToNewState,target));
+	    			}
+	    		}
+	    	}
+	    }
+
+	    // Now we iterate through all the labels and update entries in markovEntriesToUpdate depending on the outcome.
+	    for(Entry<Label,UpdatableOutcome> computedValues:outgoing_labels_probabilities.entrySet())
+	    	if (computedValues.getValue() != null)
+		    {// we have a definite value
+				Trace Predicted_trace= new Trace();
+		    	for(List<Label> PathToNewState:markovEntriesToUpdate)
+		    	{
+					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
+					Predicted_trace.add(computedValues.getKey());
+					
+					if (MarkovMatrix.get(Predicted_trace) != computedValues.getValue()) // the one next is good for breakpoint, otherwise this line makes no sense
+						MarkovMatrix.put(Predicted_trace, computedValues.getValue());// includes failures because null means "missing value", often interpreted as "most likely, not". 
+		    	}
+		    }
+	}
+
+	/** This function is predicts transitions from each state and then adds predictions to the Markov model.
+	 *  
+	 * @param tentativeAutomaton tentative Automaton 
+	 */
+	public void predictTransitionsAndUpdateMarkov(LearnerGraph tentativeAutomaton)
+	{
+		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
+		// mapping map to store all paths leave each state in different length
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+    	for(CmpVertex vert:Inverse_Graph.transitionMatrix.keySet())
+           if(vert.isAccept() )
+        	  predictTransitionsFromStateAndUpdateMarkov(Inverse_Graph,vert,alphabet,null,chunk_Length);
+	}	
+
 	protected static UpdatablePairInteger zero=new UpdatablePairInteger(0,0);
 	
 	public double computeConsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, int chunkLength)
@@ -508,7 +597,69 @@ public class MarkovUniversalLearner
 		return accumulatedInconsistency;
 	}
 	
-	public double checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, int chunkLength)
+	public int checkFanoutInconsistency(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, int chunkLength)
+	{
+		assert vert.isAccept();
+		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
+		Map<Label,UpdatableOutcome> outgoing_labels_value=new HashMap<Label,UpdatableOutcome>();
+		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
+		int inconsistencies = 0;
+
+		for(Entry<Label,CmpVertex> entry:graph.transitionMatrix.get(vert).entrySet())
+		{
+			outgoing_labels_value.put(entry.getKey(),entry.getValue().isAccept()?UpdatableOutcome.positive:UpdatableOutcome.negative);
+		}
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+	    frontline.add(e);
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();	
+	    	for(Entry<Label, List<CmpVertex>> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
+	    	{		
+	    		for(CmpVertex target:entry.getValue())
+	    		{
+	    			ArrayList<Label> PathToNewState=new ArrayList<Label>(chunkLength);
+	    			PathToNewState.addAll(e.pathToFrontLine);
+	    			PathToNewState.add(entry.getKey());
+	    			if(PathToNewState.size()==chunkLength-1)
+	    			{
+	    				for(Label label:outgoingLabels)
+	    				{
+    						UpdatableOutcome labels_occurrence= outgoing_labels_value.get(label);
+    						if (labels_occurrence != UpdatableOutcome.failure)
+    						{
+		    					Trace Predicted_trace= new Trace();
+		    					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));Predicted_trace.add(label);
+	
+		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+		    					if (predicted_from_Markov != UpdatableOutcome.failure)
+		    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
+	
+		    						UpdatableOutcome outcome = UpdatableOutcome.ensureConsistencyBetweenOpinions(labels_occurrence, predicted_from_Markov);
+		    						if (outcome != labels_occurrence)
+		    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+		    							assert outcome == UpdatableOutcome.failure;
+		    							++inconsistencies;// record inconsistency
+		    							outgoing_labels_value.put(label, outcome);// record the failure
+		    						}
+		    						
+		    					}
+    						}
+	    				}
+	    			}
+	    			else
+	    			{// not reached the maximal length of paths to explore
+	    				frontline.add(new FrontLineElem(PathToNewState,target));
+	    			}
+	    		}
+	    	}
+	    }
+
+	    return inconsistencies;
+	}
+	
+	public double checkFanoutInconsistencyDouble(LearnerGraphND Inverse_Graph, LearnerGraph graph, CmpVertex vert, int chunkLength)
 	{
 		assert vert.isAccept();
 		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
@@ -569,11 +720,10 @@ public class MarkovUniversalLearner
 	    for(UpdatablePairInteger p:outgoing_labels_probabilities.values())
 	    	if (p.secondElem > 0)
 	    		if (p.firstElem > 0)
-	    			inconsistencies++;
-	    		//inconsistencies+=p.firstElem/(double)p.secondElem;
+	    			inconsistencies+=p.firstElem/(double)p.secondElem;
 	    return inconsistencies;
 	}
-	
+
 	/** This function is predicts transitions from each state and then adds them to the supplied graph.
 	 *  
 	 * @param tentativeAutomaton tentative Automaton 

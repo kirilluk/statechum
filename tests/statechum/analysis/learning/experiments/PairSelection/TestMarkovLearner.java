@@ -376,9 +376,9 @@ public class TestMarkovLearner {
 		Assert.assertNotSame(graph, m.get_extension_model());
 	}
 	
-	/** Two inconsistencies, transition u and transition b which should exist after a. */
+	/** No outgoing from B, hence no inconsistencies. */
 	@Test
-	public void testCheckFanoutInconsistency1()
+	public void testCheckFanoutInconsistency1a()
 	{
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -388,7 +388,97 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** One from B with inconsistent predictions. */
+	@Test
+	public void testCheckFanoutInconsistency1b1()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** One from B where Markov cannot make up its mind. */
+	@Test
+	public void testCheckFanoutInconsistency1b2()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** Transition d exists as positive but should be present as negative according to Markov. */
+	@Test
+	public void testCheckFanoutInconsistency1c()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"},new String[]{"a","d"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** Transition d exists as positive but should be absent according to Markov. */
+	@Test
+	public void testCheckFanoutInconsistency1d()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"}},config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** Transition b exists as negative but should be present as positive according to Markov. */
+	@Test
+	public void testCheckFanoutInconsistency1e()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"}},config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b-#F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
+	}
+	
+	/** Transition d exists as negative but should be absent according to Markov. */
+	@Test
+	public void testCheckFanoutInconsistency1f()
+	{
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovLearner(plusStrings, minusStrings);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d-#F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1",config, converter);
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */
@@ -398,12 +488,12 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
 		
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
 	}
 	
 	/** One inconsistency: transition u. */
@@ -413,15 +503,15 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings);
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-u->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
 		
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));
 	}
 	
-	/** One inconsistency: transition u. */
+	/** No inconsistencies since there are very few paths. */
 	@Test
 	public void testCheckFanoutInconsistency4()
 	{
@@ -433,8 +523,8 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()),Configuration.fpAccuracy);// everything as expected.
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),m.getChunkLen()),Configuration.fpAccuracy);// missing reject-transition with label u.
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("B"),m.getChunkLen()));// everything as expected.
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,graph,graph.findVertex("D"),m.getChunkLen()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
 	}
 	
 	
@@ -492,4 +582,41 @@ public class TestMarkovLearner {
 			}
 		}, IllegalArgumentException.class, "no states");
 	}
+	
+	@Test
+	public void testUpdateMarkovFromGraph1()
+	{
+		
+	}
+	
+	@Test
+	public void testIdentifyUncoveredTransitions1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E","testIdentifyUncoveredTransitions1a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+			}
+		}, IllegalArgumentException.class, "PTA is not");		
+	}
+	
+	@Test
+	public void testIdentifyUncoveredTransitions2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
+		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
+		for(CmpVertex v:reference.transitionMatrix.keySet())
+			if (v == reference.findVertex("B") || v == reference.findVertex("T"))
+				
+		System.out.println(uncovered);
+	}
+	
+	
+	
 }
+

@@ -282,19 +282,16 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						++countTripleInPTA;
 				tripleCount.add(countTripleInPTA);totalTripleInPTA+=countTripleInPTA;
 				++countTriples;
-				//System.out.print(entry.getKey().getList()+" ("+m.get_Markov_model_occurence().get(entry.getKey())+") ");
 				if (checkSeqIsUnique(trimmedReference, entry.getKey().getList()))
 				{
 					uniqueFreq.add((long)m.get_Markov_model_occurence().get(entry.getKey()).firstElem);uniqueElem.add(entry.getKey().getList().get(0));
 					++triplesUnique;
-					//System.out.print("Unique");
 				}
 				else
 				{
 					nonUniqueFreq.add((long)m.get_Markov_model_occurence().get(entry.getKey()).firstElem);nonUniqueElem.add(entry.getKey().getList().get(0));
 				}
 				Collections.sort(uniqueFreq);Collections.sort(nonUniqueFreq);
-				//System.out.println();
 			}
 			
 		}
@@ -334,9 +331,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		}
 		 */
 		
-		for(int attemptToUpdateMarkov=0;attemptToUpdateMarkov<2;++attemptToUpdateMarkov)
+		int attemptToUpdateMarkov=0;
+		double scoreAfterBigMerge=1;
+		do
 		{
 			long maxCount = 0;
+			System.out.println("Traces in Markov: "+m.get_Markov_model().size());
 			for(Entry<Trace,UpdatableOutcome> entry:m.get_Markov_model().entrySet())
 				if (entry.getKey().getList().size() == 1 && entry.getValue() == UpdatableOutcome.positive)
 				{
@@ -368,6 +368,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 			
+			System.out.println("Starting merging");
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -379,7 +380,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						break;
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(graph,new LinkedList<Label>(),smallValueUniques);
-				double scoreAfterBigMerge = MarkovUniversalLearner.REJECT;
+				scoreAfterBigMerge = MarkovUniversalLearner.REJECT;
 				LearnerGraph merged = null;
 				if (!pairsList.isEmpty())
 				{
@@ -400,7 +401,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			{
 				List<Label> whatToMerge = thresholdToInconsistency.entrySet().iterator().next().getValue();
 				List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(graph,new LinkedList<Label>(),whatToMerge);
-				double scoreAfterBigMerge = MarkovUniversalLearner.REJECT;
+				scoreAfterBigMerge = MarkovUniversalLearner.REJECT;
 				LearnerGraph merged = null;
 				if (!pairsList.isEmpty())
 				{
@@ -419,8 +420,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					System.out.println("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(whatToMerge))?"INVALID":"VALID"));
 
 				m.predictTransitionsAndUpdateMarkov(merged);
+				++attemptToUpdateMarkov;
 			}
 		}
+		while(scoreAfterBigMerge > 0);
 		System.out.println("triples : "+countTriples+" unique elems: "+triplesUnique+" average in PTA: "+(totalTripleInPTA/(double)tripleCount.size()));
 		System.out.println("Unique Freq: "+uniqueFreq);
 		System.out.println("Non unique Freq: "+nonUniqueFreq);
@@ -430,6 +433,28 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return outcome;
 	}
 
+	public void constructMapFromLabelsToStateGroups(LearnerGraph tentativeGraph, Collection<Label> transitionsFromTheSameState)
+	{
+		Map<Label,Collection<CmpVertex>> labelToStates = 
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+		Map<Label,Collection<CmpVertex>> labelFromStates = 
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+					
+		for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				{
+					Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
+					if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
+
+					Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
+					if (sourceStatesToMerge != null && transition.getValue().isAccept()) sourceStatesToMerge.add(entry.getKey());
+				}
+		
+	}
+	
+	
 	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, Label label, MarkovUniversalLearner m)
 	{
 		double outcome = 0;

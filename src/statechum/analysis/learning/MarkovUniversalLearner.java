@@ -537,14 +537,17 @@ public class MarkovUniversalLearner
 		    					Predicted_trace.add(label);
 		    					
 		    					UpdatableOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-		    					markovEntriesToUpdate.add(PathToNewState);
-	    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
-	    						if (outcome != predictedFromEalierTrace)
-	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
-	    							if (outcome == UpdatableOutcome.failure)
-	    								failureLabels.add(label);
-    								outgoing_labels_probabilities.put(label, outcome);
-	    						}
+		    					if (predicted_from_Markov != UpdatableOutcome.failure)
+		    					{
+			    					markovEntriesToUpdate.add(PathToNewState);
+		    						UpdatableOutcome outcome = UpdatableOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
+		    						if (outcome != predictedFromEalierTrace)
+		    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+		    							if (outcome == UpdatableOutcome.failure)
+		    								failureLabels.add(label);
+	    								outgoing_labels_probabilities.put(label, outcome);
+		    						}
+		    					}
 	    					}
 	    				}
 	    			}
@@ -560,14 +563,14 @@ public class MarkovUniversalLearner
 	    for(Entry<Label,UpdatableOutcome> computedValues:outgoing_labels_probabilities.entrySet())
 	    	if (computedValues.getValue() != null)
 		    {// we have a definite value
-				Trace Predicted_trace= new Trace();
 		    	for(List<Label> PathToNewState:markovEntriesToUpdate)
 		    	{
+		    		Trace Predicted_trace= new Trace();
 					for(int i=PathToNewState.size()-1;i>=0;--i) Predicted_trace.add(PathToNewState.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
 					Predicted_trace.add(computedValues.getKey());
 					
-					if (MarkovMatrix.get(Predicted_trace) != computedValues.getValue()) // the one next is good for breakpoint, otherwise this line makes no sense
-						MarkovMatrix.put(Predicted_trace, computedValues.getValue());// includes failures because null means "missing value", often interpreted as "most likely, not". 
+					//if (MarkovMatrix.get(Predicted_trace) != computedValues.getValue()) // the one next is good for breakpoint, otherwise this line makes no sense
+					MarkovMatrix.put(Predicted_trace, computedValues.getValue());// includes failures because null means "missing value", often interpreted as "most likely, not".
 		    	}
 		    }
 	}

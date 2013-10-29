@@ -127,7 +127,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					if (visitedInTree.contains(target.getValue()))
 						throw new IllegalArgumentException("PTA is not a tree");
 					visitedInTree.add(target.getValue());
-					pairsToExplore.add(new StatePair(reference.transitionMatrix.get(reference_pta.firstElem).get(target.getKey()), target.getValue()));
+					CmpVertex nextGraphState = reference.transitionMatrix.get(reference_pta.firstElem).get(target.getKey());
+					if (nextGraphState == null)
+						throw new IllegalArgumentException("coverage has more transitions than the original graph");
+					pairsToExplore.add(new StatePair(nextGraphState, target.getValue()));
 				}
 		}
 		
@@ -453,7 +456,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 		
 	}
-	
 	
 	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, Label label, MarkovUniversalLearner m)
 	{

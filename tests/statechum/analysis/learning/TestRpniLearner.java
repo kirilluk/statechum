@@ -72,14 +72,12 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceSet;
-
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
 
@@ -158,6 +156,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				Pair<Integer,String> oracleAnswer = new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 				return oracleAnswer;				
 			}
+			
 		};
 		config.setDebugMode(false);
 		//l.setPairsMergedPerHypothesis(0);

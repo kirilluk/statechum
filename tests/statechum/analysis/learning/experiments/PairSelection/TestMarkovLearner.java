@@ -3,12 +3,11 @@ package statechum.analysis.learning.experiments.PairSelection;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import junit.framework.Assert;
@@ -611,11 +610,139 @@ public class TestMarkovLearner {
 		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
 		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
 		for(CmpVertex v:reference.transitionMatrix.keySet())
-			if (v == reference.findVertex("B") || v == reference.findVertex("T"))
-				
-		System.out.println(uncovered);
+			if (v.toString().equals("B"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(1,uncoveredFromThisVertex.size());
+				Assert.assertEquals("x", uncoveredFromThisVertex.iterator().next().toString());
+			}	
+			else
+				if (v.toString().equals("T"))
+				{
+					Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+					Assert.assertEquals(2,uncoveredFromThisVertex.size());
+					Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+					Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());
+				}	
+				else
+					Assert.assertEquals(0,uncovered.get(v).size());
 	}
 	
+	@Test
+	public void testIdentifyUncoveredTransitions3()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B / B-u->E","testIdentifyUncoveredTransitions3a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
+		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
+		for(CmpVertex v:reference.transitionMatrix.keySet())
+			if (v.toString().equals("B"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(2,uncoveredFromThisVertex.size());
+				Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+				Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("x", elems.next().toString());
+			}	
+			else
+				if (v.toString().equals("T"))
+				{
+					Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+					Assert.assertEquals(2,uncoveredFromThisVertex.size());
+					Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+					Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());
+				}	
+				else
+					Assert.assertEquals(0,uncovered.get(v).size());
+	}
+	
+	@Test
+	public void testIdentifyUncoveredTransitions4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C","testIdentifyUncoveredTransitions4a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
+		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
+		for(CmpVertex v:reference.transitionMatrix.keySet())
+			if (v.toString().equals("A"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(1,uncoveredFromThisVertex.size());
+				Assert.assertEquals("c", uncoveredFromThisVertex.iterator().next().toString());
+			}	
+			else
+			if (v.toString().equals("B"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(3,uncoveredFromThisVertex.size());
+				Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+				Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());Assert.assertEquals("x", elems.next().toString());
+			}	
+			else
+				if (v.toString().equals("T"))
+				{
+					Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+					Assert.assertEquals(2,uncoveredFromThisVertex.size());
+					Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+					Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());
+				}	
+				else
+					Assert.assertEquals(0,uncovered.get(v).size());
+	}
+	
+	@Test
+	public void testIdentifyUncoveredTransitions5()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C","testIdentifyUncoveredTransitions4a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / E-z->F / T-b->T-u->T","testIdentifyUncoveredTransitions5b",config, converter);
+		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
+		for(CmpVertex v:reference.transitionMatrix.keySet())
+			if (v.toString().equals("A"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(1,uncoveredFromThisVertex.size());
+				Assert.assertEquals("c", uncoveredFromThisVertex.iterator().next().toString());
+			}	
+			else
+			if (v.toString().equals("B"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(3,uncoveredFromThisVertex.size());
+				Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+				Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());Assert.assertEquals("x", elems.next().toString());
+			}	
+			else
+			if (v.toString().equals("E"))
+			{
+				Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+				Assert.assertEquals(1,uncoveredFromThisVertex.size());
+				Assert.assertEquals("z", uncoveredFromThisVertex.iterator().next().toString());
+			}	
+			else
+				if (v.toString().equals("T"))
+				{
+					Set<Label> uncoveredFromThisVertex = uncovered.get(v);
+					Assert.assertEquals(2,uncoveredFromThisVertex.size());
+					Iterator<Label> elems =  uncoveredFromThisVertex.iterator();
+					Assert.assertEquals("b", elems.next().toString());Assert.assertEquals("u", elems.next().toString());
+				}	
+				else
+					Assert.assertEquals(0,uncovered.get(v).size());
+	}
+	
+	@Test
+	public void testIdentifyUncoveredTransitions6()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
+		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D","testIdentifyUncoveredTransitions3",config, converter);
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+			}
+		}, IllegalArgumentException.class, "coverage has more transitions");		
+	}
 	
 	
 }

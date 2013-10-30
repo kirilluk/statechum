@@ -490,16 +490,16 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
 			if(targets != null && !targets.isEmpty())
 				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
-				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
-				{
-					if (!statesInFringe.containsKey(target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
+					for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
 					{
-						int newDepth = currentDepth+1;
-						stateToDepth.put(target,newDepth);
-						Assert.assertEquals("state "+target,target.getDepth(),newDepth);
-						fringe.offer(target);statesInFringe.put(target, target);
+						if (!statesInFringe.containsKey(target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
+						{
+							int newDepth = currentDepth+1;
+							stateToDepth.put(target,newDepth);
+							Assert.assertEquals("state "+target,newDepth,target.getDepth());
+							fringe.offer(target);statesInFringe.put(target, target);
+						}
 					}
-				}
 		}
 	}
 	

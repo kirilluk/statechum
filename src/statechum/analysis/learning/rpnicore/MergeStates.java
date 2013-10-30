@@ -149,6 +149,8 @@ public class MergeStates {
 		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 		if (redVertex != null)
 			result.learnerCache.stateLearnt=origToNew.get(redVertex).getMergedVertex();
+		
+		result.pathroutines.updateDepthLabelling();
 		return result;
 	}
 	

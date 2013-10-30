@@ -232,7 +232,7 @@ public class TestErlangModule {
 		input.close();return result.toString();
     }
     
-    public void testConsistencyBetweenOriginalAndOurTyperHelper(File origFile, boolean ignoreModuleInfo) throws IOException
+    public void testConsistencyBetweenOriginalAndOurTyperHelper(File origFile) throws IOException
     {
     	Assert.assertFalse(erlangFile.equals(erlangFileOther));
     	String moduleName = ErlangRunner.getName(origFile, ERL.MOD, true);
@@ -250,25 +250,24 @@ public class TestErlangModule {
   			Writer wr = new FileWriter(fileB);wr.write(someErlang);wr.close();
   			typerAsProcess = runTyperAsAProcess(new File(fileB)).replace("\\\\","\\").replace(fileB, "FileName");
   		}
-  		if (ignoreModuleInfo)
-  		{
 	  		typerInRunner = typerInRunner.replaceAll("-spec module_info.*\n", "");
+	  		typerInRunner = typerInRunner.replaceAll(".*Unknown functions: \\[\\{erlang,get_module_info,1\\},\\{erlang,get_module_info,2\\}\\].*\n", "");
 	  		typerAsProcess = typerAsProcess.replaceAll("-spec module_info.*\n", "");
-  		}
+	  		typerAsProcess = typerAsProcess.replaceAll(".*Unknown functions: \\[\\{erlang,get_module_info,1\\},\\{erlang,get_module_info,2\\}\\].*\n", "");//[{erlang,get_module_info,1},{erlang,get_module_info,2}]
 		Assert.assertEquals(typerAsProcess,typerInRunner);
     }
     
     @Test
     public void testConsistencyBetweenOriginalAndOurTyper1() throws IOException
     {
-    	testConsistencyBetweenOriginalAndOurTyperHelper(new File(ErlangExamples,"WibbleMonster/wibble.erl"),false);
+    	testConsistencyBetweenOriginalAndOurTyperHelper(new File(ErlangExamples,"WibbleMonster/wibble.erl"));
     }
     
     @Test
     public void testConsistencyBetweenOriginalAndOurTyper2() throws IOException
     {
     	// for some reason, Erlang runner does not add module_info information
-    	testConsistencyBetweenOriginalAndOurTyperHelper(new File(ErlangExamples,"locker/locker.erl"),true);
+    	testConsistencyBetweenOriginalAndOurTyperHelper(new File(ErlangExamples,"locker/locker.erl"));
     }
     
     @Test

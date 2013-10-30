@@ -207,7 +207,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 			response.append(" ]");
 		}
 
-		// System.out.println("Response: " + response);
+		//System.out.println("Asked : "+question);
+		//System.out.println("Response: " + response);
 		Pair<Integer, String> result = null;
 
 		if (response != null) {
@@ -505,7 +506,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(List<? extends Label> question) {
-		System.out.println("ASKING: "+getCount()+" "+questionToString(question));
+		//System.out.println("ASKING: "+getCount()+" "+questionToString(question));
 		ErlangLabel[] questionDetails = new ErlangLabel[question.size()];
 		int i = 0;
 		for (Label lbl : question) {

@@ -94,12 +94,13 @@ public final class TestCloneWithDifferentConf
 		}
 		
 
+		ConvertALabel converter = new Transform.InternStringLabel();
 		LearnerGraph differentGraphA = new LearnerGraph(graphD,graphD.config);differentGraphA.transitionMatrix.get(differentGraphA.findVertex("A2"))
-			.put(AbstractLearnerGraph.generateNewLabel("t",differentGraphA.config),
+			.put(AbstractLearnerGraph.generateNewLabel("t",differentGraphA.config,converter),
 					differentGraphA.findVertex("A3"));
 		differentGraphA.setName("differentA");
 		LearnerGraphND differentGraphB = new LearnerGraphND(graphND,graphD.config);differentGraphB.transitionMatrix.get(differentGraphB.findVertex("A2"))
-			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config))
+			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config,converter))
 			.add(differentGraphB.findVertex("S"));
 		differentGraphB.setName("differentB");
 		

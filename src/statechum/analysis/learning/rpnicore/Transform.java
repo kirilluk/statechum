@@ -57,6 +57,7 @@ import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
+/** Miscellaneous graph transformation routines. */
 public class Transform 
 {
 	final LearnerGraph coregraph;
@@ -1007,7 +1008,7 @@ public class Transform
 		return result;
 	}
 	
-	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, LearnerGraph graph, Configuration config, ConvertALabel conv)
+	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, Set<Label> alphabet, LearnerGraph graph, Configuration config, ConvertALabel conv)
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
 		LTL_to_ba converter = new LTL_to_ba(config,conv);
@@ -1023,6 +1024,9 @@ public class Transform
 				Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
 			}
 		
+		Set<Label> alphabetToUse = alphabet;
+		if (alphabetToUse == null)
+			alphabetToUse = graph.pathroutines.computeAlphabet();
 		for(String property:ltl)
 			if (property.startsWith(QSMTool.cmdIFTHENAUTOMATON))
 			{
@@ -1030,9 +1034,9 @@ public class Transform
 				int endOfName = automatonAndName.indexOf(' ');
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
-				LearnerGraph tmpPropertyAutomaton = 
+				LearnerGraph tmpPropertyAutomaton =
 						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
-							.transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet(),conv); // this is inefficient but I can afford this because if-then automata are small.
+							.transform.interpretLabelsAsReg(alphabetToUse,conv); // this is inefficient but I can afford this because if-then automata are small.
 				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
 				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
@@ -1147,16 +1151,16 @@ public class Transform
 			return Collections.singleton(convertLabelToLabel(label));
 		}
 
-		public ConvertTypeOfLabels(Configuration cnf)
+		public ConvertTypeOfLabels(Configuration cnf,ConvertALabel conv)
 		{
-			config = cnf;
+			config = cnf;converter = conv;
 		}
 		private final Configuration config;
-		
+		private final ConvertALabel converter;
 		@Override
 		public Label convertLabelToLabel(Label label) 
 		{
-			return AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config);
+			return AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config,converter);
 		}
 	}
 	
@@ -1189,10 +1193,12 @@ public class Transform
 		protected int nextID;
 		
 		/** Given a label, returns an interned label. Could return the same label but should not return null. 
+		 * For multi-core operation, this method has to be synchronized.
+		 * 
 		 * @param lbl label to intern. 
 		 */
 		@Override
-		public Label convertLabelToLabel(Label label)
+		public synchronized Label convertLabelToLabel(Label label)
 		{
 			Label outcome = labelDatabase.get(label);
 			if (outcome == null)
@@ -1310,4 +1316,67 @@ public class Transform
 		
 		return (DuA+DuB)/2;
 	}
+	
+	/** Given a large graph, this method chops all states more than a specific number of transitions away from the root node. 
+	 * Very useful for visualisation of complex graphs where Jung will choke doing a layout and the part of interest is close to the root node.
+	 * 
+	 * @param coregraph graph to trim.
+	 * @param depth the diameter of the graph to leave.
+	 * @return trimmed graph
+	 */
+	public LearnerGraph trimGraph(int depth,CmpVertex startingState)
+	{
+		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
+		trimmedOne.initEmpty();
+		
+		if (depth < 0)
+			return trimmedOne;
+		
+		// we should not change attributes of coregraph's matrix here since we are re-using the vertices
+		trimmedOne.transitionMatrix.put(startingState,trimmedOne.createNewRow());
+		trimmedOne.setInit(startingState);
+		trimmedOne.learnerCache.invalidate();
+
+		Queue<CmpVertex> newFringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// since the subset of the filtered vertices is very small, it is enough to use an ordinary HashSet. A HashMapWithSearch will be an overkill.
+		newFringe.add(startingState);statesInFringe.add(startingState);
+		int waveNumber=0;
+		do
+		{
+			Queue<CmpVertex> fringe = newFringe;newFringe = new LinkedList<CmpVertex>();
+			while(!fringe.isEmpty())
+			{
+				CmpVertex currentState = fringe.remove();
+				Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState==startingState?startingState:currentState);
+				Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+				if(targets != null && !targets.isEmpty())
+					for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
+						
+					for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
+					{
+						// in the last pass we limit the set of states to those that have been encountered earlier
+						if (waveNumber <= depth -1 || statesInFringe.contains(target))
+						{
+							Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(target);
+							if (row == null) 
+							{
+								row = trimmedOne.createNewRow();trimmedOne.transitionMatrix.put(target, row);
+							}
+							trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
+							
+							if (!statesInFringe.contains(target))
+							{
+								newFringe.offer(target);
+								statesInFringe.add(target);
+							}
+						}
+					}
+			}
+			
+			++waveNumber;
+		}
+		while(!newFringe.isEmpty() && waveNumber <= depth);
+		return trimmedOne;
+	}
+	
 }

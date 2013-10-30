@@ -27,6 +27,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -45,17 +46,17 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	double parallel;
 	public ForestFireLabelledStateMachineGenerator(
 			double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, 
-			int seed,Configuration conf)
+			int seed,Configuration conf,ConvertALabel converter)
 	{
-		super(forwards, backwards,argSelfloop,seed,conf);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards,argSelfloop,seed,conf,converter);this.parallel=(int)(1/argParallel);
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	
 	public ForestFireLabelledStateMachineGenerator(
 			double forwards, double backwards, double argSelfloop, double argParallel, Set<Label> argAlphabet, 
-			int seed,Configuration conf)
+			int seed,Configuration conf,ConvertALabel converter)
 	{
-		super(forwards, backwards, argSelfloop, seed,conf);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards, argSelfloop, seed,conf,converter);this.parallel=(int)(1/argParallel);
 		this.alphabet=argAlphabet;
 	}
 	
@@ -124,7 +125,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	{
 		Set<Label> generatedAlphabet = new TreeSet<Label>();
 		for (int i=0;i<number;i++)
-			generatedAlphabet.add(AbstractLearnerGraph.generateNewLabel(i, config));
+			generatedAlphabet.add(AbstractLearnerGraph.generateNewLabel(i, config, converter));
 		return generatedAlphabet;
 	}
 	

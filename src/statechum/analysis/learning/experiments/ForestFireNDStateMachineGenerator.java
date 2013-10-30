@@ -44,6 +44,7 @@ import statechum.Label;
 import statechum.StringVertex;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -60,6 +61,7 @@ public class ForestFireNDStateMachineGenerator {
 	
 	private double forwards, backwards, selfLoop;
 	protected LearnerGraphND machine;
+	protected ConvertALabel converter = null;
 	protected List<CmpVertex> vertices;
 	protected Set<CmpVertex> visited;
 	protected RandomEngine generator;
@@ -72,7 +74,7 @@ public class ForestFireNDStateMachineGenerator {
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
 			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
 		visited = new HashSet<CmpVertex>();
-		machine = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		machine = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
 		vertices = new ArrayList<CmpVertex>();
 		generator  = new MersenneTwister(seed);
 		this.alphabet = alphabetArg;
@@ -113,10 +115,10 @@ public class ForestFireNDStateMachineGenerator {
 				this.labelmap.put(v, v);
 				CmpVertex random = selectRandomVertex();
 
-				machine.addTransition(machine.getTransitionMatrix().get(random), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config), v);
+				machine.addTransition(machine.getTransitionMatrix().get(random), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v);
 				//Visualiser.updateFrame(machine, null);
 				if (Distributions.nextGeometric(1-selfLoop,generator)>0)
-					machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config), v); 
+					machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v); 
 
 				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
 				// at this point it is appropriate to assume that we were successful.
@@ -157,9 +159,9 @@ public class ForestFireNDStateMachineGenerator {
 
 		for (CmpVertex w : selectedVertices) {
 			if(boolGenerator.nextBoolean())
-				machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config), w);
+				machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), w);
 			else
-				machine.addTransition(machine.getTransitionMatrix().get(w), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config), v);
+				machine.addTransition(machine.getTransitionMatrix().get(w), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v);
 			visited.add(w);
 		}
 		

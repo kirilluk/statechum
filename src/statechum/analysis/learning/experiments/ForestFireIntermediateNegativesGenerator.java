@@ -19,13 +19,14 @@ package statechum.analysis.learning.experiments;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class ForestFireIntermediateNegativesGenerator extends ForestFireLabelledStateMachineGenerator {
 
 	public ForestFireIntermediateNegativesGenerator(double forwards,double backwards, double argSelfLoop, double argParallel, int alphabetSize, 
-			int seed, Configuration conf) 
+			int seed, Configuration conf, ConvertALabel converter) 
 	{
-		super(forwards, backwards,argSelfLoop,  argParallel,  alphabetSize, seed,conf);
+		super(forwards, backwards,argSelfLoop,  argParallel,  alphabetSize, seed,conf,converter);
 	}
 	
 

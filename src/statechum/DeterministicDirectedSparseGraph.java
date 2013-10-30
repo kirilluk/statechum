@@ -818,13 +818,15 @@ final public class DeterministicDirectedSparseGraph {
 		DeterministicVertex origVertex = (DeterministicVertex)orig;
 		VertID vertID = origVertex;
 		DeterministicVertex newVertex = newVertices.get(vertID);
-		if (newVertex == null) { 
-			newVertex = new DeterministicVertex(vertID);
-			if (DeterministicDirectedSparseGraph.isInitial(origVertex))
-				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-			DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
-			newVertices.put(vertID,newVertex);g.addVertex(newVertex);
-		}
+		if (newVertex == null) 
+			synchronized (AbstractLearnerGraph.syncObj)
+			{
+				newVertex = new DeterministicVertex(vertID);
+				if (DeterministicDirectedSparseGraph.isInitial(origVertex))
+					newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+				DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
+				newVertices.put(vertID,newVertex);g.addVertex(newVertex);
+			}
 		return newVertex;
 	}
 

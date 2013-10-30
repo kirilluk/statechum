@@ -42,6 +42,7 @@ public class AllTests {
     @Suite.SuiteClasses({
         statechum.analysis.learning.TestPTAConstruction.class,
         statechum.analysis.learning.TestRpniLearner.class,
+        statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestLTL_to_ba.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
@@ -85,7 +86,8 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestNextID.class,
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
         statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
-        statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class
+        statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
+        statechum.analysis.learning.experiments.PairSelection.TestWekaPairClassifier.class
     })
     public static class BasicTests {// all tests are included in the annotation.
     }
@@ -105,6 +107,7 @@ public class AllTests {
         statechum.analysis.learning.experiments.mutation.TestGraphMutator.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
         statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
+        statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner.class,
         statechum.TestProgressIndicator.class
     })
     public static class GraphTests {// all tests are included in the annotation.

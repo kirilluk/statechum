@@ -26,6 +26,10 @@
    <string>true</string>
   </void>
   <void method="put">
+   <string>VIZ_DIR</string>
+   <string>resources/graphLayout</string>
+  </void>
+  <void method="put">
    <string>ASSERT</string>
    <string>true</string>
   </void>
@@ -52,19 +56,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle0"/>
-                 <int>809</int>
+                 <int>631</int>
                 </void>
                </void>
               </object>
-              <int>1086</int>
+              <int>861</int>
              </void>
             </void>
            </object>
-           <int>1</int>
+           <int>401</int>
           </void>
          </void>
         </object>
-        <int>1927</int>
+        <int>2559</int>
        </void>
       </void>
      </object>
@@ -117,26 +121,34 @@
     <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle2">
       <void class="java.awt.Rectangle" method="getField">
-       <string>y</string>
+       <string>x</string>
        <void method="set">
         <object idref="Rectangle2">
          <void class="java.awt.Rectangle" method="getField">
-          <string>width</string>
+          <string>y</string>
           <void method="set">
            <object idref="Rectangle2">
             <void class="java.awt.Rectangle" method="getField">
-             <string>height</string>
+             <string>width</string>
              <void method="set">
-              <object idref="Rectangle2"/>
-              <int>300</int>
+              <object idref="Rectangle2">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle2"/>
+                 <int>609</int>
+                </void>
+               </void>
+              </object>
+              <int>745</int>
              </void>
             </void>
            </object>
-           <int>400</int>
+           <int>404</int>
           </void>
          </void>
         </object>
-        <int>330</int>
+        <int>3487</int>
        </void>
       </void>
      </object>
@@ -244,19 +256,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle5"/>
-                 <int>300</int>
+                 <int>815</int>
                 </void>
                </void>
               </object>
-              <int>400</int>
+              <int>1076</int>
              </void>
             </void>
            </object>
-           <int>7</int>
+           <int>568</int>
           </void>
          </void>
         </object>
-        <int>1036</int>
+        <int>1306</int>
        </void>
       </void>
      </object>
@@ -284,19 +296,19 @@
                 <string>height</string>
                 <void method="set">
                  <object idref="Rectangle6"/>
-                 <int>300</int>
+                 <int>531</int>
                 </void>
                </void>
               </object>
-              <int>400</int>
+              <int>760</int>
              </void>
             </void>
            </object>
-           <int>313</int>
+           <int>25</int>
           </void>
          </void>
         </object>
-        <int>1452</int>
+        <int>1625</int>
        </void>
       </void>
      </object>

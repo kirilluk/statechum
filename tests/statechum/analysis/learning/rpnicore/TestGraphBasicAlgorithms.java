@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -721,6 +722,44 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A-b->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
 		Assert.assertEquals((1.+0.5)/2,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
+
+	@Test
+	public final void testComputeReachableStates1()
+	{
+		LearnerGraph graph = new LearnerGraph(testConfig);
+		Set<CmpVertex> reachableStates = graph.pathroutines.computeReachableStates();
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.add(graph.getInit());
+		Assert.assertEquals(expected,reachableStates);
+	}
+	
+	@Test
+	public final void testComputeReachableStates2()
+	{
+		LearnerGraph graph = new LearnerGraph(testConfig);graph.initEmpty();
+		Set<CmpVertex> reachableStates = graph.pathroutines.computeReachableStates();
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();
+		Assert.assertEquals(expected,reachableStates);
+	}
+	
+	@Test
+	public final void testComputeReachableStates3()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A-b->A\n","testGetExtentOfCompleteness1", testConfig,getLabelConverter());
+		Set<CmpVertex> reachableStates = graph.pathroutines.computeReachableStates();
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.add(graph.findVertex("A"));expected.add(graph.findVertex("B"));
+		Assert.assertEquals(expected,reachableStates);
+	}
+	
+	/** Multiple disconnected parts. */
+	@Test
+	public final void testComputeReachableStates4()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A-b->A\nC-a->C","testComputeReachableStates4", testConfig,getLabelConverter());
+		Set<CmpVertex> reachableStates = graph.pathroutines.computeReachableStates();
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>();expected.add(graph.findVertex("A"));expected.add(graph.findVertex("B"));
+		Assert.assertEquals(expected,reachableStates);
+	}
+	
 	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class

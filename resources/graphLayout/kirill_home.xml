@@ -53,6 +53,20 @@
     <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle0">
       <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>2560</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
        <string>width</string>
        <void method="set">
         <object idref="Rectangle0"/>
@@ -122,7 +136,14 @@
        <string>x</string>
        <void method="set">
         <object idref="Rectangle2"/>
-        <int>854</int>
+        <int>3444</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle2"/>
+        <int>400</int>
        </void>
       </void>
       <void class="java.awt.Rectangle" method="getField">

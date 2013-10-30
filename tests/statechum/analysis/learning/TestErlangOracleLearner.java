@@ -143,12 +143,12 @@ public class TestErlangOracleLearner {
 				RPNIUniversalLearner learner = new ErlangOracleLearner(null, learnerInitConfiguration);
 				LearnerGraph outcome = learner.learnMachine(Plus, Minus);
 				LearnerGraph expectedGraph = new LearnerGraph(learnerInitConfiguration.config);
-				Label lblInit = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",init,AnyWibble}", learnerInitConfiguration.config),
-				lblLock = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,lock}", learnerInitConfiguration.config),
-				lblUnlock = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,unlock}", learnerInitConfiguration.config),
-				lblCast = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",cast,AnyWibble}", learnerInitConfiguration.config),
-				lblRead = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call, read}", learnerInitConfiguration.config),
-				lblWrite = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,{write,AnyWibble}}", learnerInitConfiguration.config);
+				Label lblInit = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",init,AnyWibble}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter()),
+				lblLock = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,lock}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter()),
+				lblUnlock = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,unlock}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter()),
+				lblCast = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",cast,AnyWibble}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter()),
+				lblRead = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call, read}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter()),
+				lblWrite = AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",call,{write,AnyWibble}}", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
 				
 				expectedGraph.paths.augmentPTA(Arrays.asList(new Label[]{lblInit,lblLock}), true, false, null);
 				expectedGraph.paths.augmentPTA(Arrays.asList(new Label[]{lblLock}), false, false, null);
@@ -251,8 +251,8 @@ public class TestErlangOracleLearner {
 		Set<ErlangLabel> alphabetFull = new TreeSet<ErlangLabel>();alphabetFull.addAll(ErlangModule.findModule("locker").behaviour.getAlphabet());
 		alphabetFull.removeAll(alphabetA);
 		Assert.assertEquals(3,alphabetFull.size());
-		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, lock ,{ok,locked}}", learner.config)));
-		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, read ,-1}", learner.config)));
-		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, unlock ,{ok,unlocked}}", learner.config)));
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, lock ,{ok,locked}}", learner.config,learner.getLabelConverter())));
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, read ,-1}", learner.config,learner.getLabelConverter())));
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, unlock ,{ok,unlocked}}", learner.config,learner.getLabelConverter())));
 	}
 }

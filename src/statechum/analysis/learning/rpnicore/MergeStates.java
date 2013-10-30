@@ -149,6 +149,8 @@ public class MergeStates {
 		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 		if (redVertex != null)
 			result.learnerCache.stateLearnt=origToNew.get(redVertex).getMergedVertex();
+		
+		result.pathroutines.updateDepthLabelling();
 		return result;
 	}
 	
@@ -161,11 +163,10 @@ public class MergeStates {
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
-			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 
-		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
+		if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices) < 0)
 		{/*
 			try {
 			
@@ -218,7 +219,6 @@ public class MergeStates {
 			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
 			if (mergedVertices.containsKey(vert))
 			{// there are some vertices to merge with this one.
-				
 				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
 				for(CmpVertex toMerge:mergedVertices.get(vert))
 				{// for every input, I'll have a unique target state - this is a feature of PTA

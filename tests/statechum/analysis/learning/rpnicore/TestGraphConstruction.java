@@ -110,7 +110,8 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	public final void testCreateLabelIntern1()
 	{
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_STRING);
-		final Label lbl = AbstractLearnerGraph.generateNewLabel("A", conf);
+		final statechum.analysis.learning.rpnicore.Transform.InternStringLabel intern = null;
+		final Label lbl = AbstractLearnerGraph.generateNewLabel("A", conf,intern);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbl.toInt();
 		}},UnsupportedOperationException.class,"string labels");
@@ -122,11 +123,11 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	{
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_STRING);
 		final statechum.analysis.learning.rpnicore.Transform.InternStringLabel intern = new statechum.analysis.learning.rpnicore.Transform.InternStringLabel();
-		final Label lbl1 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("A", conf));
-		final Label lbl2 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("A", conf));
+		final Label lbl1 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("A", conf,intern));
+		final Label lbl2 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("A", conf,intern));
 		assertEquals(0,lbl1.toInt());
 		assertEquals(0,lbl2.toInt());
-		final Label lbl3 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("B", conf));
+		final Label lbl3 = intern.convertLabelToLabel(AbstractLearnerGraph.generateNewLabel("B", conf,intern));
 		assertEquals(1,lbl3.toInt());		
 	}
 	
@@ -135,7 +136,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	{
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_ERLANG);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			AbstractLearnerGraph.generateNewLabel(33,conf);
+			AbstractLearnerGraph.generateNewLabel(33,conf,converter);
 		}},IllegalArgumentException.class,"No parser");
 	}
 	

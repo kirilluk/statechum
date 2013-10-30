@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
 import statechum.Pair;
 
@@ -36,6 +37,8 @@ import statechum.Pair;
 public class SootOracleSupport {
 	final LearnerGraph coregraph;
 	final Label ret;
+	final ConvertALabel converter = null;
+	
 	/** Associates this object to SootOracleSupport it is using for data to operate on. 
 	 * Important: the constructor should not access any data in SootOracleSupport 
 	 * because it is usually invoked during the construction phase of SootOracleSupport 
@@ -43,7 +46,7 @@ public class SootOracleSupport {
 	 */
 	SootOracleSupport(LearnerGraph g)
 	{
-		coregraph =g;ret = AbstractLearnerGraph.generateNewLabel("ret",coregraph.config);
+		coregraph =g;ret = AbstractLearnerGraph.generateNewLabel("ret",coregraph.config,converter);
 	}
 	
 	/**

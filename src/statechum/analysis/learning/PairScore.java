@@ -31,7 +31,7 @@ import statechum.Pair;
 public class PairScore extends StatePair
 {
 	private final long score, compatibilityScore;
-
+	
 	public PairScore(CmpVertex q, CmpVertex r, long sc, long compat) {
 		super(q, r);
 		score = sc;compatibilityScore = compat;

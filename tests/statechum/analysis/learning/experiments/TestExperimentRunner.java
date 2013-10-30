@@ -51,8 +51,10 @@ import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
 
 public class TestExperimentRunner {
-	public static final File testDir = new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)
-				,"__TestAbstractExperiment__"),
+	protected static int directoryCounter = 0;
+	
+	public final File testDir = new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)
+				,"__TestAbstractExperiment__"+(directoryCounter++)),
 		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());
 
 	protected final Configuration config = Configuration.getDefaultConfiguration();
@@ -99,7 +101,7 @@ public class TestExperimentRunner {
 		}
 	}
 	
-	protected static class w_evaluator extends LearnerEvaluator
+	protected class w_evaluator extends LearnerEvaluator
 	{
 		public w_evaluator(String inputFile, int per, int inID,
 				ExperimentRunner exp, Configuration cnf, String name) {

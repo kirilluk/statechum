@@ -247,7 +247,7 @@ public class WMethod
 						equiv = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(number++,graph);mapOfEquivalentStates.put(stateA.getValue(), equiv);
 					}
 					try {
-						equiv.addFrom(stateA.getKey(),graph.transitionMatrix.get(stateA.getKey()).entrySet());
+						equiv.mergeWith(stateA.getKey(),graph.transitionMatrix.get(stateA.getKey()).entrySet());
 					} catch (IncompatibleStatesException e) {
 						Helper.throwUnchecked("equivalent states cannot be incompatible", e);
 					}

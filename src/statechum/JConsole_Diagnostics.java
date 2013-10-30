@@ -20,20 +20,24 @@ public class JConsole_Diagnostics extends NotificationBroadcasterSupport impleme
 	}
 
 	private static JConsole_Diagnostics diag = null;
+	private static final Object lockObject = new Object();
 	
 	public static JConsole_Diagnostics getDiagnostics()
 	{
-		if (diag == null)
+		synchronized (lockObject) 
 		{
-			MBeanServer mbs = ManagementFactory.getPlatformMBeanServer(); 
-		    diag = new JConsole_Diagnostics();
-		      
-		    try {
-		    	  ObjectName name = new ObjectName("statechum.JConsole_Diagnostics:type=JConsole_Diagnostics"); 
-				mbs.registerMBean(diag, name);
-			} catch (Exception e) {
-				e.printStackTrace();
-			} 
+			if (diag == null)
+			{
+				MBeanServer mbs = ManagementFactory.getPlatformMBeanServer(); 
+			    diag = new JConsole_Diagnostics();
+			      
+			    try {
+			    	  ObjectName name = new ObjectName("statechum.JConsole_Diagnostics:type=JConsole_Diagnostics"); 
+					mbs.registerMBean(diag, name);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} 
+			}
 		}
 		return diag;
 	}

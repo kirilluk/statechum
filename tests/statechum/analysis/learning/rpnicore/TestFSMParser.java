@@ -79,7 +79,7 @@ public class TestFSMParser {
 			try
 			{
 				FsmParser p = new FsmParser(text);
-				p.parse(this,Configuration.getDefaultConfiguration());
+				p.parse(this,Configuration.getDefaultConfiguration(),null);
 			}
 			catch(IllegalArgumentException e)
 			{
@@ -297,7 +297,7 @@ public class TestFSMParser {
 				{
 					// do nothing at all
 				}
-			},Configuration.getDefaultConfiguration());
+			},Configuration.getDefaultConfiguration(),null);
 		}},IllegalArgumentException.class,exceptionSubString);
 	}
 	

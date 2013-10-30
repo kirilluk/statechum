@@ -57,7 +57,7 @@ public class TestForestFireGenerator {
 	@Before
 	public void before()
 	{
-		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,10,0,config);
+		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,10,0,config,converter);
 		gen.machine = FsmParser.buildLearnerGraph("A-a->B-a->C\nA-b->B-c->C", "testRandomVertexSelection1",config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(gen.machine.getVertices());
 	}
@@ -194,8 +194,8 @@ public class TestForestFireGenerator {
 	@Test
 	public void testAddEdgeFail1()
 	{
-		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,0,0 ,config);
-		gen.machine = FsmParser.buildLearnerGraph("A-0->B / A-1->C / A-2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,0,0 ,config,converter);
+		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);
@@ -206,8 +206,8 @@ public class TestForestFireGenerator {
 	@Test
 	public void testAddEdgeFail2()
 	{
-		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,2,0 ,config);
-		gen.machine = FsmParser.buildLearnerGraph("A-0->B / A-1->C / A-2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,2,0 ,config,converter);
+		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);

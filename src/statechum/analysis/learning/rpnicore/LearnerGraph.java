@@ -206,6 +206,22 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 */
 	public ArrayList<PairScore> pairsAndScores;
 
+	/** Makes it possible to register callbacks for score computation. Currently used with Markov but should be useful for Weka. */ 
+	public static interface ScoreComputationCallback
+	{
+		public void initComputation(LearnerGraph graph);
+		public long overrideScoreComputation(PairScore p);
+	}
+	
+	public Collection<CmpVertex> additionalExplorationRoot = null;
+	public ScoreComputationCallback scoreComputation = null;
+	
+	public void setScoreComputationCallback(ScoreComputationCallback s)
+	{
+		scoreComputation = s;
+		if (scoreComputation != null) scoreComputation.initComputation(this);
+	}
+	
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 
@@ -321,6 +337,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{
 		AbstractLearnerGraph.copyGraphs(from, result);
 		copyVertexToAbstractState(from,result);
+		result.scoreComputation=from.scoreComputation;
+		if (result.scoreComputation != null) result.scoreComputation.initComputation(result);
 	}
 	
 	/** Converts a transition into an FSM structure, by taking a copy.
@@ -377,7 +395,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	@Override
 	public void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
 	{
-		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
+		if (row.containsKey(input)) 
+			throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
 		assert input != null;
 		assert target != null;
 		row.put(input, target);

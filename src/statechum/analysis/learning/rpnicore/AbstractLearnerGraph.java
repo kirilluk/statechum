@@ -191,6 +191,15 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return count;
 	}
 
+	/** Returns the number of red states in the state machine. */
+	public int getRedStateNumber()
+	{
+		int count = 0;
+		for(CmpVertex vert:transitionMatrix.keySet()) 
+			if (vert.getColour() == JUConstants.RED) ++count;
+		return count;
+	}
+
 	/** Returns the number of accept states. */
 	public int getAcceptStateNumber()
 	{
@@ -293,15 +302,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Given a string representation of a label, this one generates an instance of a specific label.
 	 * @param text what to turn into a label, using the supplied configuration.
 	 * @param config determines which label to generate.
-	 */
-	public static Label generateNewLabel(String label, Configuration config)
-	{
-		return generateNewLabel(label,config,null);
-	}
-	
-	/** Given a string representation of a label, this one generates an instance of a specific label.
-	 * @param text what to turn into a label, using the supplied configuration.
-	 * @param config determines which label to generate.
 	 * @param conv converter to intern labels, ignored if null.
 	 */
 	public static Label generateNewLabel(String label, Configuration config, ConvertALabel conv)
@@ -351,17 +351,19 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * Could be more elaborate than just a number: for Erlang, this could generated trees. In addition, this one does not 
 	 * really assign numbers to labels, hence the outcome cannot be used where {@link ConvertibleToInt#toInt()} is used. 
 	 */
-	public static Label generateNewLabel(int number, Configuration config)
+	public static Label generateNewLabel(int number, Configuration config, ConvertALabel conv)
 	{
 		Label result = null;
 		switch(config.getLabelKind())
 		{
 		case LABEL_STRING:
-			result = new StringLabel(Integer.toString(number));
+			result = new StringLabel("L"+Integer.toString(number));// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
 			break;
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}
+		if (conv != null)
+			result = conv.convertLabelToLabel(result);
 		return result;
 	}
 	
@@ -495,8 +497,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
-		if (transitionMatrix.containsKey(newVertex))
-			transitionMatrix.containsKey(newVertex);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
 		transitionMatrix.put(newVertex, createNewRow());

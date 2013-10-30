@@ -563,7 +563,7 @@ public class TestMatrixComputationWithMultipleThreads {
 					if (LearnerGraphND.ignoreRejectStates.stateToConsider(stateB.getKey()))
 					{
 						StatePair currentPair = new StatePair(entryA.getKey(),stateB.getKey());
-						if (gr.pairscores.computePairCompatibilityScore_general(currentPair, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>()) < 0)
+						if (gr.pairscores.computePairCompatibilityScore_general(currentPair,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>()) < 0)
 						{// result is constructed as a synchronized set
 							result.add(currentPair);
 						}

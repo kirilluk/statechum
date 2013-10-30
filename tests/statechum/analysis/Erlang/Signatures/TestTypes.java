@@ -52,6 +52,7 @@ import statechum.analysis.Erlang.OTPBehaviour;
 import statechum.analysis.Erlang.TestErlangRunner;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /** This one tests two things, parsing of Erlang types and verification of type compatibility. */
 public class TestTypes 
@@ -81,7 +82,8 @@ public class TestTypes
 	/** Creates a label from the string of text and a configuration. */
 	public static void createLabel(String str, Configuration config)
 	{
-		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config);
+		ConvertALabel converter = null;
+		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config,converter);
 	}
 	
 	/** Verifies that the specified label does not parse give the configuration. */

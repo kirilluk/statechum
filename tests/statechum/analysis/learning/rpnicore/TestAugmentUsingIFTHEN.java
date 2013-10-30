@@ -304,7 +304,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	{
 		String ltlFormula = "!([](a->X[]b))";
 		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" "+ltlFormula}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+				QSMTool.cmdLTL+" "+ltlFormula}), null,  buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-a->A-b->A / I-b->IA-a->A / I-c->IA-b->IA-c->IA / P-c-#P1 / P-a-#P2 / A = THEN = P / " +
@@ -326,7 +326,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdLTL+" "+ltlFormulaB,
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-c->A / I-d->A / A-a->A-b->A-c->A-d->A / P2#-b-P-a-#P1 / I = THEN = P / " +
@@ -354,7 +354,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph next = null;
@@ -373,13 +373,24 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** An automaton without a name. */
 	@Test
-	public final void testbuildIfThenAutomata_fail()
+	public final void testbuildIfThenAutomata_fail1()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 		Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdLTL+" !a",
-				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), null, buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
 		}}, IllegalArgumentException.class,"missing automata name");
+	}
+	
+	@Test
+	public final void testbuildIfThenAutomata_fail2()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			Transform.buildIfThenAutomata(Arrays.asList(new String[]{
+				QSMTool.cmdIFTHENAUTOMATON+" graphA A-t->B / P-a->P == THEN == A"
+			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+		
+		}}, IllegalArgumentException.class,"unrecognised label t");
 	}
 	
 	/** Tests the construction of a PTA from questions. */
@@ -555,7 +566,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	 * @param vertexName name of a vertex to look for
 	 * @return depth of the vertex
 	 */
-	private static int getDepthOfVertex(LearnerGraph whereToLook, Map<CmpVertex,LinkedList<Label>> stateCover,
+	private static int getDepthOfVertex(LearnerGraph whereToLook, Map<CmpVertex,List<Label>> stateCover,
 			String vertexName)
 	{
 		return whereToLook.getVertex(stateCover.get(VertexID.parseID(vertexName))).getDepth();
@@ -578,7 +589,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		LearnerGraph expectedGraph = buildLearnerGraph("A-a->B-d->N1 / B-b->C-a->B1-b->C1/ B1-d->N2 / C-c->S1-c->S2", "testPerformAugment5a",mainConfiguration,converter);
 		compareGraphs(expectedGraph, graph);
-		Map<CmpVertex,LinkedList<Label>> stateCover =expectedGraph.pathroutines.computeShortPathsToAllStates(expectedGraph.getInit());
+		Map<CmpVertex,List<Label>> stateCover =expectedGraph.pathroutines.computeShortPathsToAllStates(expectedGraph.getInit());
 		Assert.assertEquals(0,getDepthOfVertex(graph,stateCover,"A"));
 		Assert.assertEquals(1,getDepthOfVertex(graph,stateCover,"B"));
 		Assert.assertEquals(2,getDepthOfVertex(graph,stateCover,"C"));

@@ -3,9 +3,9 @@ package statechum.analysis.learning.experiments;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -16,19 +16,17 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -37,6 +35,8 @@ import statechum.StatechumXML;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -45,22 +45,23 @@ import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-@RunWith(ParameterizedWithName.class)
+@RunWith(Parameterized.class)
 public class TestPaperUAS extends TestWithMultipleConfigurations 
 {
 
 	protected PaperUAS paper;
 	
-	@org.junit.runners.Parameterized.Parameters
+	@Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
-	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);
@@ -75,10 +76,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void BeforeTests()
 	{
 		paper = new PaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
-		paper.labelConverter = paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
-
-		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitCorrect", mainConfiguration,converter);
-		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitWrong", mainConfiguration,converter);
+		paper.learnerInitConfiguration.setLabelConverter( paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null );
 	}
 	
 	/** Empty traces */
@@ -595,9 +593,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
@@ -609,7 +607,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 			Map<Integer,Set<List<Label>>> uav55Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),false);
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav55Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq","aa"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"qq","aa","qq"}}, mainConfiguration,converter).equals(
 					uav55Positive4.get(1)));
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, mainConfiguration,converter).equals(
 					uav55Negative4.get(0)));
@@ -621,9 +619,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc","aa","gg"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","bb","cc","aa","gg","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive2.get(1)));
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
 					uav3Negative2.get(0)));
@@ -659,9 +657,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "aa"}}, mainConfiguration,converter).equals(// positive traces are not prefixes of negatives and are thus are included
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "aa", "gg", "aa"}}, mainConfiguration,converter).equals(// positive traces are not prefixes of negatives and are thus are included
 					uav3Positive4.get(1)));
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
@@ -684,9 +682,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa","gg","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));// all positive traces are prefixes of negatives and are thus not included
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
@@ -709,9 +707,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(// all positive traces are prefixes of negatives and are thus not included
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa","gg"}}, mainConfiguration,converter).equals(
+			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","aa","gg","aa"}}, mainConfiguration,converter).equals(
 					uav3Positive4.get(1)));
 			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa","aa","bb","cc","nn","rr"},new String[]{"aa","zz"}}, mainConfiguration,converter).equals(
 					uav3Negative4.get(0)));
@@ -1094,178 +1092,72 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
 	}
-	
+
 	@Test
 	public void testLearnIfThen3()
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.5, entry.get(a),Configuration.fpAccuracy);
 	}
-	
+
 	@Test
 	public void testLearnIfThen4()
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.75, entry.get(a),Configuration.fpAccuracy);
 	}
-	
+
 	@Test
 	public void testLearnIfThen5()
 	{
 		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
 	}
-	
+
 	@Test
 	public void testLearnIfThen6()
 	{
 		Assert.assertTrue(PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
 	}
-	
+
 	@Test
 	public void testLearnIfThen7()
 	{
 		Map<Label,Map<Label,Double>> outcome = PaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
-		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration);
+		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);
 	}
-	
-	
-	@Test
-	public void testTrimGraph1()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, -1);
-		Assert.assertTrue(trimmed.transitionMatrix.isEmpty());
-	}
-	
-	@Test
-	public void testTrimGraph2()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 0);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->A","testTrimGraph2", mainConfiguration,converter);
-		expected.transitionMatrix.get(expected.transitionMatrix.findElementById(VertexID.parseID("A"))).clear();
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testTrimGraph3", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph4()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph5()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 1);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph6()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 2);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	/** Trimming does not trim transitions, only states that are reachable by a shortest path longer than the specified length, this is why there are many transitions that on the first glance should be filtered out. */
-	@Test
-	public void testTrimGraph7()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 3);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(expected,trimmed));
-	}
-	
-	@Test
-	public void testTrimGraph8()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", mainConfiguration,converter);
-		LearnerGraph trimmed = PaperUAS.trimGraphTo(graph, 4);
-		Assert.assertNull(WMethod.checkM(graph,trimmed));
-	}
-
-	
-	private LearnerGraph correctGraph = null, tentativeGraph = null;
 
 	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong1()
+	public void testMergerOnLargePTA() throws IOException
 	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
-	}
-	
-	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong2()
-	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		//PairScore a=new PairScore()
+		Configuration configToLoadWith = mainConfiguration.copy();configToLoadWith.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+		ConvertALabel labelConverter = converter;if (labelConverter == null) labelConverter = new Transform.InternStringLabel();
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, configToLoadWith, labelConverter);
+		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
-				
-		}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
-	}
-	
-	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong3()
-	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
-	}
-	
-	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong4()
-	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
-	}
-	
-	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong5()
-	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
-	}
-	
-	@Test
-	public void testSplitSetOfPairsIntoRightAndWrong6()
-	{
-		Set<PairScore> correctPairs = new TreeSet<PairScore>(), wrongPairs = new TreeSet<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
-		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
-		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
+		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
+		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
+		Label labelToMerge = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected",mainConfiguration,converter);
+		LearnerGraph mergedHuge = PairQualityLearner.mergeStatesForUnique(hugeGraph, labelToMerge);
+		DifferentFSMException diffFSM = WMethod.checkM(smallGraph, mergedHuge);
+		if (diffFSM != null)
+			throw diffFSM;
+
+		LearnerGraph mergedSmall = PairQualityLearner.mergeStatesForUnique(smallGraph,labelToMerge);
+		diffFSM = WMethod.checkM(smallGraph,mergedSmall);
+		if (diffFSM != null)
+			throw diffFSM;
+		
+		LearnerGraph mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
+		LearnerGraph mergedSmallB=PaperUAS.mergePTA(smallGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
+		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB);// the two graphs should reduce to the same one since they were built out of the same data, one by concatenation and another one without, however transitions between elements that have been concatenated are merged by the merger above so the outcome should be the same. 
+		if (diffFSM != null)
+			throw diffFSM;
 	}
 	
 }

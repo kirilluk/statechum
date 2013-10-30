@@ -317,7 +317,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 							throw new IllegalArgumentException("loadGraph: unknown source state");
 						if (target == null)
 							throw new IllegalArgumentException("loadGraph: unknown target state");
-						Label label = AbstractLearnerGraph.generateNewLabel(nodeElement.getAttribute("EDGE"), result.config);
+						Label label = AbstractLearnerGraph.generateNewLabel(nodeElement.getAttribute("EDGE"), result.config,conv);
 						if (conv == null)
 							result.addTransition(result.transitionMatrix.get(source),label,target);
 						else

@@ -1106,13 +1106,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		lbls.buildVertexToAbstractStateMap(mergedAB, graph,true);
-		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(graph.findVertex("A"),graph.findVertex("C1")));
+		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(mergedAB.findVertex("A"),mergedAB.findVertex("C1")));
 		lbls.buildVertexToAbstractStateMap(mergedAll, mergedAB,true);
-		
 		Assert.assertNotNull(graph.getVertexToAbstractState());
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		Assert.assertNotNull(mergedAll.getVertexToAbstractState());
-		
+
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
 		
 		expectedSet.clear();
@@ -1138,7 +1137,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		mergedAB.transitionMatrix.put(newVertex, mergedAB.createNewRow());
 		mergedAB.addTransition(mergedAB.transitionMatrix.get(mergedAB.findVertex("D2")), AbstractLearnerGraph.generateNewLabel("b",config,converter), newVertex);
 		lbls.buildVertexToAbstractStateMap(mergedAB, null,true);// update map
-		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(graph.findVertex("A"),graph.findVertex("C1")));
+		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(mergedAB.findVertex("A"),mergedAB.findVertex("C1")));
 		lbls.buildVertexToAbstractStateMap(mergedAll, mergedAB,true);
 
 		Assert.assertNotNull(graph.getVertexToAbstractState());

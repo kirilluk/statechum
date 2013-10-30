@@ -85,7 +85,7 @@ public class FsmParser
 		return lastMatch;
 	}
 	
-	public void parse(TransitionReceiver receiver,Configuration config)
+	public void parse(TransitionReceiver receiver,Configuration config,final ConvertALabel conv)
 	{
 		String currentState = null;
 		do {					
@@ -136,17 +136,17 @@ public class FsmParser
 			String anotherState = getMatch();
 			
 			if (left == FsmParser.LARROW)
-				receiver.accept(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config));
+				receiver.accept(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config,conv));
 			else
 				if (left == FsmParser.LARROWREJ)
-					receiver.reject(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config));
+					receiver.reject(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config,conv));
 				else
 					if (left == FsmParser.DASH)
 					{
 						if (right == FsmParser.RARROW)
-							receiver.accept(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config));
+							receiver.accept(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config,conv));
 						else
-							receiver.reject(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config));
+							receiver.reject(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config,conv));
 					}
 					else // left == FsmParser.EQUIV
 						{
@@ -257,6 +257,6 @@ public class FsmParser
 					throw new IllegalArgumentException("unknown vertex "+stateB);
 				target.addToCompatibility(fromVertex, toVertex, pairRelation);
 			}
-		},config);
+		},config,conv);
 	}
 }

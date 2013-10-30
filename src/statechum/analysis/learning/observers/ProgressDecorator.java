@@ -449,8 +449,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	
 	public static class InitialData
 	{
+		/** Sets of positive and negative sequences to initialise the PTA. */
 		public Collection<List<Label>> plus = null, minus = null;
 		public int plusSize=-1, minusSize =-1;
+		
+		/** The initial PTA as a PTA, useful where storing sequences of labels will take a lot of space (sparse PTA). */
 		public LearnerGraph graph=null;
 		public SmtLabelRepresentation labelDetails = null;
 

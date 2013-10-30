@@ -67,6 +67,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -438,14 +439,14 @@ public class DrawGraphs {
 		
 		public DataColumn()
 		{
-			results = new LinkedList<Double>(); 
+			results = new ArrayList<Double>(1000); 
 		}
 	}
 	
 	/**
 	 * Represents a graph.
 	 * 
-	 * @param <ELEM> type of elements for the X axis, veritical is always a Double
+	 * @param <ELEM> type of elements for the X axis, vertical is always a Double
 	 */
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>>
 	{
@@ -453,6 +454,9 @@ public class DrawGraphs {
 		
 		protected final String xAxis,yAxis;
 		protected final File file;
+		
+		/** Number of entries in the graph. */
+		protected int size = 0;
 		
 		/** Additional drawing command to append to a plot, such as abline() command. */
 		protected List<String> extraCommands = new LinkedList<String>();
@@ -491,11 +495,17 @@ public class DrawGraphs {
 			DataColumn column = collectionOfResults.get(el);
 			if (column == null) { column=new DataColumn();collectionOfResults.put(el,column); }
 			column.results.add(value);
+			++size;
 		}
 		
 		public synchronized void add(ELEM el,Double value, String colour)
 		{
 			add(el,value);collectionOfResults.get(el).colour=colour;
+		}
+		
+		public int size()
+		{
+			return size;
 		}
 		
 		/** Same as {@link add} but additionally permits setting of both colour and a label for this 
@@ -536,12 +546,17 @@ public class DrawGraphs {
 
 		public void drawPdf(DrawGraphs gr)
 		{
-			assert collectionOfResults.size() > 0;
-			double horizSize = xSize;
-			if (horizSize <= 0) horizSize=computeHorizSize();
-			List<String> drawingCommands = new LinkedList<String>();
-			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			gr.drawPlot(drawingCommands, horizSize,ySize,file);
+			if (collectionOfResults.size() > 0)
+			{
+				double horizSize = xSize;
+				if (horizSize <= 0) horizSize=computeHorizSize();
+				List<String> drawingCommands = new LinkedList<String>();
+				drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+				gr.drawPlot(drawingCommands, horizSize,ySize,file);
+			}
+			else
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
 		}
 		
 		/* Computes the horizontal size of the drawing. */
@@ -622,10 +637,10 @@ public class DrawGraphs {
 		
 		public boolean graphOk()
 		{
-			Rectangle2D.Double size = getSize();
-			if (size.width < Configuration.fpAccuracy)
+			Rectangle2D.Double graphSize = getSize();
+			if (graphSize.width < Configuration.fpAccuracy)
 				return false;
-			if (size.height < Configuration.fpAccuracy)
+			if (graphSize.height < Configuration.fpAccuracy)
 				return false;
 		
 			return true;
@@ -634,14 +649,14 @@ public class DrawGraphs {
 		/** Computes the data for abline to draw a diagonal. */
 		public String computeDiagonal()
 		{
-			Rectangle2D.Double size = getSize();
-			if (size.width < Configuration.fpAccuracy)
+			Rectangle2D.Double graphSize = getSize();
+			if (graphSize.width < Configuration.fpAccuracy)
 				throw new IllegalArgumentException("width is too small");
-			if (size.height < Configuration.fpAccuracy)
+			if (graphSize.height < Configuration.fpAccuracy)
 				throw new IllegalArgumentException("height is too small");
 			
-			double k = size.height/size.width;
-			double diff = size.y-k*size.x;
+			double k = graphSize.height/graphSize.width;
+			double diff = graphSize.y-k*graphSize.x;
 			
 			return "abline("+diff+","+k+")";
 		}

@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,15 +39,20 @@ import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.DebugDataValues;
@@ -465,10 +471,36 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		checkDepthLabelling(actualF);
 	}
 	
-	private void checkDepthLabelling(LearnerGraph gr)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void checkDepthLabelling(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph)
 	{
-		for(Entry<CmpVertex,LinkedList<Label>> entry:gr.pathroutines.computeShortPathsToAllStates().entrySet())
-			Assert.assertEquals("state "+entry.getKey()+" with path "+entry.getValue(),entry.getValue().size(),entry.getKey().getDepth());
+		int coreGraphStateNumber = coregraph.getStateNumber();
+		Map<CmpVertex,Integer> stateToDepth = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex, Integer>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,Integer>(coreGraphStateNumber);
+		CmpVertex from = coregraph.getInit();
+		stateToDepth.put(from, 0);
+		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				
+		fringe.add(from);statesInFringe.put(from,from);
+		while(!fringe.isEmpty())
+		{
+			CmpVertex currentState = fringe.remove();
+			Integer currentDepth = stateToDepth.get(currentState);
+			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
+			if(targets != null && !targets.isEmpty())
+				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
+					for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
+					{
+						if (!statesInFringe.containsKey(target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
+						{
+							int newDepth = currentDepth+1;
+							stateToDepth.put(target,newDepth);
+							Assert.assertEquals("state "+target,newDepth,target.getDepth());
+							fringe.offer(target);statesInFringe.put(target, target);
+						}
+					}
+		}
 	}
 	
 	/** Builds a maximal automaton from the supplied arguments. 
@@ -487,7 +519,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		LearnerGraph graph = new LearnerGraph(config);
 		if (initialMax != null)
 			graph=FsmParser.buildLearnerGraph(initialMax, "initial_max",config,converter);
-		for(Entry<CmpVertex,LinkedList<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
+		for(Entry<CmpVertex,List<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 			entry.getKey().setDepth(entry.getValue().size());// add depth information to states.
 		
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);

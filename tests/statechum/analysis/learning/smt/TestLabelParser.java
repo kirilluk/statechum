@@ -716,7 +716,7 @@ public class TestLabelParser {
 		final String expectedCompDeclarations = SmtLabelRepresentation.encloseInBeginEndIfNotEmpty(
 				expectedDecls.toString(),SmtLabelRepresentation.blockVARDECLS);
 
-		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config)).pre;
+		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config,converter)).pre;
 		Assert.assertEquals(expectedCompDeclarations,comp.varDeclarations);
 		
 		String 
@@ -766,7 +766,7 @@ public class TestLabelParser {
 	public final void testTraceParser11()
 	{
 		checkParsingPre("(and (= (func (+ y (func (+ x 3) (func (+ y 6)) input"+_M+")) 90) 5) (> (func output"+_N+" (func a input"+_M+")) (func b (func (+ x 3)))))",false);
-		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config)).pre;
+		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config,converter)).pre;
 		Assert.assertEquals("",comp.varDeclarations);
 		Assert.assertEquals("(and (= (func (+ y (func (+ x 3) (func (+ y 6)) input"+_M+")) 90) 5) (> (func output"+_N+" (func a input"+_M+")) (func b (func (+ x 3)))))",comp.relabelledText);
 		Assert.assertEquals(0,comp.variablesUsedForArgs.size());
@@ -832,7 +832,7 @@ public class TestLabelParser {
 		final String expectedCompDeclarations = SmtLabelRepresentation.encloseInBeginEndIfNotEmpty(
 				expectedDecls.toString(),SmtLabelRepresentation.blockVARDECLS);
 
-		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config)).pre;
+		CompositionOfFunctions comp = lbls.labelMapConstructionOfDataTraces.get(AbstractLearnerGraph.generateNewLabel("func",lbls.config,converter)).pre;
 		Assert.assertEquals(expectedCompDeclarations,comp.varDeclarations);
 
 		// funcT

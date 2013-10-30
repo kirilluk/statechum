@@ -29,8 +29,8 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -52,10 +52,10 @@ import statechum.Label;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestRecorderIntegration {
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -81,6 +81,7 @@ public class TestRecorderIntegration {
 		useZip=zip;useCompression=logCompression;forceGDfallback=forceFallback;kind = k;
 	}
 
+	@ParametersToString
 	public static String parametersToString(Boolean zip,Boolean logCompression, Boolean forceFallback,RecorderTestKind k)
 	{
 		return (zip?"ZIP":"XML")+", "+(logCompression?"GD":" no compression")+

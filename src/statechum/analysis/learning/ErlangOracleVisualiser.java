@@ -8,11 +8,12 @@ import statechum.analysis.CodeCoverage.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import statechum.JUConstants;
 
+import statechum.JUConstants;
 import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.CachedData.ErlangCoverageData;
@@ -24,6 +25,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
+
 import javax.swing.*;
 
 import java.awt.event.*;
@@ -37,6 +39,7 @@ import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 
 /**
  *
@@ -416,7 +419,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                ;
+                
             }
         }
         ErlangQSMOracle.coverageMapLock = true;
@@ -475,7 +478,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             for (String m : ErlangQSMOracle.erlangModules) {
                 result += "<h2>" + m + "</h2>";
                 result += "<pre>";
-                sourceFile = ErlangQSMOracle.ErlangFolder + "/" + m + ".erl";
+                sourceFile = ErlangRunner.getErlangFolder() + "/" + m + ".erl";
                 input = new BufferedReader(new FileReader(sourceFile));
                 int linenum = 0;
                 String line = null;

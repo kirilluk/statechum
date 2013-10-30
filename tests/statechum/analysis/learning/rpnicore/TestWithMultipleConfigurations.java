@@ -22,8 +22,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.runners.Parameterized.Parameters;
-
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
@@ -52,7 +50,7 @@ public class TestWithMultipleConfigurations
 	/** The configuration to use when running tests. */
 	public final Configuration mainConfiguration;
 
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -62,6 +60,7 @@ public class TestWithMultipleConfigurations
 		return result;
 	}
 	
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return "matrix: "+(config.getTransitionMatrixImplType());

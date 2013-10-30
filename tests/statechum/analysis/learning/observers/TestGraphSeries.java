@@ -28,8 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
@@ -41,7 +41,6 @@ import statechum.analysis.learning.linear.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
-
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 
@@ -49,19 +48,20 @@ import static statechum.Helper.whatToRun;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGraphSeries extends TestWithMultipleConfigurations
 {
 	LearnerGraph graphA = null, graphB = null, graphC = null, graphD = null;
 	String xmlData = null;
 	Collection<List<String>> plus, minus = null, justSomething = null;
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

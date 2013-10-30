@@ -55,12 +55,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  */
 public class ErlangQSMOracle {
 
-	// public static String erlangModule;
 	public static Collection<String> erlangModules;
-	// public static String erlangWrapperModule;
-	public static String covermapFile;
-	public static String ErlangFolder = "ErlangOracle";
-	public static String ErlangTyper = "lib/modified_typer";
 
 	// Mode can be "basic" or "otp". OTP will use the OTP wrappers to infer
 	// stuff about an OTP behaviour module
@@ -217,26 +212,9 @@ public class ErlangQSMOracle {
 		}
 	}
 
-	/*
-	 * NO LONGER USED public static void createInitTraces() throws IOException {
-	 * String erlArgs; erlArgs = "tracer2:gen_random_traces(" +
-	 * erlangWrapperModule + "," + erlangModule + "," + initArgs + "," +
-	 * erlangAlphabet + ",\"" + tracesFile + "\"," +
-	 * ErlangOracleVisualiser.toErlangList(erlangModules) + ")"; // erlArgs =
-	 * "tracer2:gen_exhaust_traces(" + erlangWrapperModule + "," + //
-	 * erlangModule + "," + initArgs + "," + erlangAlphabet + ",\"" + //
-	 * tracesFile + "\"," + //
-	 * ErlangOracleVisualiser.toErlangList(erlangModules) + ")";
-	 * 
-	 * System.out.println("Evaluating " + erlArgs + " in folder " +
-	 * ErlangFolder); // ./erlinittraces.sh testmod1 testfun
-	 * [1,4,8,16,32,37,41,42] test2.out // [testmod1,testmod2] in folder
-	 * ErlangOracle // ErlangOracleLearner.runErlang(erlArgs); }
-	 */
-
 	public static void loadCoverageMaps() {
 		coverageMaps = new TreeMap<Pair<Trace, Trace>, CodeCoverageMap>();
-		loadCoverageMaps(ErlangFolder + "/" + covermapFile);
+		//loadCoverageMaps(ErlangFolder + "/" + covermapFile);
 	}
 
 	public static void loadCoverageMaps(String filename) {
@@ -244,7 +222,7 @@ public class ErlangQSMOracle {
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
-				;
+				
 			}
 		}
 		coverageMapLock = true;

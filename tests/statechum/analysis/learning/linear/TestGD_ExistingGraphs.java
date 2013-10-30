@@ -37,9 +37,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
+
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
@@ -70,7 +71,7 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_ExistingGraphs 
 {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
@@ -80,12 +81,12 @@ public class TestGD_ExistingGraphs
 
 	Configuration config = null;
 
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{						
 		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// this dummy forces the load of configuration if not already loaded, hence progress indicator does not interleave with "configuration loaded" messages.
 		Collection<Object []> result = new LinkedList<Object []>();
-		final String testFilePath = "resources/TestGraphs/75-6/";
+		final String testFilePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"TestGraphs/75-6/";
 		File path = new File(testFilePath);assert path.isDirectory();
 		File files [] = path.listFiles(new FilenameFilter()
 		{
@@ -136,6 +137,7 @@ public class TestGD_ExistingGraphs
 		threadNumber = th;graphA=fileA;graphB=fileB;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Integer th, Integer pairs, Double ratio, File fileA, File fileB)
 	{
 		return "threads: "+th+", extra pairs: "+pairs+", ratio: "+ratio+", "+fileA.getName()+" v.s. "+fileB.getName();

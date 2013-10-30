@@ -36,11 +36,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Helper;
@@ -54,15 +53,16 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 
 /* Note that many methods are also tested by TestLTL_to_ba. */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestLearnerGraphND extends TestWithMultipleConfigurations
 {
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

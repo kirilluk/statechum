@@ -31,8 +31,9 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -40,7 +41,7 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestEquivalenceChecking extends TestWithMultipleConfigurations 
 {
 	public TestEquivalenceChecking(Configuration conf)
@@ -56,6 +57,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

@@ -40,8 +40,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -70,13 +69,13 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.collections.ArrayOperations;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestTransform 
 {
 	Configuration config = null;
 	private final ConvertALabel converter;
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return Configuration.configurationsForTesting();
@@ -93,6 +92,7 @@ public class TestTransform
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return Configuration.parametersToString(config);

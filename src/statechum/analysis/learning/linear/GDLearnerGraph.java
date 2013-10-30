@@ -1019,7 +1019,8 @@ public class GDLearnerGraph
 	// linear search is good enough for small number of elements and for a large
 	// number of them, I'll have no chance of making sense of the outcome of dumpEquations()
 	// anyway.
-		int i=0;for(;i<incompatiblePairs.length && incompatiblePairs[i]!=key;++i);
+		int i=0;for(;i<incompatiblePairs.length && incompatiblePairs[i]!=key;++i)
+		{}
 		if (i < incompatiblePairs.length) 
 			return i;
 		return -1;

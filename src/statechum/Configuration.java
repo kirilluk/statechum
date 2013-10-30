@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 
 import static statechum.Helper.throwUnchecked;
 
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -240,7 +241,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum SMTGRAPHDOMAINCONSISTENCYCHECK {
 		NONE, ALLABSTRACTSTATESEXIST, TRANSITIONSFROMALLORNONE, DETERMINISM
-	};
+	}
 
 	protected SMTGRAPHDOMAINCONSISTENCYCHECK smtGraphDomainConsistencyCheck = SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST;
 
@@ -269,7 +270,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum SMTGRAPHRANGECONSISTENCYCHECK {
 		NONE, RANGEINTERSECTION, RANGECONTAINMENT
-	};
+	}
 
 	protected SMTGRAPHRANGECONSISTENCYCHECK smtGraphRangeConsistencyCheck = SMTGRAPHRANGECONSISTENCYCHECK.RANGEINTERSECTION;
 
@@ -434,7 +435,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum LABELKIND {
 		LABEL_STRING, LABEL_ERLANG
-	};
+	}
 
 	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;
 
@@ -502,6 +503,7 @@ public class Configuration implements Cloneable {
 	 *            configuration to consider
 	 * @return description.
 	 */
+	@ParametersToString
 	public static String parametersToString(Configuration config) {
 		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
 				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone") 
@@ -808,7 +810,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum GDScoreComputationEnum {
 		GD_RH, GD_DIRECT
-	};
+	}
 
 	protected GDScoreComputationEnum gdScoreComputation = GDScoreComputationEnum.GD_RH;
 
@@ -833,7 +835,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum GDScoreComputationAlgorithmEnum {
 		SCORE_TESTSET, SCORE_RANDOMPATHS, SCORE_LINEAR
-	};
+	}
 
 	protected GDScoreComputationAlgorithmEnum gdScoreComputationAlgorithm = GDScoreComputationAlgorithmEnum.SCORE_LINEAR;
 
@@ -1122,6 +1124,19 @@ public class Configuration implements Cloneable {
 		erlangSourceFile = newValue;
 	}
 
+	/** Whether to use a special output directory for beam and plt files, or simply build in the current directory. */
+	boolean erlangCompileIntoBeamDirectory = false;
+	
+	public boolean getErlangCompileIntoBeamDirectory()
+	{
+		return erlangCompileIntoBeamDirectory;
+	}
+	
+	public void setErlangCompileIntoBeamDirectory(boolean newValue)
+	{
+		erlangCompileIntoBeamDirectory = newValue;
+	}
+	
 	/** Whether to use LTL models to reduce the number of questions being asked. */
 	protected boolean useLTL = false;
 
@@ -1255,7 +1270,7 @@ public class Configuration implements Cloneable {
 	 */
 	public enum STATETREE {
 		STATETREE_SLOWTREE, STATETREE_LINKEDHASH, STATETREE_ARRAY
-	};
+	}
 
 	protected STATETREE transitionMatrixImplType = STATETREE.STATETREE_LINKEDHASH;
 	
@@ -1335,7 +1350,7 @@ public class Configuration implements Cloneable {
 
 	public enum ERLCOVERAGE {
 		ERLCOV_NONE, ERLCOV_LINE, ERLCOV_FUNCTION
-	};
+	}
 
 	/**
 	 * Determines what kind of coverage analysis to engage in when running
@@ -1400,7 +1415,7 @@ public class Configuration implements Cloneable {
 	
 	public enum EXPANSIONOFANY {
 		ANY_WIBBLE, ANY_WITHLIST
-	};
+	}
 
 	/** There are many different ways to choose elements to instantiate Any type with, 
 	 * this variables chooses a few alternatives.

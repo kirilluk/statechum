@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Random;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -68,7 +70,7 @@ public class PairQualityExperiment {
 		
 	public static final void main(String []args)
 	{
-		final String testFilePath = "resources/TestGraphs/75-6/";
+		final String testFilePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"TestGraphs/75-6/";
 		File path = new File(testFilePath);assert path.isDirectory();
 		File files [] = path.listFiles(new FilenameFilter()
 		{

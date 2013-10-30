@@ -96,7 +96,6 @@ import statechum.AttributeMutator.GETMETHOD_KIND;
 
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.apps.ErlangQSMOracle;
 
 /**
  * Manages the Erlang process running Erlang oracle. The idea is to start one
@@ -113,7 +112,7 @@ public class ErlangRunner {
 	 *            File name to remove the extension from
 	 * @return stripped file name.
 	 */
-	protected static String getErlName(String fileName) {
+	public static String getErlName(String fileName) {
 		if (fileName == null)
 			return null;
 		String trimmedName = fileName.trim();
@@ -157,10 +156,20 @@ public class ErlangRunner {
 	 *            file to convert
 	 * @param ext
 	 *            extension to add
+	 * @param separateBeamDir whether output files are expected to be located in a separate directory.
 	 */
-	public static String getName(File file, ERL ext) {
-		String nameToProcess = ext.getStrip() ? file.getName() : file
-				.getAbsolutePath();
+	public static String getName(File file, ERL ext,boolean separateBeamDir) {
+		String nameToProcess = null;
+		if (ext.getStrip())
+			nameToProcess = file.getName();
+		else
+		{
+			if (separateBeamDir)
+				nameToProcess = ErlangRunner.getErlangBeamDirectory()+File.separator+file.getName();
+			else
+				nameToProcess = file.getAbsolutePath();
+		}
+
 		String moduleName = getErlName(nameToProcess);
 		if (moduleName == null)
 			throw new IllegalArgumentException("Invalid module "
@@ -182,6 +191,7 @@ public class ErlangRunner {
 
 	/** Erlang machine in which we run most stuff. */
 	protected Process erlangProcess = null;
+	
 	/** Monitors the above machine and dumps its out and err to the console. */
 	protected Thread stdDumper = null;
 
@@ -194,6 +204,29 @@ public class ErlangRunner {
 		return staticRunner;
 	}
 
+	/** Returns the directory where Beam, plt and other files will be placed. 
+	 * This is a writable location not necessarily the same as the one containing Erlang source files.
+	 * 
+	 * @return binary directory
+	 */
+	static public File getErlangBeamDirectory()
+	{
+		File beamDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM));
+		if (!beamDir.isDirectory())
+			if (!beamDir.mkdir())
+				throw new IllegalArgumentException("Erlang output directory "+beamDir.getAbsolutePath()+" cannot be created");
+		return beamDir;
+	}
+	
+	/** Returns the directory where .erl files from Erlang integration are stored. 
+	 * 
+	 * @return binary directory
+	 */
+	static public String getErlangFolder()
+	{
+		return GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGFOLDER);
+	}
+
 	/**
 	 * Compiles the supplied file into .beam if .erl has been modified after an
 	 * existing .beam (date of last change is 0 if file does not exist).
@@ -203,43 +236,42 @@ public class ErlangRunner {
 	 * @param useRunner
 	 *            ask Erlang compiler to perform the compile - no need to launch
 	 *            compiler as a separate process.
+	 * @param compileIntoBeamDirectory whether the compiled file should be placed in a separate directory defined using {@link G_PROPERTIES#PATH_ERLANGBEAM} 
 	 * @throws IOException
 	 *             if something goes wrong.
 	 */
-	public static void compileErl(File whatToCompile, ErlangRunner useRunner)
+	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)
 			throws IOException {
-		String erlFileName = getName(whatToCompile, ERL.ERL);
+		String erlFileName = getName(whatToCompile, ERL.ERL,false);
 		if (whatToCompile.getParentFile() == null)
 			throw new IllegalArgumentException(
 					"File does not have a parent directory " + whatToCompile);
-		File parentFile = whatToCompile.getAbsoluteFile().getParentFile();
+		File beamDirectory = compileIntoBeamDirectory?getErlangBeamDirectory():whatToCompile.getAbsoluteFile().getParentFile();
 
 		if (!whatToCompile.canRead())
 			throw new IOException("file " + erlFileName + " does not exist");
-		if (whatToCompile.lastModified() > new File(getName(whatToCompile,
-				ERL.BEAM)).lastModified()) {
+		if (whatToCompile.lastModified() > new File(getName(whatToCompile, ERL.BEAM,compileIntoBeamDirectory)).lastModified()) 
+		{
 			if (useRunner == null) {
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erlc",
-								"+debug_info", erlFileName }, null, parentFile);
+								"+debug_info", erlFileName }, null, beamDirectory);
 				dumpProcessOutputOnFailure("erlc " + whatToCompile.getName(), p);
-			} else {
-				useRunner
-						.call(new OtpErlangObject[] {
+			} else 
+			{
+				useRunner.call(new OtpErlangObject[] {
 								new OtpErlangAtom("compile"),
 								new OtpErlangList(
 										new OtpErlangObject[] { new OtpErlangAtom(
 												erlFileName) }),
 								new OtpErlangAtom("erlc"),
-								new OtpErlangAtom(parentFile.getAbsolutePath()) },
+								new OtpErlangAtom(beamDirectory.getAbsolutePath()) },
 								"cannot compile ");
 			}
 		}
 	}
 
 	public static final int timeBetweenChecks = 100;
-
-	public static final File ErlangFolder = new File("ErlangOracle");
 
 	/**
 	 * Runs the supplied process and returns output and error streams in an
@@ -317,12 +349,7 @@ public class ErlangRunner {
 			final long startTime = System.currentTimeMillis();
 			if (erlangProcess == null) {
 				String tracerunnerProgram = "tracerunner.erl";
-				String uniqueID = "_"
-						+ System.nanoTime()
-						+ "_"
-						+ ManagementFactory.getRuntimeMXBean().getName()
-								.replace('@', '_').replace('.', '_')
-						+ "@localhost";
+				String uniqueID = "_"+ System.nanoTime()+ "_"+ ManagementFactory.getRuntimeMXBean().getName().replace('@', '_').replace('.', '_') + "@localhost";
 				traceRunnerNode = "tracerunner" + uniqueID;
 				ourNode = "java" + uniqueID;
 				// now we simply evaluate "halt()." which starts epmd if
@@ -331,8 +358,8 @@ public class ErlangRunner {
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
 								"-eval", "halt().", "-sname", traceRunnerNode,
-								"-noshell", "-setcookie", uniqueID }, null,
-						new File(ErlangQSMOracle.ErlangFolder));
+								"-noshell", "-setcookie", uniqueID }, null
+								);//getErlangBeamDirectory());
 				dumpProcessOutputOnFailure(
 						"testing that Erlang can be run at all", p);
 
@@ -341,11 +368,10 @@ public class ErlangRunner {
 				for (String str : new String[] { tracerunnerProgram,
 						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
-					compileErl(new File(ErlangQSMOracle.ErlangFolder, str),
-							null);
-				for (File f : new File(ErlangQSMOracle.ErlangTyper).listFiles())
+				compileErl(new File(getErlangFolder(), str), null,true);
+				for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGTYPER)).listFiles())
 					if (ErlangRunner.validName(f.getName()))
-						ErlangRunner.compileErl(f, null);
+						ErlangRunner.compileErl(f, null, true);
 
 				// Based on
 				// http://erlang.org/pipermail/erlang-questions/2010-March/050226.html
@@ -362,7 +388,7 @@ public class ErlangRunner {
 				List<String> envpList = new LinkedList<String>();
 				
 				Map<String,String> newValues = new TreeMap<String,String>();
-				newValues.put("HOME",new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath());
+				newValues.put("HOME",new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM)).getAbsolutePath());
 				newValues.put("ERL_MAX_PORTS","1024");// to limit the size of each Erlang instance to a few meg from a few hundred meg
 
 				for (Entry<String, String> entry : System.getenv().entrySet())
@@ -376,18 +402,15 @@ public class ErlangRunner {
 						.getRuntime()
 						.exec(new String[] {
 								ErlangRunner.getErlangBin() + "erl",
-								"-pa",
-								new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath(),
-								"-pa",
-								new File(ErlangQSMOracle.ErlangTyper).getAbsolutePath(),
+								"-pa",getErlangBeamDirectory().getAbsolutePath(),
 								// the easiest way to substitute our module in place
 								// of the original Erlang's one, otherwise I'd
 								// have to rely on tracerunner:compileAndLoad
 								"-run", "tracerunner", "start", ourNode,
 								runnerMode, "-sname", traceRunnerNode,
 								"-noshell", "-setcookie", uniqueID },
-								envpList.toArray(new String[0]),
-								new File(ErlangQSMOracle.ErlangFolder));
+								envpList.toArray(new String[0]));
+								//getErlangBeamDirectory());
 				stdDumper = new Thread(new Runnable() {
 
 					@Override

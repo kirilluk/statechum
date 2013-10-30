@@ -2,15 +2,14 @@ package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collection;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Helper.whatToRun;
@@ -627,19 +626,21 @@ public class TestErlangParser {
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot be represented");
-		try
+		//try
 		{
 			Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
 			// if the exception is not thrown but the assertion is satisfied, this is fine (this is what happens on WinXP).
 		}
+		/*
 		catch(Exception ex)
-		{// On Linux, an exception is thrown.
+		{// On Linux with a broken Erlang OTP14 (broken by Debian), an exception is thrown.
 			Class<RuntimeException> exceptionClass = RuntimeException.class;
 			String exceptionString = "badmatch";
 			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
 			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
 			Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
 		}
+		*/
 	}
 	
 	@Test
@@ -667,9 +668,8 @@ public class TestErlangParser {
 	public void testCheckMaxExponent()
 	{
 		int i=0;
-		for(i=200;i< 400 &&
-			!Double.isInfinite(Double.parseDouble("4.0e"+i))
-		;++i);
+		for(i=200;i< 400 &&	!Double.isInfinite(Double.parseDouble("4.0e"+i));++i)
+		{}
 		Assert.assertEquals(ErlangLabel.ErlangLong.maxExponent+1, i);
 	}
 
@@ -677,9 +677,8 @@ public class TestErlangParser {
 	public void testCheckMinExponent()
 	{
 		int i=0;
-		for(i=-200;i> -400 &&
-		0 !=(Double.parseDouble("4.0e"+i))
-		;--i);
+		for(i=-200;i> -400 && 0 !=(Double.parseDouble("4.0e"+i));--i)
+		{}
 		Assert.assertEquals(ErlangLabel.ErlangLong.minExponent+1, -i);
 	}
 
@@ -958,7 +957,7 @@ public class TestErlangParser {
 	}
 	
 	/** invalid atoms. */
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseInvalidCharsInAtomFail
 	{
 		@Parameters
@@ -1014,6 +1013,7 @@ public class TestErlangParser {
 			text = textArg;exception = exceptionArg;erlException = erlArg;
 		}
 		
+		@ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg, String erlArg)
 		{
 			return textArg+" - "+exceptionArg+" , "+erlArg;
@@ -1413,7 +1413,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"is not divisible by 8");
 	}
 	
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseDoubleFail
 	{
 		@Parameters
@@ -1477,6 +1477,7 @@ public class TestErlangParser {
 			text = textArg;exception = exceptionArg;erlEx = erlExArg;
 		}
 		
+		@ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg)
 		{
 			return textArg+" - "+exceptionArg;
@@ -1496,7 +1497,7 @@ public class TestErlangParser {
 		}
 	}
 
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseBitStrFail
 	{
 		@Parameters
@@ -1646,6 +1647,7 @@ public class TestErlangParser {
 			text = textArg;exception = exceptionArg;erlEx = erlExArg;
 		}
 		
+		@ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg)
 		{
 			return textArg+" - "+exceptionArg;

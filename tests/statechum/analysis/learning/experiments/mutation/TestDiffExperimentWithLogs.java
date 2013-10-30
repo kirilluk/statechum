@@ -19,6 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.Configuration.STATETREE;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -35,7 +36,7 @@ public class TestDiffExperimentWithLogs {
 	{
 		final String logs = "DiffExperimentLogs.xml";
 		String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());
-		if (path == null) path="resources";else path=path+File.separator+"..";
+		if (path == null) path=GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES);else path=path+File.separator+"..";
 		SystemTestDiffExperiments runner = new SystemTestDiffExperiments(30,5,6);
 		// This one compares logs with an actual experiment.
 		runner.TestExperiment(new ResultChecker(path+File.separator+logs));

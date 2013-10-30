@@ -88,7 +88,7 @@ public class SmtLabelRepresentation
 	 */
 	protected Map<String,VARTYPE> variables = new HashMap<String,VARTYPE>();
 	
-	public enum VARTYPE { VAR_INPUT, VAR_OUTPUT, VAR_MEMORY };
+	public enum VARTYPE { VAR_INPUT, VAR_OUTPUT, VAR_MEMORY }
 	
 	/** Eliminates spaces at the beginning and end of the supplied 
 	 * string. If not empty, the outcome is appended to the buffer provided. 
@@ -567,7 +567,7 @@ public class SmtLabelRepresentation
 	 * are supposed to be abstractions of real ones hence they may not always
 	 * define specific values).
 	 */
-	public enum VARIABLEUSE { PRE,POST,IO }; 
+	public enum VARIABLEUSE { PRE,POST,IO } 
 	
 	/** Generates a new <em>variable name</em>. 
 	 * 

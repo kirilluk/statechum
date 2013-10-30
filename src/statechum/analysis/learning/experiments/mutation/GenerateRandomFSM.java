@@ -1,5 +1,6 @@
 package statechum.analysis.learning.experiments.mutation;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -40,7 +43,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 						throw new RuntimeException("first state is not the initial state");
 					
 					//Visualiser.updateFrame(origGraph, null);
-					randomFSM = new FileWriter("resources/randomFSM/fsm_"+states+"_"+experiment+".x_");
+					randomFSM = new FileWriter(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"randomFSM/fsm_"+states+"_"+experiment+".x_");
 					for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:generatedFSM.transitionMatrix.entrySet())
 						for(Entry<Label,List<CmpVertex>> targets:entry.getValue().entrySet())
 							for(CmpVertex targetState:generatedFSM.getTargets(targets.getValue()))

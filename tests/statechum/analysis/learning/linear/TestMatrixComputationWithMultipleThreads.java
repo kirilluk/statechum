@@ -39,8 +39,9 @@ import java.util.Map.Entry;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
@@ -72,7 +73,7 @@ import cern.colt.matrix.DoubleMatrix2D;
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_INCOMPATIBLE;
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_OK;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestMatrixComputationWithMultipleThreads {
 	final int threadNumber;
 	/** Label converter to use. */
@@ -92,6 +93,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		return result;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Integer threads, Boolean useArrays)
 	{
 		return ""+threads+" threads, arrays="+useArrays;

@@ -22,8 +22,8 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.Helper;
@@ -36,7 +36,7 @@ import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestMapWithSearch 
 {
 	private static final int COLLECTIONSIZE = 3000;
@@ -98,7 +98,7 @@ public class TestMapWithSearch
 		
 	}
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -134,6 +134,7 @@ public class TestMapWithSearch
 		return result;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(@SuppressWarnings("unused") MapCreator creator, String desc)
 	{
 		return "tests for "+desc;

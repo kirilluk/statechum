@@ -21,6 +21,7 @@ package statechum.analysis.learning.experiments;
 
 import statechum.model.testset.PTA_FSMStructure;
 import statechum.model.testset.PTA_computePrecisionRecall;
+
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -28,6 +29,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.PairScore;
@@ -184,7 +187,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			
 			//experiment.setOutputDir(experimentDescription+"_");
 			//experiment.runExperiment(args);
-			experiment.robustRunExperiment("resources/testfilelist.txt", "output/Incremental");
+			experiment.robustRunExperiment(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"testfilelist.txt", "output/Incremental");
 			for(String name:learnerNames)
 			{
 				String ending = ".csv";

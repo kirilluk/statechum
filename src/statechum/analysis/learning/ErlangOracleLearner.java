@@ -452,7 +452,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 	public static class TraceOutcome {
 		public static enum TRACEOUTCOME {
 			TRACE_OK, TRACE_FAIL, TRACE_DIFFERENTOUTPUT
-		};
+		}
 
 		public final ErlangLabel[] questionDetails;
 		public final ErlangLabel[] answerDetails;

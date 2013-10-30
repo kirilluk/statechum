@@ -51,7 +51,6 @@ import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.Erlang.OTPBehaviour;
 import statechum.analysis.Erlang.TestErlangRunner;
 import statechum.analysis.learning.RPNILearner;
-import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 
 /** This one tests two things, parsing of Erlang types and verification of type compatibility. */
@@ -60,22 +59,22 @@ public class TestTypes
 	/** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
      * after it has been initialised.
      */
-    protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl";
+	protected String erlangFile = null;
  
+	private TestErlangRunner runnerTester = new TestErlangRunner();
     protected final Configuration defaultConfig = Configuration.getDefaultConfiguration().copy();
     
     @Before
 	public void beforeTest()
 	{
-		if (!TestErlangRunner.testDir.isDirectory()) 
-			Assert.assertTrue("could not create "+TestErlangRunner.testDir.getAbsolutePath(),TestErlangRunner.testDir.mkdir());
+    	runnerTester.beforeTest();erlangFile = runnerTester.testDir.getAbsolutePath()+File.separator+"testFile.erl";
 		ErlangModule.flushRegistry();
 	}
 	
 	@After
 	public void afterTest()
 	{
-		ExperimentRunner.zapDir(TestErlangRunner.testDir);
+		runnerTester.zapTestDir();
 	}
 
 	

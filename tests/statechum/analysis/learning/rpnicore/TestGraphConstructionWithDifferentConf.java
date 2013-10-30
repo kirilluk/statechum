@@ -33,8 +33,8 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.JUConstants;
@@ -48,7 +48,7 @@ import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper; 
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGraphConstructionWithDifferentConf {
 	final ConvertALabel converter;
 	
@@ -56,7 +56,7 @@ public class TestGraphConstructionWithDifferentConf {
 		mainConfiguration = conf;converter = conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
 	}
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return Configuration.configurationsForTesting();
@@ -67,6 +67,7 @@ public class TestGraphConstructionWithDifferentConf {
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return Configuration.parametersToString(config);

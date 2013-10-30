@@ -479,7 +479,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         popupMenu = new JPopupMenu();
        // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
-        Image icon = Toolkit.getDefaultToolkit().getImage("resources" + File.separator + "icon.jpg");
+        Image icon = Toolkit.getDefaultToolkit().getImage(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"icon.jpg");
         if (icon != null) {
             setIconImage(icon);
         }
@@ -1263,7 +1263,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         String file = (String) g.getUserDatum(JUConstants.TITLE);
         String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());
         if (path == null) {
-            path = "resources" + File.separator + "graphLayout";
+        	path = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"graphLayout";
         }
         if (file == null) {
             throw new IllegalArgumentException("cannot obtain graph name, the " + JUConstants.TITLE.name() + " property has not been set on the graph");

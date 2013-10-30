@@ -33,14 +33,14 @@ public class GraphMLVisualiser extends Visualiser {
 	private static final long serialVersionUID = 1735419773441272849L;
 
 	public static void main(String[] args) throws IOException{
-		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
+		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
 		AbstractPersistence.loadGraph(args[0], graph0,null);
 		if (args.length > 1)
 		{
-			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());;
+			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
 			AbstractPersistence.loadGraph(args[1], graph1,null);
 		}
 		Visualiser.updateFrame(graph0, graph1);Visualiser.waitForKey();

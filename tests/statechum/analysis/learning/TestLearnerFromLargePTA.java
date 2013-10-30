@@ -27,7 +27,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
@@ -40,7 +40,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestLearnerFromLargePTA extends PaperUAS 
 {
 	/*
@@ -124,6 +124,7 @@ Total time: 20492 sec
 		return result;
 	}
 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Boolean merger, String pairsFile,Configuration.STATETREE matrixType)
 	{
 		return "merger:"+(merger?"fast":"general")+", "+matrixType+" , "+pairsFile;

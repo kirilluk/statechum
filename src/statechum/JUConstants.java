@@ -84,7 +84,7 @@ public enum JUConstants {
 				throw new IllegalArgumentException(compat+" is not a valid compatibility value");
 			return result;
 		}
-	};
+	}
 	
 	public static final int intUNKNOWN = -1;
 

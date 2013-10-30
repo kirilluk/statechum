@@ -28,8 +28,9 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -45,7 +46,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestPathTracing {
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -58,6 +59,7 @@ public class TestPathTracing {
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return Configuration.parametersToString(config);

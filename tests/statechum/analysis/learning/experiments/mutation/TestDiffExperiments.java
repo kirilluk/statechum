@@ -7,8 +7,8 @@ import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
@@ -16,15 +16,16 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestDiffExperiments extends TestWithMultipleConfigurations
 {
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

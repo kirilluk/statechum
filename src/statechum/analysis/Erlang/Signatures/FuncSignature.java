@@ -190,7 +190,7 @@ public class FuncSignature implements Label {
     	{
     		OtpErlangTuple funcTuple = (OtpErlangTuple) func;
     		extractedFileName = ((OtpErlangString)funcTuple.elementAt(0)).stringValue();
-	    	extractedModuleName = ErlangRunner.getName(new File( extractedFileName),ERL.MOD);
+	    	extractedModuleName = ErlangRunner.getName(new File( extractedFileName),ERL.MOD, config.getErlangCompileIntoBeamDirectory());
 	    	extractedLineNumber = ((OtpErlangLong)funcTuple.elementAt(1)).intValue();
 	    	extractedFuncName =((OtpErlangAtom)funcTuple.elementAt(2)).atomValue();
 	    	knownArity = ((OtpErlangLong)funcTuple.elementAt(3)).intValue();

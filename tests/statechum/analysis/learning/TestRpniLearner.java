@@ -36,8 +36,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Configuration.ScoreMode;
@@ -77,10 +76,10 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponent
 {
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return Configuration.configurationsForTesting();
@@ -91,6 +90,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return Configuration.parametersToString(config);

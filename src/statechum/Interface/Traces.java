@@ -13,7 +13,6 @@ package statechum.Interface;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.ErlangOracleVisualiser;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
 

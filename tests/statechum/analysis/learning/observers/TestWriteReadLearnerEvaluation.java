@@ -28,8 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
@@ -54,7 +54,7 @@ import static statechum.Helper.whatToRun;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestWriteReadLearnerEvaluation {
 	Configuration config = null, anotherconfig = null;
 	ConvertALabel converter = null;
@@ -65,7 +65,7 @@ public class TestWriteReadLearnerEvaluation {
 	Collection<String> ltl = null;
 	SmtLabelRepresentation labels = null;
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		List<Object[]> outcome = new LinkedList<Object[]>();
@@ -84,6 +84,7 @@ public class TestWriteReadLearnerEvaluation {
 		legacy = legacyArg;labelKind = labelKindArg;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Boolean legacyArg, LABELKIND labelKind)
 	{
 		return (legacyArg.booleanValue()?"Legacy":"Current")+" "+labelKind;

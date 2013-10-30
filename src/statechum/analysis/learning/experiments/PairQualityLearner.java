@@ -34,26 +34,23 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import junit.framework.Assert;
-
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -69,7 +66,7 @@ import statechum.model.testset.PTASequenceEngine;
  * @author kirill
  */
 public class PairQualityLearner {
-   	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
+   	public static final String largePTALogsDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"largePTA"+File.separator;
    	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
 	
    	protected Writer wekaOutput;
@@ -629,10 +626,10 @@ public class PairQualityLearner {
 	{
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();
 		PaperUAS paper = new PaperUAS();
+		final PairQualityLearner qualityLearner = new PairQualityLearner();
 		final ProgressDecorator.InitialData initial = loadInitialAndPopulateInitialConfiguration(paper, PairQualityLearner.largePTAFileName, converter);
 		String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_correct.xml";
 		final LearnerGraph referenceA = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);
-		final PairQualityLearner qualityLearner = new PairQualityLearner();
 		qualityLearner.initWeka("wekaoutput2.arff",PairQualityLearner.largePTAFileName);
 		
 		

@@ -18,8 +18,8 @@ public class ExperimentResult implements Serializable
 	private static final long serialVersionUID = -4710526839732193138L;
 
 	/** These two enums are different to ensure typechecking by the compiler. */
-	public enum DOUBLE_V { MISMATCHED_KEYPAIRS, OBTAINED_TO_EXPECTED, MUTATIONS_TO_TRANSITIONS, ACCURACY_W, ACCURACY_RAND, ACCURACY_LINEAR };
-	public enum LONG_V { DURATION_GD, DURATION_RAND, DURATION_W };
+	public enum DOUBLE_V { MISMATCHED_KEYPAIRS, OBTAINED_TO_EXPECTED, MUTATIONS_TO_TRANSITIONS, ACCURACY_W, ACCURACY_RAND, ACCURACY_LINEAR }
+	public enum LONG_V { DURATION_GD, DURATION_RAND, DURATION_W }
 
 	protected Map<ExperimentResult.DOUBLE_V,Double> D_varToValue = new TreeMap<ExperimentResult.DOUBLE_V,Double>();
 	protected Map<ExperimentResult.LONG_V,Long> L_varToValue = new TreeMap<ExperimentResult.LONG_V,Long>();

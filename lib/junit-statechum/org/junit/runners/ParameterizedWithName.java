@@ -24,25 +24,24 @@ import org.junit.runners.model.TestClass;
  * @author kirill
  *
  */
-public class Parameterized extends Suite {
-		/**
-		 * Annotation for a method which provides parameters to be injected into the
-		 * test class constructor by <code>Parameterized</code>
-		 */
-		@Retention(RetentionPolicy.RUNTIME)
-		@Target(ElementType.METHOD)
-		public static @interface Parameters {
-		}
-
-		private class TestClassRunnerForParameters extends
-				BlockJUnit4ClassRunner {
+public class ParameterizedWithName extends Suite {
+	/**
+	 * Annotation for a method which provides parameters to be injected into the
+	 * test class constructor by <code>Parameterized</code>
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public static @interface ParametersToString {
+	}
+	
+	private class TestClassRunnerForParameters extends	BlockJUnit4ClassRunner {
 			private final int fParameterSetNumber;
 
 			private final List<Object[]> fParameterList;
 			private final String fParameterDescr;
 			
-			TestClassRunnerForParameters(Class<?> type,
-					List<Object[]> parameterList, int i) throws InitializationError {
+			TestClassRunnerForParameters(Class<?> type, List<Object[]> parameterList, int i) throws InitializationError 
+			{
 				super(type);
 				fParameterList= parameterList;
 				fParameterSetNumber= i;
@@ -79,9 +78,9 @@ public class Parameterized extends Suite {
 						result = converterMethod.invoke(null, parameters).toString();
 				} catch (Exception e) {
 					// cannot do this, explain why
-					System.out.println("was looking for types "+Arrays.toString(argTypes));
+					System.out.println("Was looking for types "+Arrays.toString(argTypes));
 					for(Method constr:type.getMethods())
-						System.out.println(constr);
+						System.out.println("\t"+constr);
 					
 				}
 				return result;
@@ -131,7 +130,7 @@ public class Parameterized extends Suite {
 		/**
 		 * Only called reflectively. Do not use programmatically.
 		 */
-		public Parameterized(Class<?> klass) throws Throwable {
+		public ParameterizedWithName(Class<?> klass) throws Throwable {
 			super(klass, Collections.<Runner>emptyList());
 			List<Object[]> parametersList= getParametersList(getTestClass());
 			for (int i= 0; i < parametersList.size(); i++)
@@ -145,24 +144,30 @@ public class Parameterized extends Suite {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Object[]> getParametersList(TestClass klass)
-				throws Throwable {
-			return (List<Object[]>) getParametersMethod(klass).invokeExplosively(
-					null);
+		private static List<Object[]> getParametersList(TestClass klass)	throws Throwable {
+			return (List<Object[]>) getParametersMethod(klass).invokeExplosively(null);
 		}
 
-		private FrameworkMethod getParametersMethod(TestClass testClass)
-				throws Exception {
-			List<FrameworkMethod> methods= testClass
-					.getAnnotatedMethods(Parameters.class);
+		static FrameworkMethod getParametersMethod(TestClass testClass)	throws Exception 
+		{
+			List<FrameworkMethod> methods= testClass.getAnnotatedMethods(Parameterized.Parameters.class);
 			for (FrameworkMethod each : methods) {
 				int modifiers= each.getMethod().getModifiers();
 				if (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers))
 					return each;
 			}
 
-			throw new Exception("No public static parameters method on class "
-					+ testClass.getName());
+			throw new Exception("No public static parameters method on class " + testClass.getName());
 		}
 
+		static FrameworkMethod getParametersToStringMethod(TestClass testClass)	throws Exception 
+		{
+			List<FrameworkMethod> methods= testClass.getAnnotatedMethods(ParametersToString.class);
+			for (FrameworkMethod each : methods) {
+				int modifiers= each.getMethod().getModifiers();
+				if (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers))
+					return each;
+			}
+			throw new Exception("No public static ParametersToString method on class " + testClass.getName());
+		}
 }

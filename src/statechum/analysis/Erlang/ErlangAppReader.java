@@ -19,7 +19,7 @@ public class ErlangAppReader {
 	private enum mode {
 
 		MODULES, REGISTERED, NORMAL
-	};
+	}
 
 	public static ErlangApp readFolder(File folder) {
 		ErlangApp result = new ErlangApp();

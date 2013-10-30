@@ -28,17 +28,18 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.ComparisonKind;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
@@ -56,7 +57,7 @@ import statechum.collections.ArrayOperations;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class Test_CheckLearnerAgainstLog 
 {
 	/** This method is a useful troubleshooting aid - the log it creates should be
@@ -92,7 +93,7 @@ public class Test_CheckLearnerAgainstLog
 			RecordProgressDecorator recorder = null;
 			java.io.FileOutputStream out = null;
 			Configuration progressRecorderConfig = evalData.config.copy();progressRecorderConfig.setCompressLogs(false);
-				out = new java.io.FileOutputStream("resources/tmp.xml");
+			out = new java.io.FileOutputStream(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+"tmp.xml");
 				recorder = new RecordProgressDecorator(learner2,out,1,progressRecorderConfig,true);
 			recorder.writeLearnerEvaluationData(evalData);
 			learner2.setTopLevelListener(recorder);
@@ -275,9 +276,9 @@ public class Test_CheckLearnerAgainstLog
 		inputStream.close();
 	}
 
-	protected final static String pathToLogFiles = "resources/logs";
+	protected final static String pathToLogFiles = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"logs";
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -293,6 +294,7 @@ public class Test_CheckLearnerAgainstLog
 		return result;
 	}
 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(File f)
 	{
 		return f.getName();

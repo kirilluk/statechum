@@ -24,6 +24,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.awt.Frame;
 import java.io.IOException;
 
@@ -32,6 +33,7 @@ import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -46,6 +48,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 {
 	protected ErlangModule module;
 
+	public AtomicBoolean stopInference = new AtomicBoolean(false), suspendInference = new AtomicBoolean(false);
+	
 	public ErlangModule getModule() {
 		return module;
 	}
@@ -88,11 +92,16 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 				"delPath");
 	}
 
+	public String getGraphName()
+	{
+		return module.getName();
+	}
+	
 	@Override
 	public LearnerGraph learnMachine() {
-
 		LearnerGraph result = super.learnMachine();
 		finished();
+		setChanged();notifyObservers(getTentativeAutomaton());
 		return result;
 	}
 
@@ -124,7 +133,30 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 			@SuppressWarnings("unused") final int expectedForNoRestart,
 			@SuppressWarnings("unused") final List<Boolean> consistentFacts,
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
-			@SuppressWarnings("unused") final Object[] moreOptions) {
+			@SuppressWarnings("unused") final Object[] moreOptions) 
+	{
+		boolean terminate = stopInference.get();
+		while(suspendInference.get() && !terminate)
+		{
+			setChanged();
+        	Configuration lConf = config.copy();lConf.setDebugMode(false);lConf.setAskQuestions(false);
+        	RPNIUniversalLearner tmpLearner = new RPNIUniversalLearner(parentFrame, lConf, getLabelConverter());
+        	LearnerGraph gCopy = new LearnerGraph(getTentativeAutomaton(),lConf);
+        	tmpLearner.setTentativeAutomaton(gCopy);
+        	LearnerGraph passiveGraph = tmpLearner.learnMachine();passiveGraph.setName("tentative_passive");
+			notifyObservers(passiveGraph);
+			synchronized(suspendInference)
+			{
+				try {
+					suspendInference.wait();
+				} catch (InterruptedException e) {
+					// assume we are asked to stop waiting
+				}
+			}
+			terminate = stopInference.get();
+		}
+		if (terminate)
+			return new Pair<Integer, String>(AbstractOracle.USER_CANCELLED,null);
 
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
@@ -175,7 +207,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 			response.append(" ]");
 		}
 
-		// System.out.println("Response: " + response);
+		//System.out.println("Asked : "+question);
+		//System.out.println("Response: " + response);
 		Pair<Integer, String> result = null;
 
 		if (response != null) {
@@ -420,7 +453,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 	public static class TraceOutcome {
 		public static enum TRACEOUTCOME {
 			TRACE_OK, TRACE_FAIL, TRACE_DIFFERENTOUTPUT
-		};
+		}
 
 		public final ErlangLabel[] questionDetails;
 		public final ErlangLabel[] answerDetails;
@@ -473,6 +506,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(List<? extends Label> question) {
+		//System.out.println("ASKING: "+getCount()+" "+questionToString(question));
 		ErlangLabel[] questionDetails = new ErlangLabel[question.size()];
 		int i = 0;
 		for (Label lbl : question) {

@@ -3,7 +3,8 @@
 
 init() ->
     Pid = spawn(exporter, stack, [[]]),
-    register(thestack, Pid).
+    register(thestack, Pid),
+    true.
 
 stop() ->
     thestack ! die.

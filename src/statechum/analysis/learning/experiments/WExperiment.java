@@ -122,7 +122,7 @@ public class WExperiment {
 		// Now start to merge some of those states
 		*/
 		try {
-			//Writer writer = new FileWriter("resources/tmp/experiment");
+			//Writer writer = new FileWriter(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"tmp/experiment");
 			//result.buildCachedData();
 			//result.transform.toOctaveMatrix(writer);writer.close();
 			
@@ -131,6 +131,6 @@ public class WExperiment {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}			
-		//AddTransitions.writeGraphML(graph, "resources/tmp/"+new File(inputFileName).getName()+"_tmpresult.xml");
+		//AddTransitions.writeGraphML(graph, GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+"tmp/"+new File(inputFileName).getName()+"_tmpresult.xml");
 	}
 }

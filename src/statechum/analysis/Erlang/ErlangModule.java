@@ -61,7 +61,7 @@ public class ErlangModule {
 	
 	private ErlangModule(Configuration config) throws IOException {
 		final File f = config.getErlangSourceFile();
-		name = ErlangRunner.getName(f, ERL.MOD);
+		name = ErlangRunner.getName(f, ERL.MOD,config.getErlangCompileIntoBeamDirectory());
 		sourceFolder = f.getParentFile();
 		ProgressIndicator progress = new ProgressIndicator(name, 7);
 		// launch Erlang by calling a test method.
@@ -71,11 +71,11 @@ public class ErlangModule {
 		progress.next();// 1
 
 		// Compile and typecheck the module...
-		ErlangRunner.compileErl(f, ErlangRunner.getRunner());
+		ErlangRunner.compileErl(f, ErlangRunner.getRunner(),config.getErlangCompileIntoBeamDirectory());
 		progress.next();// 2
 		sigs = new TreeMap<String, FuncSignature>();ignoredFunctions = new TreeSet<String>();ignoredBehaviours = new TreeSet<String>();
 
-		File pltFile = new File(ErlangRunner.getName(f, ERL.PLT));
+		File pltFile = new File(ErlangRunner.getName(f, ERL.PLT,config.getErlangCompileIntoBeamDirectory()));
 
 		// Almost the same arguments for dialyzer and typer, the first argument
 		// determines which of the two to run.
@@ -83,10 +83,10 @@ public class ErlangModule {
 				null, // either Dialyzer or typer
 
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
-						ErlangRunner.getName(f, ERL.BEAM)) }),
-				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
+						ErlangRunner.getName(f, ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) }),
+				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT,config.getErlangCompileIntoBeamDirectory())),
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
-						ErlangRunner.getName(f, ERL.ERL)) }),
+						ErlangRunner.getName(f, ERL.ERL,false))}),
 				new OtpErlangAtom("types") };
 
 		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
@@ -140,7 +140,7 @@ public class ErlangModule {
 			}
 		}
 		
-		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this,ignoredBehaviours);
+		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, config, this,ignoredBehaviours);
 		progress.next();// 7
 	}
 
@@ -214,7 +214,7 @@ public class ErlangModule {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setErlangSourceFile(module);
-		config.setErlangModuleName(ErlangRunner.getName(module, ERL.MOD));
+		config.setErlangModuleName(ErlangRunner.getName(module, ERL.MOD, config.getErlangCompileIntoBeamDirectory()));
     	config.setLabelKind(LABELKIND.LABEL_ERLANG);
     	return config;
 	}

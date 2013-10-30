@@ -33,11 +33,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -61,15 +61,16 @@ import statechum.apps.QSMTool;
 import statechum.model.testset.PTASequenceEngine;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 {
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);
@@ -1015,7 +1016,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	}
 
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static final class TestQuestionPTA extends TestWithMultipleConfigurations
 	{
 		@Parameters
@@ -1024,6 +1025,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			return TestWithMultipleConfigurations.data();
 		}
 		
+		@ParametersToString
 		public static String parametersToString(Configuration config)
 		{
 			return TestWithMultipleConfigurations.parametersToString(config);

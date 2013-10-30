@@ -67,11 +67,13 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			return false;
 		if (randomInt(2) > 0)
 		{
-			for(int i=0;i<numberOfLabels && addEdgeInternal(random,v);++i);
+			for(int i=0;i<numberOfLabels && addEdgeInternal(random,v);++i)
+			{}
 		}
 		else
 		{
-			for(int i=0;i<numberOfLabels && addEdgeInternal(v,random);++i);
+			for(int i=0;i<numberOfLabels && addEdgeInternal(v,random);++i)
+			{}
 		}
 		return true;			
 	}

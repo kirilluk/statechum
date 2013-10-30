@@ -31,11 +31,9 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.Pair;
 import statechum.StringLabel;
 import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -45,7 +43,6 @@ import statechum.model.testset.PTASequenceEngine;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.Trace;
-import statechum.analysis.CodeCoverage.CodeCoverageMap;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.OTPBehaviour;
 
@@ -157,6 +154,12 @@ public abstract class RPNILearner extends Observable implements Learner {
 		return questionString.toString();
     }
     
+    int count = 1;
+    public int getCount()
+    {
+    	return count;
+    }
+
     /** Updates listeners only if this object has been modified and debug mode is on, by calling
      * <pre>
      * setChanged()
@@ -165,7 +168,19 @@ public abstract class RPNILearner extends Observable implements Learner {
      * @param hardFacts the graph from which the current one was built
      */
     public void updateGraph(LearnerGraph g, LearnerGraph hardFacts) {
-        setChanged();
+        setChanged();/*
+        System.out.println("stage "+count);
+        if (count ++ % 15 == 0 && config.getAskQuestions())
+        {
+        	Configuration lConf = config.copy();lConf.setDebugMode(false);lConf.setAskQuestions(false);
+        	RPNIUniversalLearner tmpLearner = new RPNIUniversalLearner(parentFrame, lConf, getLabelConverter());
+        	LearnerGraph gCopy = new LearnerGraph(g,lConf);
+        	tmpLearner.setTentativeAutomaton(gCopy);
+        	//Visualiser.updateFrame(tmpLearner.learnMachine(), null);
+        	notifyObservers(tmpLearner.learnMachine());
+        	Visualiser.waitForKey();        	
+        }*/
+        /*
         if (config.getDebugMode()) {
             Map<VertID, Collection<VertID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
@@ -203,7 +218,9 @@ public abstract class RPNILearner extends Observable implements Learner {
                 g.getCache().setErlangCoverage(vertexToCoverage);
             }
         	notifyObservers(g);
+        	//JOptionPane.showMessageDialog(parentFrame, "Eggs are not supposed to be green.");
         }
+        */
     }
     
     /* This one is actually a specialised version of computeShortPathsToAllStates()
@@ -331,7 +348,7 @@ public abstract class RPNILearner extends Observable implements Learner {
                             listElements.add(elementHtml);
                         }
                         @SuppressWarnings({ "unchecked", "rawtypes" })
-						final JList<String> javaList = new JList(listElements.toArray());
+						final JList javaList = new JList(listElements.toArray());
                         String optionZero = null;
                         Boolean lastFact = consistentFacts.get(consistentFacts.size() - 1);
                         if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject
@@ -377,7 +394,8 @@ public abstract class RPNILearner extends Observable implements Learner {
                                         && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
                                     boolean clickValid = true;
                                     int i = 0;
-                                    for (; i < options.length && options[i] != value; ++i);
+                                    for (; i < options.length && options[i] != value; ++i)
+                                    {}
                                     if (i == options.length) {
                                         i = AbstractOracle.USER_CANCELLED;// nothing was chosen
                                     } else {

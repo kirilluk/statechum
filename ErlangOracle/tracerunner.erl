@@ -107,10 +107,13 @@ fileNameValid([])->ok;
 fileNameValid([F|Others])->
 	%% the next line is almost verbatim from typer.erl
 	FileName = list_to_atom(filename:basename(F, ".beam")),
-	{'module',ModName}=lists:keyfind('module',1,beam_lib:info(F)),
-	case(FileName =:= ModName) of
-		true -> fileNameValid(Others);
-		false-> "Invalid file name " ++ F ++ " for module " ++ atom_to_list(ModName)
+	case(beam_lib:info(filename:absname(F))) of
+		{error,beam_lib,Descr} -> "Failed to obtain file info for " ++ F;
+		Success ->	{'module',ModName}=lists:keyfind('module',1,Success),
+			case(FileName =:= ModName) of
+				true -> fileNameValid(Others);
+				false-> "Invalid file name " ++ F ++ " for module " ++ atom_to_list(ModName)
+			end
 	end.
 	
 %% --------------------------------------------------------------------
@@ -172,7 +175,7 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 		case (fileNameValid(FilesBeam)) of
 			ok ->
 				_ListOfWarnings=dialyzer:run(DialOpts),{reply,ok, State};
-			Error ->{reply, {failed,Error}, State}
+			Error ->{reply, {'throw',Error}, State}
 		end
 	catch
 		{_, X} -> {reply, {failed,lists:flatten(X)}, State}
@@ -189,7 +192,7 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 	catch
 		throw:Error -> {reply,{'throw',Error},State};
 		Type:Error -> 
-			%%erlang:display(erlang:get_stacktrace()),
+			erlang:display(erlang:get_stacktrace()),
 			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
 	end;

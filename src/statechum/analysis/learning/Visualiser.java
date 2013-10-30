@@ -372,7 +372,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 }
             }
         });
-    }
+   }
 
     protected static final Set<Visualiser> framesVisible = new HashSet<Visualiser>();
     
@@ -479,7 +479,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         popupMenu = new JPopupMenu();
        // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
-        Image icon = Toolkit.getDefaultToolkit().getImage("resources" + File.separator + "icon.jpg");
+        Image icon = Toolkit.getDefaultToolkit().getImage(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"icon.jpg");
         if (icon != null) {
             setIconImage(icon);
         }
@@ -1146,7 +1146,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      * </pre>
      * where <i>upper</i> and <i>lower</i> are the graphs to be displayed.
      */
-    static Visualiser graphWindow[] = new Visualiser[3];
+    static Visualiser graphWindow[] = new Visualiser[0];
 
     /** If a dialog box has to be displayed, it needs to know a reference frame. This method returns this frame, creating it if necessary.
      *
@@ -1154,6 +1154,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      */
     public static Visualiser getVisualiser() {
     	final int mainWindow = 0;
+    	ensureCapacityFor(mainWindow);
         if (graphWindow[mainWindow] == null) {
         	graphWindow[mainWindow] = new Visualiser(mainWindow);
         }
@@ -1213,8 +1214,18 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
     }
     
+    protected static void ensureCapacityFor(int id)
+    {
+    	if (graphWindow.length < id+1)
+    	{
+    		Visualiser [] newValue = new Visualiser[Math.max(id+1,graphWindow.length << 1)];
+    		System.arraycopy(graphWindow, 0, newValue, 0, graphWindow.length);graphWindow = newValue;
+    	}
+    }
+ 
     public static void updateFrameWithPos(final Object graph, int windowid)
     {
+    	ensureCapacityFor(windowid);
         if (graphWindow[windowid] == null) {
         	graphWindow[windowid] = new Visualiser(windowid);
         }
@@ -1252,7 +1263,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         String file = (String) g.getUserDatum(JUConstants.TITLE);
         String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());
         if (path == null) {
-            path = "resources" + File.separator + "graphLayout";
+        	path = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"graphLayout";
         }
         if (file == null) {
             throw new IllegalArgumentException("cannot obtain graph name, the " + JUConstants.TITLE.name() + " property has not been set on the graph");

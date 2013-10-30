@@ -75,7 +75,7 @@ public class DiffExperiments {
 		{
 			//new DiffExperiments(30,5,1).TestExperiment(new ResultRecorder("out.xml"));
 			
-			new DiffExperiments(30).runExperiment(20, false);;
+			new DiffExperiments(30).runExperiment(20, false);
 		}
 		catch(Exception ex)
 		{

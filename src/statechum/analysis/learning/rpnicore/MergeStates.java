@@ -168,7 +168,8 @@ public class MergeStates {
 		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
 		{/*
 			try {
-				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
+			
+				String failName= new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES),"failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
 				original.storage.writeGraphML(failName);
 			} catch (IOException e) {
 				System.out.println("failed to write error file");

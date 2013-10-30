@@ -790,7 +790,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 		public static enum ParseState {
 			NUM_OR_END, SCOLON_COMMA_END, SIZE, SLASH_COMMA_END, TYPE, MINUS_COMMA_END, UCOLON, UNIT, COMMA_END, NUM, FINISHED
-		};
+		}
 
 		public static final Set<String> typeStringsIgnored;
 
@@ -1117,7 +1117,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 		private static enum ParseState {
 			PARSE_DOT, PARSE_SECONDNUM, PARSE_E, PARSE_EXP, PARSE_END, PARSE_FINISHED
-		};
+		}
 
 		private static final String SPACE = " ";
 

@@ -39,8 +39,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -56,7 +57,7 @@ import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTestComponent
 {
 	@Parameters
@@ -81,6 +82,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return Configuration.parametersToString(config);

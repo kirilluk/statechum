@@ -17,6 +17,8 @@
  */
 package statechum.analysis.learning.rpnicore;
 
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
@@ -436,15 +438,28 @@ public class LSolver
 	
 	/** Attempts to load the library from the specified path 
 	 * implicitly (considering java.library.path variable)
+	 * or explicitly, using the {@link G_PROPERTIES#PATH_NATIVELIB} property, if set.
 	 */
 	public static UnsatisfiedLinkError tryLoading(String name)
 	{
 		UnsatisfiedLinkError result = null;
 		
-		try
-		{ System.loadLibrary(name); }
-		catch(UnsatisfiedLinkError ex)
-		{ result = ex; }
+		String nativePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_NATIVELIB);
+		if (nativePath != null)
+		{
+			try
+			{ System.load(nativePath+System.mapLibraryName(name)); }// load, not loadLibrary to use the absolute path
+			catch(UnsatisfiedLinkError ex)
+			{ result = ex; }
+		}
+		 		
+		if (result == null)
+		{
+			try
+			{ System.loadLibrary(name); }
+			catch(UnsatisfiedLinkError ex)
+			{ result = ex; }
+		}
 		
 		return result;
 	}

@@ -26,8 +26,8 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Configuration.IDMode;
@@ -36,7 +36,7 @@ import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.learning.TestRpniLearner;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestNextID {
 	
 	private static Configuration confJung, confString, confSame;
@@ -88,6 +88,7 @@ public class TestNextID {
 	 * 
 	 * @return extended description.
 	 */ 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config, String kind)
 	{
 		return kind+","+config.getLearnerIdMode();

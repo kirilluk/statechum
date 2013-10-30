@@ -113,7 +113,9 @@ public abstract class OTPBehaviour {
 
 	protected final Map<String, OtpCallInterface> patterns;
 	protected Set<ErlangLabel> alphabet;
-	protected Collection<String> dependencies;
+	
+	/** Lists names of the modules the current module is dependent on. */
+	public Collection<String> dependencies;
 	protected static final String[] stdmodsarray = { "erlang", "gen_server", "gen_fsm", "lists",
 			"supervisor", "filename", "io", "io_lib", "code", "erl_ddll", "application", "math" };
 	protected static final ArrayList<String> stdModsList = new ArrayList<String>(Arrays.asList(stdmodsarray));
@@ -136,7 +138,7 @@ public abstract class OTPBehaviour {
 	 */
 	protected void generateAlphabet(Configuration config) {
 		if (patterns.isEmpty()) {
-			Set<String> exports = loadExports();
+			Set<String> exports = loadExports(config);
 			for (Entry<String, FuncSignature> sigEntry : parent.sigs.entrySet()) {
 				if (!sigEntry.getValue().getName().equals("module_info")
 						&& exports.contains(sigEntry.getKey()))
@@ -202,10 +204,10 @@ public abstract class OTPBehaviour {
 	 * @throws IOException
 	 *             if this fails.
 	 */
-	public void loadDependencies(File file) {
+	public void loadDependencies(File file, Configuration config) {
 		OtpErlangTuple response = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("dependencies"),
-						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM)) },
+						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM, config.getErlangCompileIntoBeamDirectory())) },
 				"Could not load dependencies of " + file.getName());
 		
 		// the first element is 'ok'
@@ -222,13 +224,13 @@ public abstract class OTPBehaviour {
 	 * Returns a list of fully-qualified names of functions which have been
 	 * exported from this module.
 	 */
-	public Set<String> loadExports() {
+	public Set<String> loadExports(Configuration config) {
 		Set<String> result = new TreeSet<String>();
 		OtpErlangTuple response = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] {
 						new OtpErlangAtom("exports"),
 						new OtpErlangAtom(ErlangRunner.getName(new File(parent.sourceFolder, parent.getName()
-								+ ERL.ERL), ErlangRunner.ERL.BEAM)) },
+								+ ERL.ERL), ErlangRunner.ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) },
 				"Could not load exports of " + parent.getName());
 
 		OtpErlangList listOfExportTuples = (OtpErlangList) response.elementAt(1);// the first element is 'ok'
@@ -249,12 +251,12 @@ public abstract class OTPBehaviour {
 		return result;
 	}
 
-	public static OTPBehaviour obtainDeclaredBehaviour(File file, ErlangModule mod,Collection<String> ignoredBehaviours) {
+	public static OTPBehaviour obtainDeclaredBehaviour(File file, Configuration config, ErlangModule mod,Collection<String> ignoredBehaviours) {
 		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless defined in a module
 		// extract the list of attributes and determine the kind of this module
 		OtpErlangTuple response = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] { new OtpErlangAtom("attributes"),
-						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM)) },
+						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) },
 				"Could not load attributes of " + file.getName());
 
 		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the first element is 'ok'
@@ -294,7 +296,7 @@ public abstract class OTPBehaviour {
 			}
 		}
 
-		behaviour.loadDependencies(file);
+		behaviour.loadDependencies(file,config);
 		return behaviour;
 	}
 
@@ -331,7 +333,7 @@ public abstract class OTPBehaviour {
 	/**
 	 * Used to turn real traces into textual traces, suitable for persistence.
 	 */
-	class ConverterModToErl implements LabelConverter, ConvertALabel {
+	public class ConverterModToErl implements LabelConverter, ConvertALabel {
 		@Override
 		public Set<Label> convertLabel(Label lbl) {
 			return Collections.singleton(convertLabelToLabel(lbl));

@@ -14,8 +14,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -35,7 +34,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_Multithreaded_NonArray {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
@@ -53,7 +52,7 @@ public class TestGD_Multithreaded_NonArray {
 		converter = null;
 	}
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -62,6 +61,7 @@ public class TestGD_Multithreaded_NonArray {
 		return result;
 	}
 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Integer threads)
 	{
 		return ""+threads+" threads";

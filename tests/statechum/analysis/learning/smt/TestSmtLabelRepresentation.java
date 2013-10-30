@@ -32,8 +32,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Label;
 import statechum.Configuration;
@@ -889,7 +888,7 @@ public class TestSmtLabelRepresentation
 	 * carried out. The difference between having low-level functions and not is that in 
 	 * their presence, all abstract states are always loaded into yices context. 
 	 */
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestChecksInTwoContexts
 	{
 		Configuration config = null;
@@ -919,7 +918,7 @@ public class TestSmtLabelRepresentation
 			config = Configuration.getDefaultConfiguration().copy(); 
 		}
 		
-		@Parameters
+		@org.junit.runners.Parameterized.Parameters
 		public static Collection<Object []> data() 
 		{
 			Collection<Object[]> result = new LinkedList<Object[]>();
@@ -928,6 +927,7 @@ public class TestSmtLabelRepresentation
 			return result;
 		}
 
+		@org.junit.runners.ParameterizedWithName.ParametersToString
 		public static String parametersToString(Boolean useLowLevel)
 		{
 			return useLowLevel.booleanValue()?"using low-level functions":"without low-level functions";
@@ -1595,7 +1595,7 @@ public class TestSmtLabelRepresentation
 			fArg22_IO_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 1, JUConstants.intUNKNOWN),varNumber22,varNumber21),
 			fArg22_POST_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumber22,varNumber21),
 			fArg22_POST_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN),varNumber22,varNumber21);
-		;
+		
 		StringBuffer expectedDecls = new StringBuffer();
 		for(int arg=0;arg<=2;++arg)
 			expectedDecls.append("(define "+generateFreshVariable("func", VARIABLEUSE.POST, 0, arg)+"::int)"+ENDL);

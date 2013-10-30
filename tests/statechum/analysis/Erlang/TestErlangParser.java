@@ -2,15 +2,14 @@ package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collection;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Helper.whatToRun;
@@ -627,19 +626,21 @@ public class TestErlangParser {
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot be represented");
-		try
+		//try
 		{
 			Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
 			// if the exception is not thrown but the assertion is satisfied, this is fine (this is what happens on WinXP).
 		}
+		/*
 		catch(Exception ex)
-		{// On Linux, an exception is thrown.
+		{// On Linux with a broken Erlang OTP14 (broken by Debian), an exception is thrown.
 			Class<RuntimeException> exceptionClass = RuntimeException.class;
 			String exceptionString = "badmatch";
 			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
 			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
 			Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
 		}
+		*/
 	}
 	
 	@Test
@@ -667,9 +668,8 @@ public class TestErlangParser {
 	public void testCheckMaxExponent()
 	{
 		int i=0;
-		for(i=200;i< 400 &&
-			!Double.isInfinite(Double.parseDouble("4.0e"+i))
-		;++i);
+		for(i=200;i< 400 &&	!Double.isInfinite(Double.parseDouble("4.0e"+i));++i)
+		{}
 		Assert.assertEquals(ErlangLabel.ErlangLong.maxExponent+1, i);
 	}
 
@@ -677,9 +677,8 @@ public class TestErlangParser {
 	public void testCheckMinExponent()
 	{
 		int i=0;
-		for(i=-200;i> -400 &&
-		0 !=(Double.parseDouble("4.0e"+i))
-		;--i);
+		for(i=-200;i> -400 && 0 !=(Double.parseDouble("4.0e"+i));--i)
+		{}
 		Assert.assertEquals(ErlangLabel.ErlangLong.minExponent+1, -i);
 	}
 
@@ -702,9 +701,15 @@ public class TestErlangParser {
 		final String text = " 4.e10 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		try
+		{
 			ErlangRunner.getRunner().evaluateString(text);
-		}},RuntimeException.class,"illegal_expr");
+		}
+		catch(Exception ex)
+		{
+			Assert.assertEquals(RuntimeException.class, ex.getClass());
+			Assert.assertTrue(ex.getMessage().contains("badmatch") || ex.getMessage().contains("illegal_expr"));// Erlang 16 returns badmatch, 14 and 15 return "illegal_expr"
+		}
 	}
 	
 	@Test
@@ -958,7 +963,7 @@ public class TestErlangParser {
 	}
 	
 	/** invalid atoms. */
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseInvalidCharsInAtomFail
 	{
 		@Parameters
@@ -1014,6 +1019,7 @@ public class TestErlangParser {
 			text = textArg;exception = exceptionArg;erlException = erlArg;
 		}
 		
+		@ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg, String erlArg)
 		{
 			return textArg+" - "+exceptionArg+" , "+erlArg;
@@ -1413,7 +1419,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"is not divisible by 8");
 	}
 	
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseDoubleFail
 	{
 		@Parameters
@@ -1421,63 +1427,64 @@ public class TestErlangParser {
 		{
 			final String badmatch = "badmatch"; // it is always so for real Erlang because we'll get an error which correspond to a pattern match failure. 
 			return java.util.Arrays.asList(new Object[][]{
-					new Object[]{"56R","invalid token",badmatch},
-					new Object[]{"56[","invalid token",badmatch},
-					new Object[]{"56<","invalid token",badmatch},
-					new Object[]{"56.R","invalid token",badmatch},
-					new Object[]{"56 .R","unexpected dot",badmatch},
-					new Object[]{"56 |","unexpected characters at the end",badmatch},
-					new Object[]{"56|","unexpected characters at the end",badmatch},
-					new Object[]{"56-","invalid token",badmatch},
-					new Object[]{"56 -","invalid token",badmatch},
-					new Object[]{"56-7","expected dot",""},// Erlang permits this, we do not (expressions are not permitted for us)
-					new Object[]{"56-|","invalid token",badmatch},
-					new Object[]{"56.-","invalid token",badmatch},
-					new Object[]{"56..","unexpected dot",badmatch},
-					new Object[]{"56.-7","expected dot",badmatch},
-					new Object[]{"56. 7","unexpected space",badmatch},
-					new Object[]{"56.[","invalid token",badmatch},
-					new Object[]{"56.<","invalid token",badmatch},
-					new Object[]{"56.|","unexpected characters at the end",badmatch},
-					new Object[]{"56.5R","invalid token",badmatch},
-					new Object[]{"56.5[","invalid token",badmatch},
-					new Object[]{"56.5<","invalid token",badmatch},
-					new Object[]{"56.5|","unexpected characters at the end",badmatch},
-					new Object[]{"56e","unexpected end of",badmatch},
-					new Object[]{"56e.","unexpected dot",badmatch},
-					new Object[]{"56ee","unexpected exponent",badmatch},
-					new Object[]{"56e|","invalid token",badmatch},
-					new Object[]{"56 e","unexpected exponent",badmatch},
-					new Object[]{"56 |","unexpected characters at the end",badmatch},
-					new Object[]{"56.e","unexpected end of","illegal_expr"},
-					new Object[]{"56.eR","invalid token","illegal_expr"},
-					new Object[]{"56.e[","invalid token",badmatch},
-					new Object[]{"56.e<","invalid token",badmatch},
-					new Object[]{"56.e|","invalid token",badmatch},
-					new Object[]{"56.e-","invalid token",badmatch},
-					new Object[]{"56.e-|","invalid token",badmatch},
-					new Object[]{"56.e-6e","unexpected exponent",badmatch},
-					new Object[]{"56.e-6R","invalid token",badmatch},
-					new Object[]{"56.e-6[","invalid token",badmatch},
-					new Object[]{"56.e-6.","unexpected dot",badmatch},
-					new Object[]{"56.e-6<","invalid token",badmatch},
-					new Object[]{"56.e-6|","unexpected characters at the end",badmatch},
-					new Object[]{"56.e -6.","unexpected space",badmatch},
-					new Object[]{"56.e ,","invalid token",badmatch},
-					new Object[]{"56.e |","invalid token",badmatch},
-					new Object[]{"56.e - 6.","invalid token",badmatch},
-					new Object[]{"56.e - 6|","invalid token",badmatch},
+					new Object[]{"56R","invalid token",badmatch,""},
+					new Object[]{"56[","invalid token",badmatch,""},
+					new Object[]{"56<","invalid token",badmatch,""},
+					new Object[]{"56.R","invalid token",badmatch,""},
+					new Object[]{"56 .R","unexpected dot",badmatch,""},
+					new Object[]{"56 |","unexpected characters at the end",badmatch,""},
+					new Object[]{"56|","unexpected characters at the end",badmatch,""},
+					new Object[]{"56-","invalid token",badmatch,""},
+					new Object[]{"56 -","invalid token",badmatch,""},
+					new Object[]{"56-7","expected dot","",""},// Erlang permits this, we do not (expressions are not permitted for us)
+					new Object[]{"56-|","invalid token",badmatch,""},
+					new Object[]{"56.-","invalid token",badmatch,""},
+					new Object[]{"56..","unexpected dot",badmatch,""},
+					new Object[]{"56.-7","expected dot",badmatch,""},
+					new Object[]{"56. 7","unexpected space",badmatch,""},
+					new Object[]{"56.[","invalid token",badmatch,""},
+					new Object[]{"56.<","invalid token",badmatch,""},
+					new Object[]{"56.|","unexpected characters at the end",badmatch,""},
+					new Object[]{"56.5R","invalid token",badmatch,""},
+					new Object[]{"56.5[","invalid token",badmatch,""},
+					new Object[]{"56.5<","invalid token",badmatch,""},
+					new Object[]{"56.5|","unexpected characters at the end",badmatch,""},
+					new Object[]{"56e","unexpected end of",badmatch,""},
+					new Object[]{"56e.","unexpected dot",badmatch,""},
+					new Object[]{"56ee","unexpected exponent",badmatch,""},
+					new Object[]{"56e|","invalid token",badmatch,""},
+					new Object[]{"56 e","unexpected exponent",badmatch,""},
+					new Object[]{"56 |","unexpected characters at the end",badmatch,""},
+					new Object[]{"56.e","unexpected end of","illegal_expr",badmatch},
+					new Object[]{"56.eR","invalid token","illegal_expr",badmatch},
+					new Object[]{"56.e[","invalid token",badmatch,""},
+					new Object[]{"56.e<","invalid token",badmatch,""},
+					new Object[]{"56.e|","invalid token",badmatch,""},
+					new Object[]{"56.e-","invalid token",badmatch,""},
+					new Object[]{"56.e-|","invalid token",badmatch,""},
+					new Object[]{"56.e-6e","unexpected exponent",badmatch,""},
+					new Object[]{"56.e-6R","invalid token",badmatch,""},
+					new Object[]{"56.e-6[","invalid token",badmatch,""},
+					new Object[]{"56.e-6.","unexpected dot",badmatch,""},
+					new Object[]{"56.e-6<","invalid token",badmatch,""},
+					new Object[]{"56.e-6|","unexpected characters at the end",badmatch,""},
+					new Object[]{"56.e -6.","unexpected space",badmatch,""},
+					new Object[]{"56.e ,","invalid token",badmatch,""},
+					new Object[]{"56.e |","invalid token",badmatch,""},
+					new Object[]{"56.e - 6.","invalid token",badmatch,""},
+					new Object[]{"56.e - 6|","invalid token",badmatch,""},
 			});
 		}
 		
-		final String text,exception, erlEx; 
+		final String text,exception, errOne, errTwo; 
 		
-		public TestParseDoubleFail(String textArg,String exceptionArg, String erlExArg)
+		public TestParseDoubleFail(String textArg,String exceptionArg, String erlExArg1, String erlExArg2)
 		{
-			text = textArg;exception = exceptionArg;erlEx = erlExArg;
+			text = textArg;exception = exceptionArg;errOne = erlExArg1;errTwo = erlExArg2;
 		}
 		
-		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg)
+		@ParametersToString
+		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg1, @SuppressWarnings("unused") String erlExArg2)
 		{
 			return textArg+" - "+exceptionArg;
 		}
@@ -1489,14 +1496,22 @@ public class TestErlangParser {
 				ErlangLabel.parseText(text);
 			}},IllegalArgumentException.class,exception);
 
-			if (!erlEx.isEmpty())
-				checkForCorrectException(new whatToRun() { public @Override void run() {
+			if (!errOne.isEmpty())
+			{
+				try
+				{
 					ErlangRunner.getRunner().evaluateString(text);
-				}},RuntimeException.class,erlEx);
+				}
+				catch(Exception ex)
+				{
+					Assert.assertEquals(RuntimeException.class, ex.getClass());
+					Assert.assertTrue( (!errOne.isEmpty() && ex.getMessage().contains(errOne))  || (!errTwo.isEmpty() && ex.getMessage().contains(errTwo)));// Erlang 16 returns badmatch, 14 and 15 return "illegal_expr"
+				}
+			}
 		}
 	}
 
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestParseBitStrFail
 	{
 		@Parameters
@@ -1646,6 +1661,7 @@ public class TestErlangParser {
 			text = textArg;exception = exceptionArg;erlEx = erlExArg;
 		}
 		
+		@ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg)
 		{
 			return textArg+" - "+exceptionArg;

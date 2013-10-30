@@ -1066,7 +1066,7 @@ public class ExperimentRunner
 	 */
 	public static void zapDir(File directory)
 	{
-		if (directory.isDirectory())
+		if (directory != null && directory.isDirectory())
 		{
 			for(File f:directory.listFiles())
 			{

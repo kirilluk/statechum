@@ -117,7 +117,6 @@ public class CodeCoverageMap {
             try {
                 result.map.add(new CodeCoverageCombinedMaplet(m.line, m.count, map2.findLine(m.line)));
             } catch (CodeCoverageMapletNotFoundException e) {
-                ;
             }
         }
         return result;

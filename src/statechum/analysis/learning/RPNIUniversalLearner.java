@@ -34,6 +34,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.apps.QSMTool;
@@ -60,6 +61,11 @@ public class RPNIUniversalLearner extends RPNILearner
 		setTentativeAutomaton(new LearnerGraph(evalCnf.config));
 	}
 
+	public RPNIUniversalLearner(Frame parent, Configuration conf, ConvertALabel cnv) 
+	{
+		super(parent,conf,cnv);
+		setTentativeAutomaton(new LearnerGraph(conf));
+	}	
 	private LearnerGraph tentativeAutomaton = null;
 
 	@Override
@@ -178,8 +184,8 @@ public class RPNIUniversalLearner extends RPNILearner
 			// and expect no contradiction.
 			
 			// The above AugmentNonExistingMatrixWith may possibly return null where we are adding paths returned
-			// by Erlang and these paths do not necessarily correspond to any specific question.
-			
+			// by Erlang and these paths do not necessarily correspond to any specific question. This is why 
+			// the following assertion is commented out.			
 			//assert augmentResult == null || augmentResult.booleanValue() : "trace "+sequence+"/"+accepted+" did not honour the sequence returned by mapPathToConfirmedElements";
 		}
 	}
@@ -620,7 +626,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * FIXME: there is no support for LTL/IFTHEN/IGNORE in this method.
 	 * @return true if question answering has been cancelled by a user.
 	 */
-	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph argHardFacts)
+	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph hardFacts)
 	{
 		JUConstants colourToAugmentWith = getTentativeAutomaton().config.getUseAmber()? JUConstants.AMBER:null;
 
@@ -634,7 +640,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				LearnerGraph tempNew = null;
 				try
 				{
-					tempNew = topLevelListener.MergeAndDeterminize(argHardFacts, pair);
+					tempNew = topLevelListener.MergeAndDeterminize(hardFacts, pair);
 				}
 				catch(IllegalArgumentException ex)
 				{// ignore - tempNew is null anyway					
@@ -642,11 +648,11 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				if (tempNew != null) // merge successful - it would fail if our updates to newPTA have modified tentativeAutomaton (the two are often the same graph)
 				{					
-					for(List<Label> question:topLevelListener.ComputeQuestions(pair, argHardFacts, tempNew))
+					for(List<Label> question:topLevelListener.ComputeQuestions(pair, hardFacts, tempNew))
 					{
 						List<Boolean> acceptedElements = null;
 						if (getTentativeAutomaton().config.isUseConstraints())
-							acceptedElements = PathRoutines.mapPathToConfirmedElements(argHardFacts,question,ifthenAutomata);
+							acceptedElements = PathRoutines.mapPathToConfirmedElements(hardFacts,question,ifthenAutomata);
 						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(getTentativeAutomaton(),question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,pair,new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
@@ -656,14 +662,14 @@ public class RPNIUniversalLearner extends RPNILearner
 						
 						if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 						{
-							topLevelListener.AugmentPTA(argHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
+							topLevelListener.AugmentPTA(hardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
 						}
 						else 
 							if(answer.firstElem >= 0)
 							{// The sequence has been rejected by a user
 								assert answer.firstElem < question.size();
 								LinkedList<Label> subAnswer = new LinkedList<Label>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
-								topLevelListener.AugmentPTA(argHardFacts,RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
+								topLevelListener.AugmentPTA(hardFacts,RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
 							}
 					}
 				}

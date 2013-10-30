@@ -6,7 +6,7 @@
 %%   http://www.erlangprogramming.org/
 %%   (c) Francesco Cesarini and Simon Thompson
 
--module(frequency).
+-module(frequencyBroken).
 -export([start/0, stop/0, allocate/0, deallocate/1]).
 -export([init/0]).
 
@@ -14,10 +14,10 @@
 %% initialize the server.
 
 start() ->
-  register(frequency, spawn(frequency, init, [])).
+  register(frequency, spawn(?MODULE, init, [])).
 
 init() ->
-	initInternal([10,11]).
+	initInternal(['WibbleA','WobbleA']).
 
 initInternal(Freqs) ->
   Frequencies = {Freqs, []},
@@ -63,12 +63,16 @@ reply(Pid, Reply) ->
 %% The Internal Help Functions used to allocate and
 %% deallocate frequencies.
 
-allocate({[], Allocated}, _Pid) ->
-  {{[], Allocated}, {error, no_frequency}};
+%%allocate({[], Allocated}, _Pid) ->
+%%  {{[], Allocated}, {error, no_frequency}};
 allocate({[Freq|Free], Allocated}, Pid) ->
   {{Free, [{Freq, Pid}|Allocated]}, {ok, Freq}}.
 
 deallocate({Free, Allocated}, Freq) ->
   NewAllocated=lists:keydelete(Freq, 1, Allocated),
-  {[Freq|Free],  NewAllocated}.
+  case lists:keymember(Freq,1,Allocated) of 
+  	false -> {Free,  Allocated};
+  	true->{[Freq|Free],  NewAllocated}
+  end	
+  	.
 

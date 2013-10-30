@@ -30,8 +30,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -63,7 +63,7 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_Multithreaded {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
@@ -75,7 +75,7 @@ public class TestGD_Multithreaded {
 
 	protected final Configuration config;
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -87,6 +87,7 @@ public class TestGD_Multithreaded {
 		return result;
 	}
 
+	@ParametersToString
 	public static String parametersToString(Integer threads, Boolean useArrays)
 	{
 		return ""+threads+" threads, arrays="+useArrays;
@@ -1935,10 +1936,10 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD_big5()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		LearnerGraph grA = LearnerGraph.loadGraph("resources/LargeGraphs/experiment_500", config);
-		LearnerGraph grB = LearnerGraph.loadGraph("resources/LargeGraphs/experiment_501", config);
+		LearnerGraph grA = LearnerGraph.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"LargeGraphs/experiment_500", config);
+		LearnerGraph grB = LearnerGraph.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"LargeGraphs/experiment_501", config);
 		GD gd = new GD();
-		LearnerGraph graph = LearnerGraph.loadGraph("resources/LargeGraphs/experiment_500", config);
+		LearnerGraph graph = LearnerGraph.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"LargeGraphs/experiment_500", config);
 		System.out.println("loaded");
 		ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, 1, createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());

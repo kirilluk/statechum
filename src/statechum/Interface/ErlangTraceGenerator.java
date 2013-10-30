@@ -97,7 +97,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		jLabel1 = new javax.swing.JLabel();
 		alphabetPane = new javax.swing.JScrollPane();
 		jSeparator1 = new javax.swing.JSeparator();
-		genStyle = new javax.swing.JComboBox<String>();
+		genStyle = new javax.swing.JComboBox();
 		jLabel2 = new javax.swing.JLabel();
 		jButton1 = new javax.swing.JButton();
 		jLabel3 = new javax.swing.JLabel();
@@ -115,7 +115,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		jLabel1.setText("Alphabet:");
 
 		genStyle.setModel(new javax.swing.DefaultComboBoxModel(new String[] {
-				"Random (length 3)", "Random (length 25)" }));
+				"Random (length 3)", "Random (length 10)", "Random (length 25)", "Random (length 40)" }));
 
 		jLabel2.setText("Generation style:");
 
@@ -366,8 +366,12 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 			} else {
 				if (style.equals("Random (length 3)")) {
 					genRandom(outfile, 3, count, exhaustAlphabet);
+				} else if (style.equals("Random (length 10)")) {
+					genRandom(outfile, 10, count, exhaustAlphabet);
 				} else if (style.equals("Random (length 25)")) {
 					genRandom(outfile, 25, count, exhaustAlphabet);
+				} else if (style.equals("Random (length 40)")) {
+					genRandom(outfile, 40, count, exhaustAlphabet);
 				} else {
 					Helper.throwUnchecked(
 							"Unknown random generation style selected (somehow...)",
@@ -625,7 +629,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	private javax.swing.JScrollPane alphabetPane;
 	private javax.swing.JTextPane countInput;
 	private javax.swing.JLabel fileNameLabel;
-	private javax.swing.JComboBox<String> genStyle;
+	private javax.swing.JComboBox genStyle;
 	private javax.swing.JButton jButton1;
 	private javax.swing.JButton jButton2;
 	private javax.swing.JLabel jLabel1;

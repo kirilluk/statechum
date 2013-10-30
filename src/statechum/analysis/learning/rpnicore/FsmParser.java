@@ -70,7 +70,8 @@ public class FsmParser
 			throwException("failed to lex");
 		
 		int i=1;
-		for(;i<lexer.groupCount()+1 && lexer.group(i) == null;++i);
+		for(;i<lexer.groupCount()+1 && lexer.group(i) == null;++i)
+		{}
 		if (i == lexer.groupCount()+1)
 			throwException("failed to lex (group number is out of boundary)");
 

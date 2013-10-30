@@ -17,10 +17,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.ErlangOracleVisualiser;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
@@ -92,7 +96,8 @@ public class Traces extends javax.swing.JFrame {
 		jSeparator2 = new javax.swing.JSeparator();
 		jLabel4 = new javax.swing.JLabel();
 		moduleLabel = new javax.swing.JLabel();
-
+		suspendLearner = new JCheckBox("Suspend", false);
+		terminateLearner = new javax.swing.JButton("Stop");
 		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
 		jLabel1.setText("Trace file name:");
@@ -113,14 +118,26 @@ public class Traces extends javax.swing.JFrame {
 			}
 		});
 
-		jButton2.setText("Run QSM with the Erlang Auto-Answer wrapper");
+		jButton2.setText("Run QSM");
 		jButton2.addActionListener(new java.awt.event.ActionListener() {
 			@Override
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jButton2ActionPerformed(evt);
 			}
 		});
-
+		terminateLearner.addActionListener(new java.awt.event.ActionListener() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				terminateActionPerformed(evt);
+			}
+		});
+		suspendLearner.addActionListener(new java.awt.event.ActionListener() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				suspendActionPerformed(evt);
+			}
+		});
+		terminateLearner.setEnabled(false);suspendLearner.setEnabled(false);
 		jLabel4.setText("Module file:");
 
 		moduleLabel.setText(module);
@@ -177,8 +194,17 @@ public class Traces extends javax.swing.JFrame {
 								.addContainerGap(390, Short.MAX_VALUE))
 				.addGroup(
 						layout.createSequentialGroup().addContainerGap()
-								.addComponent(jButton2)
-								.addContainerGap(255, Short.MAX_VALUE))
+						.addComponent(jButton2)
+						.addComponent(suspendLearner).addComponent(terminateLearner)
+								.addContainerGap(255, Short.MAX_VALUE))/*
+				.addGroup(
+						layout.createSequentialGroup().addContainerGap()
+								.addComponent(suspendLearner)
+								.addContainerGap(30, Short.MAX_VALUE))
+				.addGroup(
+						layout.createSequentialGroup().addContainerGap()
+								.addComponent(terminateLearner)
+								.addContainerGap(30, Short.MAX_VALUE))*/
 				.addGroup(
 						layout.createSequentialGroup().addContainerGap()
 								.addComponent(jLabel3)
@@ -233,15 +259,85 @@ public class Traces extends javax.swing.JFrame {
 								.addPreferredGap(
 										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
 								.addComponent(jButton2)
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(suspendLearner)
+								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(terminateLearner)
+										//
+								/*
 								.addContainerGap(
-										javax.swing.GroupLayout.DEFAULT_SIZE,
-										Short.MAX_VALUE)));
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												Short.MAX_VALUE)
+								.addComponent(terminateLearner)
+								.addContainerGap(
+														javax.swing.GroupLayout.DEFAULT_SIZE,
+														Short.MAX_VALUE)*/
+														
+						));
 
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
 
+	protected Thread learnerThread = null;
+	protected ErlangOracleLearner innerLearner = null;
+	
 	protected void jButton2ActionPerformed(@SuppressWarnings("unused") ActionEvent evt) {
-		ErlangQSMOracle.main(new String[] { filename, module });
+		if (learnerThread != null)
+			return;
+		ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
+		innerLearner = ErlangQSMOracle.createLearner(viz,filename);
+		innerLearner.addObserver(viz);
+		//innerLearner.setGraphName(new File(filename).getName());
+		innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
+		learnerThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				innerLearner.learnMachine();
+				learnerThread = null;innerLearner = null;
+				
+				SwingUtilities.invokeLater(new Runnable(){
+
+					@Override
+					public void run() {
+						jButton2.setEnabled(true);suspendLearner.setEnabled(false);terminateLearner.setEnabled(false);
+					}
+					
+				});
+				
+			}
+			
+		});
+		jButton2.setEnabled(false);suspendLearner.setEnabled(true);terminateLearner.setEnabled(true);
+		learnerThread.start();
+	}
+
+	protected void notifyLearner()
+	{
+		if (innerLearner != null)
+			synchronized(innerLearner.suspendInference)
+			{
+				innerLearner.suspendInference.notify();
+			}
+	}
+	
+	protected void terminateActionPerformed(@SuppressWarnings("unused") ActionEvent evt) {
+		if (learnerThread == null)
+			return;
+		innerLearner.stopInference.set(true);
+		innerLearner.suspendInference.set(false);
+		notifyLearner();
+		try {
+			learnerThread.join();
+		} catch (InterruptedException e) {
+			// assume we were asked to stop waiting
+		}
+	}
+
+	protected void suspendActionPerformed(@SuppressWarnings("unused") ActionEvent evt) {
+		if (learnerThread == null || innerLearner == null)
+			return;
+		innerLearner.suspendInference.set(suspendLearner.isSelected());notifyLearner();
 	}
 
 	void jButton1ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
@@ -341,5 +437,9 @@ public class Traces extends javax.swing.JFrame {
 	private javax.swing.JSeparator jSeparator2;
 	private javax.swing.JLabel moduleLabel;
 	private javax.swing.JLabel tracecountLabel;
+	private javax.swing.JCheckBox suspendLearner;
+	private javax.swing.JButton terminateLearner;
+	
 	// End of variables declaration//GEN-END:variables
 }
+

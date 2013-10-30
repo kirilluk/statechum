@@ -7,8 +7,9 @@ import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -16,7 +17,7 @@ import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /** Tests that cloning and comparison of both deterministic and non-deterministic graphs works. */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public final class TestCloneWithDifferentConf 
 {
 
@@ -26,7 +27,7 @@ public final class TestCloneWithDifferentConf
 	private final List<AbstractLearnerGraph> sameA,sameB,different;
 	
 	@SuppressWarnings("rawtypes")
-	public TestCloneWithDifferentConf(int listNumber,AbstractLearnerGraph argGraph, 
+	public TestCloneWithDifferentConf(@SuppressWarnings("unused") int listNumber,AbstractLearnerGraph argGraph, 
 			List<AbstractLearnerGraph> argSameA,List<AbstractLearnerGraph> argSameB,List<AbstractLearnerGraph> argDifferent) {
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
@@ -136,6 +137,7 @@ public final class TestCloneWithDifferentConf
 	 * @return description.
 	 */ 
 	@SuppressWarnings("rawtypes")
+	@ParametersToString
 	public static String parametersToString(Integer stageNumber,LearnerGraph argGraph, 
 			LinkedList<AbstractLearnerGraph> argSameA,LinkedList<AbstractLearnerGraph> argSameB,LinkedList<AbstractLearnerGraph> argDifferent)
 	{
@@ -148,6 +150,7 @@ public final class TestCloneWithDifferentConf
 	 * @return description.
 	 */ 
 	@SuppressWarnings("rawtypes")
+	@ParametersToString
 	public static String parametersToString(Integer stageNumber, LearnerGraphND argGraph, 
 			LinkedList<AbstractLearnerGraph> argSameA,LinkedList<AbstractLearnerGraph> argSameB,LinkedList<AbstractLearnerGraph> argDifferent)
 	{

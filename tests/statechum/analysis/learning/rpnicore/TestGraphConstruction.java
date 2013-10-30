@@ -36,8 +36,9 @@ import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
@@ -49,7 +50,7 @@ import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public final class TestGraphConstruction extends TestWithMultipleConfigurations
 {
 	public TestGraphConstruction(Configuration conf)
@@ -67,6 +68,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

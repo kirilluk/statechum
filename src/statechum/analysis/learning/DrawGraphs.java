@@ -66,6 +66,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -82,6 +83,7 @@ import org.rosuda.JRI.Rengine;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 
 public class DrawGraphs {
@@ -179,6 +181,27 @@ public class DrawGraphs {
 	
 	public DrawGraphs()
 	{
+		java.lang.reflect.Method loadJri = null;
+			
+		try
+		{
+			loadJri = Rengine.class.getMethod("loadJri", new Class[]{String.class});
+		} catch (Exception e)
+		{// ignore this, loadJri remains null.
+		}
+		
+		try
+		{
+			if (loadJri != null && !((Boolean)loadJri.invoke(null, GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_JRILIB))).booleanValue())
+				throw new IllegalArgumentException("JRI library could not be loaded");
+		} catch (IllegalAccessException e)
+		{
+			throw new IllegalArgumentException("Calling a method to load JRI library failed",e);
+		} catch (InvocationTargetException e)
+		{
+			throw new IllegalArgumentException("Calling a method to load JRI library failed",e);
+		} // IllegalArgumentException thrown by the above should propagate
+
 		if (!Rengine.versionCheck()) 
 			throw new IllegalArgumentException("R version mismatch");
 		if (engine == null)

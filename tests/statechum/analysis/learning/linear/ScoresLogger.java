@@ -31,7 +31,9 @@ import java.util.zip.ZipInputStream;
 
 import org.junit.Assert;
 
+import statechum.GlobalConfiguration;
 import statechum.Helper;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.ErlangLabel;
 
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -40,7 +42,7 @@ public abstract class ScoresLogger
 {
 	protected Map<String,OtpErlangTuple> scoresMap = new TreeMap<String,OtpErlangTuple>();
 	
-	static final String scoresFileName = "resources"+File.separator+"gd_scores.zip";
+	static final String scoresFileName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"gd_scores.zip";
 
 	/** Loads the data from a map. */
 	public void loadMap()

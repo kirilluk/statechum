@@ -19,7 +19,6 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
-
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
@@ -27,8 +26,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -68,15 +67,16 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestFSMAlgo extends TestWithMultipleConfigurations
 {
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		return TestWithMultipleConfigurations.data();
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);

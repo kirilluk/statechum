@@ -28,8 +28,7 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import statechum.Configuration;
@@ -52,7 +51,7 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_MultipleCasesOfRenaming {
 
 	/** Number of threads to use. */
@@ -61,7 +60,7 @@ public class TestGD_MultipleCasesOfRenaming {
 	/** Label converter to use. */
 	private ConvertALabel converter = null;
 
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -76,6 +75,7 @@ public class TestGD_MultipleCasesOfRenaming {
 	/** The vertex which is different between different tests. */
 	private final String stateC;
 	
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Integer threads,String stateC)
 	{
 		return stateC+" and "+threads+" threads";

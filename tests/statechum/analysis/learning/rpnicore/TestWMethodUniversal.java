@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,14 +35,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Pair;
@@ -49,7 +51,7 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestWMethodUniversal 
 {
 	boolean prefixClosed;
@@ -61,7 +63,7 @@ public class TestWMethodUniversal
 		converter = config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null;
 	}
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		List<Object[]> outcome = new LinkedList<Object[]>();
@@ -79,6 +81,7 @@ public class TestWMethodUniversal
 	 * @param closed boolean to consider
 	 * @return description.
 	 */ 
+	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config,Boolean closed)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config)+" "+(closed?"prefix-closed":"not prefix-closed");
@@ -206,7 +209,7 @@ public class TestWMethodUniversal
 	public final void testWsetBig1() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(config.copy());
-		AbstractPersistence.loadGraph("resources/testWset1.graphml",fsm,converter);
+		AbstractPersistence.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"testWset1.graphml",fsm,converter);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
 	}
 	

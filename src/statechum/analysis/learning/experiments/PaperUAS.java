@@ -85,11 +85,12 @@ import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -882,7 +883,7 @@ public class PaperUAS
         long tmStarted = new Date().getTime();
         LearnerGraph fullGraph =  new RPNIBlueFringe(learnerConfig,pairchoiceORIG).learn(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber),true);
         
-        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/uas_reference_automaton.xml",graphReference,labelConverter);
+        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"uas_reference_automaton.xml",graphReference,labelConverter);
    		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
    		int wPos=0;
    		for(List<Label> seq:wMethod) if (graphReference.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
@@ -942,7 +943,7 @@ public class PaperUAS
   			
   			int count=0;
   			for(LearnerGraph g:graphs)
-  				g.storage.writeGraphML("resources/"+name+"_"+frame+"_"+(count++)+".xml");
+  				g.storage.writeGraphML(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+name+"_"+frame+"_"+(count++)+".xml");
   			System.out.println("=== "+graphs.size()+" ===");
   			progress.next();
   		}
@@ -964,7 +965,7 @@ public class PaperUAS
         System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
         graphReference.storage.writeGraphML("traceautomaton.xml");
         */
-        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/uas_reference_automaton.xml",graphReference,labelConverter);
+        final LearnerGraph graphReference = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"uas_reference_automaton.xml",graphReference,labelConverter);
 		final Collection<List<Label>> wMethod = graphReference.wmethod.getFullTestSet(1);
         
 		// Here I need to moderate the effort because choosing traces for all seeds is good but I need
@@ -1436,7 +1437,7 @@ public class PaperUAS
             final Configuration learnerConfig = paper.learnerInitConfiguration.config.copy();learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
             learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
              LearnerGraph fullGraph =  paper.new RPNIBlueFringe(learnerConfig,pairchoiceORIG).learn(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber),true);
-             fullGraph.storage.writeGraphML("resources/largePTA/correctOutcome.xml");
+             fullGraph.storage.writeGraphML(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"largePTA/correctOutcome.xml");
         	
         	
 	    	//paper.runExperimentWithSingleAutomaton("large");

@@ -2,7 +2,7 @@
 
 # Essentially from http://www.kevinsheppard.org/research/matlabatlas/
 
-[ -r /usr/local/soft/yices-1.0.36 ] && YICES_ROOT=/usr/local/soft/yices-1.0.36
+[ -r /usr/local/soft/yices-1.0.38 ] && YICES_ROOT=/usr/local/soft/yices-1.0.38
 
 HOST=
 # For building on Windows-64, there is a special kludge, only tested on Win64.

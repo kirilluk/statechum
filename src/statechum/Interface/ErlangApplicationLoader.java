@@ -56,6 +56,8 @@ import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.Signatures.AnySignature;
+import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.ErlangOracleVisualiser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.apps.ErlangQSMOracle;
 
@@ -515,7 +517,14 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 					// Run ErlangQSMOracle on the trace file...
 
 					System.out.println("Learning " + m.name + "...");
-					LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
+					//LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
+					ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
+					ErlangOracleLearner innerLearner = ErlangQSMOracle.createLearner(viz,tracefile);
+					innerLearner.addObserver(viz);
+					innerLearner.setGraphNameSuffix(new File(tracefile).getName());
+					innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
+					LearnerGraph g = innerLearner.learnMachine();
+					
 					System.out.println("Produced " + g.getStateNumber() + " states");
 				} catch (Exception e) {
 					JOptionPane.showMessageDialog(this, e.toString());

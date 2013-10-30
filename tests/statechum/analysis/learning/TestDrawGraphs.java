@@ -18,6 +18,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
@@ -151,7 +153,8 @@ public class TestDrawGraphs {
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+DrawGraphs.defaultColour+"\"),other attrs)",
 				DrawGraphs.boxPlotToString(data, null,null,"other attrs"));
 	}
-	public static final File testDir = new File("resources","__TestDrawGraphs__");
+	
+	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestDrawGraphs__");
 
 	@Test
 	public void testBagPlotToStringFail1()

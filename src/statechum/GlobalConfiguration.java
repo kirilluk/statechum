@@ -59,8 +59,16 @@ public class GlobalConfiguration {
 		,FORCEFORK // whether to ensure that ExperimentRunner always forks a worker JVM. This is false by default so that experiment runner does not do a fork when it is being debugged, permitted to step into the experiment. Ant runner can permit debugging in order to debug failing tests, but since the aim most of the time is not to debug experiment but to observe test execution, it is a good idea to make sure that forking does happen and this argument makes sure this happens.
 		,ERLANGHOME // path to the Erlang distribution directory 
 		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
+		,PATH_ERLANGBEAM // where to place compiled Erlang modules
+		,PATH_ERLANGFOLDER // where .erl files associated with Erlang tracer are located
+		,PATH_ERLANGTYPER // where .erl files from a slightly modified Typer are located
+		,PATH_ERLANGEXAMPLES // Erlang programs that are used for testing
 		,SCALE_TEXT // determines the size of the font in Jung graphs, 1.0 means no scaling.
 		,SCALE_LINES // determines the thickness of lines and arrows as well as the size of loops in Jung graphs, 1.0 means no scaling.
+		,RESOURCES // resources directory to use
+		,DEBUG_GLOBALCONFIGURATION // whether to show debug reflecting loading of a configuration.
+		,PATH_NATIVELIB // where to load native libraries from, mostly for Eclipse plugins but useful elsewhere.
+		,PATH_JRILIB // where JRI library is located, different from PATH_NATIVELIB because it is not distributed with Statechum
 		;
 	}
 
@@ -79,19 +87,32 @@ public class GlobalConfiguration {
 	static
 	{
 		defaultValues.put(G_PROPERTIES.LINEARWARNINGS, "false");
-		defaultValues.put(G_PROPERTIES.SMTWARNINGS, "false");
+		defaultValues.put(G_PROPERTIES.SMTWARNINGS, "true");
 		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
 		defaultValues.put(G_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN);
 		defaultValues.put(G_PROPERTIES.STOP, "");
 		defaultValues.put(G_PROPERTIES.TEMP, "tmp");
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "false");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGFOLDER, "ErlangOracle");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGEXAMPLES, "ErlangExamples");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGTYPER, "lib/modified_typer");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGBEAM, defaultValues.get(G_PROPERTIES.TEMP)+File.separator+"beam");
 		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
 		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");
+		defaultValues.put(G_PROPERTIES.RESOURCES,"resources");
+		defaultValues.put(G_PROPERTIES.DEBUG_GLOBALCONFIGURATION,"false");
+		defaultValues.put(G_PROPERTIES.PATH_NATIVELIB,null);// no path by default, this implies loading from java.library.path
+		defaultValues.put(G_PROPERTIES.PATH_JRILIB,null);// no path by default, this implies loading from java.library.path
 		defaultValues.put(G_PROPERTIES.FORCEFORK,"false");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
-	
+
+	/** Used to debug loading of the configuration, hence has to be set early. */
+	public static void setDebugGlobalConfiguration(boolean value)
+	{
+		defaultValues.put(G_PROPERTIES.DEBUG_GLOBALCONFIGURATION,Boolean.toString(value));
+	}
 	
 	public boolean isAssertEnabled()
 	{
@@ -112,6 +133,15 @@ public class GlobalConfiguration {
 	protected Properties properties = null;
 	protected Map<Integer, WindowPosition> windowCoords = null;
 
+	/** This one is used to ensure that path names and various configuration values are set correctly
+	 * when Statechum is used as an Eclipse plugin.
+	 */
+	public static interface WorkbenchResources
+	{
+		/** Loads values of resources from Eclipse. */
+		public void setResources(Map<G_PROPERTIES, String> resources);
+	}
+
 	/** Retrieves the name of the property from the property file.
 	 *  The first call to this method opens the property file.
 	 *  
@@ -130,11 +160,13 @@ public class GlobalConfiguration {
 	protected void loadConfiguration()
 	{
 		String configFileName = getConfigurationFileName();
+		boolean debugGlobalConfiguration = Boolean.parseBoolean(defaultValues.get(G_PROPERTIES.DEBUG_GLOBALCONFIGURATION));
+		
 		XMLDecoder decoder = null;
 		if (configFileName != null && new File(configFileName).canRead())
 		try 
 		{
-			System.out.println("Loaded configuration file "+configFileName);
+			if (debugGlobalConfiguration) System.out.println("Loaded configuration file "+configFileName);
 			decoder = new XMLDecoder(new FileInputStream(configFileName));
 			properties = (Properties) decoder.readObject();
 			windowCoords = (HashMap<Integer, WindowPosition>) decoder.readObject();
@@ -143,6 +175,11 @@ public class GlobalConfiguration {
 		{// failed loading, (almost) ignore this.
 			System.err.println("Failed to load "+configFileName);
 			e.printStackTrace();
+			if (debugGlobalConfiguration) 
+			{
+				System.err.println("Failed to load "+configFileName);
+				e.printStackTrace();
+			}
 		}
 		finally
 		{
@@ -159,12 +196,15 @@ public class GlobalConfiguration {
 			String name = prop.name(),value=null;try { value=System.getProperty(name); } catch (Exception ex) {}// ignore exception if cannot extract a value
 			if (value != null)
 			{// new value set via command-line
-				if (firstValue) firstValue=false;else System.out.print(',');
-				System.out.print(name+"="+value);
+				if (debugGlobalConfiguration) 
+				{
+					if (firstValue) firstValue=false;else System.out.print(',');
+					System.out.print(name+"="+value);
+				}
 				properties.setProperty(name,value);valuesSet=true;
 			}
 		}
-		if (valuesSet) System.out.println();
+		if (valuesSet && debugGlobalConfiguration) System.out.println();
 	}
 
 	/** Retrieves the name of the file to load configuration information from/store it to.
@@ -173,8 +213,12 @@ public class GlobalConfiguration {
 	 */
 	protected static String getConfigurationFileName()
 	{
-		String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
-		String file = System.getProperty(G_PROPERTIES.VIZ_CONFIG.name());
+		String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());if (path == null) path=defaultValues.get(G_PROPERTIES.RESOURCES)+File.separator+"graphLayout";
+		// Above, I have to directly access defaultValues because this method is used to load a configuration hence "properties" are not available and getProperty() will lead to an infinite loop 
+		 		String file = System.getProperty(G_PROPERTIES.VIZ_CONFIG.name());
+		if (file == null) file = defaultValues.get(G_PROPERTIES.VIZ_CONFIG);
+		if (file != null && file.trim().length() == 0) file = null;
+
 		String result = null;
 		if (file != null)
 			result = path+File.separator+file+".xml";
@@ -311,6 +355,9 @@ public class GlobalConfiguration {
 		if(properties == null) {
 			properties = new Properties();
 		}
+		if(properties == null)
+			loadConfiguration();
+		
 		properties.setProperty(key.name(), string);
 	}
 }

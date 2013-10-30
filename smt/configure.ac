@@ -21,12 +21,13 @@ dnl
 dnl  Process this file with autoconf to create configure.
 
 AC_PREREQ(2.64)
-AC_INIT(smtsolver,1.0)
-AC_CONFIG_AUX_DIR(config)
-AM_INIT_AUTOMAKE(smt_yices, 1.0)
+AC_INIT([smtsolver],[1.0])
+AC_CONFIG_AUX_DIR([config])
+AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_PROG_LIBTOOL
+dnl AC_PROG_LIBTOOL
+LT_INIT
 
 AC_PROG_CC
 AC_PROG_CXX

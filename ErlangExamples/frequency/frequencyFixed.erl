@@ -6,7 +6,7 @@
 %%   http://www.erlangprogramming.org/
 %%   (c) Francesco Cesarini and Simon Thompson
 
--module(frequency).
+-module(frequencyFixed).
 -export([start/0, stop/0, allocate/0, deallocate/1]).
 -export([init/0]).
 
@@ -14,10 +14,10 @@
 %% initialize the server.
 
 start() ->
-  register(frequency, spawn(frequency, init, [])).
+  register(frequency, spawn(?MODULE, init, [])).
 
 init() ->
-	initInternal([10,11]).
+	initInternal(['WibbleA','WobbleA']).
 
 initInternal(Freqs) ->
   Frequencies = {Freqs, []},
@@ -70,5 +70,9 @@ allocate({[Freq|Free], Allocated}, Pid) ->
 
 deallocate({Free, Allocated}, Freq) ->
   NewAllocated=lists:keydelete(Freq, 1, Allocated),
-  {[Freq|Free],  NewAllocated}.
+  case lists:keymember(Freq,1,Allocated) of 
+  	false -> {Free,  Allocated};
+  	true->{[Freq|Free],  NewAllocated}
+  end	
+  	.
 

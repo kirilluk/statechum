@@ -24,12 +24,11 @@ import java.util.Random;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LSolver;
-
 import cern.colt.function.DoubleFunction;
 import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
@@ -37,7 +36,7 @@ import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestSolverRandomly {
 	protected final DoubleFunction randomGenerator;
 	protected final int size;
@@ -56,7 +55,7 @@ public class TestSolverRandomly {
 		};
 	}
 	
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
@@ -68,6 +67,7 @@ public class TestSolverRandomly {
 		return result;
 	}
 
+	@ParametersToString
 	public static String parametersToString(final Integer i, @SuppressWarnings("unused") final Random conf, Integer s)
 	{
 		return "random{"+i+"}, size "+s;

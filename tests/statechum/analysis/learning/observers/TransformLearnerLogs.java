@@ -49,7 +49,9 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.StatechumXML;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -287,7 +289,7 @@ public class TransformLearnerLogs implements Runnable
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setValue(0);
 		progressBar.setStringPainted(true);
-		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+File.separator+"icon.jpg");if (icon != null) frame.setIconImage(icon);
+		Image icon = Toolkit.getDefaultToolkit().getImage(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"icon.jpg");if (icon != null) frame.setIconImage(icon);
 		frame.setLayout(new java.awt.GridLayout(2,0));
 		
 		for(final File file:new File(dir).listFiles(new FileFilter() {

@@ -12,10 +12,12 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+
 
 
 import statechum.Configuration;
@@ -456,10 +458,10 @@ public class TestRecordProgressDecorator
 		return str.replace(tag.name()+"=\"", tag.name()+"=\""+junkTag);
 	}
 	
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestSequenceDumping
 	{
-		@Parameters
+		@org.junit.runners.Parameterized.Parameters
 		public static Collection<Object[]> data() 
 		{
 			List<Object[]> outcome = new LinkedList<Object[]>();
@@ -479,6 +481,7 @@ public class TestRecordProgressDecorator
 			config.setLabelKind(labelKind);config.setLegacyXML(legacyArg.booleanValue());
 		}
 		
+		@ParametersToString
 		public static String parametersToString(Boolean legacyArg, LABELKIND labelKind)
 		{
 			return (legacyArg.booleanValue()?"Legacy":"Current")+" "+labelKind;

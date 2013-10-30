@@ -37,6 +37,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.Assert;
@@ -613,6 +614,9 @@ public class TestGD {
 	}
 	
 	
+	/**
+	 * Creates an XML document into which GD nodes will be added.
+	 */
 	protected static final Document createDoc()
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -1045,7 +1049,7 @@ public class TestGD {
 	public final void testComputeGD_big5()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		final String path = "resources/LargeGraphs/";
+		final String path = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"LargeGraphs/";
 		LearnerGraph grA = Transform.convertToNumerical(LearnerGraph.loadGraph(path+"experiment_500", config));
 		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(path+"experiment_501", config));
 		GD gd = new GD();

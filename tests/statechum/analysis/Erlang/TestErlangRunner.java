@@ -39,7 +39,6 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.ProgressIndicator;
-import statechum.apps.ErlangQSMOracle;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangInt;
@@ -53,19 +52,35 @@ public class TestErlangRunner {
 
 	protected ErlangRunner erl = null;
 	
+	/** This one is used to number work directories so that different tests do not affect each other. Unfortunately, the numbering is sequential hence it is not known which test corresponds to which number. */
+	protected static int number = 0;
+	
 	@Before
 	public void beforeTest()
 	{
 		erl = new ErlangRunner();erl.setTimeout(500);
-
-		if (!testDir.isDirectory()) 
+		testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestErlangRunner__"+(number++));
+		output = new File(testDir,"test.erl");
+		createTestDir();
+	}
+	
+	public void createTestDir()
+	{
+		if (!testDir.isDirectory())
+		{
 			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+		}
 	}
 
 	@After
 	public void afterTest()
 	{
 		erl.killErlang();
+		zapTestDir();
+	}
+	
+	public void zapTestDir()
+	{
 		ExperimentRunner.zapDir(testDir);
 	}
 	
@@ -109,15 +124,15 @@ public class TestErlangRunner {
 	@Test
 	public void testGetName1()
 	{
-		Assert.assertTrue(ErlangRunner.getName(new File("bb.c.d.erl.erl"),ERL.BEAM).endsWith("bb.c.d.erl.beam"));
-		Assert.assertTrue(ErlangRunner.getName(new File("  bb....erl   "),ERL.BEAM).endsWith("bb....beam"));
+		Assert.assertTrue(ErlangRunner.getName(new File("bb.c.d.erl.erl"),ERL.BEAM, true).endsWith("bb.c.d.erl.beam"));
+		Assert.assertTrue(ErlangRunner.getName(new File("  bb....erl   "),ERL.BEAM, true).endsWith("bb....beam"));
 	}
 	
 	@Test
 	public void testGetNameFail()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getName(new File("  aa/bb....   "),ERL.BEAM);
+			ErlangRunner.getName(new File("  aa/bb....   "),ERL.BEAM, true);
 		}},IllegalArgumentException.class,"Invalid module");
 
 	}
@@ -207,13 +222,17 @@ public class TestErlangRunner {
 				,2000);
 	}
 	
-	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestErlangRunner__");
+	/** URL of the writable directory to be used for tests. */
+	public File testDir = null;
+	
+	/** URL of the locker example. */
+	public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
 	
 	@Test
 	public void testCompileFailure0a()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(new File("junk"),null);
+			ErlangRunner.compileErl(new File("junk"),null,true);
 		}},IllegalArgumentException.class,"Invalid module");
 	}
 	
@@ -221,7 +240,7 @@ public class TestErlangRunner {
 	public void testCompileFailure1a()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(new File("junk.erl"),null);
+			ErlangRunner.compileErl(new File("junk.erl"),null,true);
 		}},IllegalArgumentException.class,"does not have a parent directory");
 	}
 	
@@ -232,7 +251,7 @@ public class TestErlangRunner {
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.write("someJunk");wr.close();
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(output,null);
+			ErlangRunner.compileErl(output,null,true);
 		}},IllegalArgumentException.class,"Failure running erlc");
 	}
 	
@@ -241,28 +260,28 @@ public class TestErlangRunner {
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.write("someJunk");wr.close();
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(output,erl);
+			ErlangRunner.compileErl(output,erl,true);
 		}},RuntimeException.class,"failedToCompile");// error message returned by Erlang code
 	}
 	
 	@Test
 	public void testCompile1a() throws IOException
 	{
-		ErlangRunner.compileErl(new File(ErlangQSMOracle.ErlangFolder,"tracerunner.erl"),null);
+		ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(),"tracerunner.erl"),null,true);
 	}
 	
 	@Test
 	public void testCompile1b() throws IOException
 	{
-		ErlangRunner.compileErl(new File(ErlangQSMOracle.ErlangFolder,"tracerunner.erl"),erl);
+		ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(),"tracerunner.erl"),erl,true);
 	}
 	
-	final File output = new File(testDir,"test.erl");
+	File output = null;
 
 	public void createAndCompile(String MagicNumber,ErlangRunner runner) throws IOException
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang.replace("42", MagicNumber));wr.close();
-		ErlangRunner.compileErl(output,runner);
+		ErlangRunner.compileErl(output,runner,false);
 		
 	}
 	public void attemptRun(String MagicNumber) throws IOException
@@ -289,12 +308,12 @@ public class TestErlangRunner {
         try {
         	erlangProcess.waitFor();
         } catch (InterruptedException e) {
-            ;
+            
         }
         if (erlangProcess.exitValue() != 0)
         	throw new IllegalArgumentException("Failure running "+output.getName()+"\n"+err+(err.length()>0?"\n":"")+out);
         Assert.assertEquals(MagicNumber+"\n",out.toString());
-        Assert.assertEquals(0,err.length());
+        Assert.assertEquals("Expected empty error stream, got "+err.toString(),0,err.length());
 	}
 
 	@Test
@@ -313,23 +332,24 @@ public class TestErlangRunner {
 	{
 		createAndCompile("42",runner);attemptRun("42");
 		File
-			origName = new File(ErlangRunner.getName(output,ERL.BEAM)),
-			tmpName = new File(ErlangRunner.getName(output,ERL.PLT));
+			origName = new File(ErlangRunner.getName(output,ERL.BEAM,false)),
+			tmpName = new File(ErlangRunner.getName(output,ERL.PLT,false));
 		
 		origName.renameTo(tmpName);
 		Thread.sleep(2000);
 		createAndCompile("43",runner);
 		Assert.assertTrue(origName.delete());tmpName.renameTo(origName);// restore the original .beam
 		attemptRun("42");// verify rename worked - running original beam.
-		ErlangRunner.compileErl(output,runner);// compile, beam should be replaced
+		ErlangRunner.compileErl(output,runner,false);// compile, beam should be replaced
 		attemptRun("43");// verify it is now the new .beam
 		origName.renameTo(tmpName);// now make a copy of it
 		createAndCompile("44",runner);
 		Assert.assertTrue(origName.delete());tmpName.renameTo(origName);// restore the '43 .beam
 		Assert.assertTrue(origName.setLastModified(output.lastModified()+100000L));
-		ErlangRunner.compileErl(output,runner);// compile, beam should be preserved
+		ErlangRunner.compileErl(output,runner,false);// compile, beam should be preserved
 		attemptRun("43");// verify it is the preserved .beam
 	}
+	
 	/** Tests the if a source is modified, it will be recompiled. 
 	 * @throws InterruptedException */
 	@Test
@@ -350,7 +370,7 @@ public class TestErlangRunner {
 	public void testCompileAndRunFailure() throws IOException
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.close();
-		ErlangRunner.compileErl(output,null);
+		ErlangRunner.compileErl(output,null,false);
         Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl","-run",ErlangRunner.getErlName(output.getName()),"testFun","arg","arg2",
         		"-noshell"}, null, testDir);
     	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
@@ -373,7 +393,6 @@ public class TestErlangRunner {
         try {
         	erlangProcess.waitFor();
         } catch (InterruptedException e) {
-            ;
         }
         Assert.assertEquals(1,erlangProcess.exitValue());
         Assert.assertTrue(out.toString().contains("function_clause"));

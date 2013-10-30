@@ -33,8 +33,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
@@ -56,7 +57,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_ExistingGraphsND {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
@@ -65,7 +66,7 @@ public class TestGD_ExistingGraphsND {
 
 	Configuration config = null;
 
-	public static final String testFilePath = "resources/TestGraphs/75-6/";
+	public static final String testFilePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"TestGraphs/75-6/";
 
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -143,6 +144,7 @@ public class TestGD_ExistingGraphsND {
 		threadNumber = th;graphA=fileA;graphB=fileB;graphC=fileC;graphD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Integer th, Integer pairs, Double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
 		return "threads: "+th+", extra pairs: "+pairs+" ratio: "+ratio+", "+fileA.getName()+"+"+fileB.getName()+" v.s. "+fileC.getName()+"+"+fileD.getName();

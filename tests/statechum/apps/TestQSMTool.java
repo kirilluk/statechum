@@ -27,8 +27,7 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -214,10 +213,10 @@ public class TestQSMTool {
 		}},IllegalArgumentException.class,"Argument required");
 	}
 	
-	@RunWith(Parameterized.class)
+	@RunWith(ParameterizedWithName.class)
 	public static class TestInvalidTraces
 	{
-		@Parameters
+		@org.junit.runners.Parameterized.Parameters
 		public static Collection<Object[]> data() 
 		{
 			String errArgumentRequired ="Argument required";
@@ -252,6 +251,7 @@ public class TestQSMTool {
 			text = textArg;exception = exceptionArg;
 		}
 		
+		@org.junit.runners.ParameterizedWithName.ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg)
 		{
 			return textArg+" - "+exceptionArg;

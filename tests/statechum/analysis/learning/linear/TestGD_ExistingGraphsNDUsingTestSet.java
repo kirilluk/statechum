@@ -31,8 +31,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
@@ -54,7 +54,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  * @author kirill
  *
  */
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestGD_ExistingGraphsNDUsingTestSet {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
@@ -66,9 +66,9 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 	/** Label converter to use. */
 	private ConvertALabel converter = null;
 
-	public static final String testFilePath = "resources/TestGraphs/75-6/";
+	public static final String testFilePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"TestGraphs/75-6/";
 
-	@Parameters
+	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
 		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// this dummy forces the load of configuration if not already loaded, hence progress indicator does not interleave with "configuration loaded" messages.
@@ -143,6 +143,7 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 		threadNumber = th;graphA=fileA;graphB=fileB;graphC=fileC;graphD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
+	@ParametersToString
 	public static String parametersToString(Integer th, Integer pairs, Double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
 		return "threads: "+th+", extra pairs: "+pairs+" ratio: "+ratio+", "+fileA.getName()+"+"+fileB.getName()+" v.s. "+fileC.getName()+"+"+fileD.getName();

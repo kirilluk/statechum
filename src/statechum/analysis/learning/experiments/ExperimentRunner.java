@@ -176,7 +176,7 @@ public class ExperimentRunner
 			LearnerEvaluator result = null;
 			Constructor<? extends LearnerEvaluator> c = null;
 			try {
-				c = generatorEvaluator.getConstructor(String.class,int.class,int.class,ExperimentRunner.class,Configuration.class,String.class);
+				c = generatorEvaluator.getConstructor(String.class,String.class,int.class,int.class,ExperimentRunner.class,Configuration.class,String.class);
 			} catch (Exception e) {
 				for(Object o:generatorEvaluator.getConstructors())
 					System.out.println(o);
@@ -185,7 +185,7 @@ public class ExperimentRunner
 			try {
 				Configuration cnf = generatorConfig.copy();
 				if (exp.isRobust()) cnf.setLearnerOverwriteOutput(false);
-				result = c.newInstance(inputFile, percent,instanceID,exp,cnf,name);
+				result = c.newInstance(exp.getOutputDir(),inputFile, percent,instanceID,exp,cnf,name);
 			} catch (InvocationTargetException e)
 			{
 				statechum.Helper.throwUnchecked("failed to create an instance", e.getCause());
@@ -1072,10 +1072,10 @@ public class ExperimentRunner
 			{
 				if (f.isDirectory())
 				{
-					if (f.getName().equals("A") || f.getName().equals("B")) 
+					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix)) 
 						zapDir(f);
 					else
-						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B");
+						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B , got "+f.getName());
 				}
 				else
 				if (!f.delete())

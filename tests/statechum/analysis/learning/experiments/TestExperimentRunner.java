@@ -39,6 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+
+
 import statechum.Configuration;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
@@ -54,8 +56,18 @@ public class TestExperimentRunner {
 	protected static int directoryCounter = 0;
 	
 	public final File testDir = new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)
-				,"__TestAbstractExperiment__"+(directoryCounter++)),
-		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());
+				,"__TestAbstractExperiment__"+(directoryCounter++));
+	
+	public static File constructGraphsDirFromOutputDir(File outputDir)
+	{
+		return new File(outputDir.getParent()+File.separator+ExperimentRunner.outputDirNamePrefix+"graphs");
+	}
+	
+	public final static String graphsSuffix = "graphs";
+	/** These two should have <i>testDir</i> as direct parent because {@link w_evaluator} has to be able to construct <i>testGraphsDir</i> from <i>testOutputDir</i> that is passed to it as a command-line argument. */
+	public final File
+		testGraphsDir = new File(testDir,graphsSuffix), 
+		testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());// this is how ExperimentRunner's runExperiment constructs output directory name
 
 	protected final Configuration config = Configuration.getDefaultConfiguration();
 	protected final ConvertALabel converter = null;
@@ -101,20 +113,22 @@ public class TestExperimentRunner {
 		}
 	}
 	
-	protected class w_evaluator extends LearnerEvaluator
+	protected static class w_evaluator extends LearnerEvaluator
 	{
-		public w_evaluator(String inputFile, int per, int inID,
+		private final String outputDir;
+		
+		public w_evaluator(String outDirectory, String inputFile, int per, int inID,
 				ExperimentRunner exp, Configuration cnf, String name) {
-			super(inputFile, per, inID, exp, cnf, name);
+			super(inputFile, per, inID, exp, cnf, name);outputDir = outDirectory;
 		}
 
 		@Override
 		protected void runTheExperiment() {
 			if (WMethod.checkM(recoveryGraph, graph) == null)
-			{// this is the special diagnostic graph
+			{// this is the special diagnostic graph. The first time it is encountered, we force a failure and replace the graph with a normal graph that leads to a subsequent success.
 				LearnerGraph emptyGraph = new LearnerGraph(config);String emptyGraphName = "testAbstractExperiment_graph0.xml"; // an empty graph 
 				try {
-					emptyGraph.storage.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
+					emptyGraph.storage.writeGraphML(new File(new File(outputDir).getParent()+File.separator+graphsSuffix,emptyGraphName).getAbsolutePath());
 				} catch (IOException e) {
 					// if we cannot write a new version of the graph, we shall keep aborting and hence the test will fail.
 				}
@@ -128,7 +142,7 @@ public class TestExperimentRunner {
 	protected static class a_evaluator extends LearnerEvaluator
 	{
 
-		public a_evaluator(String inputFile, int per, int inID,
+		public a_evaluator(@SuppressWarnings("unused") String outDirectory, String inputFile, int per, int inID,
 				ExperimentRunner exp, Configuration cnf, String name) {
 			super(inputFile, per, inID, exp, cnf, name);
 		}
@@ -215,7 +229,7 @@ public class TestExperimentRunner {
 
 	protected static class countEdge_evaluator extends LearnerEvaluator
 	{
-		public countEdge_evaluator(String inputFile, int per, int inID,
+		public countEdge_evaluator(@SuppressWarnings("unused") String outDirectory, String inputFile, int per, int inID,
 				ExperimentRunner exp, Configuration cnf, String name) {
 			super(inputFile, per, inID, exp, cnf, name);
 		}

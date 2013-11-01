@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +94,6 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.AttributeMutator.GETMETHOD_KIND;
-
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
@@ -349,7 +349,8 @@ public class ErlangRunner {
 			final long startTime = System.currentTimeMillis();
 			if (erlangProcess == null) {
 				String tracerunnerProgram = "tracerunner.erl";
-				String uniqueID = "_"+ System.nanoTime()+ "_"+ ManagementFactory.getRuntimeMXBean().getName().replace('@', '_').replace('.', '_') + "@localhost";
+				// It is very important that there is an '@' part to the node name: without it, Erlang adds a host name by default so the actual node name is different from the one supplied via -sname to the process and the node does not respond to the name without '@'.
+				String uniqueID = "_"+ System.nanoTime()+ "_"+ ManagementFactory.getRuntimeMXBean().getName().replace('@', '_').replace('.', '_') + "@" + InetAddress.getLocalHost().getHostName();
 				traceRunnerNode = "tracerunner" + uniqueID;
 				ourNode = "java" + uniqueID;
 				// now we simply evaluate "halt()." which starts epmd if
@@ -369,9 +370,10 @@ public class ErlangRunner {
 						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
 				compileErl(new File(getErlangFolder(), str), null,true);
-				for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGTYPER)).listFiles())
-					if (ErlangRunner.validName(f.getName()))
-						ErlangRunner.compileErl(f, null, true);
+				for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
+					for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
+						if (ErlangRunner.validName(f.getName()))
+							ErlangRunner.compileErl(f, null, true);
 
 				// Based on
 				// http://erlang.org/pipermail/erlang-questions/2010-March/050226.html

@@ -54,6 +54,14 @@ public class TestErlangRunner {
 	
 	/** This one is used to number work directories so that different tests do not affect each other. Unfortunately, the numbering is sequential hence it is not known which test corresponds to which number. */
 	protected static int number = 0;
+
+	/** URL of the writable directory to be used for tests. */
+	public File testDir = null;
+	
+	/** URL of the locker example. */
+	public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
+	
+	File output = null;
 	
 	@Before
 	public void beforeTest()
@@ -222,12 +230,6 @@ public class TestErlangRunner {
 				,2000);
 	}
 	
-	/** URL of the writable directory to be used for tests. */
-	public File testDir = null;
-	
-	/** URL of the locker example. */
-	public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
-	
 	@Test
 	public void testCompileFailure0a()
 	{
@@ -276,8 +278,6 @@ public class TestErlangRunner {
 		ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(),"tracerunner.erl"),erl,true);
 	}
 	
-	File output = null;
-
 	public void createAndCompile(String MagicNumber,ErlangRunner runner) throws IOException
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang.replace("42", MagicNumber));wr.close();

@@ -1100,6 +1100,19 @@ public class ExperimentRunner
 	/** Debug flags to JVM. */
 	private static final String debugArg = "-agentlib:jdwp";
 	
+	/** Obtains command-line arguments of the Java runtime running the called process. */
+	public static List<String> extractJavaCommandLineArgs()
+	{
+		List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+		List<String> commandLine = new LinkedList<String>();
+		commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
+		for(String arg:jvmArgs)
+			if (!arg.startsWith(debugArg)) // filter out debug args, this is used in Ant tests.
+				commandLine.add(arg);
+		commandLine.add("-Djava.awt.headless=true");commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
+		return commandLine;
+	}
+	
 	/** This method is a Grid-mode-only runner which can be provided with
 	 * a configuration to run experiments on and a subclass of 
 	 * <em>LearnerEvaluatorGenerator</em> which actually runs them. It also
@@ -1160,11 +1173,7 @@ public class ExperimentRunner
 					List<String> commandLine = new LinkedList<String>();
 					if (isForked())
 					{// arguments for the JVM to run
-						commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
-						for(String arg:jvmArgs)
-							if (!arg.startsWith(debugArg)) // filter out debug args, this is used in Ant tests.
-								commandLine.add(arg);
-						commandLine.add("-Djava.awt.headless=true");commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
+						commandLine.addAll(extractJavaCommandLineArgs());
 						commandLine.add(this.getClass().getCanonicalName());
 					}
 					commandLine.add(serialisedExperiment.getAbsolutePath());commandLine.add(graphDir.getAbsolutePath());commandLine.add(outputDirectory.getAbsolutePath());

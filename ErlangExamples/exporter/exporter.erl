@@ -2,9 +2,9 @@
 -export([init/0, push/1, pop/0, stack/1, stop/0]).
 
 init() ->
-    Pid = spawn(exporter, stack, [[]]),
-    register(thestack, Pid),
-    true.
+    Pid = erlang:spawn(exporter, stack, [[]]),
+    erlang:register(thestack, Pid),
+	true.
 
 stop() ->
     thestack ! die.

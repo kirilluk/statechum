@@ -62,6 +62,7 @@ public class GlobalConfiguration {
 		,PATH_ERLANGBEAM // where to place compiled Erlang modules
 		,PATH_ERLANGFOLDER // where .erl files associated with Erlang tracer are located
 		,PATH_ERLANGTYPER // where .erl files from a slightly modified Typer are located
+		,PATH_ERLANGSYNAPSE // where .erl files from Synapse are located.
 		,PATH_ERLANGEXAMPLES // Erlang programs that are used for testing
 		,SCALE_TEXT // determines the size of the font in Jung graphs, 1.0 means no scaling.
 		,SCALE_LINES // determines the thickness of lines and arrows as well as the size of loops in Jung graphs, 1.0 means no scaling.
@@ -97,6 +98,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGFOLDER, "ErlangOracle");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGEXAMPLES, "ErlangExamples");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGTYPER, "lib/modified_typer");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGSYNAPSE,"lib/synapse");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGBEAM, defaultValues.get(G_PROPERTIES.TEMP)+File.separator+"beam");
 		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
 		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");

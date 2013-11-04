@@ -253,10 +253,10 @@ public class ErlangRunner {
 	{
 		synchronized(nameToRunnerMap)
 		{
-			if (!genServerToCall.equals(genServerDefault))
+			if (mboxOpen && !genServerToCall.equals(genServerDefault))
 				try
 				{
-					call(new OtpErlangObject[] { new OtpErlangAtom("terminate") }, "Failed to terminate this runner.");			
+					call(new OtpErlangObject[] { new OtpErlangAtom("terminate") }, 1000);// a short timeout here since we do not care whether we are successful. Dormant processes are not too bad; timeouts on closing mboxes are possibly worse if we are closing many inboxes following unexpected termination of Erlang runtime. 
 				}
 				catch(IllegalArgumentException ex)
 				{// if anything fails, ignore this
@@ -496,27 +496,27 @@ public class ErlangRunner {
 		if (response instanceof OtpErlangAtom) 
 		{
 			if (!response.equals(okAtom)) 
-				throw new RuntimeException(errorMessage + " : error " + response);
+				throw new IllegalArgumentException(errorMessage + " : error " + response);
 
 			// success, but null response
 		} 
 		else if (response instanceof OtpErlangTuple) {
 			OtpErlangTuple decodedResponse = (OtpErlangTuple) response;
 			if (decodedResponse.arity() == 0)
-				throw new RuntimeException(errorMessage	+ " : unexpectedly short response (arity " + decodedResponse.arity() + ") " + response);
+				throw new IllegalArgumentException(errorMessage	+ " : unexpectedly short response (arity " + decodedResponse.arity() + ") " + response);
 			OtpErlangObject decodedResponseCode = decodedResponse.elementAt(0);
 			if (!(decodedResponseCode instanceof OtpErlangAtom))
-				throw new RuntimeException(errorMessage	+ " : unexpected type in response tuple " + decodedResponse);
+				throw new IllegalArgumentException(errorMessage	+ " : unexpected type in response tuple " + decodedResponse);
 			if (!decodedResponseCode.equals(okAtom)) 
 			{
 				if (((OtpErlangAtom) decodedResponseCode).atomValue().equals(ErlangThrownException.keyword))
 					throw new ErlangThrownException(decodedResponse, errorMessage + " : has thrown " + decodedResponse);
-				throw new RuntimeException(errorMessage + " : error " + decodedResponse);
+				throw new IllegalArgumentException(errorMessage + " : error " + decodedResponse);
 
 			}
 			result = decodedResponse;
 		} else
-			throw new RuntimeException(errorMessage + " : unexpected response type " + response);
+			throw new IllegalArgumentException(errorMessage + " : unexpected response type " + response);
 
 		return result;
 	}

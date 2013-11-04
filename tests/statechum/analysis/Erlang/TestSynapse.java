@@ -70,29 +70,58 @@ public class TestSynapse {
 		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("testsynapselauncher:test()")));		
 	}
 	
+	/** No statechum running */
+	@Test
+	public void testFindSynapseFailure()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:find_statechum()"));
+		}},RuntimeException.class,"{spawn_executable,\"aa\"}");
+	}
+
+	/** Invalid options before launching. */
+	@Test
+	public void testRunSynapseLaunchFailure0()
+	{
+		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
+		Assert.assertTrue(
+				runner.evaluateString("process_flag(trap_exit, true),"+
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'},[{'pp','qq'}] ]) end)," // this will fail if we cannot start Erlang
+						+ "Response = receive Arg -> Arg end,"
+						+ "process_flag(trap_exit, false),Response").toString().contains("Tuple is not key-value pair"));
+	}
+
 	/** Invalid executable */
 	@Test
 	public void testRunSynapseLaunchFailure1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:launch(\"aa\",\".\",[{'-DOtpConnection.trace','1'}],false)"));
-		}},RuntimeException.class,"{spawn_executable,\"aa\"}");
+		Assert.assertTrue(
+			runner.evaluateString("process_flag(trap_exit, true),"+
+					"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','aa'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+					+ "Response = receive Arg -> Arg end,"
+					+ "process_flag(trap_exit, false),Response").toString().contains("spawn_executable,aa"));
 	}
 
 	/** Invalid options to executable */
 	@Test
 	public void testRunSynapseLaunchFailure2()
 	{
-		final String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:launch(\""+java+"\",\".\",[{'pp','qq'}],false)"));
-		}},RuntimeException.class,"Timeout waiting for node");
+		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
+		Assert.assertTrue(
+				runner.evaluateString("process_flag(trap_exit, true),"+
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'pp','qq'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+						+ "Response = receive Arg -> Arg end,"
+						+ "process_flag(trap_exit, false),Response").toString().contains("Timeout waiting for node"));
 	}
-
+	
+	
 	@Test
 	public void testRunSynapse1()
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		Assert.assertEquals("\"completed\"",ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:launch(\""+java+"\",\".\",[{'-DOtpConnection.trace','0'}],false)")));
+		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','true'}]),"
+				+ "synapselauncher:find_statechum()!terminate," //io:format(\"waiting for response~n\"),"
+				+ "receive Arg -> Arg end"));
+		Assert.assertTrue(response.contains("Synapse started"));Assert.assertTrue(response.contains("Synapse terminated"));
 	}
 }

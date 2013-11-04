@@ -61,12 +61,14 @@ public class Synapse implements Runnable {
 		watchdog.setDaemon(true);watchdog.run();*/
 		
 		ErlangNode.getErlangNode().getNode().registerStatusHandler(new OtpNodeStatus(){
+			@Override
 			public void remoteStatus(java.lang.String node, boolean up, @SuppressWarnings("unused") java.lang.Object info)
 			{
 				if (node.equals(erlangNode) && up == false)
 					System.exit(-1);// forcefully kill Java because Erlang has terminated.
 			}
 			
+			@Override
 			public void localStatus(java.lang.String node, boolean up, @SuppressWarnings("unused") java.lang.Object info)
 			{
 				if (node.equals(erlangNode) && up == false)
@@ -109,20 +111,7 @@ public class Synapse implements Runnable {
 	/** Messages have a fixed structure, PID,Ref,Atom,Data. */
 	@Override
 	public void run() {
-		System.out.println("synapse started.");
-		/*
-		ErlangNode.getErlangNode().getNode().registerStatusHandler(new OtpNodeStatus(){
-			public void remoteStatus(java.lang.String node, boolean up, java.lang.Object info)
-			{
-				
-			}
-			
-			public void localStatus(java.lang.String node, boolean up, java.lang.Object info)
-			{
-				
-			}
-		});
-		 */
+		System.out.println("Synapse started.");
 		for(;;)
 		{
 			try {
@@ -131,7 +120,7 @@ public class Synapse implements Runnable {
 					System.out.println("invalid message received, expected tuple, got "+msg);
 				OtpErlangTuple message = (OtpErlangTuple)msg;
 				if (message.arity() != 3)
-					System.out.println("invalid tuple received, expected four elements, got "+msg);
+					System.out.println("invalid tuple received, expected three elements, got "+msg);
 				
 				if (!(message.elementAt(2) instanceof OtpErlangAtom))
 					System.out.println("invalid request received, expected an atom, got "+message.elementAt(2));
@@ -146,7 +135,7 @@ public class Synapse implements Runnable {
 				if (command.equals(msgEcho))
 				{// used to establish a link between a supervisor on the Erlang side and that of the Java side
 					thisMbox.link(pid);
-					reply(pid,ref,msgOk,null);
+					reply(pid,ref,msgOk,thisMbox.self());
 				}
 				else
 				if (command.equals(msgTerminate))
@@ -172,7 +161,7 @@ public class Synapse implements Runnable {
 			} // do nothing, assuming we've been asked to terminate
 		}
 		thisMbox.close();
-		System.out.println("terminated");
+		System.out.println("Synapse terminated");
 	}
 
 	public static class StatechumProcess extends QSMTool implements Runnable

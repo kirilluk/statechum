@@ -132,8 +132,13 @@ handle_call({runTrace,Module, Wrapper, Trace, ModulesList}, _From, State) ->
 
 %% Starts a new tracerunner
 handle_call({startrunner,RunnerName}, _From, State) ->
-	{ ok, _Pid } = gen_server:start_link({local,RunnerName},tracerunner,[RunnerName],[]),
-	{reply, ok, State};
+	try
+		{ ok, _Pid } = gen_server:start_link({local,RunnerName},tracerunner,[RunnerName],[]),
+		{reply, ok, State}
+	catch
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
+	end;
+	
 
 %% Terminates this tracerunner
 handle_call({terminate}, _From, State) ->

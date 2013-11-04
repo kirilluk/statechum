@@ -21,7 +21,7 @@
 
 -module(synapselauncher).
 
--export([launch/4,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3]).
+-export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0]).
 -include("synapse.hrl").
 
 %%% @doc Starts the Java runtime with Statechum
@@ -66,16 +66,19 @@ convertPath([H|OtherComponents],OsType) ->
 	end.
 
 
-buildOptions(JavaOptionsList,JavaDefaultsList,OsType) ->
-	KeysWithPaths=['-cp','-Djava.library.path'],
-	validateOptions(JavaDefaultsList,KeysWithPaths),validateOptions(JavaOptionsList,KeysWithPaths),
-	JavaDefaultsDict=dict:from_list(JavaDefaultsList),JavaOptionsDict=dict:from_list(JavaOptionsList),
-	MergedOptions = dict:merge(fun(K,V1,V2) -> 
+mergeOptions(OptionsList,DefaultsList,KeysWithPaths) ->
+	validateOptions(DefaultsList,KeysWithPaths),validateOptions(OptionsList,KeysWithPaths),
+	DefaultsDict=dict:from_list(DefaultsList),OptionsDict=dict:from_list(OptionsList),
+	dict:merge(fun(K,V1,V2) -> 
 		case lists:member(K,KeysWithPaths) of
 			true -> V1 ++ V2;
 			false ->V2
 		end
-	end,JavaDefaultsDict,JavaOptionsDict),
+	end,DefaultsDict,OptionsDict).
+	
+buildOptions(JavaOptionsList,JavaDefaultsList,OsType) ->
+	KeysWithPaths = ['-cp','-Djava.library.path'],
+	MergedOptions = mergeOptions(JavaOptionsList,JavaDefaultsList,KeysWithPaths),
 	%%% Java command line options are inconsistent, hence to build them here we have to include special cases for every option not in the form of name=value.
 	dict:fold(fun(K,V,Acc) -> Acc ++ 
 		case K of
@@ -109,9 +112,26 @@ constructNodeDetails() ->
 			{list_to_atom("statechum" ++ os:getpid() ++ "@" ++ HostName), 'statechum'}
 	end.
 
+-define(StatechumName,'javaStatechumProcess').
+
 %%% this one needs R_HOME to be set /library/rJava/jri/x64
 %%% need to test with the wrong value of ref returned
-launch(Java,StatechumDir,JavaOptionsList, AccumulateOutput) ->
+launch(OptionsList,PidToNotify) ->
+	DefaultsList = [
+		{'Java','java'}, %% Path to Java executable
+		{'StatechumDir','.'}, %% Path to Statechum
+		{'AccumulateOutput','false'}, %% only used for testing, this one will cause this process to report all output Java dumps on the screen
+		{'JavaOptionsList',[]}], %% Java options, defaults below.
+	MergedOptions = mergeOptions(OptionsList,DefaultsList,['JavaOptionsList']),
+	{Java,StatechumDir,JavaOptionsList}={dict:fetch('Java',MergedOptions),dict:fetch('StatechumDir',MergedOptions),dict:fetch('JavaOptionsList',MergedOptions)},
+	
+	%% if R_HOME is defined in the options, move it to the list of environmental arguments. One would additionally have to set an option to java.library.path
+	OtherOptions=case dict:find('R_HOME',MergedOptions) of
+		{ok,Value} -> [{env,[{'R_HOME',Value}]}]; %% Value is an atom, otherwise options validation will fail.
+		error ->[]
+	end,
+	
+	%% now merge Java options.
 	JavaDefaultsList = [
 		{'-cp',["bin","lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar","lib/OtpErlang.jar","lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
 		{'-Djava.library.path',["linear/.libs","smt/.libs"]},
@@ -119,40 +139,67 @@ launch(Java,StatechumDir,JavaOptionsList, AccumulateOutput) ->
 		{'-DVIZ_DIR','resources/graphLayout'},
 		{'-Dthreadnum',list_to_atom(lists:flatten(io_lib:format("~p", [erlang:system_info(logical_processors_available)])))},
 		{'-Xmx','1500m'}],
+	FullJavaOptions = buildOptions(JavaOptionsList,JavaDefaultsList,os:type()),
 	case constructNodeDetails() of
 		{NodeName,PidName} ->
-			Port = open_port({spawn_executable, Java}, [hide,in,stderr_to_stdout,use_stdio,{cd, StatechumDir},{args,["-ea"] ++ buildOptions(JavaOptionsList,JavaDefaultsList,os:type()) ++ 
+			Port = open_port({spawn_executable, Java}, [hide,in,stderr_to_stdout,use_stdio,{cd, StatechumDir}] ++ OtherOptions ++[{args,["-ea"] ++ FullJavaOptions ++ 
 				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(erlang:get_cookie()), atom_to_list(PidName), node()]}]),
 			process_flag(trap_exit, true),
 			waitForJavaNode(NodeName,10),
 			Ref = make_ref(),
 			{PidName,NodeName}!{self(),Ref,echo},
+			%%loop(Port,[],aa,PidToNotify,false),
 			receive
-				{Ref, ok} ->ok
-				after 3000 ->
+				{Ref, ok, Pid} ->
+					%% At this point, we have started Statechum in a Java node and established communication with it.
+					PidToNotify!ok,
+					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions));
+				{'EXIT', Port, _} ->
+					throw("unexpected Java termination")
+				after 1000 ->
 					throw("Timeout waiting for echo response")
-			end,
+			end
+			%% An alternative to sending Pid from Statechum is rpc:call(Node, erlang, whereis, [RegisteredName]) (thanks to http://stackoverflow.com/questions/16977972/how-to-exit-remote-pid-given-node-name-and-registered-name )
+			
+			
+%%			loop(Port,"completed",NodeName,PidName,false)
 %%			{PidName,NodeName}!{self(),Ref,terminate,someData},
 %%			spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
-			PID = spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
-			link(PID),
-			try
-				loop(Port,"completed",NodeName,PidName,false)
-			catch
-				X -> {'got_exception',X} 
-			end
+%%			PID = spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
+%%			link(PID),
+	end.
+
+startStatechum(OptionsList) ->
+	case whereis(?StatechumName) of
+		undefined ->
+				ThisProcess = self(),
+				Pid = spawn_link(fun() -> launch(OptionsList,ThisProcess) end),
+				receive %% here we either wait to receive an ok message or to be killed if Statechum fails to start
+					ok -> register(?StatechumName,Pid)
+				end;
+		Pid -> Pid
+	end.
+
+find_statechum() ->
+	case whereis(?StatechumName) of
+		Pid when is_pid(Pid) -> Pid;
+		_ -> throw("statechum is not available")
 	end.
 
 %%% Given text output from the process, either accumulates it and returns the result or simply dumps it into the standard output.
-loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput) ->
+loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 	receive
 		{Port, {data, Data}} ->
 			case AccumulateOutput of
-				true -> loop(Port,ResponseAsText ++ Data,NodeName,PidName,AccumulateOutput);
-				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput)
+				true -> loop(Port,ResponseAsText ++ Data,Pid,ParentPid,AccumulateOutput);
+				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)
 			end;
-		{terminate} -> {PidName,NodeName}!{self(),make_ref(),terminate};%% Perhaps it is enough to terminate the controlling process and the linked one will also terminate
-		{createTask,Pid,Ref} -> {PidName,NodeName}!{Pid,Ref,runTask},loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput);
-		{'EXIT', Port, _} -> ResponseAsText
-%%		X -> io:format("Got something: ~s", [X]),loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput)
+		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
+		{A,B,C,D} -> Pid!{A,B,C,D},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
+		{A,B,C,D,E} -> Pid!{A,B,C,D,E},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
+		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput); %% here we expect Statechum to terminate and output to become available.
+		{'EXIT', ParentPid, _ } -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,false); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
+		{'EXIT', Port, _} -> if AccumulateOutput == true -> ParentPid!ResponseAsText; true -> ok end
+%%		after 3000 -> 
+%%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)  end
 	end.

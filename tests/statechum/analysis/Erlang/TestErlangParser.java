@@ -4,7 +4,11 @@ import static statechum.Helper.checkForCorrectException;
 
 import java.util.Collection;
 
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
@@ -28,7 +32,36 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 public class TestErlangParser {
-
+	
+	/** Runner for the tests. */
+	ErlangRunner runner;
+	/** The runtime containing Erlang. */
+	static ErlangRuntime runtime;
+	
+	@BeforeClass
+	public static void beforeClass()
+	{
+		runtime = new ErlangRuntime();runtime.setTimeout(100);runtime.startRunner();
+	}
+	
+	@AfterClass
+	public static void afterClass()
+	{
+		runtime.killErlang();
+	}
+	
+	@Before
+	public void beforeTest()
+	{
+		runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+	}
+	
+	@After
+	public void afterTest()
+	{
+		runner.close();
+	}
+	
 	@Test
 	public void testToString1()
 	{
@@ -149,7 +182,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"empty term");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -162,7 +195,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected characters at the end of string to parse");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -183,7 +216,7 @@ public class TestErlangParser {
 	{
 		String text = "\'\'";
 		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangAtom);
-		checkResponse(text,text);
+		checkResponse(runner, text,text);
 	}
 	
 	@Test
@@ -191,7 +224,7 @@ public class TestErlangParser {
 	{
 		String text = "\'this is an atom\'";
 		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangAtom);
-		checkResponse(text,text);
+		checkResponse(runner, text,text);
 	}
 	
 	/** With spaces. */
@@ -200,7 +233,7 @@ public class TestErlangParser {
 	{
 		String text = "   \'this is an atom\'";
 		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangAtom);
-		checkResponse(text.trim(),text);
+		checkResponse(runner, text.trim(),text);
 	}
 	
 	/** Quoted characters. */
@@ -210,7 +243,7 @@ public class TestErlangParser {
 		String text = " \'this \\'is an\\\\  \"atom\'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals("this 'is an\\  \"atom",atom.atomValue());
-		checkResponse(text.trim(),ErlangLabel.dumpErlangObject(atom));
+		checkResponse(runner, text.trim(),ErlangLabel.dumpErlangObject(atom));
 	}
 	
 	/** Quoted characters. */
@@ -220,7 +253,7 @@ public class TestErlangParser {
 		String text = " \'this \\'is \\\"fh an \"atom\'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals("this 'is \"fh an \"atom",atom.atomValue());
-		checkResponse("\'this \\'is \"fh an \"atom\'",text);
+		checkResponse(runner, "\'this \\'is \"fh an \"atom\'",text);
 	}
 	
 	/** Quoted characters. */
@@ -230,7 +263,7 @@ public class TestErlangParser {
 		String text = " \'this \\' is \\\" fh an \"atom\'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals("this ' is \" fh an \"atom",atom.atomValue());
-		checkResponse("\'this \\' is \" fh an \"atom\'",text);
+		checkResponse(runner, "\'this \\' is \" fh an \"atom\'",text);
 	}
 	
 	/** Quoted characters. */
@@ -240,7 +273,7 @@ public class TestErlangParser {
 		String text = " \'this\\'i s\\\" fh an \"atom\'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals("this'i s\" fh an \"atom",atom.atomValue());
-		checkResponse("\'this\\'i s\" fh an \"atom\'",text);
+		checkResponse(runner, "\'this\\'i s\" fh an \"atom\'",text);
 	}
 	
 	/** Spaces. */
@@ -250,7 +283,7 @@ public class TestErlangParser {
 		String text = " \'  \'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals("  ",atom.atomValue());
-		checkResponse("\'  \'",text);
+		checkResponse(runner, "\'  \'",text);
 	}	
 	
 	/** Spaces. */
@@ -260,7 +293,7 @@ public class TestErlangParser {
 		String text = " \' a \'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals(" a ",atom.atomValue());
-		checkResponse("\' a \'",text);
+		checkResponse(runner, "\' a \'",text);
 	}	
 
 	/** Bar 1. */
@@ -270,7 +303,7 @@ public class TestErlangParser {
 		String text = " \' | a \'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals(" | a ",atom.atomValue());
-		checkResponse("\' | a \'",text);
+		checkResponse(runner, "\' | a \'",text);
 	}	
 
 	/** Bar 2. */
@@ -280,10 +313,10 @@ public class TestErlangParser {
 		String text = " \' a |\'   ";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals(" a |",atom.atomValue());
-		checkResponse("\' a |\'",text);
+		checkResponse(runner, "\' a |\'",text);
 	}	
 
-	public static void testParseChokesOnInvalidChars(final char startStop)
+	public static void testParseChokesOnInvalidChars(ErlangRunner runner, final char startStop)
 	{
 		for(String str:new String[]{
 				"valid text",
@@ -301,7 +334,7 @@ public class TestErlangParser {
 			//OtpErlangObject smth = ErlangLabel.parseText(data);
 			// verify that the string can be parsed ok.
 			//Assert.assertEquals("parse of "+data+" gave wrong value",data,ErlangLabel.dumpErlangObject(smth));
-			checkResponse(data,data);
+			checkResponse(runner, data,data);
 		}
 		
 		/** Invalid characters after backslash. */
@@ -319,7 +352,7 @@ public class TestErlangParser {
 			//OtpErlangObject smth = ErlangLabel.parseText(data);
 			// verify that the string can be parsed ok.
 			//Assert.assertEquals("parse of "+data+" gave wrong value",data,ErlangLabel.dumpErlangObject(smth));
-			checkResponse(data.replace(""+startStop+"\\",""+startStop),data);
+			checkResponse(runner, data.replace(""+startStop+"\\",""+startStop),data);
 		}
 		for(String str:new String[]{
 				"\\text",// this notation is not supported at the moment
@@ -332,8 +365,8 @@ public class TestErlangParser {
 			}},IllegalArgumentException.class,"is not supposed to be prefixed");
 			
 			// We are a lot more restrictive here compared to the actual Erlang runtime - all of the above 
-			// ges through fine.
-			ErlangRunner.getRunner().evaluateString(""+startStop+data+startStop);
+			// goes through fine.
+			runner.evaluateString(""+startStop+data+startStop);
 		}
 		
 	}
@@ -347,14 +380,14 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 		
 	@Test
 	public void testParse1Fail2()
 	{
-		testParseChokesOnInvalidChars('\'');
+		testParseChokesOnInvalidChars(runner, '\'');
 	}
 	
 	@Test
@@ -362,7 +395,7 @@ public class TestErlangParser {
 	{
 		String text = "\"this is a string\"";
 		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangString);
-		checkResponse(text,text);
+		checkResponse(runner, text,text);
 	}
 	
 	/** With spaces. */
@@ -371,7 +404,7 @@ public class TestErlangParser {
 	{
 		String text = "   \"this is a \\\\ string\"";
 		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangString);
-		checkResponse(text.trim(),text);
+		checkResponse(runner, text.trim(),text);
 	}
 	
 	public void testParse2c()
@@ -389,7 +422,7 @@ public class TestErlangParser {
 		String text = " \"this \\\"is \\'fh an \'atom\"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals("this \"is 'fh an 'atom",string.stringValue());
-		checkResponse("\"this \\\"is 'fh an \'atom\"",text);
+		checkResponse(runner, "\"this \\\"is 'fh an \'atom\"",text);
 	}
 	
 	/** Quoted characters. */
@@ -399,7 +432,7 @@ public class TestErlangParser {
 		String text = " \"this \\\" is \\' fh an \'atom\"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals("this \" is ' fh an 'atom",string.stringValue());
-		checkResponse("\"this \\\" is ' fh an 'atom\"",text);
+		checkResponse(runner, "\"this \\\" is ' fh an 'atom\"",text);
 	}
 	
 	/** Quoted characters. */
@@ -409,7 +442,7 @@ public class TestErlangParser {
 		String text = " \"this\\\"i s\\' fh an \'atom\"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals("this\"i s' fh an \'atom",string.stringValue());
-		checkResponse("\"this\\\"i s' fh an \'atom\"",text);
+		checkResponse(runner, "\"this\\\"i s' fh an \'atom\"",text);
 	}
 	
 	/** Spaces. */
@@ -419,7 +452,7 @@ public class TestErlangParser {
 		String text = " \"  \"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals("  ",string.stringValue());
-		checkResponse("\"  \"",text);
+		checkResponse(runner, "\"  \"",text);
 	}	
 	
 	/** Spaces. */
@@ -429,7 +462,7 @@ public class TestErlangParser {
 		String text = " \" a \"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals(" a ",string.stringValue());
-		checkResponse("\" a \"",text);
+		checkResponse(runner, "\" a \"",text);
 	}	
 
 	/** Bar 1. */
@@ -439,7 +472,7 @@ public class TestErlangParser {
 		String text = " \" | a \"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals(" | a ",string.stringValue());
-		checkResponse("\" | a \"",text);
+		checkResponse(runner, "\" | a \"",text);
 	}	
 
 	/** Bar 2. */
@@ -449,7 +482,7 @@ public class TestErlangParser {
 		String text = "  \" a |\"   ";
 		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
 		Assert.assertEquals(" a |",string.stringValue());
-		checkResponse("\" a |\"",text);
+		checkResponse(runner, "\" a |\"",text);
 	}	
 
 	/** Invalid characters after backslash. */
@@ -465,14 +498,14 @@ public class TestErlangParser {
 	@Test
 	public void testParse2Fail2()
 	{
-		testParseChokesOnInvalidChars('\"');
+		testParseChokesOnInvalidChars(runner, '\"');
 	}
 	
 	/** Checks that both our parser and Erlang runtime produce the same response to parsing the supplied chunk of text. */
-	protected static void checkResponse(String expectedOutcome, String text)
+	protected static void checkResponse(ErlangRunner runner, String expectedOutcome, String text)
 	{
 		Assert.assertEquals(expectedOutcome,ErlangLabel.dumpErlangObject(ErlangLabel.parseText(text)));
-		Assert.assertEquals(expectedOutcome,ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(expectedOutcome,ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -481,7 +514,7 @@ public class TestErlangParser {
 		String text = " -45 ";
 		OtpErlangInt number = (OtpErlangInt)ErlangLabel.parseText(text);
 		Assert.assertEquals(-45,number.longValue());
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -490,7 +523,7 @@ public class TestErlangParser {
 		String text = " 45 ";
 		OtpErlangInt number = (OtpErlangInt)ErlangLabel.parseText(text);
 		Assert.assertEquals(45,number.longValue());
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -501,7 +534,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"invalid token type");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -513,7 +546,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"in parsing erlang number");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -523,7 +556,7 @@ public class TestErlangParser {
 		String text = " 45888888888";
 		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
 		Assert.assertEquals(45888888888L,number.longValue());
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -532,7 +565,7 @@ public class TestErlangParser {
 		String text = " -458";
 		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
 		Assert.assertEquals(-458L,number.longValue());
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -541,7 +574,7 @@ public class TestErlangParser {
 		String text = " +458";
 		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
 		Assert.assertEquals(458L,number.longValue());
-		Assert.assertEquals("458",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("458",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -550,7 +583,7 @@ public class TestErlangParser {
 		String text = " 458888.5";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(458888.5,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -559,7 +592,7 @@ public class TestErlangParser {
 		String text = " 458888.5e0 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(458888.5,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -568,7 +601,7 @@ public class TestErlangParser {
 		String text = " 458888.5e-5 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4.588885,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("4.588885",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("4.588885",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -577,7 +610,7 @@ public class TestErlangParser {
 		String text = " 458888.5e5 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4.588885e10,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("4.588885E10",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("4.588885E10",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -586,7 +619,7 @@ public class TestErlangParser {
 		String text = " 4588.456e34 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4.588456e37,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("4.588456E37",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("4.588456E37",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -595,7 +628,7 @@ public class TestErlangParser {
 		String text = " 4588888888888888.456e244 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4.588888888888889E259,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("4.588888888888889E259",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("4.588888888888889E259",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -604,7 +637,7 @@ public class TestErlangParser {
 		String text = " 4588888888888888.456e-244 ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4.588888888888888E-229,number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals("4.588888888888888E-229",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals("4.588888888888888E-229",ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	/** When offered the value exactly on the boundary of the lower exponent, the answer given by 
@@ -616,7 +649,7 @@ public class TestErlangParser {
 		final String text = " 4.0E"+(-ErlangLabel.ErlangLong.minExponent+1)+" ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4d*Math.pow(10, -ErlangLabel.ErlangLong.minExponent+1),number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -628,7 +661,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"cannot be represented");
 		//try
 		{
-			Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
+			Assert.assertEquals(0,((OtpErlangDouble)runner.evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
 			// if the exception is not thrown but the assertion is satisfied, this is fine (this is what happens on WinXP).
 		}
 		/*
@@ -649,7 +682,7 @@ public class TestErlangParser {
 		final String text = " 4.0E"+(ErlangLabel.ErlangLong.maxExponent)+" ";
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4d*Math.pow(10, ErlangLabel.ErlangLong.maxExponent),number.doubleValue(),Configuration.fpAccuracy);
-		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(runner.evaluateString(text)));
 	}
 	
 	@Test
@@ -660,7 +693,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot be represented");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -690,7 +723,7 @@ public class TestErlangParser {
 		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
 		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -703,7 +736,7 @@ public class TestErlangParser {
 		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
 		try
 		{
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}
 		catch(Exception ex)
 		{
@@ -768,7 +801,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"is never allowed in an atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 
@@ -781,7 +814,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"is never allowed in an atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -805,7 +838,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot start with a dot");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -816,7 +849,7 @@ public class TestErlangParser {
 				" { a, b}"," { a, b }"," {a, b}"," {a,b}"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangTuple);
-			checkResponse("{'a','b'}",text);
+			checkResponse(runner, "{'a','b'}",text);
 		}
 	}
 	
@@ -827,7 +860,7 @@ public class TestErlangParser {
 				" { }"," {}","{}"," { } "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangTuple);
-			checkResponse("{}",text);
+			checkResponse(runner, "{}",text);
 		}
 	}
 	
@@ -838,7 +871,7 @@ public class TestErlangParser {
 				" { a }"," {a}","{a }"," {  a} "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangTuple);
-			checkResponse("{'a'}",text);
+			checkResponse(runner, "{'a'}",text);
 		}
 	}
 	
@@ -850,7 +883,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -862,7 +895,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -874,7 +907,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -886,7 +919,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -898,7 +931,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -910,7 +943,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -922,7 +955,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma in parsing tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -934,7 +967,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma in parsing tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -946,7 +979,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -958,7 +991,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"invalid token type 13");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -966,6 +999,35 @@ public class TestErlangParser {
 	@RunWith(ParameterizedWithName.class)
 	public static class TestParseInvalidCharsInAtomFail
 	{
+		/** Runner for the tests. */
+		ErlangRunner runner;
+		/** The runtime containing Erlang. */
+		static ErlangRuntime testParseInvalidCharsInAtomRuntime;
+		
+		@BeforeClass
+		public static void beforeClass()
+		{
+			testParseInvalidCharsInAtomRuntime = new ErlangRuntime();testParseInvalidCharsInAtomRuntime.setTimeout(100);testParseInvalidCharsInAtomRuntime.startRunner();
+		}
+		
+		@AfterClass
+		public static void afterClass()
+		{
+			testParseInvalidCharsInAtomRuntime.killErlang();
+		}
+		
+		@Before
+		public void beforeTest()
+		{
+			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+		}
+		
+		@After
+		public void afterTest()
+		{
+			runner.close();
+		}
+
 		@Parameters
 		public static Collection<Object[]> data() 
 		{
@@ -1034,7 +1096,7 @@ public class TestErlangParser {
 			
 			if (!erlException.isEmpty())
 				checkForCorrectException(new whatToRun() { public @Override void run() {
-					ErlangRunner.getRunner().evaluateString(text);
+					runner.evaluateString(text);
 				}},RuntimeException.class,erlException);
 		}
 	}
@@ -1046,7 +1108,7 @@ public class TestErlangParser {
 				" [ a, b]"," [ a, b ]"," [a, b]"," [a,b]"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b']",text);
+			checkResponse(runner, "['a','b']",text);
 		}
 	}
 	
@@ -1057,7 +1119,7 @@ public class TestErlangParser {
 				" [ ]"," []","[]"," [ ] "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("[]",text);
+			checkResponse(runner, "[]",text);
 		}
 	}
 	
@@ -1068,7 +1130,7 @@ public class TestErlangParser {
 				" [ a ]"," [a]","[a ]"," [  a] "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a']",text);
+			checkResponse(runner, "['a']",text);
 		}
 	}
 
@@ -1079,7 +1141,7 @@ public class TestErlangParser {
 				" [ e,267.5E40,45.8]"," [ e, 267.5E40, 45.8 ]"," [e,267.5E40, 45.8]"," [ e , 267.5E40 , 45.8]"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['e',2.675E42,45.8]",text);
+			checkResponse(runner, "['e',2.675E42,45.8]",text);
 		}
 	}
 	
@@ -1090,7 +1152,7 @@ public class TestErlangParser {
 				" [ a,b,c | d]"," [a|[b|[c|d]]]","[a,b|[c|d] ]"," [  a, b | [ c | d ] ] "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b','c' | 'd']",text);
+			checkResponse(runner, "['a','b','c' | 'd']",text);
 		}
 	}
 
@@ -1102,7 +1164,7 @@ public class TestErlangParser {
 				" [ a,b,c,d]"," [a|[b|[c|[d]]]]","[a,b|[c|[d]] ]"," [  a, b| [ c | [d] ] ] "})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b','c','d']",text);
+			checkResponse(runner, "['a','b','c','d']",text);
 		}
 	}
 
@@ -1113,7 +1175,7 @@ public class TestErlangParser {
 				" [ a,b,40| -5 ]"," [a|[b|[40|-5]]]"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b',40 | -5]",text);
+			checkResponse(runner, "['a','b',40 | -5]",text);
 		}
 	}
 
@@ -1127,7 +1189,7 @@ public class TestErlangParser {
 				" [ a,b,7.0e4| -5 ]"," [a|[b|[7.0e4|-5]]]"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b',70000.0 | -5]",text);
+			checkResponse(runner, "['a','b',70000.0 | -5]",text);
 		}
 	}
 
@@ -1138,7 +1200,7 @@ public class TestErlangParser {
 				" [ a,b,c| \"test\" ]"," [a|[b|[c|[116,101,115,116]]]]"})
 		{
 			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
-			checkResponse("['a','b','c',116,101,115,116]",text);
+			checkResponse(runner, "['a','b','c',116,101,115,116]",text);
 		}
 	}
 
@@ -1150,7 +1212,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1162,7 +1224,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1174,7 +1236,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1186,7 +1248,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1198,7 +1260,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1210,7 +1272,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1222,7 +1284,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1234,7 +1296,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1246,7 +1308,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1258,7 +1320,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected bar in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1270,7 +1332,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1282,7 +1344,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1294,7 +1356,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"missing tail in improper list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1306,7 +1368,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1318,7 +1380,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1330,7 +1392,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"expecting comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1342,7 +1404,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"missing tail in improper list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1354,7 +1416,7 @@ public class TestErlangParser {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"unexpected bar");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
+			runner.evaluateString(text);
 		}},RuntimeException.class,"badmatch");
 	}
 	
@@ -1363,7 +1425,7 @@ public class TestErlangParser {
 	{
 		final String text = "{\'this is an atom\',\"this is a string\",[[-234],{}]}";
 		OtpErlangObject obtained = ErlangLabel.parseText(text);
-		checkResponse(text, text);
+		checkResponse(runner, text, text);
 		Assert.assertEquals(new OtpErlangTuple(new OtpErlangObject[]{
 						new OtpErlangAtom("this is an atom"),
 						new OtpErlangString("this is a string"),
@@ -1392,14 +1454,14 @@ public class TestErlangParser {
 	@Test
 	public void testDumpBitStr0()
 	{
-		OtpErlangBitstr str = (OtpErlangBitstr) ErlangRunner.getRunner().evaluateString("<<  >>");
+		OtpErlangBitstr str = (OtpErlangBitstr) runner.evaluateString("<<  >>");
 		Assert.assertEquals("<< >>",ErlangLabel.dumpErlangObject(str));
 	}
 	
 	@Test
 	public void testDumpBitStr1()
 	{
-		OtpErlangBitstr str = (OtpErlangBitstr) ErlangRunner.getRunner().evaluateString("<< 1:4,0:4/integer-unit:1,1:1,0:7 >>");
+		OtpErlangBitstr str = (OtpErlangBitstr) runner.evaluateString("<< 1:4,0:4/integer-unit:1,1:1,0:7 >>");
 		Assert.assertEquals("<< 16, 128>>",ErlangLabel.dumpErlangObject(str));
 	}
 	
@@ -1413,7 +1475,7 @@ public class TestErlangParser {
 	@Test
 	public void testDumpBitStrFail()
 	{
-		final OtpErlangBitstr str = (OtpErlangBitstr) ErlangRunner.getRunner().evaluateString("<< 1:4,0:4/integer-unit:1,1:1 >>");
+		final OtpErlangBitstr str = (OtpErlangBitstr) runner.evaluateString("<< 1:4,0:4/integer-unit:1,1:1 >>");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.dumpErlangObject(str);
 		}},IllegalArgumentException.class,"is not divisible by 8");
@@ -1422,6 +1484,35 @@ public class TestErlangParser {
 	@RunWith(ParameterizedWithName.class)
 	public static class TestParseDoubleFail
 	{
+		/** Runner for the tests. */
+		ErlangRunner runner;
+		/** The runtime containing Erlang. */
+		static ErlangRuntime testParseDoubleFailRuntime;
+		
+		@BeforeClass
+		public static void beforeClass()
+		{
+			testParseDoubleFailRuntime = new ErlangRuntime();testParseDoubleFailRuntime.setTimeout(100);testParseDoubleFailRuntime.startRunner();
+		}
+		
+		@AfterClass
+		public static void afterClass()
+		{
+			testParseDoubleFailRuntime.killErlang();
+		}
+		
+		@Before
+		public void beforeTest()
+		{
+			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+		}
+		
+		@After
+		public void afterTest()
+		{
+			runner.close();
+		}
+
 		@Parameters
 		public static Collection<Object[]> data() 
 		{
@@ -1500,7 +1591,7 @@ public class TestErlangParser {
 			{
 				try
 				{
-					ErlangRunner.getRunner().evaluateString(text);
+					runner.evaluateString(text);
 				}
 				catch(Exception ex)
 				{
@@ -1514,6 +1605,35 @@ public class TestErlangParser {
 	@RunWith(ParameterizedWithName.class)
 	public static class TestParseBitStrFail
 	{
+		/** Runner for the tests. */
+		ErlangRunner runner;
+		/** The runtime containing Erlang. */
+		static ErlangRuntime testParseRuntime;
+		
+		@BeforeClass
+		public static void beforeClass()
+		{
+			testParseRuntime = new ErlangRuntime();testParseRuntime.setTimeout(100);testParseRuntime.startRunner();
+		}
+		
+		@AfterClass
+		public static void afterClass()
+		{
+			testParseRuntime.killErlang();
+		}
+		
+		@Before
+		public void beforeTest()
+		{
+			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+		}
+		
+		@After
+		public void afterTest()
+		{
+			runner.close();
+		}
+
 		@Parameters
 		public static Collection<Object[]> data() 
 		{
@@ -1674,7 +1794,7 @@ public class TestErlangParser {
 				ErlangLabel.parseText(text);
 			}},IllegalArgumentException.class,exception);
 			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangRunner.getRunner().evaluateString(text);
+				runner.evaluateString(text);
 			}},RuntimeException.class,erlEx);
 		}
 		
@@ -1686,26 +1806,26 @@ public class TestErlangParser {
 	public void testEmpty()
 	{
 		final String text = "<< >>";
-		checkResponse(text, text);
+		checkResponse(runner, text, text);
 	}
 	@Test
 	public void testSingleByte()
 	{
 		final String text = "<< 56 >>";
-		checkResponse("<< 56>>", text);
+		checkResponse(runner, "<< 56>>", text);
 	}
 	
 	@Test
 	public void testTwoBytes()
 	{
 		final String text = "<<-89,34 >>";
-		checkResponse("<< 167, 34>>", text);
+		checkResponse(runner, "<< 167, 34>>", text);
 	}
 	@Test
 	public void testPattern1()
 	{
 		final String text = "<< 1:2,32:6 >>";
-		checkResponse("<< 96>>", text);
+		checkResponse(runner, "<< 96>>", text);
 	}
 	
 	@Test
@@ -1720,7 +1840,7 @@ public class TestErlangParser {
 	public void testPattern2()
 	{
 		final String text = "<< 1:2,32:6,1:1,0:7 >>";
-		checkResponse("<< 96, 128>>", text);
+		checkResponse(runner, "<< 96, 128>>", text);
 		//System.out.println(Arrays.toString(new BigInteger(""+(256*128+88)).toByteArray()));
 	}
 	
@@ -1728,154 +1848,154 @@ public class TestErlangParser {
 	public void testPattern3a()
 	{
 		final String text = "<< 1:2,1:2,0:4 >>";
-		checkResponse("<< 80>>", text);
+		checkResponse(runner, "<< 80>>", text);
 	}
 	
 	@Test
 	public void testPattern3b()
 	{
 		final String text = "<< 1:2/big-unit:2,2:4 >>";
-		checkResponse("<< 18>>", text);
+		checkResponse(runner, "<< 18>>", text);
 	}
 	
 	@Test
 	public void testPattern4a()
 	{
 		final String text = "<< 1:16 >>";
-		checkResponse("<< 0, 1>>", text);
+		checkResponse(runner, "<< 0, 1>>", text);
 	}
 	
 	@Test
 	public void testPattern4b()
 	{
 		final String text = "<< 1:15,1:1 >>";
-		checkResponse("<< 0, 3>>", text);
+		checkResponse(runner, "<< 0, 3>>", text);
 	}
 	
 	@Test
 	public void testPattern4c()
 	{
 		final String text = "<< 1:4,1:11,1:1 >>";
-		checkResponse("<< 16, 3>>", text);
+		checkResponse(runner, "<< 16, 3>>", text);
 	}
 	
 	@Test
 	public void testPattern5a()
 	{
 		final String text = "<< 1:2,32:6 >>";
-		checkResponse("<< 96>>", text);
+		checkResponse(runner, "<< 96>>", text);
 	}
 	
 	@Test
 	public void testPattern5b()
 	{
 		final String text = "<< 1:2,32:6,1:1,0:5,0:2 >>";
-		checkResponse("<< 96, 128>>", text);
+		checkResponse(runner, "<< 96, 128>>", text);
 	}
 	
 	@Test
 	public void testPattern5c()
 	{
 		final String text = "<< 1:1,5:5,0:2 >>";
-		checkResponse("<< 148>>", text);
+		checkResponse(runner, "<< 148>>", text);
 	}
 	
 	@Test
 	public void testPattern5d()
 	{
 		final String text = "<< 1:2,32:6,1:1,5:5,0:10 >>";
-		checkResponse("<< 96, 148, 0>>", text);
+		checkResponse(runner, "<< 96, 148, 0>>", text);
 	}
 	
 	@Test
 	public void testPattern5e()
 	{
 		final String text = "<< 1:2,32:6,1:1,5:5,-78:10 >>";
-		checkResponse("<< 96, 151, 178>>", text);
+		checkResponse(runner, "<< 96, 151, 178>>", text);
 	}
 	
 	@Test
 	public void testPattern6a()
 	{
 		final String text = "<< 1:1,5:5,-78:13,3456454:13 >>";
-		checkResponse("<< 151, 246, 93, 198>>", text);
+		checkResponse(runner, "<< 151, 246, 93, 198>>", text);
 	}
 	
 	@Test
 	public void testPattern6b()
 	{
 		final String text = "<< 1:2,32:6,1:1,5:5,-78:13,3456454:13 >>";
-		checkResponse("<< 96, 151, 246, 93, 198>>", text);
+		checkResponse(runner, "<< 96, 151, 246, 93, 198>>", text);
 	}
 	
 	@Test
 	public void testPattern6c()
 	{
 		final String text = "<< 1:2,32:6,1:1,5:5,-78:13,567654565765454:30,3456454:13,3:2 >>";
-		checkResponse("<< 96, 151, 246, 80, 95, 176, 167, 119, 27>>", text);
+		checkResponse(runner, "<< 96, 151, 246, 80, 95, 176, 167, 119, 27>>", text);
 	}
 	
 	@Test
 	public void testPattern7a()
 	{
 		final String text = "<< 2:1/little-unit:16 >>";
-		checkResponse("<< 2, 0>>", text);
+		checkResponse(runner, "<< 2, 0>>", text);
 	}
 
 	@Test
 	public void testPattern7b()
 	{
 		final String text = "<< 567654565765454:32/little >>";
-		checkResponse("<< 78, 97, 191, 96>>", text);
+		checkResponse(runner, "<< 78, 97, 191, 96>>", text);
 	}
 
 	@Test
 	public void testPattern7c()
 	{
 		final String text = "<< 567654565765454:32/little,128 >>";
-		checkResponse("<< 78, 97, 191, 96, 128>>", text);
+		checkResponse(runner, "<< 78, 97, 191, 96, 128>>", text);
 	}
 	
 	@Test
 	public void testPattern7d()
 	{
 		final String text = "<< 256:9/little,64:7 >>";
-		checkResponse("<< 0, 192>>", text);
+		checkResponse(runner, "<< 0, 192>>", text);
 	}
 
 	@Test
 	public void testPattern7e()
 	{
 		final String text = "<< 256:9/little,-4:31 >>";
-		checkResponse("<< 0, 255, 255, 255, 252>>", text);
+		checkResponse(runner, "<< 0, 255, 255, 255, 252>>", text);
 	}
 
 	@Test
 	public void testPattern7g()
 	{
 		final String text = "<< 1:1,2:15/little>>";
-		checkResponse("<< 129, 0>>", text);
+		checkResponse(runner, "<< 129, 0>>", text);
 	}
 
 	@Test
 	public void testPattern7f()
 	{
 		final String text = "<< 1:1,1:15/little>>";
-		checkResponse("<< 128, 128>>", text);
+		checkResponse(runner, "<< 128, 128>>", text);
 	}
 
 	@Test
 	public void testPattern7h()
 	{
 		final String text = "<< -78:12,567654565765454:28/little >>";
-		checkResponse("<< 251, 36, 230, 27, 240>>", text);
+		checkResponse(runner, "<< 251, 36, 230, 27, 240>>", text);
 	}
 	
 	@Test
 	public void testPattern7i()
 	{
 		final String text = "<< 1:2,32:6,1:1,5:5,-78:13,567654565765454:30/little,3456454:13,3:2 >>";
-		checkResponse("<< 96, 151, 246, 73, 204, 55, 240, 119, 27>>", text);
+		checkResponse(runner, "<< 96, 151, 246, 73, 204, 55, 240, 119, 27>>", text);
 	}
 	
 }

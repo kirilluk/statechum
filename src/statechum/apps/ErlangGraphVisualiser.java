@@ -38,9 +38,10 @@ public class ErlangGraphVisualiser extends Visualiser {
 	private static final long serialVersionUID = 1735419773441272849L;
 
 	/* The two arguments to this one are the graph to load and the .erl source of the module it corresponds to. The graphs should be saved via the "save" entry in the pop-up menu of ErlangOracleVisualiser. */
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException
+	{
 		File file = new File(args[1]);
-		Configuration cnf = ErlangModule.setupErlangConfiguration(file);
+		Configuration cnf = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(cnf,file);
 		ErlangModule mod = ErlangModule.loadModule(cnf);
 
 		LearnerGraphND grOrig = new LearnerGraphND(cnf);

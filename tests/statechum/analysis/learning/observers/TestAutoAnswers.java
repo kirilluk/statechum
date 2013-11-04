@@ -100,7 +100,7 @@ public class TestAutoAnswers {
 	public void testPrettyPrintTrace1() throws IOException
 	{
 		File file = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker/locker.erl");
-		config = ErlangModule.setupErlangConfiguration(file);config.setErlangCompileIntoBeamDirectory(true);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		ErlangModule.setupErlangConfiguration(config,file);config.setErlangCompileIntoBeamDirectory(true);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
 		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config,null);

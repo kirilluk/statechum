@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangModule;
@@ -43,7 +44,8 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 				// load the module
 				try {
 					System.out.println("Loading " + f.getName());
-					ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f));
+					Configuration config = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(config,f);
+					ErlangModule mod = ErlangModule.loadModule(config);
 					DirectedSparseVertex myVertex = getVertex(mod.name);
 					myVertex.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 

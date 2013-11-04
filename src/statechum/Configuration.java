@@ -1102,6 +1102,32 @@ public class Configuration implements Cloneable {
 		useAmber = newValue;
 	}
 	
+	/** The name of the mailbox to use in communication with Erlang runtime. */
+	protected String erlangMboxName = null;
+	
+	public String getErlangMboxName()
+	{
+		return erlangMboxName;
+	}
+	
+	public void setErlangMboxName(String mbox)
+	{
+		erlangMboxName = mbox;
+	}
+	
+	/** Whether Erlang runtime we are using is not the one we've started ourselves. In this case, we are not going to control it tightly by setting paths and killing it when done. */
+	protected boolean useExternalErlangRuntime = false;
+	
+	public boolean getUseExternalErlangRuntime()
+	{
+		return useExternalErlangRuntime;
+	}
+	
+	public void setUseExternalErlangRuntime(boolean value)
+	{
+		useExternalErlangRuntime = value;
+	}
+	
 	/** Whether a learner should make use of output matching. */
 	protected boolean useErlangOutputs = true;
 

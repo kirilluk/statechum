@@ -141,6 +141,7 @@ public class AllTests {
 
     @RunWith(Suite.class)
     @SuiteClasses({
+        statechum.analysis.Erlang.TestErlangStartupFailure.class,
         statechum.analysis.Erlang.TestErlangModule.class,
         statechum.analysis.Erlang.TestErlangRunner.class,
         statechum.analysis.Erlang.TestErlangParser.class,

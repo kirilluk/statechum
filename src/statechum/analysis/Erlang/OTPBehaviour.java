@@ -205,7 +205,7 @@ public abstract class OTPBehaviour {
 	 *             if this fails.
 	 */
 	public void loadDependencies(File file, Configuration config) {
-		OtpErlangTuple response = ErlangRunner.getRunner().call(
+		OtpErlangTuple response = ErlangRunner.getRunner(config.getErlangMboxName()).call(
 				new OtpErlangObject[] { new OtpErlangAtom("dependencies"),
 						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM, config.getErlangCompileIntoBeamDirectory())) },
 				"Could not load dependencies of " + file.getName());
@@ -226,7 +226,7 @@ public abstract class OTPBehaviour {
 	 */
 	public Set<String> loadExports(Configuration config) {
 		Set<String> result = new TreeSet<String>();
-		OtpErlangTuple response = ErlangRunner.getRunner().call(
+		OtpErlangTuple response = ErlangRunner.getRunner(config.getErlangMboxName()).call(
 				new OtpErlangObject[] {
 						new OtpErlangAtom("exports"),
 						new OtpErlangAtom(ErlangRunner.getName(new File(parent.sourceFolder, parent.getName()
@@ -254,7 +254,7 @@ public abstract class OTPBehaviour {
 	public static OTPBehaviour obtainDeclaredBehaviour(File file, Configuration config, ErlangModule mod,Collection<String> ignoredBehaviours) {
 		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless defined in a module
 		// extract the list of attributes and determine the kind of this module
-		OtpErlangTuple response = ErlangRunner.getRunner().call(
+		OtpErlangTuple response = ErlangRunner.getRunner(config.getErlangMboxName()).call(
 				new OtpErlangObject[] { new OtpErlangAtom("attributes"),
 						new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) },
 				"Could not load attributes of " + file.getName());
@@ -275,9 +275,9 @@ public abstract class OTPBehaviour {
 							if (bstring.startsWith("gen_server")) {
 								behaviour = new OTPGenServerBehaviour(mod);
 							} else if (bstring.startsWith("gen_event")) {
-								behaviour = new OTPGenEventBehaviour(mod);
+								behaviour = new OTPGenEventBehaviour(mod,config);
 							} else if (bstring.startsWith("gen_fsm")) {
-								behaviour = new OTPGenFSMBehaviour(mod);
+								behaviour = new OTPGenFSMBehaviour(mod,config);
 							}
 							else
 							{

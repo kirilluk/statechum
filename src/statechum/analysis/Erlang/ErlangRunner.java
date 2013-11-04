@@ -65,15 +65,12 @@ package statechum.analysis.Erlang;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
@@ -84,18 +81,16 @@ import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
-import com.ericsson.otp.erlang.OtpNode;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.AttributeMutator.GETMETHOD_KIND;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
 /**
  * Manages the Erlang process running Erlang oracle. The idea is to start one
@@ -189,19 +184,106 @@ public class ErlangRunner {
 		return erlangBin;
 	}
 
-	/** Erlang machine in which we run most stuff. */
-	protected Process erlangProcess = null;
+
+	/** Maps different processes on our node. */
+	protected static final Map<String,ErlangRunner> nameToRunnerMap = new HashMap<String,ErlangRunner>();
+	protected static int runnerNumber = 0;
+	protected final String runnerMBox;
+
+	/** The default server process to handle requests. */
+	public static final String genServerDefault = "tracecheckServer";
 	
-	/** Monitors the above machine and dumps its out and err to the console. */
-	protected Thread stdDumper = null;
+	protected String genServerToCall = genServerDefault;
+	
+	/** Returns the name of this box. */
+	public String getRunnerName()
+	{
+		return runnerMBox;
+	}
+	
+	/** Delegates to {@link OtpMbox}. */
+	public OtpErlangPid self()
+	{
+		return thisMbox.self();
+	}
 
-	protected String traceRunnerNode, ourNode;
+	/** Constructs a mailbox (an equivalent to a process) on this Erlang node. 
+	 * 
+	 *	@param nodeWithTraceCheckServer is the name of the node that will receive messages when Statechum needs to check validity of specific traces or collect coverage information. 
+	 */
+	public ErlangRunner(String nodeWithTraceCheckServer)
+	{
+		if (nodeWithTraceCheckServer == null || nodeWithTraceCheckServer.isEmpty())
+			throw new IllegalArgumentException("invalid tracerunner node name");
+		synchronized(nameToRunnerMap)
+		{
+			traceRunnerNode = nodeWithTraceCheckServer;
+			runnerMBox = "erlangRunner_"+(runnerNumber++);nameToRunnerMap.put(runnerMBox, this);
+			thisMbox = ErlangNode.getErlangNode().getNode().createMbox(runnerMBox);
+			ourBox = new OtpErlangTuple(new OtpErlangObject[] {
+					thisMbox.self(), ErlangNode.getErlangNode().getNode().createRef() });
+		}
+	}
 
-	protected static final ErlangRunner staticRunner = new ErlangRunner();
-
+	/** Only used by the runtime to force runner to use the default genserver. */
+	void forceReady()
+	{
+		mboxOpen = true;
+	}
+	
+	/** This one has to be called after construction of the runner. */
+	public void initRunner()
+	{
+		// Now create another genserver to handle requests from this runner. Upon failure, the box remains closed.
+		try
+		{
+			mboxOpen = true;
+			call(new OtpErlangObject[] { new OtpErlangAtom("startrunner"), new OtpErlangAtom(getRunnerName()) }, "Failed to start a new runner.");
+			genServerToCall = getRunnerName();
+		}
+		catch(IllegalArgumentException ex)
+		{// if anything fails, eliminate this runner
+			close();
+			throw(ex);// rethrow
+		}
+	}
+	
+	/** Closes the mailbox, causing the linked processes to receive an exception. */
+	public synchronized void close()
+	{
+		synchronized(nameToRunnerMap)
+		{
+			if (!genServerToCall.equals(genServerDefault))
+				try
+				{
+					call(new OtpErlangObject[] { new OtpErlangAtom("terminate") }, "Failed to terminate this runner.");			
+				}
+				catch(IllegalArgumentException ex)
+				{// if anything fails, ignore this
+				}
+			nameToRunnerMap.remove(this);
+			thisMbox.close();
+			mboxOpen = false;
+		}
+	}
+	
+	/** Closes all mailboxes associated with the specific trace runner node. */
+	public static void closeAll(String traceRunnerNode)
+	{
+		synchronized(nameToRunnerMap)
+		{
+			List<ErlangRunner> whatToRemove = new LinkedList<ErlangRunner>();
+			for(Map.Entry<String,ErlangRunner> r:nameToRunnerMap.entrySet())
+				if (r.getValue().traceRunnerNode.equals(traceRunnerNode))
+					whatToRemove.add(r.getValue());
+			for(ErlangRunner r:whatToRemove)
+				r.close();
+		}
+	}
+	
 	/** Returns a static instance of this class. */
-	static public ErlangRunner getRunner() {
-		return staticRunner;
+	static public ErlangRunner getRunner(String mboxToUse) {
+		return nameToRunnerMap.get(mboxToUse);
 	}
 
 	/** Returns the directory where Beam, plt and other files will be placed. 
@@ -240,8 +322,8 @@ public class ErlangRunner {
 	 * @throws IOException
 	 *             if something goes wrong.
 	 */
-	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)
-			throws IOException {
+	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)	throws IOException 
+	{
 		String erlFileName = getName(whatToCompile, ERL.ERL,false);
 		if (whatToCompile.getParentFile() == null)
 			throw new IllegalArgumentException(
@@ -256,7 +338,7 @@ public class ErlangRunner {
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erlc",
 								"+debug_info", erlFileName }, null, beamDirectory);
-				dumpProcessOutputOnFailure("erlc " + whatToCompile.getName(), p);
+				ErlangRuntime.dumpProcessOutputOnFailure("erlc " + whatToCompile.getName(), p);
 			} else 
 			{
 				useRunner.call(new OtpErlangObject[] {
@@ -271,221 +353,16 @@ public class ErlangRunner {
 		}
 	}
 
-	public static final int timeBetweenChecks = 100;
-
-	/**
-	 * Runs the supplied process and returns output and error streams in an
-	 * exception if the process returned a non-zero error code. Upon success, no
-	 * output is produced.
-	 * 
-	 * @param p
-	 *            process to run.
-	 */
-	public static void dumpProcessOutputOnFailure(String name, Process p) {
-		final StringBuffer err = new StringBuffer(), out = new StringBuffer();
-		ExperimentRunner.dumpStreams(p, timeBetweenChecks,
-				new HandleProcessIO() {
-
-					@Override
-					public void OnHeartBeat() {// no prodding is done for a
-												// short-running converter.
-					}
-
-					@Override
-					public void StdErr(StringBuffer b) {
-						err.append(b);
-					}
-
-					@Override
-					public void StdOut(StringBuffer b) {
-						out.append(b);
-					}
-				});
-		try {
-			p.waitFor();
-		} catch (InterruptedException e) {
-			// assumed we have been asked to terminate
-		}
-
-		if (p.exitValue() != 0)
-			throw new IllegalArgumentException("Failure running " + name + "\n"
-					+ err + (err.length() > 0 ? "\n" : "") + out);
-	}
-
-	/** How long to wait for a server to start. */
-	protected int serverTimeout = 7200;
-
-	/** Sets new timeout - very useful to increase it for testing. */
-	public void setTimeout(int time) {
-		serverTimeout = time;
-	}
-
-	/*
-	 * Store the processes that were extant just after the tracerunner starts.
-	 * The killProcesses method will kill anything not in this list, which
-	 * should mean anything started by traces.
-	 */
-	protected OtpErlangList proclist;
-
-	/**
-	 * Starts Erlang in the background,
-	 * 
-	 * @param runnerMode
-	 *            "tracerunner" means production use, noserver,halt,error are
-	 *            used for testing.
-	 * @param delay
-	 *            how long to wait after launching the server - used only for
-	 *            testing to ensure server terminates before our loop starts.
-	 */
-	public void startErlang(String runnerMode, long delay) {
-		proclist = null;
-		final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
-		try {
-			if (displayErlangOutput)
-			{
-				System.out.print("Starting Erlang...");System.out.flush();
-			}
-			
-			final long startTime = System.currentTimeMillis();
-			if (erlangProcess == null) {
-				String tracerunnerProgram = "tracerunner.erl";
-				// It is very important that there is an '@' part to the node name: without it, Erlang adds a host name by default so the actual node name is different from the one supplied via -sname to the process and the node does not respond to the name without '@'.
-				String uniqueID = "_"+ System.nanoTime()+ "_"+ ManagementFactory.getRuntimeMXBean().getName().replace('@', '_').replace('.', '_') + "@" + InetAddress.getLocalHost().getHostName();
-				traceRunnerNode = "tracerunner" + uniqueID;
-				ourNode = "java" + uniqueID;
-				// now we simply evaluate "halt()." which starts epmd if
-				// necessary and we can check along the way that we can run
-				// Erlang at all.
-				Process p = Runtime.getRuntime().exec(
-						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "halt().", "-sname", traceRunnerNode,
-								"-noshell", "-setcookie", uniqueID }, null
-								);//getErlangBeamDirectory());
-				dumpProcessOutputOnFailure(
-						"testing that Erlang can be run at all", p);
-
-				// The compilation phase could a few seconds but only needs to
-				// be done once after installation of Statechum
-				for (String str : new String[] { tracerunnerProgram,
-						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
-						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
-				compileErl(new File(getErlangFolder(), str), null,true);
-				for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
-					for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
-						if (ErlangRunner.validName(f.getName()))
-							ErlangRunner.compileErl(f, null, true);
-
-				// Based on
-				// http://erlang.org/pipermail/erlang-questions/2010-March/050226.html
-				OtpNode self = new OtpNode(ourNode, uniqueID); // identify self
-				thisMbox = self.createMbox("thisMbox");
-
-				// Now build environment variables to ensure that dialyzer will
-				// find a directory to put its plt file in.
-				// This is actually a dialyzer bug which manifests itself on
-				// Windows -
-				// there is no need for dialyzer_options:build(Opts) to call
-				// dialyzer_plt:get_default_plt()
-				// before build_options(Opts, DefaultOpts1).
-				List<String> envpList = new LinkedList<String>();
-				
-				Map<String,String> newValues = new TreeMap<String,String>();
-				newValues.put("HOME",new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM)).getAbsolutePath());
-				newValues.put("ERL_MAX_PORTS","1024");// to limit the size of each Erlang instance to a few meg from a few hundred meg
-
-				for (Entry<String, String> entry : System.getenv().entrySet())
-					if (!newValues.containsKey(entry.getKey()))
-						envpList.add(entry.getKey() + "=" + entry.getValue());
-				
-				for(Entry<String, String> entry : newValues.entrySet())
-					envpList.add(entry.getKey() + "=" + entry.getValue());
-
-				erlangProcess = Runtime
-						.getRuntime()
-						.exec(new String[] {
-								ErlangRunner.getErlangBin() + "erl",
-								"-pa",getErlangBeamDirectory().getAbsolutePath(),
-								// the easiest way to substitute our module in place
-								// of the original Erlang's one, otherwise I'd
-								// have to rely on tracerunner:compileAndLoad
-								"-run", "tracerunner", "start", ourNode,
-								runnerMode, "-sname", traceRunnerNode,
-								"-noshell", "-setcookie", uniqueID },
-								envpList.toArray(new String[0]));
-								//getErlangBeamDirectory());
-				stdDumper = new Thread(new Runnable() {
-
-					@Override
-					public void run() {
-						ExperimentRunner.dumpStreams(erlangProcess,
-								timeBetweenChecks, new HandleProcessIO() {
-
-									@Override
-									public void OnHeartBeat() {
-										// no prodding is done - we are
-										// being prodded by Erlang instead.
-									}
-
-									@Override
-									public void StdErr(StringBuffer b) {
-										if (displayErlangOutput)
-											System.out.print("[ERLANG] "
-													+ b.toString());
-									}
-
-									@Override
-									public void StdOut(StringBuffer b) {
-										if (displayErlangOutput)
-											System.out.print("[ERLERR] "
-													+ b.toString());
-									}
-								});
-					}
-				});
-				stdDumper.setDaemon(true);
-				stdDumper.start();
-				if (delay > 0)
-					Thread.sleep(delay);
-				// At this point, the process may have not yet started or
-				// already terminated, it is easy to find out which of the
-				// two has happened by doing
-				int timeout = serverTimeout;
-				while (!self.ping(traceRunnerNode, 500) && timeout > 0) {
-					try {
-						erlangProcess.exitValue();
-						// process terminated, record this as a failure
-						timeout = 0;
-					} catch (IllegalThreadStateException e) {
-						// process not yet terminated, hence we keep waiting
-						--timeout;
-					}
-				}
-				ourBox = new OtpErlangTuple(new OtpErlangObject[] {
-						thisMbox.self(), self.createRef() });
-				if (timeout <= 0) {
-					final long endTime = System.currentTimeMillis();
-					throw new IllegalArgumentException(
-							"timeout waiting for a server to start after "
-									+ (endTime - startTime) + "ms");
-				}
-			}
-			//final long endTime = System.currentTimeMillis();
-			//System.out.println("Started. " + (endTime - startTime) + "ms");
-		} catch (IOException e) {
-			killErlang();
-			Helper.throwUnchecked("failed to start Erlang", e);
-		} catch (InterruptedException e1) {
-			killErlang();
-			Helper.throwUnchecked("terminating as requested", e1);
-		}
-		proclist = listProcesses();
-	}
-
 	/** An argument to $gen_call */
-	protected OtpErlangTuple ourBox = null;
+	protected final OtpErlangTuple ourBox;
 	/** The process on the Java side which communicates with Erlang process. */
-	protected OtpMbox thisMbox = null;
+	protected final OtpMbox thisMbox;
+	/** The node where we expect our tracerunnerServer to run. */
+	protected final String traceRunnerNode;
 
+	/** Whether messagebox is valid. Becomes invalid after being closed. */
+	protected boolean mboxOpen = false;
+	
 	public static final OtpErlangAtom okAtom = new OtpErlangAtom("ok");
 	public static final OtpErlangAtom timeoutAtom = new OtpErlangAtom("timeout");
 
@@ -537,12 +414,38 @@ public class ErlangRunner {
 				new OtpErlangList(nameToValue.toArray(new OtpErlangObject[0])) },
 				"setConfiguration");
 	}
+	
+	/** Using the supplied Erlang tuple, updates a supplied configuration. 
+	 * 
+	 * @param obj details to make to the pair.
+	 * @return null if everything went well or a text of an error message (mostly java-related) if it went wrong.
+	 */
+	public static String updateConfiguration(Configuration config, OtpErlangObject obj)
+	{
+		String outcome = null;
+		try
+		{
+			OtpErlangList list = (OtpErlangList) obj;
+			for(OtpErlangObject p:list.elements())
+			{
+				OtpErlangTuple pair = (OtpErlangTuple) p;
+				if (pair.arity() != 2)
+					throw new IllegalArgumentException("key-value pair is not a pair, got "+p);
+				config.assignValue(pair.elementAt(0).toString(), pair.elementAt(1).toString(), true);
+			}
+		}
+		catch(Throwable ex)
+		{
+			outcome = ex.getMessage();
+		}
+		
+		return outcome;
+	}
 
 	/** Extracts an attribute value from Erlang. */
 	public OtpErlangObject getAttr(String name) {
 		return call(
-				new OtpErlangObject[] { new OtpErlangAtom("getAttr"),
-						new OtpErlangAtom(name) }, "getAttr " + name)
+				new OtpErlangObject[] { new OtpErlangAtom("getAttr"),new OtpErlangAtom(name) }, "getAttr " + name)
 				.elementAt(1);
 	}
 
@@ -588,39 +491,32 @@ public class ErlangRunner {
 	 */
 	public OtpErlangTuple call(OtpErlangObject[] args, String errorMessage) {
 		OtpErlangTuple result = null;
-		OtpErlangObject response = call(args, 30000);
+		OtpErlangObject response = call(args, 10000);
 
-		if (response instanceof OtpErlangAtom) {
-			if (!response.equals(okAtom)) {
-				throw new RuntimeException(errorMessage + " : error "
-						+ response);
-			}
+		if (response instanceof OtpErlangAtom) 
+		{
+			if (!response.equals(okAtom)) 
+				throw new RuntimeException(errorMessage + " : error " + response);
 
 			// success, but null response
-		} else if (response instanceof OtpErlangTuple) {
+		} 
+		else if (response instanceof OtpErlangTuple) {
 			OtpErlangTuple decodedResponse = (OtpErlangTuple) response;
 			if (decodedResponse.arity() == 0)
-				throw new RuntimeException(errorMessage
-						+ " : unexpectedly short response (arity "
-						+ decodedResponse.arity() + ") " + response);
+				throw new RuntimeException(errorMessage	+ " : unexpectedly short response (arity " + decodedResponse.arity() + ") " + response);
 			OtpErlangObject decodedResponseCode = decodedResponse.elementAt(0);
 			if (!(decodedResponseCode instanceof OtpErlangAtom))
-				throw new RuntimeException(errorMessage
-						+ " : unexpected type in response tuple "
-						+ decodedResponse);
-			if (!decodedResponseCode.equals(okAtom)) {
-				if (((OtpErlangAtom) decodedResponseCode).atomValue().equals(
-						ErlangThrownException.keyword))
-					throw new ErlangThrownException(decodedResponse,
-							errorMessage + " : has thrown " + decodedResponse);
-				throw new RuntimeException(errorMessage + " : error "
-						+ decodedResponse);
+				throw new RuntimeException(errorMessage	+ " : unexpected type in response tuple " + decodedResponse);
+			if (!decodedResponseCode.equals(okAtom)) 
+			{
+				if (((OtpErlangAtom) decodedResponseCode).atomValue().equals(ErlangThrownException.keyword))
+					throw new ErlangThrownException(decodedResponse, errorMessage + " : has thrown " + decodedResponse);
+				throw new RuntimeException(errorMessage + " : error " + decodedResponse);
 
 			}
 			result = decodedResponse;
 		} else
-			throw new RuntimeException(errorMessage
-					+ " : unexpected response type " + response);
+			throw new RuntimeException(errorMessage + " : unexpected response type " + response);
 
 		return result;
 	}
@@ -643,13 +539,12 @@ public class ErlangRunner {
 	 *            how long to wait for a response.
 	 * @return Response from the server or null on a timeout
 	 */
-	public OtpErlangObject call(OtpErlangObject[] args, int timeout) {
-		if (erlangProcess == null) {
-			startErlang("tracerunner", 0);
-		}
-		thisMbox.send("tracecheckServer", traceRunnerNode, new OtpErlangTuple(
-				new OtpErlangObject[] { new OtpErlangAtom("$gen_call"), ourBox,
-						new OtpErlangTuple(args) }));
+	public synchronized OtpErlangObject call(OtpErlangObject[] args, int timeout) {
+		if (!mboxOpen)
+			throw new IllegalArgumentException("messagebox is closed");
+		// The first argument is the registered process name, the second is the node name, followed by the tuple of arguments.
+		thisMbox.send(genServerToCall, traceRunnerNode, new OtpErlangTuple(
+				new OtpErlangObject[] { new OtpErlangAtom("$gen_call"), ourBox,	new OtpErlangTuple(args) }));
 		OtpErlangTuple msg = null;
 		try {
 			if (timeout > 0)
@@ -657,6 +552,7 @@ public class ErlangRunner {
 			else
 				msg = (OtpErlangTuple) thisMbox.receive();
 		} catch (OtpErlangExit e) {
+			close();// kill this process
 			Helper.throwUnchecked("exlang exit", e);
 		} catch (OtpErlangDecodeException e) {
 			Helper.throwUnchecked("decode exception", e);
@@ -665,34 +561,10 @@ public class ErlangRunner {
 			throw new IllegalArgumentException("timeout waiting for a response");
 		return msg.elementAt(1);
 	}
-
-	public void killErlang() {
-		if (erlangProcess != null) {
-			final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
-			if (displayErlangOutput)
-			{
-				System.out.print("Stopping Erlang...");
-				System.out.flush();
-			}
-			erlangProcess.destroy();
-			try { erlangProcess.waitFor(); } 
-			catch (InterruptedException e) {
-				statechum.Helper.throwUnchecked("wait for Erlang to terminate aborted", e);
-			}
-			erlangProcess = null;
-			ourBox = null;
-			thisMbox = null;
-			stdDumper.interrupt();// if this one is sleeping, interrupt will wake it and it will terminate since
-									// Erlang is already no more ...
-			try { stdDumper.join();	} 
-			catch (InterruptedException e) {
-				Helper.throwUnchecked("Interrupt waiting for erlang out/err dumper to terminate",e);
-			}// wait for that to happen.
-			stdDumper = null;
-		}
-	}
-
-	public OtpErlangList listProcesses() {
+	
+	/** Obtains a list of processes in Erlang. */
+	public OtpErlangList listProcesses() 
+	{
 		OtpErlangList outcome = null;
 		OtpErlangTuple tup = call(new OtpErlangObject[] { new OtpErlangAtom(
 				"processes") }, "Failed to get process list.");
@@ -705,13 +577,15 @@ public class ErlangRunner {
 		return outcome;
 	}
 
-	public OtpErlangTuple killProcesses() {
+	public OtpErlangTuple killProcesses(OtpErlangList proclist) 
+	{
 		OtpErlangTuple outcome = null;
-		if (proclist != null) {
+		if (proclist != null) 
+		{
 			outcome = call(new OtpErlangObject[] {
 					new OtpErlangAtom("killProcesses"), proclist },
 					"Failed to kill processes.");
-		} 
+		}
 		
 		return outcome;
 	}

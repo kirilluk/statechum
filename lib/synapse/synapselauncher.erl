@@ -109,7 +109,7 @@ constructNodeDetails() ->
 			{list_to_atom("statechum" ++ os:getpid() ++ "@" ++ HostName), 'statechum'}
 	end.
 
-%%% this one needs R_HOME to be set
+%%% this one needs R_HOME to be set /library/rJava/jri/x64
 %%% need to test with the wrong value of ref returned
 launch(Java,StatechumDir,JavaOptionsList, AccumulateOutput) ->
 	JavaDefaultsList = [
@@ -122,30 +122,37 @@ launch(Java,StatechumDir,JavaOptionsList, AccumulateOutput) ->
 	case constructNodeDetails() of
 		{NodeName,PidName} ->
 			Port = open_port({spawn_executable, Java}, [hide,in,stderr_to_stdout,use_stdio,{cd, StatechumDir},{args,["-ea"] ++ buildOptions(JavaOptionsList,JavaDefaultsList,os:type()) ++ 
-				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(erlang:get_cookie()), atom_to_list(PidName)]}]),
+				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(erlang:get_cookie()), atom_to_list(PidName), node()]}]),
 			process_flag(trap_exit, true),
 			waitForJavaNode(NodeName,10),
 			Ref = make_ref(),
-			{PidName,NodeName}!{self(),Ref,echo,someData},
+			{PidName,NodeName}!{self(),Ref,echo},
 			receive
-				{Ref, ok, Answer} ->ok
+				{Ref, ok} ->ok
 				after 3000 ->
-					throw("Timeout waiting for response")
+					throw("Timeout waiting for echo response")
 			end,
 %%			{PidName,NodeName}!{self(),Ref,terminate,someData},
-%%			spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate,someData} end),
-			spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate,someData} end),
-			loop(Port,"completed",false)
+%%			spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
+			PID = spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
+			link(PID),
+			try
+				loop(Port,"completed",NodeName,PidName,false)
+			catch
+				X -> {'got_exception',X} 
+			end
 	end.
 
 %%% Given text output from the process, either accumulates it and returns the result or simply dumps it into the standard output.
-loop(Port,ResponseAsText,AccumulateOutput) ->
+loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput) ->
 	receive
 		{Port, {data, Data}} ->
 			case AccumulateOutput of
-				true -> loop(Port,ResponseAsText ++ Data,AccumulateOutput);
-				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,AccumulateOutput)
+				true -> loop(Port,ResponseAsText ++ Data,NodeName,PidName,AccumulateOutput);
+				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput)
 			end;
-		{'EXIT', Port, _} ->
-			ResponseAsText
+		{terminate} -> {PidName,NodeName}!{self(),make_ref(),terminate};%% Perhaps it is enough to terminate the controlling process and the linked one will also terminate
+		{createTask,Pid,Ref} -> {PidName,NodeName}!{Pid,Ref,runTask},loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput);
+		{'EXIT', Port, _} -> ResponseAsText
+%%		X -> io:format("Got something: ~s", [X]),loop(Port,ResponseAsText,NodeName,PidName,AccumulateOutput)
 	end.

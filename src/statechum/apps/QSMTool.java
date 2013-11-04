@@ -40,6 +40,7 @@ import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangRuntime;
 import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
@@ -53,7 +54,6 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class QSMTool {
@@ -143,6 +143,7 @@ public class QSMTool {
     }
 
     public static void setSimpleConfiguration(Configuration config, final boolean active, final int k) {
+    	config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
         if (!active) {
             config.setKlimit(k);
             config.setAskQuestions(false);
@@ -167,8 +168,6 @@ public class QSMTool {
     {
     	public void addTrace(List<Label> trace, boolean positive);
     }
-    
-    protected ConvertALabel converter;
     
     public static void parseSequenceOfTraces(String traces,Configuration config,TraceAdder collector, ConvertALabel converter)
     {

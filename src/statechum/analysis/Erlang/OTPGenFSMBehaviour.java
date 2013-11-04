@@ -17,10 +17,6 @@ import statechum.analysis.Erlang.Signatures.FuncSignature;
  */
 public class OTPGenFSMBehaviour extends OTPBehaviour {
 
-	public OTPGenFSMBehaviour(ErlangModule mod) {
-		this(mod, Configuration.getDefaultConfiguration());
-	}
-
     public OTPGenFSMBehaviour(ErlangModule mod, Configuration config) {
         super(mod);
         name = "gen_fsm";

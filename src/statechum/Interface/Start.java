@@ -14,9 +14,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
+import statechum.Configuration;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
 
@@ -168,8 +170,8 @@ public class Start extends javax.swing.JFrame {
        int returnValue = chooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
-                ErlangModuleViewer modview = new ErlangModuleViewer(ErlangModule.loadModule(
-                		ErlangModule.setupErlangConfiguration(chooser.getSelectedFile())));
+            	Configuration config = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(config,chooser.getSelectedFile());
+                ErlangModuleViewer modview = new ErlangModuleViewer(ErlangModule.loadModule(config));
                 modview.setVisible(true);
             } catch (IOException ex) {
                 Logger.getLogger(Start.class.getName()).log(Level.SEVERE, null, ex);

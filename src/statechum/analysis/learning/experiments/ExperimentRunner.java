@@ -602,6 +602,7 @@ public class ExperimentRunner
 		{
 			LearnerEvaluator evaluator = getLearnerEvaluator(fileNameListReader,Number);
 			String line = null;
+			@SuppressWarnings("resource")
 			BufferedReader reader = null; 
 			try
 			{

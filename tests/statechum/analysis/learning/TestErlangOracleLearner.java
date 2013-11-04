@@ -11,10 +11,19 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,7 +38,9 @@ import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
-import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.ErlangRuntime;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.observers.LearningConvergenceObserver;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -44,19 +55,27 @@ import statechum.apps.QSMTool;
  */
 public class TestErlangOracleLearner {
 	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
+	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 	
 	@Before
 	public void beforeTest()
 	{
 		ErlangModule.flushRegistry();
-		ErlangRunner.getRunner().killErlang();
+		ErlangRuntime.getDefaultRuntime().killErlang();
+		
+		ErlangRuntime.getDefaultRuntime().startRunner();config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
+	}
+
+	@After
+	public void afterTest()
+	{
+		ErlangModule.flushRegistry();
+		ErlangRuntime.getDefaultRuntime().killErlang();
 	}
 	
-	@Test
-	public void testLockerLearning()
+	public void testLockerLearning(Configuration configToUse)
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
-				ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker.erl")));
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(configToUse);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
@@ -68,10 +87,15 @@ public class TestErlangOracleLearner {
 	}
 	
 	@Test
+	public void testLockerLearning()
+	{
+		testLockerLearning(config);
+	}
+	
+	@Test
 	public void testLockerLearning_withRestartCounter()
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
-				ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker.erl")));
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
@@ -92,8 +116,7 @@ public class TestErlangOracleLearner {
 	@Test
 	public void testLockerLearningWithoutOutputMatching()
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
-				ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker.erl")));
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		learnerConfig.config.setUseErlangOutputs(false);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
@@ -104,24 +127,76 @@ public class TestErlangOracleLearner {
 		Assert.assertEquals(6,locker.pathroutines.computeAlphabet().size());
 		Assert.assertEquals(18,locker.pathroutines.countEdges());
 	}
-	
-	@Test
-	public void testExporterLearning()
+
+	public void testExporterLearning(Configuration configToUse)
 	{
-		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(
-				ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"exporter/exporter.erl")));
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(configToUse);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
 		learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		learner.GenerateInitialTraces();
 		LearnerGraph exporter = learner.learnMachine();
 		Assert.assertEquals(6,exporter.getStateNumber());
-		System.out.println(exporter.pathroutines.computeAlphabet());
-		System.out.println(exporter.transitionMatrix);
 		Assert.assertEquals(7,exporter.pathroutines.computeAlphabet().size());
 		Assert.assertEquals(34,exporter.pathroutines.countEdges());
 	}
+	
+	@Test
+	public void testExporterLearning()
+	{
+		testExporterLearning(config);
+	}
 
+	/** Runs multiple locker and exporter learners concurrently. 
+	 * @throws ExecutionException 
+	 * @throws InterruptedException */
+	@Test
+	public void testConcurrentLearning()
+	{
+		final int ThreadNumber = ExperimentRunner.getCpuNumber();	
+		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
+
+		// Stores tasks to complete.
+		CompletionService<Integer> runner = new ExecutorCompletionService<Integer>(executorService);
+		int taskNumber = 5;
+		try
+		{
+			for(int i=0;i< taskNumber;++i)
+			{
+				runner.submit(new Callable<Integer>(){
+	
+					@Override
+					public Integer call() throws Exception {
+						ErlangRuntime newRuntime = new ErlangRuntime();newRuntime.startRunner();
+						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
+						testLockerLearning(cfg);return 0;
+					}});
+				runner.submit(new Callable<Integer>(){
+	
+					@Override
+					public Integer call() throws Exception {
+						ErlangRuntime newRuntime = new ErlangRuntime();newRuntime.startRunner();
+						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
+						testExporterLearning(cfg);return 0;
+					}});
+			}
+			
+			for(int i=0;i< taskNumber;++i)
+			{
+				Assert.assertEquals(0,runner.take().get().intValue());
+				Assert.assertEquals(0,runner.take().get().intValue());
+			}
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("concurrent test failed", ex);
+		}
+		finally
+		{
+			executorService.shutdown();
+		}
+	}
+	
 	@Test
 	public void testLearningFromErlangTraceFile()
 	{
@@ -234,13 +309,14 @@ public class TestErlangOracleLearner {
 	@Test
 	public void testLearningFromErlangTraceFile2() throws IOException
 	{
-		Configuration config = ErlangModule.setupErlangConfiguration(new File(lockerFile));
+		ErlangModule.setupErlangConfiguration(config,new File(lockerFile));
         config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
         config.setErlangCompileIntoBeamDirectory(true);
 		ErlangModule mod = ErlangModule.loadModule(config);
 		Set<ErlangLabel> alphabetA = new TreeSet<ErlangLabel>();alphabetA.addAll(mod.behaviour.getAlphabet());
 		ErlangModule.flushRegistry();
-		config = ErlangModule.setupErlangConfiguration(new File(lockerFile));
+
+		ErlangModule.setupErlangConfiguration(config,new File(lockerFile));
 		config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);config.setErlangCompileIntoBeamDirectory(true);
 		ErlangModule modSame = ErlangModule.loadModule(config);
 		Assert.assertTrue(alphabetA.equals(modSame.behaviour.getAlphabet()));// check that the same alphabet will be loaded second time.

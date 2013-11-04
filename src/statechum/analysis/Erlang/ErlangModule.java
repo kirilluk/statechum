@@ -59,19 +59,21 @@ public class ErlangModule {
 	public final Map<String, FuncSignature> sigs;
 	public final Set<String> ignoredFunctions, ignoredBehaviours;
 	
-	private ErlangModule(Configuration config) throws IOException {
+	private ErlangModule(Configuration config) throws IOException 
+	{
 		final File f = config.getErlangSourceFile();
 		name = ErlangRunner.getName(f, ERL.MOD,config.getErlangCompileIntoBeamDirectory());
 		sourceFolder = f.getParentFile();
 		ProgressIndicator progress = new ProgressIndicator(name, 7);
 		// launch Erlang by calling a test method.
-		ErlangRunner.getRunner().call(
+		ErlangRunner erlangRunner = ErlangRunner.getRunner(config.getErlangMboxName()); 
+		erlangRunner.call(
 				new OtpErlangObject[] { new OtpErlangAtom("echo2Tuple"),
 						new OtpErlangAtom("aaa") }, "echo2Tuple");
 		progress.next();// 1
 
 		// Compile and typecheck the module...
-		ErlangRunner.compileErl(f, ErlangRunner.getRunner(),config.getErlangCompileIntoBeamDirectory());
+		ErlangRunner.compileErl(f, erlangRunner,config.getErlangCompileIntoBeamDirectory());
 		progress.next();// 2
 		sigs = new TreeMap<String, FuncSignature>();ignoredFunctions = new TreeSet<String>();ignoredBehaviours = new TreeSet<String>();
 
@@ -92,7 +94,7 @@ public class ErlangModule {
 		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
 			pltFile.delete();
 			otpArgs[0] = new OtpErlangAtom("dialyzer");
-			ErlangRunner.getRunner().call(otpArgs, "Could not run dialyzer");
+			erlangRunner.call(otpArgs, "Could not run dialyzer");
 		}
 		progress.next();// 3
 
@@ -101,7 +103,7 @@ public class ErlangModule {
 		OtpErlangTuple response = null;
 		try
 		{
-			response = ErlangRunner.getRunner().call(otpArgs,"Could not run typer");
+			response = erlangRunner.call(otpArgs,"Could not run typer");
 			
 			progress.next();// 4
 			progress.next();// 5
@@ -111,10 +113,10 @@ public class ErlangModule {
 			pltFile.delete();
 			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			progress.next();// 4
-			ErlangRunner.getRunner().call(otpArgs, "Could not run dialyzer");
+			erlangRunner.call(otpArgs, "Could not run dialyzer");
 			otpArgs[0] = new OtpErlangAtom("typer");
 			progress.next();// 5
-			response = ErlangRunner.getRunner().call(otpArgs,"Could not run typer for the second time");			
+			response = erlangRunner.call(otpArgs,"Could not run typer for the second time");			
 		}
 		progress.next();// 6
 
@@ -207,23 +209,18 @@ public class ErlangModule {
 
 
 	public static ErlangModule loadModule(String moduleName) throws IOException {
-		return loadModule(new File(moduleName));
+		Configuration config = Configuration.getDefaultConfiguration().copy();setupErlangConfiguration(config, new File(moduleName));
+		return loadModule(config);
 	}
 	
-	public static Configuration setupErlangConfiguration(File module)
+	/** Updates the supplied configuration with values necessary to load a supplied module. */
+	public static void setupErlangConfiguration(Configuration config, File module)
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setErlangSourceFile(module);
 		config.setErlangModuleName(ErlangRunner.getName(module, ERL.MOD, config.getErlangCompileIntoBeamDirectory()));
     	config.setLabelKind(LABELKIND.LABEL_ERLANG);
-    	return config;
 	}
-	
-	@Deprecated
-	public static ErlangModule loadModule(File module) throws IOException {
-		return loadModule(setupErlangConfiguration(module));
-	}
-	
+		
 	public static ErlangModule loadModule(Configuration config) throws IOException {
 		return loadModule(config, false);
 	}

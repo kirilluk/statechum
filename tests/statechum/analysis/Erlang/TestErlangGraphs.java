@@ -12,8 +12,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.Configuration;
@@ -38,10 +40,22 @@ public class TestErlangGraphs {
 	protected ConvertALabel converter = null;
 	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
 	
+	@BeforeClass
+	public static void beforeClass()
+	{
+		ErlangRuntime.getDefaultRuntime().startRunner();
+	}
+	
+	@AfterClass
+	public static void afterClass()
+	{
+		ErlangRuntime.getDefaultRuntime().killErlang();
+	}
+	
 	@Before
 	public void beforeTest()
 	{
-		config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		config.setLabelKind(LABELKIND.LABEL_ERLANG);config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
 		ErlangModule.flushRegistry();
 	}
 	
@@ -196,7 +210,8 @@ public class TestErlangGraphs {
 		String fnA = "{"+ErlangLabel.missingFunction+",'call','lock'}", fnB = "{"+ErlangLabel.missingFunction+",'call','unlock'}",comma=", ";
 		String text = "["+fnA+comma+fnB+comma+fnB+"]";
 		List<Label> list = statechum.StatechumXML.readInputSequence(text,config,converter);
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker.erl")));
+		ErlangModule.setupErlangConfiguration(config,new File(ErlangExamples,"locker/locker.erl"));
+		ErlangModule mod = ErlangModule.loadModule(config);
 		List<String> newList = new LinkedList<String>();
 		for(Label l:OTPBehaviour.convertTrace(OTPBehaviour.convertTrace(list, mod.behaviour.new ConverterErlToMod()), mod.behaviour.new ConverterModToErl()))
 				newList.add(l.toErlangTerm());
@@ -265,7 +280,8 @@ public class TestErlangGraphs {
 			Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'call','read'}, {"+ErlangLabel.missingFunction+",'call',{'write','aa'}}]",labels.toString());
 		}
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		ErlangModule mod = ErlangModule.loadModule(config);
 		final String expected = "[{{LOCKERPATH,25,handle_call,1,{'Func',[],[{'Alt',[],["+
 			"{'Atom',[],['lock','read','unlock']},"+
 			"{'Tuple',[],[{'Atom',[],['write']},{'Any',[]}]}]}],{'Any',[]}}},2,'call','read'}, "+
@@ -296,7 +312,8 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph outcome = new LearnerGraph(config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.interpretLabelsOnGraph(gr,outcome,mod.behaviour.new ConverterErlToMod());
@@ -308,7 +325,8 @@ public class TestErlangGraphs {
 	public void testConvertToModuleFailure2() throws IOException
 	{
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));config.setErlangModuleName(mod.getName());
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);config.setErlangModuleName(mod.getName());
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config,converter);
 		}},IllegalArgumentException.class,"unknown function \"Acall");
@@ -319,7 +337,8 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph converted = new LearnerGraph(config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(gr,converted,mod.behaviour.new ConverterErlToMod());
 		LearnerGraph anotherGraph = new LearnerGraph(config);
@@ -331,7 +350,7 @@ public class TestErlangGraphs {
 	public void testConvertToModuleForAnAlreadyAssignedToADifferentLabel() throws IOException
 	{
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		Configuration moduleConfig = ErlangModule.setupErlangConfiguration(file);
+		Configuration moduleConfig = config.copy();ErlangModule.setupErlangConfiguration(moduleConfig,file);
 		final ErlangModule mod = ErlangModule.loadModule(moduleConfig);
 		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B - {cast,yyy}->C", "testConvertToModuleFailure1", moduleConfig,null);
 		for(Label lbl:gr.pathroutines.computeAlphabet())
@@ -354,7 +373,8 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		LearnerGraph tmpGraph = new LearnerGraph(config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(gr,tmpGraph,mod.behaviour.new ConverterModToErl());
 		Assert.assertEquals(gr.pathroutines.computeAlphabet(),
@@ -366,7 +386,8 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph converted = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(gr,converted,mod.behaviour.new ConverterErlToMod());
 		final LearnerGraph convertedBack = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(converted,convertedBack,mod.behaviour.new ConverterModToErl());
 		final LearnerGraph converted2 = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(gr,converted2,mod.behaviour.new ConverterErlToMod());
@@ -383,7 +404,8 @@ public class TestErlangGraphs {
 		config.setLabelKind(LABELKIND.LABEL_STRING);
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph outcome = new LearnerGraph(gr.config);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -398,7 +420,8 @@ public class TestErlangGraphs {
 		config.setLabelKind(LABELKIND.LABEL_STRING);
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		final ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		final ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph outcome = new LearnerGraph(gr.config);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -413,11 +436,12 @@ public class TestErlangGraphs {
 		// The graph needs to be connected, states unreachable from the initial state are ignored by checkM when checking for B == THEN == C
 		LearnerGraph grOrig = buildLearnerGraph("A- {call, read} ->B<-{call, read}-C-{call, {write,aa}}->A-{call, {write,aa}}->C / B == THEN == C", "testConstructErlGraph1", config,converter);
 		File file = new File(ErlangExamples,"locker/locker.erl");
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+		ErlangModule.setupErlangConfiguration(config,file);
+		ErlangModule mod = ErlangModule.loadModule(config);
 		final LearnerGraph erlangGraph = new LearnerGraph(grOrig.config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,erlangGraph,mod.behaviour.new ConverterErlToMod());
 		StringWriter writer = new StringWriter();
-		// remove function delarations and serialise
+		// remove function declarations and serialise
 		LearnerGraph tmpGraph = new LearnerGraph(config);
 		AbstractLearnerGraph.interpretLabelsOnGraph(erlangGraph,tmpGraph,mod.behaviour.new ConverterModToErl());tmpGraph.storage.writeGraphML(writer);
 		

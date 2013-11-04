@@ -35,8 +35,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -68,23 +70,54 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class TestErlangModule {
-	private TestErlangRunner runnerTester = new TestErlangRunner();
+public class TestErlangModule 
+{
+	/** This one is used to number work directories so that different tests do not affect each other. Unfortunately, the numbering is sequential hence it is not known which test corresponds to which number. */
+	protected static int number = 0;
+
+	/** URL of the writable directory to be used for tests. */
+	public File testDir = null;
+
 	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
-		
+	protected Configuration config = Configuration.getDefaultConfiguration().copy();
+	protected ErlangRunner runner = null;
+	protected static ErlangRuntime erlRuntime;
+	
+	public TestErlangModule()
+	{
+	}
+
+	@BeforeClass
+	public static void beforeClass()
+	{
+		erlRuntime = new ErlangRuntime();erlRuntime.setTimeout(500);erlRuntime.startRunner();		
+	}
+	
+	@AfterClass
+	public static void afterClass()
+	{
+		erlRuntime.killErlang();
+	}
+	
 	@Before
 	public void beforeTest()
 	{
-		runnerTester.beforeTest();
-		erlangFile=runnerTester.testDir.getAbsolutePath()+File.separator+"testFile.erl";
-		erlangFileOther = runnerTester.testDir.getAbsolutePath()+File.separator+"testFileOther.erl";
+		testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestErlangRunner__"+(number++));
+		runner = erlRuntime.createNewRunner();config.setErlangMboxName(runner.getRunnerName()); 
+		erlangFile=testDir.getAbsolutePath()+File.separator+"testFile.erl";
+		erlangFileOther = testDir.getAbsolutePath()+File.separator+"testFileOther.erl";
 		ErlangModule.flushRegistry();
+		if (!testDir.isDirectory())
+		{
+			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+		}
 	}
 	
 	@After
 	public void afterTest()
 	{
-		runnerTester.zapTestDir();
+		runner.close();
+		ExperimentRunner.zapDir(testDir);
 	}
 
 	@Test
@@ -92,7 +125,7 @@ public class TestErlangModule {
 	{
 		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 		public @Override void run() throws IOException {
-			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"WibbleMonster/wibble.erla")));
+			ErlangModule.setupErlangConfiguration(config,new File(ErlangExamples,"WibbleMonster/wibble.erla"));
 		}},IllegalArgumentException.class,"Invalid module");
 	}
 
@@ -109,14 +142,14 @@ public class TestErlangModule {
 		if (!fileWibble.canRead()) // running on a case-sensitive OS
 			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
 				public @Override void run() throws IOException {
-					Configuration configWibble = ErlangModule.setupErlangConfiguration(fileWibble);configWibble.setErlangCompileIntoBeamDirectory(true);
+					Configuration configWibble = config.copy();ErlangModule.setupErlangConfiguration(configWibble,fileWibble);configWibble.setErlangCompileIntoBeamDirectory(true);
 					ErlangModule.loadModule(configWibble);
 				}},IOException.class,"does not exist");
 		else
 		{
 			File beam = new File(ErlangRunner.getName(fileWibble, ERL.BEAM, true));
 			if (beam.canRead()) Assert.assertTrue(beam.delete());
-			final Configuration configwibble = ErlangModule.setupErlangConfiguration(filewibble);configwibble.setErlangCompileIntoBeamDirectory(true);
+			final Configuration configwibble = config.copy();ErlangModule.setupErlangConfiguration(configwibble,filewibble);configwibble.setErlangCompileIntoBeamDirectory(true);
 			ErlangModule.loadModule(configwibble,true);
 			
 			// At this point, I have wibble compiled using a correct file name, then I delete 
@@ -124,7 +157,7 @@ public class TestErlangModule {
 			// This process checks the name of the file and throws an exception if it is not consistent
 			// with the file name.
 			
-			final Configuration configWibble = ErlangModule.setupErlangConfiguration(fileWibble);configWibble.setErlangCompileIntoBeamDirectory(true);
+			final Configuration configWibble = config.copy();ErlangModule.setupErlangConfiguration(configWibble,fileWibble);configWibble.setErlangCompileIntoBeamDirectory(true);
 			File plt = new File(ErlangRunner.getName(fileWibble, ERL.PLT, configWibble.getErlangCompileIntoBeamDirectory()));
 			if (plt.canRead()) Assert.assertTrue(plt.delete());
 			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
@@ -136,9 +169,9 @@ public class TestErlangModule {
 
     /** Only used for testing against runTyperAsAProcessInsideErlang. 
      * @throws IOException */
-    protected static String runTyperAsAProcess(File f) throws IOException
+    protected static String runTyperAsAProcess(File f, ErlangRunner runner) throws IOException
     {
-    	ErlangRunner.compileErl(f, ErlangRunner.getRunner(), false);
+    	ErlangRunner.compileErl(f, runner, false);
     	
         {// Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
 	        Map<String,String> environment = System.getenv();
@@ -147,7 +180,7 @@ public class TestErlangModule {
 	        	envp[i++]=entry.getKey()+"="+entry.getValue();envp[i++]="HOME="+f.getParentFile().getAbsolutePath();
 	
 	        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"dialyzer","--build_plt","--output_plt",ErlangRunner.getName(f, ERL.PLT,true),ErlangRunner.getName(f, ERL.BEAM,true)}, envp);//, ErlangRunner.getErlangBeamDirectory());
-	        ErlangRunner.dumpProcessOutputOnFailure("dialyzer",p);
+	        ErlangRuntime.dumpProcessOutputOnFailure("dialyzer",p);
         }
         // Receive the type info....
         Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"typer","--plt",ErlangRunner.getName(f, ERL.PLT, true),ErlangRunner.getName(f, ERL.ERL,false)}, null);//, ErlangRunner.getErlangBeamDirectory());
@@ -182,8 +215,7 @@ public class TestErlangModule {
      * @throws IOException */
     protected String runDialyzerAndTyperAsAProcessInsideErlang(File f) throws IOException
     {
-    	ErlangRunner erl = ErlangRunner.getRunner();
-    	ErlangRunner.compileErl(f, erl, false);
+    	ErlangRunner.compileErl(f, runner, false);
     	OtpErlangObject otpArgs[] = new OtpErlangObject[]{
         		null, 
 				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM, true))}),
@@ -192,9 +224,9 @@ public class TestErlangModule {
 				new OtpErlangAtom("text")
 			};
     	otpArgs[0]=new OtpErlangAtom("dialyzer");
-    	erl.call(otpArgs,"Could not run dialyzer");
+    	runner.call(otpArgs,"Could not run dialyzer");
     	otpArgs[0]=new OtpErlangAtom("typer");
-    	OtpErlangTuple response = erl.call(otpArgs,"Could not run typer");
+    	OtpErlangTuple response = runner.call(otpArgs,"Could not run typer");
     	return ((OtpErlangString)response.elementAt(1)).stringValue();
     }
     
@@ -202,8 +234,7 @@ public class TestErlangModule {
      * @throws IOException */
     protected String runOnlyTyperAsAProcessInsideErlang(File f) throws IOException
     {
-    	ErlangRunner erl = ErlangRunner.getRunner();
-    	ErlangRunner.compileErl(f, erl, true);
+    	ErlangRunner.compileErl(f, runner, true);
     	OtpErlangObject otpArgs[] = new OtpErlangObject[]{
         		null, 
 				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM, true))}),
@@ -212,7 +243,7 @@ public class TestErlangModule {
 				new OtpErlangAtom("text")
 			};
     	otpArgs[0]=new OtpErlangAtom("typer");
-    	OtpErlangTuple response = erl.call(otpArgs,"Could not run typer");
+    	OtpErlangTuple response = runner.call(otpArgs,"Could not run typer");
     	return ((OtpErlangString)response.elementAt(1)).stringValue();
     }
 
@@ -239,16 +270,16 @@ public class TestErlangModule {
     	final String someErlang = loadFile(origFile);
   		String typerInRunner = null, typerAsProcess = null;
   		{// we have to create new files because of file sync problem between multiple instances of Erlang - where multiple tests are run, we sometime get module_info, sometimes not.
-  			Assert.assertTrue(new File(runnerTester.testDir.getAbsolutePath()+File.separator+"A").mkdir());
-  			String fileA = runnerTester.testDir.getAbsolutePath()+File.separator+"A"+File.separator+moduleName+".erl";
+  			Assert.assertTrue(new File(testDir.getAbsolutePath()+File.separator+"A").mkdir());
+  			String fileA = testDir.getAbsolutePath()+File.separator+"A"+File.separator+moduleName+".erl";
   			Writer wr = new FileWriter(fileA);wr.write(someErlang);wr.close();
 			typerInRunner = runDialyzerAndTyperAsAProcessInsideErlang(new File(fileA)).replace("\\\\","\\").replace(fileA,"FileName");
   		}
   		{
-  			Assert.assertTrue(new File(runnerTester.testDir.getAbsolutePath()+File.separator+"B").mkdir());
-  			String fileB = runnerTester.testDir.getAbsolutePath()+File.separator+"B"+File.separator+moduleName+".erl";
+  			Assert.assertTrue(new File(testDir.getAbsolutePath()+File.separator+"B").mkdir());
+  			String fileB = testDir.getAbsolutePath()+File.separator+"B"+File.separator+moduleName+".erl";
   			Writer wr = new FileWriter(fileB);wr.write(someErlang);wr.close();
-  			typerAsProcess = runTyperAsAProcess(new File(fileB)).replace("\\\\","\\").replace(fileB, "FileName");
+  			typerAsProcess = runTyperAsAProcess(new File(fileB),runner).replace("\\\\","\\").replace(fileB, "FileName");
   		}
 	  		typerInRunner = typerInRunner.replaceAll("-spec module_info.*\n", "");
 	  		typerInRunner = typerInRunner.replaceAll(".*Unknown functions: \\[\\{erlang,get_module_info,1\\},\\{erlang,get_module_info,2\\}\\].*\n", "");
@@ -275,7 +306,6 @@ public class TestErlangModule {
     {
     	final File f = new File(ErlangExamples,"locker/locker.erl");
     	new File(ErlangRunner.getName(f, ERL.PLT,true)).delete();new File(ErlangRunner.getName(f, ERL.BEAM,true)).delete();
-    	final ErlangRunner erl = ErlangRunner.getRunner();
        	final OtpErlangObject otpArgs[] = new OtpErlangObject[]{
         		null, 
 				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM, true))}),
@@ -286,7 +316,7 @@ public class TestErlangModule {
     	otpArgs[0]=new OtpErlangAtom("dialyzer");
 		Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 			public @Override void run() throws IOException {
-				erl.call(otpArgs,"Could not run dialyzer");
+				runner.call(otpArgs,"Could not run dialyzer");
 			}},ErlangThrownException.class,"Failed to obtain file info");
     }
     
@@ -308,7 +338,7 @@ public class TestErlangModule {
     public void testTyperWithInvalidPLT() throws IOException
     {
     	File file = new File(ErlangExamples,"locker/locker.erl");
-    	Configuration config = ErlangModule.setupErlangConfiguration(file);
+    	ErlangModule.setupErlangConfiguration(config,file);
     	config.setErlangCompileIntoBeamDirectory(true);
     	new File(ErlangRunner.getName(file, ERL.PLT,config.getErlangCompileIntoBeamDirectory())).delete();
     	Writer wr = new FileWriter(ErlangRunner.getName(file, ERL.PLT,config.getErlangCompileIntoBeamDirectory()));wr.write("junk");wr.close();
@@ -323,7 +353,8 @@ public class TestErlangModule {
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
     	File file = new File(ErlangExamples,"WibbleMonster/wibble.erl");
-    	ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+    	ErlangModule.setupErlangConfiguration(config,file);
+    	ErlangModule mod = ErlangModule.loadModule(config);
     	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
     	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	for(FuncSignature s:mod.sigs.values())
@@ -339,7 +370,8 @@ public class TestErlangModule {
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
     	File file = new File(ErlangExamples,"locker/locker.erl");
-    	ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(file));
+    	ErlangModule.setupErlangConfiguration(config,file);
+    	ErlangModule mod = ErlangModule.loadModule(config);
     	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
     	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	for(FuncSignature s:mod.sigs.values())
@@ -353,7 +385,8 @@ public class TestErlangModule {
    	@Test
    	public void testWibbleAlphabet() throws IOException
     {
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"WibbleMonster/wibble.erl")));
+    	ErlangModule.setupErlangConfiguration(config,new File(ErlangExamples,"WibbleMonster/wibble.erl"));
+   		ErlangModule mod = ErlangModule.loadModule(config);
    		Assert.assertEquals("[" +
    				"{"+ErlangLabel.missingFunction+",'call','xyz','here_kirill'}," +
    				"{"+ErlangLabel.missingFunction+",'call','xyz','listing'}," +
@@ -420,7 +453,7 @@ public class TestErlangModule {
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
        	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
-    	evalConf.config = Configuration.getDefaultConfiguration().copy();
+    	evalConf.config = config.copy();
     	final String moduleName = "locker";
     	evalConf.config.setErlangModuleName(moduleName);
     	evalConf.config.setErlangSourceFile(new File(ErlangExamples+File.separator+"locker",moduleName + ".erl"));
@@ -444,11 +477,11 @@ public class TestErlangModule {
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
        	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
-       	evalConf.config = ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker"+ErlangRunner.ERL.ERL.toString()));
+       	evalConf.config = config.copy();ErlangModule.setupErlangConfiguration(evalConf.config,new File(ErlangExamples,"locker/locker"+ErlangRunner.ERL.ERL.toString()));
     	final ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
     	// The above loads a module, this one gets that module and subsequently updates its alphabet.
-    	Configuration exporterConfiguration = ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"exporter/exporter"+ErlangRunner.ERL.ERL.toString()));
+    	Configuration exporterConfiguration = config.copy();ErlangModule.setupErlangConfiguration(exporterConfiguration,new File(ErlangExamples,"exporter/exporter"+ErlangRunner.ERL.ERL.toString()));
      	
     	ErlangModule.findModule(evalConf.config.getErlangModuleName());
     	ErlangModule modExporter = ErlangModule.loadModule(exporterConfiguration);
@@ -468,7 +501,7 @@ public class TestErlangModule {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
     	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
     	final String moduleName = "locker";
-    	evalConf.config = ErlangModule.setupErlangConfiguration(new File(ErlangExamples+File.separator+"locker",moduleName + ErlangRunner.ERL.ERL.toString()));
+    	evalConf.config = config.copy();ErlangModule.setupErlangConfiguration(evalConf.config,new File(ErlangExamples+File.separator+"locker",moduleName + ErlangRunner.ERL.ERL.toString()));
     	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
     	// The above loads a module, this one gets that module and subsequently updates its alphabet.
@@ -515,7 +548,7 @@ public class TestErlangModule {
 	@Test
 	public void testTraces() throws IOException
 	{
-		Configuration config = ErlangModule.setupErlangConfiguration(new File(ErlangExamples,"locker/locker.erl"));
+		ErlangModule.setupErlangConfiguration(config,new File(ErlangExamples,"locker/locker.erl"));
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, lock}", LBL2 = "{call, unlock}";
 		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config,null);
@@ -543,9 +576,9 @@ public class TestErlangModule {
 		File origFile = new File(erlangFile);
 		// we are using timestamps to detect if a file needs recompiling. The test aims to check that renamed beam will fail to load; if the timestamp on the source is not earlier than that of the beam, the loader will attempt to recompile the source and also fail, largerly for the same reason although this is not what we are testing here.
 		// We could place a sleep statement here, however this is not necessary because the process of going through to check if Erlang is still alive etc is enough to spend sufficient time to get a later timestamp. 
-		ErlangRunner.compileErl(origFile, ErlangRunner.getRunner(),false);
-		final File renamedFile = new File(runnerTester.testDir.getAbsolutePath()+File.separator+"otherFile.erl");
-		final Configuration configRenamed = ErlangModule.setupErlangConfiguration(renamedFile);configRenamed.setErlangCompileIntoBeamDirectory(false);
+		ErlangRunner.compileErl(origFile, runner,false);
+		final File renamedFile = new File(testDir.getAbsolutePath()+File.separator+"otherFile.erl");
+		final Configuration configRenamed = config.copy();ErlangModule.setupErlangConfiguration(configRenamed,renamedFile);configRenamed.setErlangCompileIntoBeamDirectory(false);
 		origFile.renameTo(new File(ErlangRunner.getName(renamedFile, ERL.ERL,false)));
 		new File(ErlangRunner.getName(origFile,ERL.BEAM,false)).renameTo(new File(ErlangRunner.getName(renamedFile, ERL.BEAM,false)));
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
@@ -558,7 +591,8 @@ public class TestErlangModule {
     {
     	File fileLocker = new File(ErlangExamples,"locker/locker.erl");
     	Assert.assertNull(ErlangModule.findModule("locker"));
-    	ErlangModule modA = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(fileLocker));
+    	ErlangModule.setupErlangConfiguration(config,fileLocker);
+    	ErlangModule modA = ErlangModule.loadModule(config);
     	Assert.assertSame(modA,ErlangModule.findModule("locker"));
     }
     
@@ -567,8 +601,9 @@ public class TestErlangModule {
     {
     	final File fileLocker = new File(ErlangExamples,"locker/locker.erl");
     	Assert.assertNull(ErlangModule.findModule("locker"));
-    	ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(fileLocker));
-		Assert.assertSame(mod,ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(fileLocker)));
+   		ErlangModule.setupErlangConfiguration(config,fileLocker);
+    	ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertSame(mod,ErlangModule.loadModule(config));
    }
     
     /** Forces the reload and checks that outcome is different every time. */
@@ -576,7 +611,7 @@ public class TestErlangModule {
     public void testLoadModule3() throws IOException
     {
     	final File fileLocker = new File(ErlangExamples,"locker/locker.erl");
-    	Configuration loadConfiguration = Configuration.getDefaultConfiguration().copy();
+    	Configuration loadConfiguration = config.copy();
     	loadConfiguration.setErlangSourceFile(fileLocker);
     	loadConfiguration.setErlangModuleName(fileLocker.getName());
     	loadConfiguration.setLabelKind(LABELKIND.LABEL_ERLANG);
@@ -592,7 +627,8 @@ public class TestErlangModule {
     public void testExtraAttribute1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-justsomething(aa)."+stdFunctions);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.ignoredBehaviours.isEmpty());
    }
 
@@ -600,7 +636,8 @@ public class TestErlangModule {
     public void testInvalidAttribute1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-behaviour(aa)."+stdFunctions);wr.close();
-		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.ignoredBehaviours.contains("aa"));
    }
 
@@ -608,16 +645,18 @@ public class TestErlangModule {
     public void testInvalidAttribute2() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(56)."+stdFunctions);wr.close();
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+			ErlangModule.loadModule(config);
 		}},IllegalArgumentException.class,"\"8\" is of the wrong kind");// 56 is interpreted as a string "8"
    }
     @Test
     public void testInvalidAttribute3() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(565)."+stdFunctions);wr.close();
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+			ErlangModule.loadModule(config);
 		}},IllegalArgumentException.class,"565 is of the wrong type");
    }
     
@@ -625,8 +664,9 @@ public class TestErlangModule {
     public void testInvalidAttribute4() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(\"junk\")."+stdFunctions);wr.close();
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+			ErlangModule.loadModule(config);
 		}},IllegalArgumentException.class,"\"junk\" is of the wrong kind");
    }
     
@@ -634,7 +674,8 @@ public class TestErlangModule {
     public void testSpecificValue1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server)."+stdFunctions);wr.close();
-		Assert.assertEquals("gen_server_wrapper",ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile))).behaviour.getWrapperName());
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		Assert.assertEquals("gen_server_wrapper",ErlangModule.loadModule(config).behaviour.getWrapperName());
    }
     
     @Test
@@ -642,7 +683,8 @@ public class TestErlangModule {
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_fsm).\n"+
 				"\nhandle_event(_,_,_)->{reply,ok,5}.\nhandle_sync_event(_,_)->{noreply,ok,5}.\n\ninit(_)->{ok,5}.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
-		Assert.assertEquals("gen_fsm_wrapper",ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile))).behaviour.getWrapperName());
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		Assert.assertEquals("gen_fsm_wrapper",ErlangModule.loadModule(config).behaviour.getWrapperName());
    }
     
     /** One of the interface functions is missing. */ 
@@ -651,6 +693,7 @@ public class TestErlangModule {
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n"+
 				"\nhandle_call(_,_,_)->{reply,ok,5}.\nhandle_cast(_,_)->{noreply,ok,5}.\n\ninitRenamed(_)->{ok,5}.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'call','JustAnythingA','ok'}," +
 				 "{"+ErlangLabel.missingFunction+",'call',[],'ok'}," +
 				 "{"+ErlangLabel.missingFunction+",'call',['WibbleA'],'ok'}," +
@@ -663,7 +706,7 @@ public class TestErlangModule {
 				 "{"+ErlangLabel.missingFunction+",'info',[],{'reply','ok'}}," +
 				 "{"+ErlangLabel.missingFunction+",'info',['WibbleA'],{'reply','ok'}}," +
 				 "{"+ErlangLabel.missingFunction+",'info',['WibbleA','WobbleA'],{'reply','ok'}}]",
-				 TestTypes.getAlphabetAsString(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)) )));
+				 TestTypes.getAlphabetAsString(ErlangModule.loadModule(config)));
 		
     }
     
@@ -671,17 +714,20 @@ public class TestErlangModule {
     public void testDependencies1() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server)."+stdFunctions);wr.close();
-		Assert.assertTrue(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile))).behaviour.dependencies.isEmpty());
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		Assert.assertTrue(ErlangModule.loadModule(config).behaviour.dependencies.isEmpty());
    }
     
     @Test
     public void testDependencies2() throws IOException
     {
-    	final String erlangFile2 = runnerTester.testDir.getAbsolutePath()+File.separator+"testFile2.erl";
+    	final String erlangFile2 = testDir.getAbsolutePath()+File.separator+"testFile2.erl";
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-export[funct/1].\nfunct(5) -> ok.");wr.close();
 		wr = new FileWriter(erlangFile2);wr.write("-module(testFile2).\n-export[f/1].\nf(2) -> testFile:funct(5).");wr.close();
-		Assert.assertTrue(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile))).behaviour.dependencies.isEmpty());
-		Collection<String> deps = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile2))).behaviour.dependencies;
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		Assert.assertTrue(ErlangModule.loadModule(config).behaviour.dependencies.isEmpty());
+		Configuration cnf2 = config.copy();ErlangModule.setupErlangConfiguration(cnf2,new File(erlangFile2));
+		Collection<String> deps = ErlangModule.loadModule(cnf2).behaviour.dependencies;
 		Assert.assertEquals(1,deps.size());
 		Assert.assertEquals("testFile",deps.toArray()[0]);
    }
@@ -691,7 +737,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->io:format(\"42~n\"),halt().\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+  		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
     }
     
@@ -700,7 +747,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
     }
     
@@ -709,7 +757,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\ntestFun([Arg])->io:format(\"42~n\"),halt().\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
     }
 
@@ -718,7 +767,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals(
 				"[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},"+
 				"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyListElemWibble']],42}," +
@@ -733,7 +783,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\naFun(34)->33.";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42}," +
 				"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyListElemWibble']],42}," +
 				"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['AnyListElemWibble','AnyListElemWibble']],42}" +
@@ -747,7 +798,8 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->testFun([Arg]).\n";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		ErlangModule mod = ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(new File(erlangFile)));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
 		Assert.assertTrue(mod.ignoredFunctions.contains("testFile:testFun/1"));
     }
@@ -757,7 +809,7 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\naFun()->33.";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
    		config.setErlangAlphabetAnyListLength(1);
    		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],42},"+
@@ -770,7 +822,7 @@ public class TestErlangModule {
     {
     	final String someErlang = "-module(testFile).\n-export([testFun/1,aFun/0]).\ntestFun([Arg])->42.\naFun()->33.";
    		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-   		Configuration config = ErlangModule.setupErlangConfiguration(new File(erlangFile));
+   		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
    		config.setErlangAlphabetAnyListLength(1);
   		ErlangModule mod = ErlangModule.loadModule(config);
 		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:aFun/0',[],33},"+

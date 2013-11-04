@@ -50,7 +50,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 
 public class TestErlangRunner {
 
-	protected ErlangRunner erl = null;
+	ErlangRuntime erlRuntime = null;
 	
 	/** This one is used to number work directories so that different tests do not affect each other. Unfortunately, the numbering is sequential hence it is not known which test corresponds to which number. */
 	protected static int number = 0;
@@ -61,12 +61,15 @@ public class TestErlangRunner {
 	/** URL of the locker example. */
 	public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
 	
+	protected ErlangRunner runner;
+	
 	File output = null;
 	
 	@Before
 	public void beforeTest()
 	{
-		erl = new ErlangRunner();erl.setTimeout(500);
+		erlRuntime = new ErlangRuntime();erlRuntime.setTimeout(500);erlRuntime.startRunner();
+		runner = erlRuntime.createNewRunner();
 		testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestErlangRunner__"+(number++));
 		output = new File(testDir,"test.erl");
 		createTestDir();
@@ -83,7 +86,8 @@ public class TestErlangRunner {
 	@After
 	public void afterTest()
 	{
-		erl.killErlang();
+		runner.close();
+		erlRuntime.killErlang();
 		zapTestDir();
 	}
 	
@@ -151,7 +155,7 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangRunner1()
 	{
-		checkEcho(erl);
+		checkEcho(erlRuntime.createNewRunner());
 	}
 	
 	/** Tests the echo method of the server, i.e.
@@ -161,7 +165,7 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangRunner2()
 	{
-		for(int i=0;i< 100;++i) checkEcho(erl);
+		for(int i=0;i< 100;++i) checkEcho(erlRuntime.createNewRunner());
 	}
 	
 	/** Tests multiple instances of erlang. 
@@ -170,12 +174,12 @@ public class TestErlangRunner {
 	public void testErlangRunner3_longrunning_28sec() throws OtpErlangRangeException
 	{
 		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// force configuration load and all related messages so that they do not interfere with progress indicator.
-		ErlangRunner []runners = new ErlangRunner[7];// more could be not allowed by XP Pro :/
+		ErlangRuntime []runners = new ErlangRuntime[7];// more could be not allowed by XP Pro :/
 		String processNames[] = new String[runners.length];
 		int currentNumber =0;
 		for(int i=0;i<runners.length;++i) 
 		{ 
-			runners[i]=new ErlangRunner();processNames[i]=""+currentNumber++;runners[i].startErlang(processNames[i], 0); 
+			runners[i]=new ErlangRuntime();processNames[i]=""+currentNumber++;runners[i].startErlang(processNames[i], 0); 
 		}
 		Random rnd = new Random(0);
 		final int testNumber = 1000;
@@ -183,11 +187,12 @@ public class TestErlangRunner {
 		for(int cnt=0;cnt < testNumber;++cnt)
 		{
 			int runnerNumber = rnd.nextInt(runners.length);
-			ErlangRunner r = runners[runnerNumber];
+			ErlangRuntime r = runners[runnerNumber];
 			if (rnd.nextInt(100) > 1)
 			{
 				int numA = rnd.nextInt(10000)-5000, numB=rnd.nextInt(10000)-5000;
-				OtpErlangTuple response = (OtpErlangTuple)r.call(new OtpErlangObject[]{new OtpErlangAtom("echo"),
+				ErlangRunner rn = new ErlangRunner(r.traceRunnerNode);rn.forceReady();// only using default instances
+				OtpErlangTuple response = (OtpErlangTuple)rn.call(new OtpErlangObject[]{new OtpErlangAtom("echo"),
 						new OtpErlangList(new OtpErlangObject[]{ new OtpErlangAtom(dataHead), new OtpErlangInt(numA), new OtpErlangInt(numB),new OtpErlangAtom(dataC)})},
 						0);
 
@@ -216,7 +221,7 @@ public class TestErlangRunner {
 	{
 		OtpErlangTuple tuple = makeCall(erlang);
 		Assert.assertEquals(dataHead,((OtpErlangAtom)tuple.elementAt(0)).atomValue());
-		Assert.assertEquals("tracerunner",((OtpErlangAtom)tuple.elementAt(1)).atomValue());
+		Assert.assertTrue( ((OtpErlangAtom)tuple.elementAt(1)).atomValue().startsWith("erlangRunner_"));
 		OtpErlangObject [] list = ((OtpErlangList)tuple.elementAt(2)).elements();
 		Assert.assertEquals(2, list.length);
 		Assert.assertEquals(dataB,((OtpErlangAtom)list[0]).atomValue());
@@ -262,7 +267,7 @@ public class TestErlangRunner {
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.write("someJunk");wr.close();
 		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(output,erl,true);
+			ErlangRunner.compileErl(output,erlRuntime.createNewRunner(),true);
 		}},RuntimeException.class,"failedToCompile");// error message returned by Erlang code
 	}
 	
@@ -275,7 +280,7 @@ public class TestErlangRunner {
 	@Test
 	public void testCompile1b() throws IOException
 	{
-		ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(),"tracerunner.erl"),erl,true);
+		ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(),"tracerunner.erl"),erlRuntime.createNewRunner(),true);
 	}
 	
 	public void createAndCompile(String MagicNumber,ErlangRunner runner) throws IOException
@@ -325,7 +330,7 @@ public class TestErlangRunner {
 	@Test
 	public void testCompileAndRun1b() throws IOException
 	{
-		createAndCompile("42",erl);attemptRun("42");
+		createAndCompile("42",erlRuntime.createNewRunner());attemptRun("42");
 	}
 
 	public void checkCompileHonoursModifyDate(ErlangRunner runner) throws IOException, InterruptedException
@@ -363,7 +368,7 @@ public class TestErlangRunner {
 	@Test
 	public void testCompileAndRun2b() throws IOException, InterruptedException
 	{
-		checkCompileHonoursModifyDate(erl);
+		checkCompileHonoursModifyDate(erlRuntime.createNewRunner());
 	}
 	
 	@Test
@@ -409,47 +414,6 @@ public class TestErlangRunner {
         Assert.assertTrue("Unexpected error message: "+msgWithErrorText,msgWithErrorText.contains("Crash dump was written to: erl_crash.dump"));
 	}
 		
-	@Test
-	public void testStartErlangFailure1a()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new ErlangRunner().startErlang("halt", 0);
-		}},IllegalArgumentException.class,"timeout");
-	}
-	
-	@Test
-	public void testStartErlangFailure1b()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new ErlangRunner().startErlang("halt", 1000);
-		}},IllegalArgumentException.class,"timeout");
-	}
-	
-	@Test
-	public void testStartErlangFailure2a()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new ErlangRunner().startErlang("error", 0);
-		}},IllegalArgumentException.class,"timeout");
-	}
-	
-	@Test
-	public void testStartErlangFailure2b()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new ErlangRunner().startErlang("error", 1000);
-		}},IllegalArgumentException.class,"timeout");
-	}
-	
-	@Test
-	public void testErlangResponseTimeout1()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.startErlang("noserver", 0);// this one makes a call to listprocesses and hence times out if the server does not start
-			//makeCall(erl);
-		}},IllegalArgumentException.class,"timeout");
-	}
-	
 	/** Almost the same as testErlangRunner1 
 	 * but arguments are mangled hence they fail to patternmatch in the server and 
 	 * we receive a timeout.
@@ -458,7 +422,7 @@ public class TestErlangRunner {
 	public void testErlangResponseTimeout2()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},2000);
+			runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
 		}},IllegalArgumentException.class,"timeout");
 	}
 
@@ -469,7 +433,7 @@ public class TestErlangRunner {
 	public void testErlangResponseTimeout3()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(new OtpErlangObject[]{new OtpErlangAtom("noreply")},2000);
+			runner.call(new OtpErlangObject[]{new OtpErlangAtom("noreply")},200);
 		}},IllegalArgumentException.class,"timeout");
 	}
 
@@ -479,13 +443,13 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangResponseTimeout4() throws InterruptedException
 	{
-		checkEcho(erl);
-		erl.erlangProcess.destroy();
-		erl.erlangProcess.waitFor();
+		checkEcho(runner);
+		erlRuntime.erlangProcess.destroy();
+		erlRuntime.erlangProcess.waitFor();
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			makeCall(erl);
+			makeCall(runner);
 		}},IllegalArgumentException.class,"timeout");
-		erl.killErlang();
+		erlRuntime.killErlang();
 	}
 	
 	/** Checks that we timeout after the first failure. Perhaps Erlang needs restarting in this case, not sure about this
@@ -493,13 +457,13 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangResponseTimeout5()
 	{
-		checkEcho(erl);
-		checkEcho(erl);
+		checkEcho(runner);
+		checkEcho(runner);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},2000);
+			runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
 		}},IllegalArgumentException.class,"timeout");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			makeCall(erl);
+			makeCall(runner);
 		}},IllegalArgumentException.class,"timeout");
 		
 	}
@@ -509,7 +473,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecoding1()
 	{
 		
-		OtpErlangTuple response = erl.call(
+		OtpErlangTuple response = runner.call(
 				new OtpErlangObject[]{new OtpErlangAtom("echo2Tuple"), new OtpErlangAtom("aaa")},
 				"ErrMsg");
 		Assert.assertEquals(new OtpErlangTuple(new OtpErlangObject[]{ErlangRunner.okAtom, new OtpErlangAtom("aaa"), new OtpErlangAtom("bbb")}),
@@ -521,7 +485,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecoding2()
 	{
 		
-		OtpErlangTuple response = erl.call(
+		OtpErlangTuple response = runner.call(
 				new OtpErlangObject[]{new OtpErlangAtom("echo2Notuple"), new OtpErlangAtom("aaa")},
 				"ErrMsg");
 		Assert.assertNull(response);
@@ -531,7 +495,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecodeFailure1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(
+			erlRuntime.createNewRunner().call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2Error"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
 		}},RuntimeException.class,"ErrMsg : error errorProcessinG");
@@ -541,7 +505,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecodeFailure2()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(
+			runner.call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2ErrorMessage"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
 		}},RuntimeException.class,"veryLongErrorMessage");
@@ -551,7 +515,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecodeFailure3()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(
+			runner.call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2List"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
 		}},RuntimeException.class,"unexpected response type");
@@ -561,7 +525,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecodeFailure4()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(
+			runner.call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2WrongType"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
 		}},RuntimeException.class,"unexpected type in response tuple");
@@ -571,7 +535,7 @@ public class TestErlangRunner {
 	public void testCallResponseDecodeFailure5()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.call(
+			runner.call(
 					new OtpErlangObject[]{new OtpErlangAtom("echo2ShortTuple"), new OtpErlangAtom("aaa")},
 					"ErrMsg");
 		}},RuntimeException.class,"unexpectedly short response");
@@ -580,20 +544,20 @@ public class TestErlangRunner {
 	@Test 
 	public void testEvaluateTerm1()
 	{
-		Assert.assertEquals(new OtpErlangLong(25),erl.evaluateString("25"));
+		Assert.assertEquals(new OtpErlangLong(25),runner.evaluateString("25"));
 	}
 	
 	@Test 
 	public void testEvaluateTerm2()
 	{
-		Assert.assertEquals("[{10,6},{7,3},{13,9}]",ErlangLabel.dumpErlangObject(erl.evaluateString("[{X+4,X} || X <- [6,3,9] ]")));
+		Assert.assertEquals("[{10,6},{7,3},{13,9}]",ErlangLabel.dumpErlangObject(runner.evaluateString("[{X+4,X} || X <- [6,3,9] ]")));
 	}
 	
 	@Test 
 	public void testEvaluateTermFailure1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erl.evaluateString("aa/gg.");
+			runner.evaluateString("aa/gg.");
 		}},RuntimeException.class,"syntax error before");
 	}
 	

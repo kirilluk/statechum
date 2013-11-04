@@ -51,9 +51,9 @@ startRunner([Node,noserver])->verifyJavaUp(Node);
 startRunner([_Node,halt])->halt();
 startRunner([_Node,error])->erlang:error("startup error");
 
-%% Production use
+%% Production use, Node is the Java node, Arg is the name of this node.
 startRunner([Node,Arg]) ->
-	{ ok, _Pid } = gen_server:start_link({local,tracecheckServer},tracerunner,[Arg],[]),
+	{ ok, _Pid } = gen_server:start({local,tracecheckServer},tracerunner,[Arg],[]),
 	verifyJavaUp(Node).
 
 
@@ -127,9 +127,18 @@ fileNameValid([F|Others])->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({runTrace,Module, Wrapper, Trace, ModulesList}, _From, State) ->
-    	{Outcome, OPTrace, State3} = tracer3:first_failure(Module, Wrapper, Trace, ModulesList, State),
-    	{reply, {ok, Outcome, OPTrace}, State3};
+    {Outcome, OPTrace, State3} = tracer3:first_failure(Module, Wrapper, Trace, ModulesList, State),
+    {reply, {ok, Outcome, OPTrace}, State3};
 
+%% Starts a new tracerunner
+handle_call({startrunner,RunnerName}, _From, State) ->
+	{ ok, _Pid } = gen_server:start_link({local,RunnerName},tracerunner,[RunnerName],[]),
+	{reply, ok, State};
+
+%% Terminates this tracerunner
+handle_call({terminate}, _From, State) ->
+	{stop,normal, ok, State};		
+		
 %% Displays the process list
 handle_call({processes}, _From, State) ->
     {reply, {ok, processes()}, State};

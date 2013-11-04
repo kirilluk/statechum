@@ -73,23 +73,27 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	public void configErlang() {
 		// this one configures the runner.
-		ErlangRunner.getRunner().configurationToErlang(myEvalCnf.config);
-		ErlangRunner.getRunner().call(
-				new OtpErlangObject[] {
-						new OtpErlangAtom("addPath"),
-						new OtpErlangString(
-								module.sourceFolder.getAbsolutePath()) },
-				"addPath");
+		ErlangRunner.getRunner(myEvalCnf.config.getErlangMboxName()).configurationToErlang(myEvalCnf.config);
+		// Only modify paths if we are running a private instance of Erlang runtime
+		if (!myEvalCnf.config.getUseExternalErlangRuntime())
+			ErlangRunner.getRunner(myEvalCnf.config.getErlangMboxName()).call(
+					new OtpErlangObject[] {
+							new OtpErlangAtom("addPath"),
+							new OtpErlangString(
+									module.sourceFolder.getAbsolutePath()) },
+					"addPath");
 
 	}
 
 	public void finished() {
-		ErlangRunner.getRunner().call(
-				new OtpErlangObject[] {
-						new OtpErlangAtom("delPath"),
-						new OtpErlangString(
-								module.sourceFolder.getAbsolutePath()) },
-				"delPath");
+		// Only modify paths if we are running a private instance of Erlang runtime
+		if (!myEvalCnf.config.getUseExternalErlangRuntime())
+			ErlangRunner.getRunner(myEvalCnf.config.getErlangMboxName()).call(
+					new OtpErlangObject[] {
+							new OtpErlangAtom("delPath"),
+							new OtpErlangString(
+									module.sourceFolder.getAbsolutePath()) },
+					"delPath");
 	}
 
 	public String getGraphName()
@@ -544,7 +548,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 			System.out.println();
 		}
 		
-		OtpErlangTuple result = ErlangRunner.getRunner().call(
+		OtpErlangTuple result = ErlangRunner.getRunner(myEvalCnf.config.getErlangMboxName()).call(
 				new OtpErlangObject[] { 
 						new OtpErlangAtom("runTrace"),
 						new OtpErlangAtom(module.getName()),

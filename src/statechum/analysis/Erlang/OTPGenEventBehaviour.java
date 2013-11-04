@@ -17,10 +17,6 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class OTPGenEventBehaviour extends OTPBehaviour {
 
-	public OTPGenEventBehaviour(ErlangModule mod) {
-		this(mod, Configuration.getDefaultConfiguration());
-	}
-
 	public OTPGenEventBehaviour(ErlangModule mod, Configuration config) {
 		super(mod);
 		name = "gen_event";

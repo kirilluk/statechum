@@ -10,6 +10,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import statechum.Configuration;
+
 /**
  * 
  * @author ramsay
@@ -35,7 +37,8 @@ public class ErlangAppReader {
 		for (File f : folder.listFiles()) {
 			if (ErlangRunner.getErlName(f.getName()) != null) {
 				try {
-					result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
+					Configuration config = Configuration.getDefaultConfiguration();ErlangModule.setupErlangConfiguration(config,f);
+					result.modules.add(ErlangModule.loadModule(config));
 					System.out.println("");
 				} catch (Exception e) {
 					System.out.println("FAILED " + e.getMessage() + " <" + e.getClass().getName() + ">]");
@@ -84,7 +87,8 @@ public class ErlangAppReader {
 						if (m.indexOf("'") < 0) {
 							try {
 								File f = new File(folder, m + ErlangRunner.ERL.ERL.toString());
-								result.modules.add(ErlangModule.loadModule(ErlangModule.setupErlangConfiguration(f)));
+								Configuration config = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(config,f);
+								result.modules.add(ErlangModule.loadModule(config));
 								System.out.println("");
 							} catch (FileNotFoundException e) {
 								throw new RuntimeException("File " + m + ".erl not found...");

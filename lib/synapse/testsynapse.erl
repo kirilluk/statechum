@@ -91,6 +91,8 @@ contains_test_() ->
 	].
 	
 updateconfiguration_test_() ->
+	{"tests configuration updates",
+	{inparallel,
 	[
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,echo},receive {Ref,workerok} ->ok end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[]},receive {Ref,ok} ->ok end end) end,
@@ -122,9 +124,11 @@ updateconfiguration_test_() ->
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'a','b'}]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown field a")) end end) end		
 		
 		%%?USEWORKER((Pid!{Ref,updateConfiguration,[]},receive {Ref,ok} ->ok end)) end
-	].
+	]}}.
 
 uploadtraces_test_() ->
+	{"tests trace parsing",
+	{inparallel,
 	[
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,traces,a},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"Atom cannot be cast")) end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[aaa]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
@@ -147,6 +151,197 @@ uploadtraces_test_() ->
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{neg,[]},{pos,[]}]},receive {Ref,ok} -> Pid!{Ref,getTraces},receive {Ref,ok,Pos,Neg} ->?assertEqual("[[]]",Pos),?assertEqual("[[]]",Neg) end end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[]},receive {Ref,ok} -> Pid!{Ref,getTraces},receive {Ref,ok,Pos,Neg} ->?assertEqual("[]",Pos),?assertEqual("[]",Neg) end end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,getTraces},receive {Ref,ok,Pos,Neg} ->?assertEqual("[]",Pos),?assertEqual("[]",Neg) end end) end
-	].
+	]}}.
 
-	
+loadStatemachine_test_() ->
+		{"tests FSM parsing",
+	{inorder,
+	[
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,{
+					  [a,b,c]
+					  ,[{a,wibble,b},{b,wobble,c}]
+					  ,a
+					  ,[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"expected 5 components in FSM")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,{"a",
+					  [a,b,c]
+					  ,[{a,wibble,b},{b,wobble,c}]
+					  ,a
+					  ,[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,{b,
+					  [a,b,c]
+					  ,[{a,wibble,b},{b,wobble,c}]
+					  ,a
+					  ,[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"first element of a record should be")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=["a",b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,"c"]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,"wobble"]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=['',b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"empty state name")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=['',wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"empty label")) end end) end,
+
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[d]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"invalid source state")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{'',wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"invalid source state")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{"a",wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibbleA,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown label")) end end) end,
+					 
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobbleA,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown label")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,'',c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown label")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,"wobble",c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,bB},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"invalid target state")) end end) end,
+					 
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,''},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"invalid target state")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,"b"},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[]
+					  ,transitions=[]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"empty automaton")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state="a"
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=''
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"missing initial state")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=d
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"missing initial state")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{a,wibble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"non-determinism detected")) end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,ok} -> Pid!{Ref,getFSM},receive {Ref,ok,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[]
+					  ,initial_state=a
+					  ,alphabet=[]
+					 }} -> ok end end end) end,
+
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }},receive {Ref,ok} -> Pid!{Ref,getFSM},receive {Ref,ok,#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wobble,wibble]}} -> ok end end end) end
+					  
+		%% The rest is tested with TestSynapse.testParseAutomata		  
+			
+	]}}.

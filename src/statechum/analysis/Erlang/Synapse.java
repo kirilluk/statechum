@@ -17,11 +17,21 @@
  */
 package statechum.analysis.Erlang;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -95,6 +105,8 @@ public class Synapse implements Runnable {
 		msgLearn = new OtpErlangAtom("learn"),
 		msgTraces = new OtpErlangAtom("traces"),
 		msgGetTraces = new OtpErlangAtom("getTraces"),
+		msgLoadFSM = new OtpErlangAtom("loadFSM"),
+		msgGetFSM = new OtpErlangAtom("getFSM"),
 		
 		msgOk = new OtpErlangAtom("ok"),// a response suggesting that command completed successfully
 		msgWorkerOk = new OtpErlangAtom("workerok"),// a response suggesting that command completed successfully by the worker
@@ -170,14 +182,14 @@ public class Synapse implements Runnable {
 			}
 			catch(OtpErlangExit nodeExited)
 			{
-				System.out.println("Node exited "+nodeExited);
+				//System.out.println("Node exited "+nodeExited);
 				ErlangRunner.closeAll(nodeToRunTracesIn);
 			} // do nothing, assuming we've been asked to terminate
 		}
 		thisMbox.close();
 		System.out.println("Synapse terminated");
 	}
-
+	
 	public static class StatechumProcess extends QSMTool implements Runnable
 	{
 		protected static long mboxNumber=0;
@@ -202,6 +214,121 @@ public class Synapse implements Runnable {
 			refFirstResponse = refArg;
 			mbox = ErlangNode.getErlangNode().getNode().createMbox(mboxName);erlangPartner = erlangPid;supervisor = supervisorPid;
 			nodeWithTraceRunner = nodeWithTraceRunnerArg;
+		}
+		
+		protected void parseTraces(OtpErlangObject traces)
+		{
+			OtpErlangList listOfTraces = (OtpErlangList)traces;
+			for(OtpErlangObject entryObj:listOfTraces)
+			{
+				OtpErlangTuple entry = (OtpErlangTuple)entryObj;
+				if (entry.arity() != 2)
+					throw new IllegalArgumentException("invalid trace: more than a pair of pos/neg and data");
+				
+				boolean positive = false;
+				OtpErlangAtom traceType = (OtpErlangAtom)entry.elementAt(0);
+				if (traceType.atomValue().equals("pos"))
+					positive = true;
+				else
+					if (traceType.atomValue().equals("neg"))
+						positive = false;
+					else
+						throw new IllegalArgumentException("invalid trace: got "+entry.elementAt(0)+" instead of pos/neg");
+				
+				OtpErlangList traceData = (OtpErlangList)entry.elementAt(1);
+				List<Label> data = new LinkedList<Label>();
+				for(OtpErlangObject traceElement:traceData)
+					data.add(AbstractLearnerGraph.generateNewLabel( ((OtpErlangAtom)traceElement).atomValue(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()));
+				
+				if (positive) sPlus.add(data);else sMinus.add(data);
+			}		
+		}
+
+		/** Given a representation of FSM in a form of Erlang tuple, builds the corresponding graph.
+		 * 
+		 * @param obj FSM to parse
+		 * @param gr graph to fill in (whatever was in there will be replaced by the data loaded from the graph, this is necessary since we do not know the specific type to instantiate here).
+		 * @param converter label converter
+		 */
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void parseStatemachine(OtpErlangObject obj,AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, ConvertALabel converter)
+		{
+//		0	  states :: list(state()),
+//		1	  transitions :: list(transition()),
+//		2	  initial_state :: state(),
+//		3	  alphabet :: list(event())
+			OtpErlangTuple machine = (OtpErlangTuple)obj;
+			if (machine.arity() != 5)
+				throw new IllegalArgumentException("expected 5 components in FSM");
+			if (!((OtpErlangAtom)machine.elementAt(0)).atomValue().equals("statemachine"))
+				throw new IllegalArgumentException("first element of a record should be \"statemachine\"");
+			OtpErlangList states = (OtpErlangList)machine.elementAt(1),transitions = (OtpErlangList)machine.elementAt(2),alphabet = (OtpErlangList)machine.elementAt(4);
+			OtpErlangAtom initial_state = (OtpErlangAtom)machine.elementAt(3);
+
+			if (states.arity() == 0)
+				throw new IllegalArgumentException("empty automaton");
+			
+			gr.initEmpty();
+			
+			for(OtpErlangObject st:states)
+			{
+				String state = ((OtpErlangAtom)st).atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty state name");
+				gr.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state ), gr.config),gr.createNewRow());
+			}
+			
+			if (states.arity() != gr.transitionMatrix.size())
+				throw new IllegalArgumentException("repeated states in the list of states");
+			
+			Map<OtpErlangAtom,Label> atomToLabel = new HashMap<OtpErlangAtom,Label>();
+			for(OtpErlangObject l:alphabet)
+			{
+				String label = ((OtpErlangAtom)l).atomValue();if (label.isEmpty()) throw new IllegalArgumentException("empty label");
+				atomToLabel.put((OtpErlangAtom)l,AbstractLearnerGraph.generateNewLabel( label,gr.config,converter));
+			}
+			for(OtpErlangObject transitionObj:transitions)
+			{
+				OtpErlangTuple transition = (OtpErlangTuple) transitionObj;
+				if (transition.arity() != 3)
+					throw new IllegalArgumentException("expected 3 components in transition "+transition);
+				OtpErlangAtom from = (OtpErlangAtom)transition.elementAt(0),label = (OtpErlangAtom)transition.elementAt(1),to = (OtpErlangAtom)transition.elementAt(2);
+				CmpVertex fromState = gr.findVertex(VertexID.parseID(from.atomValue())), toState = gr.findVertex(VertexID.parseID(to.atomValue()));
+				if (fromState == null)
+					throw new IllegalArgumentException("invalid source state "+from.atomValue());
+				if (toState == null)
+					throw new IllegalArgumentException("invalid target state"+to.atomValue());
+				if (!atomToLabel.containsKey(label))
+					throw new IllegalArgumentException("unknown label");
+				gr.addTransition(gr.transitionMatrix.get(fromState),atomToLabel.get(label),toState);
+			}
+			
+			gr.setInit(gr.findVertex(VertexID.parseID(initial_state.atomValue())));
+			if (gr.getInit() == null)
+				throw new IllegalArgumentException("missing initial state");
+		}
+		
+		/** Turns the supplied graph into an Erlang tuple. 
+		 * @param gr graph to convert. 
+		 */
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> OtpErlangTuple constructFSM(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr)
+		{
+			List<OtpErlangObject> statesList = new LinkedList<OtpErlangObject>(), transitions = new LinkedList<OtpErlangObject>();
+			Set<OtpErlangAtom> alphabet = new HashSet<OtpErlangAtom>();
+			
+			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:gr.transitionMatrix.entrySet()) 
+			{
+				statesList.add(new OtpErlangAtom(entry.getKey().getStringId()));
+				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
+				{
+					OtpErlangAtom label = new OtpErlangAtom(transition.getKey().toErlangTerm());
+					alphabet.add(label);
+					for(CmpVertex target:gr.getTargets(transition.getValue()))
+						transitions.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()), label, new OtpErlangAtom(target.getStringId())}));
+				}
+			}
+			
+			return new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom("statemachine"),new OtpErlangList(statesList.toArray(new OtpErlangObject[0])),
+					new OtpErlangList(transitions.toArray(new OtpErlangObject[0])),
+					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.toArray(new OtpErlangObject[0])),
+			});
 		}
 		
 		@Override
@@ -237,7 +364,7 @@ public class Synapse implements Runnable {
 							mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgWorkerOk}));
 						if (command.equals(msgTerminate))
 						{
-							System.out.println("worker terminated");
+							//System.out.println("worker terminated");
 							break;
 						}
 						else
@@ -260,30 +387,7 @@ public class Synapse implements Runnable {
 										OtpErlangObject outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
 										try
 										{
-											OtpErlangList listOfTraces = (OtpErlangList)message.elementAt(2);
-											for(int i=0;i< listOfTraces.arity();++i)
-											{
-												OtpErlangTuple entry = (OtpErlangTuple)listOfTraces.elementAt(i);
-												if (entry.arity() != 2)
-													throw new IllegalArgumentException("invalid trace: more than a pair of pos/neg and data");
-												
-												boolean positive = false;
-												OtpErlangAtom traceType = (OtpErlangAtom)entry.elementAt(0);
-												if (traceType.atomValue().equals("pos"))
-													positive = true;
-												else
-													if (traceType.atomValue().equals("neg"))
-														positive = false;
-													else
-														throw new IllegalArgumentException("invalid trace: got "+entry.elementAt(0)+" instead of pos/neg");
-												
-												OtpErlangList traceData = (OtpErlangList)entry.elementAt(1);
-												List<Label> data = new LinkedList<Label>();
-												for(int j=0;j<traceData.arity();++j)
-													data.add(AbstractLearnerGraph.generateNewLabel( ((OtpErlangAtom)traceData.elementAt(j)).atomValue(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()));
-												
-												if (positive) sPlus.add(data);else sMinus.add(data);
-											}
+											parseTraces(message.elementAt(2));
 										}
 										catch(Throwable ex)
 										{
@@ -292,11 +396,41 @@ public class Synapse implements Runnable {
 										mbox.send(erlangPartner,outcome);
 									}
 									else
-									if (command.equals(msgGetTraces))
+									if (command.equals(msgGetTraces) && message.arity() == 2)
 									{
 										mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangString(sPlus.toString()),new OtpErlangString(sMinus.toString())}));
 									}
 									else
+									if (command.equals(msgLoadFSM) && message.arity() == 3)
+									{
+										OtpErlangObject outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+										try
+										{
+											learnerInitConfiguration.graph = new LearnerGraph(learnerInitConfiguration.config);
+											parseStatemachine(message.elementAt(2), learnerInitConfiguration.graph, learnerInitConfiguration.getLabelConverter());
+										}
+										catch(Throwable ex)
+										{
+											System.out.println(ex.getMessage());ex.printStackTrace();
+											outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+										}
+										mbox.send(erlangPartner,outcome);
+									}
+									else
+										if (command.equals(msgGetFSM) && message.arity() == 2)
+										{
+											OtpErlangObject outcome = null;
+											try
+											{
+												outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,constructFSM(learnerInitConfiguration.graph)});
+											}
+											catch(Throwable ex)
+											{
+												outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+											}
+											mbox.send(erlangPartner,outcome);
+										}
+										else
 									if (command.equals(msgLearn))
 									{
 										
@@ -311,7 +445,7 @@ public class Synapse implements Runnable {
 			}
 			catch(OtpErlangExit nodeExited)
 			{
-				System.out.println("Node exited "+nodeExited);
+				//System.out.println("Node exited "+nodeExited);
 			} // do nothing, assuming we've been asked to terminate
 			finally
 			{

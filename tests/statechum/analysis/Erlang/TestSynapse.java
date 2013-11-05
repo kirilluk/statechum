@@ -13,10 +13,19 @@ import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
+import statechum.analysis.Erlang.Synapse.StatechumProcess;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
 public class TestSynapse {
 
@@ -146,6 +155,46 @@ public class TestSynapse {
 				+ "synapselauncher:find_statechum()!terminate," //io:format(\"waiting for response~n\"),"
 				+ "receive Arg -> Arg end"));
 		Assert.assertTrue(response.contains("Synapse started"));Assert.assertTrue(response.contains("Synapse terminated"));
+	}
+	
+	/** Deterministic case. */
+	@Test
+	public void testParseAutomata1() throws IncompatibleStatesException
+	{
+		ConvertALabel converter = null;
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		
+		for(int states=1;states < 100;states++)
+		{
+			final int alphabet = 2*states;
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			LearnerGraph graph = mg.nextMachine(alphabet,-states, config, converter).pathroutines.buildDeterministicGraph();
+			
+			LearnerGraph parsedOutcome = new LearnerGraph(config);
+			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter);
+			DifferentFSMException diffException = WMethod.checkM(graph, parsedOutcome);
+			Assert.assertNull(diffException);
+		}
+	}
+	
+	/** Non-deterministic case. */
+	@Test
+	public void testParseAutomata2() throws IncompatibleStatesException
+	{
+		ConvertALabel converter = null;
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		
+		for(int states=1;states < 100;states++)
+		{
+			final int alphabet = 2*states;
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			LearnerGraphND graph = mg.nextMachine(alphabet,-states, config, converter);
+			
+			LearnerGraphND parsedOutcome = new LearnerGraphND(config);
+			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter);
+			DifferentFSMException diffException = WMethod.checkM(graph, parsedOutcome);
+			Assert.assertNull(diffException);
+		}
 	}
 	
 	@Test

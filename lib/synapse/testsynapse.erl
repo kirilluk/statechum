@@ -448,10 +448,9 @@ loadStatemachineRelaxed_test_() ->
 			
 	]}}.
 
-	
 parseMap_test_() ->
 	{"tests map parsing",
-	{inorder,
+	{inparallel,
 	[
 			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,a},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")) end end) end,
 			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},a]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,

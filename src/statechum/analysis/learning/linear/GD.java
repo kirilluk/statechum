@@ -1226,14 +1226,14 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	public static class ChangesRecorder implements PatchGraph
 	{
 		/** Vertices removed from A. */
-		private final LearnerGraphND removed;
+		protected final LearnerGraphND removed;
 
 		/** Vertices added by B. */
-		private final LearnerGraphND added;
+		protected final LearnerGraphND added;
 		
 		private final PatchGraph addedPatcher, removedPatcher;
 		
-		private final Map<VertID,VertID> relabelling = new TreeMap<VertID,VertID>(); 
+		protected final Map<VertID,VertID> relabelling = new TreeMap<VertID,VertID>(); 
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;

@@ -170,6 +170,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     	public boolean showNegatives = true;
     	public double scaleText = 1.0;
     	public double scaleLines = 1.0;
+    	public boolean showDIFF = false;
     	
     	public LayoutOptions( )
     	{
@@ -442,6 +443,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         //this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         this.addWindowListener(new WindowEventHandler());
+        /*
         this.addComponentListener(new ComponentListener() {
 			
 			@Override
@@ -457,7 +459,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 			
 			@Override
 			public void componentHidden(@SuppressWarnings("unused") ComponentEvent e) {}
-		});
+		});*/
         this.addKeyListener(new KeyListener() {
 
             @Override
@@ -498,10 +500,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         graphMouse.add(new PickingGraphMousePlugin());
         viewer.setGraphMouse(graphMouse);
         viewer.setPickSupport(new ShapePickSupport());
-        viewer.addMouseListener(this);viewer.setPreferredSize(getSize());
+        viewer.addMouseListener(this);
+        
         final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
         getContentPane().add(panel);
         pack();
+        viewer.setPreferredSize(getSize());
+        //viewer.getModel().getGraphLayout().initialize(getSize());
       
         restoreLayout(true, currentGraph);
         setBounds(framePosition.getRect());
@@ -559,14 +564,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             wasInitialised = true;
         } else {
             viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
-            //viewer.getModel().getGraphLayout().initialize(getSize());
 
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
         }
 
-        viewer.getModel().getGraphLayout().resize(getSize());
+       // viewer.getModel().getGraphLayout().initialize(getSize());
     }
 
     
@@ -581,9 +585,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             String fileName = getLayoutFileName(graphs.get(graphNumber));
             if (propName >= 0 && (new File(fileName)).canRead()) {
                 decoder = new XMLDecoder(new FileInputStream(fileName));
-                @SuppressWarnings("unchecked")
+                //@SuppressWarnings("unchecked")
 				Map<Integer, DoublePair> map = (Map<Integer, DoublePair>) decoder.readObject();
-                ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
 
                 // Most rotate/share/translate are stateless, so I only need to get the cumulative transform
                 // for layout and view via getTransform() which should return AffineTransform
@@ -593,11 +596,14 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 viewer.getViewTransformer().setToIdentity();
                 viewer.getViewTransformer().concatenate(
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
+ 
                 viewer.getLayoutTransformer().setToIdentity();
                 viewer.getLayoutTransformer().concatenate(
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
                 ((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
                 layoutOptions.put(propName,(LayoutOptions)decoder.readObject());
+                ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).initialize(getSize());
+                ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
                 viewer.invalidate();
             }
         } catch (Exception e1) {
@@ -642,6 +648,12 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         public void setY(double b) {
             y = b;
+        }
+        
+        @Override
+        public String toString()
+        {
+        	return "DPair("+x+","+y+")";
         }
     }
 
@@ -809,6 +821,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                         assert !(e instanceof UndirectedEdge); 
                     }
                     
+                    // For difference visualisation only
+                    boolean labelBelow = false;
+                    if (graphLayoutOptions.showDIFF && (draw_paint == null || draw_paint instanceof Color && ((Color)draw_paint).equals(Color.BLACK)))
+                    	labelBelow = true;
+                    
                     // Now draw the label.
                     double xLabel = 0,yLabel = 0,xa=0,ya=0,rotation=thetaRadians;
                     if (isLoop)
@@ -822,7 +839,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     else
                     if (dx < 0)
                     {
-                       	double displacementY = -yMax-d.height, displacementX=d.width/2;
+                       	double displacementY = labelBelow?yMax-d.height:(-yMax-d.height), displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa+displacementX*Math.cos(thetaRadians);
@@ -831,7 +848,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     }
                     else
                     {
-                    	double displacementY = -yMax, displacementX=d.width/2;
+                    	double displacementY = labelBelow?yMax:-yMax, displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa-displacementX*Math.cos(thetaRadians);
@@ -841,7 +858,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     AffineTransform old = g2d.getTransform();
                     AffineTransform labelTransform = new AffineTransform();
                     // Debug code: 
-                    // g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
+                    //g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
                     labelTransform.translate(xLabel, yLabel);
                     labelTransform.rotate(rotation);
                     g2d.setTransform(labelTransform);
@@ -964,19 +981,28 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         public final Color inconsistent = Color.MAGENTA;
 
         @SuppressWarnings("unchecked")
-		public Color getPickedColour(ArchetypeEdge e) {
-            Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
-            Iterator<Label> labelIt = labels.iterator();
+		public Color getPickedColour(ArchetypeEdge e,final LayoutOptions graphLayoutOptions) 
+        {
             Color col = null;
-            while (labelIt.hasNext()) {
-            	Label currentLabel = labelIt.next();
-                Color newCol = getEdgeColour(e, currentLabel);
-                if (col == null) {
-                    col = newCol;
-                } else if (!col.equals(newCol)) {
-                    col = inconsistent;
-                }
+        	
+        	if (!graphLayoutOptions.showDIFF)
+        	{
+	        	Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
+	            Iterator<Label> labelIt = labels.iterator();
+	            while (labelIt.hasNext()) 
+	            {
+	            	Label currentLabel = labelIt.next();
+	                Color newCol = getEdgeColour(e, currentLabel);
+	                if (col == null) {
+	                    col = newCol;
+	                } else if (!col.equals(newCol)) {
+	                    col = inconsistent;
+	                }
+	            }
             }
+        	else
+	            if (e.containsUserDatumKey(JUConstants.DIFF))
+	            	col = (Color)e.getUserDatum(JUConstants.DIFF);
             return col;
         }
     }
@@ -996,21 +1022,35 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     boolean first=true;
                     //final String blowupAttribute = Math.abs(graphLayoutOptions.scaleText - 1)<Configuration.fpAccuracy?" ":
                     //	" style=\"font-size:"+Math.round(graphLayoutOptions.scaleText*100.)+"%\"";
+                    String color="black";
+                    if (e.containsUserDatumKey(JUConstants.DIFF))
+                    {
+                    	Color rgb = (Color)e.getUserDatum(JUConstants.DIFF);
+                    	color = "rgb("+rgb.getRed()+","+rgb.getGreen()+","+rgb.getBlue()+")";
+                    }
                     for(Label lbl:(Set<Label>) e.getUserDatum(JUConstants.LABEL))
                     {
-                    	if (!first) text.append("<br>");else first=false;
+                    	if (!first)
+                    	{// choose separator
+                    		if (!graphLayoutOptions.showDIFF)
+                    			text.append("<br>");// default layout is vertical
+                    		else
+                    			text.append(", ");// it is horizontal for FSMDiff because there are many parallel edges there.
+                    	}
+                    	else first=false;
+                    	
                     	if (!(lbl instanceof ErlangLabel))
                     	{
-                    		text.append(lbl.toString());
+                    		text.append("<font color="+color+">");text.append(lbl.toString());
                     	}
                     	else
                     	{
                     		ErlangLabel l = (ErlangLabel)lbl;
                     		text.append("<font color=blue>");text.append(l.callName);text.append("</font>,&nbsp;");
-                    		text.append("<font color=black>");text.append(l.input);text.append("</font>");
+                    		text.append("<font color="+color+">");text.append(l.input);text.append("</font>");
                     		if (l.expectedOutput != null)
                     		{
-                    			text.append(",&nbsp;<font color=green>");text.append(l.expectedOutput);text.append("</font>");
+                    			text.append(",&nbsp;<font color=black>");text.append(l.expectedOutput);text.append("</font>");
                     		}
                     	}
                     }
@@ -1029,7 +1069,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
             @Override
             public Paint getDrawPaint(Edge e) {
-                Color result = paintChooser.getPickedColour(e);
+                Color result = paintChooser.getPickedColour(e,graphLayoutOptions);
                 return result != null ? result : Color.BLACK;
             }
         });
@@ -1278,6 +1318,20 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             super(layout);
         }
         
+        @Override
+        public String toString()
+        {
+        	StringBuffer outcome = new StringBuffer();
+        	
+			Set<Vertex> set = getGraph().getVertices();
+            for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
+                Vertex v = iterator.next();
+                DoublePair p = new DoublePair(getX(v), getY(v));outcome.append(p.toString());
+            }
+            
+            return outcome.toString();
+        }
+        
         /** Almost verbatim from Jung source code.
          *
          * Saves all the vertex locations to a map - this is enough to rebuild the layout
@@ -1286,9 +1340,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
          * @return map containing the layout.
          */
         public Map<Integer, DoublePair> persist() {
-            if (sourceMap == null) {
-                sourceMap = new TreeMap<Integer, DoublePair>();
-            }
+            sourceMap = new TreeMap<Integer, DoublePair>();
+
             @SuppressWarnings("unchecked")
 			Set<Vertex> set = getGraph().getVertices();
             for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
@@ -1312,10 +1365,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
          */
         @SuppressWarnings("unchecked")
 		public void restore(Map<Integer, DoublePair> loadedMap) {
-            if (sourceMap == null) {
-                sourceMap = new TreeMap<Integer, DoublePair>();
-            }
-            sourceMap.putAll(loadedMap);
+           sourceMap = new TreeMap<Integer, DoublePair>();
+           sourceMap.putAll(loadedMap);
             for (Iterator<Map.Entry<Integer, DoublePair>> mi = sourceMap.entrySet().iterator(); mi.hasNext();) {
                 Map.Entry<Integer, DoublePair> e = mi.next();
                 DoublePair p = e.getValue();

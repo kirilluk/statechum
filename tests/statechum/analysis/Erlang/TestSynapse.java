@@ -3,6 +3,9 @@ package statechum.analysis.Erlang;
 import static statechum.Helper.checkForCorrectException;
 
 import java.io.File;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -14,7 +17,9 @@ import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.Erlang.Synapse.StatechumProcess;
@@ -163,17 +168,22 @@ public class TestSynapse {
 	{
 		ConvertALabel converter = null;
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		
+		Random rnd=new Random(0);
 		for(int states=1;states < 100;states++)
 		{
 			final int alphabet = 2*states;
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 			LearnerGraph graph = mg.nextMachine(alphabet,-states, config, converter).pathroutines.buildDeterministicGraph();
-			
+						
 			LearnerGraph parsedOutcome = new LearnerGraph(config);
-			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter);
+			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter,true);
 			DifferentFSMException diffException = WMethod.checkM(graph, parsedOutcome);
 			Assert.assertNull(diffException);
+
+			Map<VertID,VertID> map = new TreeMap<VertID,VertID>();
+			for(int i=0;i<20;++i) map.put(graph.pathroutines.pickRandomState(rnd),graph.pathroutines.pickRandomState(rnd));
+			Map<VertID,VertID> mapOutcome = StatechumProcess.parseMap(StatechumProcess.mapToObject(map));
+			Assert.assertEquals(map,mapOutcome);
 		}
 	}
 	
@@ -183,6 +193,7 @@ public class TestSynapse {
 	{
 		ConvertALabel converter = null;
 		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Random rnd=new Random(0);
 		
 		for(int states=1;states < 100;states++)
 		{
@@ -191,9 +202,14 @@ public class TestSynapse {
 			LearnerGraphND graph = mg.nextMachine(alphabet,-states, config, converter);
 			
 			LearnerGraphND parsedOutcome = new LearnerGraphND(config);
-			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter);
+			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter,true);
 			DifferentFSMException diffException = WMethod.checkM(graph, parsedOutcome);
 			Assert.assertNull(diffException);
+
+			Map<VertID,VertID> map = new TreeMap<VertID,VertID>();
+			for(int i=0;i<20;++i) map.put(graph.pathroutines.pickRandomState(rnd),graph.pathroutines.pickRandomState(rnd));
+			Map<VertID,VertID> mapOutcome = StatechumProcess.parseMap(StatechumProcess.mapToObject(map));
+			Assert.assertEquals(map,mapOutcome);
 		}
 	}
 	

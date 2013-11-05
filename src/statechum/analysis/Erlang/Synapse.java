@@ -24,8 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -106,7 +108,9 @@ public class Synapse implements Runnable {
 		msgTraces = new OtpErlangAtom("traces"),
 		msgGetTraces = new OtpErlangAtom("getTraces"),
 		msgLoadFSM = new OtpErlangAtom("loadFSM"),
+		msgTestMapParsing = new OtpErlangAtom("testMapParsing"),
 		msgGetFSM = new OtpErlangAtom("getFSM"),
+		msgTestLoadFSM = new OtpErlangAtom("testLoadFSM"),
 		
 		msgOk = new OtpErlangAtom("ok"),// a response suggesting that command completed successfully
 		msgWorkerOk = new OtpErlangAtom("workerok"),// a response suggesting that command completed successfully by the worker
@@ -244,18 +248,46 @@ public class Synapse implements Runnable {
 			}		
 		}
 
+		public static Map<VertID,VertID> parseMap(OtpErlangObject obj)
+		{
+			Map<VertID,VertID> outcome = new TreeMap<VertID,VertID>();
+			OtpErlangList map = (OtpErlangList)obj;
+			for(OtpErlangObject entry:map)
+			{
+				OtpErlangTuple entryTuple = (OtpErlangTuple)entry;
+				if (entryTuple.arity() != 2)
+					throw new IllegalArgumentException("invalid tuple "+entryTuple);
+				
+				String stateA = ((OtpErlangAtom)entryTuple.elementAt(0)).atomValue();if (stateA.isEmpty()) throw new IllegalArgumentException("empty first state name");
+				String stateB = ((OtpErlangAtom)entryTuple.elementAt(1)).atomValue();if (stateB.isEmpty()) throw new IllegalArgumentException("empty second state name");
+				outcome.put(VertexID.parseID( stateA ),VertexID.parseID( stateB ) );
+			}
+			return outcome;
+		}
+		
+		public static OtpErlangList mapToObject(Map<VertID,VertID> map)
+		{
+			List<OtpErlangObject> outcome = new LinkedList<OtpErlangObject>();
+			for(Entry<VertID,VertID> entry:map.entrySet())
+			{
+				outcome.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()),new OtpErlangAtom(entry.getValue().getStringId())}));
+			}
+			return new OtpErlangList(outcome.toArray(new OtpErlangObject[0]));
+		}
+		
 		/** Given a representation of FSM in a form of Erlang tuple, builds the corresponding graph.
 		 * 
 		 * @param obj FSM to parse
 		 * @param gr graph to fill in (whatever was in there will be replaced by the data loaded from the graph, this is necessary since we do not know the specific type to instantiate here).
 		 * @param converter label converter
+		 * @param checkStates if true, will check that all source and target states have been defined earlier. If false, will add them if needed.
 		 */
-		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void parseStatemachine(OtpErlangObject obj,AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, ConvertALabel converter)
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void parseStatemachine(OtpErlangObject obj,AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, ConvertALabel converter, boolean checkStates)
 		{
-//		0	  states :: list(state()),
-//		1	  transitions :: list(transition()),
-//		2	  initial_state :: state(),
-//		3	  alphabet :: list(event())
+//		1	  states :: list(state()),
+//		2	  transitions :: list(transition()),
+//		3	  initial_state :: state(),
+//		4	  alphabet :: list(event())
 			OtpErlangTuple machine = (OtpErlangTuple)obj;
 			if (machine.arity() != 5)
 				throw new IllegalArgumentException("expected 5 components in FSM");
@@ -264,7 +296,7 @@ public class Synapse implements Runnable {
 			OtpErlangList states = (OtpErlangList)machine.elementAt(1),transitions = (OtpErlangList)machine.elementAt(2),alphabet = (OtpErlangList)machine.elementAt(4);
 			OtpErlangAtom initial_state = (OtpErlangAtom)machine.elementAt(3);
 
-			if (states.arity() == 0)
+			if (states.arity() == 0 && checkStates)
 				throw new IllegalArgumentException("empty automaton");
 			
 			gr.initEmpty();
@@ -292,17 +324,50 @@ public class Synapse implements Runnable {
 				OtpErlangAtom from = (OtpErlangAtom)transition.elementAt(0),label = (OtpErlangAtom)transition.elementAt(1),to = (OtpErlangAtom)transition.elementAt(2);
 				CmpVertex fromState = gr.findVertex(VertexID.parseID(from.atomValue())), toState = gr.findVertex(VertexID.parseID(to.atomValue()));
 				if (fromState == null)
-					throw new IllegalArgumentException("invalid source state "+from.atomValue());
+					if (!checkStates)
+					{
+						String state = from.atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty source state");
+						fromState = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state), gr.config );
+						gr.transitionMatrix.put(fromState,gr.createNewRow());
+					}
+					else
+							throw new IllegalArgumentException("invalid source state "+from.atomValue());
+				
 				if (toState == null)
-					throw new IllegalArgumentException("invalid target state"+to.atomValue());
+					if (!checkStates)
+					{
+						String state = to.atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty target state");
+						toState = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state), gr.config );
+						gr.transitionMatrix.put(toState,gr.createNewRow());
+					}
+					else
+						throw new IllegalArgumentException("invalid target state"+to.atomValue());
+				
 				if (!atomToLabel.containsKey(label))
-					throw new IllegalArgumentException("unknown label");
+				{
+					if (!checkStates)
+					{
+						String l = label.atomValue();if (l.isEmpty()) throw new IllegalArgumentException("empty label");
+						atomToLabel.put(label,AbstractLearnerGraph.generateNewLabel( l,gr.config,converter));
+					}
+					else
+						throw new IllegalArgumentException("unknown label");
+				}
 				gr.addTransition(gr.transitionMatrix.get(fromState),atomToLabel.get(label),toState);
 			}
 			
 			gr.setInit(gr.findVertex(VertexID.parseID(initial_state.atomValue())));
 			if (gr.getInit() == null)
-				throw new IllegalArgumentException("missing initial state");
+			{
+				if (!checkStates)
+				{
+					String state = initial_state.atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty initial state");
+					CmpVertex initState = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state), gr.config );gr.transitionMatrix.put(initState,gr.createNewRow());
+					gr.setInit(initState);
+				}
+				else
+					throw new IllegalArgumentException("missing initial state");
+			}
 		}
 		
 		/** Turns the supplied graph into an Erlang tuple. 
@@ -401,22 +466,39 @@ public class Synapse implements Runnable {
 										mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangString(sPlus.toString()),new OtpErlangString(sMinus.toString())}));
 									}
 									else
-									if (command.equals(msgLoadFSM) && message.arity() == 3)
-									{
-										OtpErlangObject outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
-										try
+										if (command.equals(msgLoadFSM) && message.arity() == 3)
 										{
-											learnerInitConfiguration.graph = new LearnerGraph(learnerInitConfiguration.config);
-											parseStatemachine(message.elementAt(2), learnerInitConfiguration.graph, learnerInitConfiguration.getLabelConverter());
+											OtpErlangObject outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+											try
+											{
+												learnerInitConfiguration.graph = new LearnerGraph(learnerInitConfiguration.config);
+												parseStatemachine(message.elementAt(2), learnerInitConfiguration.graph, learnerInitConfiguration.getLabelConverter(),true);
+											}
+											catch(Throwable ex)
+											{
+												System.out.println(ex.getMessage());ex.printStackTrace();
+												outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+											}
+											mbox.send(erlangPartner,outcome);
 										}
-										catch(Throwable ex)
-										{
-											System.out.println(ex.getMessage());ex.printStackTrace();
-											outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
-										}
-										mbox.send(erlangPartner,outcome);
-									}
-									else
+										else
+											if (command.equals(msgTestLoadFSM) && message.arity() == 3)
+											{
+												OtpErlangObject outcome = null;
+												try
+												{
+													learnerInitConfiguration.graph = new LearnerGraph(learnerInitConfiguration.config);
+													parseStatemachine(message.elementAt(2), learnerInitConfiguration.graph, learnerInitConfiguration.getLabelConverter(),false);
+													outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,constructFSM(learnerInitConfiguration.graph)});
+												}
+												catch(Throwable ex)
+												{
+													System.out.println(ex.getMessage());ex.printStackTrace();
+													outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+												}
+												mbox.send(erlangPartner,outcome);
+											}
+											else
 										if (command.equals(msgGetFSM) && message.arity() == 2)
 										{
 											OtpErlangObject outcome = null;
@@ -431,11 +513,25 @@ public class Synapse implements Runnable {
 											mbox.send(erlangPartner,outcome);
 										}
 										else
-									if (command.equals(msgLearn))
-									{
-										
-									}
-									else 
+											if (command.equals(msgTestMapParsing) && message.arity() == 3)
+											{
+												OtpErlangObject outcome = null;
+												try
+												{
+													outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,mapToObject(parseMap(message.elementAt(2)))});
+												}
+												catch(Throwable ex)
+												{
+													outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+												}
+												mbox.send(erlangPartner,outcome);
+											}
+											else 
+												if (command.equals(msgLearn))
+												{
+													
+												}
+												else 
 										mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgInvalidCommand}));
 				}
 						

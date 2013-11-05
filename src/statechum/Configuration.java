@@ -1648,7 +1648,7 @@ public class Configuration implements Cloneable {
 						"cannot deserialise unknown field " + attrName);
 		} catch (Exception e) {
 			throwUnchecked("failed to load value of "
-					+ (var == null ? "UNKNOWN" : var.getName()), e);
+					+ (var == null ? "UNKNOWN" : var.getName())+", message is "+e.getMessage(), e);
 		}
 	}
 }

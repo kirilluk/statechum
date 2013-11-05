@@ -1,7 +1,7 @@
 %%% -------------------------------------------------------------------
-%%% Author  : kirr
+%%% Author  : Kirill
 %%% Description : Runs traces on Erlang modules and reports results.
-%%% Copyright (c) 2011 The University of Sheffield
+%%% Copyright (c) 2013 The University of Sheffield
 %%% 
 %%% This file is part of StateChum
 %%% 
@@ -114,6 +114,12 @@ constructNodeDetails() ->
 
 -define(StatechumName,'javaStatechumProcess').
 
+obtainCookie(MergedOptions) ->
+	case dict:find('Cookie',MergedOptions) of
+		{ok,Value} -> Value; %% Value is an atom, otherwise options validation will fail.
+		_ ->erlang:get_cookie()
+	end.
+
 %%% this one needs R_HOME to be set /library/rJava/jri/x64
 %%% need to test with the wrong value of ref returned
 launch(OptionsList,PidToNotify) ->
@@ -131,6 +137,13 @@ launch(OptionsList,PidToNotify) ->
 		error ->[]
 	end,
 	
+	Cookie = obtainCookie(MergedOptions),
+	CurrentCookie = erlang:get_cookie(),
+	if 
+		Cookie =/= CurrentCookie -> erlang:set_cookie(Cookie);
+		true -> ok
+	end,
+	
 	%% now merge Java options.
 	JavaDefaultsList = [
 		{'-cp',["bin","lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar","lib/OtpErlang.jar","lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
@@ -143,7 +156,7 @@ launch(OptionsList,PidToNotify) ->
 	case constructNodeDetails() of
 		{NodeName,PidName} ->
 			Port = open_port({spawn_executable, Java}, [hide,in,stderr_to_stdout,use_stdio,{cd, StatechumDir}] ++ OtherOptions ++[{args,["-ea"] ++ FullJavaOptions ++ 
-				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(erlang:get_cookie()), atom_to_list(PidName), node()]}]),
+				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(Cookie), atom_to_list(PidName), node()]}]),
 			process_flag(trap_exit, true),
 			waitForJavaNode(NodeName,10),
 			Ref = make_ref(),
@@ -195,11 +208,10 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)
 			end;
 		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
-		{A,B,C,D} -> Pid!{A,B,C,D},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
-		{A,B,C,D,E} -> Pid!{A,B,C,D,E},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
-		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput); %% here we expect Statechum to terminate and output to become available.
-		{'EXIT', ParentPid, _ } -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,false); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
-		{'EXIT', Port, _} -> if AccumulateOutput == true -> ParentPid!ResponseAsText; true -> ok end
+		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
+		{'EXIT', ParentPid, _ } when is_pid(ParentPid) -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,false); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
+		{'EXIT', Port, _} when is_port(Port) -> if AccumulateOutput == true -> ParentPid!ResponseAsText,ok; true -> ok end;
+		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) %% here we expect Statechum to terminate and output to become available.
 %%		after 3000 -> 
 %%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)  end
 	end.

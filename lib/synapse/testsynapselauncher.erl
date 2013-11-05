@@ -1,7 +1,7 @@
 %%% -------------------------------------------------------------------
-%%% Author  : kirr
+%%% Author  : Kirill
 %%% Description : Runs traces on Erlang modules and reports results.
-%%% Copyright (c) 2011 The University of Sheffield
+%%% Copyright (c) 2013 The University of Sheffield
 %%% 
 %%% This file is part of StateChum
 %%% 

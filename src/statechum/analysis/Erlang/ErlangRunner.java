@@ -431,11 +431,12 @@ public class ErlangRunner {
 				OtpErlangTuple pair = (OtpErlangTuple) p;
 				if (pair.arity() != 2)
 					throw new IllegalArgumentException("key-value pair is not a pair, got "+p);
-				config.assignValue(pair.elementAt(0).toString(), pair.elementAt(1).toString(), true);
+				config.assignValue(pair.elementAt(0).toString(), ((OtpErlangAtom)pair.elementAt(1)).atomValue(), true);
 			}
 		}
 		catch(Throwable ex)
 		{
+			System.out.println(ex);
 			outcome = ex.getMessage();
 		}
 		

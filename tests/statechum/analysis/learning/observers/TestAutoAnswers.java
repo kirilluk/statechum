@@ -27,8 +27,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.Configuration.STATETREE;
@@ -40,6 +42,7 @@ import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRuntime;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -99,7 +102,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testPrettyPrintTrace1() throws IOException
 	{
-		File file = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker/locker.erl");
+		File file = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker/locker.erl");config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
 		ErlangModule.setupErlangConfiguration(config,file);config.setErlangCompileIntoBeamDirectory(true);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		ErlangModule.loadModule(config);
 		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
@@ -112,6 +115,18 @@ public class TestAutoAnswers {
 	
 	private ConvertALabel converter = null;
 	private Configuration config;
+	
+	@BeforeClass
+	public static void beforeClass()
+	{
+		ErlangRuntime.getDefaultRuntime();
+	}
+	
+	@AfterClass
+	public static void afterClass()
+	{
+		ErlangRuntime.getDefaultRuntime().killErlang();
+	}
 	
 	@Before
 	public void setup()

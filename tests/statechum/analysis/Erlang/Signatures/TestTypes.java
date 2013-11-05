@@ -884,7 +884,7 @@ public class TestTypes
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(fun (A) -> A+1 end),dict:new())");
-		}},RuntimeException.class,"Unsupported type: functions");
+		}},IllegalArgumentException.class,"Unsupported type: functions");
 	}
 	
 	@Test
@@ -893,7 +893,7 @@ public class TestTypes
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			Signature.buildFromType(defaultConfig, runner.evaluateString(
 					"typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
-		}},RuntimeException.class,"we cannot instantiate PIDs");
+		}},IllegalArgumentException.class,"we cannot instantiate PIDs");
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
 		
@@ -904,7 +904,7 @@ public class TestTypes
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			Signature.buildFromType(defaultConfig, runner.evaluateString(
 					"[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
-		}},RuntimeException.class,"we cannot instantiate Ports");
+		}},IllegalArgumentException.class,"we cannot instantiate Ports");
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
 	}

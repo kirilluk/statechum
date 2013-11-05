@@ -183,7 +183,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"empty term");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	/** Junk at the end of term. */
@@ -196,7 +196,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected characters at the end of string to parse");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	/** Junk at the end of term which can be retrieved. */
@@ -381,7 +381,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 		
 	@Test
@@ -535,7 +535,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"invalid token type");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -547,7 +547,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"in parsing erlang number");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -694,7 +694,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"cannot be represented");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -724,7 +724,7 @@ public class TestErlangParser {
 		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	/** Erlang refuses to parse 4.e10, I think this is wrong hence my parser accepts this. */
@@ -740,7 +740,7 @@ public class TestErlangParser {
 		}
 		catch(Exception ex)
 		{
-			Assert.assertEquals(RuntimeException.class, ex.getClass());
+			Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
 			Assert.assertTrue(ex.getMessage().contains("badmatch") || ex.getMessage().contains("illegal_expr"));// Erlang 16 returns badmatch, 14 and 15 return "illegal_expr"
 		}
 	}
@@ -802,7 +802,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"is never allowed in an atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 
 	/** Invalid characters after backslash. */
@@ -815,7 +815,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"is never allowed in an atom");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -839,7 +839,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"cannot start with a dot");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -884,7 +884,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -896,7 +896,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -908,7 +908,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -920,7 +920,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -932,7 +932,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -944,7 +944,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -956,7 +956,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma in parsing tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -968,7 +968,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma in parsing tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -980,7 +980,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -992,7 +992,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"invalid token type 13");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	/** invalid atoms. */
@@ -1097,7 +1097,7 @@ public class TestErlangParser {
 			if (!erlException.isEmpty())
 				checkForCorrectException(new whatToRun() { public @Override void run() {
 					runner.evaluateString(text);
-				}},RuntimeException.class,erlException);
+				}},IllegalArgumentException.class,erlException);
 		}
 	}
 	
@@ -1213,7 +1213,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1225,7 +1225,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1237,7 +1237,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1249,7 +1249,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1261,7 +1261,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1273,7 +1273,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1285,7 +1285,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1297,7 +1297,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1309,7 +1309,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1321,7 +1321,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected bar in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1333,7 +1333,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected end of list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1345,7 +1345,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1357,7 +1357,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"missing tail in improper list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1369,7 +1369,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1381,7 +1381,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected comma");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1393,7 +1393,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"expecting comma in parsing list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1405,7 +1405,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"missing tail in improper list");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1417,7 +1417,7 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"unexpected bar");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			runner.evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		}},IllegalArgumentException.class,"badmatch");
 	}
 	
 	@Test
@@ -1595,7 +1595,7 @@ public class TestErlangParser {
 				}
 				catch(Exception ex)
 				{
-					Assert.assertEquals(RuntimeException.class, ex.getClass());
+					Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
 					Assert.assertTrue( (!errOne.isEmpty() && ex.getMessage().contains(errOne))  || (!errTwo.isEmpty() && ex.getMessage().contains(errTwo)));// Erlang 16 returns badmatch, 14 and 15 return "illegal_expr"
 				}
 			}
@@ -1795,7 +1795,7 @@ public class TestErlangParser {
 			}},IllegalArgumentException.class,exception);
 			checkForCorrectException(new whatToRun() { public @Override void run() {
 				runner.evaluateString(text);
-			}},RuntimeException.class,erlEx);
+			}},IllegalArgumentException.class,erlEx);
 		}
 		
 	}

@@ -24,15 +24,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Configuration;
+import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
+import statechum.Pair;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 
@@ -47,6 +57,10 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNodeStatus;
+
+import edu.uci.ics.jung.graph.Edge;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
 
 public class Synapse implements Runnable {
 
@@ -101,17 +115,21 @@ public class Synapse implements Runnable {
 		msgTerminate = new OtpErlangAtom("terminate"), // terminates Statechum if sent to the supervisor process or individual tasks when sent to them.
 		msgGetNodeName = new OtpErlangAtom("getNodeName"),// reports the name of this node.
 		msgGetStatechumWorker = new OtpErlangAtom("getStatechumWorker"), // starts a learner. The response is a pid of the said learner which can receive configuration messages and those to start learning of visualisation.
-		msgComputeDiff =  new OtpErlangAtom("computeDiff"), 
-		msgDisplayDiff = new OtpErlangAtom("displayDiff"), 
-		msgDisplayFSM = new OtpErlangAtom("displayFSM"),
-		msgLearn = new OtpErlangAtom("learn"),
-		msgTraces = new OtpErlangAtom("traces"),
 		msgGetTraces = new OtpErlangAtom("getTraces"),
 		msgLoadFSM = new OtpErlangAtom("loadFSM"),
 		msgTestMapParsing = new OtpErlangAtom("testMapParsing"),
 		msgGetFSM = new OtpErlangAtom("getFSM"),
 		msgTestLoadFSM = new OtpErlangAtom("testLoadFSM"),
+		msgTestDiffParsing = new OtpErlangAtom("testDiffParsing"),
 		
+		msgComputeDiff =  new OtpErlangAtom("computeDiff"), 
+		msgDisplayDiff = new OtpErlangAtom("displayDiff"), 
+		msgDisplayFSM = new OtpErlangAtom("displayFSM"),
+		msgLearn = new OtpErlangAtom("learn"),
+		msgTraces = new OtpErlangAtom("traces"),
+
+		msgStop = new OtpErlangAtom("stop"), // sent in order to make a learner terminate its learning process. workers respond with {Ref,workerok} to it.
+		msgNotification = new OtpErlangAtom("step"), // sent as a notification
 		msgOk = new OtpErlangAtom("ok"),// a response suggesting that command completed successfully
 		msgWorkerOk = new OtpErlangAtom("workerok"),// a response suggesting that command completed successfully by the worker
 		msgInvalidCommand = new OtpErlangAtom("invalidcommand_or_missing_args"),// returned from tasks to indicate that either the command was unrecognised or the number of arguments to it was wrong (usually there is just one argument).
@@ -251,6 +269,12 @@ public class Synapse implements Runnable {
 		public static Map<VertID,VertID> parseMap(OtpErlangObject obj)
 		{
 			Map<VertID,VertID> outcome = new TreeMap<VertID,VertID>();
+			updateMap(obj,outcome);
+			return outcome;
+		}
+		
+		public static void updateMap(OtpErlangObject obj, Map<VertID,VertID> outcome)
+		{
 			OtpErlangList map = (OtpErlangList)obj;
 			for(OtpErlangObject entry:map)
 			{
@@ -262,7 +286,6 @@ public class Synapse implements Runnable {
 				String stateB = ((OtpErlangAtom)entryTuple.elementAt(1)).atomValue();if (stateB.isEmpty()) throw new IllegalArgumentException("empty second state name");
 				outcome.put(VertexID.parseID( stateA ),VertexID.parseID( stateB ) );
 			}
-			return outcome;
 		}
 		
 		public static OtpErlangList mapToObject(Map<VertID,VertID> map)
@@ -274,7 +297,7 @@ public class Synapse implements Runnable {
 			}
 			return new OtpErlangList(outcome.toArray(new OtpErlangObject[0]));
 		}
-		
+
 		/** Given a representation of FSM in a form of Erlang tuple, builds the corresponding graph.
 		 * 
 		 * @param obj FSM to parse
@@ -295,7 +318,13 @@ public class Synapse implements Runnable {
 				throw new IllegalArgumentException("first element of a record should be \"statemachine\"");
 			OtpErlangList states = (OtpErlangList)machine.elementAt(1),transitions = (OtpErlangList)machine.elementAt(2),alphabet = (OtpErlangList)machine.elementAt(4);
 			OtpErlangAtom initial_state = (OtpErlangAtom)machine.elementAt(3);
-
+			
+			parseStatemachine(states,transitions,alphabet,initial_state,gr,converter,checkStates);
+		}
+		
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void parseStatemachine(OtpErlangList states,OtpErlangList transitions, OtpErlangList alphabet, OtpErlangAtom initial_state,
+				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, ConvertALabel converter, boolean checkStates)
+		{
 			if (states.arity() == 0 && checkStates)
 				throw new IllegalArgumentException("empty automaton");
 			
@@ -368,6 +397,8 @@ public class Synapse implements Runnable {
 				else
 					throw new IllegalArgumentException("missing initial state");
 			}
+			
+			gr.setIDNumbers();gr.invalidateCache();
 		}
 		
 		/** Turns the supplied graph into an Erlang tuple. 
@@ -396,6 +427,15 @@ public class Synapse implements Runnable {
 			});
 		}
 		
+		public static class AskedToTerminateException extends RuntimeException
+		{
+
+			/**
+			 * ID for serialization
+			 */
+			private static final long serialVersionUID = -3164183727619518185L;
+		}
+		
 		@Override
 		public void run() 
 		{
@@ -415,7 +455,7 @@ public class Synapse implements Runnable {
 						OtpErlangObject msg=mbox.receive();
 						if (!(msg instanceof OtpErlangTuple))
 							System.out.println("invalid message received by worker, expected tuple, got "+msg);
-						OtpErlangTuple message = (OtpErlangTuple)msg;
+						final OtpErlangTuple message = (OtpErlangTuple)msg;
 						if (message.arity() < 2)
 							System.out.println("invalid tuple received by worker, expected at least two elements, got "+msg);
 						
@@ -424,8 +464,11 @@ public class Synapse implements Runnable {
 						OtpErlangAtom command = (OtpErlangAtom) message.elementAt(1);
 						if (!(message.elementAt(0) instanceof OtpErlangRef))
 							System.out.println("invalid request received by worker, expected a ref, got "+message.elementAt(0));
-						OtpErlangRef ref = (OtpErlangRef) message.elementAt(0);
+						final OtpErlangRef ref = (OtpErlangRef) message.elementAt(0);
+
 						if (command.equals(msgEcho))
+							mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgWorkerOk}));
+						if (command.equals(msgStop))
 							mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgWorkerOk}));
 						if (command.equals(msgTerminate))
 						{
@@ -526,13 +569,189 @@ public class Synapse implements Runnable {
 												}
 												mbox.send(erlangPartner,outcome);
 											}
-											else 
-												if (command.equals(msgLearn))
+											else
+												// Arguments: ref,computeDiff,fsmA,fsmB
+												// Response: ref,ok,diff
+												// on error, ref,failure,text_of_the_error (as string)
+												if (command.equals(msgComputeDiff) && message.arity() == 4)
 												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														LearnerGraphND grA = new LearnerGraphND(learnerInitConfiguration.config), grB = new LearnerGraphND(learnerInitConfiguration.config);
+														Synapse.StatechumProcess.parseStatemachine(message.elementAt(2),grA,null,true);
+														Synapse.StatechumProcess.parseStatemachine(message.elementAt(3),grB,null,true);
+														OtpErlangObject difference  = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, learnerInitConfiguration.config);
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,difference});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
+												// Args: Ref,learn, pid
+												// pid is optional, where provided, progress messages are reported in a form of {Ref,step}
+												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+												// Response: Ref,ok,fsm
+												// on error: Ref,failure,text_of_the_error (as string)
+												if (command.equals(msgLearn) && message.arity() >= 2)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														RPNIUniversalLearner learner = new RPNIUniversalLearner(null, learnerInitConfiguration) {
+
+															@Override
+															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+															{
+																// send the notification if necessary
+																if (message.arity() > 2 && message.elementAt(2) instanceof OtpErlangPid)
+																{
+																	mbox.send((OtpErlangPid)message.elementAt(2),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
+																}
+																
+																// check if we were asked to terminate
+																try {
+																	OtpErlangObject messageReceived = mbox.receive(0);// do not wait, return null if anything received
+																	if (messageReceived != null && messageReceived instanceof OtpErlangTuple && ((OtpErlangTuple)messageReceived).arity() == 2)
+																	{
+																		OtpErlangTuple cmd = ((OtpErlangTuple)messageReceived);
+																		if (cmd.elementAt(0).equals(ref) && cmd.elementAt(1).equals(msgStop))
+																			throw new AskedToTerminateException();
+																	}
+																} catch (OtpErlangExit e) {
+																	Helper.throwUnchecked("node exited", e);
+																} catch (OtpErlangDecodeException e) {
+																	Helper.throwUnchecked("decode exception", e);
+																}
+																// resume learning.
+																return super.ChooseStatePairs(graph);
+															}
+
+															@Override
+															public Pair<Integer, String> CheckWithEndUser(
+																	LearnerGraph model,
+																	List<Label> question,
+																	int expectedForNoRestart,
+																	List<Boolean> consistentFacts,
+																	PairScore pairBeingMerged,
+																	Object[] moreOptions) {
+
+																return super.CheckWithEndUser(model, question, expectedForNoRestart,
+																		consistentFacts, pairBeingMerged, moreOptions);
+															}
+															
+														};
+														LearnerGraph graphLearnt = learner.learnMachine(sPlus, sMinus);
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+													}
+													catch(AskedToTerminateException e)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
 													
 												}
+												else
+												if (command.equals(msgTestDiffParsing) && message.arity() == 4) // this one computes a graph reflecting the differences and returns the labelling part of it as a string. Inputs are one of the original machines and the differences.
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
+														StringBuffer textOfTheOutcome = new StringBuffer();
+														boolean first = true;
+														for(Object obj:diff.getEdges())
+														{
+															if (!first) textOfTheOutcome.append(",");else first = false;
+															
+															textOfTheOutcome.append(obj.toString());textOfTheOutcome.append(":");textOfTheOutcome.append( ((Edge)obj).getUserDatum(JUConstants.DIFF) );
+														}
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangAtom(textOfTheOutcome.toString())});
+													}
+													catch(Throwable ex)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
+													
+												// Arguments: Ref, 'displayDiff', first graph, diff, atom with the name of the difference and (optional) PID to receive notifications. 
+												// Upon error, no notifications are sent and instead an error is reported. 
+												// Upon success, a single notification is provided in the form of {Ref, step} when the graph pops and subsequently the caller is notified with {Ref,ok}
+												// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
+												if (command.equals(msgDisplayDiff) && message.arity() >= 5) 
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
+														OtpErlangObject name = message.elementAt(4);
+														boolean testMode = (name instanceof OtpErlangList && ((OtpErlangList)name).arity() == 0);
+														
+														if (!testMode)
+														{
+															diff.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
+															Visualiser.updateFrame(diff, null);
+														}
+
+														if (message.arity() > 5 && message.elementAt(5) instanceof OtpErlangPid)
+															mbox.send((OtpErlangPid)message.elementAt(5),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
+
+														if (!testMode) Visualiser.waitForKey();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+													}
+													catch(Throwable ex)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
+													// Arguments: Ref, 'displayFSM', graph, atom with the name of the difference and (optional) PID to receive notifications. 
+													// Upon error, no notifications are sent and instead an error is reported. 
+													// Upon success, a single notification is provided in the form of {Ref, step} when the graph pops and subsequently the caller is notified with {Ref,ok}
+													// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
+													if (command.equals(msgDisplayFSM) && message.arity() >= 4) 
+													{
+														OtpErlangObject outcome = null;
+														try
+														{
+															Configuration config = Configuration.getDefaultConfiguration().copy();
+															LearnerGraphND machine = new LearnerGraphND(config);Synapse.StatechumProcess.parseStatemachine(message.elementAt(2),machine,null,true);
+															DirectedSparseGraph fsmPicture = machine.pathroutines.getGraph();
+															OtpErlangObject name = message.elementAt(3);
+															boolean testMode = (name instanceof OtpErlangList && ((OtpErlangList)name).arity() == 0);
+															
+															if (!testMode)
+															{
+																fsmPicture.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
+																Visualiser.updateFrame(fsmPicture, null);
+															}
+
+															if (message.arity() > 4 && message.elementAt(4) instanceof OtpErlangPid)
+																mbox.send((OtpErlangPid)message.elementAt(4),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
+
+															if (!testMode) Visualiser.waitForKey();
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+														}
+														catch(Throwable ex)
+														{
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+														}
+														mbox.send(erlangPartner,outcome);
+													}
 												else 
-										mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgInvalidCommand}));
+													mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{ref,msgInvalidCommand}));
 				}
 						
 			} catch (OtpErlangDecodeException e) 

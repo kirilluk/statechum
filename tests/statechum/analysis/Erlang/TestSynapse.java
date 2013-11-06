@@ -13,18 +13,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.Erlang.Synapse.StatechumProcess;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -71,7 +72,7 @@ public class TestSynapse {
 	@After
 	public void afterTest()
 	{
-		erlRuntime.killErlang();erlPingRuntime.killErlang();
+		if (erlRuntime != null) erlRuntime.killErlang();if (erlPingRuntime != null) erlPingRuntime.killErlang();
 		zapTestDir();
 	}
 	
@@ -189,11 +190,12 @@ public class TestSynapse {
 	
 	/** Non-deterministic case. */
 	@Test
-	public void testParseAutomata2() throws IncompatibleStatesException
+	public void testParseAutomata2()
 	{
 		ConvertALabel converter = null;
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		Random rnd=new Random(0);
+		LearnerGraphND previous = null;
 		
 		for(int states=1;states < 100;states++)
 		{
@@ -210,6 +212,16 @@ public class TestSynapse {
 			for(int i=0;i<20;++i) map.put(graph.pathroutines.pickRandomState(rnd),graph.pathroutines.pickRandomState(rnd));
 			Map<VertID,VertID> mapOutcome = StatechumProcess.parseMap(StatechumProcess.mapToObject(map));
 			Assert.assertEquals(map,mapOutcome);
+			
+			if (previous != null)
+			{
+				LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(graph,config);
+				OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(graph, previous, config);
+				DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+				DifferentFSMException ex = WMethod.checkM(previous, shouldBeLikePrevious);
+				Assert.assertNull(ex);
+			}
+			previous = graph;
 		}
 	}
 	

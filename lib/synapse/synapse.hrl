@@ -34,8 +34,8 @@
 	  deleted_transitions :: list(transition()),
 	  added_states :: list(state()),
 	  deleted_states :: list(state()),
-	  name_mapping_1 :: list({state(),state()}),
-	  name_mapping_2 :: list({state(),state()})
+	  name_mapping :: list({state(),state()}),
+	  initial_state :: state()
 	 }).
 
 %% @doc Meta-info to be provided to the backend learners.

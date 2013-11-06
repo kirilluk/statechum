@@ -70,6 +70,7 @@ public class GlobalConfiguration {
 		,DEBUG_GLOBALCONFIGURATION // whether to show debug reflecting loading of a configuration.
 		,PATH_NATIVELIB // where to load native libraries from, mostly for Eclipse plugins but useful elsewhere.
 		,PATH_JRILIB // where JRI library is located, different from PATH_NATIVELIB because it is not distributed with Statechum
+		,ESC_TERMINATE // whether ESC or the appropriate right-mouse menu selection should terminate Java runtime. Disabled when Statechum is used from within Erlang.
 		;
 	}
 
@@ -107,6 +108,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.PATH_NATIVELIB,null);// no path by default, this implies loading from java.library.path
 		defaultValues.put(G_PROPERTIES.PATH_JRILIB,null);// no path by default, this implies loading from java.library.path
 		defaultValues.put(G_PROPERTIES.FORCEFORK,"false");
+		defaultValues.put(G_PROPERTIES.ESC_TERMINATE,"true");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

@@ -21,7 +21,7 @@
 
 -module(synapselauncher).
 
--export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0]).
+-export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0,handleNotifications/2]).
 -include("synapse.hrl").
 
 %%% @doc Starts the Java runtime with Statechum
@@ -148,8 +148,9 @@ launch(OptionsList,PidToNotify) ->
 	JavaDefaultsList = [
 		{'-cp',["bin","lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar","lib/OtpErlang.jar","lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
 		{'-Djava.library.path',["linear/.libs","smt/.libs"]},
-		{'-DVIZ_CONFIG','erlang'},
-		{'-DVIZ_DIR','resources/graphLayout'},
+		{'-DESC_TERMINATE','false'},%% stop ESC-termination of Java runtime from within Visualser windows
+		{'-DVIZ_CONFIG','erlang'}, %% the name of file where to store window layouts
+		{'-DVIZ_DIR','.'}, %% this is usually resources/graphLayout but most likely this path will not be available hence layouts will be dumped locally
 		{'-Dthreadnum',list_to_atom(lists:flatten(io_lib:format("~p", [erlang:system_info(logical_processors_available)])))},
 		{'-Xmx','1500m'}],
 	FullJavaOptions = buildOptions(JavaOptionsList,JavaDefaultsList,os:type()),
@@ -210,8 +211,19 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
 		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
 		{'EXIT', ParentPid, _ } when is_pid(ParentPid) -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,false); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
-		{'EXIT', Port, _} when is_port(Port) -> if AccumulateOutput == true -> ParentPid!ResponseAsText,ok; true -> ok end;
+		{'EXIT', Port, _} when is_port(Port) ->%% port_close(Port) will fail here because port is already closed 
+			if AccumulateOutput == true -> ParentPid!ResponseAsText,ok; true -> ok end;
 		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) %% here we expect Statechum to terminate and output to become available.
 %%		after 3000 -> 
 %%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)  end
 	end.
+
+%% This one is only used for testing of notifications
+handleNotifications(Ref,Counter) ->
+	receive 
+		{Ref,step} -> handleNotifications(Ref,Counter+1);
+		{Ref,Pid,check} -> Pid!{Ref,Counter}
+	end.
+	
+
+	

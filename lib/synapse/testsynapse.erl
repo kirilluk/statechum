@@ -465,4 +465,445 @@ parseMap_test_() ->
 			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[]},receive {Ref,ok,[]} -> ok end end) end
 	]}}.
 	
+computeDiff_test_()->
+	{"tests diff computation",
+	{inparallel,
+	[
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+					 #statemachine{
+					  states=[a,b,d]
+					  ,transitions=[{a,wibble,b},{b,waggle,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,waggle]
+					 }
+			},receive {Ref,ok,
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[c],
+				name_mapping=[],
+				initial_state=a}} -> ok end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+					 #statemachine{
+					  states=[p,q,d]
+					  ,transitions=[{p,wibble,q},{q,waggle,d}] %% Here states carry a different name which is why a map will be non-empty
+					  ,initial_state=p
+					  ,alphabet=[wibble,waggle]
+					 }
+			},receive {Ref,ok,
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[c],
+				name_mapping=[{a,p},{b,q}],
+				initial_state=a}} -> ok end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+					 #statemachine{
+					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  ,transitions=[{a,wibble,b},{b,waggle,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,waggle]
+					 }
+			},receive {Ref,ok,
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}} -> ok end end) end,
+
+		%% a more elaborate case of renaming
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c,d]
+					  ,transitions=[{a,wibble,b},{b,wobble,c},{c,newone,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 },
+					 #statemachine{
+					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 }
+			},receive {Ref,ok,#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[{c,d},{d,c}],
+				initial_state=a}} -> ok end end) end,
+
+%% rejection of duplicate states if prohibited by the configuration
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'gdFailOnDuplicateNames','true'}]},
+				receive {Ref,ok} ->
+
+				Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c,d]
+					  ,transitions=[{a,wibble,b},{b,wobble,c},{c,newone,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 },
+					 #statemachine{
+					  states=[a,b,c,d,e] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,e},{e,wibble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 }
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"are shared between A and B")),ok end end end) end,
+
+
+			%% test for unknown label in the first machine
+				fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c,d]
+					  ,transitions=[{a,wibble,b},{b,wobble,c},{c,newone,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+					 #statemachine{
+					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 }
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown label")),ok end end) end,
+			
+			%% test for unknown label in the second machine
+				fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,computeDiff,
+					#statemachine{
+					  states=[a,b,c,d]
+					  ,transitions=[{a,wibble,b},{b,wobble,c},{c,newone,d}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble,newone]
+					 },
+					 #statemachine{
+					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 }
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown label")),ok end end) end
+	]}}.
+						
+diffLoad_test_()->
+	{"tests diff loading",
+	{inorder,
+	[
+	
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]}, %% dummy machine since this is testing error handling of the differences
+			{statemachinedifference,a,
+				[],
+				[],
+				[],
+				[],
+				[],
+				a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"expected 7 components in diff")),ok end end) end,
+	
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]}, %% dummy machine since this is testing error handling of the differences
+			{aa,
+				[],
+				[],
+				[],
+				[],
+				[],
+				a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"statemachinedifference")),ok end end) end,
+	
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]}, %% dummy machine since this is testing error handling of the differences
+			#statemachinedifference{
+				added_transitions=a,
+				deleted_transitions=[],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")),ok end end) end,
+	
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]}, %% dummy machine since this is testing error handling of the differences
+			#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state="a"}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
+	
+	%% invalid diff
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]},
+			#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"source state in diff is not known")),ok end end) end,
+
+	%% invalid diff
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]},
+			#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[{a,wobble,c}],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"target state in diff is not known")),ok end end) end,
+
+	%% invalid diff
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]},
+			#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[{a,wobble,a}],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"edge in diff was not found")),ok end end) end,
+
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,ok,'a-[wibble]->b:null,b-[wobble]->c:java.awt.Color[r=255,g=0,b=0],b-[waggle]->d:java.awt.Color[r=0,g=255,b=0]'} -> ok end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			#statemachinedifference{
+				added_transitions=[],
+				deleted_transitions=[],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a}
+			},receive {Ref,ok,'a-[wibble]->b:null,b-[wobble]->c:null'} -> ok end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a},
+			"my graph"
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
+			
+			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn(fun() -> receive {Ref,step} -> receive {Ref,check} -> ThisProcess!{Ref,received} end end end),
+				 Pid!{Ref,displayDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a},
+			[],NotificationReceiver
+			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,received} -> ok end end end) end,
+
+			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn_link(fun() -> receive {Ref,step} -> throw('should_not_receive_this'); {Ref,check} -> ThisProcess!{Ref,complete} end end),
+				 Pid!{Ref,displayDiff,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			#statemachinedifference{
+				added_transitions=[{b,waggle,d}],
+				deleted_transitions=[{b,wobble,c}],
+				added_states=[d],
+				deleted_states=[],
+				name_mapping=[],
+				initial_state=a},
+			[]
+			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,complete} -> ok end end end) end
+
+	
+%% This test actually pops a graph
+%%			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayDiff,
+%%					#statemachine{ states=[a,b,c],transitions=[{a,wibble,b},{b,wobble,c}],initial_state=a,alphabet=[wibble,wobble] },
+%%			#statemachinedifference{added_transitions=[{b,waggle,d}],deleted_transitions=[{b,wobble,c}],added_states=[d],deleted_states=[],name_mapping=[],initial_state=a},
+%%			'my graph'},receive {Ref,ok} -> ok end end) end
+
+	]}}.
+
+	
+learn_test_()->
+	{"tests learning",
+	{inparallel,
+	[
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+%				NotificationReceiver=spawn_link(
+%				 	fun() -> Process=fun(F,Counter) -> receive {Ref,step} -> Process(Counter+1);{Ref,APid,check} -> APid!{Ref,Counter} end end end),
+				Pid!{Ref,learn},
+				receive {Ref,ok,Fsm} -> % got the outcome, now check it for correctness
+				Pid!{Ref,computeDiff, 
+					Fsm,
+					 #statemachine{
+					  states=[s0,s1,s2,n]
+					  ,transitions=[{s0,a,s1},{s1,a,s2},{s2,a,s2},{s2,b,s2},{s1,b,n}]
+					  ,initial_state=s0
+					  ,alphabet=[a,b]
+					 }
+			},receive {Ref,ok,
+				#statemachinedifference{%% there has to be no differences
+				added_transitions=[],
+				deleted_transitions=[],
+				added_states=[],
+				deleted_states=[],
+				name_mapping=[{'N1000',n},{'P1000',s0},{'P1001',s1},{'P1002',s2}],
+				initial_state='P1000'}} ->
+				ok end end end end end) end,
+
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				Pid!{Ref,learn},
+				Pid!{Ref,stop},%% attempt to terminate
+				receive {Ref,terminate} -> ok  end, %% make sure we got the response
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> ok end, %% check the worker is alive
+				Pid!{Ref,stop},receive {Ref,workerok} -> ok end, %% stop makes no difference to the worker 
+				Pid!{Ref,stop},receive {Ref,workerok} -> ok end %% stop makes no difference to the worker 
+				end end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				Pid!{Ref,learn},
+				Pid!{Ref,junk},%% attempt to terminate with an invalid command
+				receive {Ref,ok,Fsm} -> ok  end, %% got the usual response
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> ok end, %% check the worker is alive
+				Pid!{Ref,stop},receive {Ref,workerok} -> ok end, %% stop makes no difference to the worker 
+				Pid!{Ref,stop},receive {Ref,workerok} -> ok end %% stop makes no difference to the worker 
+				end end end) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]),
+				Pid!{Ref,learn, NotificationReceiver},
+				receive {Ref,ok,Fsm} -> % an earlier test validated this
+				NotificationReceiver!{Ref,self(),check},receive {Ref,3} ->ok end end %% got a few, in this case 3 
+				end end end ) end,
+				
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]),
+				Pid!{Ref,learn},
+				receive {Ref,ok,Fsm} -> % an earlier test validated this
+				NotificationReceiver!{Ref,self(),check},receive {Ref,0} -> ok end end % here we did not tell the learner to notify, hence got zero 
+				end end end ) end 
+				
+	]}}.
+	
+displayFSM_test_()->
+	{"tests FSM visualisation",
+	{inorder,
+	[
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayFSM,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			"my graph"
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
+			
+			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn(fun() -> receive {Ref,step} -> receive {Ref,check} -> ThisProcess!{Ref,received} end end end),
+				 Pid!{Ref,displayFSM,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			[],NotificationReceiver
+			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,received} -> ok end end end) end,
+
+%% This test actually pops a graph
+%%			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayFSM,
+%%					#statemachine{ states=[a,b,c],transitions=[{a,wibble,b},{b,wobble,c}],initial_state=a,alphabet=[wibble,wobble] },
+%%			'my graph'},receive {Ref,ok} -> ok end end) end,
+
+			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn_link(fun() -> receive {Ref,step} -> throw('should_not_receive_this'); {Ref,check} -> ThisProcess!{Ref,complete} end end),
+				 Pid!{Ref,displayFSM,
+					#statemachine{
+					  states=[a,b,c]
+					  ,transitions=[{a,wibble,b},{b,wobble,c}]
+					  ,initial_state=a
+					  ,alphabet=[wibble,wobble]
+					 },
+			[]
+			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,complete} -> ok end end end) end
+	]}}.
 	

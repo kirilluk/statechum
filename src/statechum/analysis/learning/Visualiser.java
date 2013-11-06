@@ -401,24 +401,27 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             }
         });
         
-        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 5L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                frame.setVisible(false);
-                frame.dispose();
-                Visualiser.syncValue.set(true);
-                DrawGraphs.end();
-                System.exit(1);
-                /*
-                synchronized (Visualiser.syncObject) {
-                Visualiser.syncObject.notify();
-                }*/
-            }
-        });
+        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
+        {
+	        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
+	
+	            /** Serial number. */
+	            private static final long serialVersionUID = 5L;
+	
+	            @Override
+	            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+	                frame.setVisible(false);
+	                frame.dispose();
+	                Visualiser.syncValue.set(true);
+	                DrawGraphs.end();
+	                System.exit(1);
+	                /*
+	                synchronized (Visualiser.syncObject) {
+	                Visualiser.syncObject.notify();
+	                }*/
+	            }
+	        });
+        }
         keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
 
             /** Serial number. */

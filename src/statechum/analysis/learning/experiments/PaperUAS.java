@@ -67,21 +67,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestLearnerFromLargePTA.RPNIBlueFringeTestVariability;
+import statechum.analysis.learning.RPNIBlueFringeVariability;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -94,13 +93,10 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
 import statechum.ProgressIndicator;
-import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
@@ -1291,7 +1287,7 @@ public class PaperUAS
        PTASequenceEngine engine = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber);
        
        FileOutputStream log = new java.io.FileOutputStream("resources/largePTA/VeryLargePTA.zip");
-       RPNIBlueFringeTestVariability ourLearner = new RPNIBlueFringeTestVariability(learnerInitConfiguration,true,null,null);
+       RPNIBlueFringeVariability ourLearner = new RPNIBlueFringeVariability(learnerInitConfiguration,true,null,null);
        LearnerGraph automatonAfterInit = ourLearner.getLearner().init(engine,0,0);
        final Configuration shallowCopy = automatonAfterInit.config.copy();shallowCopy.setLearnerCloneGraph(false);
        LearnerGraph copyOfAutomaton = new LearnerGraph(shallowCopy);LearnerGraph.copyGraphs(automatonAfterInit, copyOfAutomaton);

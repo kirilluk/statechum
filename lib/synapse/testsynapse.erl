@@ -801,8 +801,6 @@ learn_test_()->
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
-%				NotificationReceiver=spawn_link(
-%				 	fun() -> Process=fun(F,Counter) -> receive {Ref,step} -> Process(Counter+1);{Ref,APid,check} -> APid!{Ref,Counter} end end end),
 				Pid!{Ref,learn},
 				receive {Ref,ok,Fsm} -> % got the outcome, now check it for correctness
 				Pid!{Ref,computeDiff, 

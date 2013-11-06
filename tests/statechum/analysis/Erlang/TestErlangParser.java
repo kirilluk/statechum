@@ -53,14 +53,13 @@ public class TestErlangParser {
 	@Before
 	public void beforeTest()
 	{
-		runtime.startRunner();
-		runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+		runner = runtime.createNewRunner();
 	}
 	
 	@After
 	public void afterTest()
 	{
-		runner.close();
+		if (runner != null) runner.close();
 	}
 	
 	@Test
@@ -1020,8 +1019,7 @@ public class TestErlangParser {
 		@Before
 		public void beforeTest()
 		{
-			testParseInvalidCharsInAtomRuntime.startRunner();
-			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+			runner = testParseInvalidCharsInAtomRuntime.createNewRunner();
 		}
 		
 		@After
@@ -1506,8 +1504,7 @@ public class TestErlangParser {
 		@Before
 		public void beforeTest()
 		{
-			testParseDoubleFailRuntime.startRunner();
-			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+			runner = testParseDoubleFailRuntime.createNewRunner();
 		}
 		
 		@After
@@ -1628,8 +1625,7 @@ public class TestErlangParser {
 		@Before
 		public void beforeTest()
 		{
-			testParseRuntime.startRunner();
-			runner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+			runner = testParseRuntime.createNewRunner();
 		}
 		
 		@After

@@ -760,8 +760,12 @@ public class Synapse implements Runnable {
 			}
 			catch(OtpErlangExit nodeExited)
 			{
-				//System.out.println("Node exited "+nodeExited);
+				System.out.println("Node exited "+nodeExited);
 			} // do nothing, assuming we've been asked to terminate
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
 			finally
 			{
 				if (runner != null) { runner.close();runner = null; }

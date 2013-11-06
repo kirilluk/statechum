@@ -277,6 +277,23 @@ public class TestSynapse {
 		Assert.assertFalse(pingNode(synapseNode));// ensure Synapse has terminated
 	}
 	
+	/** Tests that termination of a process linked to a worker kill the worker.
+	 * @throws InterruptedException */
+	@Test
+	public void testRunSynapse2c() throws InterruptedException
+	{
+		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
+		runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','true'}]),"+
+				"OurPid=self(),Ref=make_ref(),Pid = spawn(fun () -> synapselauncher:find_statechum()!{self(),Ref,getStatechumWorker},receive {Ref,WorkerPid} -> "
+				+"WorkerPid!{Ref,echo},receive {Ref,workerok} ->ok,throw(worker_parent_failed)" // check that worker is ok and then make an abnormal termination. Nnow the worker should terminate and this is to appear on standard output.
+				+" end end end)" //
+				);
+		Thread.sleep(500);// This gives time to Erlang to propagate an error to the Java node.
+		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:find_statechum()!terminate," //io:format(\"waiting for response~n\"),"
+				+ "receive Arg -> Arg end"));
+		Assert.assertTrue(response.contains("Node exited com.ericsson.otp.erlang.OtpErlangExit: {{nocatch,worker_parent_failed}"));
+	}
+	
 	protected boolean pingNode(String node)
 	{// we cannot ping Java nodes from Java, it seems but can ping them from Erlang. Do this here. 
 		return Boolean.parseBoolean( ((OtpErlangAtom)pingRunner.evaluateString("case net_adm:ping("+node+") of pong -> true; pang -> false end")).atomValue());

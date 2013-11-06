@@ -42,7 +42,6 @@ public class AllTests {
     @Suite.SuiteClasses({
         statechum.analysis.learning.TestPTAConstruction.class,
         statechum.analysis.learning.TestRpniLearner.class,
-        statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestLTL_to_ba.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
@@ -158,6 +157,7 @@ public class AllTests {
     
     @RunWith(Suite.class)
     @SuiteClasses({
+        statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,

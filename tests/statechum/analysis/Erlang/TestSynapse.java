@@ -102,9 +102,7 @@ public class TestSynapse {
 	@Test
 	public void testFindSynapseFailure()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:find_statechum()"));
-		}},IllegalArgumentException.class,"statechum is not available");
+		Assert.assertEquals(new OtpErlangAtom("not_started"),runner.evaluateString("synapselauncher:find_statechum()"));
 	}
 
 	/** Invalid options before launching. */

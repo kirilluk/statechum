@@ -78,6 +78,10 @@ public class Synapse implements Runnable {
 	public static void main(String[] args) 
 	{
 		final String erlangNode = args[3];
+		if(args.length < 3) {
+		    System.err.println("Usage: statechum.analysis.Erlang.Synapse <ourNode> <cookie> <mailBox> <partnerNode>");
+		    System.exit(99);
+		}
 		Synapse s = new Synapse(args[0],args[1],args[2],erlangNode);
 
 		ErlangNode.getErlangNode().getNode().registerStatusHandler(new OtpNodeStatus(){

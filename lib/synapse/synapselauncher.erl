@@ -189,7 +189,8 @@ startStatechum(OptionsList) ->
 				ThisProcess = self(),
 				Pid = spawn_link(fun() -> launch(OptionsList,ThisProcess) end),
 				receive %% here we either wait to receive an ok message or to be killed if Statechum fails to start
-					ok -> register(?StatechumName,Pid)
+				    ok -> register(?StatechumName,Pid),
+					  Pid
 				end;
 		Pid -> Pid
 	end.
@@ -197,7 +198,7 @@ startStatechum(OptionsList) ->
 find_statechum() ->
 	case whereis(?StatechumName) of
 		Pid when is_pid(Pid) -> Pid;
-		_ -> throw("statechum is not available")
+		_ -> not_started
 	end.
 
 %%% Given text output from the process, either accumulates it and returns the result or simply dumps it into the standard output.

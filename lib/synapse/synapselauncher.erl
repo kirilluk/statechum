@@ -222,7 +222,7 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 %% This one is only used for testing of notifications
 handleNotifications(Ref,Counter) ->
 	receive 
-		{Ref,step} -> handleNotifications(Ref,Counter+1);
+		{Ref,status,step} -> handleNotifications(Ref,Counter+1);
 		{Ref,Pid,check} -> Pid!{Ref,Counter}
 	end.
 	

@@ -746,45 +746,8 @@ diffLoad_test_()->
 				name_mapping=[],
 				initial_state=a},
 			"my graph"
-			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
-			
-			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn(fun() -> receive {Ref,step} -> receive {Ref,check} -> ThisProcess!{Ref,received} end end end),
-				 Pid!{Ref,displayDiff,
-					#statemachine{
-					  states=[a,b,c]
-					  ,transitions=[{a,wibble,b},{b,wobble,c}]
-					  ,initial_state=a
-					  ,alphabet=[wibble,wobble]
-					 },
-			#statemachinedifference{
-				added_transitions=[{b,waggle,d}],
-				deleted_transitions=[{b,wobble,c}],
-				added_states=[d],
-				deleted_states=[],
-				name_mapping=[],
-				initial_state=a},
-			[],NotificationReceiver
-			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,received} -> ok end end end) end,
-
-			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn_link(fun() -> receive {Ref,step} -> throw('should_not_receive_this'); {Ref,check} -> ThisProcess!{Ref,complete} end end),
-				 Pid!{Ref,displayDiff,
-					#statemachine{
-					  states=[a,b,c]
-					  ,transitions=[{a,wibble,b},{b,wobble,c}]
-					  ,initial_state=a
-					  ,alphabet=[wibble,wobble]
-					 },
-			#statemachinedifference{
-				added_transitions=[{b,waggle,d}],
-				deleted_transitions=[{b,wobble,c}],
-				added_states=[d],
-				deleted_states=[],
-				name_mapping=[],
-				initial_state=a},
-			[]
-			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,complete} -> ok end end end) end
-
-	
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
+				
 %% This test actually pops a graph
 %%			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayDiff,
 %%					#statemachine{ states=[a,b,c],transitions=[{a,wibble,b},{b,wobble,c}],initial_state=a,alphabet=[wibble,wobble] },
@@ -875,33 +838,12 @@ displayFSM_test_()->
 					  ,alphabet=[wibble,wobble]
 					 },
 			"my graph"
-			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
+			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
 			
-			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn(fun() -> receive {Ref,step} -> receive {Ref,check} -> ThisProcess!{Ref,received} end end end),
-				 Pid!{Ref,displayFSM,
-					#statemachine{
-					  states=[a,b,c]
-					  ,transitions=[{a,wibble,b},{b,wobble,c}]
-					  ,initial_state=a
-					  ,alphabet=[wibble,wobble]
-					 },
-			[],NotificationReceiver
-			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,received} -> ok end end end) end,
-
 %% This test actually pops a graph
 %%			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,displayFSM,
 %%					#statemachine{ states=[a,b,c],transitions=[{a,wibble,b},{b,wobble,c}],initial_state=a,alphabet=[wibble,wobble] },
 %%			'my graph'},receive {Ref,ok} -> ok end end) end,
 
-			fun() -> useworker(fun(Pid,Ref) -> ThisProcess = self(),NotificationReceiver=spawn_link(fun() -> receive {Ref,step} -> throw('should_not_receive_this'); {Ref,check} -> ThisProcess!{Ref,complete} end end),
-				 Pid!{Ref,displayFSM,
-					#statemachine{
-					  states=[a,b,c]
-					  ,transitions=[{a,wibble,b},{b,wobble,c}]
-					  ,initial_state=a
-					  ,alphabet=[wibble,wobble]
-					 },
-			[]
-			},receive {Ref,ok} -> NotificationReceiver!{Ref,check},receive {Ref,complete} -> ok end end end) end
 	]}}.
 	

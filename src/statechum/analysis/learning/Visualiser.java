@@ -444,7 +444,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
 
         //this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
+        	this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        else
+        	this.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+        
         this.addWindowListener(new WindowEventHandler());
         /*
         this.addComponentListener(new ComponentListener() {

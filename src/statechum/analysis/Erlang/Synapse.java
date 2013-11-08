@@ -133,7 +133,8 @@ public class Synapse implements Runnable {
 		msgTraces = new OtpErlangAtom("traces"),
 
 		msgStop = new OtpErlangAtom("stop"), // sent in order to make a learner terminate its learning process. workers respond with {Ref,workerok} to it.
-		msgNotification = new OtpErlangAtom("step"), // sent as a notification
+		msgStatus = new OtpErlangAtom("status"), // sent a status message
+		msgNotification = new OtpErlangAtom("step"), // sent as an indication of a progress
 		msgOk = new OtpErlangAtom("ok"),// a response suggesting that command completed successfully
 		msgWorkerOk = new OtpErlangAtom("workerok"),// a response suggesting that command completed successfully by the worker
 		msgInvalidCommand = new OtpErlangAtom("invalidcommand_or_missing_args"),// returned from tasks to indicate that either the command was unrecognised or the number of arguments to it was wrong (usually there is just one argument).
@@ -597,7 +598,7 @@ public class Synapse implements Runnable {
 												}
 												else
 												// Args: Ref,learn, pid
-												// pid is optional, where provided, progress messages are reported in a form of {Ref,step}
+												// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
 												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
 												// Response: Ref,ok,fsm
 												// on error: Ref,failure,text_of_the_error (as string)
@@ -614,7 +615,7 @@ public class Synapse implements Runnable {
 																// send the notification if necessary
 																if (message.arity() > 2 && message.elementAt(2) instanceof OtpErlangPid)
 																{
-																	mbox.send((OtpErlangPid)message.elementAt(2),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
+																	mbox.send((OtpErlangPid)message.elementAt(2),new OtpErlangTuple(new OtpErlangObject[]{ref,msgStatus,msgNotification}));
 																}
 																
 																// check if we were asked to terminate
@@ -691,7 +692,6 @@ public class Synapse implements Runnable {
 													
 												// Arguments: Ref, 'displayDiff', first graph, diff, atom with the name of the difference and (optional) PID to receive notifications. 
 												// Upon error, no notifications are sent and instead an error is reported. 
-												// Upon success, a single notification is provided in the form of {Ref, step} when the graph pops and subsequently the caller is notified with {Ref,ok}
 												// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 												if (command.equals(msgDisplayDiff) && message.arity() >= 5) 
 												{
@@ -708,10 +708,6 @@ public class Synapse implements Runnable {
 															Visualiser.updateFrame(diff, null);
 														}
 
-														if (message.arity() > 5 && message.elementAt(5) instanceof OtpErlangPid)
-															mbox.send((OtpErlangPid)message.elementAt(5),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
-
-														if (!testMode) Visualiser.waitForKey();
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
 													}
 													catch(Throwable ex)
@@ -723,7 +719,6 @@ public class Synapse implements Runnable {
 												else
 													// Arguments: Ref, 'displayFSM', graph, atom with the name of the difference and (optional) PID to receive notifications. 
 													// Upon error, no notifications are sent and instead an error is reported. 
-													// Upon success, a single notification is provided in the form of {Ref, step} when the graph pops and subsequently the caller is notified with {Ref,ok}
 													// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 													if (command.equals(msgDisplayFSM) && message.arity() >= 4) 
 													{
@@ -742,10 +737,6 @@ public class Synapse implements Runnable {
 																Visualiser.updateFrame(fsmPicture, null);
 															}
 
-															if (message.arity() > 4 && message.elementAt(4) instanceof OtpErlangPid)
-																mbox.send((OtpErlangPid)message.elementAt(4),new OtpErlangTuple(new OtpErlangObject[]{ref,msgNotification}));
-
-															if (!testMode) Visualiser.waitForKey();
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
 														}
 														catch(Throwable ex)

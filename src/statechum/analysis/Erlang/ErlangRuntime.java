@@ -27,6 +27,8 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangDecodeException;
+import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -136,7 +138,7 @@ public class ErlangRuntime {
 	 *            how long to wait after launching the server - used only for
 	 *            testing to ensure server terminates before our loop starts.
 	 */
-	public void startErlang(String runnerMode, long delay) {
+	public synchronized void startErlang(String runnerMode, long delay) {
 		proclist = null;
 		final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
 		try {
@@ -275,7 +277,7 @@ public class ErlangRuntime {
 					try
 					{
 						response = runner.call(new OtpErlangObject[]{new OtpErlangAtom("echo2Notuple"),new OtpErlangAtom("aaa")},10);
-						if (!(response instanceof OtpErlangAtom) || !((OtpErlangAtom)response).atomValue().equals("ok"))
+						if (!(response instanceof OtpErlangAtom) || !((OtpErlangAtom)response).atomValue().equals("ok_aaa"))
 							timeout = 0;// force failure upon an invalid response
 					}
 					catch(IllegalArgumentException ex)
@@ -291,6 +293,12 @@ public class ErlangRuntime {
 					throw new IllegalArgumentException("timeout waiting for a server's genserver to start after " + (endTime - startTime) + "ms");
 				}
 				
+				// Erlang started, the next step is to train message queue since given that we may have sent a number of messages above, responses to them may just begin to trickle.
+				while(null != runner.thisMbox.receive(100))
+				{// drain the queue
+				}
+				
+				
 				// seems like success, set the value of ErlangProcess
 				erlangProcess = processWithErlangRuntime;
 				proclist = runner.listProcesses();runner.close();
@@ -304,7 +312,14 @@ public class ErlangRuntime {
 			killErlang();
 			Helper.throwUnchecked("terminating as requested", e1);
 		}
-		
+		catch (OtpErlangDecodeException e) {
+			killErlang();
+			Helper.throwUnchecked("decode exception", e);
+		}
+		catch (OtpErlangExit e) {
+			killErlang();
+			Helper.throwUnchecked("exlang exit", e);
+		}
 	}
 
 	/**

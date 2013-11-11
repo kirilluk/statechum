@@ -574,7 +574,7 @@ public class TestErlangRunner {
 	{
 		
 		OtpErlangTuple response = runner.call(
-				new OtpErlangObject[]{new OtpErlangAtom("echo2Notuple"), new OtpErlangAtom("aaa")},
+				new OtpErlangObject[]{new OtpErlangAtom("echo2Notuple_ok"), new OtpErlangAtom("aaa")},
 				"ErrMsg");
 		Assert.assertNull(response);
 	}

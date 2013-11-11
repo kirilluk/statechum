@@ -285,6 +285,10 @@ handle_call({echo2Tuple,aaa},_From, State) ->
 
 %% Used for testing - produces a specific response.
 handle_call({echo2Notuple,aaa},_From, State) ->
+	{reply, ok_aaa, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2Notuple_ok,aaa},_From, State) ->
 	{reply, ok, State};
 
 %% Used for testing - produces a specific response.

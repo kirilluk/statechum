@@ -209,8 +209,11 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
   CS6 = dialyzer_codeserver:insert_temp_exported_types(MergedExpTypes, CS5),
   Ex_Funcs = [{0,F,A} || {_,_,{F,A}} <- cerl:module_exports(Tree)],
   CG = Analysis#typer_analysis.callgraph,
-  {V,E} = dialyzer_callgraph:scan_core_tree(Tree, CG),
-  dialyzer_callgraph:add_edges(E, V, CG),
+  NewCG = 
+  case dialyzer_callgraph:scan_core_tree(Tree, CG) of
+  	{V,E} -> dialyzer_callgraph:add_edges(E, V, CG),CG;
+  	Gr -> Gr
+  end,
   Fun = fun analyze_one_function/2,
   All_Defs = cerl:module_defs(Tree),
   Acc = lists:foldl(Fun, #tmpAcc{file = File, module = Module}, All_Defs),
@@ -225,7 +228,7 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
   FMs = Analysis#typer_analysis.final_files ++ [{File, Module}],
   RecordMap = typer_map_s:insert({File, Records}, Analysis#typer_analysis.record),
   Analysis#typer_analysis{final_files = FMs,
-		    callgraph = CG,
+		    callgraph = NewCG,
 		    code_server = CS6,
 		    ex_func = Exported_FuncMap,
 		    inc_func = IncFuncMap,

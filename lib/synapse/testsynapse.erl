@@ -847,3 +847,40 @@ displayFSM_test_()->
 
 	]}}.
 	
+	
+learnErlang_test_()->
+	{"tests Erlang learning",
+	{inorder,
+	[{timeout, 20000,
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','5'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
+				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl',NotificationReceiver},
+				receive {Ref,ok,#statemachine{states=S,transitions=TR,alphabet=AL,initial_state='P1000'}} -> % got the outcome, now lazily check it for correctness
+				?assertEqual(6,length(S)),?assertEqual(11,length(AL)),?assertEqual(51,length(TR)),
+				NotificationReceiver!{Ref,self(),check},receive {Ref,53} ->ok end
+%% From TestErlangOracleLearner's testLockerLearning method: 
+%%		Assert.assertEquals(6,locker.getStateNumber());
+%%		Assert.assertEquals(11,locker.pathroutines.computeAlphabet().size());
+%%		Assert.assertEquals(51,locker.pathroutines.countEdges());
+
+				 end end end) end},
+		fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
+				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl',NotificationReceiver},
+				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
+				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
+				NotificationReceiver!{Ref,self(),check},receive {Ref,1} ->ok end
+				 end end end) end,
+		fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
+				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl'},
+				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
+				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
+				NotificationReceiver!{Ref,self(),check},receive {Ref,0} ->ok end
+				 end end end) end
+		
+	]}}.
+	

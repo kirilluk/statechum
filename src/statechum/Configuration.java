@@ -1406,6 +1406,20 @@ public class Configuration implements Cloneable {
 		erlangModuleName = newValue;
 	}
 
+	/**
+	 * The length of initial traces to generate
+	 */
+	protected int erlangInitialTraceLength = 5;
+	
+	public int getErlangInitialTraceLength()
+	{
+		return erlangInitialTraceLength;
+	}
+	
+	public void setErlangInitialTraceLength(int newValue)
+	{
+		erlangInitialTraceLength = newValue;
+	}
 	
 	/**
 	 * Alphabet generation: the length of the list with elements of a known type to generate.  

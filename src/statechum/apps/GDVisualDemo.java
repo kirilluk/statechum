@@ -25,8 +25,11 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.linear.DifferenceVisualiser.ChangesToGraph;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
@@ -56,23 +59,20 @@ public class GDVisualDemo
 		return gr;
 	}
 	
-	/*
+	
 	public static void obtainDifferenceGraph2(String graphA, String graphB,int counter,boolean display, Configuration config)
 	{
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
-			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
-
 		LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config,null),
 				grB=buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config,null);
-		ChangesToGraph recorder = new ChangesToGraph(null);
-		gd.computeGD(grA, grB, ExperimentRunner.getCpuNumber(),recorder,config);
-		
-		DirectedSparseGraph gr = recorder.getGraph(grA.pathroutines.getGraph());
-		Visualiser.updateFrame(gr, null);
-		Visualiser.waitForKey();
+		DirectedSparseGraph gr = ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(grA), ChangesToGraph.computeGD(grA, grB,config));
+		if (display)
+		{
+			Visualiser.updateFrame(gr, null);
+			Visualiser.waitForKey();
+		}
 		
 	}	
-	*/
+	
 	public static void main(String str[])
 	{// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
 	
@@ -92,6 +92,7 @@ public class GDVisualDemo
 
 						),*/
 				new Pair<String,String>("A-a->B-a->C / A-c->B / A-e->B / A-b->D", "P-a->Q-a->R / P-c->Q / P-d->Q / S-c->R"),
+			//new Pair<String,String>("A-a->A-a->C / A-c->A / A-e->A / A-b->D", "P-a->P-a->R / P-c->P / P-d->P / S-c->R"),
 				//new Pair<String,String>("A-a->B-a->C-b->D", "P-a->Q-b->R-c->R"),
 				
 				//new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T"),
@@ -100,7 +101,7 @@ public class GDVisualDemo
 				//new Pair<String,String>("A-a->B-a-#C / A-b->D", "P-a->Q-a-#R / S-c-#R"),
 				};
 		int position=0;
-		obtainDifferenceGraph(pairs[position].firstElem, pairs[position].secondElem, position,true, Configuration.getDefaultConfiguration());
+		obtainDifferenceGraph2(pairs[position].firstElem, pairs[position].secondElem, position,true, Configuration.getDefaultConfiguration());
 		
 	}
 }

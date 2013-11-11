@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import edu.uci.ics.jung.utils.ParallelEdgeIndexSingleton;
 import edu.uci.ics.jung.visualization.*;
 import edu.uci.ics.jung.visualization.contrib.*;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
@@ -738,12 +739,15 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     // this is a self-loop. scale it is larger than the vertex
                     // it decorates and translate it so that its nadir is
                     // at the center of the vertex.
+                	int edgeIndex = ParallelEdgeIndexSingleton.getInstance().getIndex(e);
                     Rectangle2D s2Bounds = s2.getBounds2D();
-                    double translation = s2Bounds.getHeight()/2;
-                    xform.translate(0, -graphLayoutOptions.scaleLines*translation);
-                    xform.scale(graphLayoutOptions.scaleLines*s2Bounds.getWidth(),graphLayoutOptions.scaleLines*s2Bounds.getHeight());
-                    yMin = graphLayoutOptions.scaleLines*(EdgeShapeBoundaries.getMinY()*s2Bounds.getHeight()-translation);
-                    yMax = graphLayoutOptions.scaleLines*(EdgeShapeBoundaries.getMaxY()*s2Bounds.getHeight()-translation);
+                    double scaleBy = 1+(graphLayoutOptions.scaleLines-1)*1./3.;
+                    double translation = s2Bounds.getHeight()*(1./4.+edgeIndex/4.);
+                    
+                    xform.translate(0, -scaleBy*translation);
+                    xform.scale(scaleBy*s2Bounds.getWidth(),scaleBy*s2Bounds.getHeight());
+                    yMin = scaleBy*(EdgeShapeBoundaries.getMinY()*s2Bounds.getHeight())-translation;
+                    yMax = scaleBy*(EdgeShapeBoundaries.getMaxY()*s2Bounds.getHeight())-translation;
                     
                 } else 
                 {
@@ -837,7 +841,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     double xLabel = 0,yLabel = 0,xa=0,ya=0,rotation=thetaRadians;
                     if (isLoop)
                     {
-                    	double displacementY = -yMin+d.height, displacementX=d.width/2;
+                    	double displacementY = labelBelow?-yMin+d.height:-yMin+d.height, displacementX=d.width/2;
 	                	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
 	                	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
 	                	xLabel = xa-displacementX*Math.cos(thetaRadians);
@@ -1085,15 +1089,28 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
     static class VertexShape extends AbstractVertexShapeFunction {
 
-        public VertexShape() {
+    	protected double currentScale = 1.0;
+    	protected final LayoutOptions layoutOptions;
+    	
+    	protected void setScale()
+    	{
+    		if (layoutOptions.scaleLines != currentScale)
+    		{
+    			currentScale = layoutOptions.scaleLines;
+    			vsf = new ConstantVertexSizeFunction((int)Math.round(25*(1+currentScale/2)));factory = new VertexShapeFactory(vsf, varf);
+    		}
+    	}
+    	
+        public VertexShape(LayoutOptions options) {
             super(new ConstantVertexSizeFunction(25),
                     new ConstantVertexAspectRatioFunction(1.0f));
+            layoutOptions = options;
         }
 
         @Override
         public Shape getShape(Vertex v) {
             JUConstants c = (JUConstants) v.getUserDatum(JUConstants.COLOUR);
-
+            setScale();
             if (DeterministicDirectedSparseGraph.isInitial(v)) {
                 return factory.getRegularStar(v, 7);
             } else if (!DeterministicDirectedSparseGraph.isAccept(v)) {
@@ -1181,7 +1198,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         r.setVertexStringer(labeller);
         r.setVertexFontFunction(new ConstantVertexFontFunction(new Font("Helvetica", Font.PLAIN, (int)Math.round(12.0*graphLayoutOptions.scaleText))));
         r.setEdgeFontFunction(new ConstantEdgeFontFunction(new Font("Helvetica", Font.PLAIN, (int)Math.round(12.0*graphLayoutOptions.scaleText))));
-        r.setVertexShapeFunction(new VertexShape());
+        r.setVertexShapeFunction(new VertexShape(graphLayoutOptions));
         r.setVertexPaintFunction(new VertexPaint(r));
         r.setVertexStrokeFunction(new ConstantVertexStrokeFunction((float)graphLayoutOptions.scaleLines));
         return r;

@@ -96,6 +96,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 					"delPath");
 	}
 
+	@Override
 	public String getGraphName()
 	{
 		return module.getName();

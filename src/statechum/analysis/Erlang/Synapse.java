@@ -17,6 +17,7 @@
  */
 package statechum.analysis.Erlang;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -35,6 +36,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
@@ -129,6 +131,7 @@ public class Synapse implements Runnable {
 		msgComputeDiff =  new OtpErlangAtom("computeDiff"), 
 		msgDisplayDiff = new OtpErlangAtom("displayDiff"), 
 		msgDisplayFSM = new OtpErlangAtom("displayFSM"),
+		msgLearnErlang = new OtpErlangAtom("learnErlang"),
 		msgLearn = new OtpErlangAtom("learn"),
 		msgTraces = new OtpErlangAtom("traces"),
 
@@ -652,6 +655,82 @@ public class Synapse implements Runnable {
 														};
 														LearnerGraph graphLearnt = learner.learnMachine(sPlus, sMinus);
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+													}
+													catch(AskedToTerminateException e)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+													
+												}
+												else
+												// Args: Ref,learnErlang,moduleFileFullPath, pid
+												// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
+												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+												// Response: Ref,ok,fsm
+												// on error: Ref,failure,text_of_the_error (as string)
+												if (command.equals(msgLearnErlang) && message.arity() >= 3)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														ErlangModule.setupErlangConfiguration(learnerInitConfiguration.config, new File(((OtpErlangAtom)message.elementAt(2)).atomValue()));
+														
+														// we start a separate Erlang node to run the questions
+														ErlangRunner erlangRunner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+														learnerInitConfiguration.config.setErlangMboxName(erlangRunner.getRunnerName());
+														ErlangOracleLearner learner = new ErlangOracleLearner(null, learnerInitConfiguration) {
+
+															@Override
+															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+															{
+																// send the notification if necessary
+																if (message.arity() > 3 && message.elementAt(3) instanceof OtpErlangPid)
+																{
+																	mbox.send((OtpErlangPid)message.elementAt(3),new OtpErlangTuple(new OtpErlangObject[]{ref,msgStatus,msgNotification}));
+																}
+																
+																// check if we were asked to terminate
+																try {
+																	OtpErlangObject messageReceived = mbox.receive(0);// do not wait, return null if anything received
+																	if (messageReceived != null && messageReceived instanceof OtpErlangTuple && ((OtpErlangTuple)messageReceived).arity() == 2)
+																	{
+																		OtpErlangTuple cmd = ((OtpErlangTuple)messageReceived);
+																		if (cmd.elementAt(0).equals(ref) && cmd.elementAt(1).equals(msgStop))
+																			throw new AskedToTerminateException();
+																	}
+																} catch (OtpErlangExit e) {
+																	Helper.throwUnchecked("node exited", e);
+																} catch (OtpErlangDecodeException e) {
+																	Helper.throwUnchecked("decode exception", e);
+																}
+																
+																// resume learning.
+																return super.ChooseStatePairs(graph);
+															}
+
+															@Override
+															public Pair<Integer, String> CheckWithEndUser(
+																	LearnerGraph model,
+																	List<Label> question,
+																	int expectedForNoRestart,
+																	List<Boolean> consistentFacts,
+																	PairScore pairBeingMerged,
+																	Object[] moreOptions) {
+																return super.CheckWithEndUser(model, question, expectedForNoRestart,consistentFacts, pairBeingMerged, moreOptions);
+															}
+															
+														};
+														if (learnerInitConfiguration.config.getAskQuestions()) // only generate initial traces if we are permited to ask questions.
+															learner.init(learner.GenerateInitialTraces(learnerInitConfiguration.config.getErlangInitialTraceLength()),0,0);
+														LearnerGraph graphLearnt = learner.learnMachine(),graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
+														AbstractLearnerGraph.interpretLabelsOnGraph(graphLearnt,graphWithTrimmedLabels,ErlangModule.loadModule(learnerInitConfiguration.config).behaviour.new ConverterModToErl());
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphWithTrimmedLabels)});
 													}
 													catch(AskedToTerminateException e)
 													{

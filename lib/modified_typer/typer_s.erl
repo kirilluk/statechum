@@ -158,7 +158,7 @@ remove_external(CallGraph, PLT) ->
   {StrippedCG0, Ext} = dialyzer_callgraph:remove_external(CallGraph),
   StrippedCG = case string:substr(erlang:system_info(otp_release),1,3) of
   	"R14"->dialyzer_callgraph:finalize(StrippedCG0);
-  	"R15"->StrippedCG0;
+  	"R15"->dialyzer_callgraph:finalize(StrippedCG0);
   	"R16"->StrippedCG0;
   	_->reportError('Unsupported Erlang version, only R14, R15 and R16 are supported')
   end,

@@ -57,12 +57,18 @@ collect(Analysis) ->
   NewCServer =
     try
       NewRecords = dialyzer_codeserver:get_temp_records(TmpCServer),
+      NewExpTypes = dialyzer_codeserver:get_temp_exported_types(TmpCServer),
       OldRecords = dialyzer_plt:get_types(NewPlt),
+      OldExpTypes = dialyzer_plt:get_exported_types(NewPlt),
       MergedRecords = dialyzer_utils:merge_records(NewRecords, OldRecords),
+      MergedExpTypes = sets:union(NewExpTypes, OldExpTypes),
       %% io:format("Merged Records ~p",[MergedRecords]),
       TmpCServer1 = dialyzer_codeserver:set_temp_records(MergedRecords, TmpCServer),
-      TmpCServer2 = dialyzer_utils:process_record_remote_types(TmpCServer1),
-      dialyzer_contracts:process_contract_remote_types(TmpCServer2)
+      TmpCServer2 =
+        dialyzer_codeserver:insert_temp_exported_types(MergedExpTypes,
+                                                       TmpCServer1),
+      TmpCServer3 = dialyzer_utils:process_record_remote_types(TmpCServer2),
+      dialyzer_contracts:process_contract_remote_types(TmpCServer3)
     catch
       throw:{error, ErrorMsg} ->
 	typer_s:reportError(ErrorMsg)
@@ -77,7 +83,7 @@ collect_one_file_info(File, Analysis) ->
   Options = dialyzer_utils:src_compiler_opts() ++ Is ++ Ds,
   case dialyzer_utils:get_abstract_code_from_src(File, Options) of
     {error, Reason} ->
-      %% io:format("File=~p\n,Options=~p\n,Error=~p\n", [File,Options,Reason]),
+      %%io:format("File=~p\n,Options=~p\n,Error=~p\n", [File,Options,Reason]),
       typer_s:compile_error(Reason);
     {ok, AbstractCode} ->
       case dialyzer_utils:get_core_from_abstract_code(AbstractCode, Options) of
@@ -86,7 +92,8 @@ collect_one_file_info(File, Analysis) ->
 		  case dialyzer_utils:get_record_and_type_info(AbstractCode) of
 		    {error, Reason} -> typer_s:compile_error([Reason]);
 		    {ok, Records} -> 
-		      Mod = list_to_atom(filename:basename(File, ".erl")),
+			Mod = cerl:concrete(cerl:module_name(Core)), %% from Debian Erlang
+		      %%Mod = list_to_atom(filename:basename(File, ".erl")),
 		      case dialyzer_utils:get_spec_info(Mod, AbstractCode, Records) of
 				{error, Reason} -> typer_s:compile_error([Reason]);
 				{ok, SpecInfo} -> 
@@ -101,8 +108,8 @@ collect_one_file_info(File, Analysis) ->
   end.
 
 analyze_core_tree(Core, Records, SpecInfo, Analysis, File) ->
-io:format("inside analyze_core_tree ~n",[]),
-  Module = list_to_atom(filename:basename(File, ".erl")),
+  Module = cerl:concrete(cerl:module_name(Core)), %% from Debian Erlang
+  %%Module = list_to_atom(filename:basename(File, ".erl")),
   TmpTree = cerl:from_records(Core),
   CS1 = Analysis#typer_analysis.code_server,
   NextLabel = dialyzer_codeserver:get_next_core_label(CS1),
@@ -201,9 +208,8 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
   MergedExpTypes = sets:union(ExpTypes, OldExpTypes),
   CS6 = dialyzer_codeserver:insert_temp_exported_types(MergedExpTypes, CS5),
   Ex_Funcs = [{0,F,A} || {_,_,{F,A}} <- cerl:module_exports(Tree)],
-  CG = Analysis#typer_analysis.callgraph,
-  {V,E} = dialyzer_callgraph:scan_core_tree(Tree, CG),
-  dialyzer_callgraph:add_edges(E, V, CG),
+  TmpCG = Analysis#typer_analysis.callgraph,
+  CG = dialyzer_callgraph:scan_core_tree(Tree, TmpCG),
   Fun = fun analyze_one_function/2,
   All_Defs = cerl:module_defs(Tree),
   Acc = lists:foldl(Fun, #tmpAcc{file = File, module = Module}, All_Defs),
@@ -213,19 +219,17 @@ analyze_core_tree(Core, Records, SpecInfo, CbInfo, ExpTypes, Analysis, File) ->
   Sorted_Functions = lists:keysort(1, Acc#tmpAcc.funcAcc),
   FuncMap = typer_map_s:insert({File, Sorted_Functions}, Analysis#typer_analysis.func),
   %% we do not need to sort functions which are imported from included files
-  IncFuncMap = typer_map_s:insert({File, Acc#tmpAcc.incFuncAcc}, 
-				Analysis#typer_analysis.inc_func),
-  Final_Files = Analysis#typer_analysis.final_files ++ [{File, Module}],
+  IncFuncMap = typer_map_s:insert({File, Acc#tmpAcc.incFuncAcc},
+			   Analysis#typer_analysis.inc_func),
+  FMs = Analysis#typer_analysis.final_files ++ [{File, Module}],
   RecordMap = typer_map_s:insert({File, Records}, Analysis#typer_analysis.record),
-  Analysis#typer_analysis{final_files = Final_Files,
+  Analysis#typer_analysis{final_files = FMs,
 		    callgraph = CG,
 		    code_server = CS6,
 		    ex_func = Exported_FuncMap,
 		    inc_func = IncFuncMap,
 		    record = RecordMap,
 		    func = FuncMap}.
-
-		    
 		    
 		    
 		    

@@ -171,7 +171,7 @@ public class TestErlangModule
      * @throws IOException */
     protected static String runTyperAsAProcess(File f, ErlangRunner runner) throws IOException
     {
-    	ErlangRunner.compileErl(f, runner, false);
+    	ErlangRunner.compileErl(f, runner, true);
     	
         {// Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
 	        Map<String,String> environment = System.getenv();
@@ -215,7 +215,7 @@ public class TestErlangModule
      * @throws IOException */
     protected String runDialyzerAndTyperAsAProcessInsideErlang(File f) throws IOException
     {
-    	ErlangRunner.compileErl(f, runner, false);
+    	ErlangRunner.compileErl(f, runner, true);
     	OtpErlangObject otpArgs[] = new OtpErlangObject[]{
         		null, 
 				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM, true))}),

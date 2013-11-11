@@ -103,102 +103,6 @@ get_final_info(File, Module, Analysis) ->
   Contracts = Analysis#typer_analysis.contracts,
   #info{recMap=RecMap, funcs=Functions, typeMap=TypeMap, contracts=Contracts}.
 
-collect_imported_funcs(Funcs, TypeMap, TmpInc) ->
-  %% Coming from other sourses, including:
-  %% FIXME: How to deal with yecc-generated file????
-  %%     --.yrl (yecc-generated file)???
-  %%     -- yeccpre.hrl (yecc-generated file)???
-  %%     -- other cases
-  Fun = fun({File,_} = Obj, Inc) ->
-	    case is_yecc_file(File, Inc) of
-	      {yecc_generated, NewInc} -> NewInc;
-	      {not_yecc, NewInc} ->
-		check_imported_funcs(Obj, NewInc, TypeMap)
-	    end
-	end,
-  lists:foldl(Fun, TmpInc, Funcs).
-
--spec is_yecc_file(string(), #inc{}) -> {'not_yecc', #inc{}}
-				      | {'yecc_generated', #inc{}}.
-is_yecc_file(File, Inc) ->
-  case lists:member(File, Inc#inc.filter) of
-    true -> {yecc_generated, Inc};
-    false ->
-      case filename:extension(File) of
-	".yrl" ->
-	  Rootname = filename:rootname(File, ".yrl"),
-	  Obj = Rootname ++ ".erl",
-	  case lists:member(Obj, Inc#inc.filter) of
-	    true -> {yecc_generated, Inc};
-	    false ->
-	      NewFilter = [Obj|Inc#inc.filter],
-	      NewInc = Inc#inc{filter = NewFilter},
-	      {yecc_generated, NewInc}
-	  end;
-	_ ->
-	  case filename:basename(File) of
-	    "yeccpre.hrl" -> {yecc_generated, Inc};
-	    _ -> {not_yecc, Inc}
-	  end
-      end
-  end.
-
-check_imported_funcs({File, {Line, F, A}}, Inc, TypeMap) ->
-  IncMap = Inc#inc.map,
-  FA = {F, A},
-  Type = get_type_info(FA, TypeMap),
-  case typer_map_s:lookup(File, IncMap) of
-    none -> %% File is not added. Add it
-      Obj = {File,[{FA, {Line, Type}}]},
-      NewMap = typer_map_s:insert(Obj, IncMap),
-      Inc#inc{map = NewMap};
-    Val -> %% File is already in. Check.
-      case lists:keyfind(FA, 1, Val) of
-	false ->
-	  %% Function is not in; add it
-	  Obj = {File, Val ++ [{FA, {Line, Type}}]},
-	  NewMap = typer_map_s:insert(Obj, IncMap),
-	  Inc#inc{map = NewMap};
-	Type ->
-	  %% Function is in and with same type
-	  Inc;
-	_ ->
-	  %% Function is in but with diff type
-	  inc_warning(FA, File),
-	  Elem = lists:keydelete(FA, 1, Val),
-	  NewMap = case Elem of
-		     [] ->
-		       typer_map_s:remove(File, IncMap);
-		     _  ->
-		       typer_map_s:insert({File, Elem}, IncMap)
-		   end,
-	  Inc#inc{map = NewMap}
-      end
-  end.
-
-inc_warning({F, A}, File) ->
-  io:format("      ***Warning: Skip function ~p/~p ", [F, A]),
-  io:format("in file ~p because of inconsistent type\n", [File]).
-
-clean_inc(Inc) ->
-  Inc1 = remove_yecc_generated_file(Inc),
-  normalize_obj(Inc1).
-
-remove_yecc_generated_file(TmpInc) ->
-  Fun = fun(Key, Inc) ->
-	    NewMap = typer_map_s:remove(Key, Inc#inc.map),
-	    Inc#inc{map = NewMap}
-	end,
-  lists:foldl(Fun, TmpInc, TmpInc#inc.filter).
-  
-normalize_obj(TmpInc) ->
-  Fun = fun(Key, Val, Inc) ->
-	    NewVal = [{{Line,F,A},Type} || {{F,A},{Line,Type}} <- Val],
-	    typer_map_s:insert({Key,NewVal}, Inc)
-	end,
-  NewMap = typer_map_s:fold(Fun, typer_map_s:new(), TmpInc#inc.map),
-  TmpInc#inc{map = NewMap}.
-
 get_recMap(File, Analysis) ->
   typer_map_s:lookup(File, Analysis#typer_analysis.record).
 
@@ -316,7 +220,8 @@ get_type_info(Func, TypeMap) ->
       %% Note: Typeinfo of any function should exist in
       %% the result offered by dialyzer, otherwise there 
       %% *must* be something wrong with the analysis
-      erlang:error("No type info for function: ~p\n", [Func]);
+	{FuncName,ArgNum}=Func,
+      	typer_s:reportError("No type info for function "++atom_to_list(FuncName) ++ "/" ++ integer_to_list(ArgNum) );
     {contract, _Fun} = C -> C;
     {_RetType, _ArgType} = RA -> RA 
   end.

@@ -167,9 +167,9 @@ launch(OptionsList,PidToNotify) ->
 				{Ref, ok, Pid} ->
 					%% At this point, we have started Statechum in a Java node and established communication with it.
 					PidToNotify!ok,
-					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions));
-				{'EXIT', Port, _} ->
-					throw("unexpected Java termination")
+					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions))
+				%{'EXIT', Port, _} ->throw("unexpected Java termination")
+				%The above is commented out because all we care about is whether we get a response and forcing the unexpected termination to occur under test requires it to terminate when we sent it a specific message (but also happens on its own on slow PCs).
 				after 1000 ->
 					throw("Timeout waiting for echo response")
 			end
@@ -207,7 +207,7 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 		{Port, {data, Data}} ->
 			case AccumulateOutput of
 				true -> loop(Port,ResponseAsText ++ Data,Pid,ParentPid,AccumulateOutput);
-				false-> io:format("~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)
+				false-> io:format(user,"~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)
 			end;
 		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
 		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);

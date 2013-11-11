@@ -569,10 +569,13 @@ public class ErlangRunner {
 		OtpErlangList outcome = null;
 		OtpErlangTuple tup = call(new OtpErlangObject[] { new OtpErlangAtom(
 				"processes") }, "Failed to get process list.");
-		if ((tup.arity() == 2) && (tup.elementAt(0).equals(okAtom))) {
+		if (tup != null && (tup.arity() == 2) && (tup.elementAt(0).equals(okAtom))) {
 			outcome = (OtpErlangList) tup.elementAt(1);
 		} else
-			throw new RuntimeException("Er, why did I get this?: "
+			if (tup == null)
+				throw new IllegalArgumentException("NULL response from call to get process list");
+			else
+				throw new IllegalArgumentException("Unexpected response from a call to get a process list: "
 					+ tup.elementAt(0) + "(" + tup.arity() + ")");
 		
 		return outcome;

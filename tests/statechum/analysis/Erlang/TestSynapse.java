@@ -144,11 +144,12 @@ public class TestSynapse {
 	public void testRunSynapseLaunchFailure3()
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
+		String response = runner.evaluateString("process_flag(trap_exit, true),"+
+				"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+				+ "Response = receive Arg -> Arg end,"
+				+ "process_flag(trap_exit, false),Response").toString();
 		Assert.assertTrue(
-				runner.evaluateString("process_flag(trap_exit, true),"+
-						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
-						+ "Response = receive Arg -> Arg end,"
-						+ "process_flag(trap_exit, false),Response").toString().contains("Timeout waiting for echo response"));
+				response.contains("Timeout waiting for echo response"));
 	}
 
 	@Test

@@ -119,7 +119,7 @@ updateconfiguration_test_() ->
 
 		
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'learnerScoreMode','CONVENTIONAL'}]},receive {Ref,ok} -> ok end end) end,
-		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'learnerScoreMode','JUNK'}]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"No enum constant")) end end) end,
+		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'learnerScoreMode','JUNK'}]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"No enum const")) end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'learnerScoreMode',"nonsense"}]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"OtpErlangString cannot be cast")) end end) end,
 		fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'a','b'}]},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"unknown field a")) end end) end		
 		
@@ -850,8 +850,8 @@ displayFSM_test_()->
 	
 learnErlang_test_()->
 	{"tests Erlang learning",
-	{inorder,
-	[{timeout, 20000,
+	{inparallel,
+	[{timeout, 60000,
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','5'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
 				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 

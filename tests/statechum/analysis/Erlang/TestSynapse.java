@@ -258,7 +258,7 @@ public class TestSynapse {
 				+ "receive {Ref,ok,Value} -> "
 				+ "{Pid,Value} end");
 		Assert.assertEquals(2,pid_node.arity());
-		String synapseNode = ((OtpErlangAtom)pid_node.elementAt(1)).atomValue();
+		String synapseNode = ErlangLabel.dumpErlangObject(pid_node.elementAt(1));
 		OtpErlangPid pid = (OtpErlangPid)pid_node.elementAt(0);// PID of the parent process
 		
 		// Check that Synapse is running.
@@ -293,9 +293,15 @@ public class TestSynapse {
 		Assert.assertTrue(response.contains("Node exited com.ericsson.otp.erlang.OtpErlangExit: {{nocatch,worker_parent_failed}"));
 	}
 	
+	/** Pings a node provided.
+	 *  The argument should have quotes around it unless it can be parsed as an atom by Erlang.
+	 *  
+	 * @param node node name
+	 * @return true if ping returned success, false otherwise.
+	 */
 	protected boolean pingNode(String node)
 	{// we cannot ping Java nodes from Java, it seems but can ping them from Erlang. Do this here. 
-		return Boolean.parseBoolean( ((OtpErlangAtom)pingRunner.evaluateString("case net_adm:ping("+node+") of pong -> true; pang -> false end")).atomValue());
+		return Boolean.parseBoolean( ((OtpErlangAtom)pingRunner.evaluateString("case net_adm:ping("+node.replace("-","\\-")+") of pong -> true; pang -> false end")).atomValue());
 	}
 	
 	@Test

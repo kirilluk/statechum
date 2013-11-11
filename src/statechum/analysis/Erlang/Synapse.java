@@ -731,6 +731,7 @@ public class Synapse implements Runnable {
 														LearnerGraph graphLearnt = learner.learnMachine(),graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
 														AbstractLearnerGraph.interpretLabelsOnGraph(graphLearnt,graphWithTrimmedLabels,ErlangModule.loadModule(learnerInitConfiguration.config).behaviour.new ConverterModToErl());
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphWithTrimmedLabels)});
+														erlangRunner.close();
 													}
 													catch(AskedToTerminateException e)
 													{

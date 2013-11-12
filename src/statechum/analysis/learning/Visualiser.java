@@ -168,10 +168,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     
     public static class LayoutOptions
     {
-    	public boolean showNegatives = true;
+    	public boolean showNegatives = true,showIgnored=false;
     	public double scaleText = 1.0;
     	public double scaleLines = 1.0;
     	public boolean showDIFF = false;
+    	
+    	/** Names of the states to be ignored. */
+    	public Set<String> ignoredStates = null;
     	
     	public LayoutOptions( )
     	{
@@ -182,7 +185,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     	public LayoutOptions copy()
     	{
     		LayoutOptions result = new LayoutOptions();
-    		result.showNegatives = showNegatives;result.scaleText=scaleText;result.scaleLines = scaleLines;
+    		result.showNegatives = showNegatives;result.showIgnored = showIgnored;result.scaleText=scaleText;result.scaleLines = scaleLines;
+    		if (ignoredStates != null)
+    		{// make a copy
+    			result.ignoredStates = new HashSet<String>();result.ignoredStates.addAll(ignoredStates);
+    		}
     		return result;
     	}
     }
@@ -370,6 +377,20 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null) {
                 	options.showNegatives = !options.showNegatives; 
+                    reloadLayout(false);
+                }
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_I, new graphAction("ignored states", "toggles ignored states on or off") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 12L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	LayoutOptions options = layoutOptions.get(currentGraph);
+                if (options != null) {
+                	options.showIgnored = !options.showIgnored; 
                     reloadLayout(false);
                 }
             }
@@ -889,6 +910,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         	@Override
 			public boolean evaluate(Object object)
         	{
+        		if (!graphLayoutOptions.showIgnored && graphLayoutOptions.ignoredStates != null && graphLayoutOptions.ignoredStates.contains( object.toString() ))
+        			return false;
+        		
         		if (graphLayoutOptions.showNegatives)
         			return true;
         		else
@@ -1043,10 +1067,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     {
                     	if (!first)
                     	{// choose separator
-                    		if (!graphLayoutOptions.showDIFF)
-                    			text.append("<br>");// default layout is vertical
-                    		else
-                    			text.append(", ");// it is horizontal for FSMDiff because there are many parallel edges there.
+                   			text.append("<br>");// default layout is vertical
                     	}
                     	else first=false;
                     	
@@ -1292,8 +1313,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     	ensureCapacityFor(windowid);
         if (graphWindow[windowid] == null) {
         	graphWindow[windowid] = new Visualiser(windowid);
+            graphWindow[windowid].update(null,graph);
         }
-        graphWindow[windowid].update(null,graph);
+        else
+        {
+            graphWindow[windowid].update(null,graph);
+            graphWindow[windowid].setVisible(true);
+        }
     }
     
     /** Used to make it possible to single-step through graph transforms. */

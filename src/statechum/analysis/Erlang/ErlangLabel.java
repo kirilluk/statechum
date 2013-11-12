@@ -669,7 +669,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 		protected static final Set<Character> whatToQuoteForString = new HashSet<Character>();
 
-		static {
+		static {// perhaps make these if ( !Character.isAlphabetic(ch) && !Character.isDigit(ch) && ch != ' ')
 			for (char ch : new char[] { '\"', '\\', '\n', '\r' })
 				whatToQuoteForString.add(ch);
 		}

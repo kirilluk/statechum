@@ -481,6 +481,18 @@ public class ErlangRunner {
 		public static final String keyword = "throw";
 	}
 
+	protected int responseTimeout = 10000;
+	
+	public void setResponseTimeout(int newValue)
+	{
+		responseTimeout = newValue;
+	}
+	
+	public int getResponseTimeout()
+	{
+		return responseTimeout;
+	}
+	
 	/**
 	 * Makes a call and waits for a response.
 	 * 
@@ -492,7 +504,7 @@ public class ErlangRunner {
 	 */
 	public OtpErlangTuple call(OtpErlangObject[] args, String errorMessage) {
 		OtpErlangTuple result = null;
-		OtpErlangObject response = call(args, 10000);
+		OtpErlangObject response = call(args, responseTimeout);
 
 		if (response instanceof OtpErlangAtom) 
 		{

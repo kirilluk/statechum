@@ -1101,6 +1101,32 @@ public class Configuration implements Cloneable {
 	public void setUseAmber(boolean newValue) {
 		useAmber = newValue;
 	}
+
+	/** In the course of Synapse learning, we generate progress messages. This one indicates how often to send tentative state machines as a feedback. */
+	protected int synapseSendFSMFrequency = 5;
+	
+	public int getSynapseSendFSMFrequency()
+	{
+		return synapseSendFSMFrequency;
+	}
+	
+	public void setSynapseSendFSMFrequency(int newValue)
+	{
+		synapseSendFSMFrequency = newValue;
+	}
+	
+	/** Whether to strip module names from functions that are loaded from modules that are not of the gen_server/gen_event/gen_fsm kind. */
+	protected boolean erlangStripModuleNamesFromFunctionsInNonGenModules = false;
+	
+	public boolean getErlangStripModuleNamesFromFunctionsInNonGenModules()
+	{
+		return erlangStripModuleNamesFromFunctionsInNonGenModules;
+	}
+	
+	public void setErlangStripModuleNamesFromFunctionsInNonGenModules(boolean newValue)
+	{
+		erlangStripModuleNamesFromFunctionsInNonGenModules = newValue;
+	}
 	
 	/** The name of the mailbox to use in communication with Erlang runtime. */
 	protected String erlangMboxName = null;

@@ -621,6 +621,90 @@ public class TestErlangModule
 		Assert.assertNotSame(mod,ErlangModule.loadModule(loadConfiguration,true));
    }
     
+    /** Tests that alphabet construction can be stopped from including module names in labels. */
+    @Test
+    public void testLoadModule4() throws IOException
+    {
+    	final File fileLocker = new File(ErlangExamples,"frequency/frequencyBroken.erl");
+    	Configuration loadConfiguration = config.copy();
+    	loadConfiguration.setErlangSourceFile(fileLocker);
+    	loadConfiguration.setErlangModuleName(fileLocker.getName());
+    	loadConfiguration.setLabelKind(LABELKIND.LABEL_ERLANG);
+
+    	// First, load it with module names
+    	ErlangModule mod = ErlangModule.loadModule(loadConfiguration,true);
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'frequencyBroken:allocate/0',[],{'ok','JustAnythingA'}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:allocate/0',[],{'ok',[]}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:allocate/0',[],{'ok',['WibbleA']}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:allocate/0',[],{'ok',['WibbleA','WobbleA']}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',['JustAnythingA'],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',['JustAnythingA'],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',['JustAnythingA'],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',['JustAnythingA'],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[[]],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[[]],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[[]],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[[]],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA']],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA']],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA']],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA']],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA','WobbleA']],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA','WobbleA']],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA','WobbleA']],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:deallocate/1',[['WibbleA','WobbleA']],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:init/0',[],{'reply','ok'}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:init/0',[],{'reply',{'ok','JustAnythingA'}}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:init/0',[],{'reply',{'ok',[]}}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:init/0',[],{'reply',{'ok',['WibbleA']}}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:init/0',[],{'reply',{'ok',['WibbleA','WobbleA']}}},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:start/0',[],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:start/0',[],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:start/0',[],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:start/0',[],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:stop/0',[],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:stop/0',[],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:stop/0',[],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'frequencyBroken:stop/0',[],['WibbleA','WobbleA']}]",TestTypes.getAlphabetAsString(mod));
+    	
+    	// Now, load it without
+    	loadConfiguration.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
+    	mod = ErlangModule.loadModule(loadConfiguration,true);
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'allocate/0',[],{'ok','JustAnythingA'}},"+
+    			"{"+ErlangLabel.missingFunction+",'allocate/0',[],{'ok',[]}},"+
+    			"{"+ErlangLabel.missingFunction+",'allocate/0',[],{'ok',['WibbleA']}},"+
+    			"{"+ErlangLabel.missingFunction+",'allocate/0',[],{'ok',['WibbleA','WobbleA']}},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',['JustAnythingA'],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',['JustAnythingA'],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',['JustAnythingA'],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',['JustAnythingA'],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[[]],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[[]],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[[]],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[[]],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA']],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA']],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA']],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA']],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA','WobbleA']],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA','WobbleA']],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA','WobbleA']],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'deallocate/1',[['WibbleA','WobbleA']],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'init/0',[],{'reply','ok'}},"+
+    			"{"+ErlangLabel.missingFunction+",'init/0',[],{'reply',{'ok','JustAnythingA'}}},"+
+    			"{"+ErlangLabel.missingFunction+",'init/0',[],{'reply',{'ok',[]}}},"+
+    			"{"+ErlangLabel.missingFunction+",'init/0',[],{'reply',{'ok',['WibbleA']}}},"+
+    			"{"+ErlangLabel.missingFunction+",'init/0',[],{'reply',{'ok',['WibbleA','WobbleA']}}},"+
+    			"{"+ErlangLabel.missingFunction+",'start/0',[],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'start/0',[],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'start/0',[],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'start/0',[],['WibbleA','WobbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'stop/0',[],'JustAnythingA'},"+
+    			"{"+ErlangLabel.missingFunction+",'stop/0',[],[]},"+
+    			"{"+ErlangLabel.missingFunction+",'stop/0',[],['WibbleA']},"+
+    			"{"+ErlangLabel.missingFunction+",'stop/0',[],['WibbleA','WobbleA']}]",TestTypes.getAlphabetAsString(mod));
+    }
+    
     protected static final String stdFunctions = "\nhandle_call(_,_,_)->{reply,ok,5}.\nhandle_cast(_,_)->{noreply,ok,5}.\nhandle_info(_,_)->{reply,ok}.\ninit(_)->{ok,5}.\n";
     
     @Test

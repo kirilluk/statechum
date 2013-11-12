@@ -530,7 +530,7 @@ computeDiff_test_()->
 			#statemachinedifference{
 				added_transitions=[{b,waggle,d}],
 				deleted_transitions=[{b,wobble,c}],
-				added_states=[d],
+				added_states=[d,c],
 				deleted_states=[],
 				name_mapping=[],
 				initial_state=a}} -> ok end end) end,
@@ -545,7 +545,7 @@ computeDiff_test_()->
 					  ,alphabet=[wibble,wobble,newone]
 					 },
 					 #statemachine{
-					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  states=[a,b,c,d]
 					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble,newone]
@@ -571,13 +571,12 @@ computeDiff_test_()->
 					  ,alphabet=[wibble,wobble,newone]
 					 },
 					 #statemachine{
-					  states=[a,b,c,d,e] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  states=[a,b,c,d,e]
 					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,e},{e,wibble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble,newone]
 					 }
 			},receive {Ref,failure,Text} -> ?assertEqual(true,contains(Text,"are shared between A and B")),ok end end end) end,
-
 
 			%% test for unknown label in the first machine
 				fun() -> useworker(fun(Pid,Ref) -> 
@@ -589,7 +588,7 @@ computeDiff_test_()->
 					  ,alphabet=[wibble,wobble]
 					 },
 					 #statemachine{
-					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  states=[a,b,c,d]
 					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble,newone]
@@ -606,7 +605,7 @@ computeDiff_test_()->
 					  ,alphabet=[wibble,wobble,newone]
 					 },
 					 #statemachine{
-					  states=[a,b,c,d] %% c is a disconnected state which is why it is preserved and hence not mentioned in removed states
+					  states=[a,b,c,d]
 					  ,transitions=[{a,wibble,b},{b,wobble,d},{d,newone,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
@@ -815,6 +814,25 @@ learn_test_()->
 				NotificationReceiver!{Ref,self(),check},receive {Ref,3} ->ok end end %% got a few, in this case 3 
 				end end end ) end,
 				
+				
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				NotificationReceiver=spawn_link(synapselauncher,handleNotificationsAndRecordThem,[Ref,"learning"]),
+				Pid!{Ref,learn,NotificationReceiver},
+				receive {Ref,ok,Fsm} -> % an earlier test validated this
+				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5 4",V) end end
+				end end end ) end ,
+				
+			fun() -> useworker(fun(Pid,Ref) -> 
+				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'synapseSendFSMFrequency','2'}]},receive {Ref,ok} -> %% no questions 
+				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
+				NotificationReceiver=spawn_link(synapselauncher,handleNotificationsAndRecordThem,[Ref,"learning"]),
+				Pid!{Ref,learn,NotificationReceiver},
+				receive {Ref,ok,Fsm} -> % an earlier test validated this
+				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5<{statemachine,['P1000','P1001','P1002','N1000','P1004'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',b,'N1000'},{'P1002',a,'P1002'},{'P1002',b,'P1004'}],'P1000',[b,a]}> 4",V) end end
+				end end end ) end ,
+
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
@@ -823,7 +841,6 @@ learn_test_()->
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
 				NotificationReceiver!{Ref,self(),check},receive {Ref,0} -> ok end end % here we did not tell the learner to notify, hence got zero 
 				end end end ) end 
-				
 	]}}.
 	
 displayFSM_test_()->
@@ -850,8 +867,8 @@ displayFSM_test_()->
 	
 learnErlang_test_()->
 	{"tests Erlang learning",
-	{inparallel,
-	[{timeout, 60000,
+	{inorder, %% if run in parallel, I may end up attempting to start multiple runners at the same moment that will fail
+	[{timeout, 15000,
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','5'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
 				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
@@ -865,6 +882,8 @@ learnErlang_test_()->
 %%		Assert.assertEquals(51,locker.pathroutines.countEdges());
 
 				 end end end) end},
+				 
+	{timeout, 15000,				 
 		fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
 				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
@@ -872,7 +891,8 @@ learnErlang_test_()->
 				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
 				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
 				NotificationReceiver!{Ref,self(),check},receive {Ref,1} ->ok end
-				 end end end) end,
+				 end end end) end},
+	{timeout, 15000,				 
 		fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
 				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
@@ -880,7 +900,7 @@ learnErlang_test_()->
 				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
 				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
 				NotificationReceiver!{Ref,self(),check},receive {Ref,0} ->ok end
-				 end end end) end
+				 end end end) end}
 		
 	]}}.
 	

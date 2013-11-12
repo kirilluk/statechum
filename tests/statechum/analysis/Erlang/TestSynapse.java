@@ -3,6 +3,7 @@ package statechum.analysis.Erlang;
 import static statechum.Helper.checkForCorrectException;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
@@ -13,16 +14,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import edu.uci.ics.jung.graph.Edge;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.Erlang.Synapse.StatechumProcess;
+import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
@@ -94,6 +101,7 @@ public class TestSynapse {
 	@Test
 	public void testEunitSynapseTests()
 	{
+		runner.setResponseTimeout(20000);
 		startSynapse();
 		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("testsynapse:test()")));		
 	}
@@ -164,7 +172,7 @@ public class TestSynapse {
 	
 	/** Deterministic case. */
 	@Test
-	public void testParseAutomata1() throws IncompatibleStatesException
+	public void testParseAutomataAndComputeDiff1() throws IncompatibleStatesException
 	{
 		ConvertALabel converter = null;
 		Configuration config = Configuration.getDefaultConfiguration().copy();
@@ -189,7 +197,7 @@ public class TestSynapse {
 	
 	/** Non-deterministic case. */
 	@Test
-	public void testParseAutomata2()
+	public void testParseAutomataAndComputeDiff2()
 	{
 		ConvertALabel converter = null;
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
@@ -222,6 +230,226 @@ public class TestSynapse {
 			}
 			previous = graph;
 		}
+	}
+	
+	/** Special case of fsmdiff */
+	@Test
+	public void testFsmDiff1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000',a,'P1000'},"+
+	            " {'P1000',b,'P1002'},"+
+	            " {'P1000',c,'N1000'},"+
+	            " {'P1002',c,'P1002'},"+
+	            " {'P1002',d,'P1002'}],"+
+	            "'P1000',"+
+	            "[d,b,c,a]}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1000'],"+
+              "[{'P1000',a,'P1001'},"+
+              "{'P1000',c,'P1001'},"+
+              "{'P1001',a,'N1000'},"+
+              "{'P1001',b,'P1000'},"+
+              "{'P1001',d,'P1001'}],"+
+              "'P1000',"+
+              "[d,b,c,a]}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[{'P1003','a','P1001'},"+
+		                                             "{'P1003','c','P1001'},"+
+		                                             "{'P1001','a','P1000'},"+
+		                                             "{'P1001','b','P1003'},"+
+		                                             "{'P1001','d','P1001'}],"+
+		                                            "[{'P1000','a','P1000'},"+
+		                                            "{'P1000','b','P1002'},"+
+		                                             "{'P1000','c','N1000'},"+
+		                                             "{'P1002','c','P1002'},"+
+		                                             "{'P1002','d','P1002'}],"+
+		                                            "['P1003','P1001'],"+
+		                                           "['N1000','P1002'],"+
+		                                            "[{'P1000','N1000'},{'P1003','P1000'}],"+
+		                                            "'P1003'}" , ErlangLabel.dumpErlangObject(difference));
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(shouldBeLikePrevious.getStateNumber(),grB.getStateNumber());
+		
+		DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(grAerlang, difference);
+		Map<String,String> edgeToColours = new TreeMap<String,String>();
+		for(Object edgeObj:gr.getEdges())
+		{
+			Edge edge = (Edge)edgeObj;
+			if (edge.containsUserDatumKey(JUConstants.DIFF))
+				edgeToColours.put(edge.toString(), edge.getUserDatum(JUConstants.DIFF).toString());
+		}
+		Assert.assertEquals("{P1000-[a]->P1000=java.awt.Color[r=255,g=0,b=0], P1000-[b]->P1002=java.awt.Color[r=255,g=0,b=0], P1000-[c]->N1000=java.awt.Color[r=255,g=0,b=0], P1001-[a]->P1000=java.awt.Color[r=0,g=255,b=0], P1001-[b]->P1003=java.awt.Color[r=0,g=255,b=0], P1001-[d]->P1001=java.awt.Color[r=0,g=255,b=0], P1002-[c, d]->P1002=java.awt.Color[r=255,g=0,b=0], P1003-[a, c]->P1001=java.awt.Color[r=0,g=255,b=0]}",
+				edgeToColours.toString());
+	}
+	
+	/** Special case of fsmdiff - disconnected states */
+	@Test
+	public void testFsmDiff2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1000'],"+
+              "[{'P1000','a','P1001'}],"+
+              "'P1000',"+
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['P1001','N1000'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
+	}
+	
+	/** Special case of fsmdiff - disconnected states with different names */
+	@Test
+	public void testFsmDiff3a()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1001'],"+
+              "[{'P1000','a','P1001'}],"+
+              "'P1000',"+
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['N1001','P1001'],['N1000','P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
+	}
+	
+	/** Special case of fsmdiff - disconnected states with different names */
+	@Test
+	public void testFsmDiff3b()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1001'],"+
+              "[{'P1001','a','P1001'}],"+
+              "'P1001',"+
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[],[],['N1001','P1003'],['N1000','P1002'],[{'P1000','P1001'},{'P1003','P1000'}],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
+	}
+	
+	/** Special case of fsmdiff - disconnected states with different names */
+	@Test
+	public void testFsmDiff3c()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1001'],"+
+              "[{'P1001','a','P1001'}],"+
+              "'P1000',"+ // a disconnected initial state
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[],[],['N1001','P1003'],['N1000','P1002'],[{'P1000','P1001'},{'P1003','P1000'}],'P1003'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
+	}
+	
+	/** Special case of fsmdiff - disconnected states */
+	@Test
+	public void testFsmDiff4()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001','N1000'],"+
+              "[{'P1000','a','P1001'}],"+
+              "'P1000',"+
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['P1001','N1000'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
+	}
+	
+	/** Special case of fsmdiff - disconnected states */
+	@Test
+	public void testFsmDiff5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		LearnerGraphND grA = new LearnerGraphND(config);
+		OtpErlangObject grAerlang = ErlangLabel.parseText("{statemachine,['P1000','P1002','N1000'],"+
+	            "[{'P1000','a','P1000'}],"+
+	            "'P1000',"+
+	            "['a']}");
+		Synapse.StatechumProcess.parseStatemachine(grAerlang,grA,null,true);
+
+		LearnerGraphND grB = new LearnerGraphND(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','P1001'],"+
+              "[{'P1000','a','P1001'}],"+
+              "'P1000',"+
+              "['a']}"),grB,null,true);
+		
+		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['P1001'],['N1000','P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+
+		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
+		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
+		DifferentFSMException ex = WMethod.checkM(grB, shouldBeLikePrevious);
+		Assert.assertNull(ex);Assert.assertEquals(grB.getStateNumber(),shouldBeLikePrevious.getStateNumber());
 	}
 	
 	@Test
@@ -301,7 +529,7 @@ public class TestSynapse {
 	 */
 	protected boolean pingNode(String node)
 	{// we cannot ping Java nodes from Java, it seems but can ping them from Erlang. Do this here. 
-		return Boolean.parseBoolean( ((OtpErlangAtom)pingRunner.evaluateString("case net_adm:ping("+node.replace("-","\\-")+") of pong -> true; pang -> false end")).atomValue());
+		return Boolean.parseBoolean( ((OtpErlangAtom)pingRunner.evaluateString("case net_adm:ping("+node+") of pong -> true; pang -> false end")).atomValue());
 	}
 	
 	@Test
@@ -415,4 +643,96 @@ public class TestSynapse {
 		
 		System.out.println(runner.evaluateString("Ref=make_ref(),synapselauncher:find_statechum()!{self(),Ref,getStatechumWorker},receive {Ref,Pid} -> ARef = make_ref(),Pid!{ARef,terminate},receive after 1000 -> ok end end"));
 	}
+	
+	@Test
+	public void testLayoutOptions1()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangTuple(new OtpErlangObject[0]));
+		}},ClassCastException.class,"OtpErlangTuple");// when we do not collect output, no response is sent.
+		
+	}
+	
+	@Test
+	public void testLayoutOptions2()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangString("a")}));
+		}},ClassCastException.class,"OtpErlangString");// when we do not collect output, no response is sent.
+		
+	}
+
+	@Test
+	public void testLayoutOptions3()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		Assert.assertNull(options.ignoredStates);
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[0]));
+		Assert.assertNull(options.ignoredStates);
+	}
+
+	@Test
+	public void testLayoutOptions4()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		Assert.assertNull(options.ignoredStates);
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("a")}));
+		Assert.assertNotNull(options.ignoredStates);
+		Assert.assertEquals(1,options.ignoredStates.size());Assert.assertEquals("a",options.ignoredStates.iterator().next());
+		
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("b"),new OtpErlangAtom("a")}));
+		Assert.assertNotNull(options.ignoredStates);
+		Assert.assertEquals(2,options.ignoredStates.size());
+		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
+		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+	}
+
+
+	@Test
+	public void testLayoutOptions5()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		Assert.assertNull(options.ignoredStates);
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("b"),new OtpErlangAtom("a")}));
+		Assert.assertNotNull(options.ignoredStates);
+		Assert.assertEquals(2,options.ignoredStates.size());
+		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
+		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+	}
+	
+	/** Tests the copying process for ignored states. */
+	@Test
+	public void testLayoutOptions6()
+	{
+		final LayoutOptions options = new LayoutOptions();
+		
+		Assert.assertNull(options.ignoredStates);
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("b"),new OtpErlangAtom("a")}));
+		Assert.assertNotNull(options.ignoredStates);
+		Assert.assertEquals(2,options.ignoredStates.size());
+		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
+		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		
+		LayoutOptions copy = options.copy();
+		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("c")}));
+		Assert.assertNotNull(options.ignoredStates);
+		Assert.assertEquals(3,options.ignoredStates.size());
+		ignoreIterator = options.ignoredStates.iterator();
+		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("c",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		options.showIgnored = !options.showIgnored;
+		
+		// now check the original is unchanged.
+		Assert.assertEquals(2,copy.ignoredStates.size());
+		ignoreIterator = copy.ignoredStates.iterator();
+		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals(!options.showIgnored,copy.showIgnored);
+	}
+	
 }

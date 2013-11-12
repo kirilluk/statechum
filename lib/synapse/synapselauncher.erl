@@ -21,7 +21,7 @@
 
 -module(synapselauncher).
 
--export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0,handleNotifications/2]).
+-export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0,handleNotifications/2,handleNotificationsAndRecordThem/2]).
 -include("synapse.hrl").
 
 %%% @doc Starts the Java runtime with Statechum
@@ -211,7 +211,7 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 			end;
 		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
 		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
-		{'EXIT', ParentPid, _ } when is_pid(ParentPid) -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,false); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
+		{'EXIT', ParentPid, _ } when is_pid(ParentPid) -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,AccumulateOutput); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
 		{'EXIT', Port, _} when is_port(Port) ->%% port_close(Port) will fail here because port is already closed 
 			if AccumulateOutput == true -> ParentPid!ResponseAsText,ok; true -> ok end;
 		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) %% here we expect Statechum to terminate and output to become available.
@@ -222,8 +222,17 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 %% This one is only used for testing of notifications
 handleNotifications(Ref,Counter) ->
 	receive 
-		{Ref,status,step} -> handleNotifications(Ref,Counter+1);
+		{Ref,status,step,_} -> handleNotifications(Ref,Counter+1);
 		{Ref,Pid,check} -> Pid!{Ref,Counter}
+	end.
+	
+handleNotificationsAndRecordThem(Ref,Progress) ->
+	receive 
+	%% Based on http://stackoverflow.com/questions/588003/convert-an-integer-to-a-string-in-erlang
+		{Ref,status,step,{S,Fsm}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w<~w>",[S,Fsm])) );
+		{Ref,status,step,{S}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w",[S])));
+		{Ref,status,step,A} -> throw("unexpected message " ++ lists:flatten(io_lib:format("~w",[A])) );
+		{Ref,Pid,check} -> Pid!{Ref,Progress}
 	end.
 	
 

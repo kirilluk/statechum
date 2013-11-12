@@ -93,7 +93,7 @@ public class DifferenceVisualiser {
 			OtpErlangAtom initial_state = (OtpErlangAtom)difference.elementAt(6);			
 			
 			Synapse.StatechumProcess.parseStatemachine(addedStates,addedTransitions,new OtpErlangList(new OtpErlangObject[0]),initial_state,recorder.added,null,false);
-			Synapse.StatechumProcess.parseStatemachine(new OtpErlangList(new OtpErlangObject[0]),removedTransitions,new OtpErlangList(new OtpErlangObject[0]),initial_state,recorder.removed,null,false);
+			Synapse.StatechumProcess.parseStatemachine(new OtpErlangList(new OtpErlangObject[0]),removedTransitions,new OtpErlangList(new OtpErlangObject[0]),null,recorder.removed,null,false);
 			recorder.relabelling.clear();
 			Synapse.StatechumProcess.updateMap(difference.elementAt(5),recorder.relabelling);
 			return recorder;
@@ -122,7 +122,7 @@ public class DifferenceVisualiser {
 				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:removed.getTargets(transition.getValue()))
 						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
-			
+
 			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:added.transitionMatrix.entrySet())
 			{
 				if (entry.getValue().isEmpty())
@@ -135,6 +135,16 @@ public class DifferenceVisualiser {
 			grA.setInit(added.getInit());
 			graphPatcher.removeDanglingStates();
 		}
+		
+
+		protected Set<CmpVertex> extraVertices = new HashSet<CmpVertex>();
+		
+		@Override
+		public void addVertex(CmpVertex vertex) {
+			super.addVertex(vertex);
+			extraVertices.add(vertex);
+		}
+
 		
 		/** Computes a difference between two graphs and reports as an Erlang-compatible tuple.
 		 * 
@@ -160,7 +170,7 @@ public class DifferenceVisualiser {
 			recorder.applyDiff(finalMachineWithoutRelabelling,config);
 			
 			Set<CmpVertex> verticesAdded = new HashSet<CmpVertex>(), verticesRemoved = new HashSet<CmpVertex>();
-			verticesAdded.addAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());verticesAdded.removeAll(origMachine.transitionMatrix.keySet());
+			verticesAdded.addAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());verticesAdded.removeAll(origMachine.transitionMatrix.keySet());verticesAdded.addAll(recorder.extraVertices);
 			verticesRemoved.addAll(origMachine.transitionMatrix.keySet());verticesRemoved.removeAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());
 			List<OtpErlangAtom> addedList = new LinkedList<OtpErlangAtom>(), removedList = new LinkedList<OtpErlangAtom>();
 			for(CmpVertex a:verticesAdded) addedList.add(new OtpErlangAtom(a.getStringId()));for(CmpVertex a:verticesRemoved) removedList.add(new OtpErlangAtom(a.getStringId()));
@@ -239,14 +249,14 @@ public class DifferenceVisualiser {
 				CmpVertex from = entry.getKey();
 				DeterministicVertex fromVertex = DeterministicDirectedSparseGraph.findVertexNamed(from,graphToUpdate);
 				if (fromVertex == null)
-					throw new IllegalArgumentException("source state in diff is not known");
+					throw new IllegalArgumentException("source state in diff is not known, looking at "+from);
 				
 				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:transition.getValue())
 					{
 						DeterministicVertex targetVertex = DeterministicDirectedSparseGraph.findVertexNamed(target,graphToUpdate);
 						if (targetVertex == null)
-							throw new IllegalArgumentException("target state in diff is not known");
+							throw new IllegalArgumentException("target state in diff is not known, looking at "+target);
 						Edge e=DeterministicDirectedSparseGraph.findEdge(fromVertex, targetVertex);
 						if (e == null)
 							throw new IllegalArgumentException("edge in diff was not found");
@@ -280,5 +290,7 @@ public class DifferenceVisualiser {
 			outcome.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
 			return outcome;
 		}
+
+
 	}
 }

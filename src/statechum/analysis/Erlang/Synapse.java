@@ -895,7 +895,7 @@ public class Synapse implements Runnable {
 														if (!testMode)
 														{
 															diff.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
-															diff.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
+															//diff.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
 															Visualiser.updateFrame(diff, null);
 														}
 
@@ -932,6 +932,7 @@ public class Synapse implements Runnable {
 															if (!testMode)
 															{
 																fsmPicture.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
+																fsmPicture.removeUserDatum(JUConstants.LAYOUTOPTIONS);
 																fsmPicture.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
 																Visualiser.updateFrame(fsmPicture, null);
 															}
@@ -940,6 +941,7 @@ public class Synapse implements Runnable {
 														}
 														catch(Throwable ex)
 														{
+															ex.printStackTrace();
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
 														}
 														mbox.send(erlangPartner,outcome);

@@ -38,6 +38,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.Erlang.OTPBehaviour.ConverterModToErl;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -48,6 +49,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 
@@ -525,9 +527,9 @@ public class Synapse implements Runnable {
 				// This involves setting up configuration, traces and running either a learner or fsmdiff.
 				mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{refFirstResponse,mbox.self()}));
 				
-				learnerInitConfiguration.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
+				learnerInitConfiguration.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(false);
 				learnerInitConfiguration.config.setGdFailOnDuplicateNames(false);
-				
+				learnerInitConfiguration.config.setErlangInitialTraceLength(3);
 				for(;;)
 				{
 						OtpErlangObject msg=mbox.receive();
@@ -822,7 +824,17 @@ public class Synapse implements Runnable {
 															learner.init(learner.GenerateInitialTraces(learnerInitConfiguration.config.getErlangInitialTraceLength()),0,0);
 														LearnerGraph graphLearnt = learner.learnMachine(),graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
 														AbstractLearnerGraph.interpretLabelsOnGraph(graphLearnt,graphWithTrimmedLabels,mod.behaviour.new ConverterModToErl());
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphWithTrimmedLabels)});
+														LearnerGraph graphStripped = new LearnerGraph(learnerInitConfiguration.config);
+														final ConvertALabel converter = mod.behaviour.new ConverterModToErl();
+										        		AbstractLearnerGraph.interpretLabelsOnGraph(graphWithTrimmedLabels,graphStripped,new Transform.ConvertLabel(new ConvertALabel() {
+															
+															@Override
+															public Label convertLabelToLabel(Label label) {
+																ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
+																return new ErlangLabel(null, lbl.callName.replace(mod.getName(), ""), lbl.input, lbl.expectedOutput);
+															}
+														}));
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphStripped)});
 														erlangRunner.close();
 													}
 													catch(AskedToTerminateException e)

@@ -25,6 +25,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("synapse.hrl").
 
+-export([handleNotifications/2,handleNotificationsAndRecordThem/2]).
+
 useworker(Function) ->
 	StatechumRef=make_ref(),synapselauncher:find_statechum()!{self(),StatechumRef,getStatechumWorker},receive {StatechumRef,Pid} -> Ref = make_ref(),Function(Pid,Ref), Pid!{Ref,terminate} end.
 
@@ -39,7 +41,23 @@ contains([],List) -> false;
 contains([H|T],[A|B]) when H=:=A -> containsStrict(T,B) or contains(T,[A|B]);
 contains([H|T],[A|B]) when H=/=A -> contains(T,[A|B]).
 
-
+%% This one is only used for testing of notifications
+handleNotifications(Ref,Counter) ->
+	receive 
+		{Ref,status,step,_} -> handleNotifications(Ref,Counter+1);
+		{Ref,Pid,check} -> Pid!{Ref,Counter}
+	end.
+	
+handleNotificationsAndRecordThem(Ref,Progress) ->
+	receive 
+	%% Based on http://stackoverflow.com/questions/588003/convert-an-integer-to-a-string-in-erlang
+		{Ref,status,step,{S,Fsm,Reds}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w<~w><reds:~w>",[S,Fsm,Reds])) );
+		{Ref,status,step,{S}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w",[S])));
+		{Ref,status,step,A} -> throw("unexpected message " ++ lists:flatten(io_lib:format("~w",[A])) );
+		{Ref,Pid,check} -> Pid!{Ref,Progress}
+	end.
+	
+	
 contains_test_() ->
 	[
 		?_assertEqual(true,containsStrict("","")),
@@ -768,20 +786,20 @@ learn_test_()->
 				Pid!{Ref,computeDiff, 
 					Fsm,
 					 #statemachine{
-					  states=[s0,s1,s2,n]
-					  ,transitions=[{s0,a,s1},{s1,a,s2},{s2,a,s2},{s2,b,s2},{s1,b,n}]
+					  states=[s0,s1,s2,'N99']
+					  ,transitions=[{s0,a,s1},{s1,a,s2},{s2,a,s2},{s2,b,s2},{s1,b,'N99'}]
 					  ,initial_state=s0
 					  ,alphabet=[a,b]
 					 }
-			},receive {Ref,ok,
-				#statemachinedifference{%% there has to be no differences
+			},receive {Ref,ok,Difference} -> 
+				Difference = #statemachinedifference{%% there has to be no differences
 				added_transitions=[],
 				deleted_transitions=[],
 				added_states=[],
 				deleted_states=[],
-				name_mapping=[{'N1000',n},{'P1000',s0},{'P1001',s1},{'P1002',s2}],
-				initial_state='P1000'}} ->
-				ok end end end end end) end,
+				name_mapping=[{'N1000','N99'},{'P1000',s0},{'P1001',s1},{'P1002',s2}],
+				initial_state='P1000'},
+				ok  end end end end end) end,
 
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
@@ -808,7 +826,7 @@ learn_test_()->
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
-				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]),
+				NotificationReceiver=spawn_link(testsynapse,handleNotifications,[Ref,0]),
 				Pid!{Ref,learn, NotificationReceiver},
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
 				NotificationReceiver!{Ref,self(),check},receive {Ref,3} ->ok end end %% got a few, in this case 3 
@@ -818,7 +836,7 @@ learn_test_()->
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
-				NotificationReceiver=spawn_link(synapselauncher,handleNotificationsAndRecordThem,[Ref,"learning"]),
+				NotificationReceiver=spawn_link(testsynapse,handleNotificationsAndRecordThem,[Ref,"learning"]),
 				Pid!{Ref,learn,NotificationReceiver},
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
 				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5 4",V) end end
@@ -827,16 +845,16 @@ learn_test_()->
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'synapseSendFSMFrequency','2'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
-				NotificationReceiver=spawn_link(synapselauncher,handleNotificationsAndRecordThem,[Ref,"learning"]),
+				NotificationReceiver=spawn_link(testsynapse,handleNotificationsAndRecordThem,[Ref,"learning"]),
 				Pid!{Ref,learn,NotificationReceiver},
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
-				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5<{statemachine,['P1000','P1001','P1002','N1000','P1004'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',b,'N1000'},{'P1002',a,'P1002'},{'P1002',b,'P1004'}],'P1000',[b,a]}> 4",V) end end
+				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5<{statemachine,['P1000','P1001','P1002','N1000','P1004'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',b,'N1000'},{'P1002',a,'P1002'},{'P1002',b,'P1004'}],'P1000',[b,a]}><reds:['P1000','P1001','P1002','N1000','P1004']> 4",V) end end
 				end end end ) end ,
 
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'}]},receive {Ref,ok} -> %% no questions 
 				Pid!{Ref,traces,[{neg,[a,b]},{pos,[a,a,a,b]}]},receive {Ref,ok} -> %% traces transferred	
-				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]),
+				NotificationReceiver=spawn_link(testsynapse,handleNotifications,[Ref,0]),
 				Pid!{Ref,learn},
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
 				NotificationReceiver!{Ref,self(),check},receive {Ref,0} -> ok end end % here we did not tell the learner to notify, hence got zero 
@@ -863,15 +881,54 @@ displayFSM_test_()->
 %%			'my graph'},receive {Ref,ok} -> ok end end) end,
 
 	]}}.
+
 	
-	
+
+notificationVisualiser(PidViz,RefViz,PidHost,RefHost, Counter) ->
+	receive  
+		{RefHost,status,step,{S,Fsm,Reds}} -> io:format(user,"[~w] Displaying FSM for ~w states ~n",[Counter,S]),
+			useworker(fun(Pid,Ref) -> Pid!{Ref,updateConfiguration,[{'askQuestions','false'}]},receive {Ref,ok} ->ok end, %% no questions
+				Pid!{Ref,loadFSM,Fsm},receive {Ref,ok} -> ok end, %% transferred FSM we got
+				Pid!{Ref,setReds,Reds},receive {Ref,ok} -> ok end, %% assign red states
+				Pid!{Ref,learn},receive {Ref,ok,Passive} -> ok end, %% learnt FSM passively
+				#statemachine{states=ST,transitions=TR,alphabet=AL,initial_state=Init}=Passive,
+				io:format(user,"Passive learnt: ~w states and ~w transitions ~n",[length(ST),length(TR)]), 
+				PidViz!{RefViz,displayFSM,Passive,%%
+				%%list_to_atom(lists:flatten(io_lib:format("Fsm_~w_~w",[Counter,S])))
+				[]
+				}, 
+				receive {RefViz,ok} -> ok end,
+				ok end),
+			notificationVisualiser(PidViz,RefViz,PidHost,RefHost,Counter+1);
+		{RefHost,status,step,{S}} -> io:format(user,"[~w] States so far: ~w~n",[Counter,S]),notificationVisualiser(PidViz,RefViz,PidHost,RefHost,Counter+1);
+		{RefHost,check} -> PidHost!{RefHost};
+		A -> throw("unexpected message " ++ lists:flatten(io_lib:format("~w",[A])) )
+	end.
+
 learnErlang_test_()->
 	{"tests Erlang learning",
 	{inorder, %% if run in parallel, I may end up attempting to start multiple runners at the same moment that will fail
-	[{timeout, 15000,
+	[
+					 
+	{timeout, 15000,
+			fun() -> useworker(fun(Pid,Ref) -> 
+				PidHost=self(),
+				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','3'},{'erlangAlphabetAnyElements','ANY_WIBBLE'},{'synapseSendFSMFrequency','8'}]},receive {Ref,ok} ->ok end, %% no questions
+				NotificationReceiver=spawn_link(fun() -> useworker(fun(PidViz,RefViz) ->notificationVisualiser(PidViz,RefViz,PidHost,Ref,0) end) end), 
+				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl',NotificationReceiver},
+				receive {Ref,ok,Fsm} -> 
+					#statemachine{states=ST,transitions=TR,alphabet=AL,initial_state=Init}=Fsm,
+					NotificationReceiver!{Ref,check},receive {Ref} -> ok end, %% wait for the visualiser to finish
+					io:format(user,"Completed learning : ~w states and ~w transitions ~n",[length(ST),length(TR)]), 
+					Pid!{Ref,displayFSM,Fsm,[],['N1000']}, %% now display the outcome
+					receive {Ref,ok} -> ok end,
+					ok end
+				
+				 end) end},
+	{timeout, 15000,
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','5'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
-				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				NotificationReceiver=spawn_link(testsynapse,handleNotifications,[Ref,0]), 
 				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl',NotificationReceiver},
 				receive {Ref,ok,#statemachine{states=S,transitions=TR,alphabet=AL,initial_state='P1000'}} -> % got the outcome, now lazily check it for correctness
 				?assertEqual(6,length(S)),?assertEqual(11,length(AL)),?assertEqual(51,length(TR)),
@@ -882,11 +939,11 @@ learnErlang_test_()->
 %%		Assert.assertEquals(51,locker.pathroutines.countEdges());
 
 				 end end end) end},
-				 
+
 	{timeout, 15000,				 
 		fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
-				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				NotificationReceiver=spawn_link(testsynapse,handleNotifications,[Ref,0]), 
 				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl',NotificationReceiver},
 				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
 				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
@@ -895,12 +952,13 @@ learnErlang_test_()->
 	{timeout, 15000,				 
 		fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','false'},{'gdFailOnDuplicateNames','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions
-				NotificationReceiver=spawn_link(synapselauncher,handleNotifications,[Ref,0]), 
+				NotificationReceiver=spawn_link(testsynapse,handleNotifications,[Ref,0]), 
 				Pid!{Ref,learnErlang,'ErlangExamples/locker/locker.erl'},
 				receive {Ref,ok,Fsm} ->  % got the outcome, now check it for correctness
 				Fsm=#statemachine{states=['P1000'],transitions=[],alphabet=[],initial_state='P1000'},
 				NotificationReceiver!{Ref,self(),check},receive {Ref,0} ->ok end
 				 end end end) end}
-		
+				 
+
 	]}}.
 	

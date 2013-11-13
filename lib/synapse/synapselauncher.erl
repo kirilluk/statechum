@@ -21,7 +21,7 @@
 
 -module(synapselauncher).
 
--export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0,handleNotifications/2,handleNotificationsAndRecordThem/2]).
+-export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0]).
 -include("synapse.hrl").
 
 %%% @doc Starts the Java runtime with Statechum
@@ -218,22 +218,5 @@ loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
 %%		after 3000 -> 
 %%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)  end
 	end.
-
-%% This one is only used for testing of notifications
-handleNotifications(Ref,Counter) ->
-	receive 
-		{Ref,status,step,_} -> handleNotifications(Ref,Counter+1);
-		{Ref,Pid,check} -> Pid!{Ref,Counter}
-	end.
-	
-handleNotificationsAndRecordThem(Ref,Progress) ->
-	receive 
-	%% Based on http://stackoverflow.com/questions/588003/convert-an-integer-to-a-string-in-erlang
-		{Ref,status,step,{S,Fsm}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w<~w>",[S,Fsm])) );
-		{Ref,status,step,{S}} -> handleNotificationsAndRecordThem(Ref,Progress ++ lists:flatten(io_lib:format(" ~w",[S])));
-		{Ref,status,step,A} -> throw("unexpected message " ++ lists:flatten(io_lib:format("~w",[A])) );
-		{Ref,Pid,check} -> Pid!{Ref,Progress}
-	end.
-	
 
 	

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Configuration;
 import statechum.Helper;
@@ -129,7 +130,8 @@ public class Synapse implements Runnable {
 		msgGetFSM = new OtpErlangAtom("getFSM"),
 		msgTestLoadFSM = new OtpErlangAtom("testLoadFSM"),
 		msgTestDiffParsing = new OtpErlangAtom("testDiffParsing"),
-		
+		msgSetReds = new OtpErlangAtom("setReds"),
+	
 		msgComputeDiff =  new OtpErlangAtom("computeDiff"), 
 		msgDisplayDiff = new OtpErlangAtom("displayDiff"), 
 		msgDisplayFSM = new OtpErlangAtom("displayFSM"),
@@ -332,6 +334,22 @@ public class Synapse implements Runnable {
 			parseStatemachine(states,transitions,alphabet,initial_state,gr,converter,checkStates);
 		}
 		
+		/** Given a list of states in the supplied object, assigns red colour to the matching states in the supplied graph.
+		 *  
+		 * @param obj list of red states
+		 * @param gr graph to modify
+		 */
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void setReds(OtpErlangObject obj,AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr)
+		{
+			for(OtpErlangObject st:(OtpErlangList)obj)
+			{
+				String state = ((OtpErlangAtom)st).atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty state name");
+				CmpVertex v=gr.findVertex(VertexID.parseID(state));
+				if (v == null) throw new IllegalArgumentException(state+" state not found");
+				v.setColour(JUConstants.RED);
+			}
+		}
+		
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void parseStatemachine(OtpErlangList states,OtpErlangList transitions, OtpErlangList alphabet, OtpErlangAtom initial_state,
 				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, ConvertALabel converter, boolean checkStates)
 		{
@@ -343,7 +361,9 @@ public class Synapse implements Runnable {
 			for(OtpErlangObject st:states)
 			{
 				String state = ((OtpErlangAtom)st).atomValue();if (state.isEmpty()) throw new IllegalArgumentException("empty state name");
-				gr.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state ), gr.config),gr.createNewRow());
+				CmpVertex vertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID( state ), gr.config);
+				vertex.setAccept(vertex.getKind() != VertKind.NEGATIVE);
+				gr.transitionMatrix.put(vertex,gr.createNewRow());
 			}
 			
 			if (states.arity() != gr.transitionMatrix.size())
@@ -470,18 +490,23 @@ public class Synapse implements Runnable {
 		protected void sendProgress(OtpErlangPid pid, OtpErlangRef ref, LearnerGraph graph, ErlangModule mod, AtomicLong counter)
 		{
 			OtpErlangObject progressDetails = null, stateNumber = new com.ericsson.otp.erlang.OtpErlangLong(graph.getStateNumber());
-			
-			if (counter.incrementAndGet() != learnerInitConfiguration.config.getSynapseSendFSMFrequency())
+			if (0 != (counter.incrementAndGet() % learnerInitConfiguration.config.getSynapseSendFSMFrequency()))
 				progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber });
 			else
+			{// we need to report red states in order to be able to continue QSM-learning the graph
+				List<OtpErlangObject> stateList = new LinkedList<OtpErlangObject>();
+				for(CmpVertex v:graph.transitionMatrix.keySet())
+					stateList.add(new OtpErlangAtom(v.getStringId()));
+				
 				if (mod != null)
 				{
 					LearnerGraph graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
 					AbstractLearnerGraph.interpretLabelsOnGraph(graph,graphWithTrimmedLabels,mod.behaviour.new ConverterModToErl());
-					progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber, constructFSM(graphWithTrimmedLabels) });
+					progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber, constructFSM(graphWithTrimmedLabels), new OtpErlangList(stateList.toArray(new OtpErlangObject[0])) });
 				}
 				else
-					progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber, constructFSM(graph) });
+					progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber, constructFSM(graph), new OtpErlangList(stateList.toArray(new OtpErlangObject[0])) });
+			}
 			mbox.send(pid,new OtpErlangTuple(new OtpErlangObject[]{ref,msgStatus,msgNotification, progressDetails}));
 		}
 		
@@ -595,20 +620,35 @@ public class Synapse implements Runnable {
 												mbox.send(erlangPartner,outcome);
 											}
 											else
-										if (command.equals(msgGetFSM) && message.arity() == 2)
-										{
-											OtpErlangObject outcome = null;
-											try
-											{
-												outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,constructFSM(learnerInitConfiguration.graph)});
-											}
-											catch(Throwable ex)
-											{
-												outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
-											}
-											mbox.send(erlangPartner,outcome);
-										}
-										else
+												if (command.equals(msgGetFSM) && message.arity() == 2)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,constructFSM(learnerInitConfiguration.graph)});
+													}
+													catch(Throwable ex)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+											else
+												if (command.equals(msgSetReds) && message.arity() == 3)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														setReds(message.elementAt(2), learnerInitConfiguration.graph);
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+													}
+													catch(Throwable ex)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
 											if (command.equals(msgTestMapParsing) && message.arity() == 3)
 											{
 												OtpErlangObject outcome = null;
@@ -697,7 +737,13 @@ public class Synapse implements Runnable {
 															}
 															
 														};
-														LearnerGraph graphLearnt = learner.learnMachine(sPlus, sMinus);
+														learner.init(sPlus, sMinus);
+														if (learnerInitConfiguration.graph != null)
+														{
+															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
+															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+														}
+														LearnerGraph graphLearnt = learner.learnMachine();
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 													}
 													catch(AskedToTerminateException e)
@@ -816,7 +862,7 @@ public class Synapse implements Runnable {
 												}
 												else
 													
-												// Arguments: Ref, 'displayDiff', first graph, diff, atom with the name of the difference and (optional) PID to receive notifications. 
+												// Arguments: Ref, 'displayDiff', first graph, diff, atom with the name of the difference and (optional) list of states (as atoms) to ignore. 
 												// Upon error, no notifications are sent and instead an error is reported. 
 												// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 												if (command.equals(msgDisplayDiff) && message.arity() >= 5) 
@@ -850,7 +896,7 @@ public class Synapse implements Runnable {
 													mbox.send(erlangPartner,outcome);
 												}
 												else
-													// Arguments: Ref, 'displayFSM', graph, atom with the name of the difference and (optional) PID to receive notifications. 
+													// Arguments: Ref, 'displayFSM', graph, atom with the name of the difference and (optional) list of states (as atoms) to ignore. 
 													// Upon error, no notifications are sent and instead an error is reported. 
 													// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 													if (command.equals(msgDisplayFSM) && message.arity() >= 4) 

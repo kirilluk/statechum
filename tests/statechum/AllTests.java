@@ -150,6 +150,7 @@ public class AllTests {
         statechum.analysis.learning.TestErlangOracleLearner.class,
         statechum.analysis.Erlang.Signatures.TestTypes.class,
         statechum.analysis.Erlang.TestErlangGraphs.class,
+        statechum.analysis.Erlang.TestSynapseAuxiliaryFunctions.class,
         statechum.analysis.Erlang.TestSynapse.class
     })
     public static class ErlangTests {// all tests are included in the annotation.

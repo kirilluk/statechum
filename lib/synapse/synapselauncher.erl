@@ -168,19 +168,10 @@ launch(OptionsList,PidToNotify) ->
 					%% At this point, we have started Statechum in a Java node and established communication with it.
 					PidToNotify!ok,
 					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions))
-				%{'EXIT', Port, _} ->throw("unexpected Java termination")
-				%The above is commented out because all we care about is whether we get a response and forcing the unexpected termination to occur under test requires it to terminate when we sent it a specific message (but also happens on its own on slow PCs).
 				after 1000 ->
 					throw("Timeout waiting for echo response")
 			end
 			%% An alternative to sending Pid from Statechum is rpc:call(Node, erlang, whereis, [RegisteredName]) (thanks to http://stackoverflow.com/questions/16977972/how-to-exit-remote-pid-given-node-name-and-registered-name )
-			
-			
-%%			loop(Port,"completed",NodeName,PidName,false)
-%%			{PidName,NodeName}!{self(),Ref,terminate,someData},
-%%			spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
-%%			PID = spawn(fun() -> timer:sleep(1000),{PidName,NodeName}!{self(),Ref,terminate} end),
-%%			link(PID),
 	end.
 
 startStatechum(OptionsList) ->
@@ -191,6 +182,8 @@ startStatechum(OptionsList) ->
 				receive %% here we either wait to receive an ok message or to be killed if Statechum fails to start
 				    ok -> register(?StatechumName,Pid),
 					  Pid
+					after 1000 ->
+						throw("Timeout waiting for response from statechum launcher")
 				end;
 		Pid -> Pid
 	end.

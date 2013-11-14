@@ -48,10 +48,10 @@ public class OTPUnknownBehaviour extends OTPBehaviour {
 			
 			if (config.getUseErlangOutputs()) {
 				for (OtpErlangObject result : output) {
-					alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName, argsAsList, result));
+					alphabet.add(new ErlangLabel(function, callName, argsAsList, result));
 				}
 			} else {
-				alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName, argsAsList));
+				alphabet.add(new ErlangLabel(function, callName, argsAsList));
 			}
 		}
 	}

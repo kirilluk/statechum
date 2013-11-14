@@ -28,21 +28,27 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
+import statechum.Configuration.LABELKIND;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
+import statechum.StringLabel;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRuntime;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.observers.LearningConvergenceObserver;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
 
@@ -303,6 +309,7 @@ public class TestErlangOracleLearner {
 				}
 		}
 	}
+	
 	@Test
 	public void testLearningFromErlangTraceFile2() throws IOException
 	{
@@ -327,5 +334,78 @@ public class TestErlangOracleLearner {
 		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, lock ,{ok,locked}}", learner.config,learner.getLabelConverter())));
 		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, read ,-1}", learner.config,learner.getLabelConverter())));
 		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, unlock ,{ok,unlocked}}", learner.config,learner.getLabelConverter())));
+	}
+	
+	@Test
+	public void testLearnFrequencyServer() throws IOException
+	{
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);
+		ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples+"/frequency/frequencyBroken.erl"));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		learnerConfig.config.setErlangInitialTraceLength(3);
+		learnerConfig.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
+		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+		LearnerGraph frequencyE = new LearnerGraph(learnerConfig.config);
+		learner.init(learner.GenerateInitialTraces(learnerConfig.config.getErlangInitialTraceLength()),0,0);
+		
+		LearnerGraph frequencyRaw = learner.learnMachine();
+		Synapse.StatechumProcess.convertLabelsToStrings(frequencyRaw, frequencyE);
+		config.setLabelKind(LABELKIND.LABEL_STRING);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraph frequency = new LearnerGraph(config);Synapse.StatechumProcess.parseStatemachine(Synapse.StatechumProcess.constructFSM(frequencyE), frequency, null, true);
+		System.out.println(Synapse.StatechumProcess.constructFSM(frequencyE).elementAt(2));
+		LearnerGraph freq2=new LearnerGraph(config);
+		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','N1000','P1001','P1002','P1005'],["+
+"{'P1000','allocate/0,[],{ok,\\'AnyWibble\\'}','N1000'},"+
+"{'P1000','allocate/0,[],{ok,\\'WibbleA\\'}','N1000'},"+
+"{'P1000','allocate/0,[],{ok,\\'WobbleA\\'}','N1000'},"+
+"{'P1000','deallocate/1,[\\'AnyWibble\\'],\\'AnyWibble\\'','N1000'},"+
+"{'P1000','deallocate/1,[\\'AnyWibble\\'],ok','N1000'},"+
+"{'P1000','init/0,[],{reply,ok}','N1000'},"+
+"{'P1000','init/0,[],{reply,{ok,\\'AnyWibble\\'}}','N1000'},"+
+"{'P1000','start/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1000','start/0,[],true','P1001'},"+
+"{'P1000','stop/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1000','stop/0,[],ok','N1000'},"+
+"{'P1001','allocate/0,[],{ok,\\'AnyWibble\\'}','N1000'},"+
+"{'P1001','allocate/0,[],{ok,\\'WibbleA\\'}','P1002'},"+
+"{'P1001','allocate/0,[],{ok,\\'WobbleA\\'}','N1000'},"+
+"{'P1001','deallocate/1,[\\'AnyWibble\\'],\\'AnyWibble\\'','N1000'},"+
+"{'P1001','deallocate/1,[\\'AnyWibble\\'],ok','P1001'},"+
+"{'P1001','init/0,[],{reply,ok}','N1000'},"+
+"{'P1001','init/0,[],{reply,{ok,\\'AnyWibble\\'}}','N1000'},"+
+"{'P1001','start/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1001','start/0,[],true','N1000'},"+
+"{'P1001','stop/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1001','stop/0,[],ok','P1000'},"+
+"{'P1002','allocate/0,[],{ok,\\'AnyWibble\\'}','N1000'},"+
+"{'P1002','allocate/0,[],{ok,\\'WibbleA\\'}','N1000'},"+
+"{'P1002','allocate/0,[],{ok,\\'WobbleA\\'}','P1005'},"+
+"{'P1002','deallocate/1,[\\'AnyWibble\\'],\\'AnyWibble\\'','N1000'},"+
+"{'P1002','deallocate/1,[\\'AnyWibble\\'],ok','P1002'},"+
+"{'P1002','init/0,[],{reply,ok}','N1000'},"+
+"{'P1002','init/0,[],{reply,{ok,\\'AnyWibble\\'}}','N1000'},"+
+"{'P1002','start/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1002','start/0,[],true','N1000'},"+
+"{'P1002','stop/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1002','stop/0,[],ok','P1000'},"+
+"{'P1005','allocate/0,[],{ok,\\'AnyWibble\\'}','N1000'},"+
+"{'P1005','allocate/0,[],{ok,\\'WibbleA\\'}','N1000'},"+
+"{'P1005','allocate/0,[],{ok,\\'WobbleA\\'}','N1000'},"+
+"{'P1005','init/0,[],{reply,ok}','N1000'},"+
+"{'P1005','init/0,[],{reply,{ok,\\'AnyWibble\\'}}','N1000'},"+
+"{'P1005','start/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1005','start/0,[],true','N1000'},"+
+"{'P1005','stop/0,[],\\'AnyWibble\\'','N1000'},"+
+"{'P1005','stop/0,[],ok','P1000'}"+
+"],"+
+"'P1000',"+
+"['init/0,[],{reply,{ok,\\'AnyWibble\\'}}','deallocate/1,[\\'AnyWibble\\'],\\'AnyWibble\\'','stop/0,[],ok','stop/0,[],\\'AnyWibble\\'','start/0,[],\\'AnyWibble\\'','allocate/0,[],{ok,\\'WibbleA\\'}','start/0,[],true','deallocate/1,[\\'AnyWibble\\'],ok','init/0,[],{reply,ok}','allocate/0,[],{ok,\\'WobbleA\\'}','allocate/0,[],{ok,\\'AnyWibble\\'}']"+
+				"}"),
+				freq2,learnerConfig.getLabelConverter(),true);
+		
+		DifferentFSMException ex = WMethod.checkM(frequency, freq2);
+		if (ex != null)
+			Assert.assertNull(ex.getMessage(),ex);
+		Assert.assertEquals(frequency.getStateNumber(),freq2.getStateNumber());
 	}
 }

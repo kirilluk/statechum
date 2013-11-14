@@ -141,12 +141,7 @@ public abstract class OTPBehaviour {
 			Set<String> exports = loadExports(config);
 			for (Entry<String, FuncSignature> sigEntry : parent.sigs.entrySet()) {
 				if (!sigEntry.getValue().getName().equals("module_info") && exports.contains(sigEntry.getKey()))
-				{
-					String elementName= sigEntry.getKey();
-					if (config.getErlangStripModuleNamesFromFunctionsInNonGenModules())
-						elementName = sigEntry.getValue().getName()+"/"+sigEntry.getValue().getArity();
-					addFunctionToAlphabet(elementName, sigEntry.getValue(), config);
-				}
+					addFunctionToAlphabet(sigEntry.getKey(), sigEntry.getValue(), config);
 			}
 		} else
 			for (Entry<String, OtpCallInterface> pattern : patterns.entrySet()) {

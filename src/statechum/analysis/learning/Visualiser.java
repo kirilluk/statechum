@@ -44,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
+import statechum.StringLabel;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.linear.GD;
@@ -173,6 +174,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     	public double scaleLines = 1.0;
     	public boolean showDIFF = false;
     	
+    	/** How many components of a string label to display. */
+    	public int componentsToPick = Integer.MAX_VALUE;
+    	
     	/** Names of the states to be ignored. */
     	public Set<String> ignoredStates = null;
     	
@@ -293,7 +297,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             }
         };
         keyToActionMap.put(KeyEvent.VK_F2, persistAction);
-        keyToActionMap.put(KeyEvent.VK_F3, new graphAction("loadLayout", "loads the previously saved layout the visible graph") {
+        keyToActionMap.put(KeyEvent.VK_F3, new graphAction("loadLayout", "loads the previously saved layout into the visible graph") {
 
             /** Serial number. */
             private static final long serialVersionUID = 2L;
@@ -391,6 +395,34 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null) {
                 	options.showIgnored = !options.showIgnored; 
+                    reloadLayout(false);
+                }
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_PAGE_DOWN, new graphAction("refine", "reduces the abstraction level") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 13L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	LayoutOptions options = layoutOptions.get(currentGraph);
+                if (options != null && options.componentsToPick < Integer.MAX_VALUE) {
+                	options.componentsToPick++;
+                    reloadLayout(false);
+                }
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_PAGE_UP, new graphAction("abstract", "increases abstraction level") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 14L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	LayoutOptions options = layoutOptions.get(currentGraph);
+                if (options != null && options.componentsToPick != Integer.MAX_VALUE && options.componentsToPick > 0) {
+                	--options.componentsToPick;
                     reloadLayout(false);
                 }
             }
@@ -587,6 +619,20 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         assert graph != null;
         String title = (String) graph.getUserDatum(JUConstants.TITLE) + " (" + (currentGraph + 1) + "/" + graphs.size() + ")";
+        LayoutOptions options = layoutOptions.get(currentGraph);
+        if (options != null)
+        {
+        	if (options.showDIFF)
+        		title = title + "[Difference]";
+
+        	if (!options.showNegatives)
+        		title = title + "[HideNeg]";
+        	if (!options.showIgnored)
+        		title = title + "[HideExcl]";
+        	if (options.componentsToPick < Integer.MAX_VALUE)
+        		title = title + "[Details: "+options.componentsToPick+"]";
+        }
+        
         if (!wasInitialised) {
             construct(graph,layoutOptions.get(currentGraph));
             setTitle(title);
@@ -599,7 +645,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
         }
 
-       // viewer.getModel().getGraphLayout().initialize(getSize());
+       viewer.repaint();
     }
 
     
@@ -1063,7 +1109,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     	Color rgb = (Color)e.getUserDatum(JUConstants.DIFF);
                     	color = "rgb("+rgb.getRed()+","+rgb.getGreen()+","+rgb.getBlue()+")";
                     }
-                    for(Label lbl:(Set<Label>) e.getUserDatum(JUConstants.LABEL))
+                    for(Label lbl:abstractLabels((Set<Label>) e.getUserDatum(JUConstants.LABEL), graphLayoutOptions.componentsToPick))
                     {
                     	if (!first)
                     	{// choose separator
@@ -1108,6 +1154,25 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         return render;
     }
 
+    public static Set<Label> abstractLabels(Set<Label> lbls,int componentsToPick)
+    {
+    	Set<Label> outcome = new TreeSet<Label>();// this ensures that labels that abstract to the same text are only displayed once.
+    	for(Label l:lbls)
+    	{
+    		
+    		String labelComponents[] = l.toErlangTerm().split(",");
+    		StringBuffer labelAsBuffer = new StringBuffer();
+    		boolean first = true;
+    		for(int i=0;i<componentsToPick && i<labelComponents.length;++i)
+    		{
+    			if (!first) labelAsBuffer.append(',');else first=false;
+    			labelAsBuffer.append(labelComponents[i]);
+    		}
+    		outcome.add(new StringLabel(labelAsBuffer.toString()));
+    	}
+    	return outcome;
+    }
+    
     static class VertexShape extends AbstractVertexShapeFunction {
 
     	protected double currentScale = 1.0;

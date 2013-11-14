@@ -38,7 +38,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
-import statechum.analysis.Erlang.OTPBehaviour.ConverterModToErl;
+import statechum.StringLabel;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -57,8 +57,10 @@ import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangDecodeException;
 import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangRef;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -371,11 +373,11 @@ public class Synapse implements Runnable {
 			if (states.arity() != gr.transitionMatrix.size())
 				throw new IllegalArgumentException("repeated states in the list of states");
 			
-			Map<OtpErlangAtom,Label> atomToLabel = new HashMap<OtpErlangAtom,Label>();
+			Map<OtpErlangObject,Label> objectToLabel = new HashMap<OtpErlangObject,Label>();
 			for(OtpErlangObject l:alphabet)
 			{
 				String label = ((OtpErlangAtom)l).atomValue();if (label.isEmpty()) throw new IllegalArgumentException("empty label");
-				atomToLabel.put((OtpErlangAtom)l,AbstractLearnerGraph.generateNewLabel( label,gr.config,converter));
+				objectToLabel.put(l,AbstractLearnerGraph.generateNewLabel( label,gr.config,converter));
 			}
 			for(OtpErlangObject transitionObj:transitions)
 			{
@@ -404,17 +406,17 @@ public class Synapse implements Runnable {
 					else
 						throw new IllegalArgumentException("invalid target state"+to.atomValue());
 				
-				if (!atomToLabel.containsKey(label))
+				if (!objectToLabel.containsKey(label))
 				{
 					if (!checkStates)
 					{
 						String l = label.atomValue();if (l.isEmpty()) throw new IllegalArgumentException("empty label");
-						atomToLabel.put(label,AbstractLearnerGraph.generateNewLabel( l,gr.config,converter));
+						objectToLabel.put(label,AbstractLearnerGraph.generateNewLabel( l,gr.config,converter));
 					}
 					else
-						throw new IllegalArgumentException("unknown label");
+						throw new IllegalArgumentException("unknown label "+label);
 				}
-				gr.addTransition(gr.transitionMatrix.get(fromState),atomToLabel.get(label),toState);
+				gr.addTransition(gr.transitionMatrix.get(fromState),objectToLabel.get(label),toState);
 			}
 			
 			if (initial_state != null)
@@ -444,7 +446,7 @@ public class Synapse implements Runnable {
 		{
 			
 			OtpErlangList statesToBeIgnored = (OtpErlangList)stateNamesAsObject;
-			if (statesToBeIgnored.arity() > 0)
+			if (statesToBeIgnored.arity() > 0 && options != null)
 			{
 				if (options.ignoredStates == null)
 					options.ignoredStates = new HashSet<String>();
@@ -460,14 +462,24 @@ public class Synapse implements Runnable {
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> OtpErlangTuple constructFSM(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr)
 		{
 			List<OtpErlangObject> statesList = new LinkedList<OtpErlangObject>(), transitions = new LinkedList<OtpErlangObject>();
-			Set<OtpErlangAtom> alphabet = new HashSet<OtpErlangAtom>();
+			Set<OtpErlangObject> alphabet = new HashSet<OtpErlangObject>();
 			
 			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:gr.transitionMatrix.entrySet()) 
 			{
 				statesList.add(new OtpErlangAtom(entry.getKey().getStringId()));
 				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
 				{
-					OtpErlangAtom label = new OtpErlangAtom(transition.getKey().toErlangTerm());
+					OtpErlangObject label = null;
+					/*
+					if (transition.getKey() instanceof ErlangLabel)
+					{
+						ErlangLabel eLabel = (ErlangLabel)transition.getKey();
+						label = new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(eLabel.callName), new OtpErlangLong(eLabel.arity), eLabel.input,eLabel.expectedOutput});
+					}
+					else
+					*/
+						label = new OtpErlangAtom(transition.getKey().toErlangTerm());
+					
 					alphabet.add(label);
 					for(CmpVertex target:gr.getTargets(transition.getValue()))
 						transitions.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()), label, new OtpErlangAtom(target.getStringId())}));
@@ -478,6 +490,18 @@ public class Synapse implements Runnable {
 					new OtpErlangList(transitions.toArray(new OtpErlangObject[0])),
 					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.toArray(new OtpErlangObject[0])),
 			});
+		}
+
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void convertLabelsToStrings(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> grFrom, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> grTo)
+		{
+    		AbstractLearnerGraph.interpretLabelsOnGraph(grFrom,grTo,new Transform.ConvertLabel(new ConvertALabel() {
+				
+				@Override
+				public Label convertLabelToLabel(Label label) {
+					ErlangLabel lbl = (ErlangLabel)label;
+					return new StringLabel(lbl.function.getName()+"/"+lbl.function.getArity()+","+lbl.input+","+lbl.expectedOutput);
+				}
+			}));
 		}
 		
 		public static class AskedToTerminateException extends RuntimeException
@@ -492,13 +516,14 @@ public class Synapse implements Runnable {
 		protected void sendProgress(OtpErlangPid pid, OtpErlangRef ref, LearnerGraph graph, ErlangModule mod, AtomicLong counter)
 		{
 			OtpErlangObject progressDetails = null, stateNumber = new com.ericsson.otp.erlang.OtpErlangLong(graph.getStateNumber());
-			if (0 != (counter.incrementAndGet() % learnerInitConfiguration.config.getSynapseSendFSMFrequency()))
+			if (learnerInitConfiguration.config.getSynapseSendFSMFrequency() <= 0 || 0 != (counter.incrementAndGet() % learnerInitConfiguration.config.getSynapseSendFSMFrequency()))
 				progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber });
 			else
 			{// we need to report red states in order to be able to continue QSM-learning the graph
 				List<OtpErlangObject> stateList = new LinkedList<OtpErlangObject>();
 				for(CmpVertex v:graph.transitionMatrix.keySet())
-					stateList.add(new OtpErlangAtom(v.getStringId()));
+					if (v.getColour() == JUConstants.RED)
+						stateList.add(new OtpErlangAtom(v.getStringId()));
 				
 				if (mod != null)
 				{
@@ -510,6 +535,42 @@ public class Synapse implements Runnable {
 					progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber, constructFSM(graph), new OtpErlangList(stateList.toArray(new OtpErlangObject[0])) });
 			}
 			mbox.send(pid,new OtpErlangTuple(new OtpErlangObject[]{ref,msgStatus,msgNotification, progressDetails}));
+		}
+		
+		/** Goes through the options provided in a message, starting with the specific index and updates the graph to be visualised to respect those options. Returns the window number in which to pop the graph, negative for a test mode. 
+		 * 
+		 * @param message OTP tuple with options
+		 * @param startFrom the starting position in the tuple to go through
+		 * @param fsmPicture graph to update
+		 * @return window number to use or negative for a test mode.
+		 * @throws OtpErlangRangeException 
+		 */
+		public static int setOptions(final OtpErlangTuple message, int startFrom, DirectedSparseGraph fsmPicture) throws OtpErlangRangeException
+		{
+			int windowNumber = 0;
+			OtpErlangObject name = message.elementAt(startFrom);
+			if (name instanceof OtpErlangList && ((OtpErlangList)name).arity() == 0)
+				windowNumber =-1;
+			else
+			{
+				fsmPicture.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
+			
+				if (message.arity() > startFrom+1)
+				{
+					OtpErlangObject stateNamesAsObject = message.elementAt(startFrom+1);
+					setStateNamesToBeIgnored(((LayoutOptions)fsmPicture.getUserDatum(JUConstants.LAYOUTOPTIONS)),stateNamesAsObject);
+				}
+				if (message.arity() > startFrom+2)
+				{
+					OtpErlangLong windowNum = ((OtpErlangLong)message.elementAt(startFrom+2));windowNumber = windowNum.intValue();
+				}
+				if (message.arity() > startFrom+3)
+				{
+					OtpErlangLong abstraction = ((OtpErlangLong)message.elementAt(startFrom+3));
+					((LayoutOptions)fsmPicture.getUserDatum(JUConstants.LAYOUTOPTIONS)).componentsToPick=abstraction.intValue();
+				}
+			}
+			return windowNumber;
 		}
 		
 		@Override
@@ -527,7 +588,7 @@ public class Synapse implements Runnable {
 				// This involves setting up configuration, traces and running either a learner or fsmdiff.
 				mbox.send(erlangPartner,new OtpErlangTuple(new OtpErlangObject[]{refFirstResponse,mbox.self()}));
 				
-				learnerInitConfiguration.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(false);
+				learnerInitConfiguration.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
 				learnerInitConfiguration.config.setGdFailOnDuplicateNames(false);
 				learnerInitConfiguration.config.setErlangInitialTraceLength(3);
 				for(;;)
@@ -784,11 +845,10 @@ public class Synapse implements Runnable {
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 															{
-																// send the notification if necessary
-																
 																// check if we were asked to terminate
 																try {
 																	if (message.arity() > 3 && message.elementAt(3) instanceof OtpErlangPid)
+																		// send the notification if necessary
 																		sendProgress((OtpErlangPid)message.elementAt(3), ref, graph, mod, counter);
 
 																	OtpErlangObject messageReceived = mbox.receive(0);// do not wait, return null if anything received
@@ -822,19 +882,15 @@ public class Synapse implements Runnable {
 														};
 														if (learnerInitConfiguration.config.getAskQuestions()) // only generate initial traces if we are permited to ask questions.
 															learner.init(learner.GenerateInitialTraces(learnerInitConfiguration.config.getErlangInitialTraceLength()),0,0);
-														LearnerGraph graphLearnt = learner.learnMachine(),graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
-														AbstractLearnerGraph.interpretLabelsOnGraph(graphLearnt,graphWithTrimmedLabels,mod.behaviour.new ConverterModToErl());
-														LearnerGraph graphStripped = new LearnerGraph(learnerInitConfiguration.config);
-														final ConvertALabel converter = mod.behaviour.new ConverterModToErl();
-										        		AbstractLearnerGraph.interpretLabelsOnGraph(graphWithTrimmedLabels,graphStripped,new Transform.ConvertLabel(new ConvertALabel() {
-															
-															@Override
-															public Label convertLabelToLabel(Label label) {
-																ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
-																return new ErlangLabel(null, lbl.callName.replace(mod.getName(), ""), lbl.input, lbl.expectedOutput);
-															}
-														}));
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphStripped)});
+														LearnerGraph graphLearnt = learner.learnMachine(),
+																graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
+														
+														if (learnerInitConfiguration.config.getErlangStripModuleNamesFromFunctionsInNonGenModules())
+															convertLabelsToStrings(graphLearnt,graphWithTrimmedLabels);
+														else
+															AbstractLearnerGraph.interpretLabelsOnGraph(graphLearnt,graphWithTrimmedLabels,mod.behaviour.new ConverterModToErl());
+														
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphWithTrimmedLabels)});
 														erlangRunner.close();
 													}
 													catch(AskedToTerminateException e)
@@ -883,21 +939,9 @@ public class Synapse implements Runnable {
 													try
 													{
 														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
-														OtpErlangObject name = message.elementAt(4);
-														boolean testMode = (name instanceof OtpErlangList && ((OtpErlangList)name).arity() == 0);
-														LayoutOptions options = new LayoutOptions();
-														if (message.arity() > 5)
-														{
-															OtpErlangObject stateNamesAsObject = message.elementAt(5);
-															setStateNamesToBeIgnored(options,stateNamesAsObject);
-														}
-														
-														if (!testMode)
-														{
-															diff.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
-															//diff.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
-															Visualiser.updateFrame(diff, null);
-														}
+														int windowNumber = setOptions(message,4,diff);
+														if (windowNumber >= 0)
+															Visualiser.updateFrameWithPos(diff,windowNumber);
 
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
 													}
@@ -919,23 +963,11 @@ public class Synapse implements Runnable {
 															Configuration config = Configuration.getDefaultConfiguration().copy();
 															LearnerGraphND machine = new LearnerGraphND(config);Synapse.StatechumProcess.parseStatemachine(message.elementAt(2),machine,null,true);
 															DirectedSparseGraph fsmPicture = machine.pathroutines.getGraph();
-															OtpErlangObject name = message.elementAt(3);
-															LayoutOptions options = new LayoutOptions();
-															if (message.arity() > 4)
-															{
-																OtpErlangObject stateNamesAsObject = message.elementAt(4);
-																setStateNamesToBeIgnored(options,stateNamesAsObject);
-															}
-															
-															boolean testMode = (name instanceof OtpErlangList && ((OtpErlangList)name).arity() == 0);
-															
-															if (!testMode)
-															{
-																fsmPicture.setUserDatum(JUConstants.TITLE, ((OtpErlangAtom)name).atomValue(), UserData.SHARED);
-																fsmPicture.removeUserDatum(JUConstants.LAYOUTOPTIONS);
-																fsmPicture.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
-																Visualiser.updateFrame(fsmPicture, null);
-															}
+															if (!fsmPicture.containsUserDatumKey(JUConstants.LAYOUTOPTIONS))
+																fsmPicture.addUserDatum(JUConstants.LAYOUTOPTIONS,new LayoutOptions(), UserData.SHARED);
+															int windowNumber = setOptions(message,3,fsmPicture);
+															if (windowNumber >= 0)
+																Visualiser.updateFrameWithPos(fsmPicture,windowNumber);
 
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
 														}

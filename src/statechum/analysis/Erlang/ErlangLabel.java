@@ -278,7 +278,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlText:
 					if (expectComma)
 						throw new IllegalArgumentException(
-								"expecting comma in parsing tuple");
+								"expecting comma in parsing tuple, looking at "+lexer.getMatch());
 					tupleComponents.add(tokenToParser.get(currentMatch)
 							.parseObject(lexer));
 					expectComma = true;
@@ -294,7 +294,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				default:
 					throw new IllegalArgumentException("invalid token type "
 							+ currentMatch + " in parsing tuple, looking at "
-							+ lexer.getMatch());
+							+ lexer.getMatch()+ " so far parsed: "+tupleComponents);
 				}
 				if (pullNextToken)
 					currentMatch = lexer.getMatchType();
@@ -613,7 +613,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlSlash:
 					throw new IllegalArgumentException("unquoted atom parser: "
 							+ lexer.getMatch()
-							+ " is never allowed in an atom without quotes");
+							+ " is never allowed in an atom without quotes. Text in atom so far: "+atomText);
 				case erlPositiveNumber:
 				case erlNegativeNumber:
 				case erlE:

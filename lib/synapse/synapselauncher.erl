@@ -182,7 +182,7 @@ startStatechum(OptionsList) ->
 				receive %% here we either wait to receive an ok message or to be killed if Statechum fails to start
 				    ok -> register(?StatechumName,Pid),
 					  Pid
-					after 1000 ->
+					after 8000 ->
 						throw("Timeout waiting for response from statechum launcher")
 				end;
 		Pid -> Pid

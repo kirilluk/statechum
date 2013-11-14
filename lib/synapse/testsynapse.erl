@@ -848,7 +848,7 @@ learn_test_()->
 				NotificationReceiver=spawn_link(testsynapse,handleNotificationsAndRecordThem,[Ref,"learning"]),
 				Pid!{Ref,learn,NotificationReceiver},
 				receive {Ref,ok,Fsm} -> % an earlier test validated this
-				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5<{statemachine,['P1000','P1001','P1002','N1000','P1004'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',b,'N1000'},{'P1002',a,'P1002'},{'P1002',b,'P1004'}],'P1000',[b,a]}><reds:['P1000','P1001','P1002','N1000','P1004']> 4",V) end end
+				NotificationReceiver!{Ref,self(),check},receive {Ref,V} -> ?assertEqual("learning 6 5<{statemachine,['P1000','P1001','P1002','N1000','P1004'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',b,'N1000'},{'P1002',a,'P1002'},{'P1002',b,'P1004'}],'P1000',[b,a]}><reds:['P1000','P1001','P1002','N1000']> 4",V) end end
 				end end end ) end ,
 
 			fun() -> useworker(fun(Pid,Ref) -> 

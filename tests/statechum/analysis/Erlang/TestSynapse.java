@@ -104,7 +104,7 @@ public class TestSynapse {
 	@Test
 	public void testEunitSynapseTests2()
 	{
-		runner.setResponseTimeout(20000);
+		runner.setResponseTimeout(30000);
 		startSynapse();
 		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("testsynapse_learn:test()")));		
 	}

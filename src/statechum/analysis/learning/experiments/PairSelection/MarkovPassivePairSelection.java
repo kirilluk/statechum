@@ -371,7 +371,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 			
-			System.out.println("Starting merging");
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -397,8 +396,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 				
-				if (merged != null)
-					System.out.println("After big merge ("+threshold+"): "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(smallValueUniques))?"INVALID":"VALID"));
 			}
 			
 			{
@@ -420,19 +417,23 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 				
 				if (merged != null)
+				{
 					System.out.println("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(whatToMerge))?"INVALID":"VALID"));
 
-				m.predictTransitionsAndUpdateMarkov(merged);
-				++attemptToUpdateMarkov;
+					m.predictTransitionsAndUpdateMarkov(merged);
+					++attemptToUpdateMarkov;
+					List<List<Label>> collectionToMergeTentative = new LinkedList<List<Label>>();for(Label l:whatToMerge) collectionToMergeTentative.add(Arrays.asList(new Label[]{l}));
+					List<List<Label>> collectionToMergeCorrect = new LinkedList<List<Label>>();for(Label l:uniqueElem) collectionToMergeCorrect.add(Arrays.asList(new Label[]{l}));
+					System.out.println("States identified in reference: "+numberOfStatesIdentifiedUsingUniques(trimmedReference,collectionToMergeTentative)+" out of "+
+							numberOfStatesIdentifiedUsingUniques(trimmedReference,collectionToMergeCorrect)+" , reference has "+trimmedReference.getStateNumber()+" states");
+				}
 			}
 		}
 		while(scoreAfterBigMerge > 0);
 		System.out.println("triples : "+countTriples+" unique elems: "+triplesUnique+" average in PTA: "+(totalTripleInPTA/(double)tripleCount.size()));
+		
 		System.out.println("Unique Freq: "+uniqueFreq);
-		System.out.println("Non unique Freq: "+nonUniqueFreq);
-
-		
-		
+		System.out.println("Non unique Freq: "+nonUniqueFreq);		
 		return outcome;
 	}
 
@@ -504,6 +505,28 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		
 		return outcome;
 	}
+	
+	protected static int numberOfStatesIdentifiedUsingUniques(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfUniqueSeq)
+	{
+		Set<CmpVertex> statesUniquelyIdentified = new TreeSet<CmpVertex>();
+		for(List<Label> seq:collectionOfUniqueSeq)
+		{
+			int count=0;CmpVertex unique = null;
+			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+			{
+				if (referenceGraph.getVertex(v,seq) != null)
+				{
+					++count;unique=v;
+					if (count > 1)
+						break;
+				}
+			}
+			if (count == 1)
+				statesUniquelyIdentified.add(unique);
+		}
+		return statesUniquelyIdentified.size();
+	}
+	
 	protected static boolean checkSeqUniqueTarget(LearnerGraph referenceGraph, List<Label> seq)
 	{
 		boolean targetUnique = true;
@@ -1620,7 +1643,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final int traceQuantity=5;
+		final int traceQuantity=10;
 		
 /*
 		LearnerRunner oneExperimentRunner = new LearnerRunner(minStateNumber,0,traceQuantity+2,traceQuantity, config, converter);
@@ -1632,7 +1655,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{150})
-		for(final boolean onlyPositives:new boolean[]{false})
+		for(final boolean onlyPositives:new boolean[]{true})
 			{
 				for(final boolean useUnique:new boolean[]{false})
 				{

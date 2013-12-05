@@ -25,6 +25,7 @@ import java.util.List;
 import statechum.Configuration;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -42,6 +43,11 @@ public class AnySignature extends Signature {
 		List<OtpErlangObject> result = new ArrayList<OtpErlangObject>();
 		switch(config.getErlangAlphabetAnyElements())
 		{
+		case ANY_INT:
+			result.add(new OtpErlangInt(10));
+			result.add(new OtpErlangInt(11));
+			result.add(new OtpErlangInt(12));
+			break;
 		case ANY_WIBBLE:
 			result.add(new OtpErlangAtom("AnyWibble"));
 			break;

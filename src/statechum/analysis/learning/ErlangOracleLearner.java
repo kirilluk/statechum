@@ -56,11 +56,17 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	protected LearnerEvaluationConfiguration myEvalCnf;
 
+	/** A module instance cannot be obtained by just creating a new {@link ErlangModule} because generation of an alphabet verifies function type compatibility and this requires the module to be registered in the 
+	 * global module registry.
+	 *   
+	 * @param parent frame in which to pop questions if desired.
+	 * @param evalCnf configuration describing what to learn from.
+	 */
 	public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) {
 		super(parent, evalCnf);
 		if (config.getErlangSourceFile() != null) {
 			try {
-				module = ErlangModule.loadModule(config, true);
+				module = ErlangModule.loadModule(config, false);
 			} catch (IOException e) {
 				Helper.throwUnchecked(
 						"Failed to load trace file "
@@ -408,6 +414,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 		topLevelListener.init(GenerateInitialTraces(5), 0, 0);
 	}
 
+	/** This one updates alphabet hence cannot be run concurrently. */
 	public PTASequenceEngine GenerateInitialTraces(int wavecount) {
 		PTASequenceEngine engine = new PTASequenceEngine();
 		engine.init(new ErlangMachine());
@@ -536,8 +543,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
-		configErlang();
-		
 		boolean first = true;
 		if (config.getErlangDisplayQuestions())
 		{

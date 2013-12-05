@@ -11,18 +11,23 @@
 first_failure(_Module, _Wrapper, [], _ModulesList, State) ->
     {ok, [],State};
 first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
+	{StartedMega,StartedSec,StartedMicro}=erlang:now(),
     {reply, CompileOutcome, State2}=compileModulesForAnalyser(ModulesList,State),
     case CompileOutcome of
 	ok ->
 	    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
 	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref,getConfig(?erlWaitForWrapperDelay,State2)),
 	    erlang:demonitor(Ref,[flush]),
-	    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
+	    %%{SMega,SSec,SMicro}=erlang:now(),
+	    OPTrace = flushOPTrace(PartialOPTrace, Pid),
+	    %%{_,_,AMicro}=erlang:now(),
 	    %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
 	    cleanup(),
+	   %% {_,_,BMicro}=erlang:now(),
 	    State3=analyse_all(ModulesList,State2),
 	    case ProcStatus of 
 		ok ->
+			%%{CurrentMega,CurrentSec,CurrentMicro}=erlang:now(),io:format("time to OK: ~w ~w ~w ~w ~n",[CurrentMicro-StartedMicro, SMicro-StartedMicro,AMicro-StartedMicro,BMicro-StartedMicro]),
 		    {ok, OPTrace, State3};
 		died ->
 		    FullTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)],
@@ -81,18 +86,17 @@ await_end(Pid, Ref, Delay, OpTrace) ->
 	    end
     end.
 
-flushOPTrace(OPTrace, Pid, Delay) ->
+flushOPTrace(OPTrace, Pid) ->
+  {message_queue_len,Length} = process_info(self(), message_queue_len), %% from http://stackoverflow.com/questions/7851723/checking-whether-mailbox-is-empty-in-erlang
   if 
-    Delay =< 0 -> OPTrace;
+    Length == 0 -> OPTrace;
     true ->
     receive
-	{Pid, output, OP} ->
-	    flushOPTrace(OPTrace ++ [OP], Pid, Delay);
-	Msg ->
-	    io:format("UNHANDLED: ~p~n", [Msg]),
-	    flushOPTrace(OPTrace, Pid, Delay)
-    after Delay ->
-	    OPTrace
+		{Pid, output, OP} ->
+		    flushOPTrace(OPTrace ++ [OP], Pid);
+		Msg ->
+		    io:format("UNHANDLED: ~p~n", [Msg]),
+	    	flushOPTrace(OPTrace, Pid)
     end
   end.
 
@@ -101,13 +105,14 @@ flushOPTrace(OPTrace, Pid, Delay) ->
 %% Wrappers should make this process the group leader, which should transfer to their children
 cleanup() ->
     lists:map(fun(Pid) -> 
-		      {group_leader, Leader} = process_info(Pid, group_leader),
 		      if (Pid == self()) ->
 			      ok;
-			 (Leader == self()) ->
-			      erlang:exit(Pid, kill);
-			 true ->
-			      ok
+			      true ->
+			        ThisProcess = self(),
+		      		case process_info(Pid, group_leader) of
+		      			{group_leader,ThisProcess} -> erlang:exit(Pid, kill);
+			 			_ -> ok %% this is the case where either leader is not us or the response of process_info is undefined.
+			 		end
 		      end
 	      end, 
 	      processes()).

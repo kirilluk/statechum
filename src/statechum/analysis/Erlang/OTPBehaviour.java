@@ -136,7 +136,8 @@ public abstract class OTPBehaviour {
 	 * case the contents of sigs (except for module_info) should be added to the
 	 * alphabet.
 	 */
-	protected void generateAlphabet(Configuration config) {
+	public void generateAlphabet(Configuration config) 
+	{
 		if (patterns.isEmpty()) {
 			Set<String> exports = loadExports(config);
 			for (Entry<String, FuncSignature> sigEntry : parent.sigs.entrySet()) {

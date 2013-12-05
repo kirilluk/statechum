@@ -1372,23 +1372,9 @@ public class Configuration implements Cloneable {
 			configVarAttrValue = "value";
 
 	/**
-	 * How long to wait before deciding that no new messages will arrive from a
-	 * system being analysed.
+	 * How long to wait for a response from a wrapper, in milliseconds. All configuration variables that start with erl rather than erlang are significant in the tracer3 Erlang module.
 	 */
-	protected int erlFlushDelay = 10;
-
-	public void setErlFlushDelay(int newValue) {
-		erlFlushDelay = newValue;
-	}
-
-	public int getErlFlushDelay() {
-		return erlFlushDelay;
-	}
-
-	/**
-	 * How long to wait for a response from a wrapper, in milliseconds.
-	 */
-	protected int erlWaitForWrapperDelay=200;
+	protected int erlWaitForWrapperDelay=50;
 	
 	public int getErlWaitForWrapperDelay()
 	{
@@ -1480,7 +1466,7 @@ public class Configuration implements Cloneable {
 	}
 	
 	public enum EXPANSIONOFANY {
-		ANY_WIBBLE, ANY_WITHLIST
+		ANY_WIBBLE, ANY_WITHLIST, ANY_INT
 	}
 
 	/** There are many different ways to choose elements to instantiate Any type with, 

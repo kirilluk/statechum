@@ -1,4 +1,4 @@
-/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 The University of Sheffield
  * 
  * This file is part of StateChum
  * 
@@ -33,7 +33,8 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.AllTests.ObserversTests.class,
     statechum.AllTests.LinearTests.class,
     statechum.AllTests.SmtTests.class,
-    statechum.AllTests.ErlangTests.class,
+    statechum.analysis.Erlang.ErlangTests.class,
+    //statechum.AllTests.TestErlangWithDifferentOTP.class,
     statechum.AllTests.LengthyTests.class
 })
 public class AllTests {
@@ -137,8 +138,8 @@ public class AllTests {
     })
     public static class SmtTests {// all tests are included in the annotation.
     }
-
-    @RunWith(Suite.class)
+/*
+    @RunWith(ParameterizedSuite.class)
     @SuiteClasses({
         statechum.analysis.Erlang.TestErlangStartupFailure.class,
         statechum.analysis.Erlang.TestErlangModule.class,
@@ -153,10 +154,49 @@ public class AllTests {
         statechum.analysis.Erlang.TestSynapseAuxiliaryFunctions.class,
         statechum.analysis.Erlang.TestSynapse.class
     })
-    public static class ErlangTests {// all tests are included in the annotation.
+    public static class TestErlangWithDifferentOTP
+    {
+    	final private String otpPath;
+    	
+    	@org.junit.runners.Parameterized.Parameters
+    	public static Collection<Object[]> data() 
+    	{
+    		Collection<Object []> result = new LinkedList<Object []>();
+    		String runtimes = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_OTP_RUNTIMES);
+    		if (runtimes == null)
+    			throw new IllegalArgumentException("ERLANG_OTP_RUNTIMES has not been set, it should contain a list of paths to Erlang runtimes, separated with commas");
+    		for(String otp:GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_OTP_RUNTIMES).split(", *"))
+    			result.add(new Object[]{otp});
+    		return result;
+    	}
+    	
+    	public void resetErlang()
+    	{
+       		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.ERLANGHOME, otpPath);
+    		ErlangRuntime.getDefaultRuntime().killErlang();  		
+    	}
+
+    	public TestErlangWithDifferentOTP(String path)
+    	{
+    		otpPath = path;
+    	}
+    	
+    	public void initSeries()
+    	{
+    		resetErlang();
+    	}
+    	
+		@ParametersToString
+    	public static String parametersToString(String otpPath)
+    	{
+    		new TestErlangWithDifferentOTP(otpPath).resetErlang();
+    		ErlangRuntime.getDefaultRuntime().startRunner();
+    		String value = "OTP:"+((OtpErlangString)ErlangRuntime.getDefaultRuntime().createNewRunner().evaluateString("string:substr(erlang:system_info(otp_release),1,3)")).stringValue();
+    		return value;
+    	}   	
     }
-    
-    @RunWith(Suite.class)
+    */
+     @RunWith(Suite.class)
     @SuiteClasses({
         statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,

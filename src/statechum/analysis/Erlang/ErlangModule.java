@@ -32,7 +32,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -55,8 +57,9 @@ public class ErlangModule {
 
 	public final File sourceFolder;
 	public final String name;
-	public final OTPBehaviour behaviour;
+	public OTPBehaviour behaviour;
 	public final Map<String, FuncSignature> sigs;
+	public final Map<String, OtpErlangTuple> sigTypes;
 	public final Set<String> ignoredFunctions, ignoredBehaviours;
 	
 	private ErlangModule(Configuration config) throws IOException 
@@ -120,17 +123,18 @@ public class ErlangModule {
 		}
 		progress.next();// 6
 
+		sigTypes = new TreeMap<String,OtpErlangTuple>();
 		OtpErlangList analysisResults = (OtpErlangList) response.elementAt(1);
 		Assert.assertEquals(1, analysisResults.arity());
 		OtpErlangTuple fileDetails = (OtpErlangTuple) analysisResults.elementAt(0);
 		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
-			//System.out.print("\n" + typeInformation.elementAt(i).toString());
 			OtpErlangTuple functionDescr = (OtpErlangTuple) typeInformation.elementAt(i); 
 			if (functionDescr.arity() > 3)
 			{
-				FuncSignature s = new FuncSignature(config,typeInformation.elementAt(i), null);
-				sigs.put(s.getQualifiedName(), s);
+				FuncSignature s = new FuncSignature(config,functionDescr, null);
+				sigTypes.put(s.getQualifiedName(), functionDescr);
+				//sigs.put(s.getQualifiedName(), s);
 			}
 			else
 			{// if not a function signature, it is an error message. The first two elements are function name and arity, we add this module name.
@@ -141,11 +145,32 @@ public class ErlangModule {
 				System.out.println("Ignoring: "+fullName+", "+functionDescr.elementAt(2));
 			}
 		}
-		
-		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, config, this,ignoredBehaviours);
+		rebuildSigs(config, Collections.<String,OtpErlangTuple>emptyMap());
 		progress.next();// 7
 	}
 
+	/** Sometimes we might want to override type definitions provided by typer. This function permits one to construct alphabet based on updated types. 
+	 * @param updatesToTypes overrides to type information 
+	 */
+	public void rebuildSigs(Configuration config,Map<String, OtpErlangTuple> updatesToTypes)
+	{
+		sigTypes.putAll(updatesToTypes);sigs.clear();
+		for(Entry<String,OtpErlangTuple> entry:sigTypes.entrySet())
+		{
+			OtpErlangTuple functionDescr = entry.getValue();
+			if (functionDescr.arity() > 3)
+			{
+				FuncSignature s = new FuncSignature(config,functionDescr, null);
+				if (!s.getQualifiedName().equals(entry.getKey()))
+					throw new IllegalArgumentException("invalid override, expected name "+entry.getKey()+", got "+s.getQualifiedName());
+				sigs.put(entry.getKey(), s);
+			}
+			else
+				throw new IllegalArgumentException("invalid type of an Erlang function");
+		}	
+		behaviour = OTPBehaviour.obtainDeclaredBehaviour(config.getErlangSourceFile(), config, this,ignoredBehaviours);
+	}
+	
 	private static Collection<String> seekUsages(String funcName, File f) {
 		Collection<String> result = new ArrayList<String>();
 

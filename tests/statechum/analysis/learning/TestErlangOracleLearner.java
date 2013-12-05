@@ -12,7 +12,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -26,6 +28,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+
 import statechum.Configuration;
 import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Configuration.LABELKIND;
@@ -35,7 +40,6 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
-import statechum.StringLabel;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRuntime;
@@ -45,12 +49,11 @@ import statechum.analysis.learning.observers.LearningConvergenceObserver;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
+import statechum.model.testset.PTASequenceEngine;
 
 /**
  *
@@ -94,6 +97,48 @@ public class TestErlangOracleLearner {
 	{
 		testLockerLearning(config);
 	}
+/*
+	@Test
+	public void testLockerLearningBenchmark_15sec()
+	{
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
+		final ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+		learner.GenerateInitialTraces();
+		final LearnerGraph locker = learner.learnMachine();
+		Map<CmpVertex,List<Label>> paths=locker.pathroutines.computeShortPathsToAllStates();
+		int maxLen=0;List<Label> pathOfInterest=null;
+		for(List<Label> l:paths.values())
+			if (l.size() > maxLen)
+			{
+				maxLen = l.size();pathOfInterest=l;
+			}
+		
+		final List<Label> path = pathOfInterest;
+
+		final java.util.concurrent.atomic.AtomicBoolean b=new java.util.concurrent.atomic.AtomicBoolean(true);
+		final java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(0);
+		final long time = 15000;
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					Thread.sleep(time);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				b.set(false);
+			}
+		}).start();
+		while(b.get())
+		{
+			learner.CheckWithEndUser(locker, path, 0, null, null, null);counter.addAndGet(1);
+		}
+		System.out.println("Got "+(counter.get()*1000/time)+" queries per sec");
+	}
+*/
 	
 	@Test
 	public void testLockerLearning_withRestartCounter()
@@ -164,6 +209,31 @@ public class TestErlangOracleLearner {
 		int taskNumber = 5;
 		try
 		{
+			PTASequenceEngine initialTracesLocker = null, initialTracesExporter = null;
+			
+			{
+				ErlangRuntime newRuntime = new ErlangRuntime();newRuntime.startRunner();
+				//testLockerLearning(cfg);
+				{
+					Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
+					LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
+					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+					//learnerConfig.config.setScoreForAutomergeUponRestart(1);
+					ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+					initialTracesLocker = learner.GenerateInitialTraces(5);
+				}
+				
+				{
+					Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
+					LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
+					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+					learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
+					ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+					initialTracesExporter = learner.GenerateInitialTraces(5);
+				}
+			}
+			
+			final PTASequenceEngine initialTracesLockerFinal = initialTracesLocker, initialTracesExporterFinal = initialTracesExporter;
 			for(int i=0;i< taskNumber;++i)
 			{
 				runner.submit(new Callable<Integer>(){
@@ -172,7 +242,22 @@ public class TestErlangOracleLearner {
 					public Integer call() throws Exception {
 						ErlangRuntime newRuntime = new ErlangRuntime();newRuntime.startRunner();
 						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
-						testLockerLearning(cfg);return 0;
+
+						LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
+						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+						//learnerConfig.config.setScoreForAutomergeUponRestart(1);
+						ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+						learner.init(initialTracesLockerFinal, 0, 0);
+						
+						Assert.assertEquals(237,learner.getTentativeAutomaton().getStateNumber());
+						Assert.assertEquals(11,learner.getTentativeAutomaton().pathroutines.computeAlphabet().size());
+						Assert.assertEquals(236,learner.getTentativeAutomaton().pathroutines.countEdges());
+						LearnerGraph locker = learner.learnMachine();
+						Assert.assertEquals(6,locker.getStateNumber());
+						Assert.assertEquals(11,locker.pathroutines.computeAlphabet().size());
+						Assert.assertEquals(51,locker.pathroutines.countEdges());
+						
+						return 0;
 					}});
 				runner.submit(new Callable<Integer>(){
 	
@@ -180,7 +265,18 @@ public class TestErlangOracleLearner {
 					public Integer call() throws Exception {
 						ErlangRuntime newRuntime = new ErlangRuntime();newRuntime.startRunner();
 						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
-						testExporterLearning(cfg);return 0;
+						
+						LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
+						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+						learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
+						ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+						learner.init(initialTracesExporterFinal,0,0);
+						LearnerGraph exporter = learner.learnMachine();
+						Assert.assertEquals(6,exporter.getStateNumber());
+						Assert.assertEquals(7,exporter.pathroutines.computeAlphabet().size());
+						Assert.assertEquals(34,exporter.pathroutines.countEdges());
+						
+						return 0;
 					}});
 			}
 			
@@ -337,6 +433,7 @@ public class TestErlangOracleLearner {
 	}
 	
 	@Test
+	/** Tests that types of functions can be overridden, rather important for testing using OTP15 where typer works rather better than in OTP16. */
 	public void testLearnFrequencyServer() throws IOException
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);
@@ -344,6 +441,14 @@ public class TestErlangOracleLearner {
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		learnerConfig.config.setErlangInitialTraceLength(3);
 		learnerConfig.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
+		
+		ErlangModule mod = ErlangModule.loadModule(learnerConfig.config);
+		OtpErlangTuple startFunType=mod.sigTypes.get("frequencyBroken:start/0");
+		Map<String,OtpErlangTuple> override = new TreeMap<String,OtpErlangTuple>();
+		override.put("frequencyBroken:start/0", new OtpErlangTuple(new OtpErlangObject[]{startFunType.elementAt(0),startFunType.elementAt(1),startFunType.elementAt(2),startFunType.elementAt(3),
+				ErlangLabel.parseText("{'Func',[],[],{'Any',[]}}")}));
+		mod.rebuildSigs(learnerConfig.config, override);
+		mod.behaviour.generateAlphabet(config);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		LearnerGraph frequencyE = new LearnerGraph(learnerConfig.config);
 		learner.init(learner.GenerateInitialTraces(learnerConfig.config.getErlangInitialTraceLength()),0,0);
@@ -352,7 +457,7 @@ public class TestErlangOracleLearner {
 		Synapse.StatechumProcess.convertLabelsToStrings(frequencyRaw, frequencyE);
 		config.setLabelKind(LABELKIND.LABEL_STRING);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraph frequency = new LearnerGraph(config);Synapse.StatechumProcess.parseStatemachine(Synapse.StatechumProcess.constructFSM(frequencyE), frequency, null, true);
-		System.out.println(Synapse.StatechumProcess.constructFSM(frequencyE).elementAt(2));
+		//System.out.println(Synapse.StatechumProcess.constructFSM(frequencyE).elementAt(2));
 		LearnerGraph freq2=new LearnerGraph(config);
 		Synapse.StatechumProcess.parseStatemachine(ErlangLabel.parseText("{statemachine,['P1000','N1000','P1001','P1002','P1005'],["+
 "{'P1000','allocate/0,[],{ok,\\'AnyWibble\\'}','N1000'},"+

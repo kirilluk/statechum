@@ -28,7 +28,6 @@
 useworker(Function) ->
 	StatechumRef=make_ref(),synapselauncher:find_statechum()!{self(),StatechumRef,getStatechumWorker},receive {StatechumRef,Pid} -> Ref = make_ref(),Function(Pid,Ref), Pid!{Ref,terminate} end.
 
-
 notificationVisualiser(PidViz,RefViz,PidHost,RefHost, Counter) ->
 	receive  
 		{RefHost,status,step,{S,Fsm,Reds}} -> io:format(user,"[~w] Displaying FSM for ~w states ~n",[Counter,S]),
@@ -53,7 +52,7 @@ notificationVisualiser(PidViz,RefViz,PidHost,RefHost, Counter) ->
 
 learnErlang_test_()->
 	{"tests Erlang learning",
-	{inorder, %% if run in parallel, I may end up attempting to start multiple runners at the same moment that will fail
+	{inorder, %% if run in parallel, I may end up attempting to start multiple runners at the same moment that will fail. 
 	[
 					 
 	{timeout, 15000,
@@ -74,8 +73,15 @@ learnErlang_test_()->
 	{timeout, 15000,
 			fun() -> useworker(fun(Pid,Ref) -> 
 				PidHost=self(),
+				Pid!{Ref,purgeModuleInformation},receive {Ref,ok} -> ok end,
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','3'},{'erlangStripModuleNamesFromFunctionsInNonGenModules','false'},{'erlangAlphabetAnyElements','ANY_WIBBLE'},{'synapseSendFSMFrequency','-1'}]},receive {Ref,ok} ->ok end, %% no questions
-				NotificationReceiver=spawn_link(fun() -> useworker(fun(PidViz,RefViz) ->notificationVisualiser(PidViz,RefViz,PidHost,Ref,0) end) end), 
+				NotificationReceiver=spawn_link(fun() -> useworker(fun(PidViz,RefViz) ->notificationVisualiser(PidViz,RefViz,PidHost,Ref,0) end) end),
+
+				Pid!{Ref,extractTypeInformation,'ErlangExamples/frequency/frequencyBroken.erl'},receive {Ref,ok,Types} -> TypeDict=dict:from_list(Types),
+				FunToReplace='frequencyBroken:start/0',
+				{Path,Line,FunName,FunArity,_Type}=dict:fetch(FunToReplace,TypeDict),
+				Pid!{Ref,addTypeInformation,[{FunToReplace,{Path,Line,FunName,FunArity,{'Func',[],[],{'Any',[]}} }}]},receive {Ref,ok,Text} -> ok end,
+
 				Pid!{Ref,learnErlang,'ErlangExamples/frequency/frequencyBroken.erl',NotificationReceiver},
 				receive {Ref,ok,Fsm} -> 
 					#statemachine{states=ST,transitions=TR,alphabet=AL,initial_state=Init}=Fsm,
@@ -85,12 +91,19 @@ learnErlang_test_()->
 					receive {Ref,ok} -> ok end,
 					ok end
 				
-				 end) end},
-	{timeout, 15000,
+				 end end) end},
+	{timeout, 15000, %% Important: between the previous and the current test Synapse is not restarted, hence the changes we forced on the alphabet of frequencyBroken do not get purged and loading the same frequency again gets us the tweaked version of the module.
 			fun() -> useworker(fun(Pid,Ref) -> 
 				PidHost=self(),
+				Pid!{Ref,purgeModuleInformation},receive {Ref,ok} -> ok end,
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','3'},{'erlangStripModuleNamesFromFunctionsInNonGenModules','true'},{'erlangAlphabetAnyElements','ANY_WIBBLE'},{'synapseSendFSMFrequency','-1'}]},receive {Ref,ok} ->ok end, %% no questions
 				NotificationReceiver=spawn_link(fun() -> useworker(fun(PidViz,RefViz) ->notificationVisualiser(PidViz,RefViz,PidHost,Ref,0) end) end), 
+
+				Pid!{Ref,extractTypeInformation,'ErlangExamples/frequency/frequencyBroken.erl'},receive {Ref,ok,Types} -> TypeDict=dict:from_list(Types),
+				FunToReplace='frequencyBroken:start/0',
+				{Path,Line,FunName,FunArity,_Type}=dict:fetch(FunToReplace,TypeDict),
+				Pid!{Ref,addTypeInformation,[{FunToReplace,{Path,Line,FunName,FunArity,{'Func',[],[],{'Any',[]}} }}]},receive {Ref,ok,Text} -> ok end,
+
 				Pid!{Ref,learnErlang,'ErlangExamples/frequency/frequencyBroken.erl',NotificationReceiver},
 				receive {Ref,ok,Fsm} -> 
 					#statemachine{states=ST,transitions=TR,alphabet=AL,initial_state=Init}=Fsm,
@@ -100,7 +113,7 @@ learnErlang_test_()->
 					receive {Ref,ok} -> ok end,
 					ok end
 				
-				 end) end},
+				 end end) end},
 	{timeout, 15000,
 			fun() -> useworker(fun(Pid,Ref) -> 
 				Pid!{Ref,updateConfiguration,[{'askQuestions','true'},{'gdFailOnDuplicateNames','false'},{'erlangInitialTraceLength','5'},{'erlangAlphabetAnyElements','ANY_WIBBLE'}]},receive {Ref,ok} -> %% no questions

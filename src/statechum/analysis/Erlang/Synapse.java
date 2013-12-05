@@ -140,6 +140,9 @@ public class Synapse implements Runnable {
 		msgDisplayDiff = new OtpErlangAtom("displayDiff"), 
 		msgDisplayFSM = new OtpErlangAtom("displayFSM"),
 		msgLearnErlang = new OtpErlangAtom("learnErlang"),
+		msgAddTypeInformation = new OtpErlangAtom("addTypeInformation"),
+		msgExtractTypeInformation = new OtpErlangAtom("extractTypeInformation"),
+		msgPurgeModuleInformation = new OtpErlangAtom("purgeModuleInformation"),
 		msgLearn = new OtpErlangAtom("learn"),
 		msgTraces = new OtpErlangAtom("traces"),
 
@@ -246,6 +249,9 @@ public class Synapse implements Runnable {
 		
 		/** Node with tracerunner. */
 		protected final String nodeWithTraceRunner;
+		
+		/** Overrides to function descriptions. */
+		protected final Map<String,OtpErlangTuple> overrides = new TreeMap<String,OtpErlangTuple>();
 		
 		public StatechumProcess(OtpErlangPid erlangPid, OtpErlangPid supervisorPid, OtpErlangRef refArg, String nodeWithTraceRunnerArg)
 		{
@@ -573,6 +579,43 @@ public class Synapse implements Runnable {
 			return windowNumber;
 		}
 		
+		/** Given a map of object names to their types, serialises it into an Erlang list.
+		 *  
+		 * @param map what to serialise
+		 * @return Erlang list
+		 */
+		public static OtpErlangList typeMapToList(Map<String,OtpErlangTuple> map)
+		{
+			OtpErlangTuple mapping [] = new OtpErlangTuple[map.size()];
+			int i=0;
+			for(Entry<String,OtpErlangTuple> entry:map.entrySet())
+				mapping[i++]=new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey()),entry.getValue()});
+			return new OtpErlangList(mapping);
+		}
+		
+		/** Deserialises a map of functions to their types and updates a provided map with their values.
+		 * 
+		 * @param list what to deserialise
+		 * @param map what to update.
+		 */
+		public static void updateFrom(OtpErlangList list,Map<String,OtpErlangTuple> map)
+		{
+			for(OtpErlangObject obj:list.elements())
+			{
+				if (!(obj instanceof OtpErlangTuple))
+					throw new IllegalArgumentException("element of a list should be a tuple");
+				OtpErlangTuple t=(OtpErlangTuple)obj;
+				if (t.arity() != 2)
+					throw new IllegalArgumentException("tuple should contain exactly two elements");
+				
+				if (!(t.elementAt(0) instanceof OtpErlangAtom))
+					throw new IllegalArgumentException("type name should be an atom");
+				if (!(t.elementAt(1) instanceof OtpErlangTuple))
+					throw new IllegalArgumentException("type value should be a tuple");
+				map.put( ((OtpErlangAtom)t.elementAt(0)).atomValue(), (OtpErlangTuple)t.elementAt(1));
+			}
+		}
+		
 		@Override
 		public void run() 
 		{
@@ -822,6 +865,64 @@ public class Synapse implements Runnable {
 													
 												}
 												else
+												// Args: Ref,addTypeInformation,list of pairs containing method names and types.
+												if (command.equals(msgAddTypeInformation) && message.arity() >= 3)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														updateFrom((OtpErlangList)message.elementAt(2), overrides);
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  typeMapToList(overrides)});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
+												// Args: Ref,purgeModuleInformation
+												// Since using addTypeInformation followed by learnErlang causes changes to the alphabet modules we are dealing with, independence of tests requires the collection of loaded modules to be purged. This is the purpose of this function.
+												if (command.equals(msgPurgeModuleInformation) && message.arity() >= 2)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														ErlangModule.flushRegistry();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
+												// Args: Ref,extractTypeInformation,moduleFileFullPath.
+												// Returns a list of pairs of method names and types.
+												if (command.equals(msgExtractTypeInformation) && message.arity() >= 3)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														ErlangModule.setupErlangConfiguration(learnerInitConfiguration.config, new File(((OtpErlangAtom)message.elementAt(2)).atomValue()));
+														
+														// we start a separate Erlang node to run the questions
+														ErlangRunner erlangRunner = ErlangRuntime.getDefaultRuntime().createNewRunner();
+														learnerInitConfiguration.config.setErlangMboxName(erlangRunner.getRunnerName());
+														final ErlangModule mod = ErlangModule.loadModule(learnerInitConfiguration.config);
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  typeMapToList(mod.sigTypes)});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+												}
+												else
 												// Args: Ref,learnErlang,moduleFileFullPath, pid
 												// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
 												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
@@ -839,6 +940,7 @@ public class Synapse implements Runnable {
 														learnerInitConfiguration.config.setErlangMboxName(erlangRunner.getRunnerName());
 														final AtomicLong counter = new AtomicLong();
 														final ErlangModule mod = ErlangModule.loadModule(learnerInitConfiguration.config);
+														mod.rebuildSigs(learnerInitConfiguration.config, overrides);mod.behaviour.generateAlphabet(learnerInitConfiguration.config);
 														
 														ErlangOracleLearner learner = new ErlangOracleLearner(null, learnerInitConfiguration) {
 
@@ -882,6 +984,7 @@ public class Synapse implements Runnable {
 														};
 														if (learnerInitConfiguration.config.getAskQuestions()) // only generate initial traces if we are permited to ask questions.
 															learner.init(learner.GenerateInitialTraces(learnerInitConfiguration.config.getErlangInitialTraceLength()),0,0);
+														System.out.println("random trace generation complete");
 														LearnerGraph graphLearnt = learner.learnMachine(),
 																graphWithTrimmedLabels = new LearnerGraph(learnerInitConfiguration.config);
 														

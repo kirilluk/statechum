@@ -57,7 +57,8 @@ public class GlobalConfiguration {
 		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions.
 		,LTL2BA // path to LTL2BA executable, if null the default path will be used.
 		,FORCEFORK // whether to ensure that ExperimentRunner always forks a worker JVM. This is false by default so that experiment runner does not do a fork when it is being debugged, permitted to step into the experiment. Ant runner can permit debugging in order to debug failing tests, but since the aim most of the time is not to debug experiment but to observe test execution, it is a good idea to make sure that forking does happen and this argument makes sure this happens.
-		,ERLANGHOME // path to the Erlang distribution directory 
+		,ERLANGHOME // path to the Erlang distribution directory
+		,ERLANG_OTP_RUNTIMES // a collection of paths to different OTP runtimes, for testing.
 		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
 		,PATH_ERLANGBEAM // where to place compiled Erlang modules
 		,PATH_ERLANGFOLDER // where .erl files associated with Erlang tracer are located

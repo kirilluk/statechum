@@ -34,7 +34,7 @@ public class ParameterizedWithName extends Suite {
 	public static @interface ParametersToString {
 	}
 	
-	private class TestClassRunnerForParameters extends	BlockJUnit4ClassRunner {
+	public static class TestClassRunnerForParameters extends	BlockJUnit4ClassRunner {
 			private final int fParameterSetNumber;
 
 			private final List<Object[]> fParameterList;
@@ -46,11 +46,16 @@ public class ParameterizedWithName extends Suite {
 				fParameterList= parameterList;
 				fParameterSetNumber= i;
 				final Object [] parameters = fParameterList.get(fParameterSetNumber);
-				String name = convertParametersToString(type,parameters);
-				fParameterDescr = name != null? name:parametersToStringDirectly(parameters);
+				fParameterDescr = obtainStringDescription(type,parameters);
 			}
 
-			private String parametersToStringDirectly(Object [] parameters)
+			public static String obtainStringDescription(Class<?> type,Object [] parameters)
+			{
+				String name = convertParametersToString(type,parameters);
+				return name != null? name:parametersToStringDirectly(parameters);
+			}
+			
+			private static String parametersToStringDirectly(Object [] parameters)
 			{
 				StringBuffer buffer = new StringBuffer();
 				boolean first = true;
@@ -61,10 +66,9 @@ public class ParameterizedWithName extends Suite {
 				}
 				return buffer.toString();
 			}
-			
-			private String convertParametersToString(Class<?> type,Object [] parameters)
+
+			static Class<?> [] getArgTypes(Object []parameters)
 			{
-				String result = null;
 				Class<?> [] argTypes = new Class<?>[parameters.length];
 				for(int i=0;i<parameters.length;++i)
 				{
@@ -72,6 +76,14 @@ public class ParameterizedWithName extends Suite {
 					if (argTypes[i].isAnonymousClass())
 						argTypes[i]=argTypes[i].getSuperclass();
 				}
+				return argTypes;
+			}
+			
+			private static String convertParametersToString(Class<?> type,Object [] parameters)
+			{
+				String result = null;
+				Class<?> [] argTypes = getArgTypes(parameters);
+				
 				try {
 					java.lang.reflect.Method converterMethod = type.getMethod("parametersToString", argTypes);
 					if (converterMethod != null && java.lang.reflect.Modifier.isStatic(converterMethod.getModifiers()))
@@ -88,8 +100,7 @@ public class ParameterizedWithName extends Suite {
 			
 			@Override
 			public Object createTest() throws Exception {
-				return getTestClass().getOnlyConstructor().newInstance(
-						computeParams());
+				return getTestClass().getOnlyConstructor().newInstance(computeParams());
 			}
 
 			private Object[] computeParams() throws Exception {
@@ -144,7 +155,7 @@ public class ParameterizedWithName extends Suite {
 		}
 
 		@SuppressWarnings("unchecked")
-		private static List<Object[]> getParametersList(TestClass klass)	throws Throwable {
+		static List<Object[]> getParametersList(TestClass klass)	throws Throwable {
 			return (List<Object[]>) getParametersMethod(klass).invokeExplosively(null);
 		}
 

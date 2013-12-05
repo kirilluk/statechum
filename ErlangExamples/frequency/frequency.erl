@@ -8,67 +8,90 @@
 
 -module(frequency).
 -export([start/0, stop/0, allocate/0, deallocate/1]).
--export([init/0]).
+-export([init/0, init/3]).
 
 %% These are the start functions used to create and
 %% initialize the server.
 
 start() ->
-  register(frequency, spawn(frequency, init, [])).
+    register(frequency, spawn(frequency, init, [])).
 
-init() ->
-	initInternal([10,11]).
+init() -> init(3, noop, lifo).
+init(FreqsOpt, DeallocOpt, AllocOpt) ->
+    process_flag(trap_exit, true),
+    Frequencies = {get_frequencies(FreqsOpt), []},
+    Deallocate = fun_for_dealloc(DeallocOpt),
+    Allocate = fun_for_alloc(AllocOpt),
+    loop(Frequencies, {Deallocate, Allocate}).
 
-initInternal(Freqs) ->
-  Frequencies = {Freqs, []},
-  loop(Frequencies).
+fun_for_dealloc(cannot) -> fun deallocate/2;
+fun_for_dealloc(Op) -> fun (X, Y) -> deallocate_custom(Op, X, Y) end.
 
-% Hard Coded
-% get_frequencies() -> [10,11,12,13,14,15].
+fun_for_alloc(lifo) -> fun allocate/2;
+fun_for_alloc(smallf) -> fun ({Freqs, Alloc}, Pid) -> allocate({lists:sort(Freqs), Alloc}, Pid) end.
+
+get_frequencies(Num) -> lists:seq(10, Num + 9).
 
 %%  The client Functions
 
 stop()           -> call(stop).
-allocate()       -> {ok,_} = call(allocate).
+allocate()       -> call(allocate).
 deallocate(Freq) -> call({deallocate, Freq}).
 
 %% We hide all message passing and the message
 %% protocol in a functional interface.
-
 call(Message) ->
   frequency ! {request, self(), Message},
-  receive
-    {reply, Reply} -> Reply
-  end.
+    receive
+	{reply, Reply} -> Reply
+    end.
 
-%% The Main Loop
+reply(Pid, Message) ->
+    Pid ! {reply, Message}.
 
-loop(Frequencies) ->
-  receive
-    {request, Pid, allocate} ->
-      {NewFrequencies, Reply} = allocate(Frequencies, Pid),
-      reply(Pid, Reply),
-      loop(NewFrequencies);
-    {request, Pid , {deallocate, Freq}} ->
-      NewFrequencies = deallocate(Frequencies, Freq),
-      reply(Pid, ok),
-      loop(NewFrequencies);
-    {request, Pid, stop} ->
-      reply(Pid, ok)
-  end.
-
-reply(Pid, Reply) ->
-  Pid ! {reply, Reply}.
-
-%% The Internal Help Functions used to allocate and
-%% deallocate frequencies.
+loop(Frequencies, {Deallocate, Allocate} = Ops) ->
+    receive
+	{request, Pid, allocate} ->
+	    {NewFrequencies, Reply} = Allocate(Frequencies, Pid),
+	    reply(Pid, Reply),
+	    loop(NewFrequencies, Ops);
+	{request, Pid , {deallocate, Freq}} ->
+	    NewFrequencies = Deallocate(Frequencies, Freq),
+	    reply(Pid, ok),
+	    loop(NewFrequencies, Ops);
+	{'EXIT', Pid, _Reason} ->
+	    NewFrequencies = exited(Frequencies, Pid),
+	    loop(NewFrequencies, Ops);
+	{request, Pid, stop} ->
+	    reply(Pid, ok)
+    end.
 
 allocate({[], Allocated}, _Pid) ->
-  {{[], Allocated}, {error, no_frequency}};
-allocate({[Freq|Free], Allocated}, Pid) ->
-  {{Free, [{Freq, Pid}|Allocated]}, {ok, Freq}}.
+    {{[], Allocated}, {error, no_frequencies}};
+allocate({[Freq|Frequencies], Allocated}, Pid) ->
+    link(Pid),
+    {{Frequencies,[{Freq,Pid}|Allocated]},{ok,Freq}}.
 
 deallocate({Free, Allocated}, Freq) ->
-  NewAllocated=lists:keydelete(Freq, 1, Allocated),
-  {[Freq|Free],  NewAllocated}.
+    {value,{Freq,Pid}} = lists:keysearch(Freq,1,Allocated),
+    unlink(Pid),
+    NewAllocated=lists:keydelete(Freq,1,Allocated),
+    {[Freq|Free], NewAllocated}.
 
+deallocate_custom(Behaviour, {Free, Allocated}, Freq) ->
+    case {Behaviour, lists:keysearch(Freq,1,Allocated)} of
+	{_, {value,{Freq,Pid}}} -> unlink(Pid),
+				   NewAllocated=lists:keydelete(Freq,1,Allocated),
+				   {[Freq|Free],  NewAllocated};
+	{extra_copy, _} -> {[Freq|Free], Allocated};
+	{noop, _} -> {Free, Allocated}
+    end.
+
+exited({Free, Allocated}, Pid) ->
+    case lists:keysearch(Pid,2,Allocated) of
+	{value,{Freq,Pid}} ->
+	    NewAllocated = lists:keydelete(Freq,1,Allocated),
+	    {[Freq|Free],NewAllocated};
+	false ->
+	    {Free,Allocated}
+    end.

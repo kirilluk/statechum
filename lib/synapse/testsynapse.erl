@@ -902,7 +902,7 @@ parseTypeMapLoad_test_() ->
 	{"tests type map loading",
 	{inorder,
 	[
-			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,extractTypeInformation,'ErlangExamples/locker/locker.erl'},receive {Ref,ok,Types} -> TypeDict=dict:from_list(Types),?assertEqual(7,dict:size(TypeDict)),
+			fun() -> useworker(fun(Pid,Ref) -> Pid!{Ref,extractTypeInformation,'ErlangExamples/locker/locker.erl'},receive {Ref,ok,Types} -> TypeDict=dict:from_list(Types),?assert(4 < dict:size(TypeDict)),
 				{Path,
           10,handle_call,2,
           {'Func',[],

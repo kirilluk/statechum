@@ -600,7 +600,8 @@ public class MarkovUniversalLearner
 					}
 					Predicted_trace.add(lbl);
 					
-					MarkovMatrix.put(Predicted_trace, target.isAccept()? MarkovOutcome.positive:MarkovOutcome.negative);
+					MarkovOutcome newValue =  target.isAccept()? MarkovOutcome.positive:MarkovOutcome.negative;
+					MarkovMatrix.put(Predicted_trace, MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(MarkovMatrix.get(Predicted_trace),newValue));
 		    	}
 	    }
 	}

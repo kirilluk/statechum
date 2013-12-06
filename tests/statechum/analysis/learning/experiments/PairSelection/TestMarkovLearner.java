@@ -580,9 +580,9 @@ public class TestMarkovLearner {
 	}
 	
 	@Test
-	public void testCheckFanoutInconsistencySideways1()
+	public void testUpdateMarkovSideways1()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testCheckFanoutInconsistencySideways1",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		m.predictTransitionsAndUpdateMarkovSideways(graph);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(4,m.getMarkov(false).size());
@@ -593,9 +593,9 @@ public class TestMarkovLearner {
 	}
 	
 	@Test
-	public void testCheckFanoutInconsistencySideways2()
+	public void testUpdateMarkovSideways2()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C / B-b-#D","testCheckFanoutInconsistencySideways1",config, converter);
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C / B-b-#D","testUpdateMarkovSideways2",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		m.predictTransitionsAndUpdateMarkovSideways(graph);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
@@ -603,6 +603,122 @@ public class TestMarkovLearner {
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
 		Assert.assertEquals(MarkovOutcome.negative,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblB}),true)));
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblC}),true)));
+	}
+	
+	@Test
+	public void testUpdateMarkovSideways3()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());
+		Assert.assertEquals(9,m.getMarkov(false).size());
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblA}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.negative,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblU}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblU,lblU}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblU}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblU,lblC}),true)));
+	}
+	
+	@Test
+	public void testUpdateMarkovSideways4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());
+		Assert.assertEquals(6,m.getMarkov(false).size());
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblA}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblU,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblU,lblA}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblC,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblC,lblA}),true)));
+	}
+	
+	@Test
+	public void testUpdateMarkovSideways5()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(4);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertTrue(m.getMarkov(false).isEmpty());
+	}
+
+	@Test
+	public void testPredictTransitionsSideways1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());
+		Assert.assertEquals(9,m.getMarkov(false).size());
+		
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		
+		List<List<Label>> interestingPaths = new LinkedList<List<Label>>();
+		// nothing in Markov matrix hence no predictions.
+		Assert.assertTrue(m.predictTransitionsFromState(graph,true,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths).isEmpty());
+		Assert.assertEquals(1,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblB}),interestingPaths.get(0));
+		
+		interestingPaths.clear();
+		Map<Label, MarkovOutcome> outcome1 = m.predictTransitionsFromState(graph,false,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
+		Assert.assertEquals(1,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblB}),interestingPaths.get(0));
+		Assert.assertEquals(2,outcome1.size());
+		Assert.assertEquals(MarkovOutcome.negative,outcome1.get(lblU));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblB));
+		
+		
+		interestingPaths.clear();
+		outcome1 = m.predictTransitionsFromState(graph,false,graph.findVertex("E"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
+		Assert.assertEquals(2,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblC}),interestingPaths.get(0));Assert.assertEquals(Arrays.asList(new Label[]{lblU}),interestingPaths.get(1));
+		Assert.assertEquals(3,outcome1.size());
+		Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblU));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblC));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblA));
+	}		
+
+	@Test
+	public void testPredictTransitionsSideways2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-b->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());
+		
+		System.out.println(m.getMarkov(false));
+		Assert.assertEquals(8,m.getMarkov(false).size());
+		
+		Assert.assertEquals(MarkovOutcome.failure,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblU}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblC,lblC}),true)));
+		
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblU,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblU,lblU}),true)));
+		
+		
+	}
+
+	@Test
+	public void testCheckFanoutInconsistencySideways1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		Assert.assertTrue(m.getMarkov(true).isEmpty());
+		Assert.assertEquals(9,m.getMarkov(false).size());
+		
+		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B","testCheckFanoutInconsistencySideways1",config, converter);
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph.getInit(),m.getChunkLen()));
 	}
 	
 	@Test

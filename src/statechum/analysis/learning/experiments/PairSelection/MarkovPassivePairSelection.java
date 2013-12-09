@@ -56,6 +56,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovUniversalLearner;
+import statechum.analysis.learning.MarkovUniversalLearner.ConsistencyChecker;
 import statechum.analysis.learning.MarkovUniversalLearner.MarkovOutcome;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -378,6 +379,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 			
+			ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted(graph);
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -399,7 +401,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m, checker);
 					}
 				}
 				
@@ -419,7 +421,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m, checker);
 					}
 				}
 				
@@ -427,7 +429,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				{
 					System.out.println("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(whatToMerge))?"INVALID":"VALID"));
 
-					m.predictTransitionsAndUpdateMarkov(merged);
+					m.predictTransitionsAndUpdateMarkovForward(merged);
 					++attemptToUpdateMarkov;
 					List<List<Label>> collectionToMergeTentative = new LinkedList<List<Label>>();for(Label l:whatToMerge) collectionToMergeTentative.add(Arrays.asList(new Label[]{l}));
 					List<List<Label>> collectionToMergeCorrect = new LinkedList<List<Label>>();for(Label l:uniqueElem) collectionToMergeCorrect.add(Arrays.asList(new Label[]{l}));
@@ -735,12 +737,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 
 		// mapping map to store all paths leave each state in different length
 		double tentativeScore=0;
+		ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted(original);
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = MarkovUniversalLearner.computeInverseGraph(original, predictForward);
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
-				double numberOfInconsistencies = Markov.checkFanoutInconsistency(Inverse_Graph,predictForward,result,entry.getKey(),Markov.getChunkLen());
+				double numberOfInconsistencies = Markov.checkFanoutInconsistency(Inverse_Graph,predictForward,result,entry.getKey(),Markov.getChunkLen(), checker);
 				tentativeScore-=numberOfInconsistencies;
 			}
 

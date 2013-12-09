@@ -494,7 +494,8 @@ public class MarkovUniversalLearner
 	 * Each such path had an outgoing label added and possibly <i>pathBeyondCurrentState</i> appended to it before being passed into Markov and the summary of the outcomes of such predictions is returned by this method.
 	 * @return map from labels to predictions.
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Map<Label, MarkovOutcome> predictTransitionsFromState(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, CmpVertex vert, Collection<Label> alphabet, List<Label> pathBeyondCurrentState, int chunkLength,Collection<List<Label>> pathsOfInterest)
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Map<Label, MarkovOutcome> predictTransitionsFromState(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, 
+			CmpVertex vert, Collection<Label> alphabet, List<Label> pathBeyondCurrentState, int chunkLength,Collection<List<Label>> pathsOfInterest)
 	{
 		assert vert.isAccept();
 		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
@@ -606,18 +607,18 @@ public class MarkovUniversalLearner
 	    }
 	}
 
-	/** This function is predicts transitions from each state and then adds predictions to the Markov model.
+	/** This function predicts transitions from each state and then adds predictions to the Markov model.
 	 *  
 	 * @param tentativeAutomaton tentative Automaton 
 	 */
-	public void predictTransitionsAndUpdateMarkov(LearnerGraph tentativeAutomaton)
+	public void predictTransitionsAndUpdateMarkovForward(LearnerGraph tentativeAutomaton)
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
 		// mapping map to store all paths leave each state in different length
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-    	for(CmpVertex vert:Inverse_Graph.transitionMatrix.keySet())
+    	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
     	{
            if(vert.isAccept() )
         	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,Inverse_Graph,true,vert,alphabet,chunk_Length);
@@ -638,8 +639,6 @@ public class MarkovUniversalLearner
         	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,tentativeAutomaton,false,vert,alphabet,chunk_Length);
 	}	
 
-	protected static UpdatablePairInteger zero=new UpdatablePairInteger(0,0);
-	
 	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m)
 	{
 		double outcome = 0;
@@ -654,12 +653,76 @@ public class MarkovUniversalLearner
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged, predictForward, m);
+				outcome = computeInconsistency(merged, predictForward, m, new InconsistencyNullVsPredicted(graph));
 			}
 		}
 		
 		return outcome;
 	}
+	
+	public static class InconsistencyNullVsPredicted implements ConsistencyChecker
+	{
+		private final Collection<Label> alphabet;
+		
+		public InconsistencyNullVsPredicted(LearnerGraph g)
+		{
+			alphabet = g.pathroutines.computeAlphabet();
+		}
+
+		@Override
+		public boolean labelConsistent(MarkovOutcome actual, MarkovOutcome predicted) 
+		{
+			return consistent(actual,predicted);
+		}
+		
+		@Override
+		public boolean consistent(MarkovOutcome actual, MarkovOutcome predicted) 
+		{
+			if (actual == MarkovOutcome.failure || predicted == MarkovOutcome.failure)
+				return false;
+			
+			if (actual == null && predicted != null)
+				return false;
+			
+			if (actual != null && predicted != null && actual != predicted)
+				return false;
+			
+			return true;
+		}
+
+		@Override
+		public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			return alphabet;
+		}
+	}
+	
+	public static class DifferentPredictionsInconsistency implements ConsistencyChecker
+	{
+		private final LearnerGraph graph;
+		public DifferentPredictionsInconsistency(LearnerGraph g)
+		{
+			graph = g;
+		}
+
+		@Override
+		public boolean consistent(MarkovOutcome actual, MarkovOutcome predicted) {
+			return labelConsistent(actual, predicted);
+		}
+
+		@Override
+		public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) 
+		{
+			return MarkovOutcome.ensureConsistencyBetweenOpinions(actual,predicted) != MarkovOutcome.failure;
+		}
+
+		@Override
+		public Collection<Label> obtainAlphabet(CmpVertex v) {
+			return graph.transitionMatrix.get(v).keySet();
+		}
+		
+	}
+	
+
 	
 	/** Obtains the graph that can be used in calls of {@link #checkFanoutInconsistency(AbstractLearnerGraph, boolean, LearnerGraph, CmpVertex, int)} and many others.
 	 * Returns an inverse when <i>predictForward</i> is true and <i>graph</i> otherwise.
@@ -684,16 +747,34 @@ public class MarkovUniversalLearner
 		return Inverse_Graph;
 	}
 	@SuppressWarnings("unchecked")
-	public static double computeInconsistency(LearnerGraph graph, boolean predictForward, MarkovUniversalLearner m)
+	public static double computeInconsistency(LearnerGraph graph, boolean predictForward, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
-		return m.computeConsistency(computeInverseGraph(graph, predictForward), predictForward, graph, m.getChunkLen());
+		return m.computeConsistency(computeInverseGraph(graph, predictForward), predictForward, graph, m.getChunkLen(),checker);
 	}
 
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> double computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, LearnerGraph graph, int chunkLength)
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> double computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, LearnerGraph graph, int chunkLength, ConsistencyChecker checker)
 	{
 		double accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForward, graph,v,chunkLength);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForward, graph,v,chunkLength, checker);
 		return accumulatedInconsistency;
+	}
+	
+	public interface ConsistencyChecker
+	{
+		/** Returns an alphabet to use for a specific vertex. Deliberately does not include a graph as an argument to make sure alphabet is cached between calls. 
+		 * @param v vertex for which to compute an alphabet. 
+		 */
+		public Collection<Label> obtainAlphabet(CmpVertex v);
+		/** 
+		 * Given two outcomes, returns true if they are considered consistent and false otherwise.
+		 */
+		public boolean consistent(MarkovOutcome actual,MarkovOutcome predicted);
+		
+		/**
+		 * Given two outcomes, returns false if the label is to be labelled as inconsistent and excluded from any other comparisons. With this returning false, we can have multiple inconsistencies per label, associated to 
+		 * different paths leading to a state of interest (or different paths leading from it) and hence different Markov predictions. 
+		 */
+		public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted);
 	}
 	
 	/** Uses the supplied Markov matrix to check if predicted transitions from specific states match those that actually exist. This is a courser-grained version of {@link #checkFanoutInconsistencyDouble(LearnerGraphND, boolean, LearnerGraph, CmpVertex, int)}.
@@ -711,11 +792,13 @@ public class MarkovUniversalLearner
 	 * @param predictForward <i>true</i> if this is to predict forward (usual Markov) or <i>false</i> for sideways. 
 	 * @param vert state of interest
 	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
+	 * @param checker consistency checker, usually based on a static method from {@link MarkovOutcome}. 
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> int checkFanoutInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, LearnerGraph graph, CmpVertex vert, int chunkLength)
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> int checkFanoutInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, 
+			boolean predictForward, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker)
 	{
 		assert vert.isAccept();
-		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
+		Collection<Label> outgoingLabels = checker.obtainAlphabet(vert);
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
 		Map<Label,MarkovOutcome> outgoing_labels_value=new HashMap<Label,MarkovOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
@@ -759,16 +842,16 @@ public class MarkovUniversalLearner
 		    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
 		    					if (predicted_from_Markov != MarkovOutcome.failure)
 		    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
-	
-		    						MarkovOutcome outcome = MarkovOutcome.ensureConsistencyBetweenOpinions(labels_occurrence, predicted_from_Markov);
-		    						if (outcome != labels_occurrence)
-		    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
-		    							assert outcome == MarkovOutcome.failure;
+		    						if (!checker.consistent(labels_occurrence, predicted_from_Markov))
+		    						{
 		    							++inconsistencies;// record inconsistency
 		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
-		    							outgoing_labels_value.put(label, outcome);// record the failure
 		    						}
-		    						
+		    						if (!checker.labelConsistent(labels_occurrence, predicted_from_Markov))
+		    						{
+		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
+		    							outgoing_labels_value.put(label, MarkovOutcome.failure);// record the failure so that we do not look at that label again.
+		    						}
 		    					}
     						}
 	    				}
@@ -784,96 +867,6 @@ public class MarkovUniversalLearner
 	    return inconsistencies;
 	}
 	
-	/** Uses the supplied Markov matrix to check if predicted transitions from specific states match those that actually exist. This is a finer-grained version of {@link #checkFanoutInconsistency(LearnerGraphND, boolean, LearnerGraph, CmpVertex, int)}.
-	 * <ul>
-	 * <li>
-	 * Where <i>predictForward</i> is true, we are predicting transitions based on paths leading to the state of interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
-	 * </li>
-	 * <li> 
-	 * Where <i>predictForward</i> is false, we are predicting transitions based on paths leading from the state of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i> and 
-	 * <i>pathBeyondCurrentState</i> should be null because once we predicted one transition, there are no further transitions from that state, hence no further transitions can be predicted sideways.
-	 * </li>
-	 * </ul>
-	 * 
-	 * @param Inverse_Graph graph used to compute all paths of specific length leading to a state of interest
-	 * @param predictForward <i>true</i> if this is to predict forward (usual Markov) or <i>false</i> for sideways. 
-	 * @param vert state of interest
-	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
-	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> double checkFanoutInconsistencyDouble(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, LearnerGraph graph, CmpVertex vert, int chunkLength)
-	{
-		assert vert.isAccept();
-		Set<Label> outgoingLabels = graph.transitionMatrix.get(vert).keySet();
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
-		Map<Label,UpdatablePairInteger> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairInteger>();
-		Map<Label,MarkovOutcome> outgoing_labels_value=new HashMap<Label,MarkovOutcome>();
-		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
-		for(Entry<Label,CmpVertex> entry:graph.transitionMatrix.get(vert).entrySet())
-		{
-			outgoing_labels_value.put(entry.getKey(),entry.getValue().isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
-			outgoing_labels_probabilities.put(entry.getKey(),new UpdatablePairInteger(0, 0));
-		}
-		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-	    frontline.add(e);
-	    while(!frontline.isEmpty())
-	    {
-	    	e=frontline.pop();	
-	    	for(Entry<Label, TARGET_TYPE> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
-	    	{		
-	    		for(CmpVertex target:Inverse_Graph.getTargets(entry.getValue()))
-	    		{
-	    			ArrayList<Label> pathToUseWithMarkovToPredictOutgoing=new ArrayList<Label>(chunkLength);
-	    			pathToUseWithMarkovToPredictOutgoing.addAll(e.pathToFrontLine);
-	    			pathToUseWithMarkovToPredictOutgoing.add(entry.getKey());
-	    			if(pathToUseWithMarkovToPredictOutgoing.size()==chunkLength-1)
-	    			{
-	    				for(Label label:outgoingLabels)
-	    				{
-    						MarkovOutcome labels_occurrence= outgoing_labels_value.get(label);
-	
-	    					Trace Predicted_trace = new Trace();
-	    					if (predictForward)
-	    					{
-	    						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) Predicted_trace.add(pathToUseWithMarkovToPredictOutgoing.get(i));
-	    					}
-	    					else
-	    					{
-	    						Predicted_trace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
-	    					}
-	    					Predicted_trace.add(label);
-
-	    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-	    					if (predicted_from_Markov != MarkovOutcome.failure)
-	    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
-
-	    						UpdatablePairInteger counters = outgoing_labels_probabilities.get(label);counters.secondElem++;
-	    						MarkovOutcome outcome = MarkovOutcome.ensureConsistencyBetweenOpinions(labels_occurrence, predicted_from_Markov);
-	    						if (outcome != labels_occurrence)
-	    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
-	    							assert outcome == MarkovOutcome.failure;
-    								++counters.firstElem;// record inconsistency
-	    						}
-	    						
-	    					}
-	    				}
-	    			}
-	    			else
-	    			{// not reached the maximal length of paths to explore
-	    				frontline.add(new FrontLineElem(pathToUseWithMarkovToPredictOutgoing,target));
-	    			}
-	    		}
-	    	}
-	    }
-
-	    double inconsistencies = 0;
-	    for(UpdatablePairInteger p:outgoing_labels_probabilities.values())
-	    	if (p.secondElem > 0)
-	    		if (p.firstElem > 0)
-	    			inconsistencies+=p.firstElem/(double)p.secondElem;
-	    return inconsistencies;
-	}
-
 	/** This function is predicts transitions from each state.
 	 * <ul>
 	 * <li>
@@ -905,7 +898,7 @@ public class MarkovUniversalLearner
 		else
 			Inverse_Graph = tentativeAutomaton;
 		
-    	for(Object vertObj:Inverse_Graph.transitionMatrix.keySet())
+    	for(Object vertObj:tentativeAutomaton.transitionMatrix.keySet())
     	{
     		CmpVertex vert = (CmpVertex)vertObj;
     		if(vert.isAccept() )

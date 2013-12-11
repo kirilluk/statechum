@@ -823,10 +823,10 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				Assert.assertEquals(MarkovOutcome.positive,actual);Assert.assertNull(predicted);
 				counterB.addAndGet(1);
-				return true;
+				return actual;
 			}
 
 			@Override
@@ -859,9 +859,9 @@ public class TestMarkovLearner {
 
 			@SuppressWarnings("unused")
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				Assert.fail("should not be called");
-				return true;
+				return actual;
 			}
 			
 
@@ -895,9 +895,9 @@ public class TestMarkovLearner {
 
 			@SuppressWarnings("unused")
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				counterB.addAndGet(1);
-				return true;
+				return actual;
 			}
 
 			@Override
@@ -932,9 +932,9 @@ public class TestMarkovLearner {
 
 			@SuppressWarnings("unused")
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				counterB.addAndGet(1);
-				return true;
+				return actual;
 			}
 
 			@Override
@@ -969,9 +969,9 @@ public class TestMarkovLearner {
 
 			@SuppressWarnings("unused")
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				counterB.addAndGet(1);
-				return false;
+				return actual;
 			}
 
 			@Override
@@ -1006,9 +1006,9 @@ public class TestMarkovLearner {
 
 			@SuppressWarnings("unused")
 			@Override
-			public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
+			public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) {
 				counterB.addAndGet(1);
-				return false;
+				return MarkovOutcome.failure;
 			}
 
 			@Override

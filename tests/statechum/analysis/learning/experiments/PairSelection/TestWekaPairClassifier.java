@@ -1810,6 +1810,16 @@ public class TestWekaPairClassifier {
 					redToPairsObtained.put(redChosen,copyOfPairs);// record the pairs we got, these should be the same pairs as those to be returned from chooseStatePairs so long as resolvePotentialDeadEnd returns null.
 					return null;// no resolution
 				}
+				
+				@Override
+				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+					// dummy
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();// dummy
+				}
 			});
 			
 			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
@@ -1857,6 +1867,16 @@ public class TestWekaPairClassifier {
 				@Override
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) {
 					return null;
+				}
+				
+				@Override
+				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+					// dummy
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();// dummy
 				}
 			});
 			

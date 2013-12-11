@@ -69,13 +69,13 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraph.ScoreComputationCallback;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.ScoreComputationCallback;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -379,7 +379,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 			
-			ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted(graph);
+			ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph);//InconsistencyNullVsPredicted(graph);
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -643,6 +643,19 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		frontLine.iterator().next().setColour(JUConstants.RED);
 	}
 
+	/** This one does a merger and then looks at the states where something was added to, checking differences between actual transitions and Markov predictions.
+	 * 
+	 * @param original the graph where a pair is to be merged
+	 * @param predictForward whether to use forward (<i>true</i>) or sideways (<i>false</i>) predictions
+	 * @param pair pair of states to merge
+	 * @param Markov markov matrix (in fact, a pair of matrices, one for forward and another one - for sideways predictions). Either one or both could be empty.
+	 * @return the score reflecting the number of inconsistencies between predictions and actual transitions. Even where a merger is correct, the number of inconsistencies could be above zero due to either 
+	 * <ul>
+	 * <li>insufficient data from which the orignal Markov predictions are built or </li>
+	 * <li> due to coarse nature of 
+	 * predictions (only short paths are considered for predictions of subsequent transitions).</li>
+	 * </ul>
+	 */
 	public static long computeScoreBasedOnMarkov(LearnerGraph original,boolean predictForward, StatePair pair,MarkovUniversalLearner Markov)
 	{
 		assert pair.getQ() != pair.getR();
@@ -739,7 +752,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		double tentativeScore=0;
 		ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted(original);
 		@SuppressWarnings("rawtypes")
-		AbstractLearnerGraph Inverse_Graph = MarkovUniversalLearner.computeInverseGraph(original, predictForward);
+		AbstractLearnerGraph Inverse_Graph = MarkovUniversalLearner.computeInverseGraph(result, predictForward);
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
@@ -942,7 +955,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				assert sPlus.size() > 0;
 				assert sMinus.size() > 0;
 				final MarkovUniversalLearner m= new MarkovUniversalLearner(chunkLen);
-				m.createMarkovLearner(sPlus, sMinus,true);
+				m.createMarkovLearner(sPlus, sMinus,false);
 				
 				pta.clearColours();
 				synchronized (AbstractLearnerGraph.syncObj) {
@@ -963,7 +976,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				final boolean predictForward = true;
-				
 				if (pickUniqueFromInitial)
 				{
 					pta = mergeStatesForUnique(pta,uniqueFromInitial);
@@ -992,9 +1004,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				{// not merging based on a unique transition from an initial state
 					//learnerEval.config.setGeneralisationThreshold(1);
 					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 					final LearnerGraph finalReferenceGraph = referenceGraph;
-					pta.setScoreComputationCallback(new ScoreComputationCallback() {
+					
+					learnerOfPairs.setScoreComputationOverride(new statechum.analysis.learning.rpnicore.PairScoreComputation.ScoreComputationCallback() 
+					{
 						LearnerGraph coregraph = null;
 						Set<Label> callbackAlphabet = null;
 						LearnerGraphND origInverse = null;
@@ -1171,7 +1186,8 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		private int num_seed;
 		private int lengthMultiplier;
 		public MarkovUniversalLearner Markov;
-
+		ScoreComputationCallback scoreOverride = null;
+		
 		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
 		{
 			pairQuality = argCounter;
@@ -1199,40 +1215,51 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			return lengthMultiplier;
 		}
 
-		public void set_States(int states) {
+		public void set_States(int states) 
+		{
 			num_states=	states;		
 		}
-		public MarkovUniversalLearner Markov() {
+		
+		public MarkovUniversalLearner Markov() 
+		{
 			return Markov;			
 		}
 			
-		public void setMarkovModel(MarkovUniversalLearner m) {
+		public void setMarkovModel(MarkovUniversalLearner m) 
+		{
 			Markov=m;
-			
 		}
 
-		public void set_traceQuantity(int traceQuantity) {
+		public void set_traceQuantity(int traceQuantity) 
+		{
 			numtraceQuantity=traceQuantity;			
 		}
 		
-		public int get_States() {
+		public int get_States() 
+		{
 			return num_states;		
 		}
 	
-		public int get_traceQuantity() {
+		public int get_traceQuantity() 
+		{
 			return numtraceQuantity;			
 		}
 		
-		public void set_seed(int i) {
+		public void set_seed(int i) 
+		{
 			num_seed=i;
-			
 		}
 		
-		public int get_seed() {
+		public int get_seed() 
+		{
 			return num_seed;
-			
 		}
 
+		public void setScoreComputationOverride(ScoreComputationCallback c)
+		{
+			scoreOverride = c;
+		}
+		
 		
 		/** During the evaluation of the red-blue pairs, where all pairs are predicted to be unmergeable, one of the blue states will be returned as red. */
 		protected boolean classifierToChooseWhereNoMergeIsAppropriate = false;
@@ -1424,6 +1451,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		{
 			return obj == null?"null":obj.toString();
 		}
+		
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
 		{
@@ -1504,6 +1532,20 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					return filterbad.get(0);
 				}
 				*/
+
+				@Override
+				public void initComputation(LearnerGraph gr) {
+					if (LearnerMarkovPassive.this.scoreOverride != null)
+						LearnerMarkovPassive.this.scoreOverride.initComputation(gr);
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					long result = p.getScore();
+					if (LearnerMarkovPassive.this.scoreOverride != null)
+						result = LearnerMarkovPassive.this.scoreOverride.overrideScoreComputation(p);
+					return result;
+				}
 			});
 			
 			if (!outcome.isEmpty())

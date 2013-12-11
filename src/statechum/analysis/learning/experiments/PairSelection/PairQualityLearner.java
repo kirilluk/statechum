@@ -775,6 +775,16 @@ public class PairQualityLearner
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					return null;
+				}
+
+				@Override
+				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+					// dummy
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();// dummy
 				}});
 			if (!outcome.isEmpty())
 			{
@@ -829,6 +839,16 @@ public class PairQualityLearner
 					return red;
 					
 					//return null;// for no resolution
+				}
+				
+				@Override
+				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+					// dummy
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();// dummy
 				}});
 			if (!outcome.isEmpty())
 			{
@@ -1225,6 +1245,16 @@ public class PairQualityLearner
 							//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 						}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
+				}
+				
+				@Override
+				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+					// dummy
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();// dummy
 				}});
 			if (!outcome.isEmpty())
 			{

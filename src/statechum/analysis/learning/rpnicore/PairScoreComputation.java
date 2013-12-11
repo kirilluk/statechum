@@ -62,7 +62,14 @@ public class PairScoreComputation {
 	}
 
 	
-	public static interface RedNodeSelectionProcedure
+	/** Makes it possible to register callbacks for score computation. Currently used with Markov but should be useful for Weka. */ 
+	public static interface ScoreComputationCallback
+	{
+		public void initComputation(LearnerGraph graph);
+		public long overrideScoreComputation(PairScore p);
+	}
+
+	public static interface RedNodeSelectionProcedure extends ScoreComputationCallback
 	{
 		/** Given a graph, the current collection of red nodes and those not compatible with any current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * 
@@ -81,9 +88,11 @@ public class PairScoreComputation {
 		CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs);
 	}
 	
+
 	public Stack<PairScore> chooseStatePairs(RedNodeSelectionProcedure decisionProcedure)
 	{
 		coregraph.pairsAndScores.clear();
+		if (decisionProcedure != null) decisionProcedure.initComputation(coregraph);
 		Collection<CmpVertex> reds = new LinkedList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			if (v.getColour() == JUConstants.RED)
@@ -110,7 +119,7 @@ public class PairScoreComputation {
 						int numberOfCompatiblePairs = 0;
 						for(CmpVertex oldRed:reds)
 						{
-							PairScore pair = obtainPair(currentBlueState,oldRed);
+							PairScore pair = obtainPair(currentBlueState,oldRed,decisionProcedure);
 							if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 							{
 								coregraph.pairsAndScores.add(pair);
@@ -171,14 +180,12 @@ public class PairScoreComputation {
 		return result;		
 	}
 	
-	public PairScore obtainPair(CmpVertex blue, CmpVertex red)
+	public PairScore obtainPair(CmpVertex blue, CmpVertex red, ScoreComputationCallback scoreComputationOverride)
 	{
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
-			if (computedScore >= 0 && coregraph.scoreComputation != null)
-				computedScore = coregraph.scoreComputation.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		}
 		else		
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
@@ -194,9 +201,6 @@ public class PairScoreComputation {
 				compatibilityScore=	computePairCompatibilityScore(pairToComputeFrom);
 				if (compatibilityScore < 0)
 					computedScore = -1;
-				
-				if (computedScore >= 0 && coregraph.scoreComputation != null)
-					computedScore = coregraph.scoreComputation.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 			}
 			
 			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
@@ -217,6 +221,8 @@ public class PairScoreComputation {
 		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
 			computedScore = -1;
 		
+		if (computedScore >= 0 && scoreComputationOverride != null)
+			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		return new PairScore(blue,red,computedScore, compatibilityScore);
 	}
 

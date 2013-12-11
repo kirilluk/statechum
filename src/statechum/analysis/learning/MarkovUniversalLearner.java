@@ -248,7 +248,7 @@ public class MarkovUniversalLearner
 		}		
 	}
 	
-	/** Constructs the tables used by the learner, from positive and negative traces.
+	/** Constructs the tables used by the learner, from positive and negative traces. Only builds Markov in the forward direction.
 	 * 
 	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
@@ -387,7 +387,8 @@ public class MarkovUniversalLearner
 			    {
 			    	e=frontline.pop();
 			    	
-			    	Map transitions = (Map)Inverse_Graph.transitionMatrix.get(e.currentState);
+			    	@SuppressWarnings("rawtypes")
+					Map transitions = (Map)Inverse_Graph.transitionMatrix.get(e.currentState);
 			    	for(Object lblObj:transitions.keySet())					
 			    	{
 			    		Label lbl = (Label)lblObj;
@@ -670,9 +671,9 @@ public class MarkovUniversalLearner
 		}
 
 		@Override
-		public boolean labelConsistent(MarkovOutcome actual, MarkovOutcome predicted) 
+		public MarkovOutcome labelConsistent(MarkovOutcome actual, MarkovOutcome predicted) 
 		{
-			return consistent(actual,predicted);
+			return consistent(actual,predicted)?actual:MarkovOutcome.failure;
 		}
 		
 		@Override
@@ -706,13 +707,13 @@ public class MarkovUniversalLearner
 
 		@Override
 		public boolean consistent(MarkovOutcome actual, MarkovOutcome predicted) {
-			return labelConsistent(actual, predicted);
+			return labelConsistent(actual, predicted) != MarkovOutcome.failure;
 		}
 
 		@Override
-		public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) 
+		public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) 
 		{
-			return MarkovOutcome.ensureConsistencyBetweenOpinions(actual,predicted) != MarkovOutcome.failure;
+			return MarkovOutcome.ensureConsistencyBetweenOpinions(actual,predicted);
 		}
 
 		@Override
@@ -721,8 +722,6 @@ public class MarkovUniversalLearner
 		}
 		
 	}
-	
-
 	
 	/** Obtains the graph that can be used in calls of {@link #checkFanoutInconsistency(AbstractLearnerGraph, boolean, LearnerGraph, CmpVertex, int)} and many others.
 	 * Returns an inverse when <i>predictForward</i> is true and <i>graph</i> otherwise.
@@ -746,6 +745,7 @@ public class MarkovUniversalLearner
 
 		return Inverse_Graph;
 	}
+	
 	@SuppressWarnings("unchecked")
 	public static double computeInconsistency(LearnerGraph graph, boolean predictForward, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
@@ -759,22 +759,36 @@ public class MarkovUniversalLearner
 		return accumulatedInconsistency;
 	}
 	
+	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
+	 * with such a label or a positive transition is predicted whereas a negative transition is present. Another case is where no transition is predicted whereas a transition is present.
+	 * <ul>
+	 * <li>
+	 * Whenever {@link #consistent(MarkovOutcome, MarkovOutcome)} returns false, an inconsistencies counter is incremented. 
+	 * </li>
+	 * <li> 
+	 * There are two ways to check inconsistencies, either by implementing {@link #labelConsistent(MarkovOutcome, MarkovOutcome)} to always return <i>true</i>, or by making it return false for the first inconsistency 
+	 * which will then stop exploration for the inconsistent label.
+	 * </li>
+	 * </ul> 
+	 */
 	public interface ConsistencyChecker
 	{
 		/** Returns an alphabet to use for a specific vertex. Deliberately does not include a graph as an argument to make sure alphabet is cached between calls. 
 		 * @param v vertex for which to compute an alphabet. 
 		 */
 		public Collection<Label> obtainAlphabet(CmpVertex v);
+		
 		/** 
 		 * Given two outcomes, returns true if they are considered consistent and false otherwise.
 		 */
 		public boolean consistent(MarkovOutcome actual,MarkovOutcome predicted);
 		
 		/**
-		 * Given two outcomes, returns false if the label is to be labelled as inconsistent and excluded from any other comparisons. With this returning false, we can have multiple inconsistencies per label, associated to 
+		 * Given two outcomes, returns a new value of the prediction to be associated with the label. Can return {@link MarkovOutcome#failure} if the label is to be labelled as inconsistent and excluded from any other comparisons. 
+		 * With this returning {@link MarkovOutcome#failure}, we can have multiple inconsistencies per label, associated to 
 		 * different paths leading to a state of interest (or different paths leading from it) and hence different Markov predictions. 
 		 */
-		public boolean labelConsistent(MarkovOutcome actual,MarkovOutcome predicted);
+		public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted);
 	}
 	
 	/** Uses the supplied Markov matrix to check if predicted transitions from specific states match those that actually exist. This is a courser-grained version of {@link #checkFanoutInconsistencyDouble(LearnerGraphND, boolean, LearnerGraph, CmpVertex, int)}.
@@ -847,11 +861,7 @@ public class MarkovUniversalLearner
 		    							++inconsistencies;// record inconsistency
 		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
 		    						}
-		    						if (!checker.labelConsistent(labels_occurrence, predicted_from_Markov))
-		    						{
-		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
-		    							outgoing_labels_value.put(label, MarkovOutcome.failure);// record the failure so that we do not look at that label again.
-		    						}
+	    							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the failure so that we do not look at that label again.
 		    					}
     						}
 	    				}

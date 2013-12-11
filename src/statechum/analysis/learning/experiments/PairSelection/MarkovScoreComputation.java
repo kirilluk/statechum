@@ -385,7 +385,7 @@ public class MarkovScoreComputation
 						int numberOfCompatiblePairs = 0;
 						for(CmpVertex oldRed:reds)
 						{
-							PairScore pair = coregraph.pairscores.obtainPair(currentBlueState,oldRed);
+							PairScore pair = coregraph.pairscores.obtainPair(currentBlueState,oldRed,null);
 							if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 							{
 								coregraph.pairsAndScores.add(pair);
@@ -409,7 +409,7 @@ public class MarkovScoreComputation
 							// red already, i.e. there is an entry about them in PairsAndScores
 							for(CmpVertex oldBlue:BlueStatesConsideredSoFar)
 							{
-								PairScore pair = coregraph.pairscores.obtainPair(oldBlue,newRedNode);
+								PairScore pair = coregraph.pairscores.obtainPair(oldBlue,newRedNode,null);
 								if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 								{
 									coregraph.pairsAndScores.add(pair);

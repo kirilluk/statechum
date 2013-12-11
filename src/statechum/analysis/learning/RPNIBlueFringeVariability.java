@@ -117,9 +117,7 @@ public class RPNIBlueFringeVariability
 				Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
 
 					@Override
-					public CmpVertex selectRedNode(LearnerGraph coregraph,
-							@SuppressWarnings("unused") Collection<CmpVertex> reds,
-							Collection<CmpVertex> tentativeRedNodes) 
+					public CmpVertex selectRedNode(LearnerGraph coregraph,	@SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 					{
 						CmpVertex redVertex = null;
 						if (listOfPairsToWrite != null)
@@ -141,6 +139,16 @@ public class RPNIBlueFringeVariability
 					@Override
 					public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) {
 						return null;// do not resolve in any way
+					}
+
+					@Override
+					public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
+						// dummy
+					}
+
+					@Override
+					public long overrideScoreComputation(PairScore p) {
+						return p.getScore();// dummy
 					}});
 				
 				if (!outcome.isEmpty())

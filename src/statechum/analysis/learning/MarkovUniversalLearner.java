@@ -303,7 +303,8 @@ public class MarkovUniversalLearner
 		}
 		
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(true);
-
+		// construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
+		// A prefix of either a positive or a negative could be a failure where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted. 
 		Trace trace_to_account_its_probability=null;
 		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrix.entrySet())
 		{
@@ -610,37 +611,23 @@ public class MarkovUniversalLearner
 
 	/** This function predicts transitions from each state and then adds predictions to the Markov model.
 	 *  
-	 * @param tentativeAutomaton tentative Automaton 
+	 * @param tentativeAutomaton tentative Automaton
+	 * @param predictForward whether to update a forward or a sideways Markov matrix.
+	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
-	public void predictTransitionsAndUpdateMarkovForward(LearnerGraph tentativeAutomaton)
+	public void predictTransitionsAndUpdateMarkov(LearnerGraph tentativeAutomaton, boolean predictForward, boolean onlyLongest)
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-		// mapping map to store all paths leave each state in different length
-		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
-		AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		@SuppressWarnings("rawtypes")
+		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForward);
     	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
-    	{
-           if(vert.isAccept() )
-        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,Inverse_Graph,true,vert,alphabet,chunk_Length);
-    	}
-	}	
+    		for(int len=onlyLongest?chunk_Length:1;len <=chunk_Length;++len)// this is very inefficient; we'll optimize it later if needed.
+	           if(vert.isAccept())
+	        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,Inverse_Graph,predictForward,vert,alphabet,len);
+	}
 
-	/** This function is predicts transitions from each state and then adds predictions to a kind of Markov model where we are predicting transitions based on paths leading from the same state.
-	 * In other words, whereas ordinary Markov predicts transitions that leave the last state of a path of set length, here we predict transitions leaving the same state as the first transition of the abovementioned path.
-	 *  
-	 * @param tentativeAutomaton tentative Automaton 
-	 */
-	public void predictTransitionsAndUpdateMarkovSideways(LearnerGraph tentativeAutomaton)
-	{
-		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-    	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
-           if(vert.isAccept() )
-        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,tentativeAutomaton,false,vert,alphabet,chunk_Length);
-	}	
-
-	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m)
+	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
 		double outcome = 0;
 		
@@ -650,11 +637,11 @@ public class MarkovUniversalLearner
 		{
 			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 			if (score < 0)
-				outcome = -1;
+				outcome = MarkovUniversalLearner.REJECT;
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged, predictForward, m, new InconsistencyNullVsPredicted(graph));
+				outcome = computeInconsistency(merged, predictForward, m, checker);
 			}
 		}
 		

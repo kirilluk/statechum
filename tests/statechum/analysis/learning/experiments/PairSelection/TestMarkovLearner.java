@@ -540,7 +540,7 @@ public class TestMarkovLearner {
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
 		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);
-		mOther.predictTransitionsAndUpdateMarkovForward(graph);
+		mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
 	
@@ -552,7 +552,7 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkovForward(graph);
+		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
 	
@@ -564,7 +564,7 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkovForward(graph);
+		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
 	
@@ -576,7 +576,7 @@ public class TestMarkovLearner {
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkovForward(graph);
+		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
 	
@@ -585,7 +585,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(4,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
@@ -598,7 +598,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C / B-b-#D","testUpdateMarkovSideways2",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(3,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
@@ -611,7 +611,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
@@ -632,7 +632,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(6,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true)));
@@ -650,7 +650,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(4);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
 
@@ -659,7 +659,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -689,7 +689,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-b->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		
 		Assert.assertEquals(8,m.getMarkov(false).size());
@@ -712,7 +712,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -729,7 +729,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -743,7 +743,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovForward(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
 		
@@ -761,7 +761,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovForward(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
 		
@@ -777,7 +777,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -792,7 +792,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -807,7 +807,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -842,7 +842,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -878,7 +878,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -915,7 +915,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -952,7 +952,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -989,7 +989,7 @@ public class TestMarkovLearner {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
-		m.predictTransitionsAndUpdateMarkovSideways(graph);
+		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
@@ -1264,8 +1264,9 @@ public class TestMarkovLearner {
 	public void testStatesIdentifiedUsingUniques1a()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
-		Assert.assertTrue(uniqueStates.isEmpty());
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertEquals(uniques,invalidSequences);Assert.assertNotSame(uniques, invalidSequences);
 	}
 	
 	@Test
@@ -1283,8 +1284,9 @@ public class TestMarkovLearner {
 	public void testStatesIdentifiedUsingUniques1c()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
-		Assert.assertTrue(uniqueStates.isEmpty());
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertTrue(invalidSequences.isEmpty());
 	}
 	
 	@Test
@@ -1299,9 +1301,10 @@ public class TestMarkovLearner {
 	public void testStatesIdentifiedUsingUniques2a()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(1,uniqueStates.size());
-		Assert.assertEquals("A",uniqueStates.iterator().next().getStringId());
+		Assert.assertEquals("A",uniqueStates.iterator().next().getStringId());Assert.assertTrue(invalidSequences.isEmpty());
 	}
 	
 	@Test
@@ -1317,10 +1320,11 @@ public class TestMarkovLearner {
 	public void testStatesIdentifiedUsingUniques3a()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques);
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(1,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
-		Assert.assertEquals("A",uniqueVertices.next().getStringId());
+		Assert.assertEquals("A",uniqueVertices.next().getStringId());Assert.assertTrue(invalidSequences.isEmpty());
 	}
 	
 	@Test
@@ -1337,8 +1341,9 @@ public class TestMarkovLearner {
 	public void testStatesIdentifiedUsingUniques3c()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques);
-		Assert.assertTrue(uniqueStates.isEmpty());
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques,uniqueStates,invalidSequences);
+		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertEquals(uniques,invalidSequences);Assert.assertNotSame(uniques, invalidSequences);
 	}
 	
 	@Test
@@ -1357,11 +1362,13 @@ public class TestMarkovLearner {
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();
 		uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
+		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
+		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(2,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
 		Assert.assertEquals("B",uniqueVertices.next().getStringId());
+		Assert.assertTrue(invalidSequences.isEmpty());
 	}
 	
 	@Test

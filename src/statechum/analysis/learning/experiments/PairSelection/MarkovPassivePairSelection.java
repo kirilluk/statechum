@@ -60,6 +60,7 @@ import statechum.analysis.learning.MarkovUniversalLearner.ConsistencyChecker;
 import statechum.analysis.learning.MarkovUniversalLearner.MarkovOutcome;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
@@ -343,7 +344,11 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		 */
 		
 		int attemptToUpdateMarkov=0;
+		boolean computeForward = true;
 		double scoreAfterBigMerge=1;
+		ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph);
+				//InconsistencyNullVsPredicted(graph);
+		Set<Label> alphabet = trimmedReference.pathroutines.computeAlphabet();
 		do
 		{
 			long maxCount = 0;
@@ -363,23 +368,25 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (markovEntry.getKey().getList().size() == 1 && markovEntry.getValue() == MarkovOutcome.positive)
 				{
 					Label lbl = markovEntry.getKey().getList().get(0);
-					long countInPTA=m.get_Markov_model_occurence().get(markovEntry.getKey()).firstElem;
-					if (countInPTA < maxCount/4)
+					if (alphabet.contains(lbl))
 					{
-						double value = MarkovUniversalLearner.computeInconsistencyForMergingLabel(graph,true,lbl,m);
-						if (value >= 0)
+						long countInPTA=m.get_Markov_model_occurence().get(markovEntry.getKey()).firstElem;
+						if (countInPTA < maxCount/4)
 						{
-							List<Label> labelsForThisInconsistency = thresholdToInconsistency.get(value);
-							if (labelsForThisInconsistency == null)
+							double value = MarkovUniversalLearner.computeInconsistencyForMergingLabel(graph,computeForward,lbl,m,checker);
+							if (value >= 0)
 							{
-								labelsForThisInconsistency = new LinkedList<Label>();thresholdToInconsistency.put(value, labelsForThisInconsistency); 
+								List<Label> labelsForThisInconsistency = thresholdToInconsistency.get(value);
+								if (labelsForThisInconsistency == null)
+								{
+									labelsForThisInconsistency = new LinkedList<Label>();thresholdToInconsistency.put(value, labelsForThisInconsistency); 
+								}
+								labelsForThisInconsistency.add(lbl);
 							}
-							labelsForThisInconsistency.add(lbl);
 						}
 					}
 				}
-			
-			ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph);//InconsistencyNullVsPredicted(graph);
+			System.out.println(thresholdToInconsistency);
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -401,7 +408,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m, checker);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, computeForward, m, checker);
 					}
 				}
 				
@@ -421,7 +428,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, true, m, checker);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, computeForward, m, checker);
 					}
 				}
 				
@@ -429,12 +436,29 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				{
 					System.out.println("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(whatToMerge))?"INVALID":"VALID"));
 
-					m.predictTransitionsAndUpdateMarkovForward(merged);
+					m.predictTransitionsAndUpdateMarkov(merged,computeForward,false);
 					++attemptToUpdateMarkov;
 					List<List<Label>> collectionToMergeTentative = new LinkedList<List<Label>>();for(Label l:whatToMerge) collectionToMergeTentative.add(Arrays.asList(new Label[]{l}));
 					List<List<Label>> collectionToMergeCorrect = new LinkedList<List<Label>>();for(Label l:uniqueElem) collectionToMergeCorrect.add(Arrays.asList(new Label[]{l}));
-					Collection<CmpVertex> correctUniques = statesIdentifiedUsingUniques(trimmedReference,collectionToMergeCorrect), identifiedUniques = statesIdentifiedUsingUniques(trimmedReference,collectionToMergeTentative);
-					System.out.println("States identified in reference: "+identifiedUniques+" out of "+	correctUniques+" , reference has "+trimmedReference.getStateNumber()+" states");
+					Set<CmpVertex> correctUniques = new TreeSet<CmpVertex>(),correctlyIdentifiedUniques = new TreeSet<CmpVertex>();
+					Collection<List<Label>> shouldBeEmpty = new LinkedList<List<Label>>(),incorrectlyIdentifiedLabels = new LinkedList<List<Label>>();
+					statesIdentifiedUsingUniques(trimmedReference,collectionToMergeCorrect,correctUniques,shouldBeEmpty);assert shouldBeEmpty.isEmpty();
+					statesIdentifiedUsingUniques(trimmedReference,collectionToMergeTentative,correctlyIdentifiedUniques,incorrectlyIdentifiedLabels);
+					System.out.println("Chosen sequences: "+collectionToMergeTentative+", correct sequences: "+collectionToMergeCorrect);
+					System.out.println("States identified in reference: "+correctlyIdentifiedUniques+" out of "+	correctUniques+" ("+incorrectlyIdentifiedLabels+") incorrectly identified, reference has "+trimmedReference.getStateNumber()+" states");
+					if (!validLabelsToMerge.containsAll(whatToMerge))
+					{// invalid sequences found
+						for(Label lbl:whatToMerge)
+						{
+							if (!checkSeqIsUnique(trimmedReference,Arrays.asList(new Label[]{lbl})))
+							{
+								System.out.println("LABEL "+lbl+" IS NON-UNIQUE");
+								Visualiser.updateFrame(trimmedReference, null);
+								checkSeqIsUnique(trimmedReference,Arrays.asList(new Label[]{lbl}));
+								Visualiser.waitForKey();
+							}
+						}
+					}
 				}
 			}
 		}
@@ -490,11 +514,11 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	 * 
 	 * @param referenceGraph graph of interest
 	 * @param collectionOfUniqueSeq sequences to check from all states of this graph
-	 * @return collection of the vertices of the graph that are uniquely identified using the supplied sequences.
+	 * @param correctlyIdentified collection of the vertices of the graph that are uniquely identified using the supplied sequences.
+	 * @param incorrectSequences a subset of sequences passed in <i>collectionOfUniqueSeq</i> that do not identify states uniquely.
 	 */
-	protected static Collection<CmpVertex> statesIdentifiedUsingUniques(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfUniqueSeq)
+	protected static void statesIdentifiedUsingUniques(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfUniqueSeq, Set<CmpVertex> correctlyIdentified,Collection<List<Label>> incorrectSequences)
 	{
-		Set<CmpVertex> statesUniquelyIdentified = new TreeSet<CmpVertex>();
 		for(List<Label> seq:collectionOfUniqueSeq)
 		{
 			int count=0;CmpVertex unique = null;
@@ -508,12 +532,18 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 			}
 			if (count == 1)
-				statesUniquelyIdentified.add(unique);
+			{
+				if (correctlyIdentified != null) correctlyIdentified.add(unique);
+			}
+			else if (count > 1)
+			{
+				if (incorrectSequences != null) incorrectSequences.add(seq);
+			}
 		}
-		return statesUniquelyIdentified;
 	}
 	
-	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state accepts one of the supplied sequences. 
+	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state accepts one of the supplied sequences. Where multiple states accept one of the sequences,
+	 * all of those states are returned. <b>There is no expectation of uniqueness</b>.
 	 * 
 	 * @param referenceGraph graph of interest
 	 * @param collectionOfSeq sequences to check from all states of this graph

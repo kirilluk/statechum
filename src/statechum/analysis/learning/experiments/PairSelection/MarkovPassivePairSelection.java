@@ -342,7 +342,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				System.out.println("failed to disregard "+count+" "+value);
 		}
 		 */
-		
+
 		int attemptToUpdateMarkov=0;
 		boolean computeForward = true;
 		double scoreAfterBigMerge=1;
@@ -589,7 +589,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	 * @param graph graph which transitions are going to be predicted and compared
 	 * @param origInverse inverse graph that is used to construct all paths leading to states of interest
 	 * @param predictForward whether to make predictions either forward or sideways
-	 * @param Markov prediction engine
+	 * @param markov prediction engine
 	 * @param red first state from which to predict transitions
 	 * @param blue second state from which to predict transitions
 	 * @param alphabet alphabet to use, passed to {@link MarkovUniversalLearner#predictTransitionsFromState}. 
@@ -597,14 +597,15 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	 * @param stepNumber how many waves of transitions to generate
 	 * @return number of matching transitions 
 	 */
-	protected static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long comparePredictedFanouts(LearnerGraph graph, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> origInverse, boolean predictForward, MarkovUniversalLearner Markov, CmpVertex red, CmpVertex blue, Set<Label> alphabet, List<Label> pathLenBeyondCurrentState,int stepNumber)
+	protected static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long comparePredictedFanouts(LearnerGraph graph, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> origInverse, boolean predictForward, MarkovUniversalLearner markov, CmpVertex red, CmpVertex blue, Set<Label> alphabet, List<Label> pathLenBeyondCurrentState,int stepNumber)
 	{
 		if (!red.isAccept() || !blue.isAccept())
 			return 0;
 		
 		long scoreCurrentFanout = 0, score = 0;
-		Map<Label,MarkovOutcome> outgoing_red_probabilities=Markov.predictTransitionsFromState(origInverse,predictForward,red,alphabet,pathLenBeyondCurrentState,Markov.getChunkLen(),null);
-		Map<Label,MarkovOutcome> outgoing_blue_probabilities=Markov.predictTransitionsFromState(origInverse,predictForward,blue,alphabet,pathLenBeyondCurrentState,Markov.getChunkLen(),null);
+		Map<Trace, MarkovOutcome> markovMatrix = markov.getMarkov(predictForward);
+		Map<Label,MarkovOutcome> outgoing_red_probabilities=MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,origInverse,predictForward,red,alphabet,pathLenBeyondCurrentState,markov.getChunkLen(),null);
+		Map<Label,MarkovOutcome> outgoing_blue_probabilities=MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,origInverse,predictForward,blue,alphabet,pathLenBeyondCurrentState,markov.getChunkLen(),null);
 		for(Entry<Label,MarkovOutcome> entry:outgoing_red_probabilities.entrySet())
 		{
 			MarkovOutcome outcomeBlue = outgoing_blue_probabilities.get(entry.getKey());
@@ -615,7 +616,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (stepNumber > 1)
 				{
 					LinkedList<Label> pathBeyond = new LinkedList<Label>(pathLenBeyondCurrentState);pathBeyond.add(entry.getKey());
-					score+=comparePredictedFanouts(graph,origInverse,predictForward,Markov,red,blue,alphabet,pathBeyond,stepNumber-1);
+					score+=comparePredictedFanouts(graph,origInverse,predictForward,markov,red,blue,alphabet,pathBeyond,stepNumber-1);
 				}
 				++scoreCurrentFanout;
 			}
@@ -631,7 +632,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (stepNumber > 1)
 				{
 					LinkedList<Label> pathBeyond = new LinkedList<Label>(pathLenBeyondCurrentState);pathBeyond.add(entry.getKey());
-					score+=comparePredictedFanouts(graph,origInverse,predictForward,Markov,red,blue,alphabet,pathBeyond,stepNumber-1);
+					score+=comparePredictedFanouts(graph,origInverse,predictForward,markov,red,blue,alphabet,pathBeyond,stepNumber-1);
 				}
 				++scoreCurrentFanout;
 			}

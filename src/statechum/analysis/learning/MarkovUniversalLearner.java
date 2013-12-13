@@ -303,7 +303,8 @@ public class MarkovUniversalLearner
 		}
 		
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(true);
-
+		// construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
+		// A prefix of either a positive or a negative could be a failure where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted. 
 		Trace trace_to_account_its_probability=null;
 		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrix.entrySet())
 		{
@@ -472,7 +473,6 @@ public class MarkovUniversalLearner
     	}
 	}
 	
-	
 	/** Uses the supplied Markov matrix to predict transitions from specific states. 
 	 * <ul>
 	 * <li>
@@ -483,7 +483,7 @@ public class MarkovUniversalLearner
 	 * <i>pathBeyondCurrentState</i> should be null because once we predicted one transition, there are no further transitions from that state, hence no further transitions can be predicted sideways.
 	 * </li>
 	 * </ul>
-	 * 
+	 * @param MarkovMatrix matrix to use in predictions
 	 * @param Inverse_Graph graph used to compute all paths of specific length leading to a state of interest
 	 * @param predictForward <i>true</i> if this is to predict forward (usual Markov) or <i>false</i> for sideways. 
 	 * @param vert state of interest
@@ -495,74 +495,74 @@ public class MarkovUniversalLearner
 	 * Each such path had an outgoing label added and possibly <i>pathBeyondCurrentState</i> appended to it before being passed into Markov and the summary of the outcomes of such predictions is returned by this method.
 	 * @return map from labels to predictions.
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Map<Label, MarkovOutcome> predictTransitionsFromState(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, 
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Map<Label, MarkovOutcome> predictTransitionsFromState(Map<Trace, MarkovOutcome> MarkovMatrix, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, 
 			CmpVertex vert, Collection<Label> alphabet, List<Label> pathBeyondCurrentState, int chunkLength,Collection<List<Label>> pathsOfInterest)
 	{
 		assert vert.isAccept();
 		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
-		if (lengthOfPathBeyond+2 > chunkLength)
+		if (lengthOfPathBeyond+1 > chunkLength)
 			throw new IllegalArgumentException("supplied pathBeyondCurrentState is too long and does not permit exploration");
-		if (!predictForward && pathBeyondCurrentState != null)
+		if (!predictForward && lengthOfPathBeyond>0)
 			throw new IllegalArgumentException("sideways predictions cannot be made by extension of earlier sideways predictions");
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
-		
+
 		Set<Label> failureLabels = new TreeSet<Label>();
 		Map<Label,MarkovOutcome> outgoing_labels_probabilities=new HashMap<Label,MarkovOutcome>();
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
         FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-	    frontline.add(e);
+        if (e.currentState.isAccept())
+        	frontline.add(e);
+        
 	    while(!frontline.isEmpty())
 	    {
 	    	e=frontline.pop();	
-	    	for(Entry<Label, TARGET_TYPE> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())				
-	    	{		
-	    		for(CmpVertex target:Inverse_Graph.getTargets(entry.getValue()))
-	    			if (target.isAccept())
-		    		{
-		    			ArrayList<Label> pathToUseWithMarkovToPredictOutgoing=new ArrayList<Label>(chunkLength);
-		    			pathToUseWithMarkovToPredictOutgoing.addAll(e.pathToFrontLine);
-		    			pathToUseWithMarkovToPredictOutgoing.add(entry.getKey());
-		    			if(pathToUseWithMarkovToPredictOutgoing.size()==chunkLength-1-lengthOfPathBeyond)
-		    			{
-	    					if (pathsOfInterest != null)
-	    						pathsOfInterest.add(pathToUseWithMarkovToPredictOutgoing);
-	
-	    					for(Label label:alphabet)
-		    				{
-		    					if (!failureLabels.contains(label))
-		    					{// if the labels is not already recorded as being inconsistently predicted
-		    						MarkovOutcome predictedFromEalierTrace = outgoing_labels_probabilities.get(label);
-			    					Trace Predicted_trace = new Trace();
-			    					if (predictForward)
-			    					{
-			    						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) Predicted_trace.add(pathToUseWithMarkovToPredictOutgoing.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
-			    					}
-			    					else
-			    					{
-			    						Predicted_trace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
-			    					}
-			    					Predicted_trace.add(label);
-			    					
-			    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-		    						MarkovOutcome outcome = MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
-		    						if (outcome != predictedFromEalierTrace)
-		    						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
-		    							if (outcome == MarkovOutcome.failure)
-		    							{
-		    								failureLabels.add(label);outgoing_labels_probabilities.remove(label);
-		    							}
-		    							else
-		    								outgoing_labels_probabilities.put(label, outcome);
-		    						}
-		    					}
-		    				}
-		    			}
-		    			else
-		    			{// not reached the maximal length of paths to explore
+			if(e.pathToFrontLine.size()==chunkLength-1-lengthOfPathBeyond)
+			{
+				if (pathsOfInterest != null)
+					pathsOfInterest.add(e.pathToFrontLine);
+
+				for(Label label:alphabet)
+				{
+					if (!failureLabels.contains(label))
+					{// if the labels is not already recorded as being inconsistently predicted
+						MarkovOutcome predictedFromEalierTrace = outgoing_labels_probabilities.get(label);
+    					Trace Predicted_trace = new Trace();
+    					if (predictForward)
+    					{
+    						for(int i=e.pathToFrontLine.size()-1;i>=0;--i) Predicted_trace.add(e.pathToFrontLine.get(i));if (pathBeyondCurrentState != null) Predicted_trace.getList().addAll(pathBeyondCurrentState);
+    					}
+    					else
+    					{
+    						Predicted_trace.getList().addAll(e.pathToFrontLine);
+    					}
+    					Predicted_trace.add(label);
+    					
+    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+						MarkovOutcome outcome = MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
+						if (outcome != predictedFromEalierTrace)
+						{// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+							if (outcome == MarkovOutcome.failure)
+							{
+								failureLabels.add(label);outgoing_labels_probabilities.remove(label);
+							}
+							else
+								outgoing_labels_probabilities.put(label, outcome);
+						}
+					}
+				}
+			}
+			else
+			{// not reached the maximal length of paths to explore
+		    	for(Entry<Label, TARGET_TYPE> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())				
+		    	{		
+		    		ArrayList<Label> pathToUseWithMarkovToPredictOutgoing=new ArrayList<Label>(chunkLength);
+		    		pathToUseWithMarkovToPredictOutgoing.addAll(e.pathToFrontLine);
+		    		pathToUseWithMarkovToPredictOutgoing.add(entry.getKey());
+
+		    		for(CmpVertex target:Inverse_Graph.getTargets(entry.getValue()))
+		    			if (target.isAccept())
 		    				frontline.add(new FrontLineElem(pathToUseWithMarkovToPredictOutgoing,target));
-		    			}
-		    		}
-	    	}
+		    	}
+			}
 	    }
 
 	    return outgoing_labels_probabilities;
@@ -570,19 +570,22 @@ public class MarkovUniversalLearner
 	
 	/** Updates Markov based on predictions. This is useful where we have added something to the original PTA and need to update Markov. Crucial for learning of Markov for sideways inference, where we cannot learn from the original
 	 * traces and have to delay Markov construction to the time where PTA is built.
-	 * 
+	 * <p>
+	 * Note that computing Markov using incoming/outgoing paths of length 0 is just a distribution of letters, tagged with pos/neg/fail. 
+	 * It is not based on earlier knowledge hence could be built either forwards or sideways in the same way.
+	 *
+	 * @param graph the graph to predict transitions for
+	 * @param MarkovMatrix the matrix used for predictions
 	 * @param Inverse_Graph graph used to make predictions
 	 * @param predictForward whether to predict forward (<i>true</i>) or sideways (<i>false</i>).
-	 * @param graph graph to compute transitions for
 	 * @param vert state to predict for
 	 * @param alphabet alphabet of the graph of interest
 	 * @param chunkLength how many steps to make a prediction for.
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void predictTransitionsFromStateAndUpdateMarkov(LearnerGraph graph, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void predictTransitionsFromStateAndUpdateMarkov(LearnerGraph graph, Map<Trace, MarkovOutcome> MarkovMatrix, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<List<Label>>();
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
-		predictTransitionsFromState(Inverse_Graph,predictForward,vert,Collections.<Label>emptySet(),null,chunkLength,markovPathsToUpdate);
+		predictTransitionsFromState(MarkovMatrix,Inverse_Graph,predictForward,vert,Collections.<Label>emptySet(),null,chunkLength,markovPathsToUpdate);
 
 	    // Now we iterate through all the labels and update entries in markovEntriesToUpdate depending on the outcome.
 	    for(Label lbl:alphabet)
@@ -610,37 +613,24 @@ public class MarkovUniversalLearner
 
 	/** This function predicts transitions from each state and then adds predictions to the Markov model.
 	 *  
-	 * @param tentativeAutomaton tentative Automaton 
+	 * @param tentativeAutomaton tentative Automaton
+	 * @param predictForward whether to update a forward or a sideways Markov matrix.
+	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
-	public void predictTransitionsAndUpdateMarkovForward(LearnerGraph tentativeAutomaton)
+	public void predictTransitionsAndUpdateMarkov(LearnerGraph tentativeAutomaton, boolean predictForward, boolean onlyLongest)
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-		// mapping map to store all paths leave each state in different length
-		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
-		AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
+		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet();
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
+		@SuppressWarnings("rawtypes")
+		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForward);
     	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
-    	{
-           if(vert.isAccept() )
-        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,Inverse_Graph,true,vert,alphabet,chunk_Length);
-    	}
-	}	
+    		for(int len=onlyLongest?chunk_Length:1;len <=chunk_Length;++len)// this is very inefficient; we'll optimize it later if needed.
+	           if(vert.isAccept())
+	        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,MarkovMatrix,Inverse_Graph,predictForward,vert,alphabet,len);
+	}
 
-	/** This function is predicts transitions from each state and then adds predictions to a kind of Markov model where we are predicting transitions based on paths leading from the same state.
-	 * In other words, whereas ordinary Markov predicts transitions that leave the last state of a path of set length, here we predict transitions leaving the same state as the first transition of the abovementioned path.
-	 *  
-	 * @param tentativeAutomaton tentative Automaton 
-	 */
-	public void predictTransitionsAndUpdateMarkovSideways(LearnerGraph tentativeAutomaton)
-	{
-		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-    	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
-           if(vert.isAccept() )
-        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,tentativeAutomaton,false,vert,alphabet,chunk_Length);
-	}	
-
-	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m)
+	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
 		double outcome = 0;
 		
@@ -650,11 +640,11 @@ public class MarkovUniversalLearner
 		{
 			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 			if (score < 0)
-				outcome = -1;
+				outcome = MarkovUniversalLearner.REJECT;
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged, predictForward, m, new InconsistencyNullVsPredicted(graph));
+				outcome = computeInconsistency(merged, predictForward, m, checker);
 			}
 		}
 		
@@ -667,7 +657,7 @@ public class MarkovUniversalLearner
 		
 		public InconsistencyNullVsPredicted(LearnerGraph g)
 		{
-			alphabet = g.pathroutines.computeAlphabet();
+			alphabet = g.getCache().getAlphabet();
 		}
 
 		@Override
@@ -896,24 +886,17 @@ public class MarkovUniversalLearner
 
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
 		// mapping map to store all paths leave each state in different length
 		@SuppressWarnings("rawtypes")
-		AbstractLearnerGraph Inverse_Graph = null;
-		if (predictForward)
-		{
-			LearnerGraphND Inverse = new LearnerGraphND(shallowCopy);
-			AbstractPathRoutines.buildInverse(tentativeAutomaton,LearnerGraphND.ignoreNone,Inverse);  // do the inverse to the tentative graph
-			Inverse_Graph = Inverse;
-		}
-		else
-			Inverse_Graph = tentativeAutomaton;
+		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForward);
 		
     	for(Object vertObj:tentativeAutomaton.transitionMatrix.keySet())
     	{
     		CmpVertex vert = (CmpVertex)vertObj;
     		if(vert.isAccept() )
             {
-        	   Map<Label,MarkovOutcome> outgoing_labels_probabilities=predictTransitionsFromState(Inverse_Graph,predictForward,vert,alphabet,null,chunk_Length,null);
+        	   Map<Label,MarkovOutcome> outgoing_labels_probabilities=predictTransitionsFromState(MarkovMatrix,Inverse_Graph,predictForward,vert,alphabet,null,chunk_Length,null);
 			   if (!outgoing_labels_probabilities.isEmpty())
 			    	state_outgoing.put(vert, outgoing_labels_probabilities);
 			}

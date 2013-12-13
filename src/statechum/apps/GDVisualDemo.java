@@ -23,13 +23,13 @@ import java.util.List;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.linear.DifferenceVisualiser.ChangesToGraph;
-import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
@@ -68,7 +68,6 @@ public class GDVisualDemo
 		if (display)
 		{
 			Visualiser.updateFrame(gr, null);
-			Visualiser.waitForKey();
 		}
 		
 	}	
@@ -101,6 +100,14 @@ public class GDVisualDemo
 				//new Pair<String,String>("A-a->B-a-#C / A-b->D", "P-a->Q-a-#R / S-c-#R"),
 				};
 		int position=0;
+		GlobalConfiguration.getConfiguration().setProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE,"false");
+		obtainDifferenceGraph2(pairs[position].firstElem, pairs[position].secondElem, position,true, Configuration.getDefaultConfiguration());
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		obtainDifferenceGraph2(pairs[position].firstElem, pairs[position].secondElem, position,true, Configuration.getDefaultConfiguration());
 		
 	}

@@ -636,7 +636,6 @@ public class TestMarkovLearner {
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C-a-#D / B-c-#D","testUpdateMarkovSideways1c",config, converter);
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		m.predictTransitionsAndUpdateMarkov(graph,true,false);
-		System.out.println(m.getMarkov(true));
 		Assert.assertTrue(m.getMarkov(false).isEmpty());Assert.assertEquals(7,m.getMarkov(true).size());
 		Assert.assertEquals(MarkovOutcome.failure,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
@@ -646,6 +645,20 @@ public class TestMarkovLearner {
 		Assert.assertEquals(MarkovOutcome.failure,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA}),true)));
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblB}),true)));
 		Assert.assertEquals(MarkovOutcome.negative,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblC}),true)));
+		
+		Set<List<Label>> plusStrings = buildSet(new String[][] {},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","a","a"},new String[]{"a","b","a"},new String[]{"a","c"} },config,converter);
+		MarkovUniversalLearner another = new MarkovUniversalLearner(2);
+		another.createMarkovLearner(plusStrings, minusStrings, false);
+
+		Assert.assertTrue(another.getMarkov(false).isEmpty());Assert.assertEquals(7,another.getMarkov(true).size());
+		Assert.assertEquals(MarkovOutcome.failure,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.negative,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblC}),true)));
+		Assert.assertEquals(MarkovOutcome.negative,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));
+
+		Assert.assertEquals(MarkovOutcome.failure,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.negative,another.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblC}),true)));
 	}
 
 	@Test
@@ -1253,13 +1266,7 @@ public class TestMarkovLearner {
 			}
 		}, IllegalArgumentException.class, "no states");
 	}
-	
-	@Test
-	public void testUpdateMarkovFromGraph1()
-	{
-		
-	}
-	
+
 	@Test
 	public void testIdentifyUncoveredTransitions1()
 	{

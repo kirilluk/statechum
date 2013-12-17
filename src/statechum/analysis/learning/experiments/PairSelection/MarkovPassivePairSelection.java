@@ -342,13 +342,16 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				System.out.println("failed to disregard "+count+" "+value);
 		}
 		 */
+		
+		System.out.println("TRIMMED REFERENCE: "+trimmedReference+" "+trimmedReference.pathroutines.countEdges());
+
 
 		int attemptToUpdateMarkov=0;
 		boolean computeForward = true;
 		double scoreAfterBigMerge=1;
-		ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph);
+		ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency();
 				//InconsistencyNullVsPredicted(graph);
-		Set<Label> alphabet = trimmedReference.pathroutines.computeAlphabet();
+		Set<Label> alphabet = trimmedReference.getCache().getAlphabet();
 		do
 		{
 			long maxCount = 0;
@@ -386,7 +389,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						}
 					}
 				}
-			System.out.println(thresholdToInconsistency);
+
 			Set<Label> validLabelsToMerge = new TreeSet<Label>(uniqueElem);
 			for(double threshold:thresholdToInconsistency.keySet())
 			{
@@ -412,6 +415,8 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 				
+				if (merged != null)
+					System.out.println("After big merge ("+threshold+"): "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " " +((!validLabelsToMerge.containsAll(smallValueUniques))?"INVALID":"VALID"));
 			}
 			
 			{
@@ -781,7 +786,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 
 		// mapping map to store all paths leave each state in different length
 		double tentativeScore=0;
-		ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted(original);
+		ConsistencyChecker checker = new MarkovUniversalLearner.InconsistencyNullVsPredicted();
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = MarkovUniversalLearner.computeInverseGraph(result, predictForward);
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
@@ -1738,7 +1743,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
-		final int traceQuantity=10;
+		final int traceQuantity=5;
 		
 /*
 		LearnerRunner oneExperimentRunner = new LearnerRunner(minStateNumber,0,traceQuantity+2,traceQuantity, config, converter);
@@ -1750,7 +1755,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 		for(final int lengthMultiplier:new int[]{150})
-		for(final boolean onlyPositives:new boolean[]{true})
+		for(final boolean onlyPositives:new boolean[]{false})
 			{
 				for(final boolean useUnique:new boolean[]{false})
 				{

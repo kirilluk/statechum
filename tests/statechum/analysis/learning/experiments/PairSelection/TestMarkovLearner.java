@@ -390,7 +390,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One from B with inconsistent predictions. */
@@ -405,7 +405,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One from B where Markov cannot make up its mind. */
@@ -420,7 +420,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as positive but should be present as negative according to Markov. */
@@ -435,7 +435,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as positive but should be absent according to Markov. */
@@ -450,7 +450,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition b exists as negative but should be present as positive according to Markov. */
@@ -465,7 +465,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as negative but should be absent according to Markov. */
@@ -480,9 +480,9 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 		
-		Assert.assertEquals(4.,MarkovUniversalLearner.computeInconsistency(graph, true, m, new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
+		Assert.assertEquals(4.,MarkovUniversalLearner.computeInconsistency(graph, true, m, new MarkovUniversalLearner.DifferentPredictionsInconsistency()),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */
@@ -497,7 +497,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One inconsistency: transition u. */
@@ -512,7 +512,7 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 	}
 	
 	/** No inconsistencies since there are very few paths. */
@@ -527,8 +527,8 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));// everything as expected.
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("D"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency(graph)));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));// everything as expected.
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("D"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
 	}
 
 	@Test
@@ -1022,7 +1022,7 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph2.pathroutines.computeAlphabet();
 			}
 		}));
@@ -1058,8 +1058,8 @@ public class TestMarkovLearner {
 			
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
-				return graph2.pathroutines.computeAlphabet();
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
+				return graphToConsider.getCache().getAlphabet();
 			}
 		}));
 	}
@@ -1093,7 +1093,7 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
 			}
 		}));
@@ -1130,7 +1130,7 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
 			}
 		}));
@@ -1167,7 +1167,7 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
 			}
 		}));
@@ -1204,7 +1204,7 @@ public class TestMarkovLearner {
 			}
 
 			@Override
-			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
+			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
 			}
 		}));

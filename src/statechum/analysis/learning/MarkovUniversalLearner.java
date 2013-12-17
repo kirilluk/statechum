@@ -653,13 +653,6 @@ public class MarkovUniversalLearner
 	
 	public static class InconsistencyNullVsPredicted implements ConsistencyChecker
 	{
-		private final Collection<Label> alphabet;
-		
-		public InconsistencyNullVsPredicted(LearnerGraph g)
-		{
-			alphabet = g.getCache().getAlphabet();
-		}
-
 		@Override
 		public MarkovOutcome labelConsistent(MarkovOutcome actual, MarkovOutcome predicted) 
 		{
@@ -682,19 +675,13 @@ public class MarkovUniversalLearner
 		}
 
 		@Override
-		public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") CmpVertex v) {
-			return alphabet;
+		public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") LearnerGraph graph,@SuppressWarnings("unused") CmpVertex v) {
+			return graph.getCache().getAlphabet();
 		}
 	}
 	
 	public static class DifferentPredictionsInconsistency implements ConsistencyChecker
 	{
-		private final LearnerGraph graph;
-		public DifferentPredictionsInconsistency(LearnerGraph g)
-		{
-			graph = g;
-		}
-
 		@Override
 		public boolean consistent(MarkovOutcome actual, MarkovOutcome predicted) {
 			return labelConsistent(actual, predicted) != MarkovOutcome.failure;
@@ -707,7 +694,7 @@ public class MarkovUniversalLearner
 		}
 
 		@Override
-		public Collection<Label> obtainAlphabet(CmpVertex v) {
+		public Collection<Label> obtainAlphabet(LearnerGraph graph,CmpVertex v) {
 			return graph.transitionMatrix.get(v).keySet();
 		}
 		
@@ -763,10 +750,11 @@ public class MarkovUniversalLearner
 	 */
 	public interface ConsistencyChecker
 	{
-		/** Returns an alphabet to use for a specific vertex. Deliberately does not include a graph as an argument to make sure alphabet is cached between calls. 
+		/** Returns an alphabet to use for a specific vertex. 
+		 * @param graph graph which to process 
 		 * @param v vertex for which to compute an alphabet. 
 		 */
-		public Collection<Label> obtainAlphabet(CmpVertex v);
+		public Collection<Label> obtainAlphabet(LearnerGraph graph,CmpVertex v);
 		
 		/** 
 		 * Given two outcomes, returns true if they are considered consistent and false otherwise.
@@ -802,7 +790,7 @@ public class MarkovUniversalLearner
 			boolean predictForward, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker)
 	{
 		assert vert.isAccept();
-		Collection<Label> outgoingLabels = checker.obtainAlphabet(vert);
+		Collection<Label> outgoingLabels = checker.obtainAlphabet(graph,vert);
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
 		Map<Label,MarkovOutcome> outgoing_labels_value=new HashMap<Label,MarkovOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
@@ -1343,7 +1331,7 @@ public class MarkovUniversalLearner
 		return reds;
 	}
 	
-	public static Collection<CmpVertex> numOFsimilarBLUEBLUE(Stack<PairScore> possibleMerges)
+	public static Collection<CmpVertex> numOFsimilarBLUE(Stack<PairScore> possibleMerges)
 	{
 		Set<CmpVertex> blues = new HashSet<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
 		for(PairScore v:possibleMerges)

@@ -25,6 +25,7 @@ import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.MarkovUniversalLearner;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovUniversalLearner.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -1568,6 +1569,237 @@ public class TestMarkovLearner {
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
 		Assert.assertEquals("B",uniqueVertices.next().getStringId());
 	}
+
+	@Test
+	public void testInvertPaths1()
+	{
+		Assert.assertTrue(PairQualityLearner.invertPaths(new LinkedList<List<Label>>()).isEmpty());
+	}
 	
+	@Test
+	public void testInvertPaths2()
+	{
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{}));
+		Collection<List<Label>>  outcome = PairQualityLearner.invertPaths(paths);
+		Assert.assertEquals(1, outcome.size());
+		Assert.assertTrue(outcome.iterator().next().isEmpty());
+	}
+	
+	@Test
+	public void testInvertPaths3()
+	{
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA,lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblA,lblB,lblC}));
+		Collection<List<Label>>  outcome = PairQualityLearner.invertPaths(paths);
+		Assert.assertEquals(3, outcome.size());
+		Iterator<List<Label>> iter = outcome.iterator();
+		Assert.assertEquals(Arrays.asList(new Label[]{lblA,lblA}),iter.next());
+		Assert.assertEquals(Arrays.asList(new Label[]{lblB}),iter.next());
+		Assert.assertEquals(Arrays.asList(new Label[]{lblC,lblB,lblA}),iter.next());
+	}
+	
+	@Test
+	public void testCollectionOfSetsToPair1()
+	{
+		Collection<Set<CmpVertex>> collectionOfSets = new LinkedList<Set<CmpVertex>>();
+		List<StatePair> outcome = PairQualityLearner.collectionOfSetsToPairs(collectionOfSets);
+		Assert.assertTrue(outcome.isEmpty());
+	}
+
+	@Test
+	public void testCollectionOfSetsToPair2()
+	{
+		Collection<Set<CmpVertex>> collectionOfSets = new LinkedList<Set<CmpVertex>>();
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E","testIdentifyUncoveredTransitions3a",config, converter);
+		Set<CmpVertex> P=new TreeSet<CmpVertex>(),Q=new TreeSet<CmpVertex>(),R=new TreeSet<CmpVertex>();
+		P.add(gr.findVertex("A"));Q.add(gr.findVertex("B"));Q.add(gr.findVertex("C"));Q.add(gr.findVertex("D"));Q.add(gr.findVertex("E"));
+		collectionOfSets.add(P);collectionOfSets.add(Q);collectionOfSets.add(R);
+		
+		// Here P is a singleton and R is empty, hence they are ignored.
+		List<StatePair> outcome = PairQualityLearner.collectionOfSetsToPairs(collectionOfSets);
+		// three pairs, here we have a hardwired expected response that unfortunately depends on the implementation of collectionOfSetsToPairs.
+		Assert.assertEquals(3,outcome.size());
+		Assert.assertTrue(outcome.contains(new StatePair(gr.findVertex("B"),gr.findVertex("C"))));
+		Assert.assertTrue(outcome.contains(new StatePair(gr.findVertex("C"),gr.findVertex("D"))));
+		Assert.assertTrue(outcome.contains(new StatePair(gr.findVertex("D"),gr.findVertex("E"))));
+	}
+	
+	@Test
+	public void testCollectionOfSetsToPair3()
+	{
+		Collection<Set<CmpVertex>> collectionOfSets = new LinkedList<Set<CmpVertex>>();
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E","testIdentifyUncoveredTransitions3a",config, converter);
+		Set<CmpVertex> P=new TreeSet<CmpVertex>(),R=new TreeSet<CmpVertex>();
+		P.add(gr.findVertex("A"));
+		collectionOfSets.add(P);collectionOfSets.add(R);
+		
+		// Here P is a singleton and R is empty, hence they are ignored.
+		List<StatePair> outcome = PairQualityLearner.collectionOfSetsToPairs(collectionOfSets);
+		Assert.assertTrue(outcome.isEmpty());
+	}
+	
+	@Test
+	public void testBuildVerticesToMergeForPath1()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-b->D-a->E / D-c->D / E-c->E","testBuildVerticesToMergeForPath1",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(1,collectionOfSets.size());
+		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
+	}
+	
+	/** Last state not to be merged. */
+	@Test
+	public void testBuildVerticesToMergeForPath2()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-b->D-a->E / D-c->D / E-d->E","testBuildVerticesToMergeForPath1",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(1,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));
+		
+		Assert.assertEquals(partA, iterator.next());
+	}
+	
+	/** State E is only identified with d that is not shared with other states. */
+	@Test
+	public void testBuildVerticesToMergeForPath3()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-b->D-a->E / D-c->D / E-d->E","testBuildVerticesToMergeForPath3",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(2,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));
+		Set<CmpVertex> partB = new TreeSet<CmpVertex>();partB.add(gr.findVertex("E"));
+		
+		Assert.assertEquals(partA, iterator.next());
+		Assert.assertEquals(partB, iterator.next());
+	}
+	
+	/** States C and E are identified with d that is not shared with other states. */
+	@Test
+	public void testBuildVerticesToMergeForPath4()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-d->D-a->E / D-c->D / E-d->E","testBuildVerticesToMergeForPath4",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(2,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));partA.remove(gr.findVertex("C"));
+		Set<CmpVertex> partB = new TreeSet<CmpVertex>();partB.add(gr.findVertex("E"));partB.add(gr.findVertex("C"));
+		
+		Assert.assertEquals(partA, iterator.next());
+		Assert.assertEquals(partB, iterator.next());
+	}
+
+	@Test
+	public void testBuildVerticesToMergeForPath5()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G","testBuildVerticesToMergeForPath5",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{lblU}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(1,collectionOfSets.size());
+		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
+	}
+	
+	/** Same as {@link #testBuildVerticesToMergeForPath1} but with different state labelling. */
+	@Test
+	public void testBuildVerticesToMergeForPath6()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G / Z-a->B / Z-b->Z","testBuildVerticesToMergeForPath6",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{lblU}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(1,collectionOfSets.size());
+		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
+	}
+	
+	/** No states identified. */
+	@Test
+	public void testBuildVerticesToMergeForPath7a()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G / Z-a->B / Z-b->Z","testBuildVerticesToMergeForPath6",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertTrue(collectionOfSets.isEmpty());
+	}
+	
+	/** No states identified. */
+	@Test
+	public void testBuildVerticesToMergeForPath7b()
+	{
+		LearnerGraph gr=new LearnerGraph(config);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertTrue(collectionOfSets.isEmpty());
+	}
+	
+	/** A few different clusters identified. */
+	@Test
+	public void testBuildVerticesToMergeForPath8()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-d->D-a->E / D-c->D / E-d->E-e->F-d->F-u->F / G-u->G","testBuildVerticesToMergeForPath8",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(2,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));
+		Set<CmpVertex> partB = new TreeSet<CmpVertex>();partB.add(gr.findVertex("C"));partB.add(gr.findVertex("E"));partB.add(gr.findVertex("F"));partB.add(gr.findVertex("G"));
+		
+		Assert.assertEquals(partA, iterator.next());
+		Assert.assertEquals(partB, iterator.next());
+	}
+
+	/** A few different clusters identified. */
+	@Test
+	public void testBuildVerticesToMergeForPath9()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-d->D-a->E / D-c->D / E-d->E-e->F-d->F-u->F / G-e->G","testBuildVerticesToMergeForPath8",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(2,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));
+		Set<CmpVertex> partB = new TreeSet<CmpVertex>();partB.add(gr.findVertex("C"));partB.add(gr.findVertex("E"));partB.add(gr.findVertex("F"));partB.add(gr.findVertex("G"));
+		
+		Assert.assertEquals(partA, iterator.next());
+		Assert.assertEquals(partB, iterator.next());
+	}
+	
+	/** A few different clusters identified. */
+	@Test
+	public void testBuildVerticesToMergeForPath10()
+	{
+		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-d->D-a->E / D-c->D / E-d->E-e->F-d->F-u->F / G-f->G","testBuildVerticesToMergeForPath8",config, converter);
+		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("f", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
+		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
+		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Assert.assertEquals(3,collectionOfSets.size());
+		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
+		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));
+		Set<CmpVertex> partB = new TreeSet<CmpVertex>();partB.add(gr.findVertex("C"));partB.add(gr.findVertex("E"));partB.add(gr.findVertex("F"));
+		Set<CmpVertex> partC = new TreeSet<CmpVertex>();partC.add(gr.findVertex("G"));
+		
+		Assert.assertEquals(partA, iterator.next());
+		Assert.assertEquals(partB, iterator.next());
+		Assert.assertEquals(partC, iterator.next());
+	}
 }
 

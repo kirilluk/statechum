@@ -18,7 +18,6 @@
 package statechum.analysis.learning;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +42,7 @@ import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Trace;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -630,12 +629,25 @@ public class MarkovUniversalLearner
 	        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,MarkovMatrix,Inverse_Graph,predictForward,vert,alphabet,len);
 	}
 
-	public static double computeInconsistencyForMergingLabel(LearnerGraph graph, boolean predictForward, Label label, MarkovUniversalLearner m, ConsistencyChecker checker)
+	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
+	 * The large number of arguments reflect the extent to which this process can be customised. 
+	 * 
+	 * @param graph graph to handle.
+	 * @param graphsToCheckForPaths this is computed using {@link PairQualityLearner#constructPathsFromEachState(LearnerGraph, boolean)} and is expected to be cached between multiple invocations of this method.  
+	 * @param predictForward whether to perform Markov-predictions forward (good for long paths) or sideways (many paths, not necessarily short).
+	 * @param directionForward whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and 
+	 * all its target states could be merged together.
+	 * @param paths paths to use.
+	 * @param m Markov matrix to be used in preditions in order to compute inconsistency
+	 * @param checker inconsistency checker. This one may consider only a subset of labels from each state (such as those labelling outgoing transitions) and make different decision as to what to count as an inconsistency.
+	 * @return how inconsistent predictions are compared to the actual graph. Always non-negative.
+	 */
+	public static double computeInconsistencyForMergingPaths(LearnerGraph graph, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths, boolean predictForward, boolean directionForward, Collection<List<Label>> paths, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
 		double outcome = 0;
 		
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(graph,new LinkedList<Label>(),Arrays.asList(new Label[]{label}));
+		List<StatePair> pairsList = PairQualityLearner.buildVerticesToMergeForPath(graphsToCheckForPaths,directionForward,paths);
 		if (!pairsList.isEmpty())
 		{
 			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
@@ -649,6 +661,27 @@ public class MarkovUniversalLearner
 		}
 		
 		return outcome;
+	}
+	
+	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
+	 * The large number of arguments reflect the extent to which this process can be customised. 
+	 * <p>
+	 * This is a special version of {@link #computeInconsistencyForMergingPath(LearnerGraph, Map, boolean, boolean, Collection, MarkovUniversalLearner, ConsistencyChecker)} for a single path.
+	 * 
+	 * @param graph graph to handle.
+	 * @param graphsToCheckForPaths this is computed using {@link PairQualityLearner#constructPathsFromEachState(LearnerGraph, boolean)} and is expected to be cached between multiple invocations of this method.  
+	 * @param predictForward whether to perform Markov-predictions forward (good for long paths) or sideways (many paths, not necessarily short).
+	 * @param directionForward whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and 
+	 * all its target states could be merged together.
+	 * @param path a single path to use.
+	 * @param m Markov matrix to be used in preditions in order to compute inconsistency
+	 * @param checker inconsistency checker. This one may consider only a subset of labels from each state (such as those labelling outgoing transitions) and make different decision as to what to count as an inconsistency.
+	 * @return how inconsistent predictions are compared to the actual graph. Always non-negative.
+	 */
+	public static double computeInconsistencyForMergingPath(LearnerGraph graph, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths, boolean predictForward, boolean directionForward, List<Label> path, MarkovUniversalLearner m, ConsistencyChecker checker)
+	{
+		Collection<List<Label>> paths=new LinkedList<List<Label>>();paths.add(path);
+		return computeInconsistencyForMergingPaths(graph, graphsToCheckForPaths, predictForward, directionForward, paths, m, checker);
 	}
 	
 	public static class InconsistencyNullVsPredicted implements ConsistencyChecker
@@ -839,7 +872,7 @@ public class MarkovUniversalLearner
 		    							++inconsistencies;// record inconsistency
 		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
 		    						}
-	    							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the failure so that we do not look at that label again.
+	    							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composed of both Markov and label. If a failure is recorded, we subsequently do not look at this label.
 		    					}
     						}
 	    				}

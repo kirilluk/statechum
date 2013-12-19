@@ -25,6 +25,7 @@ import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.MarkovUniversalLearner;
+import statechum.analysis.learning.MarkovUniversalLearner.UpdatablePairInteger;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovUniversalLearner.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -543,6 +544,7 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);
 		mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
+		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
 	
 	@Test
@@ -555,6 +557,7 @@ public class TestMarkovLearner {
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
 		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
+		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
 	
 	@Test
@@ -567,6 +570,7 @@ public class TestMarkovLearner {
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
 		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
+		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
 	
 	@Test
@@ -579,6 +583,7 @@ public class TestMarkovLearner {
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
 		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.predictTransitionsAndUpdateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
+		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
 	
 	@Test
@@ -588,10 +593,11 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		m.predictTransitionsAndUpdateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(4,m.getMarkov(false).size());
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
+		Assert.assertTrue(m.getOccurrence(true).isEmpty());Assert.assertEquals(4,m.getOccurrence(false).size());
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(2, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
 	}
 	
 	@Test
@@ -601,13 +607,13 @@ public class TestMarkovLearner {
 		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
 		m.predictTransitionsAndUpdateMarkov(graph,false,false);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(6,m.getMarkov(false).size());
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(2, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblB,lblB}),true)));
 
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA}),true)));
-		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(2, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA}),true)));
+		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblB}),true)));Assert.assertEquals(new UpdatablePairInteger(1, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblB}),true)));
 	}
 	
 	/** This one is similar to the {@link #testUpdateMarkovSideways1b}, except that there are a few additional negative transitions. */
@@ -1644,7 +1650,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(1,collectionOfSets.size());
 		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
 	}
@@ -1657,7 +1663,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(1,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));
@@ -1673,7 +1679,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(2,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));
@@ -1691,7 +1697,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(2,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.addAll(gr.transitionMatrix.keySet());partA.remove(gr.findVertex("E"));partA.remove(gr.findVertex("C"));
@@ -1707,7 +1713,7 @@ public class TestMarkovLearner {
 		LearnerGraph gr=FsmParser.buildLearnerGraph("A-a->B / A-b->A / B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G","testBuildVerticesToMergeForPath5",config, converter);
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{lblU}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(1,collectionOfSets.size());
 		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
 	}
@@ -1719,7 +1725,7 @@ public class TestMarkovLearner {
 		LearnerGraph gr=FsmParser.buildLearnerGraph("B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G / Z-a->B / Z-b->Z","testBuildVerticesToMergeForPath6",config, converter);
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{lblU}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(1,collectionOfSets.size());
 		Assert.assertEquals(gr.transitionMatrix.keySet(), collectionOfSets.iterator().next());
 	}
@@ -1731,7 +1737,7 @@ public class TestMarkovLearner {
 		LearnerGraph gr=FsmParser.buildLearnerGraph("B-a->C-b->D-a->E / D-c->D / E-c->E-d->F-d->F-u->G-u->G / Z-a->B / Z-b->Z","testBuildVerticesToMergeForPath6",config, converter);
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertTrue(collectionOfSets.isEmpty());
 	}
 	
@@ -1742,7 +1748,7 @@ public class TestMarkovLearner {
 		LearnerGraph gr=new LearnerGraph(config);
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertTrue(collectionOfSets.isEmpty());
 	}
 	
@@ -1754,7 +1760,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(2,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));
@@ -1772,7 +1778,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(2,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));
@@ -1790,7 +1796,7 @@ public class TestMarkovLearner {
 		Collection<List<Label>> paths = new LinkedList<List<Label>>();paths.add(Arrays.asList(new Label[]{lblA}));paths.add(Arrays.asList(new Label[]{lblB}));paths.add(Arrays.asList(new Label[]{lblC}));paths.add(Arrays.asList(new Label[]{lblD}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("e", config, converter)}));paths.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("f", config, converter)}));paths.add(Arrays.asList(new Label[]{lblU}));
 		Map<CmpVertex,LearnerGraph> grForPaths=PairQualityLearner.constructPathsFromEachState(gr,true);
 		//for(LearnerGraph g:grForPaths.values())	System.out.println(g.transitionMatrix);
-		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPath(paths,grForPaths);
+		Collection<Set<CmpVertex>> collectionOfSets=PairQualityLearner.buildVerticesToMergeForPaths(paths,grForPaths);
 		Assert.assertEquals(3,collectionOfSets.size());
 		Iterator<Set<CmpVertex>> iterator = collectionOfSets.iterator();
 		Set<CmpVertex> partA = new TreeSet<CmpVertex>();partA.add(gr.findVertex("A"));partA.add(gr.findVertex("B"));partA.add(gr.findVertex("D"));

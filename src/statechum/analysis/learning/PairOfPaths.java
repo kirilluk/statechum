@@ -145,7 +145,7 @@ public class PairOfPaths
 	/** Given a collection of states, computes paths in the automaton from the initial state to states in the set.
 	 * Does not use state cover computation for memory efficiency.
 	 */
-	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Set<CmpVertex> statesOfInterest)
+	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Set<CmpVertex> statesOfInterestArg)
 	{
 		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();// not many of these hence not a HashSetWithSearch
 		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
@@ -153,6 +153,7 @@ public class PairOfPaths
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
 		fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+		Set<CmpVertex> statesOfInterest = new TreeSet<CmpVertex>(statesOfInterestArg);// make a copy of the set, otherwise we might modify something like a keyset of our coregraph and mess up both the graph and the traversal process.
 		int pathsLeft=statesOfInterest.size();
 		while(!fringe.isEmpty())
 		{

@@ -56,12 +56,17 @@ import statechum.collections.HashMapWithSearch;
 
 public class MarkovUniversalLearner
 {
-	private Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
+	private Map<Trace, UpdatablePairInteger> occurrenceMatrixForward =  new HashMap<Trace,UpdatablePairInteger>(),occurrenceMatrixSideways =  new HashMap<Trace,UpdatablePairInteger>();
 	private Map<Trace, MarkovOutcome> MarkovMatrixForward =  new HashMap<Trace,MarkovOutcome>(), MarkovMatrixSideways = new HashMap<Trace,MarkovOutcome>();
 	
 	public Map<Trace, MarkovOutcome> getMarkov(boolean forward)
 	{
 		return forward? MarkovMatrixForward:MarkovMatrixSideways;
+	}
+	
+	public Map<Trace, UpdatablePairInteger> getOccurrence(boolean forward)
+	{
+		return forward? occurrenceMatrixForward:occurrenceMatrixSideways;
 	}
 	
 	public int getChunkLen()
@@ -245,6 +250,37 @@ public class MarkovUniversalLearner
 		{
 			return "(pos: "+firstElem+", neg: "+secondElem+")";
 		}		
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + firstElem;
+			result = prime * result + secondElem;
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof UpdatablePairInteger))
+				return false;
+			UpdatablePairInteger other = (UpdatablePairInteger) obj;
+			if (firstElem != other.firstElem)
+				return false;
+			if (secondElem != other.secondElem)
+				return false;
+			return true;
+		}
 	}
 	
 	/** Constructs the tables used by the learner, from positive and negative traces. Only builds Markov in the forward direction.
@@ -305,7 +341,7 @@ public class MarkovUniversalLearner
 		// construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
 		// A prefix of either a positive or a negative could be a failure where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted. 
 		Trace trace_to_account_its_probability=null;
-		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrix.entrySet())
+		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrixForward.entrySet())
 		{
 			trace_to_account_its_probability=e.getKey();
 			UpdatablePairInteger Trace_occurence = e.getValue();
@@ -323,10 +359,10 @@ public class MarkovUniversalLearner
 
 	protected void initialization(Trace traceToMarkov , boolean positive)
 	{
-		UpdatablePairInteger occurrence_of_trace=occurrenceMatrix.get(traceToMarkov);
+		UpdatablePairInteger occurrence_of_trace=occurrenceMatrixForward.get(traceToMarkov);
 		if (occurrence_of_trace == null)
 		{
-			occurrence_of_trace = new UpdatablePairInteger(0, 0);occurrenceMatrix.put(traceToMarkov,occurrence_of_trace);
+			occurrence_of_trace = new UpdatablePairInteger(0, 0);occurrenceMatrixForward.put(traceToMarkov,occurrence_of_trace);
 		}
 		
 		if(positive)
@@ -371,6 +407,7 @@ public class MarkovUniversalLearner
 		// mapping map to store all paths leave each state in different length
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForward);
+		Map<Trace, UpdatablePairInteger> occurrenceMatrix=getOccurrence(predictForward);
     	for(Object vertObj:Inverse_Graph.transitionMatrix.keySet())
     	{
     		CmpVertex vert = (CmpVertex)vertObj;
@@ -574,17 +611,17 @@ public class MarkovUniversalLearner
 	 * It is not based on earlier knowledge hence could be built either forwards or sideways in the same way.
 	 *
 	 * @param graph the graph to predict transitions for
-	 * @param MarkovMatrix the matrix used for predictions
+	 * @param markovMatrix the matrix used for predictions
 	 * @param Inverse_Graph graph used to make predictions
 	 * @param predictForward whether to predict forward (<i>true</i>) or sideways (<i>false</i>).
 	 * @param vert state to predict for
 	 * @param alphabet alphabet of the graph of interest
 	 * @param chunkLength how many steps to make a prediction for.
 	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void predictTransitionsFromStateAndUpdateMarkov(LearnerGraph graph, Map<Trace, MarkovOutcome> MarkovMatrix, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void predictTransitionsFromStateAndUpdateMarkov(LearnerGraph graph, Map<Trace, MarkovOutcome> markovMatrix, Map<Trace, UpdatablePairInteger> occurrenceMatrix, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForward, CmpVertex vert, Collection<Label> alphabet, int chunkLength)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<List<Label>>();
-		predictTransitionsFromState(MarkovMatrix,Inverse_Graph,predictForward,vert,Collections.<Label>emptySet(),null,chunkLength,markovPathsToUpdate);
+		predictTransitionsFromState(markovMatrix,Inverse_Graph,predictForward,vert,Collections.<Label>emptySet(),null,chunkLength,markovPathsToUpdate);
 
 	    // Now we iterate through all the labels and update entries in markovEntriesToUpdate depending on the outcome.
 	    for(Label lbl:alphabet)
@@ -593,19 +630,30 @@ public class MarkovUniversalLearner
 	    	if (target != null) // there is a transition with the considered label, hence update Markov
 		    	for(List<Label> pathToUseWithMarkovToPredictOutgoing:markovPathsToUpdate)
 		    	{
-		    		Trace Predicted_trace= new Trace();
+		    		Trace predictedTrace= new Trace();
 					if (predictForward)
 					{
-						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) Predicted_trace.add(pathToUseWithMarkovToPredictOutgoing.get(i));
+						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) predictedTrace.add(pathToUseWithMarkovToPredictOutgoing.get(i));
 					}
 					else
 					{
-						Predicted_trace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
+						predictedTrace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
 					}
-					Predicted_trace.add(lbl);
+					predictedTrace.add(lbl);
 					
-					MarkovOutcome newValue =  target.isAccept()? MarkovOutcome.positive:MarkovOutcome.negative;
-					MarkovMatrix.put(Predicted_trace, MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(MarkovMatrix.get(Predicted_trace),newValue));
+					MarkovOutcome newValue = null;
+					UpdatablePairInteger p=occurrenceMatrix.get(predictedTrace);if (p == null) { p=new UpdatablePairInteger(0, 0);occurrenceMatrix.put(predictedTrace,p); }
+
+					if (target.isAccept())
+					{
+						newValue=MarkovOutcome.positive;p.add(1, 0);
+					}
+					else
+					{
+						newValue=MarkovOutcome.negative;p.add(0, 1);
+					}
+					
+					markovMatrix.put(predictedTrace, MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(markovMatrix.get(predictedTrace),newValue));
 		    	}
 	    }
 	}
@@ -621,12 +669,13 @@ public class MarkovUniversalLearner
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet();
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForward);
+		Map<Trace, UpdatablePairInteger> occurrenceMatrix = getOccurrence(predictForward);
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForward);
     	for(CmpVertex vert:tentativeAutomaton.transitionMatrix.keySet())
     		for(int len=onlyLongest?chunk_Length:1;len <=chunk_Length;++len)// this is very inefficient; we'll optimize it later if needed.
 	           if(vert.isAccept())
-	        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,MarkovMatrix,Inverse_Graph,predictForward,vert,alphabet,len);
+	        	  predictTransitionsFromStateAndUpdateMarkov(tentativeAutomaton,MarkovMatrix,occurrenceMatrix, Inverse_Graph,predictForward,vert,alphabet,len);
 	}
 
 	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
@@ -988,11 +1037,6 @@ public class MarkovUniversalLearner
 	   		}
 	    }
 	   	return chunks;
-	}
-	
-	public Map<Trace, UpdatablePairInteger> get_Markov_model_occurence() 
-	{
-		return occurrenceMatrix;
 	}
 	
 	public  LearnerGraph get_extension_model() 

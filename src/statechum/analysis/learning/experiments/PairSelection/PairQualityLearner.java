@@ -62,6 +62,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.MarkovUniversalLearner;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -167,7 +168,7 @@ public class PairQualityLearner
 	public static List<StatePair> buildVerticesToMergeForPath(Map<CmpVertex,LearnerGraph> graphsToCheckForPaths,boolean directionForward, Collection<List<Label>> paths)
 	{
 		Collection<List<Label>> pathsOfInterest = directionForward?paths:invertPaths(paths);
-		return collectionOfSetsToPairs(buildVerticesToMergeForPath(pathsOfInterest,graphsToCheckForPaths));
+		return collectionOfSetsToPairs(buildVerticesToMergeForPaths(pathsOfInterest,graphsToCheckForPaths));
 	}
 	
 	/** Given a collection of sets of vertices, returns a collection of pairs of states to merge. This is expected to be passed to the generalised merger. */
@@ -197,7 +198,7 @@ public class PairQualityLearner
 	 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph.
 	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
 	 */
-	public static Collection<Set<CmpVertex>> buildVerticesToMergeForPath(Collection<List<Label>> paths, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths)
+	public static Collection<Set<CmpVertex>> buildVerticesToMergeForPaths(Collection<List<Label>> paths, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths)
 	{
 		Map<Integer,Set<CmpVertex>> idToVerticesToMerge = new TreeMap<Integer,Set<CmpVertex>>();
 		Map<CmpVertex,Set<Integer>> vertToPaths = new TreeMap<CmpVertex,Set<Integer>>();
@@ -765,6 +766,16 @@ public class PairQualityLearner
 			return correctPairs.iterator().next();
 		}
 		
+		
+		/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed.
+		 *  
+		 * @param graph graph to process
+		 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
+		 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph.
+		 * @return a collection of pairs of state that are supposed to be merged.
+		 */
+		
+		
 		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, there will be a set of states that is supposed to be merged. 
 		 * It is important to point out that only positive states are taken into account, there are frequent cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
 		 * except for a transition from that very state that is often to be rejected.
@@ -944,14 +955,19 @@ public class PairQualityLearner
 					return null;
 				}
 
+				LearnerGraph coregraph = null;
+				
 				@Override
-				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
+				public void initComputation(LearnerGraph gr) {
+					coregraph = gr;
 				}
 
 				@Override
 				public long overrideScoreComputation(PairScore p) {
-					return p.getScore();// dummy
+					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
+					if (score >= 0 && MarkovUniversalLearner.computeScoreSicco(coregraph, p) < 0)
+						score = -1;
+					return score;
 				}});
 			if (!outcome.isEmpty())
 			{

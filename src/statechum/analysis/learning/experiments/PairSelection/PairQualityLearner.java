@@ -160,18 +160,21 @@ public class PairQualityLearner
 	/** Identifies vertices that are supposed to be merged if we use the provided set of paths to identify states. The direction determines whether we look for outgoing transitions (as in W set)
 	 * or incoming ones (see Rob Hierons' invertibility work).
 	 * 
-	 * @param graph graph to consider
-	 * @param directionForward whether forward or backward
+	 * @param graphsToCheckForPaths map from vertices of the considered graph to graphs in which outgoing paths can be investigated. In <em>forward</em> checking, each state of our graph can be associated with a graph isomorphic to the original one, with the 
+	 * exception that a state of interest will be set as the initial state. In checking <em>backwards</em>, each graph is the original with transitions reversed, initial state set to the state of interest and the outcome made deterministic. In fact,
+	 * the need to check backwards is the reason we need these graphs. In forward checking they are all nearly the same but in reverse they are all very different and due to expense of their construction they need to be cached.   
+	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
+	 * @param directionForwardOrInverse whether forward or backward
 	 * @param paths paths to consider
 	 * @return collection of pairs of states to merge. This is expected to be passed to the generalised merger.
 	 */
-	public static List<StatePair> buildVerticesToMergeForPath(Map<CmpVertex,LearnerGraph> graphsToCheckForPaths,boolean directionForward, Collection<List<Label>> paths)
+	public static List<StatePair> buildVerticesToMergeForPath(Map<CmpVertex,LearnerGraph> graphsToCheckForPaths,boolean directionForwardOrInverse, Collection<List<Label>> paths)
 	{
-		Collection<List<Label>> pathsOfInterest = directionForward?paths:invertPaths(paths);
+		Collection<List<Label>> pathsOfInterest = directionForwardOrInverse?paths:invertPaths(paths);
 		return collectionOfSetsToPairs(buildVerticesToMergeForPaths(pathsOfInterest,graphsToCheckForPaths));
 	}
 	
-	/** Given a collection of sets of vertices, returns a collection of pairs of states to merge. This is expected to be passed to the generalised merger. */
+	/** Given a collection of sets of vertices, returns a collection of pairs of states to merge. This is expected to be passed to the generalised merger, {@link PairScoreComputation#computePairCompatibilityScore_general(StatePair, Collection, Collection)}. */
 	public static List<StatePair> collectionOfSetsToPairs(Collection<Set<CmpVertex>> collectionOfSets)
 	{
 		List<StatePair> pairsList = new LinkedList<StatePair>();
@@ -187,15 +190,15 @@ public class PairQualityLearner
 		}
 		return pairsList;
 	}
-	
-	
-	
+
 	/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. 
-	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed.
+	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed. Depending on the input, can be used for paths in the forward direction or in the inverse one (in which case graphsToCheckForPaths
+	 * should also be an inverse of a graph of interest, to match the paths being considered).
 	 *  
-	 * @param graph graph to process
 	 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
-	 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph.
+	 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph. In forward checking, each state of our graph can be associated with a graph isomorphic to the original one, with the 
+	 * exception that a state of interest will be set as the initial state. In checking backwards, each graph is the original with transitions reversed, initial state set to the state of interest and the outcome made deterministic. In fact,
+	 * the need to check backwards is the reason we need these graphs. In forward checking they are all nearly the same but in reverse they are all very different.   
 	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
 	 */
 	public static Collection<Set<CmpVertex>> buildVerticesToMergeForPaths(Collection<List<Label>> paths, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths)
@@ -766,16 +769,6 @@ public class PairQualityLearner
 			return correctPairs.iterator().next();
 		}
 		
-		
-		/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed.
-		 *  
-		 * @param graph graph to process
-		 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
-		 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph.
-		 * @return a collection of pairs of state that are supposed to be merged.
-		 */
-		
-		
 		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, there will be a set of states that is supposed to be merged. 
 		 * It is important to point out that only positive states are taken into account, there are frequent cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
 		 * except for a transition from that very state that is often to be rejected.
@@ -942,7 +935,7 @@ public class PairQualityLearner
 				// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
 				// for a particular pairscore decision procedure.
 				@Override
-				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
 					CmpVertex redVertex = tentativeRedNodes.iterator().next();
 					return redVertex;
@@ -950,7 +943,7 @@ public class PairQualityLearner
 
 				@SuppressWarnings("unused")
 				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
+				public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					return null;
 				}

@@ -148,11 +148,12 @@ launch(OptionsList,PidToNotify) ->
 	JavaDefaultsList = [
 		{'-cp',["bin","lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar","lib/OtpErlang.jar","lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
 		{'-Djava.library.path',["linear/.libs","smt/.libs"]},
+		{'-DERLANGOUTPUT_ENABLED','true'},
 		{'-DESC_TERMINATE','false'},%% stop ESC-termination of Java runtime from within Visualser windows
 		{'-DVIZ_CONFIG','erlang'}, %% the name of file where to store window layouts
 		{'-DVIZ_DIR','.'}, %% this is usually resources/graphLayout but most likely this path will not be available hence layouts will be dumped locally
 		{'-Dthreadnum',list_to_atom(lists:flatten(io_lib:format("~p", [erlang:system_info(logical_processors_available)])))},
-		{'-Xmx','1500m'}],
+		{'-Xmx','6g'}],
 	FullJavaOptions = buildOptions(JavaOptionsList,JavaDefaultsList,os:type()),
 	case constructNodeDetails() of
 		{NodeName,PidName} ->

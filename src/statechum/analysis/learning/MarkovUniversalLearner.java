@@ -57,11 +57,14 @@ import statechum.collections.HashMapWithSearch;
 public class MarkovUniversalLearner
 {
 	private Map<Trace, UpdatablePairInteger> occurrenceMatrixForward =  new HashMap<Trace,UpdatablePairInteger>(),occurrenceMatrixSideways =  new HashMap<Trace,UpdatablePairInteger>();
-	private Map<Trace, MarkovOutcome> MarkovMatrixForward =  new HashMap<Trace,MarkovOutcome>(), MarkovMatrixSideways = new HashMap<Trace,MarkovOutcome>();
+	private Map<Trace, MarkovOutcome> MarkovMatrixForward_F =  new HashMap<Trace,MarkovOutcome>(), MarkovMatrixSideways_F = new HashMap<Trace,MarkovOutcome>();
+	private Map<Trace, MarkovOutcome> MarkovMatrixForward_I =  new HashMap<Trace,MarkovOutcome>(), MarkovMatrixSideways_I = new HashMap<Trace,MarkovOutcome>();
 	
-	public Map<Trace, MarkovOutcome> getMarkov(boolean forward)
+	public Map<Trace, MarkovOutcome> getMarkov(boolean forwardOrSideways, boolean forwardExplorationOrInverse)
 	{
-		return forward? MarkovMatrixForward:MarkovMatrixSideways;
+		if (forwardExplorationOrInverse)
+			return forwardOrSideways? MarkovMatrixForward_F:MarkovMatrixSideways_F;
+		return forwardOrSideways? MarkovMatrixForward_I:MarkovMatrixSideways_I;
 	}
 	
 	public Map<Trace, UpdatablePairInteger> getOccurrence(boolean forward)
@@ -337,7 +340,7 @@ public class MarkovUniversalLearner
 			}
 		}
 		
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(true);
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(true,true);
 		// construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
 		// A prefix of either a positive or a negative could be a failure where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted. 
 		Trace trace_to_account_its_probability=null;
@@ -665,13 +668,14 @@ public class MarkovUniversalLearner
 	 *  
 	 * @param tentativeAutomaton tentative Automaton
 	 * @param predictForwardOrSideways whether to update a forward or a sideways Markov matrix.
+	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
-	public void updateMarkov(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, boolean onlyLongest)
+	public void updateMarkov(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, boolean directionForwardOrInverse, boolean onlyLongest)
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet();
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways);
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways,directionForwardOrInverse);
 		Map<Trace, UpdatablePairInteger> occurrenceMatrix = getOccurrence(predictForwardOrSideways);
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForwardOrSideways);
@@ -687,8 +691,7 @@ public class MarkovUniversalLearner
 	 * @param graph graph to handle.
 	 * @param graphsToCheckForPaths this is computed using {@link PairQualityLearner#constructPathsFromEachState(LearnerGraph, boolean)} and is expected to be cached between multiple invocations of this method.  
 	 * @param predictForwardOrSideways whether to perform Markov-predictions forward (good for long paths) or sideways (many paths, not necessarily short).
-	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and 
-	 * all its target states could be merged together.
+	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param paths paths to use.
 	 * @param m Markov matrix to be used in predictions in order to compute inconsistency
 	 * @param checker inconsistency checker. This one may consider only a subset of labels from each state (such as those labelling outgoing transitions) and make different decision as to what to count as an inconsistency.
@@ -708,7 +711,7 @@ public class MarkovUniversalLearner
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged, predictForwardOrSideways, m, checker);
+				outcome = computeInconsistency(merged, predictForwardOrSideways, directionForwardOrInverse, m, checker);
 			}
 		}
 		
@@ -830,16 +833,22 @@ public class MarkovUniversalLearner
 		return Inverse_Graph;
 	}
 	
+	/** Determines how consistent a graph is compared to the data in the Markov model.
+ 	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
+	 */
 	@SuppressWarnings("unchecked")
-	public static long computeInconsistency(LearnerGraph graph, boolean predictForwardOrSideways, MarkovUniversalLearner m, ConsistencyChecker checker)
+	public static long computeInconsistency(LearnerGraph graph, boolean predictForwardOrSideways, boolean directionForwardOrInverse, MarkovUniversalLearner m, ConsistencyChecker checker)
 	{
-		return m.computeConsistency(computeInverseGraph(graph, predictForwardOrSideways), predictForwardOrSideways, graph, m.getChunkLen(),checker);
+		return m.computeConsistency(computeInverseGraph(graph, predictForwardOrSideways), predictForwardOrSideways, directionForwardOrInverse, graph, m.getChunkLen(),checker);
 	}
 
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForwardOrSideways, LearnerGraph graph, int chunkLength, ConsistencyChecker checker)
+	/** Determines how consistent a graph is compared to the data in the Markov model.
+ 	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
+	 */
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForwardOrSideways, boolean directionForwardOrInverse, LearnerGraph graph, int chunkLength, ConsistencyChecker checker)
 	{
 		long accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForwardOrSideways, graph,v,chunkLength, checker);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForwardOrSideways, directionForwardOrInverse, graph,v,chunkLength, checker);
 		return accumulatedInconsistency;
 	}
 	
@@ -893,16 +902,17 @@ public class MarkovUniversalLearner
 	 * 
 	 * @param Inverse_Graph graph used to compute all paths of specific length leading to a state of interest
 	 * @param predictForwardOrSideways <i>true</i> if this is to predict forward (usual Markov) or <i>false</i> for sideways. 
+	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param vert state of interest
 	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
 	 * @param checker consistency checker, usually based on a static method from {@link MarkovOutcome}. 
 	 */
 	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long checkFanoutInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, 
-			boolean predictForwardOrSideways, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker)
+			boolean predictForwardOrSideways, boolean directionForwardOrInverse, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker)
 	{
 		assert vert.isAccept();
 		Collection<Label> outgoingLabels = checker.obtainAlphabet(graph,vert);
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways);
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways,directionForwardOrInverse);
 		Map<Trace, UpdatablePairInteger> occurrenceMatrix = getOccurrence(predictForwardOrSideways);
 		Map<Label,MarkovOutcome> outgoing_labels_value=new HashMap<Label,MarkovOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
@@ -982,14 +992,14 @@ public class MarkovUniversalLearner
 	 * @param tentativeAutomaton tentative Automaton 
 	 * @return a list of possible of outgoing transitions from each state
 	 */
-	public Map<CmpVertex, Map<Label, MarkovOutcome>> predictTransitions(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways)
+	public Map<CmpVertex, Map<Label, MarkovOutcome>> predictTransitions(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, boolean directionForwardOrInverse)
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
 		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
 
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways);
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways, directionForwardOrInverse);
 		// mapping map to store all paths leave each state in different length
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph Inverse_Graph = computeInverseGraph(tentativeAutomaton, predictForwardOrSideways);
@@ -1013,19 +1023,20 @@ public class MarkovUniversalLearner
 	 * 
 	 * @param tentativeAutomaton graph for which to compute normalised inconsistency
 	 * @param predictForwardOrSideways how to make predictions.
+	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param checker the routine to check for inconsistencies.
 	 * @return inconsistency
 	 */
-	public double countPossibleInconsistencies(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, ConsistencyChecker checker)
+	public double countPossibleInconsistencies(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, boolean directionForwardOrInverse, ConsistencyChecker checker)
 	{
 		Set<Label> alphabet = tentativeAutomaton.learnerCache.getAlphabet(); 
-		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways);
+		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways,directionForwardOrInverse);
 		// mapping map to store all paths leave each state in different length
 		@SuppressWarnings("rawtypes")
 		AbstractLearnerGraph inverseGraph = computeInverseGraph(tentativeAutomaton, predictForwardOrSideways);
 		List<List<Label>> collectionOfPaths = new ArrayList<List<Label>>();
 		double countOfPossibleInconsistencies = 0;
-		long actualInconsistency = computeConsistency(inverseGraph,predictForwardOrSideways,tentativeAutomaton,chunk_Length,checker);
+		long actualInconsistency = computeConsistency(inverseGraph,predictForwardOrSideways,directionForwardOrInverse,tentativeAutomaton,chunk_Length,checker);
     	for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeAutomaton.transitionMatrix.entrySet())
     		if(entry.getKey().isAccept() )
             {
@@ -1046,12 +1057,14 @@ public class MarkovUniversalLearner
 	 * </li>
 	 * </ul>
 	 * @param tentativeAutomaton tentative Automaton 
+	 * @param predictForwardOrSideways how to make predictions.
+	 * @param directionForwardOrInverse whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @return a list of possible of outgoing transitions from each state
 	 */
-	public Map<CmpVertex, Map<Label, MarkovOutcome>> constructMarkovTentative(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways)
+	public Map<CmpVertex, Map<Label, MarkovOutcome>> constructMarkovTentative(LearnerGraph tentativeAutomaton, boolean predictForwardOrSideways, boolean directionForwardOrInverse)
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=predictTransitions(tentativeAutomaton,predictForwardOrSideways);
+		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=predictTransitions(tentativeAutomaton,predictForwardOrSideways,directionForwardOrInverse);
 
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		Extension_Graph= new LearnerGraph(shallowCopy);

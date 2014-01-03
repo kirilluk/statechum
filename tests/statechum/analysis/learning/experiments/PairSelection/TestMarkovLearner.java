@@ -24,10 +24,10 @@ import statechum.Label;
 import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
-import statechum.analysis.learning.MarkovUniversalLearner;
-import statechum.analysis.learning.MarkovUniversalLearner.UpdatablePairInteger;
+import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.MarkovUniversalLearner.MarkovOutcome;
+import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -46,25 +46,25 @@ public class TestMarkovLearner {
 	
 	@Test
 	public void testGetChunks1() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{}),true),1);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{}),true),1);
 		Assert.assertTrue(l.isEmpty());
 	}
 
 	@Test
 	public void testGetChunks2a() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),4);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),4);
 		Assert.assertTrue(l.isEmpty());
 	}
 
 	@Test
 	public void testGetChunks2b() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),10);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),10);
 		Assert.assertTrue(l.isEmpty());
 	}
 
 	@Test
 	public void testGetChunks3() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),1);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),1);
 		Assert.assertEquals(3,l.size());
 		Assert.assertEquals(new Trace(Arrays.asList(new Label[]{lblA}),true),l.get(0));
 		Assert.assertEquals(new Trace(Arrays.asList(new Label[]{lblB}),true),l.get(1));
@@ -73,7 +73,7 @@ public class TestMarkovLearner {
 
 	@Test
 	public void testGetChunks4() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),2);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),2);
 		Assert.assertEquals(2,l.size());
 		Assert.assertEquals(new Trace(Arrays.asList(new Label[]{lblA,lblB}),true),l.get(0));
 		Assert.assertEquals(new Trace(Arrays.asList(new Label[]{lblB,lblC}),true),l.get(1));
@@ -81,7 +81,7 @@ public class TestMarkovLearner {
 
 	@Test
 	public void testGetChunks5() {
-		List<Trace> l = MarkovUniversalLearner.get_chunks(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),3);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),3);
 		Assert.assertEquals(1,l.size());
 		Assert.assertEquals(new Trace(Arrays.asList(new Label[]{lblA,lblB,lblC}),true),l.get(0));
 	}
@@ -95,7 +95,7 @@ public class TestMarkovLearner {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				new MarkovUniversalLearner(1);
+				new MarkovModel(1);
 			}
 		}, IllegalArgumentException.class, "chunkLen");
 	}
@@ -103,7 +103,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix1()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}, new String[]{"a","u"} },config,converter);
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(11,matrix.size());
@@ -133,7 +133,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix2()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter), minusStrings = new HashSet<List<Label>>();
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(3,matrix.size());
@@ -148,7 +148,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix3a()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(3,matrix.size());
@@ -164,7 +164,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix3b()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
+		MarkovModel m = new MarkovModel(3);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(3,matrix.size());
@@ -179,7 +179,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix4()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{"u"} },config,converter);
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(1,matrix.size());
@@ -191,7 +191,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix5()
 	{
-		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		final MarkovModel m = new MarkovModel(2);
 		final Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{},new String[]{"a","u"} },config,converter);
 		Map<Trace, MarkovOutcome> matrix = m.createMarkovLearner(plusStrings, minusStrings,false);
 		Assert.assertEquals(3,matrix.size());
@@ -206,7 +206,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix6()
 	{
-		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		final MarkovModel m = new MarkovModel(2);
 		final Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = new HashSet<List<Label>>();
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override
@@ -220,7 +220,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCreateMarkovMatrix7()
 	{
-		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		final MarkovModel m = new MarkovModel(2);
 		final Set<List<Label>> plusStrings = new HashSet<List<Label>>(), minusStrings = buildSet(new String[][] { new String[]{},new String[]{} },config,converter);
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override
@@ -235,7 +235,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph1()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","p"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-u->B-p->B","testConstructExtendedGraph1",config, converter);
@@ -252,7 +252,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph2()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","p"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B","testConstructExtendedGraph2",config, converter);
@@ -269,7 +269,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph3()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3a",config, converter);
@@ -291,7 +291,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph4()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / T-b->T-u->T","testConstructExtendedGraph3a",config, converter);
@@ -314,7 +314,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph5()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);// w below is to ensure that all elements of the alphabet are included in traces.
+		MarkovModel m = new MarkovModel(2);// w below is to ensure that all elements of the alphabet are included in traces.
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"},new String[]{"w"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-w->M-c->B / T-b->T-u->T","testConstructExtendedGraph5a",config, converter);// the purpose of the w-transition is to ensure transition c is taken into account in graph comparison
@@ -336,7 +336,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph6()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testConstructExtendedGraph6a",config, converter);
@@ -359,7 +359,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testConstructExtendedGraph7()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-c->Z / T-b->T-u->T","testConstructExtendedGraph7a",config, converter);
@@ -384,7 +384,7 @@ public class TestMarkovLearner {
 	@Test
 	public void testCheckFanoutInconsistency1a()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testCheckFanoutInconsistency1a",config, converter);
@@ -392,14 +392,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One from B with inconsistent predictions. */
 	@Test
 	public void testCheckFanoutInconsistency1b1()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency1b1",config, converter);
@@ -407,14 +407,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One from B where Markov cannot make up its mind. */
 	@Test
 	public void testCheckFanoutInconsistency1b2()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency1b2",config, converter);
@@ -422,14 +422,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as positive but should be present as negative according to Markov. */
 	@Test
 	public void testCheckFanoutInconsistency1c()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"},new String[]{"a","d"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1c",config, converter);
@@ -437,14 +437,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as positive but should be absent according to Markov. */
 	@Test
 	public void testCheckFanoutInconsistency1d()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"}},config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1d",config, converter);
@@ -452,14 +452,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition b exists as negative but should be present as positive according to Markov. */
 	@Test
 	public void testCheckFanoutInconsistency1e()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"}},config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-b-#F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1e",config, converter);
@@ -467,14 +467,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** Transition d exists as negative but should be absent according to Markov. */
 	@Test
 	public void testCheckFanoutInconsistency1f()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d-#F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1f",config, converter);
@@ -482,16 +482,16 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 		
-		Assert.assertEquals(4.,MarkovUniversalLearner.computeInconsistency(graph, true, m, new MarkovUniversalLearner.DifferentPredictionsInconsistency()),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
+		Assert.assertEquals(4.,MarkovModel.computeInconsistency(graph, true, m, new MarkovModel.DifferentPredictionsInconsistency()),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */
 	@Test
 	public void testCheckFanoutInconsistency2()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-b->C / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
@@ -499,14 +499,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(2,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** One inconsistency: transition u. */
 	@Test
 	public void testCheckFanoutInconsistency3()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B-u->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
@@ -514,14 +514,14 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
+		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));
 	}
 	
 	/** No inconsistencies since there are very few paths. */
 	@Test
 	public void testCheckFanoutInconsistency4()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testCheckFanoutInconsistency4",config, converter);
@@ -529,19 +529,19 @@ public class TestMarkovLearner {
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraphND Inverse_Graph = new LearnerGraphND(shallowCopy);
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));// everything as expected.
-		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("D"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));// everything as expected.
+		Assert.assertEquals(0,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("D"),m.getChunkLen(), new MarkovModel.DifferentPredictionsInconsistency()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
 	}
 
 	@Test
 	public void testMarkovUpdate1()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);
+		MarkovModel mOther = new MarkovModel(2);
 		mOther.updateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
@@ -550,12 +550,12 @@ public class TestMarkovLearner {
 	@Test
 	public void testMarkovUpdate2()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] {},config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.updateMarkov(graph,true,true);
+		MarkovModel mOther = new MarkovModel(2);mOther.updateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
@@ -563,12 +563,12 @@ public class TestMarkovLearner {
 	@Test
 	public void testMarkovUpdate3()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] {},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.updateMarkov(graph,true,true);
+		MarkovModel mOther = new MarkovModel(2);mOther.updateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
@@ -576,12 +576,12 @@ public class TestMarkovLearner {
 	@Test
 	public void testMarkovUpdate4()
 	{
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovUniversalLearner mOther = new MarkovUniversalLearner(2);mOther.updateMarkov(graph,true,true);
+		MarkovModel mOther = new MarkovModel(2);mOther.updateMarkov(graph,true,true);
 		Assert.assertEquals(m.getMarkov(true),mOther.getMarkov(true));Assert.assertTrue(m.getMarkov(false).isEmpty());
 		Assert.assertEquals(m.getOccurrence(true),mOther.getOccurrence(true));Assert.assertTrue(m.getOccurrence(false).isEmpty());
 	}
@@ -590,7 +590,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways1a()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(4,m.getMarkov(false).size());
 		Assert.assertTrue(m.getOccurrence(true).isEmpty());Assert.assertEquals(4,m.getOccurrence(false).size());
@@ -604,7 +604,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways1b()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,false);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(6,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));Assert.assertEquals(new UpdatablePairInteger(2, 0),m.getOccurrence(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
@@ -621,7 +621,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways1c()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C-a-#D / B-c-#D","testUpdateMarkovSideways1c",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,false);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertEquals(9,m.getMarkov(false).size());
 		Assert.assertEquals(MarkovOutcome.positive,m.getMarkov(false).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
@@ -641,7 +641,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways1d()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C-a-#D / B-c-#D","testUpdateMarkovSideways1c",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,false);
 		Assert.assertTrue(m.getMarkov(false).isEmpty());Assert.assertEquals(7,m.getMarkov(true).size());
 		Assert.assertEquals(MarkovOutcome.failure,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblA,lblA}),true)));
@@ -654,7 +654,7 @@ public class TestMarkovLearner {
 		Assert.assertEquals(MarkovOutcome.negative,m.getMarkov(true).get(new Trace(Arrays.asList(new Label[]{lblC}),true)));
 		
 		Set<List<Label>> plusStrings = buildSet(new String[][] {},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","a","a"},new String[]{"a","b","a"},new String[]{"a","c"} },config,converter);
-		MarkovUniversalLearner another = new MarkovUniversalLearner(2);
+		MarkovModel another = new MarkovModel(2);
 		another.createMarkovLearner(plusStrings, minusStrings, false);
 
 		Assert.assertTrue(another.getMarkov(false).isEmpty());Assert.assertEquals(7,another.getMarkov(true).size());
@@ -672,7 +672,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C / B-b-#D","testUpdateMarkovSideways2",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(3,m.getMarkov(false).size());
@@ -685,7 +685,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -706,7 +706,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways4()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(3);
+		MarkovModel m = new MarkovModel(3);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(6,m.getMarkov(false).size());
@@ -724,7 +724,7 @@ public class TestMarkovLearner {
 	public void testUpdateMarkovSideways5()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(4);
+		MarkovModel m = new MarkovModel(4);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());Assert.assertTrue(m.getMarkov(false).isEmpty());
 	}
@@ -733,7 +733,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsSideways1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -743,18 +743,18 @@ public class TestMarkovLearner {
 		
 		List<List<Label>> interestingPaths = new LinkedList<List<Label>>();
 		// nothing in Markov matrix hence no predictions.
-		Assert.assertTrue(MarkovUniversalLearner.predictTransitionsFromState(m.getMarkov(true),graph,true,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths).isEmpty());
+		Assert.assertTrue(MarkovModel.predictTransitionsFromState(m.getMarkov(true),graph,true,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths).isEmpty());
 		Assert.assertEquals(1,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblB}),interestingPaths.get(0));
 		
 		interestingPaths.clear();
-		Map<Label, MarkovOutcome> outcome1 = MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,graph,false,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
+		Map<Label, MarkovOutcome> outcome1 = MarkovModel.predictTransitionsFromState(markovMatrix,graph,false,graph.findVertex("B"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
 		Assert.assertEquals(1,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblB}),interestingPaths.get(0));
 		Assert.assertEquals(2,outcome1.size());
 		Assert.assertEquals(MarkovOutcome.negative,outcome1.get(lblU));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblB));
 		
 		
 		interestingPaths.clear();
-		outcome1 = MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,graph,false,graph.findVertex("E"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
+		outcome1 = MarkovModel.predictTransitionsFromState(markovMatrix,graph,false,graph.findVertex("E"),graph.pathroutines.computeAlphabet(),null,2,interestingPaths);
 		Assert.assertEquals(2,interestingPaths.size());Assert.assertEquals(Arrays.asList(new Label[]{lblC}),interestingPaths.get(0));Assert.assertEquals(Arrays.asList(new Label[]{lblU}),interestingPaths.get(1));
 		Assert.assertEquals(3,outcome1.size());
 		Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblU));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblC));Assert.assertEquals(MarkovOutcome.positive,outcome1.get(lblA));
@@ -764,7 +764,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsSideways2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-b->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		
@@ -787,14 +787,14 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesSideways1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B / A-c->A","testCheckFanoutInconsistencySideways4",config, converter);
 		Map<Trace, MarkovOutcome> markovMatrix = m.getMarkov(false);
-		Map<Label, MarkovOutcome> predictions = MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),null,m.getChunkLen(),null);
+		Map<Label, MarkovOutcome> predictions = MarkovModel.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),null,m.getChunkLen(),null);
 		
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblU));
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblC));
@@ -805,7 +805,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesForward1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -819,7 +819,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesForward2a()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -839,7 +839,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesForward2b()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -855,7 +855,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesForward3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -871,7 +871,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesSideways2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -886,7 +886,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesSideways3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -902,14 +902,14 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B / A-c->A","testCheckFanoutInconsistencySideways4",config, converter);
 		Map<Trace, MarkovOutcome> markovMatrix = m.getMarkov(false);
-		Map<Label, MarkovOutcome> predictions = MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),Arrays.asList(new Label[]{}),m.getChunkLen(),null);
+		Map<Label, MarkovOutcome> predictions = MarkovModel.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),Arrays.asList(new Label[]{}),m.getChunkLen(),null);
 		
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblU));
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblC));
@@ -921,7 +921,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		final MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
@@ -933,7 +933,7 @@ public class TestMarkovLearner {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				MarkovUniversalLearner.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),Arrays.asList(new Label[]{lblC}),m.getChunkLen(),null);
+				MarkovModel.predictTransitionsFromState(markovMatrix,graph2,false,graph2.getInit(),graph.pathroutines.computeAlphabet(),Arrays.asList(new Label[]{lblC}),m.getChunkLen(),null);
 			}
 		}, IllegalArgumentException.class, "cannot be made by extension");
 	}
@@ -943,7 +943,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -963,7 +963,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState4()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -984,7 +984,7 @@ public class TestMarkovLearner {
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState5()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		final MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		final MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,true,true);
 		Assert.assertEquals(4,m.getMarkov(true).size());
 		Assert.assertTrue(m.getMarkov(false).isEmpty());
@@ -1005,14 +1005,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-s->B","testCheckFanoutInconsistencySideways1",config, converter);
 		final AtomicInteger counterA=new AtomicInteger(0),counterB=new AtomicInteger(0);
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@Override
 			public boolean consistent(MarkovOutcome actual,MarkovOutcome predicted) {
@@ -1040,14 +1040,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B-a->B-b->B","testCheckFanoutInconsistencySideways2",config, converter);
 		graph2.transitionMatrix.get(graph2.getInit()).clear();// make it look like a graph has no transitions
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@SuppressWarnings("unused")
 			@Override
@@ -1076,14 +1076,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B","testCheckFanoutInconsistencySideways3",config, converter);
 		final AtomicInteger counterA=new AtomicInteger(0),counterB=new AtomicInteger(0);
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@SuppressWarnings("unused")
 			@Override
@@ -1113,14 +1113,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways4()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B / A-c->A","testCheckFanoutInconsistencySideways4",config, converter);
 		final AtomicInteger counterA=new AtomicInteger(0),counterB=new AtomicInteger(0);
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@SuppressWarnings("unused")
 			@Override
@@ -1150,14 +1150,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways5()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B","testCheckFanoutInconsistencySideways3",config, converter);
 		final AtomicInteger counterA=new AtomicInteger(0),counterB=new AtomicInteger(0);
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@SuppressWarnings("unused")
 			@Override
@@ -1187,14 +1187,14 @@ public class TestMarkovLearner {
 	public void testCheckFanoutInconsistencySideways6()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
-		MarkovUniversalLearner m = new MarkovUniversalLearner(2);
+		MarkovModel m = new MarkovModel(2);
 		m.updateMarkov(graph,false,true);
 		Assert.assertTrue(m.getMarkov(true).isEmpty());
 		Assert.assertEquals(9,m.getMarkov(false).size());
 		
 		final LearnerGraph graph2 = FsmParser.buildLearnerGraph("A-a->B / A-c->A","testCheckFanoutInconsistencySideways4",config, converter);
 		final AtomicInteger counterA=new AtomicInteger(0),counterB=new AtomicInteger(0);
-		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovUniversalLearner.ConsistencyChecker(){
+		Assert.assertEquals(0,m.checkFanoutInconsistency(graph2,false,graph2,graph2.getInit(),m.getChunkLen(), new MarkovModel.ConsistencyChecker(){
 
 			@SuppressWarnings("unused")
 			@Override

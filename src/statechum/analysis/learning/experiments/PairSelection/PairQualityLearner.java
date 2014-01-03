@@ -62,7 +62,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.MarkovUniversalLearner;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -108,40 +108,7 @@ public class PairQualityLearner
    	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
   	public static final String veryLargePTAFileName = largePTALogsDir+"VeryLargePTA.zip";
-	
-	/** Given a graph, constructs a set of deterministic graphs for each vertex of it. When used to invert a graph graph, this makes it possible to quickly check which paths lead to each of the states.
-	 * The specific method is not using an inverse because we'd like to be able to use the same method for both forward and inverse path checking. 
-	 *   
-	 * @param graph graph to consider
-	 * @param directionForward if true, will use the supplied graph unchanged; if false, will invert the supplied graph
-	 * @return an association between vertices and deterministic graphs. Where built as an inverse of the original graph at each of its vertices, each graph can be large but this does not have to be so
-	 * even in the worst case since we can trim all graphs at the number of transitions corresponding to the length of the paths at the point of construction. 
-	 */
-	public static Map<CmpVertex,LearnerGraph> constructPathsFromEachState(LearnerGraph graph, boolean directionForward)
-	{
-		LearnerGraphND forwardOrInverseGraph = null;
 		
-		if (directionForward)
-		{
-			forwardOrInverseGraph = new LearnerGraphND(graph,graph.config);
-		}
-		else
-		{
-			Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-			forwardOrInverseGraph = new LearnerGraphND(shallowCopy);
-			AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,forwardOrInverseGraph);  // do the inverse to the tentative graph
-		}
-
-		Map<CmpVertex,LearnerGraph> outcome = new TreeMap<CmpVertex,LearnerGraph>();
-		for(CmpVertex v:graph.transitionMatrix.keySet())
-			try {
-				outcome.put(v,forwardOrInverseGraph.pathroutines.buildDeterministicGraph(v));
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("inverse was impossible to build - this should not happen", e);
-			}
-		return outcome;
-	}
-	
 	/** Given a collection of paths, constructs a collection where each path is an inverse of what it was.
 	 * 
 	 * @param paths paths to consider
@@ -958,7 +925,7 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
-					if (score >= 0 && MarkovUniversalLearner.computeScoreSicco(coregraph, p) < 0)
+					if (score >= 0 && MarkovModel.computeScoreSicco(coregraph, p) < 0)
 						score = -1;
 					return score;
 				}});

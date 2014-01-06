@@ -71,14 +71,11 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.ScoreComputationCallback;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -364,7 +361,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		int attemptToUpdateMarkov=0;
 		long scoreAfterBigMerge=-1,earlierScoreAfterBigMerge=-1;
 		int WLength = 1;
-		Map<CmpVertex,LearnerGraph> pathsFromEachStateInGraph = PairQualityLearner.constructPathsFromEachState(graph,!directionForwardOrInverse);
+		Map<CmpVertex,LearnerGraph> pathsFromEachStateInGraph = PairQualityLearner.constructPathsFromEachState(graph,directionForwardOrInverse);//,!directionForwardOrInverse);
 		ConsistencyChecker checker = new
 				MarkovUniversalLearner.DifferentPredictionsInconsistencyNoBlacklisting();
 				//MarkovUniversalLearner.DifferentPredictionsInconsistency();
@@ -374,7 +371,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		//do
 		{
 			long maxCount = 0;earlierScoreAfterBigMerge=scoreAfterBigMerge;
-			System.out.println("Traces in Markov: "+MarkovMatrix.size());
+			//System.out.println("Traces in Markov: "+MarkovMatrix.size());
 			for(Entry<Trace,MarkovOutcome> entry:MarkovMatrix.entrySet())
 				if (entry.getKey().getList().size() == WLength && entry.getValue() == MarkovOutcome.positive)
 				{
@@ -426,15 +423,16 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker,false);
 					}
 				}
-				
+				//System.out.println("After big merge ("+threshold+") of "+smallValueUniques+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
+				/*
 				if (merged != null && referenceGraph!=null)
 				{
 					System.out.print("After big merge ("+threshold+"): "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
 					System.out.println(checkMergeValidity(referenceGraph,graph,pathsFromEachStateInGraph,smallValueUniques)?"VALID":"INVALID");
-				}
+				}*/
 			}
 
 			{
@@ -451,22 +449,22 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					else
 					{
 						merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker);
+						scoreAfterBigMerge = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker,false);
 					}
 				}
 				
 				if (merged != null && referenceGraph!=null)
-				{
+				{/*
 					System.out.print("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
 					System.out.println(checkMergeValidity(referenceGraph,graph,pathsFromEachStateInGraph,whatToMerge)?"VALID":"INVALID");
-
+*/
 					m.updateMarkov(merged,predictForwardOrSideways,false);
 					++attemptToUpdateMarkov;
 				}
 			}
 		}
 		//while(scoreAfterBigMerge > earlierScoreAfterBigMerge);
-		System.out.println("FOR THE CORRECT GRAPH INCONSISTENCIES ARE: "+MarkovUniversalLearner.computeInconsistency(referenceGraph, predictForwardOrSideways, m, checker));
+		//System.out.println("FOR THE CORRECT GRAPH INCONSISTENCIES ARE: "+MarkovUniversalLearner.computeInconsistency(referenceGraph, predictForwardOrSideways, m, checker));
 		return whatToMerge;
 	}
 	
@@ -508,7 +506,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovUniversalLearner.computeInconsistency(mergedForThisPair, directionForwardOrInverse, m, checker);
+					long value = MarkovUniversalLearner.computeInconsistency(mergedForThisPair, directionForwardOrInverse, m, checker,false);
 					
 					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
 					if (decidedToMerge)
@@ -518,7 +516,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					}
 				}
 		
-		System.out.println("mergers identified: "+nrOfMergers);
+		//System.out.println("mergers identified: "+nrOfMergers);
 		long genScore = graph.pairscores.computePairCompatibilityScore_general(null, pairsToMerge, verticesToMerge);
 		LearnerGraph mergedForAllPairs = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
 		return mergedForAllPairs;
@@ -547,7 +545,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovUniversalLearner.computeInconsistency(mergedForThisPair, directionForwardOrInverse, m, checker);
+					long value = MarkovUniversalLearner.computeInconsistency(mergedForThisPair, directionForwardOrInverse, m, checker,false);
 					
 					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
 					if (decidedToMerge)
@@ -563,7 +561,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						System.out.println( "R: " + graph.transitionMatrix.get(p.getR())+" B: "+graph.transitionMatrix.get(p.getQ()));
 					}
 				}
-		System.out.println("mergers identified: "+nrOfMergers);
+		//System.out.println("mergers identified: "+nrOfMergers);
 		/*
 		long genScore = graph.pairscores.computePairCompatibilityScore_general(null, pairsToMerge, verticesToMerge);
 		LearnerGraph mergedForAllPairs = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);*/
@@ -1148,7 +1146,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrInverse, m, checker);
+					long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrInverse, m, checker,false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
@@ -1457,14 +1455,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker);
-							System.out.println("merged "+p+", "+value+" inconsistencies");inconsistencyFromAnEarlierIteration = value;
+							long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker,false);
+							//System.out.println("merged "+p+", "+value+" inconsistencies");
+							inconsistencyFromAnEarlierIteration = value;
 							return null;
 						}
 						long inconsistencyFromAnEarlierIteration = 0;
 						LearnerGraph coregraph = null;
-						Set<Label> callbackAlphabet = null;
-						LearnerGraphND origInverse = null;
 						ConsistencyChecker checker = null;
 						
 						/** Where I have a set of paths to merge because I have identified specific states, this map is constructed that maps vertices to be merged together to the partition number that corresponds to them. */
@@ -1474,11 +1471,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						public void initComputation(LearnerGraph graph) {
 							coregraph = graph;
 							//labelStatesAwayFromRoot(coregraph,m.getChunkLen()-1);
-							callbackAlphabet = coregraph.learnerCache.getAlphabet(); 
-							// mapping map to store all paths leave each state in different length
-							final Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-							origInverse = new LearnerGraphND(shallowCopy);
-							AbstractPathRoutines.buildInverse(coregraph,LearnerGraphND.ignoreNone,origInverse);  // do the inverse to the tentative graph
 
 							vertexToPartition.clear();
 							int partitionNumber=0;
@@ -1489,7 +1481,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							}
 							
 							checker = new MarkovUniversalLearner.DifferentPredictionsInconsistencyNoBlacklisting();
-							//MarkovUniversalLearner.InconsistencyNullVsPredicted();
 						}
 						
 						@Override
@@ -1524,21 +1515,14 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker)-inconsistencyFromAnEarlierIteration;
-							assert value >= 0;// inconsistency is compared to the original PTA, mergers do not reduce it
-							/*
-							if (value >= 10)
-								score = -1;
-							else
-								score=0;
-								*/
-/*
- 							// THIS AND PART A , WITHOUT constructPairsToMergeBasedOnSetsToMerge WORK WELL
-							if (value > 0.5)
-								score = -1;
-							else
-								score=0;
-								*/
+							long value = MarkovUniversalLearner.computeInconsistency(merged, predictForwardOrSideways, m, checker,false
+									//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
+									)-inconsistencyFromAnEarlierIteration;
+							
+							// A green state next to a red may have many incoming paths, more than in a PTA, some of which may predict its outgoing transition as non-existent. 
+							// When a merge happens this state may be merged into the one with a similar surroundings. In this way, two states with the same in-out inconsistency
+							// are merged into the one with that inconsistency, turning two inconsistencies into one and hence reducing the total number of inconsistencies.
+
 							/*
 							// This forces the correct pairs to be chosen based on the expected outcome, useful to investigate how inconsistency changes over a supposedly perfect learning process.
 							if (correctPairs.isEmpty())
@@ -1547,8 +1531,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 								if (score < 0)
 									score = 0;
 									*/
-							if (a == null | b == null || a!= b)
-								score-=2*value;
+							if (a == null || b == null || a!= b)
+								score-=value;
+							
+							//System.out.println("pair: "+p+" score: "+score);
 							/*
 							if (score < 0 && wrongPairs.isEmpty())
 								System.out.println("incorrectly blocked merge of "+p+" a="+a+" b="+b+" inconsistency = "+value+" genscore is "+genScore);

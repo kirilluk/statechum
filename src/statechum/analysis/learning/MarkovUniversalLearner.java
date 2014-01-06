@@ -708,7 +708,7 @@ public class MarkovUniversalLearner
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged, predictForwardOrSideways, m, checker);
+				outcome = computeInconsistency(merged, predictForwardOrSideways, m, checker, false);
 			}
 		}
 		
@@ -820,7 +820,7 @@ public class MarkovUniversalLearner
 		if (predictForward)
 		{
 			Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-			LearnerGraphND Inverse = new LearnerGraphND(shallowCopy);
+			LearnerGraphND Inverse = new LearnerGraphND(shallowCopy);Inverse.initEmpty();
 			AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse);  // do the inverse to the tentative graph
 			Inverse_Graph = Inverse;
 		}
@@ -831,15 +831,15 @@ public class MarkovUniversalLearner
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static long computeInconsistency(LearnerGraph graph, boolean predictForwardOrSideways, MarkovUniversalLearner m, ConsistencyChecker checker)
+	public static long computeInconsistency(LearnerGraph graph, boolean predictForwardOrSideways, MarkovUniversalLearner m, ConsistencyChecker checker, boolean displayTrace)
 	{
-		return m.computeConsistency(computeInverseGraph(graph, predictForwardOrSideways), predictForwardOrSideways, graph, m.getChunkLen(),checker);
+		return m.computeConsistency(computeInverseGraph(graph, predictForwardOrSideways), predictForwardOrSideways, graph, m.getChunkLen(),checker,displayTrace);
 	}
 
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForwardOrSideways, LearnerGraph graph, int chunkLength, ConsistencyChecker checker)
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, boolean predictForwardOrSideways, LearnerGraph graph, int chunkLength, ConsistencyChecker checker, boolean displayTrace)
 	{
 		long accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForwardOrSideways, graph,v,chunkLength, checker);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(Inverse_Graph,predictForwardOrSideways, graph,v,chunkLength, checker,displayTrace);
 		return accumulatedInconsistency;
 	}
 	
@@ -896,6 +896,11 @@ public class MarkovUniversalLearner
 	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long checkFanoutInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, 
 			boolean predictForwardOrSideways, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker)
 	{
+		return checkFanoutInconsistency(Inverse_Graph, predictForwardOrSideways, graph, vert, chunkLength,checker,false);
+	}
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long checkFanoutInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> Inverse_Graph, 
+			boolean predictForwardOrSideways, LearnerGraph graph, CmpVertex vert, int chunkLength, ConsistencyChecker checker, boolean displayTrace)
+	{
 		assert vert.isAccept();
 		Collection<Label> outgoingLabels = checker.obtainAlphabet(graph,vert);
 		Map<Trace, MarkovOutcome> MarkovMatrix = getMarkov(predictForwardOrSideways);
@@ -908,54 +913,65 @@ public class MarkovUniversalLearner
 			outgoing_labels_value.put(entry.getKey(),entry.getValue().isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
 		}
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+		Set<List<Label>> encounteredPaths = new HashSet<List<Label>>();
         FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
 	    frontline.add(e);
+	    //if (displayTrace && vert == Inverse_Graph.findVertex("P2673")) System.out.println("P2673: "+Inverse_Graph.transitionMatrix.get(Inverse_Graph.findVertex("P2673")));
+	    //if (displayTrace && vert == Inverse_Graph.findVertex("P2673")) System.out.println("P2209: "+Inverse_Graph.transitionMatrix.get(Inverse_Graph.findVertex("P2209")));
 	    while(!frontline.isEmpty())
 	    {
 	    	e=frontline.pop();	
 	    	for(Entry<Label, TARGET_TYPE> entry: Inverse_Graph.transitionMatrix.get(e.currentState).entrySet())					
 	    	{		
-	    		for(CmpVertex target:Inverse_Graph.getTargets(entry.getValue()))
-	    		{
 	    			ArrayList<Label> pathToUseWithMarkovToPredictOutgoing=new ArrayList<Label>(chunkLength);
 	    			pathToUseWithMarkovToPredictOutgoing.addAll(e.pathToFrontLine);
 	    			pathToUseWithMarkovToPredictOutgoing.add(entry.getKey());
 	    			if(pathToUseWithMarkovToPredictOutgoing.size()==chunkLength-1)
 	    			{
-	    				for(Label label:outgoingLabels)
+	    				if (!encounteredPaths.contains(pathToUseWithMarkovToPredictOutgoing))
 	    				{
-    						MarkovOutcome labels_occurrence= outgoing_labels_value.get(label);
-    						if (labels_occurrence != MarkovOutcome.failure)
-    						{
-		    					Trace Predicted_trace = new Trace();
-		    					if (predictForwardOrSideways)
-		    					{
-		    						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) Predicted_trace.add(pathToUseWithMarkovToPredictOutgoing.get(i));
-		    					}
-		    					else
-		    					{
-		    						Predicted_trace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
-		    					}
-		    					Predicted_trace.add(label);
-	
-		    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
-		    					if (predicted_from_Markov != MarkovOutcome.failure)
-		    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
-		    						if (!checker.consistent(labels_occurrence, predicted_from_Markov))
-		    						{
-		    							++inconsistencies;// record inconsistency
-		    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
-		    						}
-	    							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composed of both Markov and label. If a failure is recorded, we subsequently do not look at this label.
-		    					}
-    						}
+	    					encounteredPaths.add(pathToUseWithMarkovToPredictOutgoing);
+	    					
+		    				{
+		    					List<Label> encounteredPartOfTrace=new ArrayList<Label>(pathToUseWithMarkovToPredictOutgoing);Collections.reverse(encounteredPartOfTrace);
+		    					//if (displayTrace && vert == Inverse_Graph.findVertex("P2673")) System.out.println(vert.toString()+" : "+encounteredPartOfTrace+" outgoing: "+outgoingLabels);
+		    				}
+		    				
+		    				for(Label label:outgoingLabels)
+		    				{
+	    						MarkovOutcome labels_occurrence= outgoing_labels_value.get(label);
+	    						if (labels_occurrence != MarkovOutcome.failure)
+	    						{
+			    					Trace Predicted_trace = new Trace();
+			    					if (predictForwardOrSideways)
+			    					{
+			    						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) Predicted_trace.add(pathToUseWithMarkovToPredictOutgoing.get(i));
+			    					}
+			    					else
+			    					{
+			    						Predicted_trace.getList().addAll(pathToUseWithMarkovToPredictOutgoing);
+			    					}
+			    					Predicted_trace.add(label);
+		
+			    					MarkovOutcome predicted_from_Markov=MarkovMatrix.get(Predicted_trace);
+			    					if (predicted_from_Markov != MarkovOutcome.failure)
+			    					{// if training data does not lead to a consistent outcome for this label because chunk length is too small, not much we can do, but otherwise we are here and can make use of the data
+			    						if (!checker.consistent(labels_occurrence, predicted_from_Markov))
+			    						{
+			    							++inconsistencies;// record inconsistency
+			    							if (displayTrace) System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
+			    						}
+		    							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composed of both Markov and label. If a failure is recorded, we subsequently do not look at this label.
+			    					}
+	    						}
+		    				}
 	    				}
 	    			}
 	    			else
 	    			{// not reached the maximal length of paths to explore
-	    				frontline.add(new FrontLineElem(pathToUseWithMarkovToPredictOutgoing,target));
+	    	    		for(CmpVertex target:Inverse_Graph.getTargets(entry.getValue()))
+	    	    			frontline.add(new FrontLineElem(pathToUseWithMarkovToPredictOutgoing,target));
 	    			}
-	    		}
 	    	}
 	    }
 

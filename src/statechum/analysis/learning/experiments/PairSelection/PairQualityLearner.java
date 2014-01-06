@@ -128,7 +128,7 @@ public class PairQualityLearner
 		else
 		{
 			Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-			forwardOrInverseGraph = new LearnerGraphND(shallowCopy);
+			forwardOrInverseGraph = new LearnerGraphND(shallowCopy);forwardOrInverseGraph.initEmpty();
 			AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,forwardOrInverseGraph);  // do the inverse to the tentative graph
 		}
 

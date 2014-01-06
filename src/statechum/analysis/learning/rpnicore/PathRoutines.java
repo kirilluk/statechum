@@ -678,7 +678,7 @@ public class PathRoutines {
 	}
 	
 	/** Navigates a path from the supplied state and either returns 
-	 * RPNIBlueFringeLearner.USER_ACCEPTED if it is a valid path or the
+	 * {@link AbstractOracle#USER_ACCEPTED} if it is a valid path or the
 	 * position of the first element on the path which does not 
 	 * exist. In the presence of reject-states, returns the shortest prefix which does not exist.
 	 * 

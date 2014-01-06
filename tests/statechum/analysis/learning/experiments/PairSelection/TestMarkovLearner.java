@@ -17,6 +17,7 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
+import edu.uci.ics.jung.algorithms.importance.MarkovCentrality;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -484,7 +485,7 @@ public class TestMarkovLearner {
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse_Graph);  // do the inverse to the tentative graph 
 		Assert.assertEquals(1,m.checkFanoutInconsistency(Inverse_Graph,true,graph,graph.findVertex("B"),m.getChunkLen(), new MarkovUniversalLearner.DifferentPredictionsInconsistency()));
 		
-		Assert.assertEquals(4.,MarkovUniversalLearner.computeInconsistency(graph, true, m, new MarkovUniversalLearner.DifferentPredictionsInconsistency()),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
+		Assert.assertEquals(4.,MarkovUniversalLearner.computeInconsistency(graph, true, m, new MarkovUniversalLearner.DifferentPredictionsInconsistency(),false),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */
@@ -1807,5 +1808,7 @@ public class TestMarkovLearner {
 		Assert.assertEquals(partB, iterator.next());
 		Assert.assertEquals(partC, iterator.next());
 	}
+	
+	
 }
 

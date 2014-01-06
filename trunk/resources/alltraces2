@@ -1,0 +1,37 @@
+dotoutput
+
++ connect open_writable write close_writable open_readable read close_readable make_dir list_dir
+
+- close_readable
+
+- connect open_writable open_readable 
+
+- open_writable 
+
+- open_readable
+
+- connect close_writable
+
+- connect close_readable
+
+- write
+
+- close_writable
+
+- connect open_writable open_writable write open_readable 
+
+xm MEM0 PRE ( define m@N::nat )
+xm MEM0 POST (= m@N 0)
+
+xm connect PRE (= m@M 0)
+
+xm connect POST (> m@N m@M)
+
+xm open_writable PRE (> m@M 0)
+xm write PRE (> m@M 0)
+xm close_writable PRE (> m@M 0)
+xm open_readable PRE (> m@M 0)
+xm close_readable PRE (> m@M 0)
+xm read PRE (> m@M 0)
+xm make_dir PRE (> m@M 0)
+xm list_dir PRE (> m@M 0)

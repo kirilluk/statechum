@@ -1,0 +1,12 @@
+LIBRARY libyices.dll
+EXPORTS
+yicesl_set_verbosity
+yicesl_version
+yicesl_enable_type_checker
+yicesl_enable_log_file
+yicesl_mk_context
+yicesl_del_context
+yicesl_read
+yicesl_inconsistent
+yicesl_get_last_error_message
+yicesl_set_output_file

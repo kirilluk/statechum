@@ -1,0 +1,799 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="1.7.0_07" class="java.beans.XMLDecoder">
+ <object class="java.util.Properties">
+  <void method="put">
+   <string>LINEARWARNINGS</string>
+   <string>true</string>
+  </void>
+  <void method="put">
+   <string>ERLANGHOME</string>
+   <string>C:/Program Files/erl5.9.1</string>
+  </void>
+  <void method="put">
+   <string>LTL2BA</string>
+   <string>lib/ltl2ba-1.1/ltl2ba.exe</string>
+  </void>
+  <void method="put">
+   <string>VIZ_CONFIG</string>
+   <string>kirill_office</string>
+  </void>
+  <void method="put">
+   <string>ERLANGOUTPUT_ENABLED</string>
+   <string>false</string>
+  </void>
+  <void method="put">
+   <string>SMTWARNINGS</string>
+   <string>true</string>
+  </void>
+  <void method="put">
+   <string>VIZ_DIR</string>
+   <string>resources/graphLayout</string>
+  </void>
+  <void method="put">
+   <string>ASSERT</string>
+   <string>true</string>
+  </void>
+ </object>
+ <object class="java.util.HashMap">
+  <void method="put">
+   <int>0</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle0">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle0">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle0">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle0">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle0"/>
+                 <int>631</int>
+                </void>
+               </void>
+              </object>
+              <int>861</int>
+             </void>
+            </void>
+           </object>
+           <int>401</int>
+          </void>
+         </void>
+        </object>
+        <int>2559</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>102</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle1">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle1">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle1">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle1">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle1"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>11</int>
+          </void>
+         </void>
+        </object>
+        <int>1445</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>1</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle2">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle2">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle2">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle2">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle2"/>
+                 <int>609</int>
+                </void>
+               </void>
+              </object>
+              <int>745</int>
+             </void>
+            </void>
+           </object>
+           <int>404</int>
+          </void>
+         </void>
+        </object>
+        <int>3487</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>103</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle3">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle3">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle3">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle3">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle3"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>912</int>
+          </void>
+         </void>
+        </object>
+        <int>1459</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>2</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle4">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle4">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle4">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle4">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle4"/>
+                 <int>825</int>
+                </void>
+               </void>
+              </object>
+              <int>1090</int>
+             </void>
+            </void>
+           </object>
+           <int>760</int>
+          </void>
+         </void>
+        </object>
+        <int>237</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>100</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle5">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle5">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle5">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle5">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle5"/>
+                 <int>815</int>
+                </void>
+               </void>
+              </object>
+              <int>1076</int>
+             </void>
+            </void>
+           </object>
+           <int>568</int>
+          </void>
+         </void>
+        </object>
+        <int>1306</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>101</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle6">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle6">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle6">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle6">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle6"/>
+                 <int>531</int>
+                </void>
+               </void>
+              </object>
+              <int>760</int>
+             </void>
+            </void>
+           </object>
+           <int>25</int>
+          </void>
+         </void>
+        </object>
+        <int>1625</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>110</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle7">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle7">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle7">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle7">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle7"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>307</int>
+          </void>
+         </void>
+        </object>
+        <int>1056</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>111</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle8">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle8">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle8">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle8">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle8"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>606</int>
+          </void>
+         </void>
+        </object>
+        <int>1047</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>108</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle9">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle9">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle9">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle9">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle9"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>903</int>
+          </void>
+         </void>
+        </object>
+        <int>655</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>109</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle10">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle10">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle10">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle10">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle10"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>613</int>
+          </void>
+         </void>
+        </object>
+        <int>641</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>106</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle11">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle11">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle11">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle11">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle11"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>904</int>
+          </void>
+         </void>
+        </object>
+        <int>1060</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>107</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle12">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle12">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle12">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle12">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle12"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>311</int>
+          </void>
+         </void>
+        </object>
+        <int>642</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>104</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle13">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle13">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle13">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle13">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle13"/>
+                 <int>376</int>
+                </void>
+               </void>
+              </object>
+              <int>531</int>
+             </void>
+            </void>
+           </object>
+           <int>210</int>
+          </void>
+         </void>
+        </object>
+        <int>111</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>105</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle14">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle14">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle14">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle14">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle14"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>9</int>
+          </void>
+         </void>
+        </object>
+        <int>629</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <string>LOWER</string>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle15">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle15">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle15">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle15">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle15"/>
+                 <int>622</int>
+                </void>
+               </void>
+              </object>
+              <int>774</int>
+             </void>
+            </void>
+           </object>
+           <int>341</int>
+          </void>
+         </void>
+        </object>
+        <int>697</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>113</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle16">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle16">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle16">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle16">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle16"/>
+                 <int>300</int>
+                </void>
+               </void>
+              </object>
+              <int>400</int>
+             </void>
+            </void>
+           </object>
+           <int>613</int>
+          </void>
+         </void>
+        </object>
+        <int>1452</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>112</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle17">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle17">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle17">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle17">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle17"/>
+                 <int>400</int>
+                </void>
+               </void>
+              </object>
+              <int>530</int>
+             </void>
+            </void>
+           </object>
+           <int>587</int>
+          </void>
+         </void>
+        </object>
+        <int>113</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <string>UPPER</string>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle18">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle18">
+         <void class="java.awt.Rectangle" method="getField">
+          <string>y</string>
+          <void method="set">
+           <object idref="Rectangle18">
+            <void class="java.awt.Rectangle" method="getField">
+             <string>width</string>
+             <void method="set">
+              <object idref="Rectangle18">
+               <void class="java.awt.Rectangle" method="getField">
+                <string>height</string>
+                <void method="set">
+                 <object idref="Rectangle18"/>
+                 <int>1073</int>
+                </void>
+               </void>
+              </object>
+              <int>1045</int>
+             </void>
+            </void>
+           </object>
+           <int>22</int>
+          </void>
+         </void>
+        </object>
+        <int>219</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+ </object>
+</java>

@@ -1,0 +1,7 @@
+# This file contains a list of files used for integration-testing of learners
+
+resources/pcodaExperiments/25StatesCrowded/25Inputs_75_1.xml
+resources/pcodaExperiments/25StatesCrowded/25Inputs_75_10.xml
+resources/pcodaExperiments/25StatesCrowded/25Inputs_75_11.xml
+resources/pcodaExperiments/25StatesCrowded/25Inputs_75_12.xml
+

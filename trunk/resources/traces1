@@ -1,0 +1,40 @@
+active  
+
+# traces from process 1       
++c h h      
++c h h      
++c h       
++c h       
++c h c h h ra l  
++c h ra h     
++c h ra h c h ra h l
++c h c h ra h l  
++c h c h h ra l         
+     
+ltl !([]((c)->X(h)))
+ltl !((h) V (!ra))
+ltl !((ra) V (!l))
+       
+#c m                                                                                                                                                                                                                                                              
+#c m d c m d h rh d rh d rh                                                                                                                                                                                                                                                    
+#c m d h rh                                                                                                                                                                                                                                                           
+#c m d h rh c m rh                                                                                                                                                                                                                                                        
+#c m                                                                                                                                                                                                                                                              
+#c m d h rh c m rh d c m d h rh                                                                                                                                                                                                                                                  
+#c m                                                                                                                                                                                                                                                              
+#c m                                                                                                                                                                                                                                                              
+#c m                                                                                                                                                                                                                                                              
+#c m                                                                                                                                                                                                                                                              
+
+#c m                                                                                                                                                                                                                                                              
+#c m                                                                                                                                                                                                                                                              
+#c m d d c m d d rh d                                                                                                                                                                                                                                                      
+#c m d                                                                                                                                                                                                                                                             
+#c m d                                                                                                                                                                                                                                                             
+#c m d c m rh d d c m d d rh rh d d rh rh                                                                                                                                                                                                                                              
+#c m d d c m d d rh                                                                                                                                                                                                                                                       
+#c m                                                                                                                                                                                                                                                              
+#c m                                                                                                                                                                                                                                                              
+#c m d d c m d rh                                                                                                                                                                                                                                                        
+#c m d                                                                                                                                                                                                                                                             
+          

@@ -1,0 +1,17 @@
+#- initialise success_ctas_use_new_weather failed_use check_updates check_updates check_updates check_updates update succeed_use
+#- initialise success_ctas_use_new_weather failed_use check_updates update success_ctas_use_new_weather failed_use_remove_pending write_to_cm_sim failed_use
+#- initialise fail_close update success_ctas_use_new_weather failed_use_remove_pending failed_use
+#- initialise success_ctas_use_new_weather failed_use check_updates check_updates update failed_get_use_old fail_close
+
++ a b c
+
+#ltl ![](((check_updates)->X((check_updates)||(update))))
+
+ltl ![](a->X(!b))
+
+
+showltl
+
+
+
+

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.5.0_10" class="java.beans.XMLDecoder"> 
+ <object class="java.util.HashMap"> 
+  <void method="put"> 
+   <int>68</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>225.37457275390625</double> 
+    </void> 
+    <void property="y"> 
+     <double>391.8482971191406</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>65</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>370.0972900390625</double> 
+    </void> 
+    <void property="y"> 
+     <double>529.848876953125</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>67</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>372.0340576171875</double> 
+    </void> 
+    <void property="y"> 
+     <double>325.7031555175781</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>66</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>372.96185302734375</double> 
+    </void> 
+    <void property="y"> 
+     <double>436.498046875</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>69</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>231.12213134765625</double> 
+    </void> 
+    <void property="y"> 
+     <double>443.32501220703125</double> 
+    </void> 
+   </object> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="4"> 
+     <double>-81.0</double> 
+    </void> 
+    <void index="5"> 
+     <double>-77.0</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <float>1.1</float> 
+ <float>0.9090909</float> 
+</java> 

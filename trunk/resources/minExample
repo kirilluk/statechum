@@ -1,0 +1,33 @@
++ load edit edit save edit exit
++ load edit save close load exit
++ load edit close exit
+
+- close
+- load edit save load
+- load close save
+
+#showltl
+
+#ltl !((load) V (!close))
+#ltl !([]((close)-> X((load) V !((save) || (edit) || (close)))))
+#ltl !([]((load) -> X((close) V (!load))))
+ltl !((edit) V (!save) && [](save -> X((edit) V (!save))))
+#ltl !((load) V !(edit)))
+#ltl !((exit) -> [](exit))
+
+# The machines below are applied at the same time, hence the order in which they are provided does not matter.
+
+#the first machine is an expanded one, the second one (not commented out is the compact version of the first one
+# "closeProps" is the name of this machine
+#ifthenFSM closeProps I-load->A / A-edit->A-save->A-load->A-close->I / R-close->P-edit-#R1 / P-save-#R2 / P-load->A1 / P-close-#R4 / A==THEN==R
+ifthenFSM closeProps I-load->A / A-!exit && !close->A-close->I / R-close->P-edit || save || close-#R1 / P-load->A1 / A==THEN==R
+
+#the first machine is an expanded one, the second one (not commented out is the compact version of the first one
+# "exitProps" is the name of this machine
+#ifthenFSM exitProps A-edit->A-save->A-load->A-close->A / R-exit->P-edit-#R1 / P-save-#R2 / P-load-#R3 / P-exit-#R4 / P-close-#R5 / A==THEN==R
+ifthenFSM exitProps A-!exit->A / R-exit->P-1-#R1 / A==THEN==R
+
+
+config useSpin false
+config useConstraints true
+config howManyStatesToAddFromIFTHEN 1

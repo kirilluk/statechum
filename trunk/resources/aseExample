@@ -1,0 +1,17 @@
+
+
+
++ load edit edit save edit exit
++ load edit save close load exit
++ load edit close exit
+
+- close
+- load edit save load
+- load close save
+
+#ltl !((load) V (!close))
+#ltl !([]((close)-> X((load) V !((save) || (edit) || (close)))))
+#ltl !([]((load) -> X((close) V (!load))))
+#ltl !(((edit) V (!save)) && [](save -> X((edit) V (!save))))
+#ltl !((load) V !(edit)))
+#ltl !((exit) -> [](exit))

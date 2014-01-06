@@ -1,0 +1,30 @@
+[set_position, set_dimensions, set_dimensions, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <no> at position 0, element set_position
+[text_tool, text_tool, text_tool] <yes>
+[text_tool, text_tool, set_position, edit, finalize_textbox, text_tool] <yes>
+[text_tool, figure_tool, text_tool, set_position, edit, finalize_textbox] <yes>
+[text_tool, figure_tool, figure_tool] <yes>
+[text_tool, figure_tool, set_position, edit, finalize_textbox, text_tool] <no> at position 3, element edit
+[text_tool, text_tool, figure_tool, figure_tool] <yes>
+[text_tool, text_tool, figure_tool, set_position, edit] <no> at position 4, element edit
+[figure_tool, figure_tool, text_tool] <yes>
+[figure_tool, text_tool, set_position, edit, finalize_textbox, text_tool] <yes>
+[figure_tool, set_position, edit, finalize_textbox, text_tool] <no> at position 2, element edit
+[figure_tool, figure_tool, set_position, edit] <no> at position 3, element edit
+[figure_tool, figure_tool, figure_tool] <yes>
+[figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <yes>
+[figure_tool, figure_tool, text_tool, set_position, edit, finalize_textbox, text_tool] <yes>
+[text_tool, text_tool, edit, finalize_textbox, text_tool] <no> at position 2, element edit
+[text_tool, set_dimensions, set_dimensions, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <no> at position 1, element set_dimensions
+[figure_tool, edit, finalize_textbox, text_tool] <no> at position 1, element edit
+[figure_tool, set_dimensions, set_dimensions, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <no> at position 1, element set_dimensions
+[edit, finalize_textbox, text_tool] <no> at position 0, element edit
+[set_dimensions, set_dimensions, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <no> at position 0, element set_dimensions
+[figure_tool, set_position, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <yes>
+[figure_tool, set_position, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <no> at position 2, element figure_tool
+[figure_tool, figure_tool, set_position, set_dimensions, figure_tool, figure_tool, set_position, set_dimensions, set_dimensions, set_dimensions, text_tool, set_position, edit, finalize_textbox] <yes>
+[figure_tool, figure_tool, set_position, figure_tool] <no> at position 3, element figure_tool
+[figure_tool, figure_tool, finalize_textbox, text_tool] <no> at position 2, element finalize_textbox
+[text_tool, figure_tool, set_position, set_dimensions, text_tool, set_position, edit, finalize_textbox] <yes>
+[text_tool, text_tool, figure_tool, set_position, set_dimensions, text_tool, set_position, edit, finalize_textbox] <yes>
+[text_tool, set_position, finalize_textbox, text_tool] <no> at position 2, element finalize_textbox
+[text_tool, text_tool, set_position, finalize_textbox] <no> at position 3, element finalize_textbox

@@ -1,0 +1,8 @@
+Some JHotDraw Abstractions
+
+set_dimensions: CH.ifa.draw.CreationTool.mouseDown
+edit: javax.swing.text.JTextComponent.moveCaretPosition
+figure_tool: CH.ifa.draw.util.PaletteButton.mouseReleased, CH.ifa.draw.standard.CreationTool.activate
+finalize_textbox: CH.ifa.draw.figures.TextTool.deactivate, CH.ifa.draw.figures.TextTool.endEdit, CH.ifa.draw.figures.TextFigure.setText
+text_tool: CH.ifa.draw.util.PaletteButton.mouseReleased, CH.ifa.draw.figures.TextTool.activate
+set_position: CH.ifa.draw.standard.CreationTool.mouseDown

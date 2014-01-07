@@ -924,7 +924,7 @@ public class MarkovScoreComputation
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
-				double numberOfInconsistencies = resultClassifier.checkFanoutInconsistency(entry.getKey(),checker);
+				double numberOfInconsistencies = resultClassifier.checkFanoutInconsistency(entry.getKey(),checker,false);
 				tentativeScore-=numberOfInconsistencies;
 			}
 

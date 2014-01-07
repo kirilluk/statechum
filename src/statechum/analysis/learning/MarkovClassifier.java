@@ -196,6 +196,7 @@ public class MarkovClassifier
 	{
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
         FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+        Set<List<Label>> pathsEncountered = new HashSet<List<Label>>();
 	    if (vert.isAccept()) frontline.add(e);
 	    while(!frontline.isEmpty())
 	    {
@@ -203,7 +204,11 @@ public class MarkovClassifier
 	    	
 			if(e.pathToFrontLine.size()==pathLength)
 			{
-				callback.handlePath(e.pathToFrontLine);
+				if (!pathsEncountered.contains(e.pathToFrontLine))
+				{
+					pathsEncountered.add(e.pathToFrontLine);
+					callback.handlePath(e.pathToFrontLine);
+				}
 			}
 			else
 			{// not reached the maximal length of paths to explore
@@ -258,7 +263,7 @@ public class MarkovClassifier
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged,model,checker);
+				outcome = computeInconsistency(merged,model,checker,false);
 			}
 		}
 		
@@ -266,9 +271,9 @@ public class MarkovClassifier
 	}
 	
 	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph. This is implemented by creating another classifier with the same parameters but a supplied graph as an argument. */
-	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker)
+	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
 	{
-		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker);
+		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,displayTrace);
 	}
 	
 	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
@@ -736,10 +741,10 @@ public class MarkovClassifier
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @return true if the graph is consistent according to the supplied checker.
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(ConsistencyChecker checker)
+	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
 	{
 		long accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(v,checker);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);
 		return accumulatedInconsistency;
 	}
 	
@@ -761,8 +766,12 @@ public class MarkovClassifier
 	 *
 	 * @param vert state of interest
 	 */
+	public long checkFanoutInconsistency(final CmpVertex vert,final ConsistencyChecker checker)
+	{
+		return checkFanoutInconsistency(vert, checker, false);
+	}
 	@SuppressWarnings("unchecked")
-	public long checkFanoutInconsistency(CmpVertex vert,final ConsistencyChecker checker)
+	public long checkFanoutInconsistency(final CmpVertex vert,final ConsistencyChecker checker, final boolean displayTrace)
 	{
 		assert vert.isAccept();
 		final Collection<Label> outgoingLabels = checker.obtainAlphabet(graphToCheckForConsistency,vert);
@@ -790,6 +799,7 @@ public class MarkovClassifier
 				{
 					encounteredPartOfTrace.addAll(pathToNewState);
 				}
+				//System.out.println(vert.toString()+" : "+encounteredPartOfTrace+" outgoing: "+outgoingLabels);
 				if (model.occurrenceMatrix.containsKey(new Trace(encounteredPartOfTrace, true))) // we skip everything where a path was not seen in PTA.
     				for(Label label:outgoingLabels)
     				{
@@ -805,7 +815,7 @@ public class MarkovClassifier
 	    						if (!checker.consistent(labels_occurrence, predicted_from_Markov))
 	    						{
 	    							inconsistencies.addAndGet(1);// record inconsistency
-	    							//System.out.println("inconsistency at state "+vert+" because path "+Predicted_trace+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
+	    							if (displayTrace) System.out.println("inconsistency at state "+vert+" because path "+traceToCheck+" is Markov-predicted as "+predicted_from_Markov+" but earlier value is "+labels_occurrence+" total inconsistencies: "+inconsistencies);
 	    						}
     							outgoing_labels_value.put(label,checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composed of both Markov and label. If a failure is recorded, we subsequently do not look at this label.
 	    					}
@@ -860,7 +870,7 @@ public class MarkovClassifier
 	public double countPossibleInconsistencies(ConsistencyChecker checker)
 	{
 		double countOfPossibleInconsistencies = 0;
-		long actualInconsistency = computeConsistency(checker);
+		long actualInconsistency = computeConsistency(checker,false);
 		Collection<List<Label>> collectionOfPaths = new ArrayList<List<Label>>();
     	for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
     		if(entry.getKey().isAccept() )
@@ -1042,7 +1052,6 @@ public class MarkovClassifier
 		
 		
 		Map<Long,List<List<Label>>> thresholdToInconsistency = new TreeMap<Long,List<List<Label>>>();
-		
 		for(Entry<Trace,MarkovOutcome> markovEntry:model.predictionsMatrix.entrySet())
 			if (markovEntry.getKey().getList().size() == WLength && markovEntry.getValue() == MarkovOutcome.positive)
 			{
@@ -1050,7 +1059,6 @@ public class MarkovClassifier
 				long countInPTA=model.occurrenceMatrix.get(markovEntry.getKey()).firstElem;
 				if (countInPTA < maxCount/2)
 				{
-					//Collection<List<Label>> pathsToIdentifyStates = new LinkedList<List<Label>>();pathsToIdentifyStates.add(path);checker.setUniquePaths(pathsToIdentifyStates);
 					long value = computeInconsistencyForMergingPath(path, checker);
 					if (value >= 0)
 					{
@@ -1063,7 +1071,7 @@ public class MarkovClassifier
 					}
 				}
 			}
-		//System.out.println(thresholdToInconsistency.entrySet().iterator().next());
+		
 		for(double threshold:thresholdToInconsistency.keySet())
 		{
 			Set<List<Label>> smallValueUniques = new HashSet<List<Label>>();
@@ -1085,9 +1093,11 @@ public class MarkovClassifier
 				{
 					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
 					//checker.setUniquePaths(smallValueUniques);
-					scoreAfterBigMerge = computeInconsistency(merged,model,checker);
+					scoreAfterBigMerge = computeInconsistency(merged,model,checker,false);
 				}
 			}
+			
+			//System.out.println("After big merge ("+threshold+") of "+smallValueUniques+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
 			/*
 			if (merged != null && referenceGraph!=null)
 			{
@@ -1110,10 +1120,12 @@ public class MarkovClassifier
 				else
 				{
 					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					scoreAfterBigMerge = computeInconsistency(merged, model, checker);
+					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
 				}
 			}
 			
+			// We are confident we got it right, hence update Markov (in reality we would mess it up sometimes).
+			//new MarkovClassifier(model,merged).updateMarkov(false);
 			/*
 			if (merged != null && referenceGraph!=null)
 			{

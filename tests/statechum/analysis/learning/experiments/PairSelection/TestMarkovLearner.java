@@ -504,7 +504,7 @@ public class TestMarkovLearner
 		
 		Assert.assertEquals(1,new MarkovClassifier(m,graph).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 		
-		Assert.assertEquals(4.,MarkovClassifier.computeInconsistency(graph,  m, new MarkovClassifier.DifferentPredictionsInconsistency()),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
+		Assert.assertEquals(4.,MarkovClassifier.computeInconsistency(graph,  m, new MarkovClassifier.DifferentPredictionsInconsistency(),false),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */

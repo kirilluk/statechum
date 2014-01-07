@@ -121,7 +121,20 @@ public class MarkovClassifier
 		// go to the end without finding a path, report a failure.
 		return false;
 	}
-
+	
+	/** Obtains the graph that can be used in calls of {@link #checkFanoutInconsistency(AbstractLearnerGraph, boolean, LearnerGraph, CmpVertex, int)} and many others.
+	 * 
+	 * @param graph what to invert.
+	 * @return inverted graph
+	 */
+	public static LearnerGraphND computeInverseGraph(LearnerGraph graph)
+	{
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraphND inverseGraph = new LearnerGraphND(shallowCopy);inverseGraph.initEmpty();
+		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,inverseGraph);  // do the inverse to the tentative graph
+		return inverseGraph;
+	}
+	
 	/** Obtains the graph that can be used in calls of {@link #checkFanoutInconsistency(AbstractLearnerGraph, boolean, LearnerGraph, CmpVertex, int)} and many others.
 	 * Returns an inverse when <i>predictForward</i> is true and <i>graph</i> otherwise.
 	 * @param graph what to compute an inverse of
@@ -134,10 +147,7 @@ public class MarkovClassifier
 		AbstractLearnerGraph inverseGraph = null;
 		if (constructInverseOrForward)
 		{
-			Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-			LearnerGraphND Inverse = new LearnerGraphND(shallowCopy);Inverse.initEmpty();
-			AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,Inverse);  // do the inverse to the tentative graph
-			inverseGraph = Inverse;
+			inverseGraph = computeInverseGraph(graph);
 		}
 		else
 			inverseGraph = graph;

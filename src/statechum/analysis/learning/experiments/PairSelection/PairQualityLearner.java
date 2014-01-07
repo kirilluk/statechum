@@ -792,7 +792,14 @@ public class PairQualityLearner
 					if (score >= 0 && MarkovScoreComputation.computeScoreSicco(coregraph, p) < 0)
 						score = -1;
 					return score;
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				PairScore chosenPair = pickPairQSMLike(outcome);
@@ -856,7 +863,14 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
@@ -1262,7 +1276,14 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);

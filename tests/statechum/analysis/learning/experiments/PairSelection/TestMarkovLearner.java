@@ -1932,5 +1932,131 @@ public class TestMarkovLearner
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"t"}),config,converter),Brej));
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"b"}),config,converter),Brej));
 	}
+	
+	
+	public String collectionOfTransitionsToString(Collection<Map.Entry<Label,CmpVertex>> c)
+	{
+		StringBuffer outcome = new StringBuffer();
+		for(Map.Entry<Label,CmpVertex> entry:c)
+		{
+			outcome.append('{');outcome.append(entry.getKey().toString());outcome.append(',');outcome.append(entry.getValue().toString());outcome.append('}');
+		}
+		return outcome.toString();
+	}
+	
+	@Test
+	public void testConstructSurroundingTransitions1()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Assert.assertEquals("{t,B}",collectionOfTransitionsToString(surroundingTransitions));
+		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(2,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+		Assert.assertEquals(fsm.findVertex("B"),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+	}
+
+	@Test
+	public void testConstructSurroundingTransitions2()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{b,C}{t,A}",collectionOfTransitionsToString(surroundingTransitions));
+	}
+	
+	@Test
+	public void testConstructSurroundingTransitions3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Assert.assertEquals("{b,B}",collectionOfTransitionsToString(surroundingTransitions));
+	}
+	
+	/** Now with RED labels. */
+	@Test
+	public void testConstructSurroundingTransitions4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		fsm.findVertex("B").setColour(JUConstants.RED);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Assert.assertEquals("",collectionOfTransitionsToString(surroundingTransitions));
+	}
+
+	/** This one contains self-loops that should only be reported once. */ 
+	@Test
+	public void testConstructSurroundingTransitions5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B-q->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{p,B}{q,B}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
+
+		Assert.assertEquals(6,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(11,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+		Assert.assertEquals(fsm.findVertex("B"),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+	}
+	
+	
+	/** Similar to above, but with RED states. */
+	@Test
+	public void testConstructSurroundingTransitions6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		fsm.findVertex("B").setColour(JUConstants.RED);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
+
+		Assert.assertEquals(6,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(10,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+	}
+	
+	/** Similar to above, but with RED states. */
+	@Test
+	public void testConstructSurroundingTransitions7()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.RED);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{b,C}{c,Z}{g,T}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
+	}
+	
+	/** Similar to above, but with RED states. */
+	@Test
+	public void testConstructSurroundingTransitions8()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		fsm.findVertex("A").setColour(JUConstants.RED);
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{b,C}{c,Z}{g,T}{p,B}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
+	}
+	
+	@Test
+	public void testConstructSurroundingTransitions9()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		final Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				surroundingTransitions.iterator().next().setValue(fsm.findVertex("A"));
+			}
+		}, UnsupportedOperationException.class, "changing values of this map entry is not permitted");
+	}
+	
+	@Test
+	public void testConstructSurroundingTransitions10()
+	{
+		final LearnerGraph fsm = new LearnerGraph(config);
+		Assert.assertEquals(0,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.getInit()));
+		Assert.assertEquals(fsm.getInit(),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+	}	
+	@Test
+	public void testConstructSurroundingTransitions11()
+	{
+		final LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
+		Assert.assertNull(MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+	}	
 }
 

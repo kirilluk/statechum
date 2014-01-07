@@ -70,8 +70,10 @@ import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineG
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -794,11 +796,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 				
 				if (!onlyUsePositives)
-				{
 					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				
-				}
-				else assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+				else 
+					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 				
 				LearnerMarkovPassive learnerOfPairs = null;
 				LearnerGraph actualAutomaton = null;
@@ -809,17 +809,24 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				// now use pathsToMerge to compute which states can/cannot be merged together.
 				LearnerGraph trimmedReference = trimUncoveredTransitions(pta,referenceGraph);
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
-				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
+				//long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 				//System.out.println("Inconsistency of trimmed reference : "+inconsistencyForTheReferenceGraph);
 				
 				//if (inconsistencyForTheReferenceGraph != 53)
 				//	break;// ignore automata where we get good results.
 					
-				// MarkovClassifier.computeInconsistency(trimmedReference, m, checker);
-				
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
+				final CmpVertex currentInitial = pta.getInit(), vertexWithMostTransitions = findVertexWithMostTransitions(pta,MarkovClassifier.computeInverseGraph(pta));
+
+				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
+				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+				assert scoreInitialMerge >= 0;
+				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);ptaAfterInitialMerge.clearColours();vertexWithMostTransitions.setColour(JUConstants.RED);
+				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
+				
 				//checkIfSingleStateLoopsCanBeFormed(pta,m,referenceGraph,pathsToMerge,directionForwardOrInverse);
 				/*
 				System.out.println("initially: "+whatToMerge.size()+" clusters "+whatToMerge+"\nafter sideways "+clustersOfStates.size()+" clusters "+clustersOfStates);
@@ -853,7 +860,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				else
 				{// not merging based on a unique transition from an initial state
 					//learnerEval.config.setGeneralisationThreshold(1);
-					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge);learnerOfPairs.setMarkovModel(m);
 
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 					final LearnerGraph finalReferenceGraph = referenceGraph;
@@ -884,6 +891,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						long inconsistencyFromAnEarlierIteration = 0;
 						LearnerGraph coregraph = null;
 						
+						LearnerGraphND inverseGraph = null;
 						/** Where I have a set of paths to merge because I have identified specific states, this map is constructed that maps vertices to be merged together to the partition number that corresponds to them. */
 						Map<CmpVertex,Integer> vertexToPartition = new TreeMap<CmpVertex,Integer>();
 						
@@ -892,7 +900,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						{
 							coregraph = graph;
 							//labelStatesAwayFromRoot(coregraph,m.getChunkLen()-1);
-
+							inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 							vertexToPartition.clear();
 							int partitionNumber=0;
 							for(Set<CmpVertex> set:verticesToMergeBasedOnInitialPTA)
@@ -1001,6 +1009,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							return score;
 						}
 
+						/** This one returns a set of transitions in all directions. */
+						@Override
+						public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+						{
+							return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+						}
+
 					});
 
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -1029,7 +1044,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//System.out.println("Inconsistency for the original: "+new MarkovClassifier(ptaClassifier.model, trimmedReference).countPossibleInconsistencies(checker)+" and for the learnt: "+new MarkovClassifier(ptaClassifier.model, actualAutomaton).countPossibleInconsistencies(checker));
 					//actualAutomaton = formLoops(actualAutomaton, m, directionForwardOrInverse);
 				}
-				
+
+				// Setting the initial states back to where they were
+				pta.setInit(currentInitial);
+
 				SampleData dataSample = new SampleData(null,null);
 				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
 				//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
@@ -1062,8 +1080,118 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
 		}
 	}
-	
 
+	
+	/** Given a graph, computes transitions exiting a supplied state that lead to non-red states.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param currentRed the state of interest
+	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param whereToAddTransitions collection of transitions to populate, not a map to permit non-deterministic choice.
+	 */
+	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
+		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean ignoreSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
+	{
+		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
+			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
+				if (v.getColour() != JUConstants.RED && (ignoreSelf || v != currentRed))
+					whereToAddTransitions.add(new Map.Entry<Label,CmpVertex>(){
+						final Label key = incoming.getKey();
+						final CmpVertex target = v;
+						@Override
+						public Label getKey() {
+							return key;
+						}
+
+						@Override
+						public CmpVertex getValue() {
+							return target;
+						}
+
+						@Override
+						public CmpVertex setValue(@SuppressWarnings("unused") CmpVertex value) 
+						{
+							throw new UnsupportedOperationException("changing values of this map entry is not permitted");
+						}});
+	}
+	
+	/** Given a graph and its inverse, computes transitions exiting a supplied state.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param current the state of interest
+	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param number of outgoing transitions.
+	 */
+	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
+		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean ignoreSelf)
+	{
+		long outcome = 0;
+		
+		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(current).entrySet())
+			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
+				if ( (ignoreSelf || v != current) )
+					++outcome;
+
+		return outcome;
+	}
+	
+	/** Given a graph and its inverse, computes transitions entering/exiting a supplied state that lead to non-red states.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @param currentRed the state of interest
+	 * @return collection of transitions, not a map to permit non-deterministic choice. 
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		Collection<Map.Entry<Label,CmpVertex>> obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
+	{
+		Collection<Entry<Label,CmpVertex>> surroundingTransitions = new ArrayList<Entry<Label,CmpVertex>>();
+		addTransitionsFrom(coregraph, currentRed,true, surroundingTransitions);addTransitionsFrom(inverseGraph, currentRed,false, surroundingTransitions);
+		return surroundingTransitions;
+	}
+
+	/** Given a graph and its inverse, counts transitions entering/exiting a supplied state.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @param current the state of interest
+	 * @return number of transitions 
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		long countTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex current)
+	{
+		return countTransitionsFrom(coregraph, current,true)+countTransitionsFrom(inverseGraph, current,false);
+	}
+
+	/** Identifies a vertex with the maximal number of incoming and outgoing transitions.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @return vertex with the maximal number of incoming and outgoing transitions.
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		CmpVertex findVertexWithMostTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph)
+		{
+			CmpVertex outcome = coregraph.getInit();
+			long maxSize=0;
+			for(CmpVertex v:coregraph.transitionMatrix.keySet())
+			{
+				long size = obtainSurroundingTransitions(coregraph,inverseGraph,v).size();
+				if (size > maxSize)
+				{
+					maxSize = size;outcome = v;
+				}
+			}
+			
+			return outcome;
+		}
+		
 	/** An extension of {@Link PairScore} with Markov distance. */
 	public static class PairScoreWithDistance extends PairScore
 	{
@@ -1517,7 +1645,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	{
 		DrawGraphs gr = new DrawGraphs();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();	

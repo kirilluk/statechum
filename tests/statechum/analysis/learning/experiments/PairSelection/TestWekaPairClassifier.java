@@ -1820,6 +1820,12 @@ public class TestWekaPairClassifier {
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
 				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
 			});
 			
 			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
@@ -1877,6 +1883,12 @@ public class TestWekaPairClassifier {
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
 				}
 			});
 			

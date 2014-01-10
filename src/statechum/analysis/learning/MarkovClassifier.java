@@ -877,19 +877,24 @@ public class MarkovClassifier
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @return inconsistency
 	 */
-	public double countPossibleInconsistencies(ConsistencyChecker checker)
+	public double computeRelativeInconsistency(ConsistencyChecker checker)
 	{
-		double countOfPossibleInconsistencies = 0;
-		long actualInconsistency = computeConsistency(checker,false);
+		double outcome = 0;
 		Collection<List<Label>> collectionOfPaths = new ArrayList<List<Label>>();
     	for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
     		if(entry.getKey().isAccept() )
             {
     			// it would be more efficient if I passed a mock of a collection instead of an actual one but for small graphs it does not matter.
-    			predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),collectionOfPaths);
-    			countOfPossibleInconsistencies+=collectionOfPaths.size()*entry.getValue().size();collectionOfPaths.clear();
+    			long value=checkFanoutInconsistency(entry.getKey(),checker,false);
+    			if (value > 0)
+    			{
+    				predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),collectionOfPaths);
+    				//double inconsistencyforThisState=((double)value)/(collectionOfPaths.size()*entry.getValue().size());collectionOfPaths.clear();
+    				//outcome += inconsistencyforThisState;
+    				outcome += value;
+    			}
             }
-    	return actualInconsistency/countOfPossibleInconsistencies;
+    	return outcome;
 	}
 
 	/** This function goes through the supplied graph and then adds predictions to the Markov model.
@@ -1082,7 +1087,8 @@ public class MarkovClassifier
 				}
 			}
 		
-		for(double threshold:thresholdToInconsistency.keySet())
+		//for(double threshold:thresholdToInconsistency.keySet())
+		long threshold = thresholdToInconsistency.keySet().iterator().next();
 		{
 			Set<List<Label>> smallValueUniques = new HashSet<List<Label>>();
 			for(Entry<Long,List<List<Label>>> entry:thresholdToInconsistency.entrySet())

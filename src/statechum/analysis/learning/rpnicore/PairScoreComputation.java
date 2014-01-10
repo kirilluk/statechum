@@ -196,7 +196,7 @@ public class PairScoreComputation {
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.ONLYOVERRIDE)
 		{
-			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));compatibilityScore=computedScore;
+			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
 			return new PairScore(blue,red,computedScore, compatibilityScore);
 		}
 		else		

@@ -817,16 +817,19 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+				System.out.println("PATHS TO MERGE: "+pathsToMerge);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
-				final CmpVertex currentInitial = pta.getInit(), vertexWithMostTransitions = findVertexWithMostTransitions(pta,MarkovClassifier.computeInverseGraph(pta));
 
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
 				assert scoreInitialMerge >= 0;
-				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);ptaAfterInitialMerge.clearColours();vertexWithMostTransitions.setColour(JUConstants.RED);
+				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
+				final CmpVertex vertexWithMostTransitions = findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
+				ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
-				
+				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaAfterInitialMerge);
+				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				//checkIfSingleStateLoopsCanBeFormed(pta,m,referenceGraph,pathsToMerge,directionForwardOrInverse);
 				/*
 				System.out.println("initially: "+whatToMerge.size()+" clusters "+whatToMerge+"\nafter sideways "+clustersOfStates.size()+" clusters "+clustersOfStates);
@@ -884,7 +887,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
 							long value = MarkovClassifier.computeInconsistency(merged, m, checker,false);
-							//System.out.println("merged "+p+", "+value+" inconsistencies");
+							System.out.println("merged "+p+", "+value+" inconsistencies");
 							inconsistencyFromAnEarlierIteration = value;
 							return null;
 						}
@@ -933,57 +936,42 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							}
 							*/
 							
-							/*
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 							SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
-							*/
+
 							long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
 							if (score < 0)
-								return score; 
+								return score;
+							long currentInconsistency = 0;
+							double relativeInconsistency = 0.;
 							Integer a=vertexToPartition.get(p.getR()), b = vertexToPartition.get(p.getQ());
 							LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-							// constructPairsToMergeBasedOnSetsToMerge(coregraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA)
 							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
-							assert genScore >= 0;
-							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							long value = MarkovClassifier.computeInconsistency(merged, m, checker,
-									false
-									//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
-									)-inconsistencyFromAnEarlierIteration;
-							
+							if (genScore >= 0)
+							{
+								LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
+								/*
+								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
+										false
+										//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
+										)-inconsistencyFromAnEarlierIteration;
+								*/
+								relativeInconsistency = new MarkovClassifier(m, merged).computeRelativeInconsistency(checker);
+							}
 							// A green state next to a red may have many incoming paths, more than in a PTA, some of which may predict its outgoing transition as non-existent. 
 							// When a merge happens this state may be merged into the one with a similar surroundings. In this way, two states with the same in-out inconsistency
 							// are merged into the one with that inconsistency, turning two inconsistencies into one and hence reducing the total number of inconsistencies.
-							
-							if (a == null || b == null || a!= b)
-								score-=value;
-							//System.out.println("pair: "+p+" score: "+score);
-							/*
-							if (score < 0 && wrongPairs.isEmpty())
-								System.out.println("incorrectly blocked merge of "+p+" a="+a+" b="+b+" inconsistency = "+value+" genscore is "+genScore);
-							if (score >= 0 && correctPairs.isEmpty())
-								System.out.println("invalid merge of "+p+" a="+a+" b="+b+" inconsistency = "+value+" genscore is "+genScore);
-							*/
-							/*
-							m.constructMarkovTentative(coregraph,predictForward);
-							if (  m.computeMarkovScoring(p,coregraph,m.get_extension_model(),m.getChunkLen()) < 0)
-								score = -1;
-							// computeScoreBasedOnMarkov(coregraph,p,m) < 0 || 
-							if (score >= 0 && computeScoreBasedOnMarkov(coregraph,predictForward,p,m) < 0)
-								score =-1;
-							if (score >= 0 && ( (p.getR().getDepth() < m.getChunkLen()-1 || p.getQ().getDepth() < m.getChunkLen()-1 ) || p.getScore() < 2) )
+							score=genScore;
+							if (relativeInconsistency > 5 || relativeInconsistency > genScore)
 								score=-1;
-								*/
-							/*
-							if ( (p.getR().getDepth() < m.getChunkLen()-1 || p.getQ().getDepth() < m.getChunkLen()-1 ) && computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p) <= 0)
-								score =-1;
-							*/
-							/*
-							long score = computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
+							//System.out.println("pair: "+p+" score: "+score);
 							
-							score = computeScoreBasedOnMarkov(coregraph,p,m,score);
-							*/
+							if (score < 0 && wrongPairs.isEmpty())
+								System.out.println("incorrectly blocked merge of "+p+" a="+a+" b="+b+" inconsistency = "+currentInconsistency+" relative: "+relativeInconsistency+" genscore is "+genScore);
+							if (score >= 0 && correctPairs.isEmpty())
+								System.out.println("invalid merge of "+p+" a="+a+" b="+b+" inconsistency = "+currentInconsistency+" relative: "+relativeInconsistency+" genscore is "+genScore);
+
 /*
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
@@ -1045,8 +1033,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					//actualAutomaton = formLoops(actualAutomaton, m, directionForwardOrInverse);
 				}
 
-				// Setting the initial states back to where they were
-				pta.setInit(currentInitial);
 
 				SampleData dataSample = new SampleData(null,null);
 				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);

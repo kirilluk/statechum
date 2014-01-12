@@ -95,7 +95,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		LearnerGraph l = new LearnerGraph(config);
 		LearnerGraph actualC = l.paths.augmentPTA(plusStrings, true,false);
 		DeterministicDirectedSparseGraph.numberVertices(actualA);
-		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
+		String expectedPTA = "A-a->B--b->C-c->Z1\nB--d->C2-c->Z2";
 		checkM(expectedPTA,new LearnerGraph(actualA,config), config,converter);
 		checkM(expectedPTA,actualC, config,converter);
 	}
@@ -536,7 +536,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		checkPTAconstruction(
 			new String[][] { new String[]{"a","b","c"}, new String[]{"a","d","c"}},
 			new String[][] { new String[]{"a","b","c","d"} },
-			"A-a->B--b->C-c->End1-d-#R\nB--d->C2-c->E2"
+			"A-a->B--b->C-c->Z1-d-#R\nB--d->C2-c->E2"
 			,true);
 	}
 

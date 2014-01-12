@@ -272,7 +272,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	@Test
 	public final void testLTL_add1() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = buildLearnerGraph("init-a->init", "testLTL_ba_graph3",config,converter);
+		LearnerGraph graph = buildLearnerGraph("I-a->I", "testLTL_ba_graph3",config,converter);
 		LearnerGraph graphToAdd = buildLearnerGraph("A-c->B-b->B", "testLTL_add1",config,converter);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
@@ -286,7 +286,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	@Test
 	public final void testLTL_add2() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = buildLearnerGraph("init-a->init", "testLTL_ba_graph3",config,converter);
+		LearnerGraph graph = buildLearnerGraph("I-a->I", "testLTL_ba_graph3",config,converter);
 		LearnerGraph graphToAdd = buildLearnerGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1",config,converter);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();

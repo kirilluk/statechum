@@ -495,8 +495,8 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	{
 		confString.setUseOrderedEntrySet(true);config.setUseOrderedEntrySet(true);
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
-		LearnerGraph graph = buildLearnerGraph("P-c->P<-b-Q_St<-a-P-b->P\nQ_St-a->Q_St","testConstruction6",config,converter);
-		CmpVertex P = new StringVertex("P"), Q_State = new StringVertex("Q_St");
+		LearnerGraph graph = buildLearnerGraph("P-c->P<-b-Q<-a-P-b->P\nQ-a->Q","testConstruction6",config,converter);
+		CmpVertex P = new StringVertex("P"), Q_State = new StringVertex("Q");
 		expected.transitionMatrix.put(P, convertRowToDet(expected,createLabelToStateMap(labelList(new String[] {"b","c"}),P,
 				createLabelToStateMap(labelList(new String[] {"a"}),Q_State,null)), null, P));
 		expected.transitionMatrix.put(Q_State, convertRowToDet(expected,createLabelToStateMap(labelList(new String[] {"a"}),Q_State,

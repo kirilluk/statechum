@@ -29,7 +29,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES		= libSMT_Yices.la
 libSMT_Yices_la_SOURCES     = yices_caller.c
-libSMT_Yices_la_LDFLAGS     = -no-undefined -version-info 1:0:0 -mno-cygwin @YICES_LIBS@
+libSMT_Yices_la_LDFLAGS     = @YICES_LIBS@
+# -no-undefined -version-info 1:0:0 -mno-cygwin @YICES_LIBS@
 
 include_HEADERS         = smt.h
 

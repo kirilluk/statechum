@@ -950,9 +950,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 7);
 		//Visualiser.updateFrame(graph, null);Visualiser.waitForKey();
 		compareGraphs(buildLearnerGraph("A-a->B-b->C-a->D-b->E-a->F-b->G / "+
-				"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->C13A-b->C13B / C15-a->C15A-b->C15B /"+
-				"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->C23A-b->C23B / C25-a->C25A-b->C25B /"+
-				"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B"
+				"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
+				"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->23A-b->23B / C25-a->25A-b->25B /"+
+				"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B"
 				, "testPerformAugment17b",mainConfiguration,converter), graph);
 	}
 	
@@ -1294,9 +1294,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		public final void testQuestionAnswering9() throws IncompatibleStatesException
 		{
 			origGraph = FsmParser.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
-					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->C13A-b->C13B / C15-a->C15A-b->C15B /"+
-					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->C23A-b->C23B / C25-a->C25A-b->C25B /"+
-					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B", "testQuestionAnswering9",mainConfiguration,converter);
+					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
+					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->23A-b->23B / C25-a->25A-b->25B /"+
+					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B", "testQuestionAnswering9",mainConfiguration,converter);
 			graph = new LearnerGraph(origGraph,mainConfiguration);
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{
 					buildLearnerGraph(ifthen_ab_to_c, "ifthen_ab_to_c", mainConfiguration,converter),
@@ -1306,9 +1306,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			pair = new StatePair(graph.findVertex("I"),graph.findVertex("A"));
 			merged = MergeStates.mergeAndDeterminize_general(graph, pair);
 			LearnerGraph expectedMergedGraph = buildLearnerGraph("A-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
-					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->C13A-b->C13B / C15-a->C15A-b->C15B /"+
-					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->C23A-b->C23B / C25-a->C25A-b->C25B /"+
-					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B", "testQuestionAnswering9b",mainConfiguration,converter);
+					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
+					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->23A-b->23B / C25-a->25A-b->25B /"+
+					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B", "testQuestionAnswering9b",mainConfiguration,converter);
 			//Visualiser.updateFrame(graph, merged);Visualiser.waitForKey();
 			compareGraphs(expectedMergedGraph,merged);
 			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());

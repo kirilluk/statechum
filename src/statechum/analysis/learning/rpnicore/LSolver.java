@@ -283,6 +283,26 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * <pre>
 * ... _demo | d2u |  sed  's/e\([+-]\)0\([0-9]\+\)/e\1\2/g' > my_ ... .out
 * </pre>
+* 
+* <p>
+* Using MacPorts on 10.6.xx with OpenBLAS from MacPorts, autoconf, automake, libtool and such, SuiteSparse_config.mk should have
+* <pre>
+* BLAS = -L/opt/local/lib -lopenblas -lgfortran
+* LAPACK =
+* CHOLMOD_CONFIG = -DNPARTITION
+* UMFPACK_CONFIG =
+* INSTALL_LIB = /usr/local/soft/umfpack/lib
+* INSTALL_INCLUDE = /usr/local/soft/umfpack/include
+* RANLIB = /opt/local/bin/gcc-ar-mp-4.8
+* F77 = /opt/local/bin/gfortran-mp-4.8
+* CC = /opt/local/bin/gcc-mp-4.8
+* CF = $(CFLAGS) -O3 -fno-common -fexceptions -DNTIMER
+* </pre>
+* Subsequently, running ./bootstrap should rebuild the corresponding files (such as those in config). Configuration expects
+* <pre>
+* CFLAGS=-L/opt/local/lib F77=/opt/local/bin/gfortran-mp-4.8 CC=/opt/local/bin/gcc-mp-4.8 CXX=/opt/local/bin/g++-mp-4.8 ./configure --with-blasdir=/opt/local --with-umfpack=/usr/local/soft/umfpack
+* </pre>
+* Running make will build the solver that will contain a dependency on the gcc compiler used, in this instance, gcc in /opt/local/lib.
 */
 public class LSolver 
 {

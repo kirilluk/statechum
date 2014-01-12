@@ -44,6 +44,18 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  * </pre>
  * </li>
  * 
+ * <p/>
+ * Building on MacOS 10.6.xx with macports,
+ * install yices,
+ * <pre>
+ * install_name_tool -change /usr/local/lib/libgmp.10.dylib /opt/local/lib/libgmp.10.dylib /usr/local/soft/yices-1.0.40/bin/yices
+ * install_name_tool -change /usr/local/lib/libgmp.10.dylib /opt/local/lib/libgmp.10.dylib /usr/local/soft/yices-1.0.40/lib/libyices.dylib
+ * install_name_tool -id /usr/local/soft/yices-1.0.40/lib/libyices.dylib /usr/local/soft/yices-1.0.40/lib/libyices.dylib
+ * </pre>
+ * and then running 
+ * <pre>
+ * CFLAGS=-L/opt/local/lib F77=/opt/local/bin/gfortran-mp-4.8 CC=/opt/local/bin/gcc-mp-4.8 CXX=/opt/local/bin/g++-mp-4.8 ./configure --with-yices=/usr/local/soft/yices-1.0.40
+ * </pre>
  */
 
 package statechum.analysis.learning;

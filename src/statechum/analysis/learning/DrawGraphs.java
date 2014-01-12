@@ -56,6 +56,17 @@
  * 
  * install.packages(c("JavaGD","rJava","aplpack"))
  * On MacOS, tcltk is a special download which installs into /usr/local.
+ * 
+ * Where R is install from Macports, I need to installed both as follows:
+ * <pre>
+ * port install tk +x11
+ * port install R +gfortran48 +x11 +tcltk
+ * </pre>
+ * Installing a pre-built binary from R web site does not work because it is linked to Quartz that appears to be missing, most likely because they have used Lion or something similar).
+ * 
+ * R_HOME needs to be set to /opt/local/Library/Frameworks/R.framework/Resources
+ * and /opt/local/Library/Frameworks/R.framework/Versions/3.0/Resources/library/rJava/jri needs adding to java.library.path
+ * 
  */
 
 

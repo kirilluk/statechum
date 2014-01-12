@@ -3,7 +3,6 @@ package statechum.analysis.learning.experiments;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Collection;
@@ -22,8 +21,8 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -35,8 +34,6 @@ import statechum.StatechumXML;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -44,13 +41,10 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-@RunWith(Parameterized.class)
+@RunWith(ParameterizedWithName.class)
 public class TestPaperUAS extends TestWithMultipleConfigurations 
 {
 
@@ -1131,33 +1125,4 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);
 	}
-
-	@Test
-	public void testMergerOnLargePTA() throws IOException
-	{
-		Configuration configToLoadWith = mainConfiguration.copy();configToLoadWith.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
-		ConvertALabel labelConverter = converter;if (labelConverter == null) labelConverter = new Transform.InternStringLabel();
-		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, configToLoadWith, labelConverter);
-		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
-		
-		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
-		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
-		Label labelToMerge = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected",mainConfiguration,converter);
-		LearnerGraph mergedHuge = PairQualityLearner.mergeStatesForUnique(hugeGraph, labelToMerge);
-		DifferentFSMException diffFSM = WMethod.checkM(smallGraph, mergedHuge);
-		if (diffFSM != null)
-			throw diffFSM;
-
-		LearnerGraph mergedSmall = PairQualityLearner.mergeStatesForUnique(smallGraph,labelToMerge);
-		diffFSM = WMethod.checkM(smallGraph,mergedSmall);
-		if (diffFSM != null)
-			throw diffFSM;
-		
-		LearnerGraph mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
-		LearnerGraph mergedSmallB=PaperUAS.mergePTA(smallGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
-		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB);// the two graphs should reduce to the same one since they were built out of the same data, one by concatenation and another one without, however transitions between elements that have been concatenated are merged by the merger above so the outcome should be the same. 
-		if (diffFSM != null)
-			throw diffFSM;
-	}
-	
 }

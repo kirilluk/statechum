@@ -29,7 +29,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES		= libStatechumSolver.la
 libStatechumSolver_la_SOURCES     = umfsolver.c
-libStatechumSolver_la_LDFLAGS     = -no-undefined -version-info 1:0:0 -mno-cygwin @UMFPACK_LIBS@
+libStatechumSolver_la_LDFLAGS     = @UMFPACK_LIBS@
+#-no-undefined -version-info 1:0:0 -mno-cygwin @UMFPACK_LIBS@
 
 include_HEADERS         = solver.h
 

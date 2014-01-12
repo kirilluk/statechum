@@ -101,7 +101,7 @@ int main(int argc,char **argv)
   return (result == JNI_TRUE)? $y_yicesRuns:$y_yicesBroken;
 }]
 EOF
-  if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext} 2>/dev/null; then
+  if AC_TRY_EVAL(ac_link) 2>/dev/null; then
     (./conftest; exit; ) >&AS_MESSAGE_LOG_FD 2>/dev/null
     lt_status=$?
     case x$lt_status in

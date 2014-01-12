@@ -198,7 +198,8 @@ public class AllTests {
     */
      @RunWith(Suite.class)
     @SuiteClasses({
-        statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
+    	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
+    	statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,

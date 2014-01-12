@@ -24,8 +24,18 @@
 # The aim is to solve sparse systems of linear equations with millions of 
 # variables.
 set -x
-libtoolize --force --copy
+LIBTOOLIZE=libtoolize
+[ -x /opt/local/bin/glibtoolize ] && LIBTOOLIZE=/opt/local/bin/glibtoolize
+${LIBTOOLIZE} --force --copy
 aclocal -I config -I ../linear/m4
+LIBTOOLFILES=/usr/share/aclocal
+[ -r /usr/local/soft/libtool-2.2 ] && LIBTOOLFILES=/usr/local/soft/libtool-2.2/share/aclocal
+[ -r /opt/local/share/aclocal ] && LIBTOOLFILES=/opt/local/share/aclocal
+#cat ${LIBTOOLFILES}/libtool.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltoptions.m4 >>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltversion.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/ltsugar.m4>>aclocal.m4 
+#cat ${LIBTOOLFILES}/lt~obsolete.m4>>aclocal.m4
 automake --foreign --add-missing --force-missing  --copy
 autoconf -f
 

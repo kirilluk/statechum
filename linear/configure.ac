@@ -21,9 +21,9 @@ dnl
 dnl  Process this file with autoconf to create configure.
 
 AC_PREREQ(2.64)
-AC_INIT(linearsolver,1.0)
+AC_INIT([linearsolver],[1.0])
 AC_CONFIG_AUX_DIR(config)
-AM_INIT_AUTOMAKE(umfsolver, 1.0)
+AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CC

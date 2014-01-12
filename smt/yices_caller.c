@@ -58,7 +58,7 @@ void throwException(JNIEnv *j_env,const char *errorMessage)
 /** Extracts field ID of the "context" field. */
 jfieldID getFieldID(JNIEnv *j_env,jobject obj)
 {
-	assert (j_env != NULL && errorMessage != NULL);
+	assert (j_env != NULL);
 
 	jclass clazz = NULL;
 	if (obj != NULL) clazz = (*j_env)->GetObjectClass(j_env,obj);

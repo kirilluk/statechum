@@ -295,11 +295,11 @@ public class TestGraphConstructionWithDifferentConf {
 		boolean exceptionThrown = false;
 		try
 		{
-			buildLearnerGraph("A--a-->B<-b-CNFL\nA-b->A-c->A\nB-d->B-p-#CNFL","testGraphConstructionFail1a",config,converter);
+			buildLearnerGraph("A--a-->B<-b-Z\nA-b->A-c->A\nB-d->B-p-#Z","testGraphConstructionFail1a",config,converter);
 		}
 		catch(IllegalArgumentException e)
 		{
-			assertTrue("correct exception not thrown",e.getMessage().contains("conflicting") && e.getMessage().contains("CNFL"));
+			assertTrue("correct exception not thrown",e.getMessage().contains("conflicting") && e.getMessage().contains("Z"));
 			exceptionThrown = true;
 		}
 		
@@ -312,11 +312,11 @@ public class TestGraphConstructionWithDifferentConf {
 		boolean exceptionThrown = false;
 		try
 		{
-			buildLearnerGraph("A--a-->CNFL-b-#CNFL","testGraphConstructionFail1b",config,converter);
+			buildLearnerGraph("A--a-->Z-b-#Z","testGraphConstructionFail1b",config,converter);
 		}
 		catch(IllegalArgumentException e)
 		{
-			assertTrue("correct exception not thrown",e.getMessage().contains("conflicting") && e.getMessage().contains("CNFL"));
+			assertTrue("correct exception not thrown",e.getMessage().contains("conflicting") && e.getMessage().contains("Z"));
 			exceptionThrown = true;
 		}
 		
@@ -327,7 +327,7 @@ public class TestGraphConstructionWithDifferentConf {
 	@SuppressWarnings("unused")
 	public void checkWithVertex(Vertex v,String expectedExceptionString, String testName)
 	{
-		LearnerGraph graph = buildLearnerGraph("A--a-->B<-b-CNFL\nA-b->A-c->A\nB-d->B-p->CNFL",testName,config,converter);
+		LearnerGraph graph = buildLearnerGraph("A--a-->B<-b-Z\nA-b->A-c->A\nB-d->B-p->Z",testName,config,converter);
 		final DirectedSparseGraph g = graph.pathroutines.getGraph();
 		new LearnerGraph(g,config);// without the vertex being added, everything should be fine.
 		g.addVertex(v);// add the vertex
@@ -349,7 +349,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail3()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, VertexID.parseID("CNFL"), UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, VertexID.parseID("Z"), UserData.SHARED);
 		checkWithVertex(v, "multiple states with the same name", "testGraphConstructionFail3");
 	}
 	

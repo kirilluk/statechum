@@ -98,8 +98,8 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test
 	public void testCheckEq()
 	{
-		LearnerGraph g=buildLearnerGraph("P-a->Q_St-b->P-c->P","testCheckEq",mainConfiguration,converter);
-		checkEq(g,"P-c->P<-b-Q_St<-a-P");
+		LearnerGraph g=buildLearnerGraph("P-a->Q-b->P-c->P","testCheckEq",mainConfiguration,converter);
+		checkEq(g,"P-c->P<-b-Q<-a-P");
 	}
 	
 	/** Verifies the equivalence of a supplied graph to the supplied machine. */
@@ -177,14 +177,14 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test
 	public void testCheckM2()
 	{
-		String graphA = "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ",graphB = "A-a->B-b->C-d-#F#-b-A";
+		String graphA = "B-a->C-b->D\nB-b-#J\nD-d-#J",graphB = "A-a->B-b->C-d-#F#-b-A";
 		checkM(graphA,graphB,mainConfiguration,converter);checkReduction(graphA, graphB, mainConfiguration,converter);
 	}
 
 	@Test
 	public void testCheckM3()
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J";
 		String expected = "A-a->B-b->C-b-#F#-d-A";
 		
 		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
@@ -195,7 +195,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test
 	public void testCheckM4()
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J\nA-b-#J2\nB-a-#J2\nB-c-#J3";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
 		
 		String graphB = another.replace('A', 'Q').replace('B', 'G').replace('C', 'A');
@@ -206,8 +206,8 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test
 	public void testCheckM4_ND()
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3\n"+
-			"B-c-#REJ2";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J\nA-b-#J2\nB-a-#J2\nB-c-#J3\n"+
+			"B-c-#J2";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B\n"+
 			"B-c-#R";
 		checkM_ND(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), mainConfiguration,converter);
@@ -453,7 +453,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD7a() // swapped transitions
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
 		checkM(expected,another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), mainConfiguration,converter);
 	}
@@ -461,7 +461,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD7b() // swapped transitions
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
 		checkReduction(expected,another, mainConfiguration,converter);
 	}
@@ -469,7 +469,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD7c() // swapped transitions
 	{
-		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String another  = "A-a->B-b->C\nC-b-#J\nA-d-#J";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
 		checkReduction(another, expected, mainConfiguration,converter);
 	}

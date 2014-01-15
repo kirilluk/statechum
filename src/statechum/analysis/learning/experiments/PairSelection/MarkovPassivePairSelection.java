@@ -817,9 +817,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
-				System.out.println("PATHS TO MERGE: "+pathsToMerge);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
+				/*
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
@@ -863,7 +863,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				else
 				{// not merging based on a unique transition from an initial state
 					//learnerEval.config.setGeneralisationThreshold(1);
-					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge);learnerOfPairs.setMarkovModel(m);
+					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
 
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 					final LearnerGraph finalReferenceGraph = referenceGraph;
@@ -887,10 +887,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
 							long value = MarkovClassifier.computeInconsistency(merged, m, checker,false);
-							System.out.println("merged "+p+", "+value+" inconsistencies");
 							inconsistencyFromAnEarlierIteration = value;
 							return null;
 						}
+						
 						long inconsistencyFromAnEarlierIteration = 0;
 						LearnerGraph coregraph = null;
 						
@@ -935,11 +935,31 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 								score = extendedGraph.pairscores.computePairCompatibilityScore(p);
 							}
 							*/
+
+							long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
+							if (score < 0)
+								return score;
+							long currentInconsistency = 0;
+							Integer a=vertexToPartition.get(p.getR()), b = vertexToPartition.get(p.getQ());
+							LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+							if (genScore >= 0)
+							{
+								LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
+								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
+										false
+										//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
+										)-inconsistencyFromAnEarlierIteration;
+								
+								if (a == null || b == null || a != b)
+									score -= currentInconsistency;
+							}
+							//System.out.println(p.toString()+", score "+score);
 							
+							/*
 							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 							SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
-
 							long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
 							if (score < 0)
 								return score;
@@ -951,49 +971,29 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							if (genScore >= 0)
 							{
 								LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-								/*
 								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
 										false
 										//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
 										)-inconsistencyFromAnEarlierIteration;
-								*/
 								relativeInconsistency = new MarkovClassifier(m, merged).computeRelativeInconsistency(checker);
 							}
+							
+							
 							// A green state next to a red may have many incoming paths, more than in a PTA, some of which may predict its outgoing transition as non-existent. 
 							// When a merge happens this state may be merged into the one with a similar surroundings. In this way, two states with the same in-out inconsistency
 							// are merged into the one with that inconsistency, turning two inconsistencies into one and hence reducing the total number of inconsistencies.
 							score=genScore;
 							if (relativeInconsistency > 5 || relativeInconsistency > genScore)
 								score=-1;
+							*/
 							//System.out.println("pair: "+p+" score: "+score);
-							
+							/*
 							if (score < 0 && wrongPairs.isEmpty())
 								System.out.println("incorrectly blocked merge of "+p+" a="+a+" b="+b+" inconsistency = "+currentInconsistency+" relative: "+relativeInconsistency+" genscore is "+genScore);
 							if (score >= 0 && correctPairs.isEmpty())
 								System.out.println("invalid merge of "+p+" a="+a+" b="+b+" inconsistency = "+currentInconsistency+" relative: "+relativeInconsistency+" genscore is "+genScore);
+							*/
 
-/*
-							ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
-							List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-							SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
-
-							if (
-									(score >= 0 && correctPairs.isEmpty()) )
-									//|| (score < 0 && !correctPairs.isEmpty()))
-							{
-								System.out.println(p+" "+score+" INCORRECT"+" with fanouts it is "+computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p)+" using inconsistencies it will be "+computeScoreBasedOnMarkov(coregraph,p,m)+" Sicco reports "+computeScoreSicco(coregraph, p));
-								
-//								Visualiser.updateFrame(coregraph.transform.trimGraph(3, p.getQ()), coregraph.transform.trimGraph(3, p.getR()));
-								Visualiser.updateFrame(coregraph.transform.trimGraph(5, coregraph.getInit()),finalReferenceGraph);
-								computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
-								computeScoreBasedOnMarkov(coregraph,p,m);
-								
-								//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,alphabet,p);
-								//Visualiser.waitForKey();
-								//computeScoreBasedOnMarkov(coregraph,p,m);
-								//System.out.println(p+" "+score+((score>=0 && correctPairs.isEmpty())?" INCORRECT":" correct"));
-							}
-					*/	
 							return score;
 						}
 
@@ -1001,7 +1001,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						@Override
 						public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 						{
-							return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+							return null;//obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 						}
 
 					});
@@ -1631,7 +1631,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	{
 		DrawGraphs gr = new DrawGraphs();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);//ONLYOVERRIDE);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();	

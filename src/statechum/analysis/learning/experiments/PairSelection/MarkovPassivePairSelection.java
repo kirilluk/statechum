@@ -1533,7 +1533,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							if (a == null || b == null || a!= b)
 								score-=value;
 							
-							//System.out.println("pair: "+p+" score: "+score);
+							//System.out.println(p.toString()+", score "+score);
 							/*
 							if (score < 0 && wrongPairs.isEmpty())
 								System.out.println("incorrectly blocked merge of "+p+" a="+a+" b="+b+" inconsistency = "+value+" genscore is "+genScore);

@@ -51,7 +51,6 @@ import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
-import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -59,10 +58,8 @@ import statechum.ProgressIndicator;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.MarkovUniversalLearner;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -78,7 +75,6 @@ import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -108,173 +104,6 @@ public class PairQualityLearner
    	public static final String largePTALogsDir = "resources"+File.separator+"largePTA"+File.separator;
   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
   	public static final String veryLargePTAFileName = largePTALogsDir+"VeryLargePTA.zip";
-	
-	/** Given a graph, constructs a set of deterministic graphs for each vertex of it. When used to invert a graph graph, this makes it possible to quickly check which paths lead to each of the states.
-	 * The specific method is not using an inverse because we'd like to be able to use the same method for both forward and inverse path checking. 
-	 *   
-	 * @param graph graph to consider
-	 * @param directionForward if true, will use the supplied graph unchanged; if false, will invert the supplied graph
-	 * @return an association between vertices and deterministic graphs. Where built as an inverse of the original graph at each of its vertices, each graph can be large but this does not have to be so
-	 * even in the worst case since we can trim all graphs at the number of transitions corresponding to the length of the paths at the point of construction. 
-	 */
-	public static Map<CmpVertex,LearnerGraph> constructPathsFromEachState(LearnerGraph graph, boolean directionForward)
-	{
-		LearnerGraphND forwardOrInverseGraph = null;
-		
-		if (directionForward)
-		{
-			forwardOrInverseGraph = new LearnerGraphND(graph,graph.config);
-		}
-		else
-		{
-			Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-			forwardOrInverseGraph = new LearnerGraphND(shallowCopy);forwardOrInverseGraph.initEmpty();
-			AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,forwardOrInverseGraph);  // do the inverse to the tentative graph
-		}
-
-		Map<CmpVertex,LearnerGraph> outcome = new TreeMap<CmpVertex,LearnerGraph>();
-		for(CmpVertex v:graph.transitionMatrix.keySet())
-			try {
-				outcome.put(v,forwardOrInverseGraph.pathroutines.buildDeterministicGraph(v));
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("inverse was impossible to build - this should not happen", e);
-			}
-		return outcome;
-	}
-	
-	/** Given a collection of paths, constructs a collection where each path is an inverse of what it was.
-	 * 
-	 * @param paths paths to consider
-	 * @return collected of inverted paths.
-	 */
-	public static Collection<List<Label>> invertPaths(Collection<List<Label>> paths)
-	{
-		Collection<List<Label>> pathsOfInterest = new LinkedList<List<Label>>();
-		for(List<Label> p:paths)
-		{
-			ArrayList<Label> pathReversible=new ArrayList<Label>(p);Collections.reverse(pathReversible);pathsOfInterest.add(pathReversible);
-		}
-		return pathsOfInterest;
-	}
-	
-	/** Identifies vertices that are supposed to be merged if we use the provided set of paths to identify states. The direction determines whether we look for outgoing transitions (as in W set)
-	 * or incoming ones (see Rob Hierons' invertibility work).
-	 * 
-	 * @param graphsToCheckForPaths map from vertices of the considered graph to graphs in which outgoing paths can be investigated. In <em>forward</em> checking, each state of our graph can be associated with a graph isomorphic to the original one, with the 
-	 * exception that a state of interest will be set as the initial state. In checking <em>backwards</em>, each graph is the original with transitions reversed, initial state set to the state of interest and the outcome made deterministic. In fact,
-	 * the need to check backwards is the reason we need these graphs. In forward checking they are all nearly the same but in reverse they are all very different and due to expense of their construction they need to be cached.   
-	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
-	 * @param directionForwardOrInverse whether forward or backward
-	 * @param paths paths to consider
-	 * @return collection of pairs of states to merge. This is expected to be passed to the generalised merger.
-	 */
-	public static List<StatePair> buildVerticesToMergeForPath(Map<CmpVertex,LearnerGraph> graphsToCheckForPaths,boolean directionForwardOrInverse, Collection<List<Label>> paths)
-	{
-		Collection<List<Label>> pathsOfInterest = directionForwardOrInverse?paths:invertPaths(paths);
-		return collectionOfSetsToPairs(buildVerticesToMergeForPaths(pathsOfInterest,graphsToCheckForPaths));
-	}
-	
-	/** Given a collection of sets of vertices, returns a collection of pairs of states to merge. This is expected to be passed to the generalised merger, {@link PairScoreComputation#computePairCompatibilityScore_general(StatePair, Collection, Collection)}. */
-	public static List<StatePair> collectionOfSetsToPairs(Collection<Set<CmpVertex>> collectionOfSets)
-	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
-		for(Collection<CmpVertex> vertices:collectionOfSets)
-		{
-			CmpVertex prevVertex = null;
-			for(CmpVertex v:vertices)
-			{
-				if (prevVertex != null)
-					pairsList.add(new StatePair(prevVertex,v));
-				prevVertex = v;
-			}
-		}
-		return pairsList;
-	}
-
-	/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. 
-	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed. Depending on the input, can be used for paths in the forward direction or in the inverse one (in which case graphsToCheckForPaths
-	 * should also be an inverse of a graph of interest, to match the paths being considered).
-	 *  
-	 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
-	 * @param graphsToCheckTransitions graphs in which we'll be checking paths, one graph for each state of the original graph. In forward checking, each state of our graph can be associated with a graph isomorphic to the original one, with the 
-	 * exception that a state of interest will be set as the initial state. In checking backwards, each graph is the original with transitions reversed, initial state set to the state of interest and the outcome made deterministic. In fact,
-	 * the need to check backwards is the reason we need these graphs. In forward checking they are all nearly the same but in reverse they are all very different.   
-	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
-	 */
-	public static Collection<Set<CmpVertex>> buildVerticesToMergeForPaths(Collection<List<Label>> paths, Map<CmpVertex,LearnerGraph> graphsToCheckForPaths)
-	{
-		Map<Integer,Set<CmpVertex>> idToVerticesToMerge = new TreeMap<Integer,Set<CmpVertex>>();
-		Map<CmpVertex,Set<Integer>> vertToPaths = new TreeMap<CmpVertex,Set<Integer>>();
-		Map<Integer,List<Label>> idToPathsFromIt = new TreeMap<Integer,List<Label>>();// makes it possible to number paths
-		int id=0;
-		
-		for(List<Label> p:paths)
-		{
-			idToPathsFromIt.put(id, p);
-			idToVerticesToMerge.put(id, new TreeSet<CmpVertex>());
-			++id;
-		}
-		
-		for(Entry<Integer,List<Label>> path:idToPathsFromIt.entrySet())
-		{
-			for(Entry<CmpVertex,LearnerGraph> entry:graphsToCheckForPaths.entrySet())
-				if (entry.getValue().paths.tracePathPrefixClosed(path.getValue()) == AbstractOracle.USER_ACCEPTED)
-				{
-					Set<Integer> pathsForVertex = vertToPaths.get(entry.getKey());
-					if (pathsForVertex == null)
-					{
-						pathsForVertex = new TreeSet<Integer>();vertToPaths.put(entry.getKey(),pathsForVertex);
-					}
-					vertToPaths.get(entry.getKey()).add(path.getKey());idToVerticesToMerge.get(path.getKey()).add(entry.getKey());
-				}
-		}
-		
-		// now we start merging sets until no two of them have paths in common.
-		Set<Integer> pathsFromAnyOfVerts=null;
-		Set<CmpVertex> verts = new TreeSet<CmpVertex>();
-		
-		Set<CmpVertex> vertsConsidered = new TreeSet<CmpVertex>();Collection<Set<CmpVertex>> setsConsidered=new LinkedList<Set<CmpVertex>>();
-		do
-		{
-			pathsFromAnyOfVerts=null;verts = new TreeSet<CmpVertex>();vertsConsidered.clear();setsConsidered.clear();
-			
-			for(Entry<CmpVertex,Set<Integer>> entry:vertToPaths.entrySet())
-				if (!vertsConsidered.contains(entry.getKey())) // we only look at vertices that were not seen before
-				{
-					verts = new TreeSet<CmpVertex>();
-					for(Integer p:entry.getValue())
-						verts.addAll(idToVerticesToMerge.get(p));
-					
-					for(CmpVertex v:verts)
-					{
-						Set<Integer> pathsForVert = vertToPaths.get(v);
-						if (pathsForVert != entry.getValue())
-						{// this state is different from our collection, perform the merge.
-							if (pathsFromAnyOfVerts == null)
-								pathsFromAnyOfVerts = new TreeSet<Integer>(entry.getValue());
-							pathsFromAnyOfVerts.addAll(pathsForVert);
-						}
-					}
-					if (pathsFromAnyOfVerts != null)
-						break;
-					
-					{
-						vertsConsidered.addAll(verts);setsConsidered.add(verts);// here we update the return value, if we get to the endwith pathsFromAnyOfVerts remaining null, we are done and setsConsidered can be returned
-					}
-				}
-			if (pathsFromAnyOfVerts != null)
-			{// had to compute a merge
-				for(CmpVertex v:verts)
-					vertToPaths.put(v,pathsFromAnyOfVerts);
-				//for(Integer p:pathsFromAnyOfVerts)
-				//	idToVerticesToMerge.put(p, verts);
-			}
-		}
-		while(pathsFromAnyOfVerts != null);
-		
-		return setsConsidered;
-	}
-
 	
 	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
 	 * 
@@ -958,10 +787,17 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
-					if (score >= 0 && MarkovUniversalLearner.computeScoreSicco(coregraph, p) < 0)
+					if (score >= 0 && MarkovScoreComputation.computeScoreSicco(coregraph, p) < 0)
 						score = -1;
 					return score;
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				PairScore chosenPair = pickPairQSMLike(outcome);
@@ -1025,7 +861,14 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
@@ -1431,7 +1274,14 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
-				}});
+				}
+
+				@Override
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				{
+					return null;// dummy, ignored if null.
+				}
+			});
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);

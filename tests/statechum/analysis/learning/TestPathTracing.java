@@ -139,6 +139,13 @@ public class TestPathTracing {
 				fsm.findVertex(VertexID.parseID(reject)).setAccept(false);
 		
 		assertEquals(ExpectedResult, fsm.paths.tracePath(AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv),fsm.findVertex(startingState), conf.isPrefixClosed()));
+		
+		// this tests MarkovClassifier's tracePath
+		if (conf.isPrefixClosed())
+		{
+			boolean shouldAccept = (ExpectedResult == AbstractOracle.USER_ACCEPTED);
+			Assert.assertEquals(shouldAccept,MarkovClassifier.tracePath(fsm, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv), fsm.findVertex(startingState)) );
+		}
 		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(VertexID.parseID(enteredName));
 		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv));

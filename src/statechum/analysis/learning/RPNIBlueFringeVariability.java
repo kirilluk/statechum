@@ -149,7 +149,14 @@ public class RPNIBlueFringeVariability
 					@Override
 					public long overrideScoreComputation(PairScore p) {
 						return p.getScore();// dummy
-					}});
+					}
+
+					@Override
+					public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+					{
+						return null;// dummy, ignored if null.
+					}
+				});
 				
 				if (!outcome.isEmpty())
 				{

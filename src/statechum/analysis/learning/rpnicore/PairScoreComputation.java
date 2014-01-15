@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
 
@@ -71,6 +72,14 @@ public class PairScoreComputation {
 
 	public static interface RedNodeSelectionProcedure extends ScoreComputationCallback
 	{
+		/** Used in order to explore the surroundings of red states in graphs that are not built from a PTA. If it returns <em>null</em>, the default is used. 
+		 * This is not a map in order to permit transitions with the same label to lead to multiple states.
+		 * 
+		 * @param currentRed supplied state
+		 * @return a Map of labels to the following states.
+		 */
+		Collection<Entry<Label,CmpVertex>> getSurroundingTransitions(CmpVertex currentRed);
+		
 		/** Given a graph, the current collection of red nodes and those not compatible with any current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * 
 		 * @param coregraph graph to work with.
@@ -110,7 +119,9 @@ public class PairScoreComputation {
 			{
 				CmpVertex currentRed = currentExplorationBoundary.remove();
 	
-				for(Entry<Label,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
+				Collection<Entry<Label,CmpVertex>> surrounding = decisionProcedure.getSurroundingTransitions(currentRed);
+				if (surrounding == null) surrounding = coregraph.transitionMatrix.get(currentRed).entrySet();
+				for(Entry<Label,CmpVertex> BlueEntry:surrounding)
 					if (BlueEntry.getValue().getColour() == null || 
 							BlueEntry.getValue().getColour() == JUConstants.BLUE)
 					{// the next vertex is not marked red, hence it has to become blue
@@ -183,6 +194,12 @@ public class PairScoreComputation {
 	public PairScore obtainPair(CmpVertex blue, CmpVertex red, ScoreComputationCallback scoreComputationOverride)
 	{
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
+		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.ONLYOVERRIDE)
+		{
+			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
+			return new PairScore(blue,red,computedScore, compatibilityScore);
+		}
+		else		
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;

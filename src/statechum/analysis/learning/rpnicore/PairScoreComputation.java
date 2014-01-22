@@ -119,7 +119,7 @@ public class PairScoreComputation {
 			{
 				CmpVertex currentRed = currentExplorationBoundary.remove();
 	
-				Collection<Entry<Label,CmpVertex>> surrounding = decisionProcedure.getSurroundingTransitions(currentRed);
+				Collection<Entry<Label,CmpVertex>> surrounding = decisionProcedure == null?null:decisionProcedure.getSurroundingTransitions(currentRed);
 				if (surrounding == null) surrounding = coregraph.transitionMatrix.get(currentRed).entrySet();
 				for(Entry<Label,CmpVertex> BlueEntry:surrounding)
 					if (BlueEntry.getValue().getColour() == null || 

@@ -86,7 +86,7 @@ public class TestErlangRunner {
 	@After
 	public void afterTest()
 	{
-		runner.close();
+		if (runner != null) runner.close();
 		erlRuntime.killErlang();
 		zapTestDir();
 	}

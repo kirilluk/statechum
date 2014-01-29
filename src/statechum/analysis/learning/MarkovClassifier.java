@@ -693,7 +693,7 @@ public class MarkovClassifier
 	 * @param chunkLength how many steps to make a prediction for.
 	 */
 	@SuppressWarnings("unchecked")
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void updateMarkov(CmpVertex vert, int chunkLength)
+	public void updateMarkov(CmpVertex vert, int chunkLength)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<List<Label>>();
 		predictTransitionsFromState(vert,null,chunkLength,markovPathsToUpdate);
@@ -751,7 +751,7 @@ public class MarkovClassifier
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @return true if the graph is consistent according to the supplied checker.
 	 */
-	public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
+	public long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
 	{
 		long accumulatedInconsistency = 0;
 		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);

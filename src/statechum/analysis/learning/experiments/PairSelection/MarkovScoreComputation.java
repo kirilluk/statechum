@@ -766,7 +766,7 @@ public class MarkovScoreComputation
 	 * @param stepNumber how many waves of transitions to generate
 	 * @return number of matching transitions 
 	 */
-	protected static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> long comparePredictedFanouts(MarkovClassifier cl, CmpVertex red, CmpVertex blue, List<Label> pathLenBeyondCurrentState,int stepNumber)
+	protected static long comparePredictedFanouts(MarkovClassifier cl, CmpVertex red, CmpVertex blue, List<Label> pathLenBeyondCurrentState,int stepNumber)
 	{
 		if (!red.isAccept() || !blue.isAccept())
 			return 0;

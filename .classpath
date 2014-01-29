@@ -10,7 +10,7 @@
 	<classpathentry kind="lib" path="lib/jung-1.7.6.jar" sourcepath="/media/software/java/jung-1.7.6-src.jar"/>
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
-	<classpathentry kind="lib" path="lib/OtpErlang.jar"/>
+	<classpathentry kind="lib" path="lib/OtpErlang.jar" sourcepath="/usr/local/soft/otp_src_R16B02/lib/erlang/lib/jinterface-1.5.8/java_src"/>
 	<classpathentry kind="lib" path="lib/junit-4.8.1.jar" sourcepath="/media/software/java/junit-4.8.2-src.jar"/>
 	<classpathentry kind="lib" path="lib/javaGD.jar"/>
 	<classpathentry kind="lib" path="lib/JRI.jar"/>

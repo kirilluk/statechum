@@ -46,7 +46,6 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -946,5 +945,41 @@ public class MarkovScoreComputation
 		}
 		
 		return currentScore;
+	}
+
+
+	public static long computenewscore(PairScore Pair, LearnerGraph coregraph, LearnerGraph predicted_graph)
+	{
+		long score=-1;
+
+		Set<Label> predicted_from_blue_node = predicted_graph.transitionMatrix.get(Pair.getQ()).keySet();
+		Set<Label> predicted_from_red_node = predicted_graph.transitionMatrix.get(Pair.getR()).keySet();
+
+		ArrayList<Label> Labels=new ArrayList<Label>();
+		for(Label red:predicted_from_red_node)
+		{
+			CmpVertex acceptanceRed = predicted_graph.transitionMatrix.get(Pair.getR()).get(red);
+			Labels.add(red);
+
+			if(!predicted_from_blue_node.contains(red))
+			{
+				score--;
+			}
+			else
+			{
+				CmpVertex acceptanceBlue = predicted_graph.transitionMatrix.get(Pair.getQ()).get(red);
+				assert acceptanceRed!=null;
+				assert acceptanceBlue!=null;
+	
+				if(acceptanceRed.isAccept()==acceptanceBlue.isAccept())
+					score++;
+				else
+					score--;
+			}
+
+		}
+
+		return score;
+
 	}
 }

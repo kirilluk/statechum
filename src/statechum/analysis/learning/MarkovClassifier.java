@@ -18,6 +18,7 @@
 package statechum.analysis.learning;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,10 +34,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
 import statechum.Label;
+import statechum.Pair;
 import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -1052,8 +1055,6 @@ public class MarkovClassifier
 		long scoreAfterBigMerge=-1;
 		int WLength = 1;
 		
-		//DifferentPredictionsInconsistencyNoBlacklisting checker = new DifferentPredictionsInconsistencyNoBlacklisting();
-		
 		List<List<Label>> whatToMerge = null;
 
 		long maxCount = 0;
@@ -1140,17 +1141,6 @@ public class MarkovClassifier
 				}
 			}
 			
-			// We are confident we got it right, hence update Markov (in reality we would mess it up sometimes).
-			//new MarkovClassifier(model,merged).updateMarkov(false);
-			/*
-			if (merged != null && referenceGraph!=null)
-			{
-				System.out.print("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
-				System.out.println(checkMergeValidity(referenceGraph,graph,whatToMerge)?"VALID":"INVALID");
-
-				updateMarkov(merged,false);
-				++attemptToUpdateMarkov;
-			}*/
 		}
 		return whatToMerge;
 	}
@@ -1183,4 +1173,49 @@ public class MarkovClassifier
 		}
 		return valid;
 	}
+	
+	/** Given the collection of singleton paths and a way to tell which states to merge, computes a proportion of states that could be identified. 
+	 * Returns negative if any sequence in the supplied collection exists from more than a single state in a reference graph.
+	 * 
+	 * @param trimmedReference reference graph
+	 * @param whatToMerge paths to check. 
+	 * @return proportion of vertices that can be identified by singletons, actually identified with the provided paths.
+	 */
+	public static Pair<Double,Double> calculatePercentageOfIdentifiedStates(LearnerGraph trimmedReference, Collection<List<Label>> whatToMerge)
+	{
+		if (whatToMerge.isEmpty())
+			throw new IllegalArgumentException("empty set of paths");
+		if (trimmedReference.getStateNumber() == 0)
+			throw new IllegalArgumentException("empty reference graph");
+		
+		Set<CmpVertex> uniquelyIdentifiableVertices = new TreeSet<CmpVertex>(), identifiedVertices = new TreeSet<CmpVertex>();
+		
+		for(Label l:trimmedReference.getCache().getAlphabet())
+		{
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueTarget(trimmedReference,Arrays.asList(new Label[]{l}));
+			if(vertexIdentified != null)
+				uniquelyIdentifiableVertices.add(vertexIdentified);
+		}
+
+		for(List<Label> l:whatToMerge)
+		{
+			if (l.size() != 1)
+				throw new IllegalArgumentException("non-singleton path");
+			
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueTarget(trimmedReference,l);
+			if (vertexIdentified == null)
+				return new Pair<Double,Double>( (double)uniquelyIdentifiableVertices.size()/trimmedReference.getStateNumber(),-1.);
+			
+			identifiedVertices.add(vertexIdentified);
+		}
+		
+		assert uniquelyIdentifiableVertices.containsAll(identifiedVertices);
+		
+		return new Pair<Double,Double>( (double)uniquelyIdentifiableVertices.size()/trimmedReference.getStateNumber(),(double)identifiedVertices.size()/uniquelyIdentifiableVertices.size());
+	}
+	/*
+	public static double calculatePercentageOfIdentifiableStates(LearnerGraph trimmedReference, int suffixLen)
+	{
+		
+	}*/
 }

@@ -948,18 +948,16 @@ public class MarkovScoreComputation
 	}
 
 
-	public static long computenewscore(PairScore Pair, LearnerGraph coregraph, LearnerGraph predicted_graph)
+	public static long computenewscore(PairScore Pair, LearnerGraph predicted_graph)
 	{
 		long score=-1;
 
 		Set<Label> predicted_from_blue_node = predicted_graph.transitionMatrix.get(Pair.getQ()).keySet();
 		Set<Label> predicted_from_red_node = predicted_graph.transitionMatrix.get(Pair.getR()).keySet();
 
-		ArrayList<Label> Labels=new ArrayList<Label>();
 		for(Label red:predicted_from_red_node)
 		{
-			CmpVertex acceptanceRed = predicted_graph.transitionMatrix.get(Pair.getR()).get(red);
-			Labels.add(red);
+			CmpVertex targetRed = predicted_graph.transitionMatrix.get(Pair.getR()).get(red);
 
 			if(!predicted_from_blue_node.contains(red))
 			{
@@ -967,11 +965,10 @@ public class MarkovScoreComputation
 			}
 			else
 			{
-				CmpVertex acceptanceBlue = predicted_graph.transitionMatrix.get(Pair.getQ()).get(red);
-				assert acceptanceRed!=null;
-				assert acceptanceBlue!=null;
-	
-				if(acceptanceRed.isAccept()==acceptanceBlue.isAccept())
+				CmpVertex targetBlue = predicted_graph.transitionMatrix.get(Pair.getQ()).get(red);
+				assert targetRed!=null;
+				assert targetBlue!=null;
+				if(targetRed.isAccept()==targetBlue.isAccept())
 					score++;
 				else
 					score--;

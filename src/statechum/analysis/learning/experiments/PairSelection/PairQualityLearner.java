@@ -1426,6 +1426,7 @@ public class PairQualityLearner
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
 		public DifferenceToReference difference, differenceForReferenceLearner;
+		public long inconsistencyActual, inconsistencyReference;
 		
 		public SampleData(LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA)
 		{

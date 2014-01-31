@@ -489,25 +489,22 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return statesUniquelyIdentified;
 	}
 	
-	protected static boolean checkSeqUniqueTarget(LearnerGraph referenceGraph, List<Label> seq)
+	public static CmpVertex checkSeqUniqueTarget(LearnerGraph referenceGraph, List<Label> seq)
 	{
-		boolean targetUnique = true;
-		CmpVertex target = null;
+		CmpVertex vertexOfInterest = null;
 		for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
 		{
 			CmpVertex currTarget = referenceGraph.getVertex(v,seq);
 			if (currTarget != null)
 			{
-				if (target != null)
-				{
-					targetUnique = false;
-					break;
-				}
-				target = currTarget;
+				if (vertexOfInterest != null)
+					return null;
+
+				vertexOfInterest = currTarget;
 			}
 		}
 		
-		return targetUnique && target != null;
+		return vertexOfInterest;
 	}
 	
 	

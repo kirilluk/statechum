@@ -742,9 +742,8 @@ public class DrawGraphs {
 		{
 			computeDataSet();
 			List<String> result = new LinkedList<String>();
-			result.add("plot("+minValue+":"+maxValue+", "+minValue+":"+maxValue+", type = \"n\", bty=\"n\",xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
-			result.add(bagPlotToString(data, names,"add=TRUE"+
-					formatApproxLimit()));
+			result.add("bplot<-compute."+bagPlotToString(data, names,formatApproxLimit()));
+			result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"),xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
 			if (diag) result.add("abline(0,1)");
 			return result;
 		}

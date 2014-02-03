@@ -624,6 +624,69 @@ public class MarkovScoreComputation
 		return 0;
 	}
 	
+	public static long computeScoreSiccoInspired(LearnerGraph original,StatePair pair)
+	{
+		assert pair.getQ() != pair.getR();
+		assert original.transitionMatrix.containsKey(pair.firstElem);
+		assert original.transitionMatrix.containsKey(pair.secondElem);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph result = new LearnerGraph(original,shallowCopy);
+		assert result.transitionMatrix.containsKey(pair.firstElem);
+		assert result.transitionMatrix.containsKey(pair.secondElem);
+
+		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
+		if (pairScore < 0)
+			return -1;
+
+		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
+		
+		// make a loop
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
+				if (rowEntry.getValue() == pair.getQ())
+				{
+					// the transition from entry.getKey() leads to the original blue state, record it to be rerouted.
+					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
+				}
+		}
+		
+		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
+		Set<Label> inputsUsed = new HashSet<Label>();
+		long remainsMinusToAdd=0;
+		// I iterate over the elements of the original graph in order to be able to update the target one.
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		{
+			CmpVertex vert = entry.getKey();
+			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
+			if (mergedVertices.containsKey(vert))
+			{// there are some vertices to merge with this one.
+				Collection<Label> newLabelsAddedToVert = labelsAdded.get(entry.getKey());
+				if (newLabelsAddedToVert == null)
+				{
+					newLabelsAddedToVert = new TreeSet<Label>();labelsAdded.put(entry.getKey(), newLabelsAddedToVert);
+				}
+
+				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
+				for(CmpVertex toMerge:mergedVertices.get(vert))
+				{// for every input, I'll have a unique target state - this is a feature of PTA
+				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
+				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
+				// (as long as this combination is the one _not_ already present from the corresponding red state).
+					
+					Set<Label> remains = new TreeSet<Label>();remains.addAll(original.transitionMatrix.get(vert).keySet());remains.retainAll(original.transitionMatrix.get(toMerge).keySet());
+					//Set<Label> toAdd = new TreeSet<Label>();toAdd.addAll(original.transitionMatrix.get(toMerge).keySet());toAdd.removeAll(original.transitionMatrix.get(vert).keySet());
+					Set<Label> uniqueToRed = new TreeSet<Label>();uniqueToRed.addAll(original.transitionMatrix.get(vert).keySet());uniqueToRed.removeAll(original.transitionMatrix.get(toMerge).keySet());
+					remainsMinusToAdd+=remains.size()-uniqueToRed.size();
+				}
+			}
+		}
+		
+		return remainsMinusToAdd;
+	}
 	
 	public long computeMarkovScoring(PairScore pair, LearnerGraph graph, LearnerGraph extension_model, int chunkLen)
 	{

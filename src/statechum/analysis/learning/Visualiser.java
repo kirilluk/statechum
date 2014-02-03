@@ -98,7 +98,9 @@ import org.apache.commons.collections.Predicate;
  * (R_HOME set to /opt/local/Library/Frameworks/R.framework/Resources )
  * In all cases, it may be possible to improve performance and reduce memory footprint with the following:
  *  -XX:+UseConcMarkSweepGC -XX:MaxPermSize=512M -XX:+UseCompressedOops
- *  
+ * Win7-64 settings:
+ * -ea -DVIZ_CONFIG=kirill_office -DVIZ_DIR=resources/graphLayout -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs;"C:/Program Files/R/R-3.0.2/library/rJava/jri/x64"  -Xmx20500m
+ * R_HOME=C:/Program Files/R/R-3.0.2
  * Updating Statechum web page:
  * 
  * (cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )

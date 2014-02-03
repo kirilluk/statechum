@@ -25,7 +25,7 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguage;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -274,7 +274,7 @@ public class SmallvsHugeExperiment {
 		if (rejectVertexID == null)
 			rejectVertexID = actualAutomaton.nextID(false);
 		actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-		return DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, actualAutomaton, testSet);
+		return DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, actualAutomaton, testSet);
 	}
 	
 	public static void main(String []args)

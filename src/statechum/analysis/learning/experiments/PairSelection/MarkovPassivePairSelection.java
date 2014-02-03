@@ -64,7 +64,10 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -748,7 +751,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 										
 						@Override
 						public int getLength() {
-							return (rnd.nextInt(pathLength)+1)*lengthMultiplier;
+							return 2*states*alphabet;//(rnd.nextInt(pathLength)+1)*lengthMultiplier;
 						}
 		
 						@Override
@@ -1042,11 +1045,11 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (rejectVertexID == null)
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-				dataSample.difference = estimateDifference(referenceGraph,actualAutomaton,testSet);
+				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 
 				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
+				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);
 			}
 			
@@ -1054,10 +1057,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		}
 
 		// Delegates to a specific estimator
-		DifferenceToReference estimateDifference(LearnerGraph reference, LearnerGraph actual,@SuppressWarnings("unused") Collection<List<Label>> testSet)
+		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
 		{
-			//return DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual, testSet);
-			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+			ScoresForGraph outcome = new ScoresForGraph();
+			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
+			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
+			return outcome;
 		}
 	}
 
@@ -1684,12 +1689,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 								if (gr_NewToOrig != null)
 								{
 									for(SampleData sample:result.samples)
-										gr_NewToOrig.add(sample.differenceForReferenceLearner.getValue(),sample.difference.getValue());
+										gr_NewToOrig.add(sample.referenceLearner.getValue(),sample.actualLearner.getValue());
 								}
 								
 								for(SampleData sample:result.samples)
-									if (sample.differenceForReferenceLearner.getValue() > 0)
-										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference.getValue()/sample.differenceForReferenceLearner.getValue());
+									if (sample.referenceLearner.getValue() > 0)
+										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.actualLearner.getValue()/sample.referenceLearner.getValue());
 								progress.next();
 							}
 							if (gr_PairQuality != null)

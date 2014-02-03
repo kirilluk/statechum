@@ -101,7 +101,7 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguage;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
@@ -829,7 +829,7 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
 				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
@@ -848,7 +848,7 @@ public class PaperUAS
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());

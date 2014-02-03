@@ -1318,14 +1318,14 @@ public class PairQualityLearner
 		public double getValue();
 	}
 	
-	public static class DifferenceToReferenceLanguage extends ConfusionMatrix implements DifferenceToReference
+	public static class DifferenceToReferenceFMeasure extends ConfusionMatrix implements DifferenceToReference
 	{		
-		protected DifferenceToReferenceLanguage(int tpArg, int tnArg, int fpArg, int fnArg) 
+		protected DifferenceToReferenceFMeasure(int tpArg, int tnArg, int fpArg, int fnArg) 
 		{
 			super(tpArg, tnArg, fpArg, fnArg);
 		}
 		
-		protected DifferenceToReferenceLanguage(ConfusionMatrix mat) 
+		protected DifferenceToReferenceFMeasure(ConfusionMatrix mat) 
 		{
 			super(mat);
 		}
@@ -1344,11 +1344,11 @@ public class PairQualityLearner
 		 * @param config configuration to use for doing the comparison. This is useful to configure Linear (if the comparison is done using Linear).
 		 * @param cpuNumber the number of processors to use. Usually set to 1 because we run as many experiments as there are CPUs and so individual experiments should not consume more computational power than we have available for them. 
 		 */
-		public static DifferenceToReferenceLanguage estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
+		public static DifferenceToReferenceFMeasure estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 		{
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
 	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
-			return new DifferenceToReferenceLanguage(mat);
+			return new DifferenceToReferenceFMeasure(mat);
 		}
 	}
 	
@@ -1421,12 +1421,42 @@ public class PairQualityLearner
 		}
 	}
 	
+	
+	/** This one holds two values and picks one that is not null. Where both are present, BCR is given preference.
+	 */
+	public static class ScoresForGraph implements DifferenceToReference
+	{
+		public DifferenceToReference differenceStructural, differenceBCR;
+		public long inconsistency;
+		
+		@Override
+		public double getValue()
+		{
+			return differenceBCR != null? differenceBCR.getValue():differenceStructural.getValue();
+		}
+		
+		@Override
+		public String toString()
+		{
+			if (differenceBCR == null && differenceStructural == null)
+				return "UNKNOWN SCORE";
+			String outcome = "";
+			if (differenceBCR != null)
+				outcome+=String.format("BCR: %s",differenceBCR.toString());
+			if (differenceStructural != null)
+			{
+				if (!outcome.isEmpty()) outcome+=",";
+				outcome+=String.format("structural: %s",differenceStructural.toString());
+			}
+			return outcome;
+		}
+	}
+	
 	/** The outcome of an experiment using a single FSM and a collection of walks represented as a PTA. */
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public DifferenceToReference difference, differenceForReferenceLearner;
-		public long inconsistencyActual, inconsistencyReference;
+		public ScoresForGraph actualLearner,referenceLearner;
 		
 		public SampleData(LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA)
 		{
@@ -1436,7 +1466,7 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return difference.toString();
+			return actualLearner.toString();
 		}
 	}
 	
@@ -1876,10 +1906,10 @@ public class PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 				if (learnUsingReferenceLearner)
 				{
-					dataSample.difference = estimateDifference(referenceGraph,actualAutomaton,testSet);
+					dataSample.actualLearner=estimateDifference(referenceGraph,actualAutomaton,testSet);
 					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					dataSample.differenceForReferenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.difference+ " difference ref is "+dataSample.differenceForReferenceLearner);
+					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 					//actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");
 					//referenceGraph.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-reference.xml");
 					/*
@@ -1907,9 +1937,12 @@ public class PairQualityLearner
 		}
 
 		// Delegates to a specific estimator
-		DifferenceToReference estimateDifference(LearnerGraph reference, LearnerGraph actual,@SuppressWarnings("unused") Collection<List<Label>> testSet)
+		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
 		{
-			return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);//estimationOfDifferenceFmeasure(reference, actual,testSet);
+			ScoresForGraph outcome = new ScoresForGraph();
+			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
+			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
+			return outcome;
 		}
 	}
 	
@@ -2115,12 +2148,12 @@ public class PairQualityLearner
 								if (gr_NewToOrig != null)
 								{
 									for(SampleData sample:result.samples)
-										gr_NewToOrig.add(sample.differenceForReferenceLearner.getValue(),sample.difference.getValue());
+										gr_NewToOrig.add(sample.referenceLearner.getValue(),sample.actualLearner.getValue());
 								}
 								
 								for(SampleData sample:result.samples)
-									if (sample.differenceForReferenceLearner.getValue() > 0)
-										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.difference.getValue()/sample.differenceForReferenceLearner.getValue());
+									if (sample.referenceLearner.getValue() > 0)
+										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.actualLearner.getValue()/sample.referenceLearner.getValue());
 								progress.next();
 							}
 							if (gr_PairQuality != null)

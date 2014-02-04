@@ -64,10 +64,6 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -492,7 +488,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return statesUniquelyIdentified;
 	}
 	
-	public static CmpVertex checkSeqUniqueTarget(LearnerGraph referenceGraph, List<Label> seq)
+	public static CmpVertex checkSeqUniqueOutgoing(LearnerGraph referenceGraph, List<Label> seq)
 	{
 		CmpVertex vertexOfInterest = null;
 		for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
@@ -503,7 +499,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (vertexOfInterest != null)
 					return null;
 
-				vertexOfInterest = currTarget;
+				vertexOfInterest = v;
 			}
 		}
 		

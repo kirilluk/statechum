@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
 import statechum.Label;
-import statechum.Pair;
 import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
@@ -1174,48 +1173,51 @@ public class MarkovClassifier
 		return valid;
 	}
 	
-	/** Given the collection of singleton paths and a way to tell which states to merge, computes a proportion of states that could be identified. 
-	 * Returns negative if any sequence in the supplied collection exists from more than a single state in a reference graph.
+	/** Given a graph, computes the proportion of states that can be identified using singleton sequences.
 	 * 
-	 * @param trimmedReference reference graph
+	 * @param referenceGraph reference graph
 	 * @param whatToMerge paths to check. 
 	 * @return proportion of vertices that can be identified by singletons, actually identified with the provided paths.
 	 */
-	public static Pair<Double,Double> calculatePercentageOfIdentifiedStates(LearnerGraph trimmedReference, Collection<List<Label>> whatToMerge)
+	public static double calculateFractionOfStatesIdentifiedBySingletons(LearnerGraph referenceGraph)
 	{
-		if (whatToMerge.isEmpty())
-			throw new IllegalArgumentException("empty set of paths");
-		if (trimmedReference.getStateNumber() == 0)
+		if (referenceGraph.getStateNumber() == 0)
 			throw new IllegalArgumentException("empty reference graph");
 		
-		Set<CmpVertex> uniquelyIdentifiableVertices = new TreeSet<CmpVertex>(), identifiedVertices = new TreeSet<CmpVertex>();
+		Set<CmpVertex> uniquelyIdentifiableVertices = new TreeSet<CmpVertex>();
 		
-		for(Label l:trimmedReference.getCache().getAlphabet())
+		for(Label l:referenceGraph.getCache().getAlphabet())
 		{
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueTarget(trimmedReference,Arrays.asList(new Label[]{l}));
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
 			if(vertexIdentified != null)
 				uniquelyIdentifiableVertices.add(vertexIdentified);
 		}
-
+		
+		return (double)uniquelyIdentifiableVertices.size()/referenceGraph.getStateNumber();
+	}
+	
+	/** Given the collection of paths and a way to tell which states to merge, computes a proportion of states that could be identified. 
+	 * Returns negative if any sequence in the supplied collection exists from more than a single state in a reference graph.
+	 * 
+	 * @param referenceGraph reference graph
+	 * @param whatToMerge paths to check. 
+	 * @return proportion of vertices that can be identified by singletons, actually identified with the provided paths.
+	 */
+	public static double calculateFractionOfIdentifiedStates(LearnerGraph referenceGraph, Collection<List<Label>> whatToMerge)
+	{
+		if (referenceGraph.getStateNumber() == 0)
+			throw new IllegalArgumentException("empty reference graph");
+		
+		Set<CmpVertex> identifiedVertices = new TreeSet<CmpVertex>();
+		
 		for(List<Label> l:whatToMerge)
 		{
-			if (l.size() != 1)
-				throw new IllegalArgumentException("non-singleton path");
-			
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueTarget(trimmedReference,l);
-			if (vertexIdentified == null)
-				return new Pair<Double,Double>( (double)uniquelyIdentifiableVertices.size()/trimmedReference.getStateNumber(),-1.);
-			
-			identifiedVertices.add(vertexIdentified);
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,l);
+			if (vertexIdentified != null)
+				identifiedVertices.add(vertexIdentified);
 		}
 		
-		assert uniquelyIdentifiableVertices.containsAll(identifiedVertices);
-		
-		return new Pair<Double,Double>( (double)uniquelyIdentifiableVertices.size()/trimmedReference.getStateNumber(),(double)identifiedVertices.size()/uniquelyIdentifiableVertices.size());
+		return (double)identifiedVertices.size()/referenceGraph.getStateNumber();
 	}
-	/*
-	public static double calculatePercentageOfIdentifiableStates(LearnerGraph trimmedReference, int suffixLen)
-	{
-		
-	}*/
+
 }

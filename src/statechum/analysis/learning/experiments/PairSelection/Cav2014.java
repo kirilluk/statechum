@@ -67,6 +67,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
@@ -240,7 +241,7 @@ public class Cav2014 extends PairQualityLearner
 		protected final int states,sample;
 		protected boolean onlyUsePositives;
 		protected final int seed;
-		protected int chunkLen=3;
+		protected int chunkLen=4;
 		protected final int traceQuantity;
 		protected String selectionID;
 		protected double alphabetMultiplier = 2.;
@@ -496,9 +497,20 @@ public class Cav2014 extends PairQualityLearner
 				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
+				
+				Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
+				int wSeqLen=0;
+				for(List<Label> seq:wset)
+				{
+					int len = seq.size();if (len > wSeqLen) wSeqLen=len;
+				}
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ 
 						" difference actual is "+dataSample.actualLearner.inconsistency+ " difference ref is "+dataSample.referenceLearner.inconsistency
 						+ " inconsistency learnt "+dataSample.actualLearner.inconsistency+" inconsistency reference: "+inconsistencyForTheReferenceGraph
+						+" transitions per state: "+(double)referenceGraph.pathroutines.countEdges()/referenceGraph.getStateNumber()+
+							" W seq max len "+wSeqLen+
+							" Uniquely identifiable by W "+Math.round(100*MarkovClassifier.calculateFractionOfIdentifiedStates(referenceGraph, wset))+"%"
+						+ " and by singletons "+Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph))+"%"
 						);
 				outcome.samples.add(dataSample);
 			}
@@ -726,7 +738,16 @@ public class Cav2014 extends PairQualityLearner
 		final int samplesPerFSM = 10;
 		final int rangeOfStateNumbers = 5;
 		final int stateNumberIncrement = 5;
-		final double alphabetMultiplierMax = 2;
+		
+		final double traceLengthMultiplierMax = 1;
+		final int chunkSize = 3;
+		final double alphabetMultiplierMax = 1;
+		
+		/* A very unfavourable case.
+		final double traceLengthMultiplierMax = 5;
+		final int chunkSize = 4;
+		final double alphabetMultiplierMax = 0.5;
+		*/
 		final int traceQuantity=5;
 		final String branch = "CAV2014";
 		// Stores tasks to complete.
@@ -751,6 +772,7 @@ public class Cav2014 extends PairQualityLearner
 									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
 									learnerRunner.setOnlyUsePositives(onlyPositives);
 									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
@@ -798,6 +820,7 @@ public class Cav2014 extends PairQualityLearner
 									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
 									learnerRunner.setOnlyUsePositives(onlyPositives);
 									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
@@ -847,6 +870,7 @@ public class Cav2014 extends PairQualityLearner
 									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceNum, config, converter);
 									learnerRunner.setOnlyUsePositives(onlyPositives);
 									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
@@ -874,12 +898,13 @@ public class Cav2014 extends PairQualityLearner
 						}
 						if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 				}
-		
-		// Same experiment but with different number of sequences.
+*/
+
+		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File("BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentLengthOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File("structural_vs_tracelength.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
-			for(final double traceMultiplier:new double[]{alphabetMultiplierMax}) 
+			for(int traceMultiplier=1;traceMultiplier<8;++traceMultiplier) 
 				{
 					String selection;
 						selection = branch+";EVALUATION;"+
@@ -893,8 +918,9 @@ public class Cav2014 extends PairQualityLearner
 								for(int sample=0;sample<samplesPerFSM;++sample)
 								{
 									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
+									learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
 									learnerRunner.setOnlyUsePositives(onlyPositives);
-									learnerRunner.setTraceLengthMultiplier(traceMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceMultiplier);learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
@@ -907,9 +933,9 @@ public class Cav2014 extends PairQualityLearner
 								for(SampleData sample:result.samples)
 								{
 									if (sample.referenceLearner.differenceBCR.getValue() > 0)
-										gr_BCRImprovementForDifferentLengthOfTraces.add(traceQuantity,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+										gr_BCRImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
 									if (sample.referenceLearner.differenceStructural.getValue() > 0)
-										gr_StructuralImprovementForDifferentLengthOfTraces.add(traceQuantity,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+										gr_StructuralImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
 								}
 								progress.next();
 							}
@@ -924,6 +950,5 @@ public class Cav2014 extends PairQualityLearner
 				}
 
 		if (executorService != null) { executorService.shutdown();executorService = null; }
-		*/
 	}
 }

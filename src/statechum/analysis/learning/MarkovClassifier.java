@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Trace;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
@@ -48,6 +49,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 
 /** An instance of this class holds all the necessary parameters in order to make it possible to predict transitions and/or check inconsistencies using a Markov model. Depending on the kind of model passed to it, 
  * it will be making appropriate predictions.
@@ -640,7 +643,8 @@ public class MarkovClassifier
 			throw new IllegalArgumentException("sideways predictions cannot be made by extension of earlier sideways predictions");
 
 		final Set<Label> failureLabels = new TreeSet<Label>();
-		final Map<Label,MarkovOutcome> outgoing_labels_probabilities=new HashMap<Label,MarkovOutcome>();
+		final Map<Label,MarkovOutcome> outgoing_labels_probabilities=
+				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,MarkovOutcome>() : new HashMap<Label,MarkovOutcome>();
         WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,chunkLength-1-lengthOfPathBeyond,new ForEachCollectionOfPaths() 
         {
 			@Override
@@ -853,9 +857,8 @@ public class MarkovClassifier
 	public Map<CmpVertex, Map<Label, MarkovOutcome>> predictTransitions()
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
-
-		final Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=
+				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<CmpVertex,Map<Label,MarkovOutcome>>() : new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
 
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		if(vert.isAccept() )

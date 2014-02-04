@@ -22,16 +22,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -60,180 +56,18 @@ import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class Cav2014 extends PairQualityLearner
 {
-
-	/** PTA is supposed to be built using walks over a reference graph. If these are random walks, it is possible that some transitions will not be covered. 
-	 * For the learning purposes, this is significant because this could make some states more easily identifiable.
-	 *  
-	 * @param pta walks through the reference graph
-	 * @param reference graph to trim 
-	 * @return trimmed copy of the reference graph.
-	 */
-	public static Map<CmpVertex,Set<Label>> identifyUncoveredTransitions(LearnerGraph pta,LearnerGraph reference)
-	{
-		Map<CmpVertex,Set<Label>> outcome = new TreeMap<CmpVertex,Set<Label>>();
-		StatePair reference_pta = new StatePair(reference.getInit(),pta.getInit());
-		LinkedList<StatePair> pairsToExplore = new LinkedList<StatePair>();pairsToExplore.add(reference_pta);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:reference.transitionMatrix.entrySet())
-			outcome.put(entry.getKey(), new TreeSet<Label>(entry.getValue().keySet()));
-		Set<CmpVertex> visitedInTree = new HashSet<CmpVertex>();
-		while(!pairsToExplore.isEmpty())
-		{
-			reference_pta = pairsToExplore.pop();
-			Map<Label,CmpVertex> transitions=pta.transitionMatrix.get(reference_pta.secondElem);
-			outcome.get(reference_pta.firstElem).removeAll(transitions.keySet());
-			for(Entry<Label,CmpVertex> target:transitions.entrySet())
-				if (target.getValue().isAccept())
-				{
-					if (visitedInTree.contains(target.getValue()))
-						throw new IllegalArgumentException("PTA is not a tree");
-					visitedInTree.add(target.getValue());
-					CmpVertex nextGraphState = reference.transitionMatrix.get(reference_pta.firstElem).get(target.getKey());
-					if (nextGraphState == null)
-						throw new IllegalArgumentException("coverage has more transitions than the original graph");
-					pairsToExplore.add(new StatePair(nextGraphState, target.getValue()));
-				}
-		}
-		
-		return outcome;
-	}
-	
-	/** Takes a supplied automaton and removes all transitions that have not been covered by a supplied PTA.
-	 * 
-	 * @param pta contains covered transitions
-	 * @param reference all of the transitions.
-	 * @return trimmed reference graph
-	 */
-	public static LearnerGraph trimUncoveredTransitions(LearnerGraph pta,LearnerGraph reference)
-	{
-		Configuration shallowCopy = reference.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph outcome = new LearnerGraph(shallowCopy);AbstractLearnerGraph.copyGraphs(reference, outcome);
-
-		for(Entry<CmpVertex,Set<Label>> entry:identifyUncoveredTransitions(pta, reference).entrySet())
-		{
-			Map<Label,CmpVertex> map = outcome.transitionMatrix.get(entry.getKey());
-			for(Label lbl:entry.getValue()) map.remove(lbl);
-		}
-		
-		return outcome;
-	}
-		
-	public void constructMapFromLabelsToStateGroups(LearnerGraph tentativeGraph, Collection<Label> transitionsFromTheSameState)
-	{
-		Map<Label,Collection<CmpVertex>> labelToStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
-		Map<Label,Collection<CmpVertex>> labelFromStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
-					
-		for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
-			if (entry.getKey().isAccept())
-				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				{
-					Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
-					if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
-
-					Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
-					if (sourceStatesToMerge != null && transition.getValue().isAccept()) sourceStatesToMerge.add(entry.getKey());
-				}
-		
-	}
-	
-	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state is uniquely identified by one of the sequences
-	 * 
-	 * @param referenceGraph graph of interest
-	 * @param collectionOfUniqueSeq sequences to check from all states of this graph
-	 * @param correctlyIdentified collection of the vertices of the graph that are uniquely identified using the supplied sequences.
-	 * @param incorrectSequences a subset of sequences passed in <i>collectionOfUniqueSeq</i> that do not identify states uniquely.
-	 */
-	protected static void statesIdentifiedUsingUniques(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfUniqueSeq, Set<CmpVertex> correctlyIdentified,Collection<List<Label>> incorrectSequences)
-	{
-		for(List<Label> seq:collectionOfUniqueSeq)
-		{
-			int count=0;CmpVertex unique = null;
-			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-			{
-				if (referenceGraph.getVertex(v,seq) != null)
-				{
-					++count;unique=v;
-					if (count > 1)
-						break;
-				}
-			}
-			if (count == 1)
-			{
-				if (correctlyIdentified != null) correctlyIdentified.add(unique);
-			}
-			else if (count > 1)
-			{
-				if (incorrectSequences != null) incorrectSequences.add(seq);
-			}
-		}
-	}
-	
-	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state accepts one of the supplied sequences. Where multiple states accept one of the sequences,
-	 * all of those states are returned. <b>There is no expectation of uniqueness</b>.
-	 * 
-	 * @param referenceGraph graph of interest
-	 * @param collectionOfSeq sequences to check from all states of this graph
-	 * @return collection of the vertices of the graph that are uniquely identified using the supplied sequences.
-	 */
-	protected static Collection<CmpVertex> statesIdentifiedUsingSequences(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfSeq)
-	{
-		Set<CmpVertex> statesUniquelyIdentified = new TreeSet<CmpVertex>();
-		for(List<Label> seq:collectionOfSeq)
-		{
-			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-				if (referenceGraph.getVertex(v,seq) != null)
-					statesUniquelyIdentified.add(v);
-		}
-		return statesUniquelyIdentified;
-	}
-	
-	public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
-	{
-		List<StatePair> listOfPairs = new LinkedList<StatePair>();
-		for(List<List<Label>> lotOfPaths:pathsToMerge)
-		{
-			CmpVertex firstVertex = graph.getVertex(lotOfPaths.get(0));
-			for(List<Label> seq:lotOfPaths)
-				listOfPairs.add(new StatePair(firstVertex,graph.getVertex(seq)));
-		}
-		return listOfPairs;
-	}
-	
-	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
-	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
-		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
-		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
-			if (validStatesInGroup.size() > 1)
-			{
-				CmpVertex v0=validStatesInGroup.iterator().next();
-				for(CmpVertex v:validStatesInGroup)
-				{
-					if (v != v0)
-						pairsList.add(new StatePair(v0,v));
-					v0=v;
-				}
-			}
-		}
-		return pairsList;
-	}
-
 	public static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -416,7 +250,7 @@ public class Cav2014 extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				// now use pathsToMerge to compute which states can/cannot be merged together.
-				LearnerGraph trimmedReference = trimUncoveredTransitions(pta,referenceGraph);
+				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
 				
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
@@ -442,8 +276,6 @@ public class Cav2014 extends PairQualityLearner
 					LearnerGraph coregraph = null;
 					LearnerGraph extendedGraph = null;
 					MarkovClassifier cl=null;
-					/** Where I have a set of paths to merge because I have identified specific states, this map is constructed that maps vertices to be merged together to the partition number that corresponds to them. */
-					Map<CmpVertex,Integer> vertexToPartition = new TreeMap<CmpVertex,Integer>();
 					
 					@Override
 					public void initComputation(LearnerGraph graph) 
@@ -452,7 +284,6 @@ public class Cav2014 extends PairQualityLearner
 
 						cl = new MarkovClassifier(m, coregraph);
 					    extendedGraph = cl.constructMarkovTentative();
-						vertexToPartition.clear();
 					}
 					
 					@Override
@@ -494,7 +325,7 @@ public class Cav2014 extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
-				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = new PTAReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				
@@ -526,6 +357,24 @@ public class Cav2014 extends PairQualityLearner
 			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
 			return outcome;
 		}
+	}
+	
+	
+	/** Merges states using a routing relying on PTA, that faster and consumes less memory than the general one. */
+	public static class PTAReferenceLearner extends ReferenceLearner
+	{
+
+		public PTAReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA) 
+		{
+			super(evalCnf, argReferenceGraph, argInitialPTA);
+		}
+
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+		
 	}
 	
 	/** Uses the supplied classifier to rank pairs. */
@@ -628,17 +477,6 @@ public class Cav2014 extends PairQualityLearner
 			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
 		}
 
-		/** Where a pair has a zero score but Weka is not confident that this pair should not be merged, where this flag, such a pair will be assumed to be unmergeable. Where there is a clearly wrong pair
-		 * detected by Weka, its blue state will be marked red, where no pairs are clearly appropriate for a merger and all of them have zero scores, this flag will cause a blue state in one of them to be marked red.  
-		 */
-		protected boolean blacklistZeroScoringPairs = false;
-		
-		
-		public void setBlacklistZeroScoringPairs(boolean value)
-		{
-			blacklistZeroScoringPairs = value;
-		}
-		
 		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
 		{
 			super(evalCnf,argReferenceGraph,argInitialPTA);
@@ -668,8 +506,13 @@ public class Cav2014 extends PairQualityLearner
 
 		}
 
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
 	}
-	
+
 	public static void updateGraph(final RBoxPlot<Long> gr_PairQuality, Map<Long,TrueFalseCounter> pairQuality)
 	{
 		if (gr_PairQuality != null)
@@ -729,19 +572,19 @@ public class Cav2014 extends PairQualityLearner
 	{
 		DrawGraphs gr = new DrawGraphs();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();	
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 10;
-		final int rangeOfStateNumbers = 5;
 		final int stateNumberIncrement = 5;
+		final int rangeOfStateNumbers = 30+stateNumberIncrement;
 		
-		final double traceLengthMultiplierMax = 1;
+		final double traceLengthMultiplierMax = 2;
 		final int chunkSize = 3;
-		final double alphabetMultiplierMax = 1;
+		final double alphabetMultiplierMax = 2;
 		
 		/* A very unfavourable case.
 		final double traceLengthMultiplierMax = 5;
@@ -799,7 +642,7 @@ public class Cav2014 extends PairQualityLearner
 						}
 						if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);
 			}
-		/*
+
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File("BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File("structural_vs_alphabet.pdf"));
 		// Same experiment but with different alphabet size
@@ -898,7 +741,7 @@ public class Cav2014 extends PairQualityLearner
 						}
 						if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 				}
-*/
+
 
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File("BCR_vs_tracelength.pdf"));
@@ -947,6 +790,55 @@ public class Cav2014 extends PairQualityLearner
 							throw e;
 						}
 						if (gr_BCRImprovementForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
+				}
+
+		// Same experiment but with different prefix length but the same number of sequences and their length
+		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File("BCR_vs_prefixLength.pdf"));
+		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File("structural_vs_prefixLength.pdf"));
+		for(final boolean onlyPositives:new boolean[]{true})
+			for(int prefixLength=1;prefixLength<8;++prefixLength) 
+				{
+					String selection;
+						selection = branch+";EVALUATION;"+
+								";onlyPositives="+onlyPositives+";";
+
+						final int totalTaskNumber = traceQuantity;
+						try
+						{
+							int numberOfTasks = 0;
+							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+								for(int sample=0;sample<samplesPerFSM;++sample)
+								{
+									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
+									learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+									learnerRunner.setOnlyUsePositives(onlyPositives);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(prefixLength);
+									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+									runner.submit(learnerRunner);
+									++numberOfTasks;
+								}
+							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection, numberOfTasks);
+							for(int count=0;count < numberOfTasks;++count)
+							{
+								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+								
+								for(SampleData sample:result.samples)
+								{
+									if (sample.referenceLearner.differenceBCR.getValue() > 0)
+										gr_BCRImprovementForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+									if (sample.referenceLearner.differenceStructural.getValue() > 0)
+										gr_StructuralImprovementForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+								}
+								progress.next();
+							}
+						}
+						catch(Exception ex)
+						{
+							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+							if (executorService != null) { executorService.shutdownNow();executorService = null; }
+							throw e;
+						}
+						if (gr_BCRImprovementForDifferentPrefixlen != null) gr_BCRImprovementForDifferentPrefixlen.drawPdf(gr);if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 				}
 
 		if (executorService != null) { executorService.shutdown();executorService = null; }

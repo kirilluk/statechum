@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -210,30 +211,36 @@ public class PairScoreComputation {
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge);compatibilityScore=computedScore;
 		}
-		else
+		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
 		{
 			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 			if (computedScore >= 0)
-			{
-				compatibilityScore=	computePairCompatibilityScore(pairToComputeFrom);
-				if (compatibilityScore < 0)
-					computedScore = -1;
-			}
-			
-			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
-				assert coregraph.learnerCache.maxScore > 0;
-				//if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
-
-			if (computedScore <= coregraph.learnerCache.maxScore &&
-					coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
-					    computedScore = -1; 
-			else
-			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-			{
-				int compatScore = computePairCompatibilityScore(pairToComputeFrom);
-				assert compatScore <= computedScore;
-			}
+				computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
 		}
+		else
+			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS_ANY)
+			{
+				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+				if (computedScore >= 0)
+					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,true);
+			}
+			else
+			{
+				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+				if (computedScore >= 0)
+				{
+					compatibilityScore=	computePairCompatibilityScore(pairToComputeFrom);
+					if (compatibilityScore < 0)
+						computedScore = -1;
+				}
+				
+				else
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+				{
+					int compatScore = computePairCompatibilityScore(pairToComputeFrom);
+					assert compatScore <= computedScore;
+				}
+			}
 
 		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
 			computedScore = -1;
@@ -660,6 +667,124 @@ public class PairScoreComputation {
 			score = coregraph.learnerCache.maxScore+1;
 		}
 		return score;
+	}
+
+	/** Computes scores by navigating a cross-product of this machine, with itself. Implements the k-tails method.
+	 * 
+	 *  @param the pair to compute a score for
+	 *  @param anyPath whether any path matching is good enough or all paths should match.
+	 *  @return the resulting score, reflecting compatibility.
+	 */
+	public long computeStateScoreKTails(StatePair pair, boolean anyPath)
+	{
+		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
+			return -1;
+
+		int currentExplorationDepth=1;
+		assert pair.getQ() != pair.getR();
+		
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		boolean pathFound = false;
+		if (currentExplorationDepth < coregraph.config.getKlimit())
+			currentExplorationBoundary.add(pair);
+		else
+			pathFound = true;
+		currentExplorationBoundary.offer(null);
+		
+		while(true) // we'll do a break at the end of the last wave
+		{
+			StatePair currentPair = currentExplorationBoundary.remove();
+			if (currentPair == null)
+			{// we got to the end of a wave
+				if (currentExplorationBoundary.isEmpty())
+					break;// we are at the end of the last wave, stop looping.
+
+				// mark the end of a wave.
+				currentExplorationBoundary.offer(null);currentExplorationDepth++;
+			}
+			else
+			{
+				Map<Label,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
+					targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
+	
+				for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
+				{
+					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
+					if (nextBlueState != null)
+					{// both states can make a transition
+						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.pairCompatibility))
+							return -1;// definitely incompatible states, fail regardgless whether we should look for a single or all paths. 
+						
+						if (currentExplorationDepth < coregraph.config.getKlimit())
+						{
+							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+							currentExplorationBoundary.offer(nextStatePair);
+						}
+						else
+						{
+							pathFound = true;
+							if (anyPath)
+								break;// no point looking for more paths if we have found one that matches and we were asked to do just that.
+						}
+						
+					}
+					else
+					{
+						// if the red can make a move, but the blue one cannot, do not merge the pair unless any path is good enough
+						if (!anyPath)
+							return -1;
+					}
+				}
+				
+				for(Entry<Label,CmpVertex> blueEntry:targetBlue.entrySet())
+					if (null == targetRed.get(blueEntry.getKey()))
+					{
+						if (!anyPath)
+							return -1;// if blue can make a transition and red cannot, stop unless we are looking for any path
+					}
+			}
+		}
+		
+		return 0;
+	}
+
+	public long computeScoreSicco(StatePair pair, boolean recursive)
+	{
+		assert pair.getQ() != pair.getR();
+		assert coregraph.transitionMatrix.containsKey(pair.firstElem);
+		assert coregraph.transitionMatrix.containsKey(pair.secondElem);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber()):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.getStateNumber());
+		Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+
+		long pairScore = coregraph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
+		if (pairScore < 0)
+			return -1;
+
+		Set<Label> inputsUsed = new HashSet<Label>();
+
+		// I iterate over the elements of the original graph in order to be able to update the target one.
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+			if (recursive || entry.getKey() == pair.getR())
+			{// only checks for specific state of interest if we are supposed to be non-recursive.
+				CmpVertex vert = entry.getKey();
+				if (mergedVertices.containsKey(vert))
+				{// there are some vertices to merge with this one.
+					inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
+					for(CmpVertex toMerge:mergedVertices.get(vert))
+					{// for every input, I'll have a unique target state - this is a feature of PTA
+					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
+					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
+					// (as long as this combination is the one _not_ already present from the corresponding red state).
+						for(Entry<Label,CmpVertex> input_and_target:coregraph.transitionMatrix.get(toMerge).entrySet())
+							if (!inputsUsed.contains(input_and_target.getKey()))
+								return -1;// where anything is added that is not part of the original set of inputs, block the merge.
+					}
+				}
+			}
+		
+		return 0;
 	}
 
 	/** Computes a stack of states with scores over a given threshold, using Linear. 

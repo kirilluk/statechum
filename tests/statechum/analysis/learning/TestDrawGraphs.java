@@ -573,7 +573,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
 	@Test
@@ -582,7 +582,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")"}),
 				g.getDrawingCommand());
 	}
 	@Test
@@ -592,7 +592,7 @@ public class TestDrawGraphs {
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.setLimit(30000);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE, approx.limit=30000)", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000)","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
 }

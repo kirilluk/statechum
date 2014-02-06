@@ -348,7 +348,7 @@ public class DrawGraphs {
 		result.append(')');yAxisData.append(')');
 		result.append(yAxisData);
 
-		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && !otherAttrs.isEmpty()) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
@@ -635,7 +635,7 @@ public class DrawGraphs {
 		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
 		protected String formatApproxLimit()
 		{
-			return (limit == null?"":", approx.limit="+limit.intValue());
+			return (limit == null?"":"approx.limit="+limit.intValue());
 		}
 		
 		@Override

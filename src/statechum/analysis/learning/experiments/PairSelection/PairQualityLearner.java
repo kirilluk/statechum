@@ -787,7 +787,7 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
-					if (score >= 0 && MarkovScoreComputation.computeScoreSicco(coregraph, p) < 0)
+					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,false) < 0)
 						score = -1;
 					return score;
 				}

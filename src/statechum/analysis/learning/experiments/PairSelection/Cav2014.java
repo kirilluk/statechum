@@ -46,9 +46,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
@@ -68,7 +66,6 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
-import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
 public class Cav2014 extends PairQualityLearner
 {
@@ -840,6 +837,7 @@ public class Cav2014 extends PairQualityLearner
 		final String branch = "CAV2014;";
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
+
 /*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
@@ -873,6 +871,7 @@ public class Cav2014 extends PairQualityLearner
 									for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
 										gr_BCRForDifferentLearners.add(score.getKey(),score.getValue().differenceBCR.getValue());
 
+>>>>>>> .r859
 								progress.next();
 								gr_BCRForDifferentLearners.drawInteractive(gr);gr_StructuralForDifferentLearners.drawInteractive(gr);
 							}
@@ -937,59 +936,74 @@ public class Cav2014 extends PairQualityLearner
 						}
 			}
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);if (gr_BCR_singletons != null) gr_BCR_singletons.drawPdf(gr);if (gr_BCR_states != null) gr_BCR_states.drawPdf(gr);
-			
+*/			
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
-		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","structural",new File(branch+"structural_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_StructuralForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_absolute_vs_alphabet.pdf"));
 		// Same experiment but with different alphabet size
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax/16,alphabetMultiplierMax/8,alphabetMultiplierMax/4,alphabetMultiplierMax/2,alphabetMultiplierMax,alphabetMultiplierMax*2,alphabetMultiplierMax*4}) 
 			{
-					String selection;
-						selection = branch+";EVALUATION;"+
-								";onlyPositives="+onlyPositives+";";
+				String selection;
+					selection = branch+";EVALUATION;"+
+							";onlyPositives="+onlyPositives+";";
 
-						final int totalTaskNumber = traceQuantity;
-						try
+				final int totalTaskNumber = traceQuantity;
+				try
+				{
+					int numberOfTasks = 0;
+					for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+						for(int sample=0;sample<samplesPerFSM;++sample)
 						{
-							int numberOfTasks = 0;
-							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-								for(int sample=0;sample<samplesPerFSM;++sample)
-								{
-									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
-									learnerRunner.setOnlyUsePositives(onlyPositives);
-									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
-									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
-									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
-									runner.submit(learnerRunner);
-									++numberOfTasks;
-								}
-							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" alphabet multiplier: "+alphabetMultiplier, numberOfTasks);
-							for(int count=0;count < numberOfTasks;++count)
-							{
-								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+							LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
+							learnerRunner.setOnlyUsePositives(onlyPositives);
+							learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+							learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
+							learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+							runner.submit(learnerRunner);
+							++numberOfTasks;
+						}
+					ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" alphabet multiplier: "+alphabetMultiplier, numberOfTasks);
+					for(int count=0;count < numberOfTasks;++count)
+					{
+						ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
 
-								for(SampleData sample:result.samples)
-								{
-									if (sample.referenceLearner.differenceBCR.getValue() > 0)
-										gr_BCRImprovementForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
-									if (sample.referenceLearner.differenceStructural.getValue() > 0)
-										gr_StructuralImprovementForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
-								}
-								progress.next();
+						for(SampleData sample:result.samples)
+						{
+							if (sample.referenceLearner.differenceBCR.getValue() > 0)
+							{
+								gr_BCRImprovementForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+								gr_BCRForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceBCR.getValue());
+							}
+							if (sample.referenceLearner.differenceStructural.getValue() > 0)
+							{
+								gr_StructuralImprovementForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+								gr_StructuralForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceStructural.getValue());
 							}
 						}
-						catch(Exception ex)
-						{
-							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-							if (executorService != null) { executorService.shutdownNow();executorService = null; }
-							throw e;
-						}
+						progress.next();
+					}
+					gr_BCRImprovementForDifferentAlphabetSize.drawInteractive(gr);gr_BCRForDifferentAlphabetSize.drawInteractive(gr);
+					gr_StructuralImprovementForDifferentAlphabetSize.drawInteractive(gr);gr_StructuralForDifferentAlphabetSize.drawInteractive(gr);
+				}
+				catch(Exception ex)
+				{
+					IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+					if (executorService != null) { executorService.shutdownNow();executorService = null; }
+					throw e;
+				}
 			}
-			if (gr_BCRImprovementForDifferentAlphabetSize != null) gr_BCRImprovementForDifferentAlphabetSize.drawPdf(gr);if (gr_StructuralImprovementForDifferentAlphabetSize != null) gr_StructuralImprovementForDifferentAlphabetSize.drawPdf(gr);
-	*/
+			if (gr_BCRImprovementForDifferentAlphabetSize != null) gr_BCRImprovementForDifferentAlphabetSize.drawPdf(gr);
+			if (gr_StructuralImprovementForDifferentAlphabetSize != null) gr_StructuralImprovementForDifferentAlphabetSize.drawPdf(gr);
+			if (gr_BCRForDifferentAlphabetSize != null) gr_BCRForDifferentAlphabetSize.drawPdf(gr);
+			if (gr_StructuralForDifferentAlphabetSize != null) gr_StructuralForDifferentAlphabetSize.drawPdf(gr);
+			
 			// Same experiment but with different number of sequences.
 			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
+			final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));
 			final RBoxPlot<Integer> gr_StructuralImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File(branch+"structural_vs_tracenumber.pdf"));
+			final RBoxPlot<Integer> gr_StructuralForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","structural",new File(branch+"structural_absolute_vs_tracenumber.pdf"));
 			for(final boolean onlyPositives:new boolean[]{true})
 				for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
 					for(int traceNum=2;traceNum<traceQuantity*3;traceNum+=2)
@@ -998,124 +1012,22 @@ public class Cav2014 extends PairQualityLearner
 							selection = branch+";EVALUATION;"+
 									";onlyPositives="+onlyPositives+";";
 
-							final int totalTaskNumber = traceNum;
-							try
-							{
-								int numberOfTasks = 0;
-								for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-									for(int sample=0;sample<samplesPerFSM;++sample)
-									{
-										LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceNum, config, converter);
-										learnerRunner.setOnlyUsePositives(onlyPositives);
-										learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
-										learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
-										learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
-										runner.submit(learnerRunner);
-										++numberOfTasks;
-									}
-								ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace num: "+traceNum, numberOfTasks);
-								for(int count=0;count < numberOfTasks;++count)
-								{
-									ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-									
-									for(SampleData sample:result.samples)
-									{
-										if (sample.referenceLearner.differenceBCR.getValue() > 0)
-											// we'll generate both positives and negatives; in the considered experiments, only positives are used hence half the number of sequences are actually being learnt from.
-											gr_BCRImprovementForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
-										if (sample.referenceLearner.differenceStructural.getValue() > 0)
-											gr_StructuralImprovementForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
-									}
-									progress.next();
-									gr_BCRImprovementForDifferentNrOfTraces.drawInteractive(gr);gr_StructuralImprovementForDifferentNrOfTraces.drawInteractive(gr);
-								}
-							}
-							catch(Exception ex)
-							{
-								IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-								if (executorService != null) { executorService.shutdownNow();executorService = null; }
-								throw e;
-							}
-					}
-			if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
-
-
-			// Same experiment but with different number of sequences, both positive and negative.
-			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber_posneg.pdf"));
-			final RBoxPlot<Integer> gr_StructuralImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File(branch+"structural_vs_tracenumber_posneg.pdf"));
-			for(final boolean onlyPositives:new boolean[]{false})
-				for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
-					for(int traceNum=2;traceNum<traceQuantity*3;traceNum+=2)
-					{
-						String selection;
-							selection = branch+";EVALUATION;"+
-									";onlyPositives="+onlyPositives+";";
-
-							final int totalTaskNumber = traceNum;
-							try
-							{
-								int numberOfTasks = 0;
-								for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-									for(int sample=0;sample<samplesPerFSM;++sample)
-									{
-										LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceNum, config, converter);
-										learnerRunner.setOnlyUsePositives(onlyPositives);
-										learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
-										learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
-										learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
-										runner.submit(learnerRunner);
-										++numberOfTasks;
-									}
-								ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace num: "+traceNum, numberOfTasks);
-								for(int count=0;count < numberOfTasks;++count)
-								{
-									ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-									
-									for(SampleData sample:result.samples)
-									{
-										if (sample.referenceLearner.differenceBCR.getValue() > 0)
-											gr_BCRImprovementForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
-										if (sample.referenceLearner.differenceStructural.getValue() > 0)
-											gr_StructuralImprovementForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
-									}
-									progress.next();
-								}
-							}
-							catch(Exception ex)
-							{
-								IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-								if (executorService != null) { executorService.shutdownNow();executorService = null; }
-								throw e;
-							}
-					}
-			if (gr_BCRImprovementForDifferentNrOfTracesPosNeg != null) gr_BCRImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTracesPosNeg != null) gr_StructuralImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);
-
-		// Same experiment but with different trace length but the same number of sequences
-		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
-		final RBoxPlot<Double> gr_StructuralImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, structural",new File(branch+"structural_vs_tracelength.pdf"));
-		for(final boolean onlyPositives:new boolean[]{true})
-			for(double traceMultiplier=0.125;traceMultiplier<10;traceMultiplier*=2.) 
-				{
-					String selection;
-						selection = branch+";EVALUATION;"+
-								";onlyPositives="+onlyPositives+";";
-
-						final int totalTaskNumber = traceQuantity;
+						final int totalTaskNumber = traceNum;
 						try
 						{
 							int numberOfTasks = 0;
 							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 								for(int sample=0;sample<samplesPerFSM;++sample)
 								{
-									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
-									learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceNum, config, converter);
 									learnerRunner.setOnlyUsePositives(onlyPositives);
-									learnerRunner.setTraceLengthMultiplier(traceMultiplier);learnerRunner.setChunkLen(chunkSize);
+									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
 								}
-							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace length multiplier "+traceMultiplier, numberOfTasks);
+							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace num: "+traceNum, numberOfTasks);
 							for(int count=0;count < numberOfTasks;++count)
 							{
 								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
@@ -1123,14 +1035,20 @@ public class Cav2014 extends PairQualityLearner
 								for(SampleData sample:result.samples)
 								{
 									if (sample.referenceLearner.differenceBCR.getValue() > 0)
-										gr_BCRImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+									{
+										// we'll generate both positives and negatives; in the considered experiments, only positives are used hence half the number of sequences are actually being learnt from.
+										gr_BCRImprovementForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+										gr_BCRForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceBCR.getValue());
+									}
 									if (sample.referenceLearner.differenceStructural.getValue() > 0)
-										gr_StructuralImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+									{
+										gr_StructuralImprovementForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+										gr_StructuralForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceStructural.getValue());
+									}
 								}
 								progress.next();
 							}
-							
-							gr_BCRImprovementForDifferentLengthOfTraces.drawInteractive(gr);gr_StructuralImprovementForDifferentLengthOfTraces.drawInteractive(gr);
+							gr_BCRForDifferentNrOfTraces.drawInteractive(gr);gr_StructuralForDifferentNrOfTraces.drawInteractive(gr);
 						}
 						catch(Exception ex)
 						{
@@ -1138,12 +1056,142 @@ public class Cav2014 extends PairQualityLearner
 							if (executorService != null) { executorService.shutdownNow();executorService = null; }
 							throw e;
 						}
+					}
+			if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);
+			if (gr_BCRForDifferentNrOfTraces != null) gr_BCRForDifferentNrOfTraces.drawPdf(gr);
+			if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
+			if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
+
+
+			// Same experiment but with different number of sequences, both positive and negative.
+			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber_posneg.pdf"));
+			final RBoxPlot<Integer> gr_BCRForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber_posneg.pdf"));
+			final RBoxPlot<Integer> gr_StructuralImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File(branch+"structural_vs_tracenumber_posneg.pdf"));
+			final RBoxPlot<Integer> gr_StructuralForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","structural",new File(branch+"structural_absolute_vs_tracenumber_posneg.pdf"));
+			for(final boolean onlyPositives:new boolean[]{false})
+				for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
+					for(int traceNum=2;traceNum<traceQuantity*3;traceNum+=2)
+					{
+						String selection;
+						selection = branch+";EVALUATION;"+
+								";onlyPositives="+onlyPositives+";";
+
+						final int totalTaskNumber = traceNum;
+						try
+						{
+							int numberOfTasks = 0;
+							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+								for(int sample=0;sample<samplesPerFSM;++sample)
+								{
+									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceNum, config, converter);
+									learnerRunner.setOnlyUsePositives(onlyPositives);
+									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
+									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+									runner.submit(learnerRunner);
+									++numberOfTasks;
+								}
+							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace num: "+traceNum, numberOfTasks);
+							for(int count=0;count < numberOfTasks;++count)
+							{
+								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+								
+								for(SampleData sample:result.samples)
+								{
+									if (sample.referenceLearner.differenceBCR.getValue() > 0)
+									{
+										gr_BCRImprovementForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+										gr_BCRForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceBCR.getValue());
+									}
+									if (sample.referenceLearner.differenceStructural.getValue() > 0)
+									{
+										gr_StructuralImprovementForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+										gr_StructuralForDifferentNrOfTracesPosNeg.add(traceNum,sample.actualLearner.differenceStructural.getValue());
+									}
+								}
+								progress.next();
+							}
+							gr_BCRForDifferentNrOfTracesPosNeg.drawInteractive(gr);gr_StructuralForDifferentNrOfTracesPosNeg.drawInteractive(gr);
+						}
+						catch(Exception ex)
+						{
+							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+							if (executorService != null) { executorService.shutdownNow();executorService = null; }
+							throw e;
+						}
+					}
+		if (gr_BCRImprovementForDifferentNrOfTracesPosNeg != null) gr_BCRImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);
+		if (gr_BCRForDifferentNrOfTracesPosNeg != null) gr_BCRForDifferentNrOfTracesPosNeg.drawPdf(gr);
+		if (gr_StructuralImprovementForDifferentNrOfTracesPosNeg != null) gr_StructuralImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);
+		if (gr_StructuralForDifferentNrOfTracesPosNeg != null) gr_StructuralForDifferentNrOfTracesPosNeg.drawPdf(gr);
+
+		// Same experiment but with different trace length but the same number of sequences
+		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
+		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
+		final RBoxPlot<Double> gr_StructuralImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, structural",new File(branch+"structural_vs_tracelength.pdf"));
+		final RBoxPlot<Double> gr_StructuralForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","structural",new File(branch+"structural_absolute_vs_tracelength.pdf"));
+		for(final boolean onlyPositives:new boolean[]{true})
+			for(double traceMultiplier=0.125;traceMultiplier<10;traceMultiplier*=2.) 
+				{
+					String selection;
+						selection = branch+";EVALUATION;"+
+								";onlyPositives="+onlyPositives+";";
+
+					final int totalTaskNumber = traceQuantity;
+					try
+					{
+						int numberOfTasks = 0;
+						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+							for(int sample=0;sample<samplesPerFSM;++sample)
+							{
+								LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
+								learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+								learnerRunner.setOnlyUsePositives(onlyPositives);
+								learnerRunner.setTraceLengthMultiplier(traceMultiplier);learnerRunner.setChunkLen(chunkSize);
+								learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+								runner.submit(learnerRunner);
+								++numberOfTasks;
+							}
+						ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace length multiplier "+traceMultiplier, numberOfTasks);
+						for(int count=0;count < numberOfTasks;++count)
+						{
+							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+							
+							for(SampleData sample:result.samples)
+							{
+								if (sample.referenceLearner.differenceBCR.getValue() > 0)
+								{
+									gr_BCRImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+									gr_BCRForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceBCR.getValue());
+								}
+								if (sample.referenceLearner.differenceStructural.getValue() > 0)
+								{
+									gr_StructuralImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+									gr_StructuralForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue());
+								}
+							}
+							progress.next();
+						}
+						
+						gr_BCRForDifferentLengthOfTraces.drawInteractive(gr);gr_StructuralForDifferentLengthOfTraces.drawInteractive(gr);
+					}
+					catch(Exception ex)
+					{
+						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+						if (executorService != null) { executorService.shutdownNow();executorService = null; }
+						throw e;
+					}
 				}
-		if (gr_BCRImprovementForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_BCRImprovementForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_BCRForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 
 		// Same experiment but with different prefix length but the same number of sequences and their length
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
+		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
+		final RBoxPlot<Integer> gr_StructuralForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","structural",new File(branch+"structural_absolute_vs_prefixLength.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(int prefixLength=1;prefixLength<6;++prefixLength) 
 				{
@@ -1174,13 +1222,19 @@ public class Cav2014 extends PairQualityLearner
 								for(SampleData sample:result.samples)
 								{
 									if (sample.referenceLearner.differenceBCR.getValue() > 0)
+									{
 										gr_BCRImprovementForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+										gr_BCRForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceBCR.getValue());
+									}
 									if (sample.referenceLearner.differenceStructural.getValue() > 0)
+									{
 										gr_StructuralImprovementForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+										gr_StructuralForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceStructural.getValue());
+									}
 								}
 								progress.next();
 							}
-							gr_BCRImprovementForDifferentPrefixlen.drawInteractive(gr);gr_StructuralImprovementForDifferentPrefixlen.drawInteractive(gr);
+							gr_BCRForDifferentPrefixlen.drawInteractive(gr);gr_StructuralForDifferentPrefixlen.drawInteractive(gr);
 						}
 						catch(Exception ex)
 						{
@@ -1190,7 +1244,10 @@ public class Cav2014 extends PairQualityLearner
 						}
 						
 				}
-		if (gr_BCRImprovementForDifferentPrefixlen != null) gr_BCRImprovementForDifferentPrefixlen.drawPdf(gr);if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
+		if (gr_BCRImprovementForDifferentPrefixlen != null) gr_BCRImprovementForDifferentPrefixlen.drawPdf(gr);
+		if (gr_BCRForDifferentPrefixlen != null) gr_BCRForDifferentPrefixlen.drawPdf(gr);
+		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
+		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
 
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}

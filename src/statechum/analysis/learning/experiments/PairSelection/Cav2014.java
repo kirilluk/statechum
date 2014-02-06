@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -41,10 +42,13 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
@@ -68,6 +72,24 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
 public class Cav2014 extends PairQualityLearner
 {
+	public static class LearnerAbortedException extends RuntimeException
+	{
+
+		/**
+		 * ID for serialisation
+		 */
+		private static final long serialVersionUID = 5271079210565150062L;
+		
+		public static void throwExceptionIfTooManyReds( LearnerGraph graph )
+		{
+			long countOfRed = 0;
+			for(CmpVertex v:graph.transitionMatrix.keySet())
+				if (v.getColour() == JUConstants.RED)
+					if (countOfRed++ > 200)
+						throw new LearnerAbortedException();
+		}
+	}
+	
 	public static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -112,65 +134,6 @@ public class Cav2014 extends PairQualityLearner
 			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
 		}
 		
-		class UnusualVertices implements Comparable<UnusualVertices>
-		{
-			final public long score;
-			final public List<CmpVertex> vertices;
-			final public List<StatePair> verticesToMerge;
-			
-			public UnusualVertices(long s, List<CmpVertex> v, List<StatePair> p) 
-			{
-				score = s;vertices=v;verticesToMerge=p;
-			}
-
-			@Override
-			public int compareTo(UnusualVertices o) {
-				return (int)(score - o.score);
-			}
-
-			/* (non-Javadoc)
-			 * @see java.lang.Object#hashCode()
-			 */
-			@Override
-			public int hashCode() {
-				final int prime = 31;
-				int result = 1;
-				result = prime * result + getOuterType().hashCode();
-				result = prime * result + (int)score;
-				result = prime * result
-						+ ((vertices == null) ? 0 : vertices.hashCode());
-				return result;
-			}
-
-			/* (non-Javadoc)
-			 * @see java.lang.Object#equals(java.lang.Object)
-			 */
-			@Override
-			public boolean equals(Object obj) {
-				if (this == obj)
-					return true;
-				if (obj == null)
-					return false;
-				if (!(obj instanceof UnusualVertices))
-					return false;
-				UnusualVertices other = (UnusualVertices) obj;
-				if (!getOuterType().equals(other.getOuterType()))
-					return false;
-				if (score != other.score)
-					return false;
-				if (vertices == null) {
-					if (other.vertices != null)
-						return false;
-				} else if (!vertices.equals(other.vertices))
-					return false;
-				return true;
-			}
-
-			private LearnerRunner getOuterType() {
-				return LearnerRunner.this;
-			}
-		}
-		
 		@Override
 		public ThreadResult call() throws Exception 
 		{
@@ -187,13 +150,7 @@ public class Cav2014 extends PairQualityLearner
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				// test sequences will be distributed around 
-				final int pathLength = generator.getPathLength();
-				// The total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
-				// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
-				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
 				final int tracesToGenerate = makeEven(traceQuantity);
-				final Random rnd = new Random(seed*31+attempt);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
@@ -249,7 +206,6 @@ public class Cav2014 extends PairQualityLearner
 				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
-				// now use pathsToMerge to compute which states can/cannot be merged together.
 				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
 				
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
@@ -293,8 +249,16 @@ public class Cav2014 extends PairQualityLearner
 						long pairScore = p.getScore();
 						
 						if (pairScore >= 0)
+						{
+							/*
+							long extScore = extendedGraph.pairscores.computePairCompatibilityScore(p);
+							if (extScore < 3)
+								pairScore = -1;
+							else
+								pairScore = extScore;
+								*/
 							pairScore = MarkovScoreComputation.computenewscore(p, extendedGraph);
-
+						}
 						return pairScore;
 					}
 
@@ -325,10 +289,20 @@ public class Cav2014 extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
-				LearnerGraph outcomeOfReferenceLearner = new PTAReferenceLearner(learnerEval,referenceGraph,ptaCopy).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-				dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
-				
+				dataSample.referenceLearner = zeroScore;
+				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(config);
+				try
+				{
+					outcomeOfReferenceLearner = //new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+							new EDSMReferenceLearner(learnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
+				}
+				catch(LearnerAbortedException ex)
+				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
+				}				
+				dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
+				dataSample.stateNumber = referenceGraph.getStateNumber();
 				Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
 				int wSeqLen=0;
 				for(List<Label> seq:wset)
@@ -359,14 +333,183 @@ public class Cav2014 extends PairQualityLearner
 		}
 	}
 	
+	public static class EvaluationOfExisingLearnerRunner implements Callable<ThreadResult>
+	{
+		protected final Configuration config;
+		protected final ConvertALabel converter;
+		protected final int states,sample;
+		protected boolean onlyUsePositives;
+		protected final int seed;
+		protected int chunkLen=4;
+		protected final int traceQuantity;
+		protected String selectionID;
+		protected double alphabetMultiplier = 2.;
+		protected double traceLengthMultiplier = 2;
+		
+		public void setSelectionID(String value)
+		{
+			selectionID = value;
+		}
+		
+		public void setTraceLengthMultiplier(double value)
+		{
+			traceLengthMultiplier = value;
+		}
+		
+		/** Whether to filter the collection of traces such that only positive traces are used. */
+		public void setOnlyUsePositives(boolean value)
+		{
+			onlyUsePositives = value;
+		}
+		
+		public void setAlphabetMultiplier(double mult)
+		{
+			alphabetMultiplier = mult;
+		}
+		
+		public void setChunkLen(int len)
+		{
+			chunkLen = len;
+		}
+		
+		public EvaluationOfExisingLearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
+		{
+			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
+		}
+		
+		@Override
+		public ThreadResult call() throws Exception 
+		{
+			final int alphabet = (int)(alphabetMultiplier*states);
+			LearnerGraph referenceGraph = null;
+			ThreadResult outcome = new ThreadResult();
+			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+			
+			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*alphabet));
+
+			for(int attempt=0;attempt<2;++attempt)
+			{// try learning the same machine a few times
+				LearnerGraph pta = new LearnerGraph(config);
+				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
+				final int tracesToGenerate = makeEven(traceQuantity);
+				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+										
+						@Override
+						public int getLength() {
+							return (int)(traceLengthMultiplier*states*alphabet);
+						}
+		
+						@Override
+						public int getPrefixLength(int len) {
+							return len;
+						}
+					});
+
+				if (onlyUsePositives)
+				{
+					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
+						@Override
+						public boolean shouldBeReturned(Object name) {
+							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+						}
+					}));
+				}
+				else
+					pta.paths.augmentPTA(generator.getAllSequences(0));
+		
+				List<List<Label>> sPlus = generator.getAllSequences(0).getData(new FilterPredicate() {
+					@Override
+					public boolean shouldBeReturned(Object name) {
+						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+					}
+				});
+				List<List<Label>> sMinus= generator.getAllSequences(0).getData(new FilterPredicate() {
+					@Override
+					public boolean shouldBeReturned(Object name) {
+						return !((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+					}
+				});
+				assert sPlus.size() > 0;
+				assert sMinus.size() > 0;
+				final MarkovModel m= new MarkovModel(chunkLen,true,true);
+				m.createMarkovLearner(sPlus, sMinus,false);
+				
+				pta.clearColours();
+
+				if (!onlyUsePositives)
+					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
+				else 
+					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+				
+				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
+				SampleData dataSample=new SampleData();
+				dataSample.miscGraphs = new TreeMap<String,ScoresForGraph>();
+				List<LearnerThatCanClassifyPairs> learnerList = new ArrayList<LearnerThatCanClassifyPairs>();
+				
+				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,true));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,false));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,1));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,2));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,1));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,2));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,1));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,2));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,3));
+				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,4));
+				
+				for(LearnerThatCanClassifyPairs learnerToUse:learnerList)
+					try
+					{
+						dataSample.miscGraphs.put(learnerToUse.toString(),estimateDifference(referenceGraph,learnerToUse.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()),testSet));
+					}
+					catch(LearnerAbortedException ex)
+					{// the exception is thrown because the learner failed to learn anything completely.
+						dataSample.miscGraphs.put(learnerToUse.toString(),zeroScore);
+					}
+				System.out.println(dataSample);
+				outcome.samples.add(dataSample);
+			}
+			
+			return outcome;
+		}
+
+		// Delegates to a specific estimator
+		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
+		{
+			ScoresForGraph outcome = new ScoresForGraph();
+			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
+			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
+			return outcome;
+		}
+	}
+		
+	public static final ScoresForGraph zeroScore;
+	static
+	{
+		zeroScore = new ScoresForGraph();zeroScore.differenceBCR=new DifferenceToReferenceLanguageBCR(0, 0, 0, 0);zeroScore.differenceStructural=new DifferenceToReferenceDiff(0, 0);
+	}
 	
 	/** Merges states using a routing relying on PTA, that faster and consumes less memory than the general one. */
-	public static class PTAReferenceLearner extends ReferenceLearner
+	public static class ReferenceLearnerUsingSiccoScoring extends LearnerThatCanClassifyPairs
 	{
 
-		public PTAReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA) 
+		protected final boolean scoringSiccoRecursive;
+		
+		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
 		{
-			super(evalCnf, argReferenceGraph, argInitialPTA);
+			super(evalCnf,null, argInitialPTA);this.scoringSiccoRecursive = scoringSiccoRecursive;
 		}
 
 		@Override 
@@ -375,8 +518,147 @@ public class Cav2014 extends PairQualityLearner
 			return MergeStates.mergeAndDeterminize(original, pair);
 		}
 		
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
+
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
+				 */
+				@Override
+				public long overrideScoreComputation(PairScore p) 
+				{
+					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
+					long score = p.getScore();
+					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
+						score = -1;
+					return score;
+				}});
+			if (!outcome.isEmpty())
+			{
+				PairScore chosenPair = pickPairQSMLike(outcome);
+				outcome.clear();outcome.push(chosenPair);
+			}
+			
+			return outcome;
+		}		
+		
+		@Override
+		public String toString()
+		{
+			return scoringSiccoRecursive? "SiccoR":"SiccoN";
+		}
 	}
 	
+	/** This one is a reference learner. */
+	public static class KTailsReferenceLearner extends LearnerThatCanClassifyPairs
+	{
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, boolean allPaths, int k)
+		{
+			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(allPaths? Configuration.ScoreMode.KTAILS:Configuration.ScoreMode.KTAILS_ANY);config.setKlimit(k);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
+			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
+			copy.setLabelConverter(evalCnf.getLabelConverter());
+			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
+			return copy;
+		}
+		
+		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
+		{
+			super(constructConfiguration(evalCnf,allPaths,k),null, argInitialPTA);
+		}
+		
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
+
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
+				 */
+				@Override
+				public long overrideScoreComputation(PairScore p) 
+				{
+					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
+					return super.overrideScoreComputation(p);
+				}});
+			if (!outcome.isEmpty())
+			{
+				PairScore chosenPair = pickPairQSMLike(outcome);
+				outcome.clear();outcome.push(chosenPair);
+			}
+			
+			return outcome;
+		}		
+
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+
+		@Override
+		public String toString()
+		{
+			return (config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS? "k-tails":"k-tails(a)")+","+config.getKlimit();
+		}		
+	}
+	
+	/** This one is a reference learner. */
+	public static class EDSMReferenceLearner extends LearnerThatCanClassifyPairs
+	{
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
+		{
+			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
+			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
+			copy.setLabelConverter(evalCnf.getLabelConverter());
+			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
+			return copy;
+		}
+
+		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		{
+			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA);
+		}
+
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
+
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
+				 */
+				@Override
+				public long overrideScoreComputation(PairScore p) 
+				{
+					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
+					return super.overrideScoreComputation(p);
+				}});
+			if (!outcome.isEmpty())
+			{
+				PairScore chosenPair = pickPairQSMLike(outcome);
+				outcome.clear();outcome.push(chosenPair);
+			}
+			
+			return outcome;
+		}		
+
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "EDSM,>="+config.getRejectPositivePairsWithScoresLessThan();
+		}		
+	}
+
 	/** Uses the supplied classifier to rank pairs. */
 	public static class LearnerMarkovPassive extends LearnerThatCanClassifyPairs
 	{
@@ -513,43 +795,6 @@ public class Cav2014 extends PairQualityLearner
 		}
 	}
 
-	public static void updateGraph(final RBoxPlot<Long> gr_PairQuality, Map<Long,TrueFalseCounter> pairQuality)
-	{
-		if (gr_PairQuality != null)
-		{
-			for(Entry<Long,TrueFalseCounter> entry:pairQuality.entrySet())
-				gr_PairQuality.add(entry.getKey(), 100*entry.getValue().trueCounter/((double)entry.getValue().trueCounter+entry.getValue().falseCounter));
-		}		
-	}
-
-	/** Records scores of pairs that are correctly classified and misclassified. */
-	protected static void updateStatistics( Map<Long,TrueFalseCounter> pairQuality, LearnerGraph tentativeGraph, LearnerGraph referenceGraph, Collection<PairScore> pairsToConsider)
-	{
-		if (!pairsToConsider.isEmpty() && pairQuality != null)
-		{
-			List<PairScore> correctPairs = new ArrayList<PairScore>(pairsToConsider.size()), wrongPairs = new ArrayList<PairScore>(pairsToConsider.size());
-			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairsToConsider, correctPairs, wrongPairs);
-
-			
-			for(PairScore pair:pairsToConsider)
-			{
-				if (pair.getQ().isAccept() && pair.getR().isAccept() && pair.getScore() < 150)
-					synchronized(pairQuality)
-					{
-						TrueFalseCounter counter = pairQuality.get(pair.getScore());
-						if (counter == null)
-						{
-							counter = new TrueFalseCounter();pairQuality.put(pair.getScore(),counter);
-						}
-						if (correctPairs.contains(pair))
-							counter.trueCounter++;
-						else
-							counter.falseCounter++;
-					}
-			}
-		}
-	}
-
 	public static void main(String args[]) throws Exception
 	{
 		try
@@ -595,11 +840,60 @@ public class Cav2014 extends PairQualityLearner
 		final String branch = "CAV2014;";
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
+/*
+		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
+		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
+		for(final boolean onlyPositives:new boolean[]{true})
+			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
+			{
+						final int totalTaskNumber = traceQuantity;
+						try
+						{
+							int numberOfTasks = 0;
+							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+								for(int sample=0;sample<samplesPerFSM;++sample)
+								{
+									EvaluationOfExisingLearnerRunner learnerRunner = new EvaluationOfExisingLearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
+									learnerRunner.setOnlyUsePositives(onlyPositives);
+									learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
+									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
+									learnerRunner.setSelectionID(branch+"_states"+states+"_sample"+sample);
+									runner.submit(learnerRunner);
+									++numberOfTasks;
+								}
+							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for the behaviour of different learners", numberOfTasks);
+							for(int count=0;count < numberOfTasks;++count)
+							{
+								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+								for(SampleData sample:result.samples)
+									for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
+										gr_StructuralForDifferentLearners.add(score.getKey(),score.getValue().differenceStructural.getValue());
+							
+								for(SampleData sample:result.samples)
+									for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
+										gr_BCRForDifferentLearners.add(score.getKey(),score.getValue().differenceBCR.getValue());
 
-		// Inference from a single trace
+								progress.next();
+								gr_BCRForDifferentLearners.drawInteractive(gr);gr_StructuralForDifferentLearners.drawInteractive(gr);
+							}
+							
+						}
+						catch(Exception ex)
+						{
+							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+							if (executorService != null) { executorService.shutdownNow();executorService = null; }
+							throw e;
+						}
+			}
+			if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
+		*/
+		/*
+		// Inference from a few traces
 		final int traceQuantityToUse = traceQuantity;
 		SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural diff Score, original","Structural Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_structuraldiff.pdf"),0,1,true);
-		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, original","BCR, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_onetrace_bcr.pdf"),0.5,1,true);
+		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, original","BCR, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr.pdf"),0.5,1,true);
+		RBagPlot gr_BCR_singletons = new RBagPlot("%% states identified by singletons","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_singletons.pdf"));
+		RBagPlot gr_BCR_states = new RBagPlot("number of states in reference","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_numberofstates.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
 			{
@@ -626,11 +920,14 @@ public class Cav2014 extends PairQualityLearner
 									gr_StructuralDiff.add(sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue());
 							
 								for(SampleData sample:result.samples)
+								{
 									gr_BCR.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
-
+									gr_BCR_singletons.add((double)sample.fractionOfStatesIdentifiedBySingletons,sample.actualLearner.differenceBCR.getValue());
+									gr_BCR_states.add((double)sample.stateNumber,sample.actualLearner.differenceBCR.getValue());
+								}
 								progress.next();
 							}
-							gr_StructuralDiff.drawInteractive(gr);gr_BCR.drawInteractive(gr);
+							gr_StructuralDiff.drawInteractive(gr);gr_BCR.drawInteractive(gr);gr_BCR_singletons.drawInteractive(gr);gr_BCR_states.drawInteractive(gr);
 						}
 						catch(Exception ex)
 						{
@@ -639,7 +936,7 @@ public class Cav2014 extends PairQualityLearner
 							throw e;
 						}
 			}
-			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);
+			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);if (gr_BCR_singletons != null) gr_BCR_singletons.drawPdf(gr);if (gr_BCR_states != null) gr_BCR_states.drawPdf(gr);
 			
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
@@ -689,7 +986,7 @@ public class Cav2014 extends PairQualityLearner
 						}
 			}
 			if (gr_BCRImprovementForDifferentAlphabetSize != null) gr_BCRImprovementForDifferentAlphabetSize.drawPdf(gr);if (gr_StructuralImprovementForDifferentAlphabetSize != null) gr_StructuralImprovementForDifferentAlphabetSize.drawPdf(gr);
-	
+	*/
 			// Same experiment but with different number of sequences.
 			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 			final RBoxPlot<Integer> gr_StructuralImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File(branch+"structural_vs_tracenumber.pdf"));
@@ -730,6 +1027,7 @@ public class Cav2014 extends PairQualityLearner
 											gr_StructuralImprovementForDifferentNrOfTraces.add(traceNum/2,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
 									}
 									progress.next();
+									gr_BCRImprovementForDifferentNrOfTraces.drawInteractive(gr);gr_StructuralImprovementForDifferentNrOfTraces.drawInteractive(gr);
 								}
 							}
 							catch(Exception ex)
@@ -738,8 +1036,8 @@ public class Cav2014 extends PairQualityLearner
 								if (executorService != null) { executorService.shutdownNow();executorService = null; }
 								throw e;
 							}
-							if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 					}
+			if (gr_BCRImprovementForDifferentNrOfTraces != null) gr_BCRImprovementForDifferentNrOfTraces.drawPdf(gr);if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 
 
 			// Same experiment but with different number of sequences, both positive and negative.

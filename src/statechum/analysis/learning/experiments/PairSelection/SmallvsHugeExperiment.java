@@ -209,7 +209,7 @@ public class SmallvsHugeExperiment {
 			{
 				
 				LearnerGraph reducedPTA = PairQualityLearner.mergeStatesForUnique(pta,uniqueFromInitial);
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA);
+				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA,false);
 				//learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 				
 				synchronized (AbstractLearnerGraph.syncObj) {
@@ -225,7 +225,7 @@ public class SmallvsHugeExperiment {
 					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 					if (score < 0)
 					{
-						learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA);
+						learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA,false);
 						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
@@ -239,7 +239,7 @@ public class SmallvsHugeExperiment {
 			}
 
 			{// not merging based on a unique transition from an initial state
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, pta);
+				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, pta,false);
 				synchronized (AbstractLearnerGraph.syncObj) {
 					PaperUAS.computePTASize(selectionID+" no unique: ", pta, referenceGraph);
 				}

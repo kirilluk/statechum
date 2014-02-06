@@ -48,7 +48,7 @@ import statechum.analysis.Erlang.OTPBehaviour;
 
 public abstract class RPNILearner extends Observable implements Learner {
 
-    protected final Configuration config;
+    final protected Configuration config;
     /** The frame in relation to which to pop dialog boxes. */
     protected Frame parentFrame;
 

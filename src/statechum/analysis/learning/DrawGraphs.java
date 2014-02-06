@@ -606,6 +606,38 @@ public class DrawGraphs {
 		}
 	}
 	
+	public static class RBoxPlotP<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public RBoxPlotP(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<List<Double>> data = new LinkedList<List<Double>>();
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			{
+				data.add(entry.getValue().results);
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	
 	public static class RBagPlot extends RGraph<Double>
 	{
 		public RBagPlot(String x, String y, File name) {

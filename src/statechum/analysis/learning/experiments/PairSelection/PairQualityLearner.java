@@ -738,12 +738,49 @@ public class PairQualityLearner
 	}
 	
 
+	public static class DefaultRedNodeSelectionProcedure implements PairScoreComputation.RedNodeSelectionProcedure
+	{
+		@Override
+		public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+		{
+			CmpVertex redVertex = tentativeRedNodes.iterator().next();
+			return redVertex;
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
+		{
+			return null;
+		}
+
+		LearnerGraph coregraph = null;
+		
+		@Override
+		public void initComputation(LearnerGraph gr) {
+			coregraph = gr;
+		}
+
+		@Override
+		public long overrideScoreComputation(PairScore p) {
+			return p.getScore();
+		}
+
+		@Override
+		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+		{
+			return null;// dummy, ignored if null.
+		}
+	}
+	
 	/** This one is a reference learner. */
 	public static class ReferenceLearner extends LearnerThatCanClassifyPairs
 	{
-		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		protected final boolean scoringSiccoRecursive;
+		
+		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
 		{
-			super(evalCnf,argReferenceGraph, argInitialPTA);
+			super(evalCnf,argReferenceGraph, argInitialPTA);this.scoringSiccoRecursive = scoringSiccoRecursive;
 		}
 		
 		protected Map<Long,TrueFalseCounter> pairQuality;
@@ -787,7 +824,7 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
-					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,false) < 0)
+					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
 						score = -1;
 					return score;
 				}
@@ -1457,6 +1494,14 @@ public class PairQualityLearner
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
 		public ScoresForGraph actualLearner,referenceLearner;
+		public Map<String,ScoresForGraph> miscGraphs;
+		public long fractionOfStatesIdentifiedBySingletons = 0;
+		public long stateNumber = 0;
+		
+		public SampleData()
+		{
+			this(null,null);
+		}
 		
 		public SampleData(LearnerGraph argReferenceGraph, LearnerGraph argInitialPTA)
 		{
@@ -1466,7 +1511,11 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return actualLearner.toString();
+			if (actualLearner !=null) return actualLearner.toString();
+			if (referenceLearner !=null) return referenceLearner.toString();
+			if (miscGraphs != null) return miscGraphs.toString();
+			
+			return "UNKNOWN";
 		}
 	}
 	
@@ -1907,7 +1956,7 @@ public class PairQualityLearner
 				if (learnUsingReferenceLearner)
 				{
 					dataSample.actualLearner=estimateDifference(referenceGraph,actualAutomaton,testSet);
-					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 					//actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");

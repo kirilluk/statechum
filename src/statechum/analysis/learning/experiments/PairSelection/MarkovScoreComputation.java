@@ -935,7 +935,7 @@ public class MarkovScoreComputation
 	public static long computenewscore(PairScore Pair, LearnerGraph predicted_graph)
 	{
 		long score=-1;
-
+		assert Pair.getR().getColour() == JUConstants.RED;
 		Set<Label> predicted_from_blue_node = predicted_graph.transitionMatrix.get(Pair.getQ()).keySet();
 		Set<Label> predicted_from_red_node = predicted_graph.transitionMatrix.get(Pair.getR()).keySet();
 

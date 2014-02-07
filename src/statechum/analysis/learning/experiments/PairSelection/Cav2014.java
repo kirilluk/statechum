@@ -48,6 +48,7 @@ import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
+import statechum.analysis.learning.DrawGraphs.ScatterPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
@@ -841,7 +842,6 @@ public class Cav2014 extends PairQualityLearner
 		final String branch = "CAV2014;";
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-/*
 
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
@@ -889,13 +889,13 @@ public class Cav2014 extends PairQualityLearner
 			}
 			if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
 
-*/
 		// Inference from a few traces
 		final int traceQuantityToUse = traceQuantity;
-		SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural diff score, original","Structural Score, EDSM-Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_structuraldiff.pdf"),0,1,true);
-		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, original","BCR, EDSM-Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr.pdf"),0.5,1,true);
-		RBagPlot gr_BCR_singletons = new RBagPlot("%% states identified by singletons","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_singletons.pdf"));
-		RBagPlot gr_BCR_states = new RBagPlot("number of states in reference","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_numberofstates.pdf"));
+		SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, EDSM,>=2","Structural Score, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_structuraldiff.pdf"),0,1,true);
+		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, EDSM,>=2","BCR, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_bcr.pdf"),0.5,1,true);
+		RBagPlot gr_BCR_singletons = new RBagPlot("%% states identified by singletons","BCR Score, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_bcr_singletons.pdf"));
+		RBagPlot gr_BCR_states = new RBagPlot("number of states in reference","BCR Score, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_bcr_numberofstates.pdf"));
+		ScatterPlot gr_ImprovementPerState = new ScatterPlot("State number", "BCR, improvement",new File(branch+"_"+(traceQuantityToUse/2)+"_bcr_statenumber.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax}) 
 			{
@@ -926,10 +926,12 @@ public class Cav2014 extends PairQualityLearner
 									gr_BCR.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
 									gr_BCR_singletons.add((double)sample.fractionOfStatesIdentifiedBySingletons,sample.actualLearner.differenceBCR.getValue());
 									gr_BCR_states.add((double)sample.stateNumber,sample.actualLearner.differenceBCR.getValue());
+									if (sample.referenceLearner.differenceBCR.getValue() > 0)
+									gr_ImprovementPerState.add((double)sample.stateNumber,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
 								}
 								progress.next();
 							}
-							gr_StructuralDiff.drawInteractive(gr);gr_BCR.drawInteractive(gr);gr_BCR_singletons.drawInteractive(gr);gr_BCR_states.drawInteractive(gr);
+							gr_StructuralDiff.drawInteractive(gr);gr_BCR.drawInteractive(gr);gr_BCR_singletons.drawInteractive(gr);gr_BCR_states.drawInteractive(gr);gr_ImprovementPerState.drawInteractive(gr);
 						}
 						catch(Exception ex)
 						{
@@ -938,8 +940,12 @@ public class Cav2014 extends PairQualityLearner
 							throw e;
 						}
 			}
-			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);if (gr_BCR_singletons != null) gr_BCR_singletons.drawPdf(gr);if (gr_BCR_states != null) gr_BCR_states.drawPdf(gr);
-/*
+			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
+			if (gr_BCR != null) gr_BCR.drawPdf(gr);
+			if (gr_BCR_singletons != null) gr_BCR_singletons.drawPdf(gr);
+			if (gr_BCR_states != null) gr_BCR_states.drawPdf(gr);
+			if (gr_ImprovementPerState != null) gr_ImprovementPerState.drawPdf(gr);
+
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
@@ -1064,8 +1070,7 @@ public class Cav2014 extends PairQualityLearner
 			if (gr_BCRForDifferentNrOfTraces != null) gr_BCRForDifferentNrOfTraces.drawPdf(gr);
 			if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 			if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
-*/
-/*
+
 			// Same experiment but with different number of sequences, both positive and negative.
 			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber_posneg.pdf"));
 			final RBoxPlot<Integer> gr_BCRForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber_posneg.pdf"));
@@ -1127,7 +1132,7 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentNrOfTracesPosNeg != null) gr_BCRForDifferentNrOfTracesPosNeg.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentNrOfTracesPosNeg != null) gr_StructuralImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTracesPosNeg != null) gr_StructuralForDifferentNrOfTracesPosNeg.drawPdf(gr);
-*/
+
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
@@ -1190,7 +1195,6 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
 
-/*
 		// Same experiment but with different prefix length but the same number of sequences and their length
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
@@ -1252,7 +1256,7 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentPrefixlen != null) gr_BCRForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
-*/
+
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}
 }

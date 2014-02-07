@@ -160,7 +160,7 @@ public class TestDrawGraphs {
 	public void testBagPlotToStringFail1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.bagPlotToString(new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
+			DrawGraphs.datasetToString("bagplot",new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
 		}},IllegalArgumentException.class,"empty");
 	}
 	
@@ -171,7 +171,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{6.7}),null);
+			DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{6.7}),null);
 		}},IllegalArgumentException.class,"mismatch");
 	}
 
@@ -182,7 +182,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0))",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),null));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),null));
 	}
 
 	@Test
@@ -192,7 +192,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0),someOther attrs)",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
 	}
 
 	@Test
@@ -201,7 +201,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0),c(4.0,5.0),someOther attrs)",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
 	}
 
 	@Before

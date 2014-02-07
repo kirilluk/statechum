@@ -47,6 +47,7 @@ import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
@@ -66,6 +67,9 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.analysis.learning.DrawGraphs.RBagPlot;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+
 
 public class Cav2014 extends PairQualityLearner
 {
@@ -837,8 +841,8 @@ public class Cav2014 extends PairQualityLearner
 		final String branch = "CAV2014;";
 		// Stores tasks to complete.
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-
 /*
+
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
@@ -871,7 +875,6 @@ public class Cav2014 extends PairQualityLearner
 									for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
 										gr_BCRForDifferentLearners.add(score.getKey(),score.getValue().differenceBCR.getValue());
 
->>>>>>> .r859
 								progress.next();
 								gr_BCRForDifferentLearners.drawInteractive(gr);gr_StructuralForDifferentLearners.drawInteractive(gr);
 							}
@@ -885,12 +888,12 @@ public class Cav2014 extends PairQualityLearner
 						}
 			}
 			if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
-		*/
-		/*
+
+*/
 		// Inference from a few traces
 		final int traceQuantityToUse = traceQuantity;
-		SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural diff Score, original","Structural Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_structuraldiff.pdf"),0,1,true);
-		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, original","BCR, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr.pdf"),0.5,1,true);
+		SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural diff score, original","Structural Score, EDSM-Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_structuraldiff.pdf"),0,1,true);
+		SquareBagPlot gr_BCR = new SquareBagPlot("BCR, original","BCR, EDSM-Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr.pdf"),0.5,1,true);
 		RBagPlot gr_BCR_singletons = new RBagPlot("%% states identified by singletons","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_singletons.pdf"));
 		RBagPlot gr_BCR_states = new RBagPlot("number of states in reference","BCR Score, Markov Learner",new File(branch+"_"+traceQuantityToUse+"_trace_bcr_numberofstates.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
@@ -936,11 +939,11 @@ public class Cav2014 extends PairQualityLearner
 						}
 			}
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);if (gr_BCR != null) gr_BCR.drawPdf(gr);if (gr_BCR_singletons != null) gr_BCR_singletons.drawPdf(gr);if (gr_BCR_states != null) gr_BCR_states.drawPdf(gr);
-*/			
+/*
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
-		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","structural",new File(branch+"structural_vs_alphabet.pdf"));
-		final RBoxPlot<String> gr_StructuralForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_absolute_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_StructuralForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","structural",new File(branch+"structural_absolute_vs_alphabet.pdf"));
 		// Same experiment but with different alphabet size
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax/16,alphabetMultiplierMax/8,alphabetMultiplierMax/4,alphabetMultiplierMax/2,alphabetMultiplierMax,alphabetMultiplierMax*2,alphabetMultiplierMax*4}) 
@@ -1061,8 +1064,8 @@ public class Cav2014 extends PairQualityLearner
 			if (gr_BCRForDifferentNrOfTraces != null) gr_BCRForDifferentNrOfTraces.drawPdf(gr);
 			if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 			if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
-
-
+*/
+/*
 			// Same experiment but with different number of sequences, both positive and negative.
 			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber_posneg.pdf"));
 			final RBoxPlot<Integer> gr_BCRForDifferentNrOfTracesPosNeg = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber_posneg.pdf"));
@@ -1124,9 +1127,9 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentNrOfTracesPosNeg != null) gr_BCRForDifferentNrOfTracesPosNeg.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentNrOfTracesPosNeg != null) gr_StructuralImprovementForDifferentNrOfTracesPosNeg.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTracesPosNeg != null) gr_StructuralForDifferentNrOfTracesPosNeg.drawPdf(gr);
-
+*/
 		// Same experiment but with different trace length but the same number of sequences
-		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
+		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_StructuralImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, structural",new File(branch+"structural_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_StructuralForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","structural",new File(branch+"structural_absolute_vs_tracelength.pdf"));
@@ -1183,10 +1186,11 @@ public class Cav2014 extends PairQualityLearner
 					}
 				}
 		if (gr_BCRImprovementForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);
-		if (gr_BCRForDifferentLengthOfTraces != null) gr_BCRImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_BCRForDifferentLengthOfTraces != null) gr_BCRForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
-		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
 
+/*
 		// Same experiment but with different prefix length but the same number of sequences and their length
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
@@ -1248,7 +1252,7 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentPrefixlen != null) gr_BCRForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
-
+*/
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}
 }

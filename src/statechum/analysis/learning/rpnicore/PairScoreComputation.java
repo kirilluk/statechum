@@ -766,7 +766,7 @@ public class PairScoreComputation {
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			if (recursive || entry.getKey() == pair.getR())
+			if ( (recursive || entry.getKey() == pair.getR()) && entry.getKey().getColour() == JUConstants.RED)
 			{// only checks for specific state of interest if we are supposed to be non-recursive.
 				CmpVertex vert = entry.getKey();
 				if (mergedVertices.containsKey(vert))

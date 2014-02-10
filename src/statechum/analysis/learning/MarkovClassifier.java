@@ -1223,4 +1223,52 @@ public class MarkovClassifier
 		return (double)identifiedVertices.size()/referenceGraph.getStateNumber();
 	}
 
+	/** Given that this classified is instantiate with a reference graph, determines the ration of correct predictions by this classifier to the total number of predictions. 
+	 * 
+	 * @return fraction of Markov's predictions that are correct.
+	 */
+	public statechum.Pair<Double,Double> evaluateCorrectnessOfMarkov()
+	{
+		double outcomePrecision = 0, outcomeRecall = 0;
+		
+		long correctPredictions=0, numberOfPredictions=0;
+		long numberOfExistingPredicted=0;
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+			{
+				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), null);
+				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
+				{
+					CmpVertex target = entry.getValue().get(prediction.getKey()); 
+					assert prediction.getValue() != MarkovOutcome.failure;
+					++numberOfPredictions;
+	
+					if (prediction.getValue() == MarkovOutcome.positive)
+					{
+						if(target != null && target.isAccept())
+							++correctPredictions;
+					}
+					if (prediction.getValue() == MarkovOutcome.negative)
+					{
+						if (target == null || !target.isAccept())
+							++correctPredictions;
+					}
+				}
+				
+				
+				for(Entry<Label,CmpVertex> existing:entry.getValue().entrySet())
+				{
+					MarkovOutcome predictedTarget = predictions.get(existing.getKey());
+					
+					if (existing.getValue().isAccept() && predictedTarget == MarkovOutcome.positive)
+						++numberOfExistingPredicted;
+					if (!existing.getValue().isAccept() && predictedTarget == MarkovOutcome.negative)
+						++numberOfExistingPredicted;
+				}
+			}
+		if (numberOfPredictions > 0) outcomePrecision = (double)correctPredictions/numberOfPredictions;
+		int edgeNumber = graph.pathroutines.countEdges();
+		if (edgeNumber > 0) outcomeRecall = (double)numberOfExistingPredicted/edgeNumber;
+		return new statechum.Pair<Double, Double>(outcomePrecision, outcomeRecall);
+	}
 }

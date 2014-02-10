@@ -596,7 +596,10 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
+					:null		
+					));
 		}
 
 		@Override

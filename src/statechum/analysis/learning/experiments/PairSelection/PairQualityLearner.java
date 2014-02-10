@@ -1495,8 +1495,18 @@ public class PairQualityLearner
 		public final LearnerGraph referenceGraph, initialPTA;
 		public ScoresForGraph actualLearner,referenceLearner;
 		public Map<String,ScoresForGraph> miscGraphs;
+		
+		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;
+		
+		/** Number of states in the reference grahp. */
 		public long stateNumber = 0;
+		
+		/** %% of transitions in the reference graph that were covered by the training sample. */
+		public long transitionsSampled;
+		
+		/** %% of correct predictions by the Markov model. */
+		public long markovPrecision, markovRecall;
 		
 		public SampleData()
 		{

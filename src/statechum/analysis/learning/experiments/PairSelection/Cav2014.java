@@ -104,6 +104,12 @@ public class Cav2014 extends PairQualityLearner
 		protected String selectionID;
 		protected double alphabetMultiplier = 2.;
 		protected double traceLengthMultiplier = 2;
+		protected double tracesAlphabetMultiplier = 0;
+		
+		public void setTracesAlphabetMultiplier(double evalAlphabetMult)
+		{
+			tracesAlphabetMultiplier = evalAlphabetMult;
+		}
 		
 		public void setSelectionID(String value)
 		{
@@ -139,14 +145,18 @@ public class Cav2014 extends PairQualityLearner
 		@Override
 		public ThreadResult call() throws Exception 
 		{
+			if (tracesAlphabetMultiplier <= 0)
+				tracesAlphabetMultiplier = alphabetMultiplier;
 			final int alphabet = (int)(alphabetMultiplier*states);
+			final int tracesAlphabet = (int)(tracesAlphabetMultiplier*states);
+			
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*alphabet));
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*tracesAlphabet));
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -157,7 +167,7 @@ public class Cav2014 extends PairQualityLearner
 										
 						@Override
 						public int getLength() {
-							return (int)(traceLengthMultiplier*states*alphabet);
+							return (int)(traceLengthMultiplier*states*tracesAlphabet);
 						}
 		
 						@Override
@@ -251,16 +261,8 @@ public class Cav2014 extends PairQualityLearner
 						long pairScore = p.getScore();
 						
 						if (pairScore >= 0)
-						{
-							/*
-							long extScore = extendedGraph.pairscores.computePairCompatibilityScore(p);
-							if (extScore < 3)
-								pairScore = -1;
-							else
-								pairScore = extScore;
-								*/
 							pairScore = MarkovScoreComputation.computenewscore(p, extendedGraph);
-						}
+						
 						return pairScore;
 					}
 
@@ -305,6 +307,9 @@ public class Cav2014 extends PairQualityLearner
 				}				
 				dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 				dataSample.stateNumber = referenceGraph.getStateNumber();
+				dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
+				statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
+				dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
 				Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
 				int wSeqLen=0;
 				for(List<Label> seq:wset)
@@ -347,7 +352,6 @@ public class Cav2014 extends PairQualityLearner
 		protected String selectionID;
 		protected double alphabetMultiplier = 2.;
 		protected double traceLengthMultiplier = 2;
-		
 		public void setSelectionID(String value)
 		{
 			selectionID = value;
@@ -812,8 +816,7 @@ public class Cav2014 extends PairQualityLearner
 			DrawGraphs.end();
 		}
 	}
-	
-	
+		
 	@SuppressWarnings("null")
 	public static void runExperiment() throws Exception
 	{
@@ -887,7 +890,7 @@ public class Cav2014 extends PairQualityLearner
 							throw e;
 						}
 			}
-			if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
+		if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
 
 		// Inference from a few traces
 		final int traceQuantityToUse = traceQuantity;
@@ -950,6 +953,8 @@ public class Cav2014 extends PairQualityLearner
 		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","structural",new File(branch+"structural_absolute_vs_alphabet.pdf"));
+		final RBoxPlot<String> gr_MarkovAccuracyForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","Markov accuracy",new File(branch+"markov_accuracy_vs_alphabet.pdf"));
+
 		// Same experiment but with different alphabet size
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(final double alphabetMultiplier:new double[]{alphabetMultiplierMax/16,alphabetMultiplierMax/8,alphabetMultiplierMax/4,alphabetMultiplierMax/2,alphabetMultiplierMax,alphabetMultiplierMax*2,alphabetMultiplierMax*4}) 
@@ -967,6 +972,7 @@ public class Cav2014 extends PairQualityLearner
 						{
 							LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
 							learnerRunner.setOnlyUsePositives(onlyPositives);
+							learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 							learnerRunner.setAlphabetMultiplier(alphabetMultiplier);
 							learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 							learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
@@ -990,10 +996,12 @@ public class Cav2014 extends PairQualityLearner
 								gr_StructuralImprovementForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
 								gr_StructuralForDifferentAlphabetSize.add(String.format("%.2f",alphabetMultiplier),sample.actualLearner.differenceStructural.getValue());
 							}
+							gr_MarkovAccuracyForDifferentAlphabetSize.add(String.format("%.2f,P",alphabetMultiplier),(double)sample.markovPrecision,"green");
+							gr_MarkovAccuracyForDifferentAlphabetSize.add(String.format("%.2f,R",alphabetMultiplier),(double)sample.markovRecall,"blue");
 						}
 						progress.next();
 					}
-					gr_BCRImprovementForDifferentAlphabetSize.drawInteractive(gr);gr_BCRForDifferentAlphabetSize.drawInteractive(gr);
+					gr_BCRImprovementForDifferentAlphabetSize.drawInteractive(gr);gr_BCRForDifferentAlphabetSize.drawInteractive(gr);gr_MarkovAccuracyForDifferentAlphabetSize.drawInteractive(gr);
 					gr_StructuralImprovementForDifferentAlphabetSize.drawInteractive(gr);gr_StructuralForDifferentAlphabetSize.drawInteractive(gr);
 				}
 				catch(Exception ex)
@@ -1007,7 +1015,8 @@ public class Cav2014 extends PairQualityLearner
 			if (gr_StructuralImprovementForDifferentAlphabetSize != null) gr_StructuralImprovementForDifferentAlphabetSize.drawPdf(gr);
 			if (gr_BCRForDifferentAlphabetSize != null) gr_BCRForDifferentAlphabetSize.drawPdf(gr);
 			if (gr_StructuralForDifferentAlphabetSize != null) gr_StructuralForDifferentAlphabetSize.drawPdf(gr);
-			
+			if (gr_MarkovAccuracyForDifferentAlphabetSize != null) gr_MarkovAccuracyForDifferentAlphabetSize.drawPdf(gr);
+
 			// Same experiment but with different number of sequences.
 			final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 			final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));
@@ -1138,6 +1147,7 @@ public class Cav2014 extends PairQualityLearner
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_StructuralImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, structural",new File(branch+"structural_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_StructuralForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","structural",new File(branch+"structural_absolute_vs_tracelength.pdf"));
+		final RBoxPlot<Double> gr_TransitionCoverageForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","transition coverage",new File(branch+"transitionCoverage_vs_tracelength.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(double traceMultiplier=0.125;traceMultiplier<10;traceMultiplier*=2.) 
 				{
@@ -1177,11 +1187,12 @@ public class Cav2014 extends PairQualityLearner
 									gr_StructuralImprovementForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
 									gr_StructuralForDifferentLengthOfTraces.add(traceMultiplier,sample.actualLearner.differenceStructural.getValue());
 								}
+								gr_TransitionCoverageForDifferentLengthOfTraces.add(traceMultiplier,(double)sample.transitionsSampled);
 							}
 							progress.next();
 						}
 						
-						gr_BCRForDifferentLengthOfTraces.drawInteractive(gr);gr_StructuralForDifferentLengthOfTraces.drawInteractive(gr);
+						gr_BCRForDifferentLengthOfTraces.drawInteractive(gr);gr_StructuralForDifferentLengthOfTraces.drawInteractive(gr);gr_TransitionCoverageForDifferentLengthOfTraces.drawInteractive(gr);
 					}
 					catch(Exception ex)
 					{
@@ -1194,12 +1205,14 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentLengthOfTraces != null) gr_BCRForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
+		if (gr_TransitionCoverageForDifferentLengthOfTraces != null) gr_TransitionCoverageForDifferentLengthOfTraces.drawPdf(gr);
 
 		// Same experiment but with different prefix length but the same number of sequences and their length
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","structural",new File(branch+"structural_absolute_vs_prefixLength.pdf"));
+		final RBoxPlot<String> gr_MarkovAccuracyForDifferentPrefixlen = new RBoxPlot<String>("length of prefix","Markov accuracy",new File(branch+"markov_accuracy_vs_prefixLength.pdf"));
 		for(final boolean onlyPositives:new boolean[]{true})
 			for(int prefixLength=1;prefixLength<6;++prefixLength) 
 				{
@@ -1239,10 +1252,12 @@ public class Cav2014 extends PairQualityLearner
 										gr_StructuralImprovementForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
 										gr_StructuralForDifferentPrefixlen.add(prefixLength,sample.actualLearner.differenceStructural.getValue());
 									}
+									gr_MarkovAccuracyForDifferentPrefixlen.add(""+prefixLength+",P",(double)sample.markovPrecision,"green");
+									gr_MarkovAccuracyForDifferentPrefixlen.add(""+prefixLength+",R",(double)sample.markovRecall,"blue");
 								}
 								progress.next();
 							}
-							gr_BCRForDifferentPrefixlen.drawInteractive(gr);gr_StructuralForDifferentPrefixlen.drawInteractive(gr);
+							gr_BCRForDifferentPrefixlen.drawInteractive(gr);gr_StructuralForDifferentPrefixlen.drawInteractive(gr);gr_MarkovAccuracyForDifferentPrefixlen.drawInteractive(gr);
 						}
 						catch(Exception ex)
 						{
@@ -1256,7 +1271,8 @@ public class Cav2014 extends PairQualityLearner
 		if (gr_BCRForDifferentPrefixlen != null) gr_BCRForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
-
+		if (gr_MarkovAccuracyForDifferentPrefixlen != null) gr_MarkovAccuracyForDifferentPrefixlen.drawPdf(gr);
+		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}
 }

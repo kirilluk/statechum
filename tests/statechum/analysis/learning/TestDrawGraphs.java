@@ -160,7 +160,7 @@ public class TestDrawGraphs {
 	public void testBagPlotToStringFail1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.bagPlotToString(new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
+			DrawGraphs.datasetToString("bagplot",new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
 		}},IllegalArgumentException.class,"empty");
 	}
 	
@@ -171,7 +171,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{6.7}),null);
+			DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{6.7}),null);
 		}},IllegalArgumentException.class,"mismatch");
 	}
 
@@ -182,7 +182,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0))",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),null));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),null));
 	}
 
 	@Test
@@ -192,7 +192,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0),someOther attrs)",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
 	}
 
 	@Test
@@ -201,7 +201,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		Assert.assertEquals("bagplot(c(7.0,7.0),c(4.0,5.0),someOther attrs)",
-				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
 	}
 
 	@Before
@@ -573,7 +573,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
 	@Test
@@ -582,7 +582,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")"}),
 				g.getDrawingCommand());
 	}
 	@Test
@@ -592,7 +592,7 @@ public class TestDrawGraphs {
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.setLimit(30000);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE, approx.limit=30000)", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000)","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
 }

@@ -17,7 +17,6 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
-import edu.uci.ics.jung.algorithms.importance.MarkovCentrality;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -34,6 +33,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -2057,6 +2057,188 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		Assert.assertNull(MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
-	}	
+	}
+	
+	
+	@Test
+	public void testUniquePaths1()
+	{
+		final LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run()
+			{
+				MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm);
+			}
+		}, IllegalArgumentException.class, "empty reference");
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run()
+			{
+				MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,null);
+			}
+		}, IllegalArgumentException.class, "empty reference");
+	}
+	
+	@Test
+	public void testUniquePaths2a()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-u->C-s->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(0,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{
+				new String[]{"b"},
+				new String[]{"b","a"}},config,converter)),Configuration.fpAccuracy);
+	}
+
+	@Test
+	public void testUniquePaths2b()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(2/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(0,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{
+				new String[]{}}
+		,config,converter)),Configuration.fpAccuracy);
+	}
+
+	@Test
+	public void testUniquePaths2c()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-u->C-s->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(0,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{}
+		,config,converter)),Configuration.fpAccuracy);
+	}
+
+
+	@Test
+	public void testUniquePaths2d()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-u->C-s->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(1./3,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{
+				new String[]{"t"}
+				}
+		,config,converter)),Configuration.fpAccuracy);
+	}
+
+	@Test
+	public void testUniquePaths2e()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-u->C-s->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(1./3,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{
+				new String[]{"s","s"}}
+		,config,converter)),Configuration.fpAccuracy);
+	}
+
+	@Test
+	public void testUniquePaths2f()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(2/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);
+		Assert.assertEquals(1/3.,MarkovClassifier.calculateFractionOfIdentifiedStates(fsm,TestFSMAlgo.buildSet(new String[][]{
+				new String[]{"b"},
+				new String[]{"b","a"}}
+		,config,converter)),Configuration.fpAccuracy);
+	}
+
+	
+	@Test
+	public void testUniquePaths3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C-b->C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
+	}
+
+	@Test
+	public void testUniquePaths4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B", "testUniquePaths2",config,converter);
+		Assert.assertEquals(0.5,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public void testUniquePaths5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-t-#C", "testUniquePaths2",config,converter);
+		Assert.assertEquals(0,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public void testUniquePaths6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-t-#C / A-a->A", "testUniquePaths2",config,converter);
+		Assert.assertEquals(1/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public void testMarkovPerformance1()
+	{
+		final LearnerGraph trainingGraph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true,true);
+		MarkovClassifier cl=new MarkovClassifier(m,trainingGraph);cl.updateMarkov(false);
+		statechum.Pair<Double,Double> pairTraining = cl.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(2./3,pairTraining.firstElem,Configuration.fpAccuracy);// reflects that transitions u and c from G are not present but predicted
+		Assert.assertEquals(2./3.,pairTraining.secondElem,Configuration.fpAccuracy);// reflects that transitions a and c are not predicted but present.
+		
+		MarkovClassifier eval = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-t->B","testMarkovPerformance1a",config, converter));
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(0,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pair.secondElem,Configuration.fpAccuracy);
+
+		MarkovClassifier evalB = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-a->B","testMarkovPerformance1b",config, converter));
+		statechum.Pair<Double,Double> pairB = evalB.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(0,pairB.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pairB.secondElem,Configuration.fpAccuracy);
+	}
+	
+	@Test
+	public void testMarkovPerformance2()
+	{
+		final LearnerGraph trainingGraph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true,true);
+		MarkovClassifier cl=new MarkovClassifier(m,trainingGraph);cl.updateMarkov(false);
+		
+		MarkovClassifier eval = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-a->B-u-#D / B-b->G","testMarkovPerformance2",config, converter));
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(2./3,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+	}
+	
+	@Test
+	public void testMarkovPerformance3()
+	{
+		final LearnerGraph trainingGraph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true,true);
+		MarkovClassifier cl=new MarkovClassifier(m,trainingGraph);cl.updateMarkov(false);
+		
+		MarkovClassifier eval = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-a->B-u-#D / B-b->G / B-e->Z","testMarkovPerformance3",config, converter));
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+	}
+	
+	@Test
+	public void testMarkovPerformance4()
+	{
+		final LearnerGraph trainingGraph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true,true);
+		MarkovClassifier cl=new MarkovClassifier(m,trainingGraph);cl.updateMarkov(false);
+		
+		MarkovClassifier eval = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-a->B-b->C-c->D-u->E","testMarkovPerformance4",config, converter));
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(3./4,pair.firstElem,Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive; u after c is correctly predicted as positive and c after c is not correctly predicted.
+		Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+	}
+	
+	@Test
+	public void testMarkovPerformance5()
+	{
+		final LearnerGraph trainingGraph = FsmParser.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true,true);
+		MarkovClassifier cl=new MarkovClassifier(m,trainingGraph);cl.updateMarkov(false);
+		
+		MarkovClassifier eval = new MarkovClassifier(m,FsmParser.buildLearnerGraph("A-a->B-b->G","testMarkovPerformance5",config, converter));
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive
+		Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+	}
+	
 }
 

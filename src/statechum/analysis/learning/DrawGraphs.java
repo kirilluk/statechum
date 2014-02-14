@@ -326,12 +326,12 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String bagPlotToString(List<List<Double>> yData,List<Double> xData, String otherAttrs)
+	protected static String datasetToString(String plotType,List<List<Double>> yData,List<Double> xData, String otherAttrs)
 	{
 		if (yData.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
 		StringBuffer result = new StringBuffer();
-		result.append("bagplot(");
+		result.append(plotType);result.append("(");
 		StringBuffer yAxisData = new StringBuffer();
 		Iterator<Double> xArgIterator = xData.iterator();
 		result.append("c(");yAxisData.append(",c(");
@@ -348,11 +348,11 @@ public class DrawGraphs {
 		result.append(')');yAxisData.append(')');
 		result.append(yAxisData);
 
-		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && !otherAttrs.isEmpty()) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
-
+	
 	private static boolean javaGDLoaded = false;
 	
 	/** Newer versions of R permit pdf compression, but older ones choke if I attempt to use it. 
@@ -596,7 +596,10 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
+					:null		
+					));
 		}
 
 		@Override
@@ -606,10 +609,65 @@ public class DrawGraphs {
 		}
 	}
 	
-	public static class RBagPlot extends RGraph<Double>
+	public static class RBoxPlotP<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public RBoxPlotP(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<List<Double>> data = new LinkedList<List<Double>>();
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			{
+				data.add(entry.getValue().results);
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	public static class RBagPlot extends Graph2D
 	{
 		public RBagPlot(String x, String y, File name) {
-			super(x, y, name);
+			super(x, y,"bagplot", name);
+		}
+		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
+		protected String formatApproxLimit()
+		{
+			return (limit == null?"":"approx.limit="+limit.intValue());
+		}
+		protected Integer limit = null;
+
+		/** By default, R's bagplot limits the number of points for analysis to 300, this one makes it possible to change that value. */
+		public void setLimit(int value)
+		{
+			limit = value;
+		}
+		
+		@Override
+		public String otherOptions()
+		{
+			return formatApproxLimit();
+		}
+	}
+	public static class Graph2D extends RGraph<Double>
+	{
+		public Graph2D(String x, String y, String plotKind, File name) {
+			super(x, y, name);plotType=plotKind;
 		}
 		List<List<Double>> data = null;
 		List<Double> names = null;
@@ -623,27 +681,20 @@ public class DrawGraphs {
 				data.add(entry.getValue().results);names.add(entry.getKey());
 			}
 		}
+				
+		final protected String plotType;
 		
-		protected Integer limit = null;
-		
-		/** By default, R's bagplot limits the number of points for analysis to 300, this one makes it possible to change that value. */
-		public void setLimit(int value)
+		public String otherOptions()
 		{
-			limit = value;
-		}
-		
-		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
-		protected String formatApproxLimit()
-		{
-			return (limit == null?"":", approx.limit="+limit.intValue());
+			return "";
 		}
 		
 		@Override
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			return Collections.singletonList(bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+
-					formatApproxLimit()));
+			return Collections.singletonList(datasetToString(plotType,data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+
+					otherOptions()));
 		}
 		
 		public boolean graphOk()
@@ -719,6 +770,15 @@ public class DrawGraphs {
 		}
 	}
 	
+	public static class ScatterPlot extends Graph2D
+	{
+
+		public ScatterPlot(String x, String y, File name) {
+			super(x, y, "plot", name);
+		}
+		
+	}
+	
 	/** Draws a square bag plot. */
 	public static class SquareBagPlot extends RBagPlot
 	{
@@ -742,9 +802,8 @@ public class DrawGraphs {
 		{
 			computeDataSet();
 			List<String> result = new LinkedList<String>();
-			result.add("plot("+minValue+":"+maxValue+", "+minValue+":"+maxValue+", type = \"n\", bty=\"n\",xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
-			result.add(bagPlotToString(data, names,"add=TRUE"+
-					formatApproxLimit()));
+			result.add("bplot<-compute."+datasetToString(plotType,data, names,formatApproxLimit()));
+			result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"),xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
 			if (diag) result.add("abline(0,1)");
 			return result;
 		}

@@ -96,7 +96,7 @@ public class Configuration implements Cloneable {
 													// prohibited.
 
 	public enum ScoreMode {
-		CONVENTIONAL, COMPATIBILITY, KTAILS, GENERAL, ONLYOVERRIDE
+		CONVENTIONAL, COMPATIBILITY, KTAILS, KTAILS_ANY, GENERAL, ONLYOVERRIDE
 	}
 
 	/**

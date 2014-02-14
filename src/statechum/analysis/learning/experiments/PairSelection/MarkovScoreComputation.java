@@ -46,7 +46,6 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -546,7 +545,7 @@ public class MarkovScoreComputation
 		return score+(score/all_outgoing.size());		
 	}
 	
-	public static long computeScoreSicco(LearnerGraph original,StatePair pair)
+	public static long computeScoreSiccoInspired(LearnerGraph original,StatePair pair)
 	{
 		assert pair.getQ() != pair.getR();
 		assert original.transitionMatrix.containsKey(pair.firstElem);
@@ -561,7 +560,7 @@ public class MarkovScoreComputation
 
 		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
 		if (pairScore < 0)
-			throw new IllegalArgumentException("elements of the pair are incompatible");
+			return -1;
 
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
 		
@@ -578,7 +577,7 @@ public class MarkovScoreComputation
 		
 		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
 		Set<Label> inputsUsed = new HashSet<Label>();
-
+		long remainsMinusToAdd=0;
 		// I iterate over the elements of the original graph in order to be able to update the target one.
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
@@ -598,33 +597,17 @@ public class MarkovScoreComputation
 				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
 				// (as long as this combination is the one _not_ already present from the corresponding red state).
-					boolean somethingWasAdded = false;
-					for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
-						if (!inputsUsed.contains(input_and_target.getKey()))
-						{
-							// We are adding a transition to state vert with label input_and_target.getKey() and target state input_and_target.getValue();
-							resultRow.put(input_and_target.getKey(), input_and_target.getValue());
-							
-							newLabelsAddedToVert.add(input_and_target.getKey());
-							
-							inputsUsed.add(input_and_target.getKey());
-							ptaVerticesUsed.add(input_and_target.getValue());somethingWasAdded = true;
-							// Since PTA is a tree, a tree rooted at ptaVerticesUsed will be preserved in a merged automaton, however 
-							// other parts of a tree could be merged into it. In this case, each time there is a fork corresponding to 
-							// a step by that other chunk which the current tree cannot follow, that step will end in a tree and a root
-							// of that tree will be added to ptaVerticesUsed.
-						}
-					assert somethingWasAdded : "RedAndBlueToBeMerged was not set correctly at an earlier stage";
+					
+					Set<Label> remains = new TreeSet<Label>();remains.addAll(original.transitionMatrix.get(vert).keySet());remains.retainAll(original.transitionMatrix.get(toMerge).keySet());
+					//Set<Label> toAdd = new TreeSet<Label>();toAdd.addAll(original.transitionMatrix.get(toMerge).keySet());toAdd.removeAll(original.transitionMatrix.get(vert).keySet());
+					Set<Label> uniqueToRed = new TreeSet<Label>();uniqueToRed.addAll(original.transitionMatrix.get(vert).keySet());uniqueToRed.removeAll(original.transitionMatrix.get(toMerge).keySet());
+					remainsMinusToAdd+=remains.size()-uniqueToRed.size();
 				}
 			}
 		}
 		
-		if (labelsAdded.containsKey(pair.getR()) && !labelsAdded.get(pair.getR()).isEmpty())
-			return -1;
-		
-		return 0;
+		return remainsMinusToAdd;
 	}
-	
 	
 	public long computeMarkovScoring(PairScore pair, LearnerGraph graph, LearnerGraph extension_model, int chunkLen)
 	{
@@ -639,7 +622,7 @@ public class MarkovScoreComputation
 		if(graph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 			return -1;		
 		
-		if (computeScoreSicco(graph,pair) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
+		if (graph.pairscores.computeScoreSicco(pair,false) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
 			return  -1;
 		long matchscore= 0;
 		assert pair.getQ() != pair.getR();
@@ -946,5 +929,38 @@ public class MarkovScoreComputation
 		}
 		
 		return currentScore;
+	}
+
+
+	public static long computenewscore(PairScore Pair, LearnerGraph predicted_graph)
+	{
+		long score=-1;
+		assert Pair.getR().getColour() == JUConstants.RED;
+		Set<Label> predicted_from_blue_node = predicted_graph.transitionMatrix.get(Pair.getQ()).keySet();
+		Set<Label> predicted_from_red_node = predicted_graph.transitionMatrix.get(Pair.getR()).keySet();
+
+		for(Label red:predicted_from_red_node)
+		{
+			CmpVertex targetRed = predicted_graph.transitionMatrix.get(Pair.getR()).get(red);
+
+			if(!predicted_from_blue_node.contains(red))
+			{
+				score--;
+			}
+			else
+			{
+				CmpVertex targetBlue = predicted_graph.transitionMatrix.get(Pair.getQ()).get(red);
+				assert targetRed!=null;
+				assert targetBlue!=null;
+				if(targetRed.isAccept()==targetBlue.isAccept())
+					score++;
+				else
+					score--;
+			}
+
+		}
+
+		return score;
+
 	}
 }

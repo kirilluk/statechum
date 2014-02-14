@@ -18,6 +18,7 @@
 package statechum.analysis.learning;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,9 +35,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Trace;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -46,6 +49,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 
 /** An instance of this class holds all the necessary parameters in order to make it possible to predict transitions and/or check inconsistencies using a Markov model. Depending on the kind of model passed to it, 
  * it will be making appropriate predictions.
@@ -638,7 +643,8 @@ public class MarkovClassifier
 			throw new IllegalArgumentException("sideways predictions cannot be made by extension of earlier sideways predictions");
 
 		final Set<Label> failureLabels = new TreeSet<Label>();
-		final Map<Label,MarkovOutcome> outgoing_labels_probabilities=new HashMap<Label,MarkovOutcome>();
+		final Map<Label,MarkovOutcome> outgoing_labels_probabilities=
+				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,MarkovOutcome>() : new HashMap<Label,MarkovOutcome>();
         WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,chunkLength-1-lengthOfPathBeyond,new ForEachCollectionOfPaths() 
         {
 			@Override
@@ -851,9 +857,8 @@ public class MarkovClassifier
 	public Map<CmpVertex, Map<Label, MarkovOutcome>> predictTransitions()
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
-
-		final Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=
+				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<CmpVertex,Map<Label,MarkovOutcome>>() : new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
 
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		if(vert.isAccept() )
@@ -1052,8 +1057,6 @@ public class MarkovClassifier
 		long scoreAfterBigMerge=-1;
 		int WLength = 1;
 		
-		//DifferentPredictionsInconsistencyNoBlacklisting checker = new DifferentPredictionsInconsistencyNoBlacklisting();
-		
 		List<List<Label>> whatToMerge = null;
 
 		long maxCount = 0;
@@ -1140,17 +1143,6 @@ public class MarkovClassifier
 				}
 			}
 			
-			// We are confident we got it right, hence update Markov (in reality we would mess it up sometimes).
-			//new MarkovClassifier(model,merged).updateMarkov(false);
-			/*
-			if (merged != null && referenceGraph!=null)
-			{
-				System.out.print("Iteration "+attemptToUpdateMarkov+" : "+scoreAfterBigMerge+" inconsistencies, "+merged.getStateNumber()+" states, originally "+graph.getStateNumber()+ " ");
-				System.out.println(checkMergeValidity(referenceGraph,graph,whatToMerge)?"VALID":"INVALID");
-
-				updateMarkov(merged,false);
-				++attemptToUpdateMarkov;
-			}*/
 		}
 		return whatToMerge;
 	}
@@ -1182,5 +1174,101 @@ public class MarkovClassifier
 				break;
 		}
 		return valid;
+	}
+	
+	/** Given a graph, computes the proportion of states that can be identified using singleton sequences.
+	 * 
+	 * @param referenceGraph reference graph
+	 * @param whatToMerge paths to check. 
+	 * @return proportion of vertices that can be identified by singletons, actually identified with the provided paths.
+	 */
+	public static double calculateFractionOfStatesIdentifiedBySingletons(LearnerGraph referenceGraph)
+	{
+		if (referenceGraph.getStateNumber() == 0)
+			throw new IllegalArgumentException("empty reference graph");
+		
+		Set<CmpVertex> uniquelyIdentifiableVertices = new TreeSet<CmpVertex>();
+		
+		for(Label l:referenceGraph.getCache().getAlphabet())
+		{
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
+			if(vertexIdentified != null)
+				uniquelyIdentifiableVertices.add(vertexIdentified);
+		}
+		
+		return (double)uniquelyIdentifiableVertices.size()/referenceGraph.getStateNumber();
+	}
+	
+	/** Given the collection of paths and a way to tell which states to merge, computes a proportion of states that could be identified. 
+	 * Returns negative if any sequence in the supplied collection exists from more than a single state in a reference graph.
+	 * 
+	 * @param referenceGraph reference graph
+	 * @param whatToMerge paths to check. 
+	 * @return proportion of vertices that can be identified by singletons, actually identified with the provided paths.
+	 */
+	public static double calculateFractionOfIdentifiedStates(LearnerGraph referenceGraph, Collection<List<Label>> whatToMerge)
+	{
+		if (referenceGraph.getStateNumber() == 0)
+			throw new IllegalArgumentException("empty reference graph");
+		
+		Set<CmpVertex> identifiedVertices = new TreeSet<CmpVertex>();
+		
+		for(List<Label> l:whatToMerge)
+		{
+			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,l);
+			if (vertexIdentified != null)
+				identifiedVertices.add(vertexIdentified);
+		}
+		
+		return (double)identifiedVertices.size()/referenceGraph.getStateNumber();
+	}
+
+	/** Given that this classified is instantiate with a reference graph, determines the ration of correct predictions by this classifier to the total number of predictions. 
+	 * 
+	 * @return fraction of Markov's predictions that are correct.
+	 */
+	public statechum.Pair<Double,Double> evaluateCorrectnessOfMarkov()
+	{
+		double outcomePrecision = 0, outcomeRecall = 0;
+		
+		long correctPredictions=0, numberOfPredictions=0;
+		long numberOfExistingPredicted=0;
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+			{
+				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), null);
+				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
+				{
+					CmpVertex target = entry.getValue().get(prediction.getKey()); 
+					assert prediction.getValue() != MarkovOutcome.failure;
+					++numberOfPredictions;
+	
+					if (prediction.getValue() == MarkovOutcome.positive)
+					{
+						if(target != null && target.isAccept())
+							++correctPredictions;
+					}
+					if (prediction.getValue() == MarkovOutcome.negative)
+					{
+						if (target == null || !target.isAccept())
+							++correctPredictions;
+					}
+				}
+				
+				
+				for(Entry<Label,CmpVertex> existing:entry.getValue().entrySet())
+				{
+					MarkovOutcome predictedTarget = predictions.get(existing.getKey());
+					
+					if (existing.getValue().isAccept() && predictedTarget == MarkovOutcome.positive)
+						++numberOfExistingPredicted;
+					if (!existing.getValue().isAccept() && predictedTarget == MarkovOutcome.negative)
+						++numberOfExistingPredicted;
+				}
+			}
+		if (numberOfPredictions > 0) outcomePrecision = (double)correctPredictions/numberOfPredictions;
+		int edgeNumber = graph.pathroutines.countEdges();
+		if (edgeNumber > 0) outcomeRecall = (double)numberOfExistingPredicted/edgeNumber;
+		return new statechum.Pair<Double, Double>(outcomePrecision, outcomeRecall);
 	}
 }

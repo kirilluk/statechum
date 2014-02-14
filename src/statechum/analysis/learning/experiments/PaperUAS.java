@@ -101,7 +101,7 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguage;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
@@ -824,12 +824,12 @@ public class PaperUAS
   	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
   				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-  				PairQualityLearner.ReferenceLearner referenceLearner = new PairQualityLearner.ReferenceLearner(initConfiguration, referenceGraph, initPTA);
+  				PairQualityLearner.ReferenceLearner referenceLearner = new PairQualityLearner.ReferenceLearner(initConfiguration, referenceGraph, initPTA,false);
   				referenceLearner.setPairQualityCounter(pairQualityCounter);
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
 				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
@@ -843,12 +843,12 @@ public class PaperUAS
   				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
   				LearnerGraph ptaAfterMergingBasedOnUniques = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
-  				PairQualityLearner.ReferenceLearner referenceLearner = new PairQualityLearner.ReferenceLearner(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques);
+  				PairQualityLearner.ReferenceLearner referenceLearner = new PairQualityLearner.ReferenceLearner(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,false);
   				referenceLearner.setPairQualityCounter(pairQualityCounter);
 		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
 		        
-		        DifferenceToReference differenceF = DifferenceToReferenceLanguage.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
+		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
 		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
 		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
 				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
@@ -932,7 +932,7 @@ public class PaperUAS
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,null,initPTA).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,null,initPTA,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -959,7 +959,7 @@ public class PaperUAS
 			Helper.throwUnchecked("failed to augment using if-then", e);
 		}// we only need  to augment our PTA once (refer to the explanation above).
 			LearnerThatCanClassifyPairs learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(ifDepth,learnerInitConfiguration,referenceGraph,c,initPTA):
-					new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,referenceGraph,initPTA);
+					new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,referenceGraph,initPTA,false);
 			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
         LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
         

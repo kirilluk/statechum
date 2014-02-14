@@ -361,7 +361,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlBitStrBegin:
 				case erlString:
 					if (expectComma)
-						throw new IllegalArgumentException("expecting comma in parsing list");
+						throw new IllegalArgumentException("expecting comma in parsing list, looking at "+lexer.getText());
 					if (tail != null)
 						throw new IllegalArgumentException("an expression past the end of a tail of an improper list, matched "+
 								lexer.getMatch()+" was parsing "+lexer.getText());
@@ -1234,7 +1234,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 								"invalid token type " + currentMatch
 										+ " in parsing erlang number, state "
 										+ state + ", looking at "
-										+ lexer.getMatch());
+										+ lexer.getMatch()+ " in "+lexer.getText());
 					}
 			}
 			OtpErlangObject result = null;

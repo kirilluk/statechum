@@ -320,7 +320,8 @@ public class MarkovClassifier
 		public boolean consistent(MarkovOutcome actual,MarkovOutcome predicted);
 		
 		/**
-		 * Given two outcomes, returns a new value of the prediction to be associated with the label. Can return {@link MarkovOutcome#failure} if the label is to be labelled as inconsistent and excluded from any other comparisons. 
+		 * Given two outcomes, returns a new value of the prediction to be associated with the label. 
+		 * Can return {@link MarkovOutcome#failure} if the label is to be labelled as inconsistent and excluded from any other comparisons. 
 		 * With this returning {@link MarkovOutcome#failure}, we can have multiple inconsistencies per label, associated to 
 		 * different paths leading to a state of interest (or different paths leading from it) and hence different Markov predictions. 
 		 */
@@ -399,6 +400,31 @@ public class MarkovClassifier
 		@Override
 		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,CmpVertex v) {
 			return ((Map)graph.transitionMatrix.get(v)).keySet();
+		}
+		
+	}
+
+	/** This one counts all inconsistencies but does not blacklist any label. */
+	@SuppressWarnings("rawtypes")
+	public static class DifferentPredictionsInconsistencyAcrossAllElementsOfAlphabet implements ConsistencyChecker
+	{
+		@Override
+		public boolean consistent(MarkovOutcome actual, MarkovOutcome predicted) 
+		{
+			return MarkovOutcome.ensureConsistencyBetweenOpinions(actual,predicted) != MarkovOutcome.failure;
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted) 
+		{
+			return actual;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,@SuppressWarnings("unused") CmpVertex v) {
+			return graph.getCache().getAlphabet();
 		}
 		
 	}
@@ -786,6 +812,7 @@ public class MarkovClassifier
 	{
 		return checkFanoutInconsistency(vert, checker, false);
 	}
+	
 	@SuppressWarnings("unchecked")
 	public long checkFanoutInconsistency(final CmpVertex vert,final ConsistencyChecker checker, final boolean displayTrace)
 	{
@@ -894,9 +921,8 @@ public class MarkovClassifier
     			if (value > 0)
     			{
     				predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),collectionOfPaths);
-    				//double inconsistencyforThisState=((double)value)/(collectionOfPaths.size()*entry.getValue().size());collectionOfPaths.clear();
-    				//outcome += inconsistencyforThisState;
-    				outcome += value;
+    				double inconsistencyforThisState=((double)value)/(collectionOfPaths.size()*entry.getValue().size());collectionOfPaths.clear();
+    				outcome += inconsistencyforThisState;
     			}
             }
     	return outcome;

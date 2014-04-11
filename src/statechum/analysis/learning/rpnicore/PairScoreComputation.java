@@ -684,11 +684,8 @@ public class PairScoreComputation {
 		assert pair.getQ() != pair.getR();
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		boolean pathFound = false;
 		if (currentExplorationDepth < coregraph.config.getKlimit())
 			currentExplorationBoundary.add(pair);
-		else
-			pathFound = true;
 		currentExplorationBoundary.offer(null);
 		
 		while(true) // we'll do a break at the end of the last wave
@@ -722,7 +719,6 @@ public class PairScoreComputation {
 						}
 						else
 						{
-							pathFound = true;
 							if (anyPath)
 								break;// no point looking for more paths if we have found one that matches and we were asked to do just that.
 						}
@@ -778,13 +774,13 @@ public class PairScoreComputation {
 					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
 					// (as long as this combination is the one _not_ already present from the corresponding red state).
 						for(Entry<Label,CmpVertex> input_and_target:coregraph.transitionMatrix.get(toMerge).entrySet())
-							if (!inputsUsed.contains(input_and_target.getKey()))
+							if (input_and_target.getValue().isAccept() && !inputsUsed.contains(input_and_target.getKey()))
 								return -1;// where anything is added that is not part of the original set of inputs, block the merge.
 					}
 				}
 			}
 		
-		return 0;
+		return pairScore;
 	}
 
 	/** Computes a stack of states with scores over a given threshold, using Linear. 

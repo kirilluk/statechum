@@ -338,11 +338,11 @@ public class WaveBlueFringe extends PairQualityLearner
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
 				assert scoreInitialMerge >= 0;
 				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
-				final CmpVertex vertexWithMostTransitions = findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
+				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
 				ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
 				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaAfterInitialMerge);
-				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+MarkovPassivePairSelection.countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				
 				//learnerEval.config.setGeneralisationThreshold(1);
 				learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge);learnerOfPairs.setMarkovModel(m);
@@ -441,7 +441,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					@Override
 					public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 					{
-						return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+						return MarkovPassivePairSelection.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 					}
 
 				});
@@ -523,84 +523,7 @@ public class WaveBlueFringe extends PairQualityLearner
 							throw new UnsupportedOperationException("changing values of this map entry is not permitted");
 						}});
 	}
-	
-	/** Given a graph and its inverse, computes transitions exiting a supplied state.
-	 * 
-	 * @param coregraph graph to consider
-	 * @param current the state of interest
-	 * @param ignoreSelf whether to include single-state loops. 
-	 * @param number of outgoing transitions.
-	 */
-	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean ignoreSelf)
-	{
-		long outcome = 0;
-		
-		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(current).entrySet())
-			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
-				if ( (ignoreSelf || v != current) )
-					++outcome;
-
-		return outcome;
-	}
-	
-	/** Given a graph and its inverse, computes transitions entering/exiting a supplied state that lead to non-red states.
-	 * 
-	 * @param coregraph graph to consider
-	 * @param inverseGraph the inverse of the graph to consider
-	 * @param currentRed the state of interest
-	 * @return collection of transitions, not a map to permit non-deterministic choice. 
-	 */
-	public static <TARGET_A_TYPE,TARGET_B_TYPE,
-		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
-		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
-		Collection<Map.Entry<Label,CmpVertex>> obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
-	{
-		Collection<Entry<Label,CmpVertex>> surroundingTransitions = new ArrayList<Entry<Label,CmpVertex>>();
-		addTransitionsFrom(coregraph, currentRed,true, surroundingTransitions);addTransitionsFrom(inverseGraph, currentRed,false, surroundingTransitions);
-		return surroundingTransitions;
-	}
-
-	/** Given a graph and its inverse, counts transitions entering/exiting a supplied state.
-	 * 
-	 * @param coregraph graph to consider
-	 * @param inverseGraph the inverse of the graph to consider
-	 * @param current the state of interest
-	 * @return number of transitions 
-	 */
-	public static <TARGET_A_TYPE,TARGET_B_TYPE,
-		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
-		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
-		long countTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex current)
-	{
-		return countTransitionsFrom(coregraph, current,true)+countTransitionsFrom(inverseGraph, current,false);
-	}
-
-	/** Identifies a vertex with the maximal number of incoming and outgoing transitions.
-	 * 
-	 * @param coregraph graph to consider
-	 * @param inverseGraph the inverse of the graph to consider
-	 * @return vertex with the maximal number of incoming and outgoing transitions.
-	 */
-	public static <TARGET_A_TYPE,TARGET_B_TYPE,
-		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
-		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
-		CmpVertex findVertexWithMostTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph)
-		{
-			CmpVertex outcome = coregraph.getInit();
-			long maxSize=0;
-			for(CmpVertex v:coregraph.transitionMatrix.keySet())
-			{
-				long size = obtainSurroundingTransitions(coregraph,inverseGraph,v).size();
-				if (size > maxSize)
-				{
-					maxSize = size;outcome = v;
-				}
-			}
 			
-			return outcome;
-		}
-		
 	/** An extension of {@Link PairScore} with Markov distance. */
 	public static class PairScoreWithDistance extends PairScore
 	{

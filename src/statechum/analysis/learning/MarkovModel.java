@@ -182,17 +182,7 @@ public class MarkovModel
 				if (a == unknown)
 				{// unknown is overridden by b, whatever it is, including unknown
 					outcome = b;
-				}/*
-				if (a == negative)
-				{
-					outcome = a;
-					
-					if (b != null)
-					{
-						if (b != unknown && a != b)
-							outcome = failure;
-					}
-				}*/
+				}
 				else
 				{
 					outcome = a;

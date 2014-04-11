@@ -306,34 +306,6 @@ public class MarkovScoreComputation
         	 
 	         return toptop;
 	     }
-	     
-//	     public static PairScore ordercountChoices_new(Stack<PairScore> stack)
-//	     {
-//	    	 ArrayList<PairScore> toptop = new ArrayList<PairScore>();
-//	         PairScore top = stack.peek();	       
-//	         int i=stack.size()-1;
-//	         while(i>=0)
-//	         {
-//	        	 PairScore curr = stack.get(i);--i;
-//                 if (curr.getScore() != top.getScore())
-//	        		 break;  
-//            	 toptop.add(curr);                       
-//	         }
-//        	 PairScore high_pair = top;
-//	         for(PairScore t:toptop)
-//	         {
-//	        	if(t!=top)
-//	        	{
-//	        		System.out.println("Distance Score of high= "+high_pair.getDistanceScore());
-//	        		System.out.println("Distance Score of t= "+t.getDistanceScore());
-//	        		
-//					if(Similarities_incoming(high_pair.getR(), high_pair.getQ()) < Similarities_incoming(t.getR(), t.getQ()) )
-//						high_pair=t;
-//	        	}
-//	         }
-//	         return high_pair;
-//	     }
-	     
 
 	     /** Returns the pair corresponding to the smallest or largest machine for one of the pairs with the same score at the top of the stack. */
 	      public static PairScore selectPairMinMax(LearnerGraph graph, Stack<PairScore> stack, int pairChoice)
@@ -497,11 +469,11 @@ public class MarkovScoreComputation
 	public MarkovScoreComputation() {
 	}
 
-	public static double computeMMScoreImproved(PairScore P, MarkovClassifier cl)
+	public static double computeMMScoreImproved(PairScore P, LearnerGraph coregraph, LearnerGraph Extension_Graph)
 	{
 		double score = 0;
-		LearnerGraph Extension_Graph = cl.constructMarkovTentative();
-		LearnerGraph coregraph = cl.graph;
+		//LearnerGraph Extension_Graph = cl.constructMarkovTentative();
+		//LearnerGraph coregraph = cl.graph;
 		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();
 		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();						
 		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();

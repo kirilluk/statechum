@@ -108,6 +108,7 @@ public class AllTests {
         statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
         statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
         statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner.class,
+        statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
         statechum.TestProgressIndicator.class
     })
     public static class GraphTests {// all tests are included in the annotation.

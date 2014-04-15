@@ -141,6 +141,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return outcome;
 	}
 	
+	/* This is an attempt to make different predictions about the machine of interest that did not get as far as expected. 
 	public static LearnerGraph buildFirstOrderMarkovGraph(MarkovClassifier ptaClassifier, LearnerGraph referenceGraph)
 	{
 		LearnerGraph outcome = new LearnerGraph(ptaClassifier.graph.config);
@@ -227,36 +228,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				
 			}
 		}
-		/*
-		int singleout=0, total=0;
-		Collection<Label> singleLabels = new LinkedList<Label>();
-		for(Entry<Label,CmpVertex> state:states.entrySet())
-		{
-			if (!outcome.transitionMatrix.get(state.getValue()).isEmpty()) ++total;
-			if (outcome.transitionMatrix.get(state.getValue()).size() == 1)
-			{
-				singleout++;
-				singleLabels.add(state.getKey());
-			}
-				
-		}		
-		System.out.println("total: "+total+" single: "+singleout);
-		for(Label lbl:singleLabels)
-		{
-			Label nextLabel = outcome.transitionMatrix.get(states.get(lbl)).keySet().iterator().next();
-			System.out.println(lbl+"-"+nextLabel);
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
-			{
-				if (entry.getValue().containsKey(lbl))
-				{
-					Map<Label,CmpVertex> targets =  referenceGraph.transitionMatrix.get(entry.getValue().get(lbl));
-					if (!targets.containsKey(nextLabel))
-						System.out.println();
-					System.out.println("\t"+entry.getKey()+" : "+entry.getValue()+" from there "+targets+" and finally to "+targets.get(nextLabel));
-				}
-			}
-		}*/
-	
 
 		int countTriples = 0, triplesUnique = 0;
 		long totalTripleInPTA=0;
@@ -290,48 +261,14 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			}
 			
 		}
-		/*
-		long maxFreq = Math.max(uniqueFreq.get(uniqueFreq.size()-1).longValue(),nonUniqueFreq.get(nonUniqueFreq.size()-1).longValue());
-		
-		System.out.println("Inconsistency in the PTA: "+computeInconsistency(graph,m));
-		long sumOfInconsistencyValues = 0, sumOfCountValues = 0;
-		for(int i=0;i<uniqueFreq.size();++i)
-		{
-			Label label = uniqueElem.get(i);long count = uniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);sumOfInconsistencyValues+=value;sumOfCountValues+=count;
-			System.out.println("Unique "+count+" inconsistency "+value);
-		}
-		for(int i=0;i<nonUniqueFreq.size();++i)
-		{
-			Label label = nonUniqueElem.get(i);long count = nonUniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);sumOfInconsistencyValues+=value;sumOfCountValues+=count;
-			System.out.println("NON Unique "+count+" inconsistency "+value);
-		}
-		
-		long inconsistencyAverage = sumOfInconsistencyValues/(uniqueFreq.size()+nonUniqueFreq.size()), countAverage = sumOfCountValues/(uniqueFreq.size()+nonUniqueFreq.size());
-		System.out.println("inconsistency average: "+inconsistencyAverage+" countAverage: "+countAverage);
-		final double divCount = 1.3, divInconsistency = 2;
-		for(int i=0;i<uniqueFreq.size();++i)
-		{
-			Label label = uniqueElem.get(i);long count = uniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);
-			if (!(count < countAverage/divCount && value >= 0 && value < inconsistencyAverage/divInconsistency))
-				System.out.println("disregarded "+count+" "+value);
-		}
-		for(int i=0;i<nonUniqueFreq.size();++i)
-		{
-			Label label = nonUniqueElem.get(i);long count = nonUniqueFreq.get(i);long value = computeInconsistencyForMergingLabel(graph,label,m);
-			if (count < countAverage/divCount && value >= 0 && value < inconsistencyAverage/divInconsistency)
-				System.out.println("failed to disregard "+count+" "+value);
-		}
-		 */
+
 		System.out.println("triples : "+countTriples+" unique elems: "+triplesUnique+" average in PTA: "+(totalTripleInPTA/(double)tripleCount.size()));
 		
 		System.out.println("Unique Freq: "+uniqueFreq);
 		System.out.println("Non unique Freq: "+nonUniqueFreq);		
 		return outcome;
 	}
-	
+	*/
 	/** Uses sideways predictions in order to identify more states to be merged. */
 	public static Collection<Set<CmpVertex>> mergeBasedOnInversePredictions(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
 	{/*

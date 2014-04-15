@@ -109,6 +109,7 @@ import org.apache.commons.collections.Predicate;
  * -------------------------------
  * Warning settings for Eclipse-Juno and JDK1.7_10:
  * WWI (non-static access)
+ * I(method can potentially be static)
  * WWII (access to a non-accessible member)
  * WWII (resource not managed via try-with-resource)
  * WWWI (comparing identical values)

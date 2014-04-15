@@ -36,7 +36,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Lab
 		
 	public PTASequenceSet()
 	{
-		engine.init(new PTASequenceSetAutomaton());		
+		engine.init(new PTASequenceSetAutomaton());
 		initSet = engine.new SequenceSet();initSet.setIdentity();
 	}
 	

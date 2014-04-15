@@ -119,7 +119,8 @@ public class MergeStates {
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
 		Queue<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.getInit()));
-		Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> visitedEqClasses = new HashSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Map<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean> visitedEqClasses = new ArrayMapWithSearch<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean>();
+		Boolean trueValue = new Boolean(true);
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.
@@ -134,10 +135,10 @@ public class MergeStates {
 				for(Entry<Label,CmpVertex> entry:original.transitionMatrix.get(equivalentVertex).entrySet())
 				{
 					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> nextClass = origToNew.get(entry.getValue());
-					if (!visitedEqClasses.contains(nextClass))
+					if (null == visitedEqClasses.get(nextClass))
 					{// have not yet visited this class
 						currentExplorationBoundary.offer(nextClass);
-						visitedEqClasses.add(nextClass);
+						visitedEqClasses.put(nextClass,trueValue);
 					}
 					if (GlobalConfiguration.getConfiguration().isAssertEnabled() && row.containsKey(entry.getKey()))
 						assert row.get(entry.getKey()) == nextClass.getMergedVertex();

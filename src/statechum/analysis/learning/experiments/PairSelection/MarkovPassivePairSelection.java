@@ -22,8 +22,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,20 +44,17 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
-import statechum.Trace;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -311,7 +306,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge);
-					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker,false);
+					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker,null, false);
 					
 					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
 					if (decidedToMerge)
@@ -497,7 +492,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker,false);
+					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker,null, false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
@@ -819,7 +814,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							long value = MarkovClassifier.computeInconsistency(merged, m, checker,false);
+							long value = MarkovClassifier.computeInconsistency(merged, m, checker,null, false);
 							inconsistencyFromAnEarlierIteration = value;
 							return null;
 						}
@@ -879,7 +874,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							if (genScore >= 0)
 							{
 								LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
+								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,null, 
 										false
 										//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
 										)-inconsistencyFromAnEarlierIteration;

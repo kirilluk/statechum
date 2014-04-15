@@ -100,7 +100,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker,false);
+					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker,null, false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
@@ -368,7 +368,7 @@ public class WaveBlueFringe extends PairQualityLearner
 						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 						assert genScore >= 0;
 						LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-						long value = MarkovClassifier.computeInconsistency(merged, m, checker,false);
+						long value = MarkovClassifier.computeInconsistency(merged, m, checker,null, false);
 						inconsistencyFromAnEarlierIteration = value;
 						return null;
 					}
@@ -412,7 +412,7 @@ public class WaveBlueFringe extends PairQualityLearner
 						if (genScore >= 0)
 						{
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
+							currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,null, 
 									false
 									//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
 									)-inconsistencyFromAnEarlierIteration;

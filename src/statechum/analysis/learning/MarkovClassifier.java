@@ -23,9 +23,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -245,6 +247,73 @@ public class MarkovClassifier
 	    }
 	}
 	
+	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. */
+	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
+	{
+		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:verticesToMerge)
+			if (eqClass.getStates().size() > 1)
+			{
+				affectedVerticesInOrigGraph.addAll(eqClass.getStates());affectedVerticesInMergedGraph.add(eqClass.getMergedVertex());
+			}
+		computeClosure(coregraph,affectedVerticesInOrigGraph,m.getPredictionLen());
+		computeClosure(merged,affectedVerticesInMergedGraph,m.getPredictionLen());
+
+		long origInconsistencyRelativeToChanges = origClassifier.computeConsistency(checker, affectedVerticesInOrigGraph, false); 
+		MarkovClassifier cl = new MarkovClassifier(m, merged);
+		long mergedInconsistencyRelativeToChanges = cl.computeConsistency(checker,affectedVerticesInMergedGraph,false);
+		return mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
+	}
+	
+	/** Walks all paths of the specified distance and states encountered are added to the provided set.
+	 * 
+	 * @param coregraph graph to explore
+	 * @param affectedVerticesInGraph where to accumulate encountered vertices
+	 * @param distance how far to explore
+	 */
+	protected static void computeClosure(LearnerGraph coregraph, Set<CmpVertex> affectedVerticesInGraph, int distance)
+	{/*
+		class ExplorationElement
+		{
+			public final CmpVertex currentState;
+			public int distanceToLastSeenElement;// not final because we need to be able to update the distance in case we find a shorter path to that state and hence need to explore the what remains of the distance we need to explore.
+			
+			public ExplorationElement(CmpVertex v, int d)
+			{
+				currentState = v;
+				distanceToLastSeenElement = d;
+			}
+		}
+		*/
+		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
+		final Map<CmpVertex,Integer> visited = new HashMap<CmpVertex,Integer>();
+		for(CmpVertex v:affectedVerticesInGraph) 
+		{ 
+			visited.put(v, 0);currentExplorationBoundary.offer(v); 
+		}
+		
+		CmpVertex explorationElement = null;
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			explorationElement = currentExplorationBoundary.remove();
+			int exploredDistance = visited.get(explorationElement)+1;
+			
+			for(Entry<Label,CmpVertex> transition:coregraph.transitionMatrix.get(explorationElement).entrySet())
+			{
+				Integer distanceSeen = visited.get(transition.getValue());
+				
+				if (distanceSeen == null || distanceSeen > exploredDistance)
+				{
+					visited.put(transition.getValue(),exploredDistance);// record the new or revised distance
+					affectedVerticesInGraph.add(transition.getValue());// ensure we record that this vertex has to be explored as part of computation.
+					
+					if (exploredDistance < distance) // only explore from the found element if we did not reach the limit.
+						currentExplorationBoundary.offer(transition.getValue());// ensure we explore this element later in our breadth-first search.
+				}
+			}
+		}
+	}
+	
 	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
 	 * The large number of arguments reflect the extent to which this process can be customised. 
 	 * <p>
@@ -281,7 +350,7 @@ public class MarkovClassifier
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged,model,checker,false);
+				outcome = computeInconsistency(merged,model,checker,null,false);
 			}
 		}
 		
@@ -289,9 +358,9 @@ public class MarkovClassifier
 	}
 	
 	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph. This is implemented by creating another classifier with the same parameters but a supplied graph as an argument. */
-	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
+	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, Set<CmpVertex> statesToIncludeInComputation, boolean displayTrace)
 	{
-		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,displayTrace);
+		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,statesToIncludeInComputation,displayTrace);
 	}
 	
 	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
@@ -825,12 +894,14 @@ public class MarkovClassifier
 	/** Determines how consistent a graph is compared to the data in the Markov model.
  	 * <em>directionForwardOrInverse<em> whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
-	 * @return true if the graph is consistent according to the supplied checker.
+	 * @param statesToConsider state to limit the exploration to. This is aimed to speedup computation of inconsistencies as an outcome of EDSM mergers, where only a subset of states are affected and we hence do not wish to run the computation across an entire machine.
+	 * @param displayTrace whether to display details of the computation performed
+	 * @return true the number of inconsistencies
 	 */
-	public long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
+	public long computeConsistency(ConsistencyChecker checker, Set<CmpVertex> statesOfInterest, boolean displayTrace)
 	{
 		long accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept() && (statesOfInterest == null || statesOfInterest.contains(v)) ) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);
 		return accumulatedInconsistency;
 	}
 	
@@ -1227,7 +1298,7 @@ public class MarkovClassifier
 				else
 				{
 					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
+					scoreAfterBigMerge = computeInconsistency(merged, model, checker,null,false);
 				}
 			}
 			if (scoreAfterBigMerge < 0)

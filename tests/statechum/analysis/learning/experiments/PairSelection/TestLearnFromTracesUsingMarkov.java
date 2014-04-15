@@ -1,10 +1,12 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -21,6 +23,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
@@ -41,7 +44,80 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class TestLearnFromTracesUsingMarkov {
+	static class InconsistencyComputation implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	{
+		protected MarkovModel Markov;
+		protected ConsistencyChecker checker;
+		
+		public InconsistencyComputation(MarkovModel model, ConsistencyChecker c)
+		{
+			Markov = model;checker = c;
+		}
+		
+		@SuppressWarnings("unused")
+		@Override
+		public CmpVertex selectRedNode(LearnerGraph gr,Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+		{
+			return tentativeRedNodes.iterator().next();
+		}
+		
+		@SuppressWarnings("unused")
+		@Override
+		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
+		{
+			return null;												
+		}
+		
+		long inconsistencyFromAnEarlierIteration = 0;
+		LearnerGraph coregraph = null;
+		LearnerGraph extendedGraph = null;
+		MarkovClassifier cl=null;
+		LearnerGraphND inverseGraph = null;
+		long currentMillis = System.currentTimeMillis();
+		
+		@Override
+		public void initComputation(LearnerGraph graph) 
+		{
+			coregraph = graph;
+					 				
+			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,null, false);
+			inconsistencyFromAnEarlierIteration=value;
+			cl = new MarkovClassifier(Markov, coregraph);
+		    extendedGraph = cl.constructMarkovTentative();
+			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
+			long newMillis = System.currentTimeMillis();
+			System.out.println(""+(newMillis-currentMillis)/1000+" step, current inconsistency = "+value);
+		}
+		
+		@Override
+		public long overrideScoreComputation(PairScore p) 
+		{
+			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+				return 0;
+			long score=p.getScore();						
+			long currentInconsistency = 0;
+			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+			if (genScore >= 0)
+			{			
+				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
+				currentInconsistency = MarkovClassifier.computeInconsistency(merged, Markov, checker, null, false)-inconsistencyFromAnEarlierIteration;
+				score=genScore-currentInconsistency;	
 
+				long fastInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, merged, Markov, cl, checker);						
+				Assert.assertEquals(currentInconsistency,fastInconsistency);
+			}
+			return score;
+		}
+
+		/** This one returns a set of transitions in all directions. */
+		@Override
+		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+		{
+			return	MarkovPassivePairSelection.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+		}
+	}
+	
 	@Test
 	public void testInconsistencyComputation() throws IncompatibleStatesException, IOException {
 		final int traceQuantity=10;
@@ -141,8 +217,17 @@ public class TestLearnFromTracesUsingMarkov {
 			LearnerGraph expectedAfterInitialMerge = new LearnerGraph(config);AbstractPersistence.loadGraph("resources/TestLearnFromTracesUsingMarkov.xml", expectedAfterInitialMerge,converter);
 			WMethod.checkM(expectedAfterInitialMerge, ptaAfterInitialMerge);// checks that the graph is as expected.
 			
-			long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, m, checker,false);
+			long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, m, checker,null, false);
 			Assert.assertEquals(31,value);// check that we computed inconsistencies in the usual way.
+
+			Stack<PairScore> stack = ptaAfterInitialMerge.pairscores.chooseStatePairs(new InconsistencyComputation(m, checker));
+			System.out.println(stack);
+			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			int genScore = ptaAfterInitialMerge.pairscores.computePairCompatibilityScore_general(stack.peek(), null, verticesToMerge);
+			Assert.assertTrue(genScore >= 0);
+			LearnerGraph merged = MergeStates.mergeCollectionOfVertices(ptaAfterInitialMerge, null, verticesToMerge);
+			stack = merged.pairscores.chooseStatePairs(new InconsistencyComputation(m, checker));
+			System.out.println(stack);
 	}
 
 }

@@ -208,7 +208,7 @@ public class ASE2014 extends PairQualityLearner
 				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
 				final LearnerGraph finalReferenceGraph = referenceGraph;
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
+				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,null,false);
 
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
@@ -242,7 +242,7 @@ public class ASE2014 extends PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
 				//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
-				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
+				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,null,false);
 				
 				VertID rejectVertexID = null;
 				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
@@ -268,7 +268,7 @@ public class ASE2014 extends PairQualityLearner
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,referenceGraph,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
+					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,null,false);
 				}
 				catch(Cav2014.LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
@@ -364,7 +364,7 @@ public class ASE2014 extends PairQualityLearner
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
+			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,null,false);
 			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
 		    extendedGraph = cl.constructMarkovTentative();
@@ -385,7 +385,8 @@ public class ASE2014 extends PairQualityLearner
 			if (genScore >= 0)
 			{			
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-				currentInconsistency = MarkovClassifier.computeInconsistency(merged, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
+				currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, merged, Markov, cl, checker);						
+				//MarkovClassifier.computeInconsistency(merged, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
 				if(coregraph.getStateNumber()-merged.getStateNumber() == 1 && p.getR().getDepth() < Markov.getChunkLen())
 				{
 					score = MarkovScoreComputation.computenewscore(p, extendedGraph);	
@@ -590,7 +591,6 @@ public class ASE2014 extends PairQualityLearner
 			{
 				
 				final int traceQuantityToUse = traceQuantity;
-
 				
 				String selection = "TRUNK;TRAINING;"+
 						";onlyPositives="+onlyPositives+";traceQuantity="+traceQuantity+";traceQuantity="+traceQuantity+";traceLengthMultiplier="+traceLengthMultiplier+";"+";alphabetMultiplier="+alphabetMultiplier+";";

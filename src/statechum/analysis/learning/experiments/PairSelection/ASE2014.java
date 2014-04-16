@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
@@ -74,6 +75,7 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.collections.ArrayMapWithSearchPos;
 
 
 public class ASE2014 extends PairQualityLearner
@@ -208,7 +210,7 @@ public class ASE2014 extends PairQualityLearner
 				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
 				final LearnerGraph finalReferenceGraph = referenceGraph;
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,null,false);
+				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
@@ -242,7 +244,7 @@ public class ASE2014 extends PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
 				//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
-				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,null,false);
+				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
 				
 				VertID rejectVertexID = null;
 				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
@@ -268,7 +270,7 @@ public class ASE2014 extends PairQualityLearner
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,referenceGraph,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,null,false);
+					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
 				catch(Cav2014.LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
@@ -357,20 +359,22 @@ public class ASE2014 extends PairQualityLearner
 		LearnerGraph extendedGraph = null;
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
-		long currentMillis = System.currentTimeMillis();
+		//long currentMillis = System.currentTimeMillis();
+		long durationA=0,durationB=0,durationC=0,durationD=0;
+		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 		
 		@Override
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,null,false);
+			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
 			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
 		    extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-			long newMillis = System.currentTimeMillis();
-			//System.out.println(""+(newMillis-currentMillis)/1000+" step, current inconsistency = "+value);
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+			//System.out.println("durations: "+durationA+" "+durationB+" "+durationC+" "+durationD+" those inside mergeCollectionOfVertices: "+ MarkovClassifier.durationA+" "+ MarkovClassifier.durationB+" "+ MarkovClassifier.durationC+" ");
 		}
 		
 		@Override
@@ -380,23 +384,22 @@ public class ASE2014 extends PairQualityLearner
 				return 0;
 			long score=p.getScore();						
 			long currentInconsistency = 0;
-			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+			//{long newMillis = System.currentTimeMillis();durationA+=(newMillis-currentMillis);currentMillis=newMillis;}
 			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 			if (genScore >= 0)
 			{			
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-				currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, merged, Markov, cl, checker);						
-				//MarkovClassifier.computeInconsistency(merged, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
-				if(coregraph.getStateNumber()-merged.getStateNumber() == 1 && p.getR().getDepth() < Markov.getChunkLen())
+				LearnerGraph merged = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(coregraph, verticesToMerge);
+				currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);						
+				merged.pathroutines.updateDepthLabelling(Markov.getPredictionLen());// only labels states around root, the rest are labelled JUConstants.intUnknown.
+				if(coregraph.getStateNumber()-merged.getStateNumber() == 1 && p.getR().getDepth() != JUConstants.intUNKNOWN && p.getR().getDepth() <= Markov.getPredictionLen())
 				{
 					score = MarkovScoreComputation.computenewscore(p, extendedGraph);	
 				}
 				else 
 				{					
 					score=genScore-currentInconsistency;	
-					
 				}	
-
 			}
 			return score;
 		}

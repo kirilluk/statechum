@@ -17,6 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +37,7 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.StringVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
@@ -75,6 +77,45 @@ public class MergeStates {
 		assert original.transitionMatrix.containsKey(pair.secondElem);
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
+	}
+	
+	/** Merges the supplied pair of states states of the supplied machine. 
+	 * Returns the result of merging and populates the collection containing equivalence classes. Most importantly, this does not update a map detailing which vertices are merged from which and depth is also ignored.
+	 * The benefit of this routine is relatively fast execution, around 4x.
+	 *  
+	 * @param original the machine in which to merge two states
+	 * @return result of merging, which is a shallow copy of the original LearnerGraph.
+	 * In addition, mergedStates of the graph returned is set to equivalence classes 
+	 * relating original and merged states.
+	 */
+	public static LearnerGraph mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(LearnerGraph original,
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	{
+		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
+		// Build a map from old vertices to the corresponding equivalence classes
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = //original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());//:new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
+
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		{
+			eqClass.constructMergedVertex(result,false,true);
+			for(CmpVertex v:eqClass.getStates())
+                origToNew.put(v, eqClass);
+		}
+		
+		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
+		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
+		
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		{
+			Map<Label,CmpVertex> row = result.transitionMatrix.get(eqClass.getMergedVertex());
+			for(Entry<Label,ArrayList<CmpVertex>> outgoing:eqClass.getOutgoing().entrySet())
+			{
+				row.put(outgoing.getKey(), origToNew.get(outgoing.getValue().get(0)).getMergedVertex());
+			}
+		}		
+
+		return result;
 	}
 	
 	/** Merges the supplied pair of states states of the supplied machine. 
@@ -154,7 +195,7 @@ public class MergeStates {
 		result.pathroutines.updateDepthLabelling();
 		return result;
 	}
-	
+
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  

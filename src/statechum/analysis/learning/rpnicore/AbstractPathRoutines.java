@@ -804,6 +804,15 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public void updateDepthLabelling()
 	{
+		updateDepthLabelling(Integer.MAX_VALUE);
+	}
+	/** When merging states using {@link MergeStates#mergeAndDeterminize}, depth does not always get updated because we re-jig the tree without touching most of the states. Although this was done for efficiency,
+	 * in some cases we need an up-to-date depth information. This is significant when using Weka with the learner, hence we recompute depth here.
+	 * 
+	 * @param maxDepth the maximal depth to go, useful where we only need correct depth information for vertices around the root state.
+	 */
+	public void updateDepthLabelling(int maxDepth)
+	{
 		int coreGraphStateNumber = coregraph.getStateNumber();
 		CmpVertex from = coregraph.getInit();from.setDepth(0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
@@ -820,7 +829,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
 				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
 				{
-					if (null == statesInFringe.put(target,target)) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
+					if (null == statesInFringe.put(target,target) && currentDepth < maxDepth) // put returns the old value, so if it returned null, it means that target was not already in the list (but it has since been added)
 					{
 						int newDepth = currentDepth+1;
 						target.setDepth(newDepth);

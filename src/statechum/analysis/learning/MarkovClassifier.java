@@ -238,9 +238,9 @@ public class MarkovClassifier
 					for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
 		    			if (target.isAccept())
 			    		{
-			    			List<Label> pathToNewState=new ArrayList<Label>();
+			    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
 			    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-		    					frontline.add(new FrontLineElem(pathToNewState,target));
+	    					frontline.add(new FrontLineElem(pathToNewState,target));
 			    		}
 			    }
 	    	}
@@ -248,7 +248,7 @@ public class MarkovClassifier
 	}
 	
 	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. */
-	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
+	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
 	{
 		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:verticesToMerge)
@@ -259,9 +259,20 @@ public class MarkovClassifier
 		computeClosure(coregraph,affectedVerticesInOrigGraph,m.getPredictionLen());
 		computeClosure(merged,affectedVerticesInMergedGraph,m.getPredictionLen());
 
-		long origInconsistencyRelativeToChanges = origClassifier.computeConsistency(checker, affectedVerticesInOrigGraph, false); 
+		long origInconsistencyRelativeToChanges = 0;//origClassifier.computeConsistency(checker, affectedVerticesInOrigGraph, false);
+		for(CmpVertex v:affectedVerticesInOrigGraph)
+		{
+			if (origInconsistencies.containsKey(v))
+				origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
+			else
+			{
+				long inconsistency = origClassifier.checkFanoutInconsistency(v,checker,false);
+				origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
+				origInconsistencyRelativeToChanges+=inconsistency;
+			}
+		}
 		MarkovClassifier cl = new MarkovClassifier(m, merged);
-		long mergedInconsistencyRelativeToChanges = cl.computeConsistency(checker,affectedVerticesInMergedGraph,false);
+		long mergedInconsistencyRelativeToChanges = cl.computeConsistencyForSpecificVertices(checker,affectedVerticesInMergedGraph,false);
 		return mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
 	}
 	
@@ -272,19 +283,7 @@ public class MarkovClassifier
 	 * @param distance how far to explore
 	 */
 	protected static void computeClosure(LearnerGraph coregraph, Set<CmpVertex> affectedVerticesInGraph, int distance)
-	{/*
-		class ExplorationElement
-		{
-			public final CmpVertex currentState;
-			public int distanceToLastSeenElement;// not final because we need to be able to update the distance in case we find a shorter path to that state and hence need to explore the what remains of the distance we need to explore.
-			
-			public ExplorationElement(CmpVertex v, int d)
-			{
-				currentState = v;
-				distanceToLastSeenElement = d;
-			}
-		}
-		*/
+	{
 		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
 		final Map<CmpVertex,Integer> visited = new HashMap<CmpVertex,Integer>();
 		for(CmpVertex v:affectedVerticesInGraph) 
@@ -350,7 +349,7 @@ public class MarkovClassifier
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-				outcome = computeInconsistency(merged,model,checker,null,false);
+				outcome = computeInconsistency(merged,model,checker,false);
 			}
 		}
 		
@@ -358,9 +357,9 @@ public class MarkovClassifier
 	}
 	
 	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph. This is implemented by creating another classifier with the same parameters but a supplied graph as an argument. */
-	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, Set<CmpVertex> statesToIncludeInComputation, boolean displayTrace)
+	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
 	{
-		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,statesToIncludeInComputation,displayTrace);
+		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,displayTrace);
 	}
 	
 	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
@@ -892,19 +891,35 @@ public class MarkovClassifier
 	}
 
 	/** Determines how consistent a graph is compared to the data in the Markov model.
- 	 * <em>directionForwardOrInverse<em> whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
-	 * @param statesToConsider state to limit the exploration to. This is aimed to speedup computation of inconsistencies as an outcome of EDSM mergers, where only a subset of states are affected and we hence do not wish to run the computation across an entire machine.
 	 * @param displayTrace whether to display details of the computation performed
 	 * @return true the number of inconsistencies
 	 */
-	public long computeConsistency(ConsistencyChecker checker, Set<CmpVertex> statesOfInterest, boolean displayTrace)
+	public long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
 	{
 		long accumulatedInconsistency = 0;
-		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept() && (statesOfInterest == null || statesOfInterest.contains(v)) ) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);
+		for(CmpVertex v:graph.transitionMatrix.keySet()) if (v.isAccept()) accumulatedInconsistency+=checkFanoutInconsistency(v,checker,displayTrace);
 		return accumulatedInconsistency;
 	}
-	
+
+	/** Determines how consistent a graph is compared to the data in the Markov model.
+	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
+	 * @param statesToConsider state to limit the exploration to. This is aimed to speedup computation of inconsistencies as an outcome of EDSM mergers, where only a subset of states are affected and we hence do not wish to run the computation across an entire machine.
+	 * @param displayTrace whether to display details of the computation performed
+	 * @return the number of inconsistencies.
+	 */
+	public long computeConsistencyForSpecificVertices(ConsistencyChecker checker, Collection<CmpVertex> statesOfInterest, boolean displayTrace)
+	{
+		long accumulatedInconsistency = 0;
+		for(CmpVertex v:statesOfInterest)
+			if (v.isAccept())
+			{
+				long inconsistency = checkFanoutInconsistency(v,checker,displayTrace);
+				accumulatedInconsistency+=inconsistency;
+			}
+		return accumulatedInconsistency;
+	}
+		
 	/** Uses the supplied Markov matrix to check if predicted transitions from specific states match those that actually exist.
 	 * <ul>
 	 * <li>
@@ -1298,7 +1313,7 @@ public class MarkovClassifier
 				else
 				{
 					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					scoreAfterBigMerge = computeInconsistency(merged, model, checker,null,false);
+					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
 				}
 			}
 			if (scoreAfterBigMerge < 0)

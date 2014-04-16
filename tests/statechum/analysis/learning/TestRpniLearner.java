@@ -1518,6 +1518,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
+		
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
+		if (diffEx != null)
+			throw diffEx;
 	}
 
 	@Test
@@ -1531,6 +1537,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
 		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I", "testPairCompatible_general_Fb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
 		if (diffEx != null)
 			throw diffEx;
 	}
@@ -1548,6 +1560,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
+		if (diffEx != null)
+			throw diffEx;
 	}
 
 	@Test
@@ -1561,6 +1579,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
 		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I-d->I", "testPairCompatible_general_Hb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
 		if (diffEx != null)
 			throw diffEx;
 	}

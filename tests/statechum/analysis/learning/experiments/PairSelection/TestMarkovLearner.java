@@ -493,7 +493,7 @@ public class TestMarkovLearner
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / B-d-#F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1f",config, converter);
 		
 		Assert.assertEquals(1,new MarkovClassifier(m,graph).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
-		Assert.assertEquals(4.,MarkovClassifier.computeInconsistency(graph,  m, new MarkovClassifier.DifferentPredictionsInconsistency(),null, false),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
+		Assert.assertEquals(4.,MarkovClassifier.computeInconsistency(graph,  m, new MarkovClassifier.DifferentPredictionsInconsistency(), false),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
 	/** Two inconsistencies, transition u and transition b which should not exist after c. */

@@ -40,7 +40,9 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class TestLearnFromTracesUsingMarkov {
@@ -74,18 +76,20 @@ public class TestLearnFromTracesUsingMarkov {
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
 		long currentMillis = System.currentTimeMillis();
+		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 		
 		@Override
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,null, false);
+			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker, false);
 			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
 		    extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			long newMillis = System.currentTimeMillis();
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 			System.out.println(""+(newMillis-currentMillis)/1000+" step, current inconsistency = "+value);
 		}
 		
@@ -101,10 +105,19 @@ public class TestLearnFromTracesUsingMarkov {
 			if (genScore >= 0)
 			{			
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-				currentInconsistency = MarkovClassifier.computeInconsistency(merged, Markov, checker, null, false)-inconsistencyFromAnEarlierIteration;
+				
+				{
+					// Now test the "lite" version of state merging routine.
+					LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(coregraph, verticesToMerge);
+					DifferentFSMException diffEx = WMethod.checkM(merged, merge2);
+					if (diffEx != null)
+						throw diffEx;
+				}
+				
+				currentInconsistency = MarkovClassifier.computeInconsistency(merged, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
 				score=genScore-currentInconsistency;	
 
-				long fastInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, merged, Markov, cl, checker);						
+				long fastInconsistency =  MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);						
 				Assert.assertEquals(currentInconsistency,fastInconsistency);
 			}
 			return score;
@@ -217,17 +230,17 @@ public class TestLearnFromTracesUsingMarkov {
 			LearnerGraph expectedAfterInitialMerge = new LearnerGraph(config);AbstractPersistence.loadGraph("resources/TestLearnFromTracesUsingMarkov.xml", expectedAfterInitialMerge,converter);
 			WMethod.checkM(expectedAfterInitialMerge, ptaAfterInitialMerge);// checks that the graph is as expected.
 			
-			long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, m, checker,null, false);
+			long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, m, checker, false);
 			Assert.assertEquals(31,value);// check that we computed inconsistencies in the usual way.
 
 			Stack<PairScore> stack = ptaAfterInitialMerge.pairscores.chooseStatePairs(new InconsistencyComputation(m, checker));
-			System.out.println(stack);
+			//System.out.println(stack);
 			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			int genScore = ptaAfterInitialMerge.pairscores.computePairCompatibilityScore_general(stack.peek(), null, verticesToMerge);
 			Assert.assertTrue(genScore >= 0);
 			LearnerGraph merged = MergeStates.mergeCollectionOfVertices(ptaAfterInitialMerge, null, verticesToMerge);
 			stack = merged.pairscores.chooseStatePairs(new InconsistencyComputation(m, checker));
-			System.out.println(stack);
+			//System.out.println(stack);
 	}
 
 }

@@ -247,7 +247,15 @@ public class MarkovClassifier
 	    }
 	}
 	
-	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. */
+	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. 
+	 * The merged graph should be constructed by merging vertices in verticesToMerge, otherwise merged vertices would not be available as part of elements of {@link AMEquivalenceClass} and we'll crash.
+	 *
+	 * @param coregraph the original graph
+	 * @param verticesToMerge vertices to merge in the original graph, computed by the generalised scoring routine.
+	 * @param merged the outcome of merging, has to be passed as an argument because we'd like this graph to be used both here and by the caller of this.
+	 * @param m Markov model used to compute inconsistencies.
+	 * @param origClassifier the classifier used on the original graph. 
+	 */
 	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
 	{
 		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();

@@ -60,6 +60,7 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
@@ -144,7 +145,7 @@ public class ASE2014 extends PairQualityLearner
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*alphabet*2));
 
-			for(int attempt=0;attempt<1;++attempt)
+			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
@@ -244,7 +245,7 @@ public class ASE2014 extends PairQualityLearner
 				SampleData dataSample = new SampleData(null,null);
 				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
 				//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
-				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
+				long inconsistencyActual = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
 				
 				VertID rejectVertexID = null;
 				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
@@ -257,6 +258,7 @@ public class ASE2014 extends PairQualityLearner
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
+				dataSample.actualLearner.inconsistency = inconsistencyActual;
 				dataSample.referenceLearner = zeroScore;
 				
 				
@@ -566,7 +568,7 @@ public class ASE2014 extends PairQualityLearner
 		final int minStateNumber = 30;
 		final int samplesPerFSM = 5;
 		final int stateNumberIncrement = 10;
-		final int rangeOfStateNumbers = 0+stateNumberIncrement*2;
+		final int rangeOfStateNumbers = 0+stateNumberIncrement*1;
 		
 		final int chunkSize = 3;
 		
@@ -648,6 +650,6 @@ public class ASE2014 extends PairQualityLearner
 						if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 						if (gr_BCR != null) gr_BCR.drawPdf(gr);
 			}
-			
+		DrawGraphs.end();
 	}
 }

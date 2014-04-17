@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<java version="1.7.0_07" class="java.beans.XMLDecoder">
+<java version="1.7.0_45" class="java.beans.XMLDecoder">
  <object class="java.util.Properties">
   <void method="put">
    <string>LINEARWARNINGS</string>
    <string>true</string>
   </void>
   <void method="put">
-   <string>VIZ_CONFIG</string>
-   <string>kirill_office</string>
+   <string>ERLANGHOME</string>
+   <string>C:/Program Files/erl5.9.1</string>
   </void>
   <void method="put">
    <string>LTL2BA</string>
    <string>lib/ltl2ba-1.1/ltl2ba.exe</string>
   </void>
   <void method="put">
-   <string>ERLANGHOME</string>
-   <string>C:/Program Files/erl5.9.1</string>
+   <string>VIZ_CONFIG</string>
+   <string>kirill_office</string>
   </void>
   <void method="put">
    <string>ERLANGOUTPUT_ENABLED</string>
@@ -43,32 +43,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle0">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle0">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle0">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle0"/>
-                 <int>631</int>
-                </void>
-               </void>
-              </object>
-              <int>861</int>
-             </void>
-            </void>
-           </object>
-           <int>401</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle0"/>
         <int>2559</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>401</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>861</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>631</int>
        </void>
       </void>
      </object>
@@ -83,32 +80,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle1">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle1">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle1">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle1"/>
-                 <int>458</int>
-                </void>
-               </void>
-              </object>
-              <int>589</int>
-             </void>
-            </void>
-           </object>
-           <int>408</int>
-          </void>
-         </void>
-        </object>
-        <int>3296</int>
+        <object idref="Rectangle1"/>
+        <int>3237</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>413</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>466</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>387</int>
        </void>
       </void>
      </object>
@@ -123,32 +117,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle2">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle2">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle2">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle2"/>
-                 <int>609</int>
-                </void>
-               </void>
-              </object>
-              <int>745</int>
-             </void>
-            </void>
-           </object>
-           <int>404</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle2"/>
         <int>3487</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle2"/>
+        <int>404</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle2"/>
+        <int>745</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle2"/>
+        <int>609</int>
        </void>
       </void>
      </object>
@@ -163,32 +154,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle3">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle3">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle3">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle3"/>
-                 <int>446</int>
-                </void>
-               </void>
-              </object>
-              <int>598</int>
-             </void>
-            </void>
-           </object>
-           <int>871</int>
-          </void>
-         </void>
-        </object>
-        <int>3293</int>
+        <object idref="Rectangle3"/>
+        <int>3236</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle3"/>
+        <int>809</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle3"/>
+        <int>466</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle3"/>
+        <int>381</int>
        </void>
       </void>
      </object>
@@ -203,32 +191,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle4">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle4">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle4">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle4"/>
-                 <int>825</int>
-                </void>
-               </void>
-              </object>
-              <int>1090</int>
-             </void>
-            </void>
-           </object>
-           <int>760</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle4"/>
         <int>237</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle4"/>
+        <int>760</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle4"/>
+        <int>1090</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle4"/>
+        <int>825</int>
        </void>
       </void>
      </object>
@@ -243,32 +228,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle5">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle5">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle5">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle5"/>
-                 <int>458</int>
-                </void>
-               </void>
-              </object>
-              <int>581</int>
-             </void>
-            </void>
-           </object>
-           <int>406</int>
-          </void>
-         </void>
-        </object>
-        <int>3889</int>
+        <object idref="Rectangle5"/>
+        <int>3710</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle5"/>
+        <int>409</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle5"/>
+        <int>444</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle5"/>
+        <int>389</int>
        </void>
       </void>
      </object>
@@ -283,32 +265,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle6">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle6">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle6">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle6"/>
-                 <int>445</int>
-                </void>
-               </void>
-              </object>
-              <int>576</int>
-             </void>
-            </void>
-           </object>
-           <int>868</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle6"/>
         <int>3892</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle6"/>
+        <int>868</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle6"/>
+        <int>576</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle6"/>
+        <int>445</int>
        </void>
       </void>
      </object>
@@ -323,32 +302,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle7">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle7">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle7">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle7"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>307</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle7"/>
         <int>1056</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle7"/>
+        <int>307</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle7"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle7"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -363,32 +339,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle8">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle8">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle8">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle8"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>606</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle8"/>
         <int>1047</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle8"/>
+        <int>606</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle8"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle8"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -403,32 +376,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle9">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle9">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle9">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle9"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>903</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle9"/>
         <int>655</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle9"/>
+        <int>903</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle9"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle9"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -443,32 +413,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle10">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle10">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle10">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle10"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>613</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle10"/>
         <int>641</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle10"/>
+        <int>613</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle10"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle10"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -483,32 +450,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle11">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle11">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle11">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle11"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>904</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle11"/>
         <int>1060</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle11"/>
+        <int>904</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle11"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle11"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -523,32 +487,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle12">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle12">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle12">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle12"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>311</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle12"/>
         <int>642</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle12"/>
+        <int>311</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle12"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle12"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -563,32 +524,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle13">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle13">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle13">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle13"/>
-                 <int>376</int>
-                </void>
-               </void>
-              </object>
-              <int>531</int>
-             </void>
-            </void>
-           </object>
-           <int>210</int>
-          </void>
-         </void>
-        </object>
-        <int>111</int>
+        <object idref="Rectangle13"/>
+        <int>2824</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle13"/>
+        <int>412</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle13"/>
+        <int>408</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle13"/>
+        <int>383</int>
        </void>
       </void>
      </object>
@@ -603,72 +561,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle14">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle14">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle14">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle14"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>9</int>
-          </void>
-         </void>
-        </object>
-        <int>629</int>
+        <object idref="Rectangle14"/>
+        <int>2822</int>
        </void>
       </void>
-     </object>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>113</int>
-   <object class="statechum.GlobalConfiguration$WindowPosition">
-    <void property="rect">
-     <object class="java.awt.Rectangle" id="Rectangle15">
       <void class="java.awt.Rectangle" method="getField">
-       <string>x</string>
+       <string>y</string>
        <void method="set">
-        <object idref="Rectangle15">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle15">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle15">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle15"/>
-                 <int>300</int>
-                </void>
-               </void>
-              </object>
-              <int>400</int>
-             </void>
-            </void>
-           </object>
-           <int>613</int>
-          </void>
-         </void>
-        </object>
-        <int>1452</int>
+        <object idref="Rectangle14"/>
+        <int>808</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle14"/>
+        <int>405</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle14"/>
+        <int>383</int>
        </void>
       </void>
      </object>
@@ -679,36 +594,70 @@
    <string>LOWER</string>
    <object class="statechum.GlobalConfiguration$WindowPosition">
     <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle15">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle15"/>
+        <int>697</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle15"/>
+        <int>341</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle15"/>
+        <int>774</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle15"/>
+        <int>622</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>113</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
      <object class="java.awt.Rectangle" id="Rectangle16">
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle16">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle16">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle16">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle16"/>
-                 <int>622</int>
-                </void>
-               </void>
-              </object>
-              <int>774</int>
-             </void>
-            </void>
-           </object>
-           <int>341</int>
-          </void>
-         </void>
-        </object>
-        <int>697</int>
+        <object idref="Rectangle16"/>
+        <int>1452</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle16"/>
+        <int>613</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle16"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle16"/>
+        <int>300</int>
        </void>
       </void>
      </object>
@@ -723,32 +672,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle17">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle17">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle17">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle17"/>
-                 <int>400</int>
-                </void>
-               </void>
-              </object>
-              <int>530</int>
-             </void>
-            </void>
-           </object>
-           <int>587</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle17"/>
         <int>113</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle17"/>
+        <int>587</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle17"/>
+        <int>530</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle17"/>
+        <int>400</int>
        </void>
       </void>
      </object>
@@ -763,32 +709,29 @@
       <void class="java.awt.Rectangle" method="getField">
        <string>x</string>
        <void method="set">
-        <object idref="Rectangle18">
-         <void class="java.awt.Rectangle" method="getField">
-          <string>y</string>
-          <void method="set">
-           <object idref="Rectangle18">
-            <void class="java.awt.Rectangle" method="getField">
-             <string>width</string>
-             <void method="set">
-              <object idref="Rectangle18">
-               <void class="java.awt.Rectangle" method="getField">
-                <string>height</string>
-                <void method="set">
-                 <object idref="Rectangle18"/>
-                 <int>1073</int>
-                </void>
-               </void>
-              </object>
-              <int>1045</int>
-             </void>
-            </void>
-           </object>
-           <int>22</int>
-          </void>
-         </void>
-        </object>
+        <object idref="Rectangle18"/>
         <int>219</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle18"/>
+        <int>22</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle18"/>
+        <int>1045</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle18"/>
+        <int>1073</int>
        </void>
       </void>
      </object>

@@ -431,24 +431,9 @@ public class Cav2014 extends PairQualityLearner
 				}
 				else
 					pta.paths.augmentPTA(generator.getAllSequences(0));
-		
-				List<List<Label>> sPlus = generator.getAllSequences(0).getData(new FilterPredicate() {
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-					}
-				});
-				List<List<Label>> sMinus= generator.getAllSequences(0).getData(new FilterPredicate() {
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return !((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-					}
-				});
-				assert sPlus.size() > 0;
-				assert sMinus.size() > 0;
+
 				final MarkovModel m= new MarkovModel(chunkLen,true,true);
-				m.createMarkovLearner(sPlus, sMinus,false);
-				
+				new MarkovClassifier(m, pta).updateMarkov(false);
 				pta.clearColours();
 
 				if (!onlyUsePositives)

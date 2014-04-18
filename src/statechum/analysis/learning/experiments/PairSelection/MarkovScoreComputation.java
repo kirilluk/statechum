@@ -472,8 +472,6 @@ public class MarkovScoreComputation
 	public static double computeMMScoreImproved(PairScore P, LearnerGraph coregraph, LearnerGraph Extension_Graph)
 	{
 		double score = 0;
-		//LearnerGraph Extension_Graph = cl.constructMarkovTentative();
-		//LearnerGraph coregraph = cl.graph;
 		Set<Label> outgoing_from_blue_node = coregraph.transitionMatrix.get(P.getQ()).keySet();
 		Set<Label> outgoing_from_red_node = coregraph.transitionMatrix.get(P.getR()).keySet();						
 		Set<Label> predicted_from_blue_node = Extension_Graph.transitionMatrix.get(P.getQ()).keySet();
@@ -514,7 +512,7 @@ public class MarkovScoreComputation
 			else
 				return MarkovClassifier.fREJECT;
 		}		
-		return score+(score/all_outgoing.size());		
+		return score;	
 	}
 	
 	public static long computeScoreSiccoInspired(LearnerGraph original,StatePair pair)

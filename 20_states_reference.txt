@@ -1,0 +1,59 @@
+durations: 237 73940 344520 93361 
+
+73940: most likely, this is addTransition
+
+
+93361: could be reduced via caching inconsistency numbers in coregraph's cache.
+
+Construction of inverse can be done with BDDs, where inverse labels path that is being looked up in a Markov table also expressed as a BDD.
+Arraytree uses pairs, where there are numerous elements, I could use the second component of a pair as an index to the array where the next one is. A single passthrough will permit such indexing to be set up. Type information makes this impossible, but I can construct a separate array of indices that should be iterated through and use it as a cache, stored
+either in association with the graph or ni ArrayMap-related types.
+
+
+those inside mergeCollectionOfVertices: 140090 86360 24327 21618
+67476 92183 23029 21850 
+72086 82072 22565 21561 
+56K for the first part.
+
+
+ASE Benchmark 25min
+
+a supposedly faster version runs in 27min.
+
+20 states:
+
+actual: 19 from reference learner: 15 difference actual is < 0.637931, 0.804348 > difference ref is < 0.413793, 0.436364 > inconsistency learnt 57 inconsistency reference: 32 transitions per state: 2.761904761904762 W seq max len 1 Uniquely identifiable by W 5 % and by singletons 33 %
+Centre vertex: P4210 <P4210> depth=6 colour=red 13
+actual: 19 from reference learner: 19 difference actual is < 0.568966, 0.767442 > difference ref is < 0.413793, 0.406780 > inconsistency learnt 70 inconsistency reference: 44 transitions per state: 2.761904761904762 W seq max len 1 Uniquely identifiable by W 5 % and by singletons 33 %
+.actual: 19 from reference learner: 22 difference actual is < 0.931034, 0.931034 > difference ref is < 0.534483, 0.298077 > inconsistency learnt 208 inconsistency reference: 123 transitions per state: 3.0526315789473686 W seq max len 1 Uniquely identifiable by W 11 % and by singletons 37 %
+Centre vertex: P3401 <P3401> depth=3 colour=red 49
+actual: 19 from reference learner: 16 difference actual is < 0.867925, 0.884615 > difference ref is < 0.471698, 0.203252 > inconsistency learnt 157 inconsistency reference: 48 transitions per state: 2.789473684210526 W seq max len 2 Uniquely identifiable by W 5 % and by singletons 32 %
+Centre vertex: P2676 <P2676> depth=2 colour=red 7
+actual: 22 from reference learner: 28 difference actual is < 0.982759, 0.919355 > difference ref is < 0.603448, 0.250000 > inconsistency learnt 132 inconsistency reference: 142 transitions per state: 3.0526315789473686 W seq max len 1 Uniquely identifiable by W 11 % and by singletons 37 %
+..actual: 19 from reference learner: 31 difference actual is < 0.925926, 0.943396 > difference ref is < 0.555556, 0.236220 > inconsistency learnt 58 inconsistency reference: 26 transitions per state: 2.8421052631578947 W seq max len 1 Uniquely identifiable by W 11 % and by singletons 42 %
+Centre vertex: P1000 <P1000> depth=0 colour=red 4
+actual: 20 from reference learner: 26 difference actual is < 0.703704, 0.633333 > difference ref is < 0.444444, 0.224299 > inconsistency learnt 286 inconsistency reference: 49 transitions per state: 2.8421052631578947 W seq max len 1 Uniquely identifiable by W 11 % and by singletons 42 %
+..actual: 33 from reference learner: 26 difference actual is < 0.454545, 0.306122 > difference ref is < 0.439394, 0.162011 > inconsistency learnt 2797 inconsistency reference: 181 transitions per state: 3.3 W seq max len 1 Uniquely identifiable by W 20 % and by singletons 55 %
+Centre vertex: P1826 <P1826> depth=5 colour=red 10
+actual: 19 from reference learner: 23 difference actual is < 0.754717, 0.677966 > difference ref is < 0.415094, 0.211538 > inconsistency learnt 503 inconsistency reference: 44 transitions per state: 2.789473684210526 W seq max len 2 Uniquely identifiable by W 5 % and by singletons 32 %
+..actual: 24 from reference learner: 25 difference actual is < 0.878788, 0.725000 > difference ref is < 0.409091, 0.156069 > inconsistency learnt 558 inconsistency reference: 154 transitions per state: 3.3 W seq max len 1 Uniquely identifiable by W 20 % and by singletons 55 %
+...] 
+
+
+We'll only know that we did badly if inconsistency is over 1000, anecdotally this corresponds to it being 10x the inconsistency of reference. Often, we get similar or even much lower inconsistency than a reference but this does not usually correspond to a high BCR, in part due to coverage of the original automaton.
+
+I may need to plot merge centre against merge without centre.
+
+If a recent idea works better than merge centre, I could submit it as a paper and there would be no need to rewrite at least some of the paper.
+
+There is "computenewscore" and there are priorities. At present, these are used in conjunction, I could try to swap the two or use just the computenewscore.
+
+What if we start learning from the most connected vertex but do not do center-merging? In this case the root vertex will be chosen.
+
+Passive LTS Inference from Positive Samples
+
+Labelled transition systems (LTS) are a foundation of a number of powerful verification and testing methods, however these methods require up-to-date models to be useful. Where one has to reverse engineer a model from existing traces such as those produced by running a system on a series of tests, best-performing methods rely on availability of negatives, i.e. traces that are not permitted from specific states and such information is not usually available.
+
+This paper extends an existing Evidence-Driven State Merging method by training a Markov chain first and then using it to help making decisions in the absence of negatives. Each merge is evaluated based on the Markov chain inferred from a merged automaton, the more new paths it contains compared to the original Markov model, the more likely the merge is incorrect. This performs extremely well on the random LTSs produced to mimic a structure typical of software models.
+
+

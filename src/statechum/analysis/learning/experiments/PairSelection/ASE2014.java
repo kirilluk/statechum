@@ -150,6 +150,8 @@ public class ASE2014 extends PairQualityLearner
 				setlearningParameters(false, true, false, true);break;
 			case 1:
 				setlearningParameters(true, false, false, true);break;
+			case 2:
+				setlearningParameters(true, true, false, true);break;
 			default:
 				throw new IllegalArgumentException("invalid preset number");
 			}
@@ -239,7 +241,7 @@ public class ASE2014 extends PairQualityLearner
 					assert scoreInitialMerge >= 0;
 					ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
 					final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
-					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+					//ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
@@ -419,11 +421,14 @@ public class ASE2014 extends PairQualityLearner
 				currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
 				
 				score=genScore-currentInconsistency;
-				if (useNewScoreNearRoot && genScore == 1)
+				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 				{
+					if (!MarkovClassifier.checkIfAnyPathLeadsToVertex(coregraph,p.getR(),Markov.getPredictionLen()) ||
+							!MarkovClassifier.checkIfAnyPathLeadsToVertex(coregraph,p.getQ(),Markov.getPredictionLen()))
+					/*
 					merged.pathroutines.updateDepthLabelling(Markov.getPredictionLen());// only labels states around root, the rest are labelled JUConstants.intUnknown.
-					if(p.getR().getDepth() != JUConstants.intUNKNOWN && p.getR().getDepth() <= Markov.getPredictionLen())
-						score = MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
+					if(p.getR().getDepth() != JUConstants.intUNKNOWN && p.getR().getDepth() <= Markov.getPredictionLen())*/
+						score = (long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);//MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
 				}
 			}
 			return score;
@@ -580,8 +585,8 @@ public class ASE2014 extends PairQualityLearner
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 10;
-		final int stateNumberIncrement = 10;
-		final int rangeOfStateNumbers = 0+stateNumberIncrement*1;
+		final int stateNumberIncrement = 5;
+		final int rangeOfStateNumbers = 30+stateNumberIncrement;
 		final int traceQuantity = 10;
 		final double traceLengthMultiplierMax = 1;
 		final int chunkSize = 3;
@@ -591,10 +596,6 @@ public class ASE2014 extends PairQualityLearner
 		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
 
 		// Inference from a few traces
-		
-//		RBagPlot gr_BCR_singletons = new RBagPlot("%% states identified by singletons","BCR Score, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_bcr_singletons.pdf"));
-//		RBagPlot gr_BCR_states = new RBagPlot("number of states in reference","BCR Score, EDSM-Markov learner",new File(branch+"_"+(traceQuantityToUse/2)+"_trace_bcr_numberofstates.pdf"));
-//		ScatterPlot gr_ImprovementPerState = new ScatterPlot("State number", "BCR, improvement",new File(branch+"_"+(traceQuantityToUse/2)+"_bcr_statenumber.pdf"));
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
 
@@ -641,6 +642,9 @@ public class ASE2014 extends PairQualityLearner
 			}
 		}
 		if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
+		
+
+		
 /*
 		for(final boolean useCentreVertex:new boolean[]{true,false})
 		for(final boolean useDifferentScoringNearRoot:new boolean[]{true,false}) 
@@ -703,7 +707,7 @@ public class ASE2014 extends PairQualityLearner
 			}
 		
 		*/
-		for(final int preset: new int[]{0,1})
+		for(final int preset: new int[]{0,2})//0,1,2})
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
@@ -754,6 +758,7 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_BCR != null) gr_BCR.drawPdf(gr);
 		}
 	
+		final int presetForBestResults = 2;
 		
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
@@ -776,7 +781,7 @@ public class ASE2014 extends PairQualityLearner
 						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection);
-						learnerRunner.setPresetLearningParameters(1);
+						learnerRunner.setPresetLearningParameters(presetForBestResults);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
@@ -838,7 +843,7 @@ public class ASE2014 extends PairQualityLearner
 							learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierToUse);
 							learnerRunner.setChunkLen(chunkSize);
 							learnerRunner.setSelectionID(selection);
-							learnerRunner.setPresetLearningParameters(1);
+							learnerRunner.setPresetLearningParameters(presetForBestResults);
 							runner.submit(learnerRunner);
 							++numberOfTasks;
 						}
@@ -884,7 +889,7 @@ public class ASE2014 extends PairQualityLearner
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","structural",new File(branch+"structural_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<String> gr_MarkovAccuracyForDifferentPrefixlen = new RBoxPlot<String>("length of prefix","Markov accuracy",new File(branch+"markov_accuracy_vs_prefixLength.pdf"));
-		for(int prefixLength=1;prefixLength<5;++prefixLength) 
+		for(int prefixLength=1;prefixLength<4;++prefixLength) 
 		{
 			
 			String selection="traceLengthMultiplier="+traceLengthMultiplierMax;
@@ -900,7 +905,7 @@ public class ASE2014 extends PairQualityLearner
 						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
 						learnerRunner.setChunkLen(prefixLength+1);
 						learnerRunner.setSelectionID(selection);
-						learnerRunner.setPresetLearningParameters(1);
+						learnerRunner.setPresetLearningParameters(presetForBestResults);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
@@ -949,7 +954,7 @@ public class ASE2014 extends PairQualityLearner
 		final RBoxPlot<String> gr_MarkovAccuracyForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","Markov accuracy",new File(branch+"markov_accuracy_vs_alphabet.pdf"));
 
 		// Same experiment but with different alphabet size
-		for(final double alphabetMultiplierActual:new double[]{alphabetMultiplierMax/8,alphabetMultiplierMax/4,alphabetMultiplierMax/2,alphabetMultiplierMax,alphabetMultiplierMax*2,alphabetMultiplierMax*4}) 
+		for(final double alphabetMultiplierActual:new double[]{alphabetMultiplierMax/4,alphabetMultiplierMax/2,alphabetMultiplierMax,alphabetMultiplierMax*2,alphabetMultiplierMax*4}) 
 		{
 			String selection="alphabet_size="+alphabetMultiplierActual;
 
@@ -965,6 +970,7 @@ public class ASE2014 extends PairQualityLearner
 						learnerRunner.setAlphabetMultiplier(alphabetMultiplierActual);
 						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
+						learnerRunner.setPresetLearningParameters(presetForBestResults);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}

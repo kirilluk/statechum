@@ -247,6 +247,36 @@ public class MarkovClassifier
 	    }
 	}
 	
+	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfAnyPathLeadsToVertex(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
+	{
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
+	    if (vert.isAccept()) frontline.add(e);
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();
+	    	
+			if(e.pathToFrontLine.size()==pathLength)
+				return true;
+			// not reached the maximal length of paths to explore
+			Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
+			for(Label lbl:transitions.keySet())					
+			{
+				for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
+	    			if (target.isAccept())
+		    		{
+		    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
+		    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
+    					frontline.add(new FrontLineElem(pathToNewState,target));
+		    		}
+		    }
+	    }
+	    
+	    return false;// did not encounter a single path of requested length
+	}
+	
+	
 	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. 
 	 * The merged graph should be constructed by merging vertices in verticesToMerge, otherwise merged vertices would not be available as part of elements of {@link AMEquivalenceClass} and we'll crash.
 	 *
@@ -1312,7 +1342,8 @@ public class MarkovClassifier
 			List<StatePair> pairsList = buildVerticesToMergeForPath(whatToMerge);
 			scoreAfterBigMerge = dREJECT;
 			LearnerGraph merged = null;
-			if (!pairsList.isEmpty())
+			if (//thresholdToInconsistency.entrySet().iterator().next().getKey() == 0 && 
+					!pairsList.isEmpty())
 			{
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);

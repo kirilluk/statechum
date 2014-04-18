@@ -90,6 +90,8 @@ public class TestLearnFromTracesUsingMarkov {
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			long newMillis = System.currentTimeMillis();
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+//			for(CmpVertex v:coregraph.transitionMatrix.keySet())
+//				inconsistenciesPerVertex.put(v,cl.checkFanoutInconsistency(v,checker,false));// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
 			System.out.println(""+(newMillis-currentMillis)/1000+" step, current inconsistency = "+value);
 		}
 		

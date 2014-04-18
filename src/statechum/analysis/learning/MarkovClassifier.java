@@ -267,7 +267,7 @@ public class MarkovClassifier
 		computeClosure(coregraph,affectedVerticesInOrigGraph,m.getPredictionLen());
 		computeClosure(merged,affectedVerticesInMergedGraph,m.getPredictionLen());
 
-		long origInconsistencyRelativeToChanges = 0;//origClassifier.computeConsistency(checker, affectedVerticesInOrigGraph, false);
+		long origInconsistencyRelativeToChanges = 0;
 		for(CmpVertex v:affectedVerticesInOrigGraph)
 		{
 			if (origInconsistencies.containsKey(v))

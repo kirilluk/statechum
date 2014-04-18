@@ -37,7 +37,6 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.StringVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;

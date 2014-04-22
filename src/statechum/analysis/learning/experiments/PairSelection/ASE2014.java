@@ -135,23 +135,23 @@ public class ASE2014 extends PairQualityLearner
 			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
 		}
 		
-		boolean useCentreVertex = true, useDifferentScoringNearRoot = true, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true;
+		boolean useCentreVertex = true, useDifferentScoringNearRoot = true, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
 
-		public void setlearningParameters(boolean useCentreVertexArg, boolean useDifferentScoringNearRootArg, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useClassifyToOrderPairsArg)
+		public void setlearningParameters(boolean useCentreVertexArg, boolean useDifferentScoringNearRootArg, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useClassifyToOrderPairsArg, boolean useMostConnectedVertexToStartLearningArg)
 		{
-			useCentreVertex = useCentreVertexArg;useDifferentScoringNearRoot = useDifferentScoringNearRootArg;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useClassifyToOrderPairs = useClassifyToOrderPairsArg;
+			useCentreVertex = useCentreVertexArg;useDifferentScoringNearRoot = useDifferentScoringNearRootArg;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useClassifyToOrderPairs = useClassifyToOrderPairsArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg; 
 		}
 		
 		public void setPresetLearningParameters(int value)
 		{
 			switch(value)
 			{
-			case 0:
-				setlearningParameters(false, true, false, true);break;
-			case 1:
-				setlearningParameters(true, false, false, true);break;
-			case 2:
-				setlearningParameters(true, true, false, true);break;
+			case 0:// learning by not doing pre-merging, starting from root 
+				setlearningParameters(false, true, false, true, false);break;
+			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
+				setlearningParameters(true, false, false, true, true);break;
+			case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
+				setlearningParameters(true, true, false, true, false);break;
 			default:
 				throw new IllegalArgumentException("invalid preset number");
 			}
@@ -241,7 +241,10 @@ public class ASE2014 extends PairQualityLearner
 					assert scoreInitialMerge >= 0;
 					ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
 					final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
-					//ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+					if (useMostConnectedVertexToStartLearning)
+					{
+						ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+					}
 					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
@@ -299,6 +302,7 @@ public class ASE2014 extends PairQualityLearner
 				dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 				statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
 				dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
+				dataSample.comparisonsPerformed = learnerOfPairs.comparisonsPerformed;
 				Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
 				int wSeqLen=0;
 				for(List<Label> seq:wset)
@@ -378,7 +382,8 @@ public class ASE2014 extends PairQualityLearner
 		LearnerGraph extendedGraph = null;
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
-
+		long comparisonsPerformed = 0;
+		
 		boolean useNewScoreNearRoot = true, useClassifyPairs = true;
 
 		public void setUseNewScoreNearRoot(boolean v)
@@ -411,6 +416,7 @@ public class ASE2014 extends PairQualityLearner
 		{
 			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
 				return 0;
+			++comparisonsPerformed;
 			long score=p.getScore();						
 			long currentInconsistency = 0;
 			List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
@@ -586,7 +592,7 @@ public class ASE2014 extends PairQualityLearner
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 10;
 		final int stateNumberIncrement = 5;
-		final int rangeOfStateNumbers = 30+stateNumberIncrement;
+		final int rangeOfStateNumbers = 20+stateNumberIncrement;
 		final int traceQuantity = 10;
 		final double traceLengthMultiplierMax = 1;
 		final int chunkSize = 3;
@@ -598,7 +604,7 @@ public class ASE2014 extends PairQualityLearner
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
-
+/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
 
@@ -643,7 +649,7 @@ public class ASE2014 extends PairQualityLearner
 		}
 		if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
 		
-
+*/
 		
 /*
 		for(final boolean useCentreVertex:new boolean[]{true,false})
@@ -707,11 +713,12 @@ public class ASE2014 extends PairQualityLearner
 			}
 		
 		*/
+		/*
 		for(final int preset: new int[]{0,2})//0,1,2})
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
-			
+			long comparisonsPerformed = 0;
 			String selection = "preset="+preset+
 					";traceQuantity="+traceQuantity+";traceLengthMultiplier="+traceLengthMultiplierMax+";"+";alphabetMultiplier="+alphabetMultiplierMax+";";
 			SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_structuraldiff.pdf"),0,1,true);
@@ -742,11 +749,19 @@ public class ASE2014 extends PairQualityLearner
 					for(SampleData sample:result.samples)
 					{
 						gr_BCR.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
+						comparisonsPerformed+=sample.comparisonsPerformed;
+					}
+					
+					if (count % 10 == 0)
+					{
+						gr_StructuralDiff.drawInteractive(gr);
+						gr_BCR.drawInteractive(gr);
 					}
 					progress.next();
 				}
 				gr_StructuralDiff.drawInteractive(gr);
 				gr_BCR.drawInteractive(gr);
+				System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed)+"\n");
 			}
 			catch(Exception ex)
 			{
@@ -757,9 +772,9 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 			if (gr_BCR != null) gr_BCR.drawPdf(gr);
 		}
-	
-		final int presetForBestResults = 2;
-		
+	*/
+		final int presetForBestResults = 0;
+		/*
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));
@@ -819,7 +834,8 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_BCRForDifferentNrOfTraces != null) gr_BCRForDifferentNrOfTraces.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
-
+*/
+		/*
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
@@ -827,7 +843,7 @@ public class ASE2014 extends PairQualityLearner
 		final RBoxPlot<Double> gr_StructuralForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","structural",new File(branch+"structural_absolute_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_TransitionCoverageForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","transition coverage",new File(branch+"transitionCoverage_vs_tracelength.pdf"));
 
-		for(final int traceNum:new int[]{6})
+		for(final int traceNum:new int[]{10})
 			for(double traceLengthMultiplierToUse=0.125;traceLengthMultiplierToUse<4;traceLengthMultiplierToUse*=2.) 
 			{
 				String selection="traceLengthMultiplier="+traceLengthMultiplierToUse;
@@ -883,16 +899,16 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_TransitionCoverageForDifferentLengthOfTraces != null) gr_TransitionCoverageForDifferentLengthOfTraces.drawPdf(gr);
-	
+	*/
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","structural",new File(branch+"structural_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<String> gr_MarkovAccuracyForDifferentPrefixlen = new RBoxPlot<String>("length of prefix","Markov accuracy",new File(branch+"markov_accuracy_vs_prefixLength.pdf"));
-		for(int prefixLength=1;prefixLength<4;++prefixLength) 
+		for(int prefixLength=1;prefixLength<3;++prefixLength) 
 		{
 			
-			String selection="traceLengthMultiplier="+traceLengthMultiplierMax;
+			String selection="prefix Length ="+prefixLength;
 			try
 			{
 				int numberOfTasks = 0;

@@ -57,3 +57,7 @@ Labelled transition systems (LTS) are a foundation of a number of powerful verif
 This paper extends an existing Evidence-Driven State Merging method by training a Markov chain first and then using it to help making decisions in the absence of negatives. Each merge is evaluated based on the Markov chain inferred from a merged automaton, the more new paths it contains compared to the original Markov model, the more likely the merge is incorrect. This performs extremely well on the random LTSs produced to mimic a structure typical of software models.
 
 
+
+preset 0, 20-40 states, 
+LOG of comparisons performed: 6.289718463565648
+

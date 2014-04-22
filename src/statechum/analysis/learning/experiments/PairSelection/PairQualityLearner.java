@@ -1515,6 +1515,9 @@ public class PairQualityLearner
 		/** %% of correct predictions by the Markov model. */
 		public long markovPrecision, markovRecall;
 		
+		/** How many comparisons have been performed as part of learning. */
+		public long comparisonsPerformed;
+		
 		public SampleData()
 		{
 			this(null,null);

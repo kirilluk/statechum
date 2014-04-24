@@ -848,52 +848,55 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_StructuralDiffWithoutInconsistencies != null) gr_StructuralDiffWithoutInconsistencies.drawPdf(gr);
 			if (gr_BCRWithoutInconsistencies != null) gr_BCRWithoutInconsistencies.drawPdf(gr);
 		}*/
-/*		
+
+
+		// Same experiment but with different number of sequences.
+		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesWithNegatives = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"WithNegatives_BCR_vs_tracenumber.pdf"));
+		final RBoxPlot<Integer> gr_BCRForDifferentNrOfTracesWithNegatives = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"WithNegatives_BCR_absolute_vs_tracenumber.pdf"));
+		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentNrOfTracesWithNegatives = new RBoxPlot<Integer>("nr of traces","improvement, structural",new File(branch+"WithNegatives_structural_vs_tracenumber.pdf"));
+		final RBoxPlot<Integer> gr_StructuralForDifferentNrOfTracesWithNegatives = new RBoxPlot<Integer>("nr of traces","structural",new File(branch+"WithNegatives_structural_absolute_vs_tracenumber.pdf"));
+			
+		for(final int traceNum:new int[]{2,4,6,8,10})
 		{
-			SquareBagPlot gr_StructuralDiffWithNegatives = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_withnegatives_trace_structuraldiff.pdf"),0,1,true);
-			SquareBagPlot gr_BCRWithNegatives = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_withnegatives_trace_bcr.pdf"),0.5,1,true);		
-			String selection = "withnegatives;quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";alphabetMult="+alphabetMultiplierMax+";";
-			long comparisonsPerformed = 0;
+			String selection = "number_of_traces="+traceNum;
 			try
 			{
 				int numberOfTasks = 0;
 				for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 					for(int sample=0;sample<samplesPerFSM;++sample)
 					{
-						LearnerRunner learnerRunner = new LearnerRunner(states,sample,numberOfTasks,traceQuantityToUse, config, converter);
+						LearnerRunner learnerRunner = new LearnerRunner(states,sample,numberOfTasks,traceNum, config, converter);
 						learnerRunner.setOnlyUsePositives(false);
 						learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
 						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection);
 						learnerRunner.setPresetLearningParameters(presetForBestResults);
-						learnerRunner.setDisableInconsistenciesInMergers(false);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
-				ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for learning with negatives", numberOfTasks);
+				ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection+" trace num: "+traceNum, numberOfTasks);
 				for(int count=0;count < numberOfTasks;++count)
 				{
 					ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-					for(SampleData sample:result.samples)
-						gr_StructuralDiffWithNegatives.add(sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue());
-				
-					for(SampleData sample:result.samples)
-					{
-						gr_BCRWithNegatives.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
-						comparisonsPerformed+=sample.comparisonsPerformed;
-					}
 					
-					if (count % 10 == 0)
+					for(SampleData sample:result.samples)
 					{
-						gr_StructuralDiffWithNegatives.drawInteractive(gr);
-						gr_BCRWithNegatives.drawInteractive(gr);
+						if (sample.referenceLearner.differenceBCR.getValue() > 0)
+						{
+							// we'll generate both positives and negatives; in the considered experiments, only positives are used hence half the number of sequences are actually being learnt from.
+							gr_BCRImprovementForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+							gr_BCRForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceBCR.getValue());
+						}
+						if (sample.referenceLearner.differenceStructural.getValue() > 0)
+						{
+							gr_StructuralImprovementForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+							gr_StructuralForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceStructural.getValue());
+						}
 					}
 					progress.next();
 				}
-				gr_StructuralDiffWithNegatives.drawInteractive(gr);
-				gr_BCRWithNegatives.drawInteractive(gr);
-				System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed)+"\n");
+				gr_BCRForDifferentNrOfTracesWithNegatives.drawInteractive(gr);gr_StructuralForDifferentNrOfTracesWithNegatives.drawInteractive(gr);
 			}
 			catch(Exception ex)
 			{
@@ -901,9 +904,11 @@ public class ASE2014 extends PairQualityLearner
 				if (executorService != null) { executorService.shutdownNow();executorService = null; }
 				throw e;
 			}
-			if (gr_StructuralDiffWithNegatives != null) gr_StructuralDiffWithNegatives.drawPdf(gr);
-			if (gr_BCRWithNegatives != null) gr_BCRWithNegatives.drawPdf(gr);
-		}*/
+		}
+		if (gr_BCRImprovementForDifferentNrOfTracesWithNegatives != null) gr_BCRImprovementForDifferentNrOfTracesWithNegatives.drawPdf(gr);
+		if (gr_BCRForDifferentNrOfTracesWithNegatives != null) gr_BCRForDifferentNrOfTracesWithNegatives.drawPdf(gr);
+		if (gr_StructuralImprovementForDifferentNrOfTracesWithNegatives != null) gr_StructuralImprovementForDifferentNrOfTracesWithNegatives.drawPdf(gr);
+		if (gr_StructuralForDifferentNrOfTracesWithNegatives != null) gr_StructuralForDifferentNrOfTracesWithNegatives.drawPdf(gr);
 /*
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));

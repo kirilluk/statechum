@@ -96,12 +96,12 @@ public class ASE2014 extends PairQualityLearner
 
 		protected double tracesAlphabetMultiplier = 0;
 		
-		/** Whether we should try learning with an empty Markov matrix, to see how heuristics fare. */
-		protected boolean disableMarkov = false;
+		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
+		protected boolean disableInconsistenciesInMergers = false;
 		
-		public void setDisableMarkov(boolean v)
+		public void setDisableInconsistenciesInMergers(boolean v)
 		{
-			disableMarkov = v;
+			disableInconsistenciesInMergers = v;
 		}
 		
 		public void setTracesAlphabetMultiplier(double evalAlphabetMult)
@@ -143,7 +143,7 @@ public class ASE2014 extends PairQualityLearner
 			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
 		}
 		
-		boolean useCentreVertex = true, useDifferentScoringNearRoot = true, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
+		boolean useCentreVertex = true, useDifferentScoringNearRoot = false, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
 
 		public void setlearningParameters(boolean useCentreVertexArg, boolean useDifferentScoringNearRootArg, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useClassifyToOrderPairsArg, boolean useMostConnectedVertexToStartLearningArg)
 		{
@@ -155,11 +155,13 @@ public class ASE2014 extends PairQualityLearner
 			switch(value)
 			{
 			case 0:// learning by not doing pre-merging, starting from root 
-				setlearningParameters(false, true, false, true, false);break;
+				setlearningParameters(false, false, false, true, false);break;
 			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
 				setlearningParameters(true, false, false, true, true);break;
 			case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
 				setlearningParameters(true, true, false, true, false);break;
+			case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
+				setlearningParameters(false, true, false, true, false);break;
 			default:
 				throw new IllegalArgumentException("invalid preset number");
 			}
@@ -167,7 +169,6 @@ public class ASE2014 extends PairQualityLearner
 		@Override
 		public ThreadResult call() throws Exception 
 		{
-		
 			if (tracesAlphabetMultiplier <= 0)
 				tracesAlphabetMultiplier = alphabetMultiplier;
 			final int alphabet = (int)(alphabetMultiplier*states);
@@ -214,7 +215,7 @@ public class ASE2014 extends PairQualityLearner
 		
 				final MarkovModel m= new MarkovModel(chunkLen,true,true);
 
-				if (!disableMarkov) new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+				new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 				
 				pta.clearColours();
 
@@ -260,7 +261,8 @@ public class ASE2014 extends PairQualityLearner
 				
 				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
-
+				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
+				
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				
 				if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
@@ -407,6 +409,14 @@ public class ASE2014 extends PairQualityLearner
 		
 		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 		
+		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
+		protected boolean disableInconsistenciesInMergers = false;
+		
+		public void setDisableInconsistenciesInMergers(boolean v)
+		{
+			disableInconsistenciesInMergers = v;
+		}
+
 		@Override
 		public void initComputation(LearnerGraph graph) 
 		{
@@ -433,17 +443,16 @@ public class ASE2014 extends PairQualityLearner
 			if (genScore >= 0)
 			{			
 				LearnerGraph merged = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(coregraph, verticesToMerge);
-				currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
+				if (!disableInconsistenciesInMergers)
+					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
 				
 				score=genScore-currentInconsistency;
 				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 				{
-					if (!MarkovClassifier.checkIfAnyPathLeadsToVertex(coregraph,p.getR(),Markov.getPredictionLen()) ||
-							!MarkovClassifier.checkIfAnyPathLeadsToVertex(coregraph,p.getQ(),Markov.getPredictionLen()))
-					/*
-					merged.pathroutines.updateDepthLabelling(Markov.getPredictionLen());// only labels states around root, the rest are labelled JUConstants.intUnknown.
-					if(p.getR().getDepth() != JUConstants.intUNKNOWN && p.getR().getDepth() <= Markov.getPredictionLen())*/
-						score = (long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);//MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
+					if (!MarkovClassifier.checkIfAnyPathLeadsToVertex(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
+							!MarkovClassifier.checkIfAnyPathLeadsToVertex(inverseGraph,p.getQ(),Markov.getPredictionLen()))
+						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
+							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
 				}
 			}
 			return score;
@@ -722,15 +731,14 @@ public class ASE2014 extends PairQualityLearner
 			}
 		
 		*/
-		for(final int preset: new int[]{0})//0,1,2})
-		for(boolean disableMarkov:new boolean[]{true,false})
+		for(final int preset: new int[]{3})//0,1,2})
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
 			long comparisonsPerformed = 0;
-			String selection = "preset="+preset+";quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";noMarkov="+disableMarkov+";alphabetMult="+alphabetMultiplierMax+";";
-			SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_structuraldiff.pdf"),0,1,true);
-			SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_bcr.pdf"),0.5,1,true);		
+			String selection = "preset="+preset+";quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";statesMax="+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+";alphabetMult="+alphabetMultiplierMax+";";
+			SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+preset+"_"+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+"_trace_structuraldiff.pdf"),0,1,true);
+			SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+preset+"_"+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+"_trace_bcr.pdf"),0.5,1,true);		
 			try
 			{
 				int numberOfTasks = 0;
@@ -744,7 +752,7 @@ public class ASE2014 extends PairQualityLearner
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection);
 						learnerRunner.setPresetLearningParameters(preset);
-						learnerRunner.setDisableMarkov(disableMarkov);
+						learnerRunner.setDisableInconsistenciesInMergers(false);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
@@ -783,7 +791,120 @@ public class ASE2014 extends PairQualityLearner
 		}
 
 		final int presetForBestResults = 0;
-
+/*				
+		final int traceQuantityToUse = traceQuantity;
+		{
+			SquareBagPlot gr_StructuralDiffWithoutInconsistencies = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_structuraldiff.pdf"),0,1,true);
+			SquareBagPlot gr_BCRWithoutInconsistencies = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_bcr.pdf"),0.5,1,true);		
+			String selection = "noinconsistencies;quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";alphabetMult="+alphabetMultiplierMax+";";
+			long comparisonsPerformed = 0;
+			try
+			{
+				int numberOfTasks = 0;
+				for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+					for(int sample=0;sample<samplesPerFSM;++sample)
+					{
+						LearnerRunner learnerRunner = new LearnerRunner(states,sample,numberOfTasks,traceQuantityToUse, config, converter);
+						learnerRunner.setOnlyUsePositives(onlyPositives);
+						learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
+						learnerRunner.setChunkLen(chunkSize);
+						learnerRunner.setSelectionID(selection);
+						learnerRunner.setPresetLearningParameters(presetForBestResults);
+						learnerRunner.setDisableInconsistenciesInMergers(true);
+						runner.submit(learnerRunner);
+						++numberOfTasks;
+					}
+				ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for learning without inconsistencies", numberOfTasks);
+				for(int count=0;count < numberOfTasks;++count)
+				{
+					ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+					for(SampleData sample:result.samples)
+						gr_StructuralDiffWithoutInconsistencies.add(sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue());
+				
+					for(SampleData sample:result.samples)
+					{
+						gr_BCRWithoutInconsistencies.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
+						comparisonsPerformed+=sample.comparisonsPerformed;
+					}
+					
+					if (count % 10 == 0)
+					{
+						gr_StructuralDiffWithoutInconsistencies.drawInteractive(gr);
+						gr_BCRWithoutInconsistencies.drawInteractive(gr);
+					}
+					progress.next();
+				}
+				gr_StructuralDiffWithoutInconsistencies.drawInteractive(gr);
+				gr_BCRWithoutInconsistencies.drawInteractive(gr);
+				System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed)+"\n");
+			}
+			catch(Exception ex)
+			{
+				IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+				if (executorService != null) { executorService.shutdownNow();executorService = null; }
+				throw e;
+			}
+			if (gr_StructuralDiffWithoutInconsistencies != null) gr_StructuralDiffWithoutInconsistencies.drawPdf(gr);
+			if (gr_BCRWithoutInconsistencies != null) gr_BCRWithoutInconsistencies.drawPdf(gr);
+		}*/
+/*		
+		{
+			SquareBagPlot gr_StructuralDiffWithNegatives = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_withnegatives_trace_structuraldiff.pdf"),0,1,true);
+			SquareBagPlot gr_BCRWithNegatives = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_withnegatives_trace_bcr.pdf"),0.5,1,true);		
+			String selection = "withnegatives;quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";alphabetMult="+alphabetMultiplierMax+";";
+			long comparisonsPerformed = 0;
+			try
+			{
+				int numberOfTasks = 0;
+				for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+					for(int sample=0;sample<samplesPerFSM;++sample)
+					{
+						LearnerRunner learnerRunner = new LearnerRunner(states,sample,numberOfTasks,traceQuantityToUse, config, converter);
+						learnerRunner.setOnlyUsePositives(false);
+						learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
+						learnerRunner.setChunkLen(chunkSize);
+						learnerRunner.setSelectionID(selection);
+						learnerRunner.setPresetLearningParameters(presetForBestResults);
+						learnerRunner.setDisableInconsistenciesInMergers(false);
+						runner.submit(learnerRunner);
+						++numberOfTasks;
+					}
+				ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for learning with negatives", numberOfTasks);
+				for(int count=0;count < numberOfTasks;++count)
+				{
+					ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
+					for(SampleData sample:result.samples)
+						gr_StructuralDiffWithNegatives.add(sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue());
+				
+					for(SampleData sample:result.samples)
+					{
+						gr_BCRWithNegatives.add(sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue());
+						comparisonsPerformed+=sample.comparisonsPerformed;
+					}
+					
+					if (count % 10 == 0)
+					{
+						gr_StructuralDiffWithNegatives.drawInteractive(gr);
+						gr_BCRWithNegatives.drawInteractive(gr);
+					}
+					progress.next();
+				}
+				gr_StructuralDiffWithNegatives.drawInteractive(gr);
+				gr_BCRWithNegatives.drawInteractive(gr);
+				System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed)+"\n");
+			}
+			catch(Exception ex)
+			{
+				IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+				if (executorService != null) { executorService.shutdownNow();executorService = null; }
+				throw e;
+			}
+			if (gr_StructuralDiffWithNegatives != null) gr_StructuralDiffWithNegatives.drawPdf(gr);
+			if (gr_BCRWithNegatives != null) gr_BCRWithNegatives.drawPdf(gr);
+		}*/
+/*
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));

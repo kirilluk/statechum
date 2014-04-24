@@ -96,6 +96,14 @@ public class ASE2014 extends PairQualityLearner
 
 		protected double tracesAlphabetMultiplier = 0;
 		
+		/** Whether we should try learning with an empty Markov matrix, to see how heuristics fare. */
+		protected boolean disableMarkov = false;
+		
+		public void setDisableMarkov(boolean v)
+		{
+			disableMarkov = v;
+		}
+		
 		public void setTracesAlphabetMultiplier(double evalAlphabetMult)
 		{
 			tracesAlphabetMultiplier = evalAlphabetMult;
@@ -206,7 +214,8 @@ public class ASE2014 extends PairQualityLearner
 		
 				final MarkovModel m= new MarkovModel(chunkLen,true,true);
 
-				new MarkovClassifier(m, pta).updateMarkov(false);
+				if (!disableMarkov) new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+				
 				pta.clearColours();
 
 				if (!onlyUsePositives)
@@ -584,7 +593,7 @@ public class ASE2014 extends PairQualityLearner
 	{
 		DrawGraphs gr = new DrawGraphs();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();	
@@ -713,14 +722,13 @@ public class ASE2014 extends PairQualityLearner
 			}
 		
 		*/
-		/*
-		for(final int preset: new int[]{0,2})//0,1,2})
+		for(final int preset: new int[]{0})//0,1,2})
+		for(boolean disableMarkov:new boolean[]{true,false})
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
 			long comparisonsPerformed = 0;
-			String selection = "preset="+preset+
-					";traceQuantity="+traceQuantity+";traceLengthMultiplier="+traceLengthMultiplierMax+";"+";alphabetMultiplier="+alphabetMultiplierMax+";";
+			String selection = "preset="+preset+";quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";noMarkov="+disableMarkov+";alphabetMult="+alphabetMultiplierMax+";";
 			SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_structuraldiff.pdf"),0,1,true);
 			SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_bcr.pdf"),0.5,1,true);		
 			try
@@ -736,6 +744,7 @@ public class ASE2014 extends PairQualityLearner
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection);
 						learnerRunner.setPresetLearningParameters(preset);
+						learnerRunner.setDisableMarkov(disableMarkov);
 						runner.submit(learnerRunner);
 						++numberOfTasks;
 					}
@@ -772,9 +781,9 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 			if (gr_BCR != null) gr_BCR.drawPdf(gr);
 		}
-	*/
+
 		final int presetForBestResults = 0;
-		/*
+
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));
@@ -834,7 +843,7 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_BCRForDifferentNrOfTraces != null) gr_BCRForDifferentNrOfTraces.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
-*/
+
 		/*
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
@@ -899,7 +908,7 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_TransitionCoverageForDifferentLengthOfTraces != null) gr_TransitionCoverageForDifferentLengthOfTraces.drawPdf(gr);
-	*/
+	*//*
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
@@ -962,7 +971,8 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
 		if (gr_MarkovAccuracyForDifferentPrefixlen != null) gr_MarkovAccuracyForDifferentPrefixlen.drawPdf(gr);
-
+*/
+		/*
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
@@ -1028,6 +1038,8 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_BCRForDifferentAlphabetSize != null) gr_BCRForDifferentAlphabetSize.drawPdf(gr);
 		if (gr_StructuralForDifferentAlphabetSize != null) gr_StructuralForDifferentAlphabetSize.drawPdf(gr);
 		if (gr_MarkovAccuracyForDifferentAlphabetSize != null) gr_MarkovAccuracyForDifferentAlphabetSize.drawPdf(gr);
+		*/
+		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}
 }

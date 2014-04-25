@@ -299,16 +299,17 @@ public class MarkovClassifier
 
 		long origInconsistencyRelativeToChanges = 0;
 		for(CmpVertex v:affectedVerticesInOrigGraph)
-		{
-			if (origInconsistencies.containsKey(v))
-				origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
-			else
+			if (v.isAccept()) // we only consider prefix-closed languages where there are never any outgoing transitions from reject-states and hence no potential for inconsistencies.
 			{
-				long inconsistency = origClassifier.checkFanoutInconsistency(v,checker,false);
-				origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
-				origInconsistencyRelativeToChanges+=inconsistency;
+				if (origInconsistencies.containsKey(v))
+					origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
+				else
+				{
+					long inconsistency = origClassifier.checkFanoutInconsistency(v,checker,false);
+					origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
+					origInconsistencyRelativeToChanges+=inconsistency;
+				}
 			}
-		}
 		MarkovClassifier cl = new MarkovClassifier(m, merged);
 		long mergedInconsistencyRelativeToChanges = cl.computeConsistencyForSpecificVertices(checker,affectedVerticesInMergedGraph,false);
 		return mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
@@ -984,7 +985,9 @@ public class MarkovClassifier
 	@SuppressWarnings("unchecked")
 	public long checkFanoutInconsistency(final CmpVertex vert,final ConsistencyChecker checker, final boolean displayTrace)
 	{
-		assert vert.isAccept();
+		if (!vert.isAccept())
+			return 0;// reject-vertices cannot have outgoing transitions (we are considering prefix-closed languages) and hence a score of zero makes good sense.
+		
 		final Collection<Label> outgoingLabels = checker.obtainAlphabet(graphToCheckForConsistency,vert);
 		final Map<Label,MarkovOutcome> outgoing_labels_value=new HashMap<Label,MarkovOutcome>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);

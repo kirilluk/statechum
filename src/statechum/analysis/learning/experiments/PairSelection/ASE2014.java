@@ -436,10 +436,10 @@ public class ASE2014 extends PairQualityLearner
 			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
 				return 0;
 			++comparisonsPerformed;
-			long score=p.getScore();						
 			long currentInconsistency = 0;
 			List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+			long score= genScore;
 			if (genScore >= 0)
 			{			
 				LearnerGraph merged = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(coregraph, verticesToMerge);
@@ -730,7 +730,7 @@ public class ASE2014 extends PairQualityLearner
 						if (gr_BCR != null) gr_BCR.drawPdf(gr);
 			}
 		
-		*/
+		/*
 		for(final int preset: new int[]{3})//0,1,2})
 		{
 				
@@ -789,7 +789,7 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 			if (gr_BCR != null) gr_BCR.drawPdf(gr);
 		}
-
+*/
 		final int presetForBestResults = 0;
 /*				
 		final int traceQuantityToUse = traceQuantity;
@@ -885,13 +885,13 @@ public class ASE2014 extends PairQualityLearner
 						if (sample.referenceLearner.differenceBCR.getValue() > 0)
 						{
 							// we'll generate both positives and negatives; in the considered experiments, only positives are used hence half the number of sequences are actually being learnt from.
-							gr_BCRImprovementForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
-							gr_BCRForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceBCR.getValue());
+							gr_BCRImprovementForDifferentNrOfTracesWithNegatives.add(traceNum,sample.actualLearner.differenceBCR.getValue()/sample.referenceLearner.differenceBCR.getValue());
+							gr_BCRForDifferentNrOfTracesWithNegatives.add(traceNum,sample.actualLearner.differenceBCR.getValue());
 						}
 						if (sample.referenceLearner.differenceStructural.getValue() > 0)
 						{
-							gr_StructuralImprovementForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
-							gr_StructuralForDifferentNrOfTracesWithNegatives.add(traceNum/2,sample.actualLearner.differenceStructural.getValue());
+							gr_StructuralImprovementForDifferentNrOfTracesWithNegatives.add(traceNum,sample.actualLearner.differenceStructural.getValue()/sample.referenceLearner.differenceStructural.getValue());
+							gr_StructuralForDifferentNrOfTracesWithNegatives.add(traceNum,sample.actualLearner.differenceStructural.getValue());
 						}
 					}
 					progress.next();

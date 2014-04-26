@@ -58,10 +58,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.LearnerRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
@@ -162,6 +159,8 @@ public class ASE2014 extends PairQualityLearner
 				setlearningParameters(true, true, false, true, false);break;
 			case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
 				setlearningParameters(false, true, false, true, false);break;
+			case 4:// learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
+				setlearningParameters(false, false, false, false, false);break;
 			default:
 				throw new IllegalArgumentException("invalid preset number");
 			}
@@ -622,7 +621,7 @@ public class ASE2014 extends PairQualityLearner
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
-/*
+
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
 
@@ -666,8 +665,6 @@ public class ASE2014 extends PairQualityLearner
 			}
 		}
 		if (gr_BCRForDifferentLearners != null) gr_BCRForDifferentLearners.drawPdf(gr);if (gr_StructuralForDifferentLearners != null) gr_StructuralForDifferentLearners.drawPdf(gr);
-		
-*/
 		
 /*
 		for(final boolean useCentreVertex:new boolean[]{true,false})
@@ -729,9 +726,8 @@ public class ASE2014 extends PairQualityLearner
 						if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 						if (gr_BCR != null) gr_BCR.drawPdf(gr);
 			}
-		
-		/*
-		for(final int preset: new int[]{3})//0,1,2})
+*/
+		for(final int preset: new int[]{0,4})//0,1,2})
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
@@ -748,6 +744,7 @@ public class ASE2014 extends PairQualityLearner
 						LearnerRunner learnerRunner = new LearnerRunner(states,sample,numberOfTasks,traceQuantityToUse, config, converter);
 						learnerRunner.setOnlyUsePositives(onlyPositives);
 						learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setSelectionID(selection);
@@ -789,9 +786,9 @@ public class ASE2014 extends PairQualityLearner
 			if (gr_StructuralDiff != null) gr_StructuralDiff.drawPdf(gr);
 			if (gr_BCR != null) gr_BCR.drawPdf(gr);
 		}
-*/
+
 		final int presetForBestResults = 0;
-/*				
+		
 		final int traceQuantityToUse = traceQuantity;
 		{
 			SquareBagPlot gr_StructuralDiffWithoutInconsistencies = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_structuraldiff.pdf"),0,1,true);
@@ -847,8 +844,7 @@ public class ASE2014 extends PairQualityLearner
 			}
 			if (gr_StructuralDiffWithoutInconsistencies != null) gr_StructuralDiffWithoutInconsistencies.drawPdf(gr);
 			if (gr_BCRWithoutInconsistencies != null) gr_BCRWithoutInconsistencies.drawPdf(gr);
-		}*/
-
+		}
 
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTracesWithNegatives = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"WithNegatives_BCR_vs_tracenumber.pdf"));
@@ -909,7 +905,7 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_BCRForDifferentNrOfTracesWithNegatives != null) gr_BCRForDifferentNrOfTracesWithNegatives.drawPdf(gr);
 		if (gr_StructuralImprovementForDifferentNrOfTracesWithNegatives != null) gr_StructuralImprovementForDifferentNrOfTracesWithNegatives.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTracesWithNegatives != null) gr_StructuralForDifferentNrOfTracesWithNegatives.drawPdf(gr);
-/*
+
 		// Same experiment but with different number of sequences.
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","improvement, BCR",new File(branch+"BCR_vs_tracenumber.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentNrOfTraces = new RBoxPlot<Integer>("nr of traces","BCR",new File(branch+"BCR_absolute_vs_tracenumber.pdf"));
@@ -970,7 +966,7 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentNrOfTraces != null) gr_StructuralImprovementForDifferentNrOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentNrOfTraces != null) gr_StructuralForDifferentNrOfTraces.drawPdf(gr);
 
-		/*
+
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
@@ -1034,7 +1030,7 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentLengthOfTraces != null) gr_StructuralImprovementForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_StructuralForDifferentLengthOfTraces != null) gr_StructuralForDifferentLengthOfTraces.drawPdf(gr);
 		if (gr_TransitionCoverageForDifferentLengthOfTraces != null) gr_TransitionCoverageForDifferentLengthOfTraces.drawPdf(gr);
-	*//*
+
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_StructuralImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, structural",new File(branch+"structural_vs_prefixLength.pdf"));
@@ -1097,8 +1093,8 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_StructuralImprovementForDifferentPrefixlen != null) gr_StructuralImprovementForDifferentPrefixlen.drawPdf(gr);
 		if (gr_StructuralForDifferentPrefixlen != null) gr_StructuralForDifferentPrefixlen.drawPdf(gr);
 		if (gr_MarkovAccuracyForDifferentPrefixlen != null) gr_MarkovAccuracyForDifferentPrefixlen.drawPdf(gr);
-*/
-		/*
+
+
 		final RBoxPlot<String> gr_BCRImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, BCR",new File(branch+"BCR_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_BCRForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","BCR",new File(branch+"BCR_absolute_vs_alphabet.pdf"));
 		final RBoxPlot<String> gr_StructuralImprovementForDifferentAlphabetSize = new RBoxPlot<String>("alphabet multiplier","improvement, structural",new File(branch+"structural_vs_alphabet.pdf"));
@@ -1164,7 +1160,6 @@ public class ASE2014 extends PairQualityLearner
 		if (gr_BCRForDifferentAlphabetSize != null) gr_BCRForDifferentAlphabetSize.drawPdf(gr);
 		if (gr_StructuralForDifferentAlphabetSize != null) gr_StructuralForDifferentAlphabetSize.drawPdf(gr);
 		if (gr_MarkovAccuracyForDifferentAlphabetSize != null) gr_MarkovAccuracyForDifferentAlphabetSize.drawPdf(gr);
-		*/
 		
 		if (executorService != null) { executorService.shutdown();executorService = null; }
 	}

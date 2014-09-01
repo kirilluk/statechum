@@ -171,16 +171,12 @@ public class ErlangRuntime {
 				ErlangNode.getErlangNode().createNode();
 
 				// The compilation phase could a few seconds but only needs to
-				// be done once after installation of Statechum
+				// be done once after installation of Statechum. Here we only compile the core part of Statechum, the rest is compiled by the runtime 
+				// because compile options depend on the version of Erlang in use and this is only known to the runtime.
 				for (String str : new String[] { tracerunnerProgram,
 						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
 				ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), null,true);
-				for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
-					for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
-						if (ErlangRunner.validName(f.getName()))
-							ErlangRunner.compileErl(f, null, true);
-
 
 				// Now build environment variables to ensure that dialyzer will
 				// find a directory to put its plt file in.
@@ -298,6 +294,10 @@ public class ErlangRuntime {
 				{// drain the queue
 				}
 				
+				for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
+					for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
+						if (ErlangRunner.validName(f.getName()))
+							ErlangRunner.compileErl(f, runner, true);
 				
 				// seems like success, set the value of ErlangProcess
 				erlangProcess = processWithErlangRuntime;

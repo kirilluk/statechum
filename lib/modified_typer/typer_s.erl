@@ -160,7 +160,9 @@ remove_external(CallGraph, PLT) ->
   	"R14"->dialyzer_callgraph:finalize(StrippedCG0);
   	"R15"->StrippedCG0;
   	"R16"->StrippedCG0;
-  	_->reportError('Unsupported Erlang version, only R14, R15 and R16 are supported')
+  	"17"->StrippedCG0;  	
+% Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
+    Unknown->reportError(list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R17 are supported", [Unknown]))))
   end,
   case get_external(Ext, PLT) of
     [] -> ok;

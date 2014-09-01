@@ -35,7 +35,7 @@
 
 -export([annotate/2,t_to_Statechum/2]).
 
--include("erltypes.hrl").
+-include("erltypes.hrl").%% the value of this define is set at a command line.
 
 %%----------------------------------------------------------------------------
 
@@ -284,8 +284,7 @@ t_to_Statechum(?atom(Set), _RecDict) ->
     _ ->
       { 'Atom',[],set_to_Statechum(Set) }
   end;
-%%t_to_Statechum(?bitstr(8, 0), _RecDict) -> {'Binary',[]};%% best to handle this via BitString
-%%  "binary()";
+
 t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B ]};
 
 t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as arguments are not yet supported");

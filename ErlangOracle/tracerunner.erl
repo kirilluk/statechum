@@ -90,10 +90,22 @@ verifyJavaUp(Node) ->
 init([Arg]) ->
     {ok, #statechum{processNum=Arg}}.
 
+%% Obtains the defines necessary to tailor Statechum to the specific version of Erlang runtime. This is only needed for Typer but in future may be used for other things.
+runtimeSpecificFlags() ->
+  case string:substr(erlang:system_info(otp_release),1,3) of
+  	"R14"->{ok,{i,"lib/modified_typer/16"}};
+  	"R15"->{ok,{i,"lib/modified_typer/16"}};
+  	"R16"->{ok,{i,"lib/modified_typer/16"}};
+  	"17"->{ok,{i,"lib/modified_typer/17"}};  	
+% Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
+    Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R17 are supported", [Unknown])))}
+  end.
+  
 %% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
 %% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
 compileAndLoad(What,Path) ->
-	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary]),
+	{ok,Flags}=runtimeSpecificFlags(),
+	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary,Flags]),
 	ModuleName = filename:basename(What,".erl"),
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
@@ -234,17 +246,20 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
 	end;
 
-
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
 handle_call({compile,[],erlc,_Dir}, _From, State) ->
 	{reply, ok, State};
 	
 handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
-	case(compile:file(M,[verbose,debug_info,{outdir,Dir}])) of
-		{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
-		Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
+	case(runtimeSpecificFlags()) of
+		{ok,Flags} ->
+			case(compile:file(M,[verbose,debug_info,{outdir,Dir},Flags])) of
+				{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
+				Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
+			end;
+		{error,Msg} -> {reply, {failedToCompile, M, Dir, Msg}, State}
 	end;
-
+		
 %% Extracts dependencies from the supplied module
 handle_call({dependencies,M}, _From, State) ->
 	case(beam_lib:chunks(M,[imports])) of

@@ -823,7 +823,7 @@ public class PairQualityLearner
 
 				@Override
 				public long overrideScoreComputation(PairScore p) {
-					long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);//p.getScore();
+					long score = p.getScore();
 					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
 						score = -1;
 					return score;
@@ -1421,6 +1421,8 @@ public class PairQualityLearner
 	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
 			return new DifferenceToReferenceLanguageBCR(mat);
 		}
+		
+		
 	}
 	
 	public static class DifferenceToReferenceDiff implements DifferenceToReference
@@ -1463,7 +1465,7 @@ public class PairQualityLearner
 	 */
 	public static class ScoresForGraph implements DifferenceToReference
 	{
-		public DifferenceToReference differenceStructural, differenceBCR;
+		public DifferenceToReference differenceStructural, differenceBCR , differenceFMeasure;
 		public long inconsistency;
 		
 		@Override
@@ -1484,6 +1486,11 @@ public class PairQualityLearner
 			{
 				if (!outcome.isEmpty()) outcome+=",";
 				outcome+=String.format("structural: %s",differenceStructural.toString());
+			}
+			if (differenceFMeasure != null)
+			{
+				if (!outcome.isEmpty()) outcome+=",";
+				outcome+=String.format("FMeasure: %s",differenceFMeasure.toString());
 			}
 			return outcome;
 		}
@@ -1507,6 +1514,9 @@ public class PairQualityLearner
 		
 		/** %% of correct predictions by the Markov model. */
 		public long markovPrecision, markovRecall;
+		
+		/** How many comparisons have been performed as part of learning. */
+		public long comparisonsPerformed;
 		
 		public SampleData()
 		{
@@ -2001,6 +2011,7 @@ public class PairQualityLearner
 			ScoresForGraph outcome = new ScoresForGraph();
 			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
 			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
+			outcome.differenceFMeasure=DifferenceToReferenceFMeasure.estimationOfDifference(reference, actual,testSet);
 			return outcome;
 		}
 	}

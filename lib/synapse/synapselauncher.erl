@@ -127,6 +127,9 @@ launch(OptionsList,PidToNotify) ->
 		{'Java','java'}, %% Path to Java executable
 		{'StatechumDir','.'}, %% Path to Statechum
 		{'AccumulateOutput','false'}, %% only used for testing, this one will cause this process to report all output Java dumps on the screen
+		{'TerminateWhenParentDoes','true'}, %% when a process that started Synapse terminates, terminates the main thread of Synapse. Important for non-interactive applications such as for testing. Where any graphical windows have been created, we have a gui thread and thus JVM does not exit when Synapse thread does.
+% Erlang is not notified about it hence thinks Statechum is available and running but all communication with it waits forever. One way to resolve this is by force-terminating JVM when Synapse terminates or
+% by passing false when starting Synapse. This problem occurs every time Quickcheck is used to start Statechum because it uses a separate process that terminates when Quickcheck test does.  
 		{'JavaOptionsList',[]}], %% Java options, defaults below.
 	MergedOptions = mergeOptions(OptionsList,DefaultsList,['JavaOptionsList']),
 	{Java,StatechumDir,JavaOptionsList}={dict:fetch('Java',MergedOptions),dict:fetch('StatechumDir',MergedOptions),dict:fetch('JavaOptionsList',MergedOptions)},
@@ -167,7 +170,7 @@ launch(OptionsList,PidToNotify) ->
 				{Ref, ok, Pid} ->
 					%% At this point, we have started Statechum in a Java node and established communication with it.
 					PidToNotify!ok,
-					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions))
+					loop(Port,[],Pid,PidToNotify,dict:fetch('AccumulateOutput',MergedOptions),dict:fetch('TerminateWhenParentDoes',MergedOptions))
 				after 1000 ->
 					throw("Timeout waiting for echo response")
 			end
@@ -195,21 +198,21 @@ find_statechum() ->
 	end.
 
 %%% Given text output from the process, either accumulates it and returns the result or simply dumps it into the standard output.
-loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) ->
+loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes) ->
 	receive
 		{Port, {data, Data}} ->
 			case AccumulateOutput of
-				true -> loop(Port,ResponseAsText ++ Data,Pid,ParentPid,AccumulateOutput);
-				false-> io:format(user,"~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)
+				true -> loop(Port,ResponseAsText ++ Data,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes);
+				false-> io:format(user,"~s", [Data]),loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes)
 			end;
 		%% if we are accumulating output (aka running under test), we expect to get some within a relatively short period of time, report a failure if there is none forthcoming.
-		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput);
-		{'EXIT', ParentPid, _ } when is_pid(ParentPid) -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,AccumulateOutput); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
+		{ResponsePid,Ref,Command} when is_pid(ResponsePid),is_reference(Ref),is_atom(Command) -> Pid!{ResponsePid,Ref,Command},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes);
+		{'EXIT', ParentPid, _ } when is_pid(ParentPid) and TerminateWhenParentDoes -> Pid!{ParentPid,make_ref(),terminate},loop(Port,[],Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes); %% if our parent terminated, ask Statechum to terminate and wait for it but not accumulating anything.
 		{'EXIT', Port, _} when is_port(Port) ->%% port_close(Port) will fail here because port is already closed 
 			if AccumulateOutput == true -> ParentPid!ResponseAsText,ok; true -> ok end;
-		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput) %% here we expect Statechum to terminate and output to become available.
+		terminate -> Pid!{ParentPid,make_ref(),terminate},loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes) %% here we expect Statechum to terminate and output to become available.
 %%		after 3000 -> 
-%%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput)  end
+%%			if AccumulateOutput == true -> Pid!terminate,throw("Timeout waiting for any response");true -> loop(Port,ResponseAsText,Pid,ParentPid,AccumulateOutput,TerminateWhenParentDoes)  end
 	end.
 
 	

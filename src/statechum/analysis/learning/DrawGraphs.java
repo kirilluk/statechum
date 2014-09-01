@@ -534,7 +534,7 @@ public class DrawGraphs {
 		}
 		
 		/** Returns a command to draw a graph in R. */
-		abstract List<String> getDrawingCommand();
+		protected abstract List<String> getDrawingCommand();
 		
 		public void drawInteractive(DrawGraphs gr)
 		{
@@ -572,6 +572,12 @@ public class DrawGraphs {
 		
 		/* Computes the horizontal size of the drawing. */
 		abstract protected double computeHorizSize();
+		
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		public String getFileName()
+		{
+			return file.getName();
+		}
 	}
 	
 	public static class RBoxPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>

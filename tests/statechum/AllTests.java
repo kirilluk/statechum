@@ -87,7 +87,8 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
         statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
         statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
-        statechum.analysis.learning.experiments.PairSelection.TestWekaPairClassifier.class
+        statechum.analysis.learning.experiments.PairSelection.TestWekaPairClassifier.class,
+        statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.class
     })
     public static class BasicTests {// all tests are included in the annotation.
     }
@@ -196,9 +197,10 @@ public class AllTests {
     	}   	
     }
     */
-     @RunWith(Suite.class)
+    @RunWith(Suite.class)
     @SuiteClasses({
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
+        statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
     	statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,

@@ -1518,6 +1518,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
+		
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
+		if (diffEx != null)
+			throw diffEx;
 	}
 
 	@Test
@@ -1531,6 +1537,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
 		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I", "testPairCompatible_general_Fb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
 		if (diffEx != null)
 			throw diffEx;
 	}
@@ -1548,6 +1560,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
+		if (diffEx != null)
+			throw diffEx;
 	}
 
 	@Test
@@ -1561,6 +1579,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge);
 		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I-d->I", "testPairCompatible_general_Hb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
+		if (diffEx != null)
+			throw diffEx;
+
+		// Now test the "lite" version of state merging routine.
+		LearnerGraph merge2 = MergeStates.mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(fsm, verticesToMerge);
+		diffEx = WMethod.checkM(expected, merge2);
 		if (diffEx != null)
 			throw diffEx;
 	}
@@ -1958,8 +1982,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E", "testSiccoScoring1",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 	}
 	
 	@Test
@@ -1967,8 +1991,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H", "testSiccoScoring2",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 	}
 	
 	@Test
@@ -1977,7 +2001,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 	}
 	
 	// Same as above but states not red
@@ -1985,8 +2009,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testSiccoScoring3b()
 	{
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 	}
 
 	@Test
@@ -2003,8 +2027,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testSiccoScoring4b()
 	{
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
+		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 	}
 	
 /*

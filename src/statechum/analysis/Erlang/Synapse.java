@@ -29,6 +29,8 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import statechum.Configuration.STATETREE;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
@@ -40,10 +42,14 @@ import statechum.Label;
 import statechum.Pair;
 import statechum.StringLabel;
 import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
+import statechum.analysis.learning.experiments.PairSelection.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
@@ -143,7 +149,8 @@ public class Synapse implements Runnable {
 		msgAddTypeInformation = new OtpErlangAtom("addTypeInformation"),
 		msgExtractTypeInformation = new OtpErlangAtom("extractTypeInformation"),
 		msgPurgeModuleInformation = new OtpErlangAtom("purgeModuleInformation"),
-		msgLearn = new OtpErlangAtom("learn"),
+		msgLearnEDSM = new OtpErlangAtom("learnEDSM"),
+		msgLearnEDSMMARKOV = new OtpErlangAtom("learn"),
 		msgTraces = new OtpErlangAtom("traces"),
 
 		msgStop = new OtpErlangAtom("stop"), // sent in order to make a learner terminate its learning process. workers respond with {Ref,workerok} to it.
@@ -206,7 +213,10 @@ public class Synapse implements Runnable {
 				}
 				else
 				if (command.equals(msgTerminate))
+				{
+					System.out.println("terminating upon request");
 					break;
+				}
 				else
 					if (command.equals(msgGetStatechumWorker))
 					{
@@ -796,7 +806,7 @@ public class Synapse implements Runnable {
 												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
 												// Response: Ref,ok,fsm
 												// on error: Ref,failure,text_of_the_error (as string)
-												if (command.equals(msgLearn) && message.arity() >= 2)
+												if (command.equals(msgLearnEDSM) && message.arity() >= 2)
 												{
 													OtpErlangObject outcome = null;
 													try
@@ -850,6 +860,95 @@ public class Synapse implements Runnable {
 															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 														}
 														LearnerGraph graphLearnt = learner.learnMachine();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+													}
+													catch(AskedToTerminateException e)
+													{
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+													}
+													catch(Throwable ex)
+													{
+														ex.printStackTrace();
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+													}
+													mbox.send(erlangPartner,outcome);
+													
+												}
+												else
+												// Args: Ref,learn, pid
+												// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
+												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+												// Response: Ref,ok,fsm
+												// on error: Ref,failure,text_of_the_error (as string)
+												if (command.equals(msgLearnEDSMMARKOV) && message.arity() >= 2)
+												{
+													OtpErlangObject outcome = null;
+													try
+													{
+														final AtomicLong counter = new AtomicLong();
+														learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+														LearnerGraph pta=new LearnerGraph(learnerInitConfiguration.config);
+														for(List<Label> seq:sPlus)
+															pta.paths.augmentPTA(seq,true,false,null);
+														for(List<Label> seq:sMinus)
+															pta.paths.augmentPTA(seq,false,false,null);
+														final MarkovModel m= new MarkovModel(3,true,true);
+
+														new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+													
+														pta.clearColours();
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,0) {
+
+															@Override
+															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+															{
+																// send the notification if necessary
+																if (message.arity() > 2 && message.elementAt(2) instanceof OtpErlangPid)
+																	sendProgress((OtpErlangPid)message.elementAt(2), ref, graph, null, counter);
+																
+																// check if we were asked to terminate
+																try {
+																	OtpErlangObject messageReceived = mbox.receive(0);// do not wait, return null if anything received
+																	if (messageReceived != null && messageReceived instanceof OtpErlangTuple && ((OtpErlangTuple)messageReceived).arity() == 2)
+																	{
+																		OtpErlangTuple cmd = ((OtpErlangTuple)messageReceived);
+																		if (cmd.elementAt(0).equals(ref) && cmd.elementAt(1).equals(msgStop))
+																			throw new AskedToTerminateException();
+																	}
+																} catch (OtpErlangExit e) {
+																	Helper.throwUnchecked("node exited", e);
+																} catch (OtpErlangDecodeException e) {
+																	Helper.throwUnchecked("decode exception", e);
+																}
+																// resume learning.
+																return super.ChooseStatePairs(graph);
+															}
+
+															@Override
+															public Pair<Integer, String> CheckWithEndUser(
+																	LearnerGraph model,
+																	List<Label> question,
+																	int expectedForNoRestart,
+																	List<Boolean> consistentFacts,
+																	PairScore pairBeingMerged,
+																	Object[] moreOptions) {
+
+																return super.CheckWithEndUser(model, question, expectedForNoRestart,
+																		consistentFacts, pairBeingMerged, moreOptions);
+															}
+															
+														};
+														learner.setMarkov(m);learner.setChecker(checker);
+														learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
+														learner.setDisableInconsistenciesInMergers(false);
+														
+														if (learnerInitConfiguration.graph != null)
+														{
+															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
+															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+														}
+														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 													}
 													catch(AskedToTerminateException e)

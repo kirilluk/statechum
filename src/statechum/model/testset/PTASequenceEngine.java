@@ -96,11 +96,20 @@ public class PTASequenceEngine
 		{
 			return fsmState;
 		}
-				
+		/*
+		public void setState(Object newValue)
+		{
+			fsmState = newValue;
+		}*/
+		
 		/** The ID of this node, positive for accept nodes, negative for reject ones. */
 		private final int ID;
-		/** The FSM state this object corresponds. */
-		protected final Object fsmState;
+
+		/** The FSM state this object corresponds to. It can be modified because one may use a sequence engine as a generic container for data, 
+		 * thus it would make sense to be able to set arbitrary attributes to different nodes of the tree. Such attributes 
+		 * are best expressed as "states". 
+		 */
+		protected Object fsmState;
 
 		/** (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
@@ -247,6 +256,14 @@ public class PTASequenceEngine
 		public int getSize()
 		{
 			return ptaNodes.size();
+		}
+		
+		/** Expects the set to contain exactly one element and returns it. Throws an exception if there is either none or more than one element. */
+		public PTASequenceEngine.Node getTheOnlyElement()
+		{
+			if (ptaNodes.size() != 1)
+				throw new IllegalArgumentException("wrong number of elements: the set should contain exactly one");
+			return ptaNodes.iterator().next();
 		}
 		
 		/** Unites the given set of sequence with the supplied one.
@@ -448,6 +465,20 @@ public class PTASequenceEngine
 	 */
 	private boolean containsSequence(List<Label> inputSequence, boolean checkLeaf)
 	{
+		PTASequenceEngine.Node node = getNodeFromSequence(inputSequence);
+		if (node == null)
+			return false;
+		return !checkLeaf|| 
+			pta.get(node).isEmpty();// this statement is true if currentNode is the leaf (no outgoing transitions)
+	}
+	
+	/** Extracts the last node on the sequence or null if a sequence cannot be followed. 
+	 * 
+	 * @param inputSequence sequence to follow.
+	 * @return the node corresponding to the last element of the sequence.
+	 */
+	protected PTASequenceEngine.Node getNodeFromSequence(List<Label> inputSequence)
+	{
 		PTASequenceEngine.Node currentNode = init;if (!currentNode.isAccept()) throw new IllegalArgumentException("untested on empty graphs");
 		Iterator<Label> seqIt = inputSequence.iterator();
 		while(seqIt.hasNext() && currentNode.isAccept())
@@ -457,13 +488,12 @@ public class PTASequenceEngine
 			if (row.containsKey(input))
 				currentNode = row.get(input);
 			else
-				return false;// no transition with the current input
+				return null;// no transition with the current input
 		}
 		if (seqIt.hasNext())
-			return false;// reached a reject state but not the end of the sequence
+			return null;// reached a reject state but not the end of the sequence
 
-		return !checkLeaf || 
-			pta.get(currentNode).isEmpty();// this statement is true if currentNode is the leaf (no outgoing transitions) 
+		return currentNode;
 	}
 
 	/** When adding a sequence to a collection of sequences in random walk generation, 

@@ -40,7 +40,6 @@ import statechum.apps.QSMTool;
 import statechum.collections.TreeMapWithSearch;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
-
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 
@@ -84,36 +83,42 @@ public class TestLTL_to_ba
 	protected LTL_to_ba ba = null;
 	protected LearnerGraph expectedFromASEExample = null;
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat1a()
 	{
 		Assert.assertEquals("",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{})).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat1b()
 	{
 		Assert.assertEquals("",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdIFTHENAUTOMATON+" junk","junk"})).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat1c()
 	{
 		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{"  */ ",QSMTool.cmdIFTHENAUTOMATON+"  */ "}));
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat2()
 	{
 		Assert.assertEquals("a",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  "})).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat3()
 	{
 		Assert.assertEquals("a || b",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  ",QSMTool.cmdLTL+"  b ",QSMTool.cmdLTL+" "})).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testLtlConcat4()
 	{
@@ -121,18 +126,21 @@ public class TestLTL_to_ba
 				QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  ",QSMTool.cmdLTL+"  test ",QSMTool.cmdLTL+" c "})).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail1()
 	{
 		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+"  */ "}));
 	}
 
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail2()
 	{
 		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+"  /* "}));
 	}
 
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail3()
 	{

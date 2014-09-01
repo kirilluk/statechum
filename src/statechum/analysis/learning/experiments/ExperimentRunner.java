@@ -1261,7 +1261,8 @@ public class ExperimentRunner
 
 	/** Takes the result and pulls R-bagplot compatible tables out of it.
 	 * Sorts rows according to the value in column colSort and for each value in that
-	 * column, places values from column colNumber in a column.
+	 * column, places values from column colNumber in a column. In other words, a list of values in column colNumber associated with a specific value in colSort is written out verticaly.
+	 * We effectively turn the table 90 degrees to the right. 
 	 * <p>
 	 * Example:
 	 * <code>
@@ -1275,7 +1276,7 @@ public class ExperimentRunner
 	 * <em>postprocessIntoR(1,2)</em> would produce
 	 * <code>
 	 * 10,15
-	 * 4 ,16
+	 * 4 ,6
 	 * 8 ,7
 	 * 3 ,5
 	 * </code>

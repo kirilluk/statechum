@@ -376,12 +376,12 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public static CmpVertex generateNewCmpVertex(VertID name,Configuration conf)
 	{
-		synchronized(syncObj)
-		{
-			return conf.isLearnerUseStrings()? 
-					new StringVertex(name):
-					new DeterministicVertex(name);			
-		}		
+			if (conf.isLearnerUseStrings()) 
+					return  new StringVertex(name);
+			synchronized(syncObj)
+			{
+				return new DeterministicVertex(name);			
+			}		
 	}
 		
 	/** This is not quite like a real clone - it clones depending on the 

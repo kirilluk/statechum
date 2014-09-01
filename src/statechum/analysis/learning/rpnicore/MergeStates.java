@@ -17,6 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -78,6 +79,45 @@ public class MergeStates {
 	}
 	
 	/** Merges the supplied pair of states states of the supplied machine. 
+	 * Returns the result of merging and populates the collection containing equivalence classes. Most importantly, this does not update a map detailing which vertices are merged from which and depth is also ignored.
+	 * The benefit of this routine is relatively fast execution, around 4x.
+	 *  
+	 * @param original the machine in which to merge two states
+	 * @return result of merging, which is a shallow copy of the original LearnerGraph.
+	 * In addition, mergedStates of the graph returned is set to equivalence classes 
+	 * relating original and merged states.
+	 */
+	public static LearnerGraph mergeCollectionOfVerticesNoUpdateOfAuxiliaryInformation(LearnerGraph original,
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	{
+		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
+		// Build a map from old vertices to the corresponding equivalence classes
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = //original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());//:new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
+
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		{
+			eqClass.constructMergedVertex(result,false,true);
+			for(CmpVertex v:eqClass.getStates())
+                origToNew.put(v, eqClass);
+		}
+		
+		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
+		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
+		
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		{
+			Map<Label,CmpVertex> row = result.transitionMatrix.get(eqClass.getMergedVertex());
+			for(Entry<Label,ArrayList<CmpVertex>> outgoing:eqClass.getOutgoing().entrySet())
+			{
+				row.put(outgoing.getKey(), origToNew.get(outgoing.getValue().get(0)).getMergedVertex());
+			}
+		}		
+
+		return result;
+	}
+	
+	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
 	 * @param original the machine in which to merge two states
@@ -119,7 +159,8 @@ public class MergeStates {
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
 		Queue<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.getInit()));
-		Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> visitedEqClasses = new HashSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Map<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean> visitedEqClasses = new ArrayMapWithSearch<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean>();
+		Boolean trueValue = new Boolean(true);
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.
@@ -134,10 +175,10 @@ public class MergeStates {
 				for(Entry<Label,CmpVertex> entry:original.transitionMatrix.get(equivalentVertex).entrySet())
 				{
 					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> nextClass = origToNew.get(entry.getValue());
-					if (!visitedEqClasses.contains(nextClass))
+					if (null == visitedEqClasses.get(nextClass))
 					{// have not yet visited this class
 						currentExplorationBoundary.offer(nextClass);
-						visitedEqClasses.add(nextClass);
+						visitedEqClasses.put(nextClass,trueValue);
 					}
 					if (GlobalConfiguration.getConfiguration().isAssertEnabled() && row.containsKey(entry.getKey()))
 						assert row.get(entry.getKey()) == nextClass.getMergedVertex();
@@ -153,7 +194,7 @@ public class MergeStates {
 		result.pathroutines.updateDepthLabelling();
 		return result;
 	}
-	
+
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  

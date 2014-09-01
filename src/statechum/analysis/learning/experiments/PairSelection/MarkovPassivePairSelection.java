@@ -22,8 +22,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,20 +44,17 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
-import statechum.Trace;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -141,6 +136,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		return outcome;
 	}
 	
+	/* This is an attempt to make different predictions about the machine of interest that did not get as far as expected. 
 	public static LearnerGraph buildFirstOrderMarkovGraph(MarkovClassifier ptaClassifier, LearnerGraph referenceGraph)
 	{
 		LearnerGraph outcome = new LearnerGraph(ptaClassifier.graph.config);
@@ -227,36 +223,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				
 			}
 		}
-		/*
-		int singleout=0, total=0;
-		Collection<Label> singleLabels = new LinkedList<Label>();
-		for(Entry<Label,CmpVertex> state:states.entrySet())
-		{
-			if (!outcome.transitionMatrix.get(state.getValue()).isEmpty()) ++total;
-			if (outcome.transitionMatrix.get(state.getValue()).size() == 1)
-			{
-				singleout++;
-				singleLabels.add(state.getKey());
-			}
-				
-		}		
-		System.out.println("total: "+total+" single: "+singleout);
-		for(Label lbl:singleLabels)
-		{
-			Label nextLabel = outcome.transitionMatrix.get(states.get(lbl)).keySet().iterator().next();
-			System.out.println(lbl+"-"+nextLabel);
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
-			{
-				if (entry.getValue().containsKey(lbl))
-				{
-					Map<Label,CmpVertex> targets =  referenceGraph.transitionMatrix.get(entry.getValue().get(lbl));
-					if (!targets.containsKey(nextLabel))
-						System.out.println();
-					System.out.println("\t"+entry.getKey()+" : "+entry.getValue()+" from there "+targets+" and finally to "+targets.get(nextLabel));
-				}
-			}
-		}*/
-	
 
 		int countTriples = 0, triplesUnique = 0;
 		long totalTripleInPTA=0;
@@ -290,48 +256,14 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			}
 			
 		}
-		/*
-		long maxFreq = Math.max(uniqueFreq.get(uniqueFreq.size()-1).longValue(),nonUniqueFreq.get(nonUniqueFreq.size()-1).longValue());
-		
-		System.out.println("Inconsistency in the PTA: "+computeInconsistency(graph,m));
-		long sumOfInconsistencyValues = 0, sumOfCountValues = 0;
-		for(int i=0;i<uniqueFreq.size();++i)
-		{
-			Label label = uniqueElem.get(i);long count = uniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);sumOfInconsistencyValues+=value;sumOfCountValues+=count;
-			System.out.println("Unique "+count+" inconsistency "+value);
-		}
-		for(int i=0;i<nonUniqueFreq.size();++i)
-		{
-			Label label = nonUniqueElem.get(i);long count = nonUniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);sumOfInconsistencyValues+=value;sumOfCountValues+=count;
-			System.out.println("NON Unique "+count+" inconsistency "+value);
-		}
-		
-		long inconsistencyAverage = sumOfInconsistencyValues/(uniqueFreq.size()+nonUniqueFreq.size()), countAverage = sumOfCountValues/(uniqueFreq.size()+nonUniqueFreq.size());
-		System.out.println("inconsistency average: "+inconsistencyAverage+" countAverage: "+countAverage);
-		final double divCount = 1.3, divInconsistency = 2;
-		for(int i=0;i<uniqueFreq.size();++i)
-		{
-			Label label = uniqueElem.get(i);long count = uniqueFreq.get(i);
-			long value = computeInconsistencyForMergingLabel(graph,label,m);
-			if (!(count < countAverage/divCount && value >= 0 && value < inconsistencyAverage/divInconsistency))
-				System.out.println("disregarded "+count+" "+value);
-		}
-		for(int i=0;i<nonUniqueFreq.size();++i)
-		{
-			Label label = nonUniqueElem.get(i);long count = nonUniqueFreq.get(i);long value = computeInconsistencyForMergingLabel(graph,label,m);
-			if (count < countAverage/divCount && value >= 0 && value < inconsistencyAverage/divInconsistency)
-				System.out.println("failed to disregard "+count+" "+value);
-		}
-		 */
+
 		System.out.println("triples : "+countTriples+" unique elems: "+triplesUnique+" average in PTA: "+(totalTripleInPTA/(double)tripleCount.size()));
 		
 		System.out.println("Unique Freq: "+uniqueFreq);
 		System.out.println("Non unique Freq: "+nonUniqueFreq);		
 		return outcome;
 	}
-	
+	*/
 	/** Uses sideways predictions in order to identify more states to be merged. */
 	public static Collection<Set<CmpVertex>> mergeBasedOnInversePredictions(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
 	{/*
@@ -374,7 +306,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge);
-					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker,false);
+					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker, false);
 					
 					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
 					if (decidedToMerge)
@@ -560,7 +492,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
-					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker,false);
+					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker, false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
@@ -882,7 +814,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
 							assert genScore >= 0;
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-							long value = MarkovClassifier.computeInconsistency(merged, m, checker,false);
+							long value = MarkovClassifier.computeInconsistency(merged, m, checker, false);
 							inconsistencyFromAnEarlierIteration = value;
 							return null;
 						}
@@ -942,7 +874,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 							if (genScore >= 0)
 							{
 								LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge);
-								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker,
+								currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker, 
 										false
 										//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
 										)-inconsistencyFromAnEarlierIteration;
@@ -1335,134 +1267,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			super(evalCnf,argReferenceGraph,argInitialPTA);
 		}
 		
-		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
-		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
-		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
-		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param learnerGraph 
-		 * @param l 
-		 * @param m 
-		 */
-		protected ArrayList<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
-		{
-			boolean allPairsNegative = true;
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (p.getQ().isAccept() || p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-				{
-					allPairsNegative = false;break;
-				}
-			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
-			if (allPairsNegative)
-				possibleResults.addAll(pairs);
-			else
-			{
-				for(PairScore p:pairs)
-				{
-					assert p.getScore() >= 0;
-					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new PairScoreWithDistance(p,0));
-					else
-						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
-				}
-				
-				for(PairScore p:nonNegPairs)
-				{
-					//double d=//m.get_extension_model().pairscores.computePairCompatibilityScore(p);//
-					//		m.computeMMScoreImproved(p, tentativeGraph, l);
-					//if(d > 0.0)
-					//	possibleResults.add(new PairScoreWithDistance(p, d));
-					
-					//long score = computeScoreBasedOnMarkov(tentativeGraph,p,Markov,0);
-					double d = MarkovScoreComputation.computeMMScoreImproved(p, new MarkovClassifier(Markov,tentativeGraph));
-					if(d > 0.0)
-						possibleResults.add(new PairScoreWithDistance(p, d));
-					/*long pairScore = classifyPairBasedOnUnexpectedTransitions(p,tentativeGraph,Markov);
-					if (pairScore >= 0)
-						possibleResults.add(p);
-						*/
-				}
-			
-					
-				Collections.sort(possibleResults, new Comparator<PairScore>(){
-	
-					@Override
-					public int compare(PairScore o1, PairScore o2) {
-						int outcome = sgn( ((PairScoreWithDistance)o2).getDistanceScore() - ((PairScoreWithDistance)o1).getDistanceScore());  
-						if (outcome != 0)
-							return outcome;
-						return o2.compareTo(o1);
-					}}); 
-			}				
-			return possibleResults;
-		}
-		
-	
-		protected double computeBadPairsEstimation(PairScore p, LearnerGraph tentativeGraph, Map<CmpVertex, Map<Label, Double>> l) 
-		{
-			double bad=0.0;
-			for(Label L:tentativeGraph.getCache().getAlphabet())
-			{
-				double pF = 0,pS=0;
-				if(l.get(p.firstElem).get(L)==null)
-					 pF=0.0;
-				else
-					pF= l.get(p.firstElem).get(L);
-
-				if(l.get(p.secondElem).get(L)==null)
-					pS=0.0;
-				else
-					pS= l.get(p.secondElem).get(L);
-				bad+=Math.min(pF,pS);
-			}
-			return bad;
-		}
-		
-		/** Where there does not seem to be anything useful to merge, return the pair clearly incorrectly labelled. */
-		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
-		{
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-					return null;// negatives can always be merged.
-			}
-			
-			// if we are here, none of the pairs are clear candidates for mergers.
-
-			PairScore pairBestToReturnAsRed = null;
-			long worstPairScore=0;
-			for(PairScore p:pairs)
-			{
-				/*
-				long pairScore = classifyPairBasedOnUnexpectedTransitions(p,tentativeGraph,Markov);
-				if (pairScore >= 0)
-					return null;
-				*/
-				double d=MarkovScoreComputation.computeMMScoreImproved(p, new MarkovClassifier(Markov,tentativeGraph));
-				if (d>0)
-					return null;
-				return p;
-				/*
-//				double d=m.get_extension_model().pairscores.computePairCompatibilityScore(p);
-//				double d=howbadPairs(p, tentativeGraph, l, learnerGraph, m);
-				if (worstPairScore == 0 || worstPairScore < pairScore)
-				{
-					worstPairScore = pairScore;
-					pairBestToReturnAsRed = p;
-				}
-				*/
-			}
-
-			System.out.println("to be marked as red: "+pairBestToReturnAsRed+" with score "+worstPairScore);
-			return pairBestToReturnAsRed;
-		}
-
 		public static String refToString(Object obj)
 		{
 			return obj == null?"null":obj.toString();

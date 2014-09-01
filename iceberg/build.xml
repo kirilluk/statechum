@@ -1,0 +1,203 @@
+<!-- based on http://ant.apache.org/manual/ 
+
+Make sure that you do clean after an update of an existing checkout.
+Without it, Erlang part may fail because .beam files are recompiled based on source .erl
+file, without taking into account changes of the .hrl files that may be needed.
+Moreover, it does not seem that all Java files will always be recompiled, presumably due to a similar
+lack of tracking dependencies between Java files.
+
+-->
+<project name="XMachineTool" default="test" basedir=".">
+    <description>
+        Builds the project and runs tests on it.
+    </description>
+  <!-- set global properties for this build -->
+  <property name="root" location=".."/>
+  <property name="junit_statechum" location="${root}/lib/junit-statechum"/>
+  <property name="junit_statechum_src" location="${junit_statechum}"/>
+  <property name="junit_statechum_bin" location="${root}/bin"/>
+  <property name="statechum_src" location="${root}/src"/>
+  <property name="statechum_collections_src" location="${root}/lib/modified_collections"/>
+  <property name="test_src" location="${root}/tests"/>
+  <property name="test_dir" location="${root}"/>
+  <property name="statechum_bin" location="${root}/bin"/>
+  <property name="ant.build.javac.source" value="1.7"/>
+  <property name="rtool_path" value="/data/acp95keb/local/soft/R-3.1.0/lib64/R/library/rJava/jri"/>
+
+  <!-- "/usr/local/lib/R/site-library/rJava/jri"/> 
+       -->
+  <property name="rpath" value="/data/acp95keb/local/soft/R-3.1.0/lib64/R" />
+  <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
+    <path id="classpath.lib">
+      <fileset dir="${root}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </path>
+
+    <path id="classpath.statechum">
+      <pathelement location="${junit_statechum_bin}"/>
+      <path refid="classpath.lib"/>
+      <path refid="classpath.lib"/>
+    </path>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${junit_statechum_bin}"/>
+    <mkdir dir="${statechum_bin}"/>
+  </target>
+
+  <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
+ 	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
+		<classpath>
+			<path refid="classpath.lib"/>
+		</classpath>
+    	<compilerarg value="-g" />
+    	</javac>
+  </target>  	
+  	
+  <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac fork="on" srcdir="${statechum_src}:${statechum_collections_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       	<classpath refid="classpath.statechum" />
+    	<compilerarg value="-g" />
+	<!-- <compilerarg value="-Xlint:unchecked"/> -->
+    </javac>
+   </target>
+
+  <target name="compileTests" depends="compileStatechum" description="compile Statechum tests " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac fork="on" srcdir="${test_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       	<classpath refid="classpath.statechum" />
+    	<compilerarg value="-g" />
+	<!-- <compilerarg value="-Xlint:unchecked"/> -->
+    </javac>
+   </target>
+
+  <target name="test" depends="compileTests" description="run unit tests">
+  	   <echo>This will always fail on Win32 because max memory is set too high, but will work on 64-bit platforms that have at least 32GB of RAM</echo>
+  	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
+       <junit  fork="on" maxmemory="20000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
+		<assertions>
+        	<enable/>
+      	</assertions>
+      	<env key="R_HOME" value="${rpath}"/>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
+    	<jvmarg value="-XX:+UseCompressedOops"/>
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:${rtool_path}"/>
+
+       	<sysproperty key="threadnum" value="4"/>
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+       	<sysproperty key="ERLANGHOME" value="/data/acp95keb/local/soft/otp-R16B03-1" />
+       	<sysproperty key="ERLANGOUTPUT_ENABLED" value="true"/>
+	<sysproperty key="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba" />
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<classpath>
+         	<path refid="classpath.statechum" />
+         </classpath>
+       	
+       	<!-- formatter type="xml"/>
+       	-->
+       	<formatter type="plain"/>
+
+<!--
+  <batchtest>
+    <fileset dir="${test_src}">
+      <include name="**/Test*.java"/>
+      <exclude name="**/AllTests.java"/>
+    </fileset>
+  </batchtest>
+-->
+<!--
+  <batchtest>
+    <fileset dir="${test_src}">
+	<include name="**/TestSolver.java"/>
+      <include name="**/TestAugmentUsingIFTHEN.java"/>
+      <include name="**/TestSmtLabelRepresentation.java"/>
+
+    </fileset>
+  </batchtest>
+       	<test name="statechum.AllTests" />
+-->
+	<test name="statechum.analysis.learning.TestDrawGraphs" />
+       </junit>
+       
+  </target>
+
+   <target name="erlang-test" depends="compileTests" description="run Erlang unit tests">
+       <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
+		<assertions>
+        	<enable/>
+      	</assertions>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
+    	<jvmarg value="-XX:+UseCompressedOops"/>
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+        <!-- <jvmarg value="-Duser.dir=/home/ramsay/statechum/XMachineTool/trunk/"/> -->
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+       	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
+       	<sysproperty key="threadnum" value="4"/>
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+      	<classpath>
+         	<path refid="classpath.statechum" />
+         	<pathelement location="${statechum_bin}"/>
+         </classpath>
+
+       	<formatter type="plain"/>
+ 
+       	<test name="statechum.analysis.Erlang.ErlangTestSuite" />
+
+       </junit>
+
+  </target>
+	
+	 <target name="diag" depends="compileStatechum" description="run unit tests">
+	  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
+		<assertions>
+	        	<enable/>
+	      	</assertions>
+	    	<!-- <jvmarg value="-XX:+CITime"/> -->
+           	<jvmarg value="-ea"/>
+        	<jvmarg value="-XX:+UseCompressedOops"/>
+           	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+	       	<sysproperty key="threadnum" value="4"/>
+           	<sysproperty key="ASSERT_ENABLED" value="true"/>
+           	<sysproperty key="SMTWARNINGS" value="true"/>
+           	<sysproperty key="LINEARWARNINGS" value="true"/>
+           	<sysproperty key="FORCEFORK" value="true"/>
+			<sysproperty key="com.sun.management.jmxremote" value="" />
+	       	<classpath>
+	         	<path refid="classpath.statechum" />
+	         	<pathelement location="${statechum_bin}"/>
+	         </classpath>
+	       </java>
+	       
+	  </target>
+
+
+  <target name="clean" description="clean up" >
+    <delete dir="${statechum_bin}/statechum"/>
+    <delete dir="${junit_statechum_bin}"/>
+    <delete>
+    	<fileset dir="${root}" includes="**/*.beam"/>
+    	<fileset dir="${root}" includes="**/*.plt"/>
+	<fileset dir="${root}/ErlangOracle" includes="*.dump"/>
+    </delete>
+
+  </target>
+</project>

@@ -19,16 +19,19 @@ package statechum.analysis.learning;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.Trace;
+import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
+import statechum.model.testset.PTAExploration;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
 
 /** Describes a non-probabilistic Markov model, where for every path we know either that, 
  * <ul>
@@ -51,10 +54,80 @@ import statechum.Trace;
  */
 public class MarkovModel
 {
+	public static class MarkovMatrixEngine extends statechum.model.testset.PTASequenceEngine
+	{
+		public static class PredictionForSequence
+		{
+			final public UpdatablePairInteger occurrence;
+			public MarkovOutcome prediction;
+			
+			public PredictionForSequence()
+			{
+				occurrence = new UpdatablePairInteger(0, 0);
+				prediction = null;// no value
+			}
+		}
+
+		public static class PredictionStatePTAAutomaton extends PTASequenceSetAutomaton
+		{
+			@Override
+			public Object getTheOnlyState() 
+			{
+				return new PredictionForSequence();// it is important to return a new instance every time it is asked for, because otherwise we'll end up sharing instances that is not right.
+			}
+		}
+		
+		public MarkovMatrixEngine()
+		{
+			super();init(new PredictionStatePTAAutomaton());
+		}
+		
+		
+		/** Used to obtain a map from labels to predictions, takes a prefix of a trace and returns a map from the last element of that trace to a node associated with predicted elements. 
+		 * 
+		 * @param sequenceWithoutLastElement sequence to use for predictions.
+		 * @return map from labels to predictions, encapsulated inside a node, use {@link PTASequenceEngine.Node#getState()} to get the associated prediction and {@link PTASequenceEngine.Node#setState()} to set it,
+		 * or even better the convenience method .
+		 */
+		public Map<Label,PTASequenceEngine.Node> getMapFromLabelsToPredictions(List<Label> sequenceWithoutLastElement)
+		{
+			PTASequenceEngine.Node currentNode = getNodeFromSequence(sequenceWithoutLastElement);
+			if (currentNode == null)
+				return null;
+			
+			return pta.get(currentNode);
+		}
+		
+		/** Obtains predictions and occurrence. */
+		public static PredictionForSequence getPredictionIfExists(Map<Label,PTASequenceEngine.Node> map, Label element)
+		{
+			if (map == null)
+				return null;
+			PTASequenceEngine.Node node= map.get(element);
+			if (node == null)
+				return null;
+			return (PredictionForSequence)node.getState();
+		}
+		
+		/** Obtains predictions, initialises a new one if absent. */
+		public PredictionForSequence getPredictionAndCreateNewOneIfNecessary(List<Label> sequence)
+		{
+			SequenceSet set = MarkovMatrixEngine.this.new SequenceSet();set.setIdentity();
+			PTASequenceEngine.Node currentNode = set.crossWithSequence(sequence).getTheOnlyElement();
+			/*if (!(currentNode.getState() instanceof PredictionForSequence))
+					currentNode.setState(new PredictionForSequence());*/
+			return (PredictionForSequence)currentNode.getState();
+		}
+		
+	}
+	
+	public final MarkovMatrixEngine markovMatrix = new MarkovMatrixEngine();
+	
 	/** Contains the number of times a specific path was encountered. Would usually be prefix-closed by construction. This property is used both to identify if a particular path was never seen*/
-	public final Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
+	//public final Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
+	
 	/** The model, effectively an boolean representation of <em>numberOfOccurrences</em>. */
-	public final Map<Trace, MarkovOutcome> predictionsMatrix =  new HashMap<Trace,MarkovOutcome>();
+	//public final Map<Trace, MarkovOutcome> predictionsMatrix =  new HashMap<Trace,MarkovOutcome>();
 	
 	/** Returns the maximal length of paths in either of the two matrices. */
 	public int getChunkLen()
@@ -78,7 +151,7 @@ public class MarkovModel
     	chunk_Length = chunkLen;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
     }
     
-    
+    /** Used to record outcomes of Markov computations. Its primary use are the three values and static routines to make decisions between them. */
     public static  class MarkovOutcome 
 	{
 		public final boolean isPositive, isFailure, isUnknown;
@@ -182,17 +255,7 @@ public class MarkovModel
 				if (a == unknown)
 				{// unknown is overridden by b, whatever it is, including unknown
 					outcome = b;
-				}/*
-				if (a == negative)
-				{
-					outcome = a;
-					
-					if (b != null)
-					{
-						if (b != unknown && a != b)
-							outcome = failure;
-					}
-				}*/
+				}
 				else
 				{
 					outcome = a;
@@ -281,7 +344,7 @@ public class MarkovModel
 	 * 
 	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
-	public  Map<Trace, MarkovOutcome> createMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg, boolean onlyLongest)
+	public void createMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg, boolean onlyLongest)
 	{
 		int traceLength = 0;
 		Set<Label> alphabet = new HashSet<Label>();
@@ -332,40 +395,123 @@ public class MarkovModel
 		}
 		
 		// Construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
-		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted). 
-		Trace trace_to_account_its_probability=null;
-		for (Entry<Trace, UpdatablePairInteger> e : occurrenceMatrix.entrySet())
-		{
-			trace_to_account_its_probability=e.getKey();
-			UpdatablePairInteger Trace_occurence = e.getValue();
-			if (Trace_occurence.firstElem > 0 && Trace_occurence.secondElem > 0)
-				predictionsMatrix.put(trace_to_account_its_probability, MarkovOutcome.failure);
-			else
-			if (Trace_occurence.firstElem > 0) 
-				predictionsMatrix.put(trace_to_account_its_probability, MarkovOutcome.positive);
+		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted).
+		
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
+			@Override
+			public Boolean newUserObject() {
+				return null;
+			}
+
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode, @SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
+				if (prediction.occurrence.firstElem > 0 && prediction.occurrence.secondElem > 0)
+					prediction.prediction = MarkovOutcome.failure;
 				else
-					if (Trace_occurence.secondElem > 0)
-						predictionsMatrix.put(trace_to_account_its_probability, MarkovOutcome.negative);
-		}
-		return predictionsMatrix;
+				if (prediction.occurrence.firstElem > 0) 
+					prediction.prediction = MarkovOutcome.positive;
+				else
+				if (prediction.occurrence.secondElem > 0) 
+					prediction.prediction = MarkovOutcome.negative;
+			}
+
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				nodeEntered(currentNode, pathToInit);
+			}
+
+			@Override
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				// nothing to do here.
+			}
+
+		};
+		exploration.walkThroughAllPaths();
 	}
 
+	public Map<List<Label>, MarkovOutcome> computePredictionMatrix()
+	{
+		final Map<List<Label>, MarkovOutcome> outcome = new LinkedHashMap<List<Label>,MarkovOutcome>();
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
+			@Override
+			public Boolean newUserObject() {
+				return null;
+			}
+
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
+				LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+				if (prediction.prediction != null)
+					outcome.put(path, prediction.prediction);
+			}
+
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				nodeEntered(currentNode, pathToInit);
+			}
+
+			@Override
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				// nothing to do here.
+			}
+
+		};
+		exploration.walkThroughAllPaths();
+		return outcome;
+	}
+	
+	public Map<List<Label>, UpdatablePairInteger> computeOccurrenceMatrix()
+	{
+		final Map<List<Label>, UpdatablePairInteger> outcome = new LinkedHashMap<List<Label>,UpdatablePairInteger>();
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
+			@Override
+			public Boolean newUserObject() {
+				return null;
+			}
+
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
+				LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+
+				if (prediction.prediction != null)
+					outcome.put(path, prediction.occurrence);
+			}
+
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				nodeEntered(currentNode, pathToInit);
+			}
+
+			@Override
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				// nothing to do here.
+			}
+
+		};
+		exploration.walkThroughAllPaths();
+		return outcome;
+	}
+	
 	protected void updateOccurrenceMatrix(Trace traceToMarkov, boolean positive)
 	{
-		UpdatablePairInteger occurrence_of_trace=occurrenceMatrix.get(traceToMarkov);
-		if (occurrence_of_trace == null)
-		{
-			occurrence_of_trace = new UpdatablePairInteger(0, 0);occurrenceMatrix.put(traceToMarkov,occurrence_of_trace);
-		}
-		
+		UpdatablePairInteger occurrence_of_trace=markovMatrix.getPredictionAndCreateNewOneIfNecessary(traceToMarkov.getList()).occurrence;
 		if(positive)
 			occurrence_of_trace.add(1,0);
 		else  // if negative
 			occurrence_of_trace.add(0,1);
 	}
-
-	
-
 
 	public static List<Trace> splitTrace (Trace t,int chunkLen)
 	{

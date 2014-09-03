@@ -738,7 +738,7 @@ public class TestSGE_ExperimentRunner {
 			{
 				runA(new String[]{"A"});
 			}
-		}, IllegalArgumentException.class, "No enum constant");
+		}, IllegalArgumentException.class, "No enum const");// it is const for java 6 and constant for 7.
 	}
 	
 	@Test

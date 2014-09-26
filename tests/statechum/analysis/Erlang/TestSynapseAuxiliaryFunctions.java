@@ -239,7 +239,7 @@ public class TestSynapseAuxiliaryFunctions {
 		                                             "{'P1000','c','N1000'},"+
 		                                             "{'P1002','c','P1002'},"+
 		                                             "{'P1002','d','P1002'}],"+
-		                                            "['P1003','P1001'],"+
+		                                            "['P1001','P1003'],"+
 		                                           "['N1000','P1002'],"+
 		                                            "[{'P1000','N1000'},{'P1003','P1000'}],"+
 		                                            "'P1003'}" , ErlangLabel.dumpErlangObject(difference));
@@ -313,7 +313,7 @@ public class TestSynapseAuxiliaryFunctions {
               "['a']}"),grB,null,true);
 		
 		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
-		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['P1001','N1000'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['N1000','P1001'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
 
 		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
 		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
@@ -421,7 +421,7 @@ public class TestSynapseAuxiliaryFunctions {
               "['a']}"),grB,null,true);
 		
 		OtpErlangObject difference = DifferenceVisualiser.ChangesToGraph.computeGD(grA, grB, config);
-		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['P1001','N1000'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
+		Assert.assertEquals("{'statemachinedifference',[{'P1000','a','P1001'}],[{'P1000','a','P1000'}],['N1000','P1001'],['P1002'],[],'P1000'}",ErlangLabel.dumpErlangObject(difference));
 
 		LearnerGraphND shouldBeLikePrevious = new LearnerGraphND(grA,config);
 		DifferenceVisualiser.ChangesToGraph.load(difference).applyDiff(shouldBeLikePrevious, config);
@@ -502,7 +502,7 @@ public class TestSynapseAuxiliaryFunctions {
 		Assert.assertNotNull(options.ignoredStates);
 		Assert.assertEquals(2,options.ignoredStates.size());
 		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
-		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals("a",ignoreIterator.next());Assert.assertEquals("b",ignoreIterator.next());
 	}
 
 
@@ -516,7 +516,7 @@ public class TestSynapseAuxiliaryFunctions {
 		Assert.assertNotNull(options.ignoredStates);
 		Assert.assertEquals(2,options.ignoredStates.size());
 		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
-		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals("a",ignoreIterator.next());Assert.assertEquals("b",ignoreIterator.next());
 	}
 	
 	/** Tests the copying process for ignored states. */
@@ -530,20 +530,20 @@ public class TestSynapseAuxiliaryFunctions {
 		Assert.assertNotNull(options.ignoredStates);
 		Assert.assertEquals(2,options.ignoredStates.size());
 		Iterator<String> ignoreIterator = options.ignoredStates.iterator();
-		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals("a",ignoreIterator.next());Assert.assertEquals("b",ignoreIterator.next());
 		
 		LayoutOptions copy = options.copy();
 		Synapse.StatechumProcess.setStateNamesToBeIgnored(options, new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("c")}));
 		Assert.assertNotNull(options.ignoredStates);
 		Assert.assertEquals(3,options.ignoredStates.size());
 		ignoreIterator = options.ignoredStates.iterator();
-		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("c",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals("a",ignoreIterator.next());Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("c",ignoreIterator.next());
 		options.showIgnored = !options.showIgnored;
 		
 		// now check the original is unchanged.
 		Assert.assertEquals(2,copy.ignoredStates.size());
 		ignoreIterator = copy.ignoredStates.iterator();
-		Assert.assertEquals("b",ignoreIterator.next());Assert.assertEquals("a",ignoreIterator.next());
+		Assert.assertEquals("a",ignoreIterator.next());Assert.assertEquals("b",ignoreIterator.next());
 		Assert.assertEquals(!options.showIgnored,copy.showIgnored);
 	}
 

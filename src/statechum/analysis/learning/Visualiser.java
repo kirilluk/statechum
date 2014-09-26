@@ -92,7 +92,7 @@ import org.apache.commons.collections.Predicate;
  * R_HOME=/usr/lib/R
  * as above on MacOS X 10.5.8,
  * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/Library/Frameworks/R.framework/Versions/2.12/Resources/library/rJava/jri -Xmx3500m
- * R_HOME=/Library/Frameworks/R.framework/Versions/2.12/Resources
+ * R_HOME=/Library/Frameworks/R.framework/Versions/Current/Resources
  * Another example for MacOS X 10.6 with MacPorts
  * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=resources/graphLayout -Dthreadnum=2 -Djava.library.path=linear/.libs:smt/.libs:/opt/local/Library/Frameworks/R.framework/Versions/3.0/Resources/library/rJava/jri -Xmx2500m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba -DERLANGHOME=/usr/local/soft/otp-R16B03
  * (R_HOME set to /opt/local/Library/Frameworks/R.framework/Resources )

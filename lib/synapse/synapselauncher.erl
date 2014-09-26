@@ -107,10 +107,9 @@ waitForJavaNode(Node,HowLong) ->
 
 	
 constructNodeDetails() ->
-	case inet:gethostname() of
-		{ok,HostName} ->
-			{list_to_atom("statechum" ++ os:getpid() ++ "@" ++ HostName), 'statechum'}
-	end.
+    {list_to_atom("statechum" ++ os:getpid() ++ "@" ++ "127.0.0.1"), 'statechum'}
+%	case inet:gethostname() of {ok,HostName} -> {list_to_atom("statechum" ++ os:getpid() ++ "@" ++ HostName), 'statechum'} end
+.
 
 -define(StatechumName,'javaStatechumProcess').
 

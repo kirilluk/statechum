@@ -15,8 +15,9 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
     {reply, CompileOutcome, State2}=compileModulesForAnalyser(ModulesList,State),
     case CompileOutcome of
 	ok ->
-	    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
-	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref,getConfig(?erlWaitForWrapperDelay,State2)),
+		Delay = getConfig(?erlWaitForWrapperDelay,State2),
+	    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self(),Delay]),
+	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref,Delay),
 	    erlang:demonitor(Ref,[flush]),
 	    %%{SMega,SSec,SMicro}=erlang:now(),
 	    OPTrace = flushOPTrace(PartialOPTrace, Pid),

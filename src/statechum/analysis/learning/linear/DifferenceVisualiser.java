@@ -2,7 +2,6 @@ package statechum.analysis.learning.linear;
 
 import java.awt.Color;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +136,7 @@ public class DifferenceVisualiser {
 		}
 		
 
-		protected Set<CmpVertex> extraVertices = new HashSet<CmpVertex>();
+		protected Set<CmpVertex> extraVertices = new TreeSet<CmpVertex>();
 		
 		@Override
 		public void addVertex(CmpVertex vertex) {
@@ -169,7 +168,7 @@ public class DifferenceVisualiser {
 			// now we apply the patch to the graph, the outcome will be in terms of the original vertices which is why it is easiest to apply a patch rather than use the second graph and figure out the relationship between the vertices.
 			recorder.applyDiff(finalMachineWithoutRelabelling,config);
 			
-			Set<CmpVertex> verticesAdded = new HashSet<CmpVertex>(), verticesRemoved = new HashSet<CmpVertex>();
+			Set<CmpVertex> verticesAdded = new TreeSet<CmpVertex>(), verticesRemoved = new TreeSet<CmpVertex>();
 			verticesAdded.addAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());verticesAdded.removeAll(origMachine.transitionMatrix.keySet());verticesAdded.addAll(recorder.extraVertices);
 			verticesRemoved.addAll(origMachine.transitionMatrix.keySet());verticesRemoved.removeAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());
 			List<OtpErlangAtom> addedList = new LinkedList<OtpErlangAtom>(), removedList = new LinkedList<OtpErlangAtom>();

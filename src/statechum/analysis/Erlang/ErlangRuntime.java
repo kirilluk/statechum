@@ -19,7 +19,6 @@ package statechum.analysis.Erlang;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -155,13 +154,13 @@ public class ErlangRuntime {
 				
 				String tracerunnerProgram = "tracerunner.erl";
 				// It is very important that there is an '@' part to the node name: without it, Erlang adds a host name by default so the actual node name is different from the one supplied via -sname to the process and the node does not respond to the name without '@'.
-				traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "_" + "@" + InetAddress.getLocalHost().getHostName().replaceAll("\\..*", "");// eliminates everything starting with the first dot, important on MacOS. 
+				traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "_" + "@" + "127.0.0.1";// + InetAddress.getLocalHost().getHostName().replaceAll("\\..*", "");// eliminates everything starting with the first dot, important on MacOS. 
 				// now we simply evaluate "halt()." which starts epmd if
 				// necessary and we can check along the way that we can run
 				// Erlang at all.
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "halt().", "-sname", traceRunnerNode,
+								"-eval", "halt().", "-name", traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null
 								);//getErlangBeamDirectory());
 				dumpProcessOutputOnFailure(
@@ -207,7 +206,7 @@ public class ErlangRuntime {
 								// of the original Erlang's one, otherwise I'd
 								// have to rely on tracerunner:compileAndLoad
 								"-run", "tracerunner", "start", ErlangNode.getErlangNode().getName(),
-								runnerMode, "-sname", traceRunnerNode,
+								runnerMode, "-name", traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() },
 								envpList.toArray(new String[0]));
 								//getErlangBeamDirectory());

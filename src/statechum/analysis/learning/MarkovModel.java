@@ -77,9 +77,9 @@ public class MarkovModel
 			}
 		}
 		
-		public MarkovMatrixEngine()
+		public MarkovMatrixEngine(boolean useMatrix)
 		{
-			super();init(new PredictionStatePTAAutomaton());
+			super(useMatrix);init(new PredictionStatePTAAutomaton());
 		}
 		
 		
@@ -121,7 +121,7 @@ public class MarkovModel
 		
 	}
 	
-	public final MarkovMatrixEngine markovMatrix = new MarkovMatrixEngine();
+	public final MarkovMatrixEngine markovMatrix;
 	
 	/** Contains the number of times a specific path was encountered. Would usually be prefix-closed by construction. This property is used both to identify if a particular path was never seen*/
 	//public final Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
@@ -144,11 +144,12 @@ public class MarkovModel
 
 	public final boolean predictForwardOrSideways,directionForwardOrInverse;
 	
-    public MarkovModel(int chunkLen,boolean argPredictForwardOrSideways,boolean argDirectionForwardOrInverse)
+    public MarkovModel(int chunkLen,boolean argPredictForwardOrSideways,boolean argDirectionForwardOrInverse, boolean PTAUseMatrix)
     {
     	if (chunkLen < 2)
     		throw new IllegalArgumentException("chunkLen should be at least 2");
     	chunk_Length = chunkLen;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
+    	markovMatrix = new MarkovMatrixEngine(PTAUseMatrix);
     }
     
     /** Used to record outcomes of Markov computations. Its primary use are the three values and static routines to make decisions between them. */

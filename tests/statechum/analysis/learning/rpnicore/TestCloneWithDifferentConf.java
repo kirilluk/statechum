@@ -134,7 +134,6 @@ public final class TestCloneWithDifferentConf
 
 	/** Given a test configuration, returns a textual description of its purpose. 
 	 * 
-	 * @param config configuration to consider
 	 * @return description.
 	 */ 
 	@SuppressWarnings("rawtypes")

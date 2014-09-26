@@ -19,7 +19,6 @@ package statechum.analysis.Erlang;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,9 +26,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -465,7 +464,7 @@ public class Synapse implements Runnable {
 			if (statesToBeIgnored.arity() > 0 && options != null)
 			{
 				if (options.ignoredStates == null)
-					options.ignoredStates = new HashSet<String>();
+					options.ignoredStates = new TreeSet<String>();
 				for(OtpErlangObject obj:statesToBeIgnored)
 					options.ignoredStates.add( ((OtpErlangAtom)obj).atomValue() );
 			}
@@ -478,33 +477,22 @@ public class Synapse implements Runnable {
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> OtpErlangTuple constructFSM(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr)
 		{
 			List<OtpErlangObject> statesList = new LinkedList<OtpErlangObject>(), transitions = new LinkedList<OtpErlangObject>();
-			Set<OtpErlangObject> alphabet = new HashSet<OtpErlangObject>();
+			Map<String,OtpErlangObject> alphabet = new TreeMap<String,OtpErlangObject>();
 			
 			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:gr.transitionMatrix.entrySet()) 
 			{
 				statesList.add(new OtpErlangAtom(entry.getKey().getStringId()));
 				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
 				{
-					OtpErlangObject label = null;
-					/*
-					if (transition.getKey() instanceof ErlangLabel)
-					{
-						ErlangLabel eLabel = (ErlangLabel)transition.getKey();
-						label = new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(eLabel.callName), new OtpErlangLong(eLabel.arity), eLabel.input,eLabel.expectedOutput});
-					}
-					else
-					*/
-						label = new OtpErlangAtom(transition.getKey().toErlangTerm());
-					
-					alphabet.add(label);
+					String lblStr = transition.getKey().toErlangTerm();OtpErlangAtom lblAtom = new OtpErlangAtom(lblStr);
+					alphabet.put(lblStr,lblAtom);
 					for(CmpVertex target:gr.getTargets(transition.getValue()))
-						transitions.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()), label, new OtpErlangAtom(target.getStringId())}));
+						transitions.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()), lblAtom, new OtpErlangAtom(target.getStringId())}));
 				}
 			}
-			
 			return new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom("statemachine"),new OtpErlangList(statesList.toArray(new OtpErlangObject[0])),
 					new OtpErlangList(transitions.toArray(new OtpErlangObject[0])),
-					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.toArray(new OtpErlangObject[0])),
+					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.values().toArray(new OtpErlangObject[alphabet.size()])),
 			});
 		}
 
@@ -892,7 +880,7 @@ public class Synapse implements Runnable {
 															pta.paths.augmentPTA(seq,true,false,null);
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
-														final MarkovModel m= new MarkovModel(3,true,true);
+														final MarkovModel m= new MarkovModel(3,true,true,false);
 
 														new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
@@ -1114,15 +1102,16 @@ public class Synapse implements Runnable {
 													try
 													{
 														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
-														StringBuffer textOfTheOutcome = new StringBuffer();
-														boolean first = true;
-														for(Object obj:diff.getEdges())
+														
+														Set<String> modifiedLines = new TreeSet<String>();
+														for(Object obj:diff.getEdges()) // getEdges returns edges in a JDK-dependent order, we use TreeSet to sort them so that expected values can be determined without associating them with specific versions of JDK.
 														{
-															if (!first) textOfTheOutcome.append(",");else first = false;
+															StringBuffer textOfTheOutcome = new StringBuffer();
 															
 															textOfTheOutcome.append(obj.toString());textOfTheOutcome.append(":");textOfTheOutcome.append( ((Edge)obj).getUserDatum(JUConstants.DIFF) );
+															modifiedLines.add(textOfTheOutcome.toString());
 														}
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangAtom(textOfTheOutcome.toString())});
+														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangAtom(modifiedLines.toString())});
 													}
 													catch(Throwable ex)
 													{

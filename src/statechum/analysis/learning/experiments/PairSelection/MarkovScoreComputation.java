@@ -871,7 +871,6 @@ public class MarkovScoreComputation
 
 		// mapping map to store all paths leave each state in different length
 		double tentativeScore=0;
-		@SuppressWarnings("rawtypes")
 		ConsistencyChecker checker = new MarkovClassifier.InconsistencyNullVsPredicted();
 		MarkovClassifier resultClassifier = new MarkovClassifier(cl.model,result);
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())

@@ -201,7 +201,7 @@ public class Cav2014 extends PairQualityLearner
 				});
 				assert sPlus.size() > 0;
 				assert sMinus.size() > 0;
-				final MarkovModel m= new MarkovModel(chunkLen,true,true);
+				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
 				new MarkovClassifier(m, pta).updateMarkov(false);
 				pta.clearColours();
 
@@ -432,7 +432,7 @@ public class Cav2014 extends PairQualityLearner
 				else
 					pta.paths.augmentPTA(generator.getAllSequences(0));
 
-				final MarkovModel m= new MarkovModel(chunkLen,true,true);
+				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
 				new MarkovClassifier(m, pta).updateMarkov(false);
 				pta.clearColours();
 

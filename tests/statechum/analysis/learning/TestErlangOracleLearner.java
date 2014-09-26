@@ -62,6 +62,7 @@ import statechum.model.testset.PTASequenceEngine;
 public class TestErlangOracleLearner {
 	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
 	protected Configuration config = Configuration.getDefaultConfiguration().copy();
+	protected int wrapperDelay=200; 
 	
 	@Before
 	public void beforeTest()
@@ -82,7 +83,7 @@ public class TestErlangOracleLearner {
 	public void testLockerLearning(Configuration configToUse)
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(configToUse);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
-		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		learner.GenerateInitialTraces();
@@ -144,7 +145,7 @@ public class TestErlangOracleLearner {
 	public void testLockerLearning_withRestartCounter()
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
-		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 		learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
@@ -165,7 +166,7 @@ public class TestErlangOracleLearner {
 	public void testLockerLearningWithoutOutputMatching()
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
-		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 		learnerConfig.config.setUseErlangOutputs(false);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		
@@ -179,7 +180,7 @@ public class TestErlangOracleLearner {
 	public void testExporterLearning(Configuration configToUse)
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(configToUse);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
-		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 		learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
 		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		learner.GenerateInitialTraces();
@@ -217,7 +218,7 @@ public class TestErlangOracleLearner {
 				{
 					Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
 					LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
-					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 					//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 					ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 					initialTracesLocker = learner.GenerateInitialTraces(5);
@@ -226,7 +227,7 @@ public class TestErlangOracleLearner {
 				{
 					Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
 					LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
-					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+					learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 					learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
 					ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 					initialTracesExporter = learner.GenerateInitialTraces(5);
@@ -244,7 +245,7 @@ public class TestErlangOracleLearner {
 						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
 
 						LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"locker/locker.erl"));
-						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 						//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 						ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 						learner.init(initialTracesLockerFinal, 0, 0);
@@ -267,7 +268,7 @@ public class TestErlangOracleLearner {
 						Configuration cfg = config.copy();cfg.setErlangMboxName(newRuntime.createNewRunner().getRunnerName());
 						
 						LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(cfg);ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples,"exporter/exporter.erl"));
-						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);
+						learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 						learnerConfig.config.setUseErlangOutputs(true);learnerConfig.config.setErlangCompileIntoBeamDirectory(true);
 						ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 						learner.init(initialTracesExporterFinal,0,0);
@@ -439,6 +440,7 @@ public class TestErlangOracleLearner {
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(config);
 		ErlangModule.setupErlangConfiguration(learnerConfig.config,new File(ErlangExamples+"/frequency/frequencyBroken.erl"));
 		learnerConfig.config.setErlangAlphabetAnyElements(EXPANSIONOFANY.ANY_WIBBLE);learnerConfig.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		learnerConfig.config.setErlWaitForWrapperDelay(wrapperDelay);
 		learnerConfig.config.setErlangInitialTraceLength(3);
 		learnerConfig.config.setErlangStripModuleNamesFromFunctionsInNonGenModules(true);
 		

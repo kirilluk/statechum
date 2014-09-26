@@ -278,7 +278,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		m.updateMarkov(merged,predictForwardOrSideways,false);// now we construct sideways learner ...
 		m.constructMarkovTentative(graph,predictForwardOrSideways);// ... and use it to add more transitions.
 		*/
-		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),true,!ptaClassifier.model.directionForwardOrInverse);
+		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),true,!ptaClassifier.model.directionForwardOrInverse,false);
 		MarkovClassifier cl = new MarkovClassifier(inverseModel,ptaClassifier.graph);cl.updateMarkov(false);
 		Collection<Set<CmpVertex>> verticesToMergeUsingSideways=cl.buildVerticesToMergeForPaths(pathsOfInterest);
 		return verticesToMergeUsingSideways;
@@ -668,13 +668,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				// test sequences will be distributed around 
-				final int pathLength = generator.getPathLength();
 				// The total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 				// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
 				final int tracesToGenerate = makeEven(traceQuantity);
-				final Random rnd = new Random(seed*31+attempt);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
@@ -714,7 +711,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				});
 				assert sPlus.size() > 0;
 				assert sMinus.size() > 0;
-				final MarkovModel m= new MarkovModel(chunkLen,true,true);
+				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
 				m.createMarkovLearner(sPlus, sMinus,false);
 				
 				pta.clearColours();

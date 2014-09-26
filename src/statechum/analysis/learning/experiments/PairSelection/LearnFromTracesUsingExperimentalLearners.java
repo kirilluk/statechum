@@ -9,7 +9,6 @@ import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.Cav2014.EDSMReferenceLearner;
@@ -45,7 +44,7 @@ public class LearnFromTracesUsingExperimentalLearners {
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);config.setLabelKind(LABELKIND.LABEL_STRING);
 		final ConvertALabel converter = new Transform.InternStringLabel();
-		MarkovModel m=new MarkovModel(3,true,true);
+		MarkovModel m=new MarkovModel(3,true,true,false);
 		
 		TraceLoader tool = new TraceLoader(config,converter);
 		tool.loadConfig(args[0]);

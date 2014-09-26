@@ -102,6 +102,38 @@ public class TestSynapse {
 	}
 	
 	@Test
+	public void testEunitSynapseTests1_fsmparse()
+	{
+		runner.setResponseTimeout(20000);
+		startSynapse();
+		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("test_fsmparse:test()")));		
+	}
+	
+	@Test
+	public void testEunitSynapseTests1_fsmlearn()
+	{
+		runner.setResponseTimeout(20000);
+		startSynapse();
+		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("test_fsmlearn:test()")));		
+	}
+	
+	@Test
+	public void testEunitSynapseTests1_diff()
+	{
+		runner.setResponseTimeout(20000);
+		startSynapse();
+		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("test_diff:test()")));		
+	}
+	
+	@Test
+	public void testEunitSynapseTests1_parsetypemap()
+	{
+		runner.setResponseTimeout(20000);
+		startSynapse();
+		Assert.assertEquals("'ok'",ErlangLabel.dumpErlangObject(runner.evaluateString("test_parsetypemap:test()")));		
+	}
+	
+	@Test
 	public void testEunitSynapseTests2()
 	{
 		runner.setResponseTimeout(30000);

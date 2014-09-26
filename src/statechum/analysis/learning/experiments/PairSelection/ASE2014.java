@@ -45,7 +45,6 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
@@ -58,7 +57,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperi
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
-import statechum.analysis.learning.experiments.mutation.ExperimentResult;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -73,7 +71,6 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.collections.ArrayMapWithSearchPos;
-import weka.experiment.Experiment;
 
 
 public class ASE2014 extends PairQualityLearner
@@ -212,7 +209,7 @@ public class ASE2014 extends PairQualityLearner
 				else
 					pta.paths.augmentPTA(generator.getAllSequences(0));
 		
-				final MarkovModel m= new MarkovModel(chunkLen,true,true);
+				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
 
 				new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 				

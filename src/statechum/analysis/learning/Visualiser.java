@@ -197,7 +197,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     		result.showNegatives = showNegatives;result.showIgnored = showIgnored;result.scaleText=scaleText;result.scaleLines = scaleLines;
     		if (ignoredStates != null)
     		{// make a copy
-    			result.ignoredStates = new HashSet<String>();result.ignoredStates.addAll(ignoredStates);
+    			result.ignoredStates = new TreeSet<String>();result.ignoredStates.addAll(ignoredStates);
     		}
     		return result;
     	}

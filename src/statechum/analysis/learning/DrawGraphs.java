@@ -76,6 +76,8 @@ package statechum.analysis.learning;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -238,11 +240,33 @@ public class DrawGraphs {
 
 	protected static REXP eval(String whatToEval, String errMsg)
 	{
+		
 		callbacks.clearBuffer();
 		REXP result = engine.eval(whatToEval);
 		if (result == null)
 			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
+	
 		return result;
+	}
+	
+	protected static StatsticatTestResult eval1(String whatToEval, String errMsg)
+	{
+		StatsticatTestResult STR=new StatsticatTestResult();
+
+		callbacks.clearBuffer();
+		REXP result = engine.eval(whatToEval);
+		if (result == null)
+			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
+
+		if(whatToEval.startsWith("m="))
+		{
+			STR.statistic=engine.eval("m$statistic").asDouble();
+			STR.pvalue=engine.eval("m$p.value").asDouble();
+			STR.Method=engine.eval("m$method").asString();
+			STR.alternative=engine.eval("m$alternative").asString();
+			STR.parameter=engine.eval("m$parameter").asDouble();
+		}	
+		return STR;
 	}
 
 	protected static <ELEM> String vectorToR(List<ELEM> vector, boolean addQuotes)
@@ -314,6 +338,77 @@ public class DrawGraphs {
 			}
 		}
 		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		result.append(")");
+		return result.toString();
+	}
+	
+	
+	
+	/**
+	 * Formats a WilcoxonTest command to R.
+	 * 
+	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
+	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
+	 * @return The string to be sent to R for evaluation.
+	 */
+	protected static String WilcoxonTest(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
+	{
+		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (data.size() != data1.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
+
+		StringBuffer result = new StringBuffer();
+		result.append("m=wilcox.test(");
+		
+		result.append(vectorToR(data,false));
+		result.append(",");
+		result.append(vectorToR(data1,false));
+
+		result.append(",paired=TRUE");
+
+		result.append(")");
+		return result.toString();
+	}
+	
+	/**
+	 * Formats a Mann-Whitney U Test command to R.
+	 * 
+	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
+	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
+	 * @return The string to be sent to R for evaluation.
+	 */
+	protected static String Mann_Whitney_U_Test(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
+	{
+		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
+
+		StringBuffer result = new StringBuffer();
+		result.append("m=wilcox.test(");
+		result.append(vectorToR(data,false));
+		result.append(",");
+		result.append(vectorToR(data1,false));
+
+		result.append(")");
+		return result.toString();
+	}
+	
+	
+	/**
+	 * Formats a Kruskal-Wallis Test command to R.
+	 * 
+	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
+	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
+	 * @return The string to be sent to R for evaluation.
+	 */
+	protected static String Kruskal_Wallis_Test(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
+	{
+		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (data.size() != data1.size()) throw new IllegalArgumentException("'x' and 'y' must have the same length");
+
+		StringBuffer result = new StringBuffer();
+		result.append("m=kruskal.test(");
+		result.append(vectorToR(data,false));
+		result.append(",");
+		result.append(vectorToR(data1,false));
+
 		result.append(")");
 		return result.toString();
 	}
@@ -425,7 +520,23 @@ public class DrawGraphs {
 			eval(cmd,"failed to run "+cmd);
 		eval("dev.off()","failed to write to "+file.getAbsolutePath());
 	}
-
+	
+	/** Draws a plot given the data to plot and stores it in the given file.
+	 * 
+	 * @param drawingCommand drawing command to pass to R
+	 * @param xDim horizontal size in inches, R default is 7.
+	 * @param yDim vertical size in inches, R default is 7.
+	 * @param fileName where to store result.
+	 */
+	public StatsticatTestResult CollectResultStatsticalResult(List<String> drawingCommand)
+	{
+		StatsticatTestResult STR=new StatsticatTestResult();
+		for(String cmd:drawingCommand)
+			STR=eval1(cmd,"failed to run "+cmd);
+		return STR;
+		
+	}
+	
 	/**
 	 * Shuts down jri thread - since jri is not a daemon thread JVM will not exit if this is not called.
 	 */
@@ -455,6 +566,29 @@ public class DrawGraphs {
 	}
 	
 	/**
+	 * A version DataColoumn method that allow the user to store two results in a MAP <ELEM,DataColumnPairValues>();
+	 *  where DataColumnPairValues has pair of value to add each time
+	 */
+	public static class DataColumnPairValues
+	{
+		/** Data to be displayed. */
+		final List<Double> results;
+		final List<Double> results1;
+
+		/** Colour to use, if {@code null} default colour is used. */
+		String colour;
+		/** Label to be used, if {@code null} column identifier is used. */
+		String label;
+		
+		public DataColumnPairValues()
+		{
+			results = new ArrayList<Double>(1000); 
+			results1 = new ArrayList<Double>(1000); 
+
+		}
+	}
+	
+	/**
 	 * Represents a graph.
 	 * 
 	 * @param <ELEM> type of elements for the X axis, vertical is always a Double
@@ -463,6 +597,9 @@ public class DrawGraphs {
 	{
 		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
 		
+		// it is added to use them for some computation such as WilcoxonTest
+		Map<ELEM,DataColumnPairValues> collectionOfResults2 = new TreeMap<ELEM,DataColumnPairValues>();
+
 		protected final String xAxis,yAxis;
 		protected final File file;
 		
@@ -533,6 +670,16 @@ public class DrawGraphs {
 			if (label != null) collectionOfResults.get(el).label=label;
 		}
 		
+		
+		public synchronized void addPairValues(ELEM el,Double value, String colour, String label)
+		{
+			DataColumnPairValues column = collectionOfResults2.get(el);
+			if (column == null) { column=new DataColumnPairValues();collectionOfResults2.put(el,column); }
+			column.results.add((Double) el);
+			column.results1.add(value);
+			++size;
+		}
+		
 		/** Returns a command to draw a graph in R. */
 		protected abstract List<String> getDrawingCommand();
 		
@@ -564,7 +711,17 @@ public class DrawGraphs {
 				List<String> drawingCommands = new LinkedList<String>();
 				drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
 				gr.drawPlot(drawingCommands, horizSize,ySize,file);
+
 			}
+			else
+				if (collectionOfResults2.size() > 0)
+				{
+					double horizSize = xSize;
+					if (horizSize <= 0) horizSize=computeHorizSize();
+					List<String> drawingCommands = new LinkedList<String>();
+					drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+					gr.writetofile(drawingCommands,gr,file);
+				}
 			else
 				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
@@ -646,6 +803,162 @@ public class DrawGraphs {
 			return horizSize;
 		}
 	}
+	
+	
+	public static class Wilcoxon<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public Wilcoxon(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<Double> data = new LinkedList<Double>();
+			List<Double> data1 = new LinkedList<Double>();
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
+			{
+				data.addAll(entry.getValue().results);
+				data1.addAll(entry.getValue().results1);
+
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(WilcoxonTest(data, data1,names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	
+	
+	public static class RWilcoxon<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public RWilcoxon(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<Double> data = new LinkedList<Double>();
+			List<Double> data1 = new LinkedList<Double>();
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
+			{
+				data.addAll(entry.getValue().results);
+				data1.addAll(entry.getValue().results1);
+
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(WilcoxonTest(data,data1, names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
+					:null		
+					));
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	
+	
+	public static class Mann_Whitney_U_Test<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public Mann_Whitney_U_Test(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<Double> data = new LinkedList<Double>();
+			List<Double> data1 = new LinkedList<Double>();
+
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
+			{
+				data.addAll(entry.getValue().results);
+				data1.addAll(entry.getValue().results1);
+
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(Mann_Whitney_U_Test(data, data1,names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
+							:null		
+							));
+			}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	
+	public static class Kruskal_Wallis<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	{
+		public Kruskal_Wallis(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			List<Double> data = new LinkedList<Double>();
+			List<Double> data1 = new LinkedList<Double>();
+
+			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
+			{
+				data.addAll(entry.getValue().results);
+				data1.addAll(entry.getValue().results1);
+
+				String label = entry.getValue().label;
+				if (label == null)
+					label = entry.getKey().toString();
+				names.add(label);
+				String colour = entry.getValue().colour;
+				if (colour == null) colour = defaultColour;
+				colours.add(colour);
+			}
+			return Collections.singletonList(Kruskal_Wallis_Test(data, data1,names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
+							:null		
+							));
+			}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
+		}
+	}
+	
+	
 	public static class RBagPlot extends Graph2D
 	{
 		public RBagPlot(String x, String y, File name) {
@@ -687,7 +1000,7 @@ public class DrawGraphs {
 				data.add(entry.getValue().results);names.add(entry.getKey());
 			}
 		}
-				
+		
 		final protected String plotType;
 		
 		public String otherOptions()
@@ -813,6 +1126,104 @@ public class DrawGraphs {
 			if (diag) result.add("abline(0,1)");
 			return result;
 		}
+	}
+	
+	/**
+	 * A version DataColoumn method that allow the user to store two results in a MAP <ELEM,DataColumnPairValues>();
+	 *  where DataColumnPairValues has pair of value to add each time
+	 */
+	public static class StatsticatTestResult
+	{
+		/** Data to be displayed. */
+		double statistic;
+		double pvalue;
+		String alternative; 
+		String Method;
+		double parameter;
+
+		public StatsticatTestResult()
+		{
+			statistic = 0.0; 
+			pvalue = 0.0;
+		}
+		public double getStatistic()
+      {
+    	  return statistic;
+      }
+		public  double getPvalue()
+      {
+    	  return pvalue;
+      }
+		public String getAlternative()
+      {
+    	  return alternative;
+      }
+	  public String getMethod()
+	  {
+		  return Method;
+	  }
+	  public double getParameter()
+	  {
+		  return parameter;
+	  }
+	}
+
+	public void writetofile(List<String> drawingCommands, DrawGraphs gr, File file) {
+		
+		StatsticatTestResult o=CollectResultStatsticalResult(drawingCommands);
+		try
+		{
+			String Filename = file.getName();
+			FileWriter writer = new FileWriter(Filename);	    
+		    writer.append("Method");
+		    writer.append(',');
+		    writer.append("Alternative");
+		    writer.append(',');
+		    writer.append("P-value");
+		    writer.append(',');
+		    if(o.getMethod().equals("Wilcoxon signed rank test"))
+		    {
+		    	writer.append("V");
+		    }
+		    if(o.getMethod().equals("Wilcoxon rank sum test"))
+		    {
+			    writer.append("W");
+		    }
+		    if(o.getMethod().equals("Kruskal-Wallis rank sum test"))
+		    {
+			    writer.append("Kruskal-Wallis chi-squared ");
+		    	writer.append(',');
+		    	writer.append("df");
+		    }
+
+		    
+		    writer.append('\n');
+ 
+		    writer.append(String.valueOf(o.getMethod()));
+		    writer.append(',');
+		    writer.append(String.valueOf(o.getStatistic()));
+		    writer.append(',');
+		    writer.append(String.valueOf(o.getPvalue()));
+		    writer.append(',');
+		    writer.append(String.valueOf(o.getStatistic()));
+		    if(o.getMethod().equals("Kruskal-Wallis rank sum test"))
+		    {
+		    	writer.append(',');		    
+		    	writer.append(String.valueOf(o.getParameter()));
+		    }
+	            writer.append('\n');
+ 
+
+ 
+		    //generate whatever data you want
+	 
+		    writer.flush();
+		    writer.close();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		} 
 	}
 }
 

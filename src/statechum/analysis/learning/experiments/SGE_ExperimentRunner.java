@@ -197,9 +197,9 @@ public class SGE_ExperimentRunner
 		 */
 		protected void plotAllGraphs(@SuppressWarnings("rawtypes") Collection<RGraph> graphs, int counter)
 		{
-			if (counter > 0 && counter % 10 == 0)
-				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
-					g.drawInteractive(gr);
+//			if (counter > 0 && counter % 10 == 0)
+//				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
+//					g.drawInteractive(gr);
 				
 			if (counter < 0)
 				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
@@ -303,10 +303,16 @@ public class SGE_ExperimentRunner
 								RGraph thisPlot = nameToGraph.get(name);
 								if (thisPlot == null)
 									throw new IllegalArgumentException("unknown graph with file name "+name);
-									
-								thisPlot.add((Comparable)argValue, yValue, color, label);
 								
+								if(thisPlot.getFileName().endsWith(".csv"))
+									thisPlot.addPairValues((Comparable)argValue, yValue, color, label);
+								
+								else
+									thisPlot.add((Comparable)argValue, yValue, color, label);
+
+
 								line = reader.readLine();
+
 							}
 							
 							// if we got here, handling of the output has been successful, plot graphs.
@@ -365,9 +371,13 @@ public class SGE_ExperimentRunner
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
-			case RUN_STANDALONE:
-				graph.add(x,y,colour,label);
+			case RUN_STANDALONE:			
+				if(graph.getFileName().endsWith(".csv"))
+					graph.addPairValues((Comparable)x, y, colour, label);				
+				else
+					graph.add(x,y,colour,label);			
 				break;
+			
 			}
 		}
 	}

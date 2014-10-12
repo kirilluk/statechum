@@ -80,6 +80,7 @@ public class SGE_ExperimentRunner
 	public static class RunSubExperiment<RESULT> 
 	{
 		private PhaseEnum phase;
+		// We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults.  
 		private int taskCounter=0, taskCounterFromPreviousSubExperiment, taskToRun=-1;
 		private String experimentName;
 		private ExecutorService executorService;
@@ -147,7 +148,7 @@ public class SGE_ExperimentRunner
 		{
 			switch(phase)
 			{
-			case RUN_TASK:// only submit the task of interest
+			case RUN_TASK:// when running in Grid mode, each task runs as a separate process given that we intend to run them on separate nodes.
 				if (taskToRun == taskCounter)
 					try
 					{
@@ -163,7 +164,7 @@ public class SGE_ExperimentRunner
 					}
 				break;
 				
-			case RUN_STANDALONE:
+			case RUN_STANDALONE:// only submit the task of interest
 				runner.submit(task);
 				break;
 			

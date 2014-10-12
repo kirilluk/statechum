@@ -1500,7 +1500,7 @@ public class PairQualityLearner
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public ScoresForGraph actualLearner,referenceLearner;
+		public ScoresForGraph actualLearner,referenceLearner,ktailsLearner,markovLearner;
 		public Map<String,ScoresForGraph> miscGraphs;
 		
 		/** %% of states in a reference graph can be identified by singleton sequences. */

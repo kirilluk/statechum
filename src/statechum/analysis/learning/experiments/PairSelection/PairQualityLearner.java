@@ -1396,7 +1396,7 @@ public class PairQualityLearner
 			super(tpArg, tnArg, fpArg, fnArg);
 		}
 		
-		protected DifferenceToReferenceLanguageBCR(ConfusionMatrix mat) 
+		public DifferenceToReferenceLanguageBCR(ConfusionMatrix mat) 
 		{
 			super(mat);
 		}

@@ -88,7 +88,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 	{
 		protected final Configuration config;
 		protected final ConvertALabel converter;
-		protected final int states,sample;
+		protected final int states,sample,trainingSample;
 		protected boolean onlyUsePositives;
 		protected final int seed;
 		protected int chunkLen=3;
@@ -141,9 +141,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			chunkLen = len;
 		}
 		
-		public LearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
+		public LearnerRunner(int argStates, int argSample, int argTrainingSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
 		{
-			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
+			states = argStates;sample = argSample;trainingSample = argTrainingSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
 		}
 		
 		boolean useCentreVertex = true, useDifferentScoringNearRoot = false, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
@@ -187,176 +187,176 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*tracesAlphabet));
 			
-			for(int attempt=0;attempt<10;++attempt)
-			{// try learning the same machine a few times
-				LearnerGraph pta = new LearnerGraph(config);
-				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = makeEven(traceQuantity);
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-										
-						@Override
-						public int getLength() {
-							return (int)(traceLengthMultiplier*states*tracesAlphabet);
-						}
-		
-						@Override
-						public int getPrefixLength(int len) {
-							return len;
-						}
-					});
-
-
-				if (onlyUsePositives)
-				{
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
-				}
-				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));
-		
-				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
-
-				new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
-				
-				pta.clearColours();
-
-				if (!onlyUsePositives)
-					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				else 
-					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-				
-				EDSM_MarkovLearner learnerOfPairs = null;
-				LearnerGraph actualAutomaton = null;
-				
-				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
-				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-
-				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
-				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
-
-				LearnerGraph ptaToUseForInference = pta;
-				Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
-								
-				if (useCentreVertex)
-				{
-					final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-					final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
-					// These vertices are merged first and then the learning start from the root as normal.
-					// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
-					verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
-					
-					List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
-					assert scoreInitialMerge >= 0;
-					ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
-					final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
-					if (useMostConnectedVertexToStartLearning)
-					{
-						ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+			
+			// try learning the same machine using a random generator selector passed as a parameter.
+			LearnerGraph pta = new LearnerGraph(config);
+			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(trainingSample),5,null);
+			final int tracesToGenerate = makeEven(traceQuantity);
+			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+									
+					@Override
+					public int getLength() {
+						return (int)(traceLengthMultiplier*states*tracesAlphabet);
 					}
-					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
-					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
-				}
-				
-				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
-				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
-				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
-				
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				
-				if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
-				{
-					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
-					assert genScore >= 0;
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
-				}			
-				
-				SampleData dataSample = new SampleData(null,null);
-				//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
-				//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
-				long inconsistencyActual = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
-				
-				VertID rejectVertexID = null;
-				for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
-					if (!v.isAccept())
-					{
-						assert rejectVertexID == null : "multiple reject vertices in learnt automaton, such as "+rejectVertexID+" and "+v;
-						rejectVertexID = v;break;
+	
+					@Override
+					public int getPrefixLength(int len) {
+						return len;
 					}
-				if (rejectVertexID == null)
-					rejectVertexID = actualAutomaton.nextID(false);
-				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
-				dataSample.actualLearner.inconsistency = inconsistencyActual;
-				dataSample.referenceLearner = zeroScore;
-				
-				
-				// This is to ensure that scoring is computed in the usual way rather than with override.
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-				
-				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
-				{
-					try
-					{
-						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,referenceGraph,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-						dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
-						dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
-					}
-					catch(Cav2014.LearnerAbortedException ex)
-					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
-					}
-				}
-				
-				{
-					LearnerGraph outcomeOfKTailsLearner = new LearnerGraph(evaluationConfig);
-					try
-					{
-						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfKTailsLearner = new KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-						dataSample.ktailsLearner = estimateDifference(referenceGraph, outcomeOfKTailsLearner,testSet);
-						dataSample.ktailsLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfKTailsLearner, m, checker,false);
-					}
-					catch(Cav2014.LearnerAbortedException ex)
-					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
-					}
-				}
+				});
 
-				{// For Markov, we do not need to learn anything at all - our Markov matrix contains enough information to classify paths and hence compare it to the reference graph.
-					ConfusionMatrix mat = DiffExperiments.classifyAgainstMarkov(testSet, referenceGraph, m);
-					dataSample.markovLearner = new ScoresForGraph();					
-					dataSample.markovLearner.differenceBCR = new DifferenceToReferenceLanguageBCR(mat);
-				}
-				
-				dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
-				dataSample.stateNumber = referenceGraph.getStateNumber();
-				dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
-				statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
-				dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
-				dataSample.comparisonsPerformed = learnerOfPairs.comparisonsPerformed;
-				Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
-				int wSeqLen=0;
-				for(List<Label> seq:wset)
-				{
-					int len = seq.size();if (len > wSeqLen) wSeqLen=len;
-				}
-				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ 
-						" difference actual is "+dataSample.actualLearner.differenceStructural+ " difference ref is "+dataSample.referenceLearner.differenceStructural
-						+ " inconsistency learnt "+dataSample.actualLearner.inconsistency+" inconsistency reference: "+inconsistencyForTheReferenceGraph
-						+" transitions per state: "+(double)referenceGraph.pathroutines.countEdges()/referenceGraph.getStateNumber()+
-							" W seq max len "+wSeqLen+
-							" Uniquely identifiable by W "+Math.round(100*MarkovClassifier.calculateFractionOfIdentifiedStates(referenceGraph, wset))+" %"
-						+ " and by singletons "+Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph))+" %"
-						);
-				outcome.samples.add(dataSample);
+
+			if (onlyUsePositives)
+			{
+				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
+					@Override
+					public boolean shouldBeReturned(Object name) {
+						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+					}
+				}));
 			}
+			else
+				pta.paths.augmentPTA(generator.getAllSequences(0));
+	
+			final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
+
+			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+			
+			pta.clearColours();
+
+			if (!onlyUsePositives)
+				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
+			else 
+				assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+			
+			EDSM_MarkovLearner learnerOfPairs = null;
+			LearnerGraph actualAutomaton = null;
+			
+			final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
+			LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
+
+			LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
+			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
+
+			LearnerGraph ptaToUseForInference = pta;
+			Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
+							
+			if (useCentreVertex)
+			{
+				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
+				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+				// These vertices are merged first and then the learning start from the root as normal.
+				// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
+				verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
+				
+				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
+				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+				assert scoreInitialMerge >= 0;
+				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge);
+				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
+				if (useMostConnectedVertexToStartLearning)
+				{
+					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+				}
+				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
+				System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+			}
+			
+			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+			learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
+			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
+			
+			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			
+			if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
+			{
+				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+				assert genScore >= 0;
+				actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+			}			
+			
+			SampleData dataSample = new SampleData(null,null);
+			//dataSample.difference = new DifferenceToReferenceDiff(0, 0);
+			//dataSample.differenceForReferenceLearner = new DifferenceToReferenceDiff(0, 0);
+			long inconsistencyActual = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker,false);
+			
+			VertID rejectVertexID = null;
+			for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
+				if (!v.isAccept())
+				{
+					assert rejectVertexID == null : "multiple reject vertices in learnt automaton, such as "+rejectVertexID+" and "+v;
+					rejectVertexID = v;break;
+				}
+			if (rejectVertexID == null)
+				rejectVertexID = actualAutomaton.nextID(false);
+			actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
+			dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
+			dataSample.actualLearner.inconsistency = inconsistencyActual;
+			dataSample.referenceLearner = zeroScore;
+			
+			
+			// This is to ensure that scoring is computed in the usual way rather than with override.
+			Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			
+			LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
+			{
+				try
+				{
+					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
+					outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,referenceGraph,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
+				}
+				catch(Cav2014.LearnerAbortedException ex)
+				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
+				}
+			}
+			
+			{
+				LearnerGraph outcomeOfKTailsLearner = new LearnerGraph(evaluationConfig);
+				try
+				{
+					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
+					outcomeOfKTailsLearner = new KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					dataSample.ktailsLearner = estimateDifference(referenceGraph, outcomeOfKTailsLearner,testSet);
+					dataSample.ktailsLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfKTailsLearner, m, checker,false);
+				}
+				catch(Cav2014.LearnerAbortedException ex)
+				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
+				}
+			}
+
+			{// For Markov, we do not need to learn anything at all - our Markov matrix contains enough information to classify paths and hence compare it to the reference graph.
+				ConfusionMatrix mat = DiffExperiments.classifyAgainstMarkov(testSet, referenceGraph, m);
+				dataSample.markovLearner = new ScoresForGraph();					
+				dataSample.markovLearner.differenceBCR = new DifferenceToReferenceLanguageBCR(mat);
+			}
+			
+			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
+			dataSample.stateNumber = referenceGraph.getStateNumber();
+			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
+			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
+			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
+			dataSample.comparisonsPerformed = learnerOfPairs.comparisonsPerformed;
+			Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
+			int wSeqLen=0;
+			for(List<Label> seq:wset)
+			{
+				int len = seq.size();if (len > wSeqLen) wSeqLen=len;
+			}
+			System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ 
+					" difference actual is "+dataSample.actualLearner.differenceStructural+ " difference ref is "+dataSample.referenceLearner.differenceStructural
+					+ " inconsistency learnt "+dataSample.actualLearner.inconsistency+" inconsistency reference: "+inconsistencyForTheReferenceGraph
+					+" transitions per state: "+(double)referenceGraph.pathroutines.countEdges()/referenceGraph.getStateNumber()+
+						" W seq max len "+wSeqLen+
+						" Uniquely identifiable by W "+Math.round(100*MarkovClassifier.calculateFractionOfIdentifiedStates(referenceGraph, wset))+" %"
+					+ " and by singletons "+Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph))+" %"
+					);
+			outcome.samples.add(dataSample);
+			
 			
 			return outcome;
 		}
@@ -656,6 +656,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 		final int samplesPerFSM = 15;
 		final int stateNumberIncrement = 5;
 		final int rangeOfStateNumbers = 30+stateNumberIncrement;
+		final int trainingSamplesPerFSM = 10;
 		final int traceQuantity = 10;
 		final double traceLengthMultiplierMax = 1;
 		final int chunkSize = 3;
@@ -796,23 +797,24 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 
 
 					for(int sample=0;sample<samplesPerFSM;++sample)
-					{
-						LearnerRunner learnerRunner = new LearnerRunner(states,sample,experimentRunner.getTaskID(),traceQuantityToUse, config, converter);
-						learnerRunner.setOnlyUsePositives(onlyPositives);
-						learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
-						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-						learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
-						learnerRunner.setChunkLen(chunkSize);
-						learnerRunner.setSelectionID(selection);
-						learnerRunner.setPresetLearningParameters(preset);
-						learnerRunner.setDisableInconsistenciesInMergers(false);
-						experimentRunner.submitTask(learnerRunner);
-					}
+						for(int rndSelector=0;rndSelector<trainingSamplesPerFSM;++rndSelector)
+						{
+							LearnerRunner learnerRunner = new LearnerRunner(states,sample,rndSelector,experimentRunner.getTaskID(),traceQuantityToUse, config, converter);
+							learnerRunner.setOnlyUsePositives(onlyPositives);
+							learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
+							learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+							learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
+							learnerRunner.setChunkLen(chunkSize);
+							learnerRunner.setSelectionID(selection);
+							learnerRunner.setPresetLearningParameters(preset);
+							learnerRunner.setDisableInconsistenciesInMergers(false);
+							experimentRunner.submitTask(learnerRunner);
+						}
 				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
 					@Override
 					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
-					{
+					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
 						for(SampleData sample:result.samples)
 							experimentrunner.Record(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
 					
@@ -832,23 +834,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}
 
-						/*
-						AverageValue BCRCollectResult = new AverageValue(0.0,0.0);
-						AverageValue StructuralCollectResult = new AverageValue(0.0,0.0);
-
-						for(SampleData sample:result.samples)
-						{
-							BCRCollectResult.add(sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue());
-							StructuralCollectResult.add(sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue());
-						}
-
-						experimentrunner.Record(Wilcoxon_Test_BCR,  BCRCollectResult.RefercneElem/n, BCRCollectResult.actualElem/n, null, null);
-						experimentrunner.Record(Wilcoxon_test_Structural,  StructuralCollectResult.RefercneElem/n, StructuralCollectResult.actualElem/n, null, null);
-						experimentrunner.Record(Mann_Whitney_U_Test_BCR, BCRCollectResult.RefercneElem/n, BCRCollectResult.actualElem/n, null, null);
-						experimentrunner.Record(Mann_Whitney_U_Test_Structural,  StructuralCollectResult.RefercneElem/n, StructuralCollectResult.actualElem/n, null, null);
-						experimentrunner.Record(Kruskal_Wallis_Test_BCR,BCRCollectResult.RefercneElem, BCRCollectResult.RefercneElem/n, BCRCollectResult.actualElem/n, null, null);
-						experimentrunner.Record(Kruskal_Wallis_Test_Structural,  StructuralCollectResult.RefercneElem/n, StructuralCollectResult.actualElem/n, null, null);
-						*/
+						
 					}
 
 					@Override

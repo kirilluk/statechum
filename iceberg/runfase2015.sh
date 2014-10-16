@@ -1,7 +1,7 @@
 #!/bin/sh
 #$ -l mem=20G -l rmem=14g
 
-EXPERIMENT=statechum.analysis.learning.experiments.PairSelection.ASE2014
+EXPERIMENT=statechum.analysis.learning.experiments.PairSelection.MarkovLearnerExperimentWithStatisticalAnalysis
 
 if [ -z ${SGE_TASK_ID+x} ] || [ "${SGE_TASK_ID}" == "undefined" ];then
 	if [ -z ${STATECHUM_COUNT+x} ];then

@@ -211,6 +211,7 @@ public class PairScoreComputation {
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge);compatibilityScore=computedScore;
 		}
+		else
 		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
 		{
 			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);

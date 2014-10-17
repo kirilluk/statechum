@@ -1503,6 +1503,8 @@ public class PairQualityLearner
 		public ScoresForGraph actualLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
 		public Map<String,ScoresForGraph> miscGraphs;
 		
+		public long traceNumber = 0;
+		
 		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;
 		

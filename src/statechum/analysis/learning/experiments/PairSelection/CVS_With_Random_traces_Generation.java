@@ -50,6 +50,7 @@ import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.Visualiser;
@@ -66,11 +67,13 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -178,12 +181,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			ThreadResult outcome = new ThreadResult();
 
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			LearnerGraph referenceGraph = FsmParser.buildLearnerGraph("q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
+			LearnerGraph referenceGraphAsText = FsmParser.buildLearnerGraph("q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
+			LearnerGraph referenceGraph = new LearnerGraph(config);AbstractPathRoutines.convertToNumerical(referenceGraphAsText,referenceGraph);
 			//Visualiser.updateFrame(referenceGraph, null);
 //			Visualiser.waitForKey();
 			final int states = referenceGraph.getStateNumber(), alphabet = referenceGraph.pathroutines.computeAlphabet().size();
 
-			for(int attempt=0;attempt<50;++attempt)
+			for(int attempt=0;attempt<10;++attempt)
 			{// try learning the same machine a few times
 
  				LearnerGraph pta = new LearnerGraph(config);
@@ -264,7 +268,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
 
-				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
@@ -590,7 +594,20 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
 							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
 				}
+				//if (coregraph.pairscores.computeScoreSicco(p,false) < 0) score = -1;
 			}
+/*
+			{
+				List<PairScore> outcome = new ArrayList<PairScore>(1);outcome.add(new PairScore(p.getQ(),p.getR(),score,0));
+				List<PairScore> correctPairs = new ArrayList<PairScore>(outcome.size()), wrongPairs = new ArrayList<PairScore>(outcome.size());
+				SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, outcome, correctPairs, wrongPairs);
+				if ((correctPairs.isEmpty() && score >= 0) || (!correctPairs.isEmpty() && score < 0))
+				{
+					long SiccoScore = coregraph.pairscores.computeScoreSicco(p,false);
+					System.out.println("wrong score for  "+p+" ("+score+ ") sicco gives "+SiccoScore);
+				}
+			}
+*/
 			return score;
 		}
 
@@ -622,9 +639,9 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph reference, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA);
+			super(constructConfiguration(evalCnf,threshold),reference, argInitialPTA);
 		}
 
 		@Override 
@@ -750,11 +767,12 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 	}
 	
 	
-	public static final int []traceQuantityValues = new int[]{1,2,5,10,20,40};
+	public static final int []traceQuantityValues = new int[]{5,10,20,40};
 	
 	public static void runExperiment(String args[]) throws Exception
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
+		config.setGdFailOnDuplicateNames(false);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.GENERAL);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -787,13 +805,15 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 		    writer.append(',');
 		    
 		final Map<Integer,RBoxPlot<String>> gr_BCRImprovementForDifferentTraces = new  TreeMap<Integer,RBoxPlot<String>>();
+		final Map<Integer,SquareBagPlot> gr_BCR_EM_against_Sicco = new TreeMap<Integer,SquareBagPlot>();
 		for(final int traceQuantity:traceQuantityValues)
 		{
-			RBoxPlot<String> plot = new RBoxPlot<String>("Different Learners","BCR",new File("BCR"+"_traceQuantity_"+traceQuantity+".pdf"));
-			gr_BCRImprovementForDifferentTraces.put(traceQuantity, plot);
+			gr_BCRImprovementForDifferentTraces.put(traceQuantity, new RBoxPlot<String>("Different Learners","BCR",new File("BCR"+"_traceQuantity_"+traceQuantity+".pdf")));
+			gr_BCR_EM_against_Sicco.put(traceQuantity,new SquareBagPlot("BCR, SiccoN","BCR, EDSM-Markov learner",new File("improvement_"+traceQuantity+".pdf"),0.5,1,true));
 		}		
 		
-		final RGraph[] graphsInExperiment = gr_BCRImprovementForDifferentTraces.values().toArray(new RGraph[]{}); 
+		List<RGraph> graphs = new LinkedList<RGraph>();graphs.addAll(gr_BCRImprovementForDifferentTraces.values());graphs.addAll(gr_BCR_EM_against_Sicco.values());
+		final RGraph[] graphsInExperiment = graphs.toArray(new RGraph[]{}); 
 		
 		final int preset=0;
 
@@ -809,7 +829,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 						learnerRunner.setOnlyUsePositives(onlyPositives);
 //						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 //						learnerRunner.setAlphabetMultiplier(alphabetMultiplierActual);
-						learnerRunner.setTraceLengthMultiplier(4);
+						learnerRunner.setTraceLengthMultiplier(8);
 						learnerRunner.setChunkLen(chunkSize);
 						learnerRunner.setPresetLearningParameters(preset);
 						learnerRunner.setOnlyUsePositives(onlyPositives);
@@ -840,9 +860,10 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 								writer.append(',');
 								if (score.getValue().differenceStructural != null)
 									writer.append(String.valueOf(score.getValue().differenceStructural.getValue()));
+								
 								if (score.getValue().differenceBCR.getValue() > 0)
 								{
-									
+									experimentrunner.Record(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
 									experimentrunner.Record(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
 								}
 							}

@@ -1257,7 +1257,6 @@ public class MarkovClassifier
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
 		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell what whether paths of this length are going to separate states or not.
-		
 		List<List<Label>> whatToMerge = null;
 
 		final AtomicLong maxCount = new AtomicLong(0);
@@ -1293,6 +1292,7 @@ public class MarkovClassifier
 
 		};
 		exploration.walkThroughAllPaths();
+System.out.println("maxcount = "+maxCount);
 
 		final Map<Long,List<List<Label>>> thresholdToInconsistency = new TreeMap<Long,List<List<Label>>>();
 		exploration = new PTAExploration<Boolean>(model.markovMatrix) {
@@ -1310,8 +1310,10 @@ public class MarkovClassifier
 					long countInPTA=prediction.occurrence.firstElem;
 					if (countInPTA < maxCount.longValue()/2) // paths that are very common are likely to be present from a number of different states and as such not very good for discriminating between them.
 					{
+						System.out.println("looking at path "+pathToInit+" with freq "+countInPTA);
 						LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
 						long value = computeInconsistencyForMergingPath(path, checker);
+						System.out.println("got inconsistencyt of "+value);
 						if (value >= 0)
 						{
 							List<List<Label>> pathsForThisInconsistency = thresholdToInconsistency.get(value);
@@ -1320,6 +1322,7 @@ public class MarkovClassifier
 								pathsForThisInconsistency = new LinkedList<List<Label>>();thresholdToInconsistency.put(value, pathsForThisInconsistency); 
 							}
 							pathsForThisInconsistency.add(path);
+							System.out.println("inconsistency of "+value + " for path "+path);
 						}
 					}
 				}

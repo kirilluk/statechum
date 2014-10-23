@@ -7,7 +7,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/colt.jar" sourcepath="/media/software/java/colt-1.2.0.zip"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.1.jar"/>
-	<classpathentry kind="lib" path="lib/jung-1.7.6.jar" sourcepath="/media/software/java/jung-1.7.6-src.jar"/>
+	<classpathentry kind="lib" path="lib/jung-1.7.6.jar" sourcepath="/Users/kirill/Downloads/jung-1.7.6-src.jar"/>
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
 	<classpathentry kind="lib" path="lib/OtpErlang.jar"/>

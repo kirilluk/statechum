@@ -46,6 +46,7 @@ import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
@@ -53,6 +54,7 @@ import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
@@ -61,10 +63,13 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
@@ -164,6 +169,7 @@ public class Synapse implements Runnable {
 		msgCompareWithOthers = new OtpErlangAtom("compareWithOthers"),// Args: referenceGraph, LearntGraph
 		msgLearnEDSM = new OtpErlangAtom("learnEDSM"),
 		msgLearnEDSMMARKOV = new OtpErlangAtom("learn"),
+		msgLearnEDSMMARKOVcentre = new OtpErlangAtom("learncentre"),
 		msgLearnKTails = new OtpErlangAtom("learnKTails"),
 		msgTraces = new OtpErlangAtom("traces"),
 
@@ -636,7 +642,7 @@ public class Synapse implements Runnable {
 			ConvertALabel converter = new Transform.InternStringLabel();
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			int states = referenceGraph.getAcceptStateNumber();
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,PairQualityLearner.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states,PairQualityLearner.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
 			
 			DifferenceToReferenceDiff differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, config, 1);
 			DifferenceToReferenceLanguageBCR differenceBCRlearnt=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, learntGraph,testSet);
@@ -898,63 +904,139 @@ public class Synapse implements Runnable {
 													
 												}
 												else
-												// Args: Ref,learn, pid
-												// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
-												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
-												// Response: Ref,ok,fsm
-												// on error: Ref,failure,text_of_the_error (as string)
-												if (command.equals(msgLearnEDSMMARKOV) && message.arity() >= 2)
-												{
-													OtpErlangObject outcome = null;
-													try
+													// Args: Ref,learn, pid
+													// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
+													// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+													// Response: Ref,ok,fsm
+													// on error: Ref,failure,text_of_the_error (as string)
+													if (command.equals(msgLearnEDSMMARKOV) && message.arity() >= 2)
 													{
-														final AtomicLong counter = new AtomicLong();
-														learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
-														LearnerGraph pta=new LearnerGraph(learnerInitConfiguration.config);
-														for(List<Label> seq:sPlus)
-															pta.paths.augmentPTA(seq,true,false,null);
-														for(List<Label> seq:sMinus)
-															pta.paths.augmentPTA(seq,false,false,null);
-														final MarkovModel m= new MarkovModel(3,true,true,false);
-
-														new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
-														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-													
-														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,0) {
-
-															@Override
-															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
-															{
-																reportLearningProgress(graph,message,ref,counter);
-																// resume learning.
-																return super.ChooseStatePairs(graph);
-															}
-														};
-														learner.setMarkov(m);learner.setChecker(checker);
-														learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
-														learner.setDisableInconsistenciesInMergers(false);
-														
-														if (learnerInitConfiguration.graph != null)
+														OtpErlangObject outcome = null;
+														try
 														{
-															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
-															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+															final AtomicLong counter = new AtomicLong();
+															learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+															LearnerGraph pta=new LearnerGraph(learnerInitConfiguration.config);
+															for(List<Label> seq:sPlus)
+																pta.paths.augmentPTA(seq,true,false,null);
+															for(List<Label> seq:sMinus)
+																pta.paths.augmentPTA(seq,false,false,null);
+															final MarkovModel m= new MarkovModel(3,true,true,false);
+
+															new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+														
+															pta.clearColours();
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,0) {
+
+																@Override
+																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+																{
+																	reportLearningProgress(graph,message,ref,counter);
+																	// resume learning.
+																	return super.ChooseStatePairs(graph);
+																}
+															};
+															learner.setMarkov(m);learner.setChecker(checker);
+															learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
+															learner.setDisableInconsistenciesInMergers(false);
+															
+															if (learnerInitConfiguration.graph != null)
+															{
+																learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
+																LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+															}
+															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 														}
-														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+														catch(AskedToTerminateException e)
+														{
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+														}
+														catch(Throwable ex)
+														{
+															ex.printStackTrace();
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+														}
+														mbox.send(erlangPartner,outcome);
+														
 													}
-													catch(AskedToTerminateException e)
+												else
+													// Args: Ref,learn, pid
+													// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
+													// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+													// Response: Ref,ok,fsm
+													// on error: Ref,failure,text_of_the_error (as string)
+													if (command.equals(msgLearnEDSMMARKOVcentre) && message.arity() >= 2)
 													{
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+														OtpErlangObject outcome = null;
+														try
+														{
+															final AtomicLong counter = new AtomicLong();
+															learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+															LearnerGraph ptaInitial=new LearnerGraph(learnerInitConfiguration.config);
+															for(List<Label> seq:sPlus)
+																ptaInitial.paths.augmentPTA(seq,true,false,null);
+															for(List<Label> seq:sMinus)
+																ptaInitial.paths.augmentPTA(seq,false,false,null);
+															final MarkovModel m= new MarkovModel(3,true,true,false);
+
+															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
+															LearnerGraph ptaToUseForInference = ptaInitial;
+															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+															{
+																Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+																// These vertices are merged first and then the learning start from the root as normal.
+																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
+																verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
+																
+																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
+																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+																assert scoreInitialMerge >= 0;
+																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge);
+																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
+																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
+																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+																
+															}
+															ptaToUseForInference.clearColours();
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0) {
+
+																@Override
+																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+																{
+																	reportLearningProgress(graph,message,ref,counter);
+																	// resume learning.
+																	return super.ChooseStatePairs(graph);
+																}
+															};
+															learner.setMarkov(m);learner.setChecker(checker);
+															learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
+															learner.setDisableInconsistenciesInMergers(false);
+															
+															if (learnerInitConfiguration.graph != null)
+															{
+																learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
+																LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+															}
+															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+														}
+														catch(AskedToTerminateException e)
+														{
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+														}
+														catch(Throwable ex)
+														{
+															ex.printStackTrace();
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+														}
+														mbox.send(erlangPartner,outcome);
+														
 													}
-													catch(Throwable ex)
-													{
-														ex.printStackTrace();
-														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
-													}
-													mbox.send(erlangPartner,outcome);
-													
-												}
 												else
 												// Args: Ref,
 												// Arguments: ref,compareWithOthers,fsmA,fsmB

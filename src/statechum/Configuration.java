@@ -434,7 +434,7 @@ public class Configuration implements Cloneable {
 	 * parsing of them from text.
 	 */
 	public enum LABELKIND {
-		LABEL_STRING, LABEL_ERLANG
+		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT;
 	}
 
 	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;

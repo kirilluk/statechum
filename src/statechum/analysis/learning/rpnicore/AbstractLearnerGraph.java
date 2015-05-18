@@ -44,7 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.experiments.PairSelection.LearnerWithLabelRefinement;
+import statechum.analysis.learning.experiments.PairSelection.LearnerWithLabelRefinementViaPta;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.collections.ArrayMapWithSearch;
@@ -316,7 +316,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label),config);
 			break;
 		case LABEL_ABSTRACT:
-			result = new LearnerWithLabelRefinement.AbstractLabel(label);
+			result = new LearnerWithLabelRefinementViaPta.AbstractLabel(label);
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}

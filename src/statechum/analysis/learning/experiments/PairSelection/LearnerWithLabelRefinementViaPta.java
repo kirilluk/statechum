@@ -20,7 +20,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class LearnerWithLabelRefinement extends ASE2014.EDSM_MarkovLearner 
+public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner 
 {
 	
 	public static class PrevVertexAndOutgoingLabel
@@ -156,7 +156,7 @@ public class LearnerWithLabelRefinement extends ASE2014.EDSM_MarkovLearner
 	
 	Map<Label,Map<Label,Integer>> similarityBetweenLabels;
 
-	public LearnerWithLabelRefinement(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
 	{
 		super(evalCnf, argInitialPTA, threshold);
 	}

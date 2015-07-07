@@ -1115,6 +1115,19 @@ public class Configuration implements Cloneable {
 		synapseSendFSMFrequency = newValue;
 	}
 	
+	/** Whether Statechum should start with most abstract labels and then incrementally refine them. */
+	protected boolean performAbstractinoRefinement = false;
+	
+	public boolean getPerformAbstractinoRefinement()
+	{
+		return performAbstractinoRefinement;
+	}
+	
+	public void setPerformAbstractinoRefinement(boolean newValue)
+	{
+		performAbstractinoRefinement = newValue;
+	}
+	
 	/** Whether to strip module names from functions that are loaded from modules that are not of the gen_server/gen_event/gen_fsm kind. */
 	protected boolean erlangStripModuleNamesFromFunctionsInNonGenModules = false;
 	

@@ -53,13 +53,13 @@ import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.ASE2014.EDSM_MarkovLearner;
+import statechum.analysis.learning.experiments.PairSelection.AbstractionRefinement;
 import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -170,6 +170,7 @@ public class Synapse implements Runnable {
 		msgLearnEDSM = new OtpErlangAtom("learnEDSM"),
 		msgLearnEDSMMARKOV = new OtpErlangAtom("learn"),
 		msgLearnEDSMMARKOVcentre = new OtpErlangAtom("learncentre"),
+		msgLearnEDSMMARKOVabstractionrefinement = new OtpErlangAtom("learnEDSMMARKOVabstractionrefinement"),
 		msgLearnKTails = new OtpErlangAtom("learnKTails"),
 		msgTraces = new OtpErlangAtom("traces"),
 
@@ -977,8 +978,8 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaInitial=new LearnerGraph(learnerInitConfiguration.config);
 															for(List<Label> seq:sPlus)
 																ptaInitial.paths.augmentPTA(seq,true,false,null);
-															for(List<Label> seq:sMinus)
-																ptaInitial.paths.augmentPTA(seq,false,false,null);
+															//for(List<Label> seq:sMinus)
+															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
 															final MarkovModel m= new MarkovModel(3,true,true,false);
 
 															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
@@ -1004,6 +1005,82 @@ public class Synapse implements Runnable {
 															}
 															ptaToUseForInference.clearColours();
 															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0) {
+
+																@Override
+																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+																{
+																	reportLearningProgress(graph,message,ref,counter);
+																	// resume learning.
+																	return super.ChooseStatePairs(graph);
+																}
+															};
+															learner.setMarkov(m);learner.setChecker(checker);
+															learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
+															learner.setDisableInconsistenciesInMergers(false);
+															
+															if (learnerInitConfiguration.graph != null)
+															{
+																learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
+																LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
+															}
+															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+														}
+														catch(AskedToTerminateException e)
+														{
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgTerminate});
+														}
+														catch(Throwable ex)
+														{
+															ex.printStackTrace();
+															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgFailure,new OtpErlangList(ex.getMessage())});
+														}
+														mbox.send(erlangPartner,outcome);
+														
+													}
+												else
+													// Args: Ref,learn, pid
+													// pid is optional, where provided, progress messages are reported in a form of {Ref,'status',step}
+													// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
+													// Response: Ref,ok,fsm
+													// on error: Ref,failure,text_of_the_error (as string)
+													if (command.equals(msgLearnEDSMMARKOVabstractionrefinement) && message.arity() >= 2)
+													{
+														OtpErlangObject outcome = null;
+														try
+														{
+															final AtomicLong counter = new AtomicLong();
+															learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+															LearnerGraph ptaInitial=new LearnerGraph(learnerInitConfiguration.config);
+															for(List<Label> seq:sPlus)
+																ptaInitial.paths.augmentPTA(seq,true,false,null);
+															//for(List<Label> seq:sMinus)
+															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
+															final MarkovModel m= new MarkovModel(3,true,true,false);
+
+															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
+															LearnerGraph ptaToUseForInference = ptaInitial;
+															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+															{
+																Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+																// These vertices are merged first and then the learning start from the root as normal.
+																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
+																verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
+																
+																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
+																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+																assert scoreInitialMerge >= 0;
+																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge);
+																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
+																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
+																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
+																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+																
+															}
+															ptaToUseForInference.clearColours();
+															AbstractionRefinement learner = new AbstractionRefinement(learnerInitConfiguration,ptaToUseForInference,0) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

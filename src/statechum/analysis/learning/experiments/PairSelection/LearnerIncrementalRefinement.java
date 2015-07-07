@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -67,11 +68,11 @@ public class LearnerIncrementalRefinement
 		}
 	}
 	
-
-	
-	// Map from vertices in an initial PTA and a map from concrete labels on paths to those vertices, to the proximity of the respective label to the state of interest.
+	/** Map from vertices in an initial PTA to sequences of labels leading back from them to the initial state. */
 	Map<VertID,ArrayList<Label>> labelsLeadingToThisInHardFacts;
 	
+	/** This is an initialisation routine, taking an initial concrete PTA and constructing the relevant structure.
+	 */
 	void constructLabelsLeadingToStates()
 	{
 		int coreGraphStateNumber = initialPta.getStateNumber();
@@ -87,12 +88,10 @@ public class LearnerIncrementalRefinement
 		}
 	}
 	
-	//Map<Label,Set<>>
-	
-	// The graph at the current iteration, using abstract labels.
+	/** The graph at the current iteration, using abstract labels. */
 	LearnerGraph graph;
 	
-	// The initial PTA, using concrete labels.
+	/** The initial PTA, using concrete labels. */
 	LearnerGraph initialPta;
 	
 	/** Collection of reject vertices, we keep them separately because we'd like mergers to be unaffected by rejects, however we still need them in order to be able to split labels and reject clearly invalid mergers. */
@@ -107,12 +106,10 @@ public class LearnerIncrementalRefinement
 		{
 			super(l);
 		}
-		
 	}
 	
 	// Maps concrete to abstract labels.
 	Map<Label,A_Label> concreteToAbstract;
-	
 	
 	public void abstractLabels()
 	{
@@ -131,11 +128,14 @@ public class LearnerIncrementalRefinement
 		
 	}
 	
+	/** Given <i>mergedVertices</i>, describing vertices to be merged, looks for inconsistencies. If any are detected, constructs a prioritised list of abstract labels to be split.
+	 * 
+	 * @param mergedVertices vertices returned by a generalised merger routine. 
+	 */
 	public List<LabelListPair> constructListOfConcreteLabels(Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
         final Map<VertID,Collection<VertID>> hardOrig = graph.learnerCache.getMergedToHardFacts();
 		final List<LabelListPair> abstractLabelsToSplit = new ArrayList<LabelListPair>();
-        final Map<Label,Integer> labelsToConsiderSplitting = new TreeMap<Label,Integer>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{// we iterate through all outgoing transition, aiming to identify inconsistencies. Labels that lead to both accept and reject-states are candidates for splitting.
 			
@@ -166,7 +166,7 @@ public class LearnerIncrementalRefinement
 					int distance=0;
 
 					Map<A_Label,LabelListPair> lblToWhatToSplit = new TreeMap<A_Label,LabelListPair>();
-					int pathsAtRoot = 0;
+					int pathsAtRoot = 0;// the number of traces we are leading from the inconsistent merge to the initial state, leading in lock-step. If this falls to 1 because all others reached the initial state, we stop.
 					while(pathsAtRoot < hardVertices.size()-1)
 					{
 						pathsAtRoot = 0;
@@ -203,7 +203,91 @@ public class LearnerIncrementalRefinement
 		
 		return abstractLabelsToSplit;
 	}
+
 	
+	public Map<CmpVertex,Set<A_Label>> determineLabelsLeadingToStates()
+	{
+		//for(Map.Entry<CmpVertex, >)
+		return null;
+	}
+	/** Given our map from concrete to abstract labels  
+	 * and a current graph with a designated vertex, it adds all paths from an initial (concrete) PTA to it, starting from <i>ptaVertex</i>. Used both for construction of an 
+	 * initial PTA and for unfolding paths where labels are refined.
+	 *
+	 * @param startingVertex vertex in the graph to start augmenting from
+	 * @param ptaVertex vertex in an initial PTA to be 'merged' into the graph of interest.
+	 */
+	void AugmentPTAWithAbstractedTrace(CmpVertex startingVertex,VertID ptaVertex)
+	{
+		JUConstants newColour = null;
+		
+		int coreGraphStateNumber = graph.getStateNumber();
+		Queue<Pair<CmpVertex,CmpVertex>> fringe = new LinkedList<Pair<CmpVertex,CmpVertex>>();
+		Map<CmpVertex,CmpVertex> statesInFringe = initialPta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+		fringe.add(new Pair<CmpVertex,CmpVertex>(startingVertex,initialPta.findVertex(ptaVertex)));
+		while(!fringe.isEmpty())
+		{
+			Pair<CmpVertex,CmpVertex> currentPair = fringe.remove();
+			Map<Label,CmpVertex> targetsGraph = initialPta.transitionMatrix.get(currentPair.firstElem), targetsInitialPTA = graph.transitionMatrix.get(currentPair.secondElem);
+			
+			if(targetsInitialPTA != null && !targetsInitialPTA.isEmpty())
+				for(Entry<Label,CmpVertex> labelstate:targetsInitialPTA.entrySet())
+				for(CmpVertex target:initialPta.getTargets(labelstate.getValue()))
+				{
+					A_Label abstractLabel = concreteToAbstract.get(labelstate.getKey());
+					CmpVertex targetStateInGraph = targetsGraph.get(abstractLabel);
+					if (targetStateInGraph == null)
+					{
+						targetStateInGraph = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(true),graph.config);targetsGraph.put(labelstate.getKey(), targetStateInGraph);
+						// same case for both splitting and constructing an initial graph.
+					}
+					else
+					{// we have a matched transition between an initial PTA and our graph of interest. If the one in the graph is currently being split off, we need to mark it as being split off rather than proceed to follow the graph.
+					// If the entered state only has our incoming transitions, we do not need to split them off
+						
+					}
+					fringe.offer(new Pair<CmpVertex,CmpVertex>(targetStateInGraph,target));
+				}
+		}
+		
+		List<Label> sequence = null;
+		boolean accepted = true;
+		CmpVertex currentState = startingVertex, prevState = null;
+		Iterator<Label> inputIt = sequence.iterator();
+		Label lastInput = null;
+		int position = 0;
+		while(inputIt.hasNext() && currentState != null)
+		{
+			if (!currentState.isAccept())
+			{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
+				currentState.setHighlight(true);
+				throw new IllegalArgumentException("incompatible "+
+						(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position)+" when trying to append "+sequence);
+			}
+			prevState = currentState;
+                        lastInput = inputIt.next();++position;
+			
+			currentState = graph.transitionMatrix.get(prevState).get(lastInput);
+		}
+		
+		if (currentState == null)
+		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
+
+			synchronized (AbstractLearnerGraph.syncObj) 
+			{
+				while(inputIt.hasNext())
+				{
+					prevState = graph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
+					prevState.setColour(newColour);prevState.setDepth(position++);
+					lastInput = inputIt.next();
+				}
+				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+				CmpVertex newVertex = graph.addVertex(prevState, accepted, lastInput);
+				newVertex.setColour(newColour);newVertex.setDepth(position++);
+			}
+		}
+	}
 	// Given a complete split of a label, constructs a revised graph
 	public LearnerGraph constructSplit(LabelListPair possibleSplit)
 	{
@@ -220,44 +304,6 @@ public class LearnerIncrementalRefinement
 			{
 				if (lblToVertex.getKey() == possibleSplit.whatToSplit)
 				{
-					JUConstants newColour = null;
-					/*
-					for()
-					CmpVertex currentState = transition.getKey(), prevState = null;
-					Iterator<Label> inputIt = sequence.iterator();
-					Label lastInput = null;
-					int position = 0;
-					while(inputIt.hasNext() && currentState != null)
-					{
-						if (!currentState.isAccept())
-						{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
-							currentState.setHighlight(true);
-							throw new IllegalArgumentException("incompatible "+
-									(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position)+" when trying to append "+sequence);
-						}
-						prevState = currentState;
-			                        lastInput = inputIt.next();++position;
-						
-						currentState = graph.transitionMatrix.get(prevState).get(lastInput);
-					}
-					
-					if (currentState == null)
-					{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
-
-						synchronized (AbstractLearnerGraph.syncObj) 
-						{
-							while(inputIt.hasNext())
-							{
-								prevState = graph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
-								prevState.setColour(newColour);prevState.setDepth(position++);
-								lastInput = inputIt.next();
-							}
-							// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-							CmpVertex newVertex = graph.addVertex(prevState, accepted, lastInput);
-							newVertex.setColour(newColour);newVertex.setDepth(position++);
-						}
-						
-					}*/				
 					}
 			}
 		

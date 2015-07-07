@@ -69,8 +69,9 @@ public class TestWriteReadLearnerEvaluation {
 	public static Collection<Object[]> data() 
 	{
 		List<Object[]> outcome = new LinkedList<Object[]>();
-		for(LABELKIND lblKind:LABELKIND.values())
-			outcome.add(new Object[]{false,lblKind});
+		//for(LABELKIND lblKind:LABELKIND.values())
+		outcome.add(new Object[]{false,LABELKIND.LABEL_ERLANG});
+		outcome.add(new Object[]{false,LABELKIND.LABEL_STRING});
 		outcome.add(new Object[]{true,LABELKIND.LABEL_STRING});
 		return outcome;
 	}

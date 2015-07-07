@@ -342,6 +342,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			outcome = "{"+ErlangLabel.missingFunction+",'"+l+"',none}";break;
 		case LABEL_STRING:
 			outcome = l;break;
+		case LABEL_ABSTRACT:
+			outcome = l;break;
 		default:throw new IllegalArgumentException("unknown label kind");
 		}
 		return outcome;

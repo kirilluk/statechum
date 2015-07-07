@@ -32,9 +32,13 @@ import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
 
+import statechum.Configuration;
+import statechum.Configuration.LABELKIND;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
+import statechum.StringLabel;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
 import statechum.analysis.Erlang.ErlangLabel;
@@ -60,6 +64,66 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     protected static int strippedFrameNumber = 2;
     
+    public static LearnerGraphND stripModuleNames(LearnerGraphND grOrig)
+    {
+    	LearnerGraphND grNew = new LearnerGraphND(grOrig,grOrig.config);
+    	final String moduleName = grOrig.config.getErlangModuleName()+":";
+    	ErlangModule thisModule = null;
+    	
+    	try
+    	{
+    		thisModule = ErlangModule.loadModule(grOrig.config);
+    	}
+    	catch(IOException ex)
+    	{
+    		Helper.throwUnchecked("failed to load module "+grOrig.config.getErlangModuleName(), ex);
+    	}
+    	
+    	final ConvertALabel converter = thisModule.behaviour.new ConverterModToErl();
+		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,grNew,new Transform.ConvertLabel(new ConvertALabel() {
+			
+			@Override
+			public Label convertLabelToLabel(Label label) {
+				ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
+				return new ErlangLabel(null, lbl.callName.replace(moduleName, ""), lbl.input, lbl.expectedOutput);
+			}
+		}));
+		grNew.setName(grOrig.getNameNotNull()+"-nomodule");
+		
+		return grNew;
+    }
+    
+    /** Converts Erlang graph to simple graph. */
+    public static LearnerGraphND turnToSimpleGraph(LearnerGraphND grOrig)
+    {
+    	Configuration config = grOrig.config.copy();config.setLabelKind(LABELKIND.LABEL_STRING);
+    	LearnerGraphND grNew = new LearnerGraphND(grOrig,config);
+    	final String moduleName = grOrig.config.getErlangModuleName()+":";
+    	ErlangModule thisModule = null;
+    	
+    	try
+    	{
+    		thisModule = ErlangModule.loadModule(grOrig.config);
+    	}
+    	catch(IOException ex)
+    	{
+    		Helper.throwUnchecked("failed to load module "+grOrig.config.getErlangModuleName(), ex);
+    	}
+    	
+    	final ConvertALabel converter = thisModule.behaviour.new ConverterModToErl();
+		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,grNew,new Transform.ConvertLabel(new ConvertALabel() {
+			
+			@Override
+			public Label convertLabelToLabel(Label label) {
+				ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
+				return new StringLabel(lbl.callName.replace(moduleName, "")+":"+lbl.input+"/"+lbl.expectedOutput);
+			}
+		}));
+		grNew.setName(grOrig.getNameNotNull()+"-nomodule");
+		
+		return grNew;
+    }
+
     @Override
     public void construct(Graph g,LayoutOptions options) {
         super.construct(g,options);
@@ -90,24 +154,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         item.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-            	try {
-	            	LearnerGraphND grOrig = graphsOrig.get(currentGraph);LearnerGraphND grNew = new LearnerGraphND(grOrig,grOrig.config);
-	            	final String moduleName = grOrig.config.getErlangModuleName()+":";
-	            	final ConvertALabel converter = ErlangModule.loadModule(grOrig.config).behaviour.new ConverterModToErl();
-	        		AbstractLearnerGraph.interpretLabelsOnGraph(grOrig,grNew,new Transform.ConvertLabel(new ConvertALabel() {
-						
-						@Override
-						public Label convertLabelToLabel(Label label) {
-							ErlangLabel lbl = (ErlangLabel)converter.convertLabelToLabel(label);
-							return new ErlangLabel(null, lbl.callName.replace(moduleName, ""), lbl.input, lbl.expectedOutput);
-						}
-					}));
-	        		grNew.setName(grOrig.getNameNotNull()+"-nomodule");
-	        		updateFrameWithPos(grNew, strippedFrameNumber++);
-	        		
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+            	LearnerGraphND grOrig = graphsOrig.get(currentGraph);
+            	LearnerGraphND grNew = stripModuleNames(grOrig);
+            	updateFrameWithPos(grNew, strippedFrameNumber++);
             }
         });
         popupMenu.add(item);

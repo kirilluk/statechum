@@ -289,6 +289,7 @@ public class Traces extends javax.swing.JFrame {
 		innerLearner.addObserver(viz);
 		//innerLearner.setGraphName(new File(filename).getName());
 		innerLearner.getTentativeAutomaton().getLayoutOptions().showNegatives = false;
+		
 		learnerThread = new Thread(new Runnable() {
 
 			@Override

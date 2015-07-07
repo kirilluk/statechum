@@ -1892,19 +1892,18 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{
 			Color outcome =  Color.BLACK;
 			if (added > 0 && removed > 0)
-				outcome = Color.YELLOW.darker();
+				outcome = Color.YELLOW;//.darker();
 			else
 				if (added > 0)
 				{
 					outcome = Color.GREEN;
-					if (orig > 0) outcome.darker().darker();
+					//if (orig > 0) outcome.darker().darker();
 				}
 				else
 					if (removed > 0)
 					{
 						outcome = Color.RED;
-						if (removed < orig) 
-							outcome=outcome.darker().darker();
+						//if (removed < orig) outcome=outcome.darker().darker();
 					}
 			
 			return outcome;

@@ -417,6 +417,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 		config.setErlangSourceFile(new File(module.sourceFolder, module.name
 				+ ErlangRunner.ERL.ERL.toString()));
 		config.writeModifiedIntoWriter(out);
+		config.setErlangMboxName(Start.runner.getRunnerName()); 
 	}
 
 	public static void genRandom(ErlangModule targetmodule, File file,

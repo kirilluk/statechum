@@ -34,6 +34,7 @@
 %% Author contact: richardc@it.uu.se, tobiasl@it.uu.se, kostis@cs.ntua.gr
 %% ======================================================================
 
+-export_type([erl_type/0, type_table/0, var_table/0]).
 
 -define(MAX_BYTE, 255).
 -define(MAX_CHAR, 16#10ffff).
@@ -148,6 +149,8 @@
                     | dict:dict(type_key(), type_value()).
 
 -type var_table() :: dict:dict(atom(), erl_type()).
+
+-type erl_dict() :: dict:dict().% for compatibility with Erlang 16, thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
 
 %%-----------------------------------------------------------------------------
 %% Unions

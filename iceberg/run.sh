@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WHATTORUN=runase2014.sh
+WHATTORUN=runfase2015.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
 [ -r data ] || mkdir data

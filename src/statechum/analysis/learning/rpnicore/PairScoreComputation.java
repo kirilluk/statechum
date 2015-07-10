@@ -211,6 +211,7 @@ public class PairScoreComputation {
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge);compatibilityScore=computedScore;
 		}
+		else
 		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
 		{
 			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
@@ -680,11 +681,12 @@ public class PairScoreComputation {
 		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
 			return -1;
 
-		int currentExplorationDepth=1;
+		boolean anyMatched = false;// we need to distinguish a wave where all (or any) transitions matched from a wave where no transitions were possible. This variable is set when any match is obtained.
+		int currentExplorationDepth=1;// when we look at transitions from the initial pair of states, this is depth 1.
 		assert pair.getQ() != pair.getR();
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		if (currentExplorationDepth < coregraph.config.getKlimit())
+		if (currentExplorationDepth <= coregraph.config.getKlimit())
 			currentExplorationBoundary.add(pair);
 		currentExplorationBoundary.offer(null);
 		
@@ -697,7 +699,7 @@ public class PairScoreComputation {
 					break;// we are at the end of the last wave, stop looping.
 
 				// mark the end of a wave.
-				currentExplorationBoundary.offer(null);currentExplorationDepth++;
+				currentExplorationBoundary.offer(null);currentExplorationDepth++;anyMatched = false;
 			}
 			else
 			{
@@ -710,19 +712,17 @@ public class PairScoreComputation {
 					if (nextBlueState != null)
 					{// both states can make a transition
 						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.pairCompatibility))
-							return -1;// definitely incompatible states, fail regardgless whether we should look for a single or all paths. 
+							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
+						
+						anyMatched = true;// mark that in the current wave, we've seen at least one matched pair of transitions.
 						
 						if (currentExplorationDepth < coregraph.config.getKlimit())
-						{
+						{// if our current depth is less than the one to explore, make subsequent steps.
 							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
 							currentExplorationBoundary.offer(nextStatePair);
 						}
-						else
-						{
-							if (anyPath)
-								break;// no point looking for more paths if we have found one that matches and we were asked to do just that.
-						}
-						
+						// If we did not take the above condition (aka reached the maximal depth to explore), we still cannot break out of a loop even if we have anyPath
+						// set to true, because there could be transitions leading to states with different accept-conditions, hence explore all matched transitions.						
 					}
 					else
 					{
@@ -741,7 +741,7 @@ public class PairScoreComputation {
 			}
 		}
 		
-		return 0;
+		return anyMatched || coregraph.config.getKlimit() == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
 	}
 
 	public long computeScoreSicco(StatePair pair, boolean recursive)

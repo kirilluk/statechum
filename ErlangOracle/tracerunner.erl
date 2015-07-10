@@ -97,8 +97,9 @@ runtimeSpecificFlags() ->
   	"R15"->{ok,{i,"lib/modified_typer/16"}};
   	"R16"->{ok,{i,"lib/modified_typer/16"}};
   	"17"->{ok,{i,"lib/modified_typer/17"}};  	
+  	"18"->{ok,{i,"lib/modified_typer/17"}};  	
 % Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
-    Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R17 are supported", [Unknown])))}
+    Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R18 are supported", [Unknown])))}
   end.
   
 %% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
@@ -219,7 +220,7 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		throw:Error -> {reply,{'throw',Error},State};
 		Type:Error -> 
 			erlang:display(erlang:get_stacktrace()),
-			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode}}, State}
+			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode,erlang:get_stacktrace()}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
 	end;
 %% [Error,erlang:get_stacktrace()]

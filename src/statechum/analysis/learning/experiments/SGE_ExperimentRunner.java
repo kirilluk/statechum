@@ -80,6 +80,7 @@ public class SGE_ExperimentRunner
 	public static class RunSubExperiment<RESULT> 
 	{
 		private PhaseEnum phase;
+		// We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults.  
 		private int taskCounter=0, taskCounterFromPreviousSubExperiment, taskToRun=-1;
 		private String experimentName;
 		private ExecutorService executorService;
@@ -147,7 +148,7 @@ public class SGE_ExperimentRunner
 		{
 			switch(phase)
 			{
-			case RUN_TASK:// only submit the task of interest
+			case RUN_TASK:// when running in Grid mode, each task runs as a separate process given that we intend to run them on separate nodes.
 				if (taskToRun == taskCounter)
 					try
 					{
@@ -163,7 +164,7 @@ public class SGE_ExperimentRunner
 					}
 				break;
 				
-			case RUN_STANDALONE:
+			case RUN_STANDALONE:// only submit the task of interest
 				runner.submit(task);
 				break;
 			
@@ -197,9 +198,9 @@ public class SGE_ExperimentRunner
 		 */
 		protected void plotAllGraphs(@SuppressWarnings("rawtypes") Collection<RGraph> graphs, int counter)
 		{
-			if (counter > 0 && counter % 10 == 0)
-				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
-					g.drawInteractive(gr);
+//			if (counter > 0 && counter % 10 == 0)
+//				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
+//					g.drawInteractive(gr);
 				
 			if (counter < 0)
 				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
@@ -303,10 +304,16 @@ public class SGE_ExperimentRunner
 								RGraph thisPlot = nameToGraph.get(name);
 								if (thisPlot == null)
 									throw new IllegalArgumentException("unknown graph with file name "+name);
-									
-								thisPlot.add((Comparable)argValue, yValue, color, label);
 								
+								if(thisPlot.getFileName().endsWith(".csv"))
+									thisPlot.addPairValues((Comparable)argValue, yValue, color, label);
+								
+								else
+									thisPlot.add((Comparable)argValue, yValue, color, label);
+
+
 								line = reader.readLine();
+
 							}
 							
 							// if we got here, handling of the output has been successful, plot graphs.
@@ -365,9 +372,13 @@ public class SGE_ExperimentRunner
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
-			case RUN_STANDALONE:
-				graph.add(x,y,colour,label);
+			case RUN_STANDALONE:			
+				if(graph.getFileName().endsWith(".csv"))
+					graph.addPairValues((Comparable)x, y, colour, label);				
+				else
+					graph.add(x,y,colour,label);			
 				break;
+			
 			}
 		}
 	}

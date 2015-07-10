@@ -51,14 +51,13 @@ public class ErlangRuntime {
 
 	/**
 	 * Runs the supplied process and returns output and error streams in an
-	 * exception if the process returned a non-zero error code. Upon success, no
-	 * output is produced.
+	 * exception if the process returned a non-zero error code. Upon success, returns the standard output from the process.
 	 * 
 	 * @param p
 	 *            process to run.
 	 */
-	public static void dumpProcessOutputOnFailure(String name, Process p) {
-		final StringBuffer err = new StringBuffer(), out = new StringBuffer();
+	public static String dumpProcessOutputOnFailure(String name, Process p) {
+		final StringBuffer err = new StringBuffer(), out = new StringBuffer(),stdOut = new StringBuffer();
 		ExperimentRunner.dumpStreams(p, timeBetweenChecks,
 				new HandleProcessIO() {
 
@@ -74,7 +73,7 @@ public class ErlangRuntime {
 
 					@Override
 					public void StdOut(StringBuffer b) {
-						out.append(b);
+						out.append(b);stdOut.append(b);
 					}
 				});
 		try {
@@ -86,6 +85,8 @@ public class ErlangRuntime {
 		if (p.exitValue() != 0)
 			throw new IllegalArgumentException("Failure running " + name + "\n"
 					+ err + (err.length() > 0 ? "\n" : "") + out);
+		
+		return stdOut.toString();
 	}
 
 	/** How long to wait for a server to start. */
@@ -126,7 +127,10 @@ public class ErlangRuntime {
 			throw new IllegalArgumentException("Erlang is not running");
 		ErlangRunner newRunner = new ErlangRunner(traceRunnerNode);newRunner.initRunner();return newRunner;
 	}
-	
+
+	/** Contains OTP version. */
+	public static String platformDescription="";
+
 	/**
 	 * Starts Erlang in the background,
 	 * 
@@ -165,6 +169,13 @@ public class ErlangRuntime {
 								);//getErlangBeamDirectory());
 				dumpProcessOutputOnFailure(
 						"testing that Erlang can be run at all", p);
+				
+				// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
+				p = Runtime.getRuntime().exec(
+						new String[] { ErlangRunner.getErlangBin() + "erl",
+								"-eval", "io:format(\\\"~s\\\",[\\\"_\\\"++erlang:system_info(otp_release)++\\\"-\\\"++erlang:system_info(system_architecture)]),halt().", "-name", traceRunnerNode,
+								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null);
+				platformDescription=dumpProcessOutputOnFailure("extraction of OTP version string", p);
 				
 				// After the first Erlang node is created (by passing -sname to Erlang), epmd appears and we can create a node.
 				ErlangNode.getErlangNode().createNode();

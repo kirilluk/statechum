@@ -411,7 +411,8 @@ public class TestErlangRunner {
         	msgWithErrorText = err.toString();
         else
         	msgWithErrorText = out.toString();
-        Assert.assertTrue("Unexpected error message: "+msgWithErrorText,msgWithErrorText.contains("Crash dump was written to: erl_crash.dump"));
+        Assert.assertTrue("Unexpected error message: "+msgWithErrorText,
+        		msgWithErrorText.contains("Crash dump was written to: erl_crash.dump") || msgWithErrorText.contains("Crash dump is being written to: erl_crash.dump"));
 	}
 
 	protected boolean registeredProcessExists(ErlangRunner r)

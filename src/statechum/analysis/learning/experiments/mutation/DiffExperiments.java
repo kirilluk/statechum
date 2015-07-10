@@ -19,7 +19,6 @@ package statechum.analysis.learning.experiments.mutation;
 
 import java.io.File;
 import java.util.Collection;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -33,7 +32,6 @@ import java.util.TreeSet;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
-
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
@@ -48,6 +46,9 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.MarkovModel.MarkovOutcome;
+import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -399,6 +400,36 @@ public class DiffExperiments {
 		}
 		return new ConfusionMatrix(tp,tn,fp,fn);
 	}
+	
+	public static ConfusionMatrix classifyAgainstMarkov(Collection<List<Label>> sequences, LearnerGraph from, MarkovModel model) 
+	{
+		int tp=0, tn = 0, fp=0, fn=0;
+		boolean inFirst,inSecond;
+		for (List<Label> list : sequences) {
+			CmpVertex fromState = from.paths.getVertex(list);
+			if(fromState==null)
+				inFirst = false;
+			else
+				inFirst = fromState.isAccept();
+			
+			
+			PredictionForSequence prediction = model.markovMatrix.getPrediction(list);
+			if(prediction == null)
+				inSecond= false;
+			else
+				inSecond = prediction.prediction == MarkovOutcome.positive;
+			if(inFirst && inSecond)
+				tp++;
+			else if(inFirst && !inSecond)
+				fn++;
+			else if(!inFirst && inSecond)
+				fp++;
+			else if(!inFirst && !inSecond)
+				tn++;
+		}
+		return new ConfusionMatrix(tp,tn,fp,fn);
+	}	
+	
 
 	@SuppressWarnings("unused")
 	private void displayDiff(LearnerGraphND from, LearnerGraphND to)

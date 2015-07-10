@@ -27,27 +27,29 @@
 
 -export([new/0, insert/2, lookup/2, from_list/1, remove/2, fold/3]).
 
--spec new() -> dict().
+-include("erltypes.hrl").
+
+-spec new() -> erl_dict().
 new() ->
   dict:new().
 
--spec insert({term(), term()}, dict()) -> dict().
+-spec insert({term(), term()}, erl_dict()) -> erl_dict().
 insert(Object, Dict) ->
   {Key, Value} = Object,
   dict:store(Key, Value, Dict).
 
--spec lookup(term(), dict()) -> any().
+-spec lookup(term(), erl_dict()) -> any().
 lookup(Key, Dict) ->
   try dict:fetch(Key, Dict) catch error:_ -> none end.
 
--spec from_list([{term(), term()}]) -> dict().
+-spec from_list([{term(), term()}]) -> erl_dict().
 from_list(List) ->
   dict:from_list(List).
 
--spec remove(term(), dict()) -> dict().
+-spec remove(term(), erl_dict()) -> erl_dict().
 remove(Key, Dict) ->
   dict:erase(Key, Dict).
 
--spec fold(fun((term(), term(), term()) -> term()), term(), dict()) -> term().
+-spec fold(fun((term(), term(), term()) -> term()), term(), erl_dict()) -> term().
 fold(Fun, Acc0, Dict) -> 
   dict:fold(Fun, Acc0, Dict).

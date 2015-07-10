@@ -67,6 +67,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -285,15 +286,15 @@ public class ErlangRunner {
 	static public ErlangRunner getRunner(String mboxToUse) {
 		return nameToRunnerMap.get(mboxToUse);
 	}
-
-	/** Returns the directory where Beam, plt and other files will be placed. 
+	
+	/** Returns the directory where Beam, plt and other files will be placed, taking the current platform into account.
 	 * This is a writable location not necessarily the same as the one containing Erlang source files.
 	 * 
 	 * @return binary directory
 	 */
 	static public File getErlangBeamDirectory()
 	{
-		File beamDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM));
+		File beamDir = new File(MessageFormat.format(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM),ErlangRuntime.platformDescription));
 		if (!beamDir.isDirectory())
 			if (!beamDir.mkdir())
 				throw new IllegalArgumentException("Erlang output directory "+beamDir.getAbsolutePath()+" cannot be created");
@@ -308,7 +309,7 @@ public class ErlangRunner {
 	{
 		return GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGFOLDER);
 	}
-
+	
 	/**
 	 * Compiles the supplied file into .beam if .erl has been modified after an
 	 * existing .beam (date of last change is 0 if file does not exist).

@@ -109,6 +109,15 @@ public class MarkovModel
 			return (PredictionForSequence)node.getState();
 		}
 		
+		/** Given a sequence, obtains a prediction for it. */
+		public PredictionForSequence getPrediction(List<Label> sequence)
+		{
+			PTASequenceEngine.Node currentNode = getNodeFromSequence(sequence);
+			if (currentNode == null)
+				return null;
+			return (PredictionForSequence)currentNode.getState();
+		}
+		
 		/** Obtains predictions, initialises a new one if absent. */
 		public PredictionForSequence getPredictionAndCreateNewOneIfNecessary(List<Label> sequence)
 		{

@@ -1396,7 +1396,7 @@ public class PairQualityLearner
 			super(tpArg, tnArg, fpArg, fnArg);
 		}
 		
-		protected DifferenceToReferenceLanguageBCR(ConfusionMatrix mat) 
+		public DifferenceToReferenceLanguageBCR(ConfusionMatrix mat) 
 		{
 			super(mat);
 		}
@@ -1500,8 +1500,10 @@ public class PairQualityLearner
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public ScoresForGraph actualLearner,referenceLearner;
+		public ScoresForGraph actualLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
 		public Map<String,ScoresForGraph> miscGraphs;
+		
+		public long traceNumber = 0;
 		
 		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;

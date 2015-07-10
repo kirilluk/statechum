@@ -35,8 +35,6 @@
 
 -export([annotate/2,t_to_Statechum/2]).
 
--include("erltypes.hrl").%% the value of this define is set at a command line.
-
 %%----------------------------------------------------------------------------
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
@@ -51,12 +49,10 @@
 
 -type func_info() :: {non_neg_integer(), atom(), arity()}.
 
--record(info, {recMap = typer_map_s:new() :: dict(),
+-record(info, {recMap = typer_map_s:new() :: erl_dict(),
 	       funcs = []               :: [func_info()],
-	       typeMap                  :: dict(),
+	       typeMap                  :: erl_dict(),
 	       contracts                :: boolean()}).
--record(inc, {map    = typer_map_s:new() :: dict(),
-	      filter = []              :: [string()]}).
 
 %%----------------------------------------------------------------------------
 
@@ -64,25 +60,6 @@
 
 annotate(#typer_analysis{mode = ?SHOW} = Analysis,OutputMode) ->
     show(Analysis,OutputMode).
-
-
-write_inc_files(Inc) ->
-  Fun =
-    fun (File) ->
-	Val = typer_map_s:lookup(File,Inc#inc.map),
-	%% Val is function with its type info
-	%% in form [{{Line,F,A},Type}]
-	Functions = [Key || {Key,_} <- Val],
-	Val1 = [{{F,A},Type} || {{_Line,F,A},Type} <- Val],
-	Info = #info{typeMap = typer_map_s:from_list(Val1),
-		     recMap = typer_map_s:new(),
-		     %% Note we need to sort functions here!
-		     funcs = lists:keysort(1, Functions)}
-	%% io:format("TypeMap ~p\n", [Info#info.typeMap]),
-	%% io:format("Funcs ~p\n", [Info#info.funcs]),
-	%% io:format("RecMap ~p\n", [Info#info.recMap]),
-    end,
-  lists:foreach(Fun, dict:fetch_keys(Inc#inc.map)).
 
 show(Analysis,Outputmode) ->
   Fun = fun({File, Module},Acc) -> 
@@ -185,7 +162,7 @@ get_type_string(F, A, Info, Mode) ->
     {file, {contract, _}} -> 
 		typer_s:reportError("type of " ++ atom_to_list(F) ++ "is a file contract");
     _ ->
-	Prefix = lists:concat(["-spec ", F,TypeStr])
+	_Prefix = lists:concat(["-spec ", F,TypeStr])
   end.
  
 show_type_info_only(File, Info) ->
@@ -200,7 +177,7 @@ extract_type_info(File, Info) ->
   Fun = fun ({LineNo, F, A},Acc) ->
 	Type = get_type_info({F,A}, Info#info.typeMap),
 	Details = case Type of
-	   {contract, C} -> 
+	   {contract, _C} -> 
 			typer_s:reportError("type of " ++ atom_to_list(F) ++ "/" ++ integer_to_list(A) ++ "is a contract");
 	   {RetType, ArgType} ->
 			try
@@ -310,7 +287,7 @@ t_to_Statechum(?identifier(Set), _RecDict) ->
 %%	    end
 %%	    || #opaque{mod = Mod, name = Name} <- ordsets:to_list(Set)], [], " | ");
 
-t_to_Statechum(?opaque(Set), _RecDict) -> unsupportedType("Opaque types cannot be created externally");
+t_to_Statechum(?opaque(_Set), _RecDict) -> unsupportedType("Opaque types cannot be created externally");
 %%	{'Opaque', []};
 	
 t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
@@ -429,6 +406,8 @@ record_to_Statechum(Tag, [_|Fields], FieldNames, RecDict) ->
   FieldStrings = record_fields_to_Statechum(Fields, FieldNames, RecDict, []),
   {'Record',[Tag],FieldStrings}.
 
+record_fields_to_Statechum([F|Fs], [{FName, _Abstr, _DefType}|FDefs], RecDict, Acc) -> % OTP 18
+	record_fields_to_Statechum([F|Fs], [{FName, _DefType}|FDefs], RecDict, Acc);
 record_fields_to_Statechum([F|Fs], [{FName, _DefType}|FDefs], RecDict, Acc) ->
   NewAcc =
     case erl_types:t_is_any(F) orelse erl_types:t_is_atom('undefined', F) of

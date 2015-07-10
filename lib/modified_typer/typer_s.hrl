@@ -24,6 +24,7 @@
 -define(ANNOTATE_INC_FILES, annotate_inc_files).
 
 -type mode() :: ?SHOW | ?SHOW_EXPORTED | ?ANNOTATE | ?ANNOTATE_INC_FILES.
+-include("erltypes.hrl").
 
 -record(typer_analysis,
 	{mode					:: mode(),
@@ -55,13 +56,13 @@
 	 %% in case filename does NOT match with moduleName
 	 final_files = []			:: [{string(), atom()}],  
 	 
-	 ex_func     = typer_map_s:new()		:: dict(),
-	 record      = typer_map_s:new()		:: dict(),
+	 ex_func     = typer_map_s:new()		:: erl_dict(),
+	 record      = typer_map_s:new()		:: erl_dict(),
 	 
 	 %% Functions: the line number of the function 
 	 %%            should be kept as well
-	 func        = typer_map_s:new()		:: dict(),
-	 inc_func    = typer_map_s:new()		:: dict(),
+	 func        = typer_map_s:new()		:: erl_dict(),
+	 inc_func    = typer_map_s:new()		:: erl_dict(),
 	 trust_plt   = dialyzer_plt:new()	:: dialyzer_plt:plt()}).
 
 -record(args,

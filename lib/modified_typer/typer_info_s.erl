@@ -46,7 +46,7 @@ collect(Analysis) ->
 	DialyzerPlt ->
 	dialyzer_plt:merge_plts([Analysis#typer_analysis.trust_plt, DialyzerPlt])
     catch
-      throw:{dialyzer_error,Reason} ->
+      throw:{dialyzer_error,_Reason} ->
 		typer_s:reportProblem('cannotLoadPlt')
     end,
   NewAnalysis = lists:foldl(fun collect_one_file_info/2, 
@@ -150,7 +150,7 @@ analyze_one_function({Var, FunBody} = Function, Acc) ->
   A = cerl:fname_arity(Var),
   TmpDialyzerObj = {{Acc#tmpAcc.module, F, A}, Function},
   NewDialyzerObj = Acc#tmpAcc.dialyzerObj ++ [TmpDialyzerObj],  
-  [_, LineNo, {file, FileName}] = cerl:get_ann(FunBody),
+  {LineNo,FileName}=typer_otp:extractLineNoAndFileName(FunBody),
   BaseName = filename:basename(FileName),
   FuncInfo = {LineNo, F, A},
   OriginalName = Acc#tmpAcc.file,

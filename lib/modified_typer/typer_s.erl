@@ -156,14 +156,7 @@ get_type_info(#typer_analysis{callgraph = CallGraph,
 
 remove_external(CallGraph, PLT) ->
   {StrippedCG0, Ext} = dialyzer_callgraph:remove_external(CallGraph),
-  StrippedCG = case string:substr(erlang:system_info(otp_release),1,3) of
-  	"R14"->dialyzer_callgraph:finalize(StrippedCG0);
-  	"R15"->StrippedCG0;
-  	"R16"->StrippedCG0;
-  	"17"->StrippedCG0;  	
-% Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
-    Unknown->reportError(list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R17 are supported", [Unknown]))))
-  end,
+  StrippedCG = typer_otp:constructStrippedCG0(StrippedCG0),
   case get_external(Ext, PLT) of
     [] -> ok;
     Externals ->

@@ -101,7 +101,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGEXAMPLES, "ErlangExamples");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGTYPER, "lib/modified_typer");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGSYNAPSE,"lib/synapse");
-		defaultValues.put(G_PROPERTIES.PATH_ERLANGBEAM, defaultValues.get(G_PROPERTIES.TEMP)+File.separator+"beam");
+		defaultValues.put(G_PROPERTIES.PATH_ERLANGBEAM, defaultValues.get(G_PROPERTIES.TEMP)+File.separator+"beam{0}");// needs to encode the OTP version in case we switch OTPs as what happens for testing.
 		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
 		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");
 		defaultValues.put(G_PROPERTIES.RESOURCES,"resources");

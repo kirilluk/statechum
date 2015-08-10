@@ -1111,7 +1111,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			super(p.getQ(), p.getR(), p.getScore(), p.getAnotherScore());distance = d;
 		}
 		
-		double getDistanceScore()
+		public double getDistanceScore()
 		{
 			return distance;
 		}

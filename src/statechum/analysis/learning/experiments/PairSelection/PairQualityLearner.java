@@ -1391,7 +1391,7 @@ public class PairQualityLearner
 	
 	public static class DifferenceToReferenceLanguageBCR extends ConfusionMatrix implements DifferenceToReference
 	{		
-		protected DifferenceToReferenceLanguageBCR(int tpArg, int tnArg, int fpArg, int fnArg) 
+		public DifferenceToReferenceLanguageBCR(int tpArg, int tnArg, int fpArg, int fnArg) 
 		{
 			super(tpArg, tnArg, fpArg, fnArg);
 		}
@@ -1429,7 +1429,7 @@ public class PairQualityLearner
 	{
 		protected double valueA, valueB;
 		
-		protected DifferenceToReferenceDiff(double A, double B)
+		public DifferenceToReferenceDiff(double A, double B)
 		{
 			valueA=A;valueB=B;
 		}

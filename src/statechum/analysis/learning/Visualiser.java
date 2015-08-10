@@ -174,7 +174,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     
     public static class LayoutOptions
     {
-    	public boolean showNegatives = true,showIgnored=false;
+    	public boolean showNegatives = false,showIgnored=false;
     	public double scaleText = 1.0;
     	public double scaleLines = 1.0;
     	public boolean showDIFF = false;
@@ -309,7 +309,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                reloadLayout(false);
+                reloadLayout(false,true);
             }
         });
         keyToActionMap.put(KeyEvent.VK_F9, new graphAction("loadPreviousLayout", "loads the layout of the previous graph in the list") {
@@ -358,7 +358,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 if (currentGraph > 0) {
                     --currentGraph;
-                    reloadLayout(false);
+                    reloadLayout(false,true);
                 }
             }
         });
@@ -371,7 +371,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 if (currentGraph < graphs.size() - 1) {
                     ++currentGraph;
-                    reloadLayout(false);
+                    reloadLayout(false,true);
                 }
             }
         });
@@ -385,8 +385,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null) {
-                	options.showNegatives = !options.showNegatives; 
-                    reloadLayout(false);
+                	options.showNegatives = !options.showNegatives;
+                    reloadLayout(false,false);
                 }
             }
         });
@@ -400,7 +400,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null) {
                 	options.showIgnored = !options.showIgnored; 
-                    reloadLayout(false);
+                    reloadLayout(false,false);
                 }
             }
         });
@@ -414,7 +414,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null && options.componentsToPick < Integer.MAX_VALUE) {
                 	options.componentsToPick++;
-                    reloadLayout(false);
+                    reloadLayout(false,false);
                 }
             }
         });
@@ -428,7 +428,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             	LayoutOptions options = layoutOptions.get(currentGraph);
                 if (options != null && options.componentsToPick != Integer.MAX_VALUE && options.componentsToPick > 0) {
                 	--options.componentsToPick;
-                    reloadLayout(false);
+                    reloadLayout(false,false);
                 }
             }
         });
@@ -617,8 +617,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      *
      * @param ignoreErrors Whether to ignore loading errors - they are ignored
      * on auto-load, but honoured on user load.
+     * @param loadLayout layout from a save - used when we switch between graphs, but not used when changing anything related to a layout of a currently displayed graph.
      */
-    protected void reloadLayout(boolean ignoreErrors) {
+    protected void reloadLayout(boolean ignoreErrors,boolean loadLayout) {
         /** The graph currently being displayed. */
         final Graph graph = graphs.get(currentGraph);
 
@@ -646,7 +647,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
 
             setTitle(title);
-            restoreLayout(ignoreErrors, currentGraph);
+            if (loadLayout) restoreLayout(ignoreErrors, currentGraph);
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
         }
 
@@ -981,7 +982,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
     @Override
     public void run() {
-        reloadLayout(true);
+        reloadLayout(true,true);
     }
 
     @SuppressWarnings("rawtypes")
@@ -1259,6 +1260,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
     }
 
+    /** Used to indicate that an extra label should replace an existing label when a graph is displayed. */
+    public static final String extralabelToReplaceExisting = "__";
+    
     private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph,final LayoutOptions graphLayoutOptions) {
         StringLabeller labeller = StringLabeller.getLabeller(graph, "name");
         final EdgeColour paintChooser = new EdgeColour(graph);
@@ -1277,7 +1281,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 }
                 if (label != null) {
                     String extraLabel = paintChooser.getPickedLabel(v);
-                    String newLabel = label.toString() + (extraLabel != null ? " " + extraLabel : "");
+                    String newLabel = null;
+                    if (extraLabel.startsWith(extralabelToReplaceExisting))
+                    	newLabel = extraLabel.substring(extralabelToReplaceExisting.length());// replace the label
+                    else
+                    	newLabel = label.toString() + (extraLabel != null ? " " + extraLabel : "");
                     labeller.setLabel(v, newLabel);
                 }
             } catch (Exception e) {

@@ -407,7 +407,7 @@ public class TestErlangRunner {
         // problem with how Java 1.7.10 does things so I work around but permitting both 
         // responses.
         String msgWithErrorText = null;
-        if (err.length() > 0)
+        if (err.length() > 5) // an arbitrary number to account for a possible end of line.
         	msgWithErrorText = err.toString();
         else
         	msgWithErrorText = out.toString();

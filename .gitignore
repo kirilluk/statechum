@@ -1,1 +1,16 @@
 /bin/
+/tmp/
+/linear/.libs
+/smt/.libs
+/lib/ltl2ba-1.1/*.exe
+/lib/ltl2ba-1.1/*.o
+ErlangExamples/WibbleMonster/*.beam
+ErlangExamples/WibbleMonster/*.plt
+ErlangExamples/exporter/*.beam
+ErlangExamples/exporter/*.plt
+ErlangExamples/locker/*.beam
+ErlangExamples/locker/*.plt
+ErlangExamples/frequency/*.beam
+ErlangExamples/frequency/*.plt
+
+

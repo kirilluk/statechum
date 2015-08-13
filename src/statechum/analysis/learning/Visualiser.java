@@ -1282,7 +1282,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 if (label != null) {
                     String extraLabel = paintChooser.getPickedLabel(v);
                     String newLabel = null;
-                    if (extraLabel.startsWith(extralabelToReplaceExisting))
+                    if (extraLabel != null && extraLabel.startsWith(extralabelToReplaceExisting))
                     	newLabel = extraLabel.substring(extralabelToReplaceExisting.length());// replace the label
                     else
                     	newLabel = label.toString() + (extraLabel != null ? " " + extraLabel : "");

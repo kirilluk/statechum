@@ -1,0 +1,52 @@
+prefix length 1 (chunk length 2)
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Wed Aug 12 23:33:46 BST 2015
+13 states
+finished: Wed Aug 12 23:41:38 BST 2015
+
+
+prefix length 2 (chunk length 3)
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Wed Aug 12 22:04:32 BST 2015
+19 states
+finished: Wed Aug 12 22:16:23 BST 2015
+
+peak memory usage: around 20gb, VM limit was 26.5gb
+
+prefix length 3 (chunk length 4):
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Wed Aug 12 22:42:20 BST 2015
+22 states
+finished: Wed Aug 12 22:55:45 BST 2015
+
+For prefix length 4..6, learnt graphs are identical.
+
+prefix length 4 (chunk length 5):
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Wed Aug 12 23:52:37 BST 2015
+24
+finished: Thu Aug 13 00:06:40 BST 2015
+
+prefix length 5 (chunk length 6):
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Thu Aug 13 01:33:56 BST 2015
+24
+finished: Thu Aug 13 01:47:57 BST 2015
+
+prefix length 6 (chunk length 7):
+
+trace length: 797676
+[=S, @, =R, =TA, [*9], -Ta, ~SnA, ~SnB, ~R, #S, #W, #Ta, #s, #RA, [+1], ^Ra, ~r, ~SwA, ~swA, ^E, ~Xr, ?, #L]
+started: Thu Aug 13 02:00:22 BST 2015
+24
+finished: Thu Aug 13 02:14:31 BST 2015

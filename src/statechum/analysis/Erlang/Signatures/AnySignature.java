@@ -53,10 +53,13 @@ public class AnySignature extends Signature {
 			break;
 		case ANY_WITHLIST:
 			// We are allowed anything so lets try a few things...
-			result.add(new OtpErlangAtom("JustAnythingA"));
-			result.add(new OtpErlangList(new OtpErlangObject[] {}));
-			result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA")}));
-			result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA"), new OtpErlangAtom("WobbleA")}));
+			result.add(new OtpErlangAtom("A"));
+			if (config.getUseANumberOfValues())
+			{
+				result.add(new OtpErlangList(new OtpErlangObject[] {}));
+				result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA")}));
+				result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA"), new OtpErlangAtom("WobbleA")}));
+			}
 			break;
 		}
 		values = Collections.unmodifiableList(result);

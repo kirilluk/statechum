@@ -1257,7 +1257,6 @@ public class MarkovClassifier
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
 		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell what whether paths of this length are going to separate states or not.
-		
 		List<List<Label>> whatToMerge = null;
 
 		final AtomicLong maxCount = new AtomicLong(0);

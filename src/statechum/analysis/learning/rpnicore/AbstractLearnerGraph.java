@@ -28,7 +28,6 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import edu.uci.ics.jung.graph.Vertex;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
@@ -45,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
+import statechum.analysis.learning.experiments.PairSelection.LearnerWithLabelRefinementViaPta;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.collections.ArrayMapWithSearch;
@@ -315,6 +315,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		case LABEL_ERLANG:
 			result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label),config);
 			break;
+		case LABEL_ABSTRACT:
+			result = new LearnerWithLabelRefinementViaPta.AbstractLabel(label);
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}
@@ -339,6 +341,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		case LABEL_ERLANG:
 			outcome = "{"+ErlangLabel.missingFunction+",'"+l+"',none}";break;
 		case LABEL_STRING:
+			outcome = l;break;
+		case LABEL_ABSTRACT:
 			outcome = l;break;
 		default:throw new IllegalArgumentException("unknown label kind");
 		}

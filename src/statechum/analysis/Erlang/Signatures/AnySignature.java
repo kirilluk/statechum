@@ -53,13 +53,15 @@ public class AnySignature extends Signature {
 			break;
 		case ANY_WITHLIST:
 			// We are allowed anything so lets try a few things...
-			result.add(new OtpErlangAtom("A"));
 			if (config.getUseANumberOfValues())
 			{
+				result.add(new OtpErlangAtom("JustAnythingA"));
 				result.add(new OtpErlangList(new OtpErlangObject[] {}));
 				result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA")}));
 				result.add(new OtpErlangList(new OtpErlangObject[] {new OtpErlangAtom("WibbleA"), new OtpErlangAtom("WobbleA")}));
 			}
+			else
+				result.add(new OtpErlangAtom("A"));// the motivation for a shorter label is that longer ones would look really long on large graphs.
 			break;
 		}
 		values = Collections.unmodifiableList(result);

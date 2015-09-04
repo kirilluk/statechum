@@ -48,12 +48,12 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.ASE2014.EDSM_MarkovLearner;
-import statechum.analysis.learning.experiments.PairSelection.AbstractionRefinement;
+import statechum.analysis.learning.AbstractionRefinement;
 import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -986,12 +986,9 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
 																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
 																// These vertices are merged first and then the learning start from the root as normal.
-																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
-																verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
-																
+																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
@@ -1062,12 +1059,9 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
 																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
 																// These vertices are merged first and then the learning start from the root as normal.
-																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
-																verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
-																
+																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);

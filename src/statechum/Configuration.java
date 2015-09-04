@@ -1039,7 +1039,22 @@ public class Configuration implements Cloneable {
 	public void setGdFailOnDuplicateNames(boolean value) {
 		gdFailOnDuplicateNames = value;
 	}
+	
+	/** Colour palette for visualisation of differences. */
+	public enum GD_COLOUR_MODE { GD_COL_DEFAULT, GD_COL_REDUCED}
+	
+	protected GD_COLOUR_MODE GDColourMode= GD_COLOUR_MODE.GD_COL_DEFAULT;
+	
+	public GD_COLOUR_MODE getGDColourMode()
+	{
+		return GDColourMode;
+	}
 
+	public void setGDColourMode(GD_COLOUR_MODE newValue)
+	{
+		GDColourMode = newValue;
+	}
+	
 	/**
 	 * All native code (and sometimes JVM) can crash. This tends to happen when
 	 * JVM runs out of memory and then runs native code which I presume

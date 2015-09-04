@@ -44,7 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.experiments.PairSelection.LearnerWithLabelRefinementViaPta;
+import statechum.analysis.learning.LearnerWithLabelRefinementViaPta;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.collections.ArrayMapWithSearch;

@@ -315,8 +315,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		case LABEL_ERLANG:
 			result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label),config);
 			break;
-		case LABEL_ABSTRACT:
-			result = new LearnerWithLabelRefinementViaPta.AbstractLabel(label);
+			
+// Construction of abstract labels requires a list of low-level labels they are abstracting as well as a low-level label->high level label map. 
+// This information is not available in this method hence we are not using it to build labels. 
+/*		case LABEL_ABSTRACT:
+			result = new LearnerWithLabelRefinementViaPta.AbstractLabel(label);*/
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}

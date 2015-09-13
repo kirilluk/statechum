@@ -1,0 +1,148 @@
+/* Copyright (c) 2015 The University of Sheffield
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package statechum.analysis.learning;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+public class TestLearnerWithLabelRefinementViaPta {
+
+	@SuppressWarnings("unchecked")
+	protected static <T> Map<T,Set<T>> constructMap(Object []data)
+	{
+		Map<T,Set<T>> adjacency = new TreeMap<T,Set<T>>();
+		Iterator<Object> elemIter = Arrays.asList(data).iterator();
+		while(elemIter.hasNext())
+		{
+			T key = (T)elemIter.next();Set<T> value = new TreeSet<T>(Arrays.asList((T[])elemIter.next()));
+			adjacency.put(key, value);
+		}
+		
+		return adjacency;
+	}
+	
+	@Test
+	public void testReflexivitCheck1()
+	{
+		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{}));
+	}
+
+	@Test(expected = IllegalArgumentException.class)	
+	public void testReflexivitCheck2()
+	{
+		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"}}));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)	
+	public void testReflexivitCheck3()
+	{
+		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"A"}}));
+	}
+	
+	@Test
+	public void testReflexivitCheck4()
+	{
+		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","A"}}));
+	}
+
+	@Test(expected = IllegalArgumentException.class)	
+	public void testReflexivitCheck5()
+	{
+		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","C","A"}}));
+	}
+
+	@Test
+	public void testBronKerbosh0()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{}), new LinkedList<String>());
+		Assert.assertTrue(result.isEmpty());		
+	}
+
+	@Test
+	public void testBronKerbosh1()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","A"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"A","B","C"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"A","B","C"}),result);
+	}
+
+	@Test
+	public void testBronKerbosh2()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","A"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"B","C"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"B","C"}),result);
+	}
+
+	@Test
+	public void testBronKerbosh3()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","A"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{}),result);
+	}
+
+	@Test
+	public void testBronKerbosh4()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B",},"B",new String[]{"A"},"C",new String[]{}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"A","B","C"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"A","B"}),result);
+	}
+
+	/** Here the second part of the graph does not have all-to-all associations. */
+	@Test
+	public void testBronKerbosh5()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B"},"B",new String[]{"A"},
+				"C",new String[]{"D"},"D",new String[]{"C","E"},"E",new String[]{"D","F"},"F",new String[]{"E"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"A","B","C","D","E","F"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"A","B"}),result);
+	}
+
+	/** Nearly all-to-all in the second part. Of the part that is 1-to-1, C/E/D is the largest compatible set and hence is returned. */
+	@Test
+	public void testBronKerbosh6()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B"},"B",new String[]{"A"},
+				"C",new String[]{"D","E","F"},"D",new String[]{"C","E"},"E",new String[]{"F","C","D"},"F",new String[]{"E","C"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"A","B","C","D","E","F"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"C","E","D"}),result);
+	}
+
+	/** Nearly all-to-all in the second part, for the time being, the first part is returned. */
+	@Test
+	public void testBronKerbosh7()
+	{
+		List<String> result = LearnerWithLabelRefinementViaPta.BronKerbosch(TestLearnerWithLabelRefinementViaPta.<String>constructMap(new Object[]{"A",new String[]{"B"},"B",new String[]{"A"},
+				"C",new String[]{"D","E","F"},"D",new String[]{"C","E","F"},"E",new String[]{"D","F","C"},"F",new String[]{"E","C","D"}}),// thanks to http://stackoverflow.com/questions/450807/how-do-i-make-the-method-return-type-generic
+				new LinkedList<String>(),Arrays.asList(new String[]{"A","B","C","D","E","F"}), new LinkedList<String>());
+		Assert.assertEquals(Arrays.asList(new String[]{"C","D","E","F"}),result);
+	}
+
+}

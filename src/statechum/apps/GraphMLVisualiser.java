@@ -18,6 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.apps;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -60,11 +61,11 @@ public class GraphMLVisualiser extends Visualiser {
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
 
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
-		AbstractPersistence.loadGraph(args[0], graph0,null);
+		File file0 = new File(args[0]);AbstractPersistence.loadGraph(file0, graph0,null);graph0.setName(file0.getName());
 		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
-			AbstractPersistence.loadGraph(args[1], graph1,null);
+			File file1 = new File(args[1]);AbstractPersistence.loadGraph(file1, graph1,null);graph1.setName(file1.getName());
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			DirectedSparseGraph gr = gd.showGD(
 					graph0,graph1,

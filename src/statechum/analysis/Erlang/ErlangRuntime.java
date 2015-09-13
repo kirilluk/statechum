@@ -173,7 +173,7 @@ public class ErlangRuntime {
 				// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
 				p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "io:format(\\\"~s\\\",[\\\"_\\\"++erlang:system_info(otp_release)++\\\"-\\\"++erlang:system_info(system_architecture)]),halt().", "-name", traceRunnerNode,
+								"-eval", "io:format(\"~s\",[\"_\"++erlang:system_info(otp_release)++\"-\"++erlang:system_info(system_architecture)]),halt().", "-name", traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null);
 				platformDescription=dumpProcessOutputOnFailure("extraction of OTP version string", p);
 				

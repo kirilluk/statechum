@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<java version="1.7.0_45" class="java.beans.XMLDecoder">
+<java version="1.7.0_67" class="java.beans.XMLDecoder">
  <object class="java.util.TreeMap">
   <void method="put">
    <int>8000</int>
@@ -49,10 +49,10 @@
    <int>8024</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>626.326904296875</double>
+     <double>502.326904296875</double>
     </void>
     <void property="y">
-     <double>476.1986389160156</double>
+     <double>435.1986389160156</double>
     </void>
    </object>
   </void>
@@ -60,10 +60,10 @@
    <int>8032</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>508.9676513671875</double>
+     <double>573.9676513671875</double>
     </void>
     <void property="y">
-     <double>409.38409423828125</double>
+     <double>376.38409423828125</double>
     </void>
    </object>
   </void>
@@ -115,10 +115,10 @@
    <int>14496</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>741.244873046875</double>
+     <double>684.244873046875</double>
     </void>
     <void property="y">
-     <double>503.2958984375</double>
+     <double>454.2958984375</double>
     </void>
    </object>
   </void>
@@ -126,10 +126,10 @@
    <int>17584</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>277.5667724609375</double>
+     <double>256.5667724609375</double>
     </void>
     <void property="y">
-     <double>196.38629150390625</double>
+     <double>199.38629150390625</double>
     </void>
    </object>
   </void>
@@ -140,7 +140,7 @@
      <double>693.0535278320312</double>
     </void>
     <void property="y">
-     <double>312.8599548339844</double>
+     <double>301.8599548339844</double>
     </void>
    </object>
   </void>
@@ -170,10 +170,10 @@
    <int>153984</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>415.6153564453125</double>
+     <double>419.6153564453125</double>
     </void>
     <void property="y">
-     <double>212.44265747070312</double>
+     <double>213.44265747070312</double>
     </void>
    </object>
   </void>
@@ -228,7 +228,7 @@
      <double>408.525146484375</double>
     </void>
     <void property="y">
-     <double>57.90580749511719</double>
+     <double>41.90580749511719</double>
     </void>
    </object>
   </void>

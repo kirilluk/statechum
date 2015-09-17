@@ -57,6 +57,11 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
             return mergedToHardFacts;
         }
 
+        public void setMergedToHardFacts(Map<VertID,Collection<VertID>> value)
+        {
+        	mergedToHardFacts = value;
+        }
+        
 	/** The maximal score which can be returned by score computation routines. Has to be long if are prepared to handle a PTA with a million states. 
 	 */
 	protected long maxScore = -1;

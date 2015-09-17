@@ -29,6 +29,13 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+
 public class TestLearnerWithLabelRefinementViaPta {
 
 	@SuppressWarnings("unchecked")
@@ -145,4 +152,16 @@ public class TestLearnerWithLabelRefinementViaPta {
 		Assert.assertEquals(Arrays.asList(new String[]{"C","D","E","F"}),result);
 	}
 
+	@Test
+	public void testAbstractInitialPta1()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = learner.abstractInitialGraph('(');
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
 }

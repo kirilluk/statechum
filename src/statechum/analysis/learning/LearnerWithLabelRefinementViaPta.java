@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.Queue;
 
 import statechum.Configuration;
 import statechum.Label;
@@ -65,6 +66,8 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		private int lastChildNumber;
 		
 		private final AbstractLabel labelThisOneWasSplitFrom;
+		
+		/** This is a reference to a map that is part of the {@link LearnerWithLabelRefinementViaPta} instance, in order to avoid creating a non-static class. */
 		private final Map<Label,AbstractLabel> initialLabelToAbstractLabel;
 		
 		//protected Map<Label> labelToAbstractLabel;
@@ -153,7 +156,9 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		@Override
 		public String toString()
 		{
-			return String.format("Abstract(%1$d,{%2$s}",abstractionInstance,labelThisOneWasSplitFrom);
+			if (labelThisOneWasSplitFrom == null)
+				return String.format("Abstract(%1$d,%2$s)",abstractionInstance,labelsThisoneabstracts);
+			return String.format("Abstract(%1$d,%2$s,{%3$s})",abstractionInstance,labelsThisoneabstracts,labelThisOneWasSplitFrom);
 		}
 	}
 	
@@ -214,8 +219,8 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	{
 		if (verticesToInclude == null)
 			return new TreeSet<VertID>();
-		else
-			return new TreeSet<VertID>(verticesToInclude);
+		
+		return new TreeSet<VertID>(verticesToInclude);
 	}
 	
 	/** Given a collection of negatives traces, marks states in the core graph as conflict ones where the same abstract state contains both positive and negative PTA (low-level) states. */ 
@@ -336,8 +341,8 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		for(VertID v: coregraph.getCache().getMergedToHardFacts().get(vert))
 			ptaStateToCoreState.put(v,vert);
 	}
-	
-	/** Used to add all low-level states corresponding to the supplied vertex of the core graph, to the ptaStateToCoreState map. 
+
+	/** Used to add all low-level states corresponding to the supplied vertices of the core graph, to the {@link LearnerWithLabelRefinementViaPta#ptaStateToCoreState} map. 
 	 * We do not do it for absolutely all vertices of the core graph since this is a lot of work and only some of the lower-level states are going to be conflicting. 
 	 */
 	public void updatePtaStateToCoreState(Collection<CmpVertex> vertices)
@@ -379,7 +384,7 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 						for(VertID v:negatives)
 						{
 							incompatibleVertices.add(new VertIDPair(pos, v));
-							updateMergeInfo(pos,v);
+							markPairAsIncompatible(pos,v);
 							updateInconsistentPTALabelMap(lblToPos,initialInverse.get(v));
 						}
 				}
@@ -409,11 +414,12 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		public Map<VertID,Set<VertID>> stateCompatibility = null;
 	}
 
-	/** Constructs a compatibility map between states, for subsequent use of BronKerbosch. */ 
-	public void updateMergeInfo(VertID a, VertID b)
+	/** Builds a new entry for {@link LearnerWithLabelRefinementViaPta#ptaMergers}, using the supplied vertex as an argument.
+	 * 
+	 * @param a vertex to add an entry for
+	 */
+	public PartitioningOfvertices constructCompatibilityMappingForState(CmpVertex abstractVert)
 	{
-		//stateCompatibility = new TreeMap<VertID,Set<VertID>>();
-		CmpVertex abstractVert = ptaStateToCoreState.get(a);assert abstractVert == ptaStateToCoreState.get(b);
 		PartitioningOfvertices p = ptaMergers.get(abstractVert);
 		if (p == null)
 		{
@@ -429,9 +435,18 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 			}
 			ptaMergers.put(abstractVert, p);
 		}
-		p.stateCompatibility.get(a).remove(b);p.stateCompatibility.get(b).remove(a);
+		return p;
 	}
 	
+	/** Constructs a compatibility map between states, for subsequent use of BronKerbosch. The two vertices supplied are marked as incompatible. */ 
+	public void markPairAsIncompatible(VertID a, VertID b)
+	{
+		//stateCompatibility = new TreeMap<VertID,Set<VertID>>();
+		CmpVertex abstractVert = ptaStateToCoreState.get(a);assert abstractVert == ptaStateToCoreState.get(b);
+		PartitioningOfvertices p = constructCompatibilityMappingForState(abstractVert);
+		p.stateCompatibility.get(a).remove(b);p.stateCompatibility.get(b).remove(a);
+	}
+
 	/** If a pair of transitions leaving a pta state has a non-deterministic choice, target states need to be merged (if they are inconsistent, this would have been taken into account at the label-splitting stage). 
 	 * Maps existing high-level state to a map associating states to be forcefully merged with some other states. The expectation is that that other state will either be merged somewhere else 
 	 * or be the representative of the state of interest in BronKerbosch across the states that comprise the considered high-level state.
@@ -486,7 +501,7 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 				{
 					// Same concrete label, leading to more split states if there is an abstract state from which an abstract label leads to the current abstract state.
 					newIncompatibleVertices.add(new VertIDPair(lblToA.prev, lblToB.prev));
-					updateMergeInfo(lblToA.prev, lblToB.prev);
+					markPairAsIncompatible(lblToA.prev, lblToB.prev);
 
 					ptaStatesForCheckOfNondeterminism.add(lblToA.prev);ptaStatesForCheckOfNondeterminism.add(lblToB.prev);
 					
@@ -506,46 +521,59 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		return true;
 	}
 
+	/** Given a pta vertex and a record describing what needs to be done for the abstract state currently associated with this vertex, 
+	 * updates this information to record vertices that need to be merged to ensure that the outcome is deterministic.
+	 * 
+	 * @param vert pta vertex
+	 * @param p record describing what needs to be done for the abstract state currently associated with vert.
+	 * @param verticesToEliminate vertices mentioned in ptaStatesForCheckOfNondeterminism that have to be merged into some other vertices. These should not participate in BronKerbosch to avoid merging them with unrelated states. 
+	 * @return map from abstract labels to the main state associated with them.
+	 */
+	protected Map<AbstractLabel,VertID> constructVerticesThatNeedMergingForAbstractState(VertID vert,PartitioningOfvertices p,List<VertID> verticesToEliminate)
+	{
+		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
+		// First part: find a representative state for all the forced mergers, making sure it is one of ptaStatesWithForCheckOfNondeterminism
+		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
+		{
+			AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
+			VertID target = forcedMergersForPTAstate.get(lbl);
+			if (target != null)
+			{// targets and the current target are to be forcefully merged.
+				assert transition.getValue().isAccept() == initialPTA.findVertex(target).isAccept();
+				if (ptaStatesForCheckOfNondeterminism.contains(transition.getValue()))
+					forcedMergersForPTAstate.put(lbl, transition.getValue());
+			}
+			else
+				forcedMergersForPTAstate.put(lbl, transition.getValue());
+		}
+
+		// Now associate states that are supposed to be merged, with the chosen representative state.
+		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
+		{
+			AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
+			VertID target = forcedMergersForPTAstate.get(lbl);
+			if (target != transition.getValue())
+			{// targets and the current target are to be forcefully merged.
+				List<VertID> vertsToMerge = p.forcedMergers.get(target);if (vertsToMerge == null) { vertsToMerge = new ArrayList<VertID>();p.forcedMergers.put(target,vertsToMerge); }
+				vertsToMerge.add(transition.getValue());
+				if (ptaStatesForCheckOfNondeterminism.contains(transition.getValue()) && verticesToEliminate != null)
+					// this is where we are merging multiple compatible states, which is why they should not appear in the list of compatible ones - if they stay there, they may get clustered with different states.
+					verticesToEliminate.add(transition.getValue());
+			}
+		}
+		
+		return forcedMergersForPTAstate;
+	}
+	
 	/** Non-determinism is resolved by merging target states, identified here. */
 	protected void identifyForcedMergers()
 	{
-		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
 		List<VertID> verticesToEliminate = new LinkedList<VertID>();
 		
 		for(VertID vert:ptaStatesForCheckOfNondeterminism)
 		{// check for the outgoing transitions with the same label, record one of them as a force merge (if any is ptaStatesWithForCheckOfNondeterminism, this needs to be noted in order to avoid merging such a state into an incompatible one). 
-			forcedMergersForPTAstate.clear();
 			PartitioningOfvertices p = ptaMergers.get(ptaStateToCoreState.get(vert));
-			
-			// First part: find a representative state for all the forced mergers, making sure it is one of ptaStatesWithForCheckOfNondeterminism
-			for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
-			{
-				AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
-				VertID target = forcedMergersForPTAstate.get(lbl);
-				if (target != null)
-				{// targets and the current target are to be forcefully merged.
-					assert transition.getValue().isAccept() == initialPTA.findVertex(target).isAccept();
-					if (ptaStatesForCheckOfNondeterminism.contains(transition.getValue()))
-						forcedMergersForPTAstate.put(lbl, transition.getValue());
-				}
-				else
-					forcedMergersForPTAstate.put(lbl, transition.getValue());
-			}
-
-			// Now associate states that are supposed to be merged, with the chosen representative state.
-			for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
-			{
-				AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
-				VertID target = forcedMergersForPTAstate.get(lbl);
-				if (target != transition.getValue())
-				{// targets and the current target are to be forcefully merged.
-					List<VertID> vertsToMerge = p.forcedMergers.get(target);if (vertsToMerge == null) { vertsToMerge = new ArrayList<VertID>();p.forcedMergers.put(target,vertsToMerge); }
-					p.forcedMergers.get(target).add(transition.getValue());
-					if (ptaStatesForCheckOfNondeterminism.contains(transition.getValue()))
-						// this is where we are merging multiple compatible states, which is why they should not appear in the list of compatible ones - if they stay there, they may be clustered with different states.
-						verticesToEliminate.add(transition.getValue());
-				}
-			}
+			constructVerticesThatNeedMergingForAbstractState(vert,p,verticesToEliminate);
 		}
 		
 		// Now eliminate vertices that were marked for deletion in verticesToEliminate.
@@ -753,6 +781,61 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		initialInverse = constructInitialInverse(initialPTA);	
 	}
 	
+	
+	/** Uses a simple heuristic to construct abstract labels for the provided PTA. In effect, anything that precedes a supplied character becomes split out. 
+	 * This is an effective way to cluster all that precedes an opening bracket. 
+	 */
+	@SuppressWarnings("unused")
+	public void constructAbstractLabelsForInitialPta(char whereToSplit)
+	{
+		Map<String,List<Label>> abstractToConcrete = new TreeMap<String,List<Label>>();
+		for(Label l:initialPTA.learnerCache.getAlphabet())
+		{
+			String origLabel = l.toErlangTerm();int splitPosition = origLabel.indexOf(whereToSplit);if (splitPosition <= 0) throw new IllegalArgumentException("label "+origLabel+" cannot be abstracted using '"+whereToSplit+"'");
+			String abstractText = origLabel.substring(0, splitPosition);
+			List<Label> concrete = abstractToConcrete.get(abstractText);if (concrete == null) { concrete = new ArrayList<Label>();abstractToConcrete.put(abstractText, concrete); }
+			concrete.add(l); 
+		}
+		for(Entry<String,List<Label>> entry:abstractToConcrete.entrySet())
+			new AbstractLabel(initialLabelToAbstractLabel, entry.getKey(), entry.getValue());// I do not need to store it anywhere because construction of such a label adds appropriate entries to the initialLabelToAbstractLabel map.
+	}
+	
+	/** Assuming that the initial graph contains the low-level PTA, builds an abstract core graph using the current set of abstract labels. */ 
+	public LearnerGraph abstractInitialGraph(char whereToSplit)
+	{
+		init();
+		constructAbstractLabelsForInitialPta(whereToSplit);
+		LearnerGraph outcome = new LearnerGraph(initialPTA.config);AbstractLearnerGraph.copyGraphs(initialPTA, outcome);outcome.getCache().setMergedToHardFacts(new TreeMap<VertID,Collection<VertID>>());
+		Queue<CmpVertex> statesWhereTransitionsNeedAbstracting = new LinkedList<CmpVertex>();
+		statesWhereTransitionsNeedAbstracting.add(outcome.getInit());
+		Collection<VertID> initToHardFact = new ArrayList<VertID>();initToHardFact.add(initialPTA.getInit());
+		outcome.getCache().getMergedToHardFacts().put(outcome.getInit(),initToHardFact);
+		
+		while(!statesWhereTransitionsNeedAbstracting.isEmpty())
+		{
+			CmpVertex currentState = statesWhereTransitionsNeedAbstracting.remove();
+			Map<Label,CmpVertex> transitions = outcome.transitionMatrix.get(currentState);
+			PartitioningOfvertices p = new PartitioningOfvertices();
+			
+			for(VertID v: outcome.getCache().getMergedToHardFacts().get(currentState))
+				constructVerticesThatNeedMergingForAbstractState(v,p,null);
+			for(Entry<VertID,List<VertID>> merger:p.forcedMergers.entrySet())
+			{
+				CmpVertex target = outcome.findVertex(merger.getKey());
+				Collection<VertID> mergedToHardFacts = new ArrayList<VertID>();outcome.getCache().getMergedToHardFacts().put(target,mergedToHardFacts);
+				mergedToHardFacts.add(merger.getKey());mergedToHardFacts.addAll(merger.getValue());
+				transitions.put(initialLabelToAbstractLabel.get(initialInverse.get(merger.getKey()).label),target);
+				for(VertID v:merger.getValue())
+					outcome.transitionMatrix.remove(v);// remove all merged vertices, should have probably done outcome.findVertex(v) instead but v should be find since it is looking for the same object in both cases.
+
+				statesWhereTransitionsNeedAbstracting.add(target);
+			}
+		}
+	
+		return outcome;
+	}
+	
+
 	/** Identifies where states and/or labels have to be split if the supplied positive and negative traces are added. Returns a new transition diagram. */
 	public LearnerGraph refineGraph(Collection<List<Label>> concreteNegativeTraces)
 	{

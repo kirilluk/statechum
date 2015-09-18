@@ -34,10 +34,12 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
+import statechum.analysis.Erlang.OTPBehaviour.ConverterErlToMod;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Transform;
 
 public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner 
 {
@@ -159,6 +161,21 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 			if (labelThisOneWasSplitFrom == null)
 				return String.format("Abstract(%1$d,%2$s)",abstractionInstance,labelsThisoneabstracts);
 			return String.format("Abstract(%1$d,%2$s,{%3$s})",abstractionInstance,labelsThisoneabstracts,labelThisOneWasSplitFrom);
+		}
+		
+		/** Abstracted graphs cannot be directly compared to ordinary ones because abstract labels resent comparing to any other labels. This transform turns an abstract graph into a typical graph, returning the result. */
+		public static LearnerGraph convertAbstractGraphToTextGraph(LearnerGraph orig)
+		{
+			final LearnerGraph outcome = new LearnerGraph(orig.config);
+			AbstractLearnerGraph.interpretLabelsOnGraph(orig,outcome,
+					new Transform.ConvertLabel(new Transform.ConvertALabel() {
+	
+					@Override
+					public Label convertLabelToLabel(Label label) {
+						return new StringLabel( ((AbstractLabel)label).label );
+					}
+				}));
+			return outcome;
 		}
 	}
 	
@@ -400,7 +417,11 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+			{
+				if (outcome.get(transition.getValue()) != null)
+					throw new IllegalArgumentException("graph "+graph.toString()+" is not a PTA: state "+transition.getValue()+" has more than one incoming transition, one with label "+transition.getKey()+", another with label "+outcome.get(transition.getValue()).label);
 				outcome.put(transition.getValue(),new PrevAndLabel(transition.getValue(), transition.getKey()));
+			}
 		}
 		return outcome;
 	}
@@ -524,16 +545,15 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	/** Given a pta vertex and a record describing what needs to be done for the abstract state currently associated with this vertex, 
 	 * updates this information to record vertices that need to be merged to ensure that the outcome is deterministic.
 	 * 
-	 * @param vert pta vertex
-	 * @param p record describing what needs to be done for the abstract state currently associated with vert.
+	 * @param vertex pta (low-level) vertex
+	 * @param p record describing what needs to be done for the abstract state currently associated with vertex.
+	 * @param forcedMergersForPTAstate map from abstract labels to the main state associated with them. This is a parameter to allow multiple calls to this routine to accumulate data.
 	 * @param verticesToEliminate vertices mentioned in ptaStatesForCheckOfNondeterminism that have to be merged into some other vertices. These should not participate in BronKerbosch to avoid merging them with unrelated states. 
-	 * @return map from abstract labels to the main state associated with them.
 	 */
-	protected Map<AbstractLabel,VertID> constructVerticesThatNeedMergingForAbstractState(VertID vert,PartitioningOfvertices p,List<VertID> verticesToEliminate)
+	protected void constructVerticesThatNeedMergingForAbstractState(VertID vertex,PartitioningOfvertices p,Map<AbstractLabel,VertID> forcedMergersForPTAstate, List<VertID> verticesToEliminate)
 	{
-		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
 		// First part: find a representative state for all the forced mergers, making sure it is one of ptaStatesWithForCheckOfNondeterminism
-		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
+		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vertex).entrySet())
 		{
 			AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
 			VertID target = forcedMergersForPTAstate.get(lbl);
@@ -548,7 +568,7 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		}
 
 		// Now associate states that are supposed to be merged, with the chosen representative state.
-		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vert).entrySet())
+		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vertex).entrySet())
 		{
 			AbstractLabel lbl = initialLabelToAbstractLabel.get(transition.getKey());
 			VertID target = forcedMergersForPTAstate.get(lbl);
@@ -561,8 +581,6 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 					verticesToEliminate.add(transition.getValue());
 			}
 		}
-		
-		return forcedMergersForPTAstate;
 	}
 	
 	/** Non-determinism is resolved by merging target states, identified here. */
@@ -570,10 +588,12 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	{
 		List<VertID> verticesToEliminate = new LinkedList<VertID>();
 		
+		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
 		for(VertID vert:ptaStatesForCheckOfNondeterminism)
 		{// check for the outgoing transitions with the same label, record one of them as a force merge (if any is ptaStatesWithForCheckOfNondeterminism, this needs to be noted in order to avoid merging such a state into an incompatible one). 
 			PartitioningOfvertices p = ptaMergers.get(ptaStateToCoreState.get(vert));
-			constructVerticesThatNeedMergingForAbstractState(vert,p,verticesToEliminate);
+			forcedMergersForPTAstate.clear();
+			constructVerticesThatNeedMergingForAbstractState(vert,p,forcedMergersForPTAstate,verticesToEliminate);
 		}
 		
 		// Now eliminate vertices that were marked for deletion in verticesToEliminate.
@@ -814,20 +834,24 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 		while(!statesWhereTransitionsNeedAbstracting.isEmpty())
 		{
 			CmpVertex currentState = statesWhereTransitionsNeedAbstracting.remove();
-			Map<Label,CmpVertex> transitions = outcome.transitionMatrix.get(currentState);
+			Map<Label,CmpVertex> transitions = outcome.transitionMatrix.get(currentState);transitions.clear();
 			PartitioningOfvertices p = new PartitioningOfvertices();
-			
+			Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
 			for(VertID v: outcome.getCache().getMergedToHardFacts().get(currentState))
-				constructVerticesThatNeedMergingForAbstractState(v,p,null);
-			for(Entry<VertID,List<VertID>> merger:p.forcedMergers.entrySet())
+				constructVerticesThatNeedMergingForAbstractState(v,p,forcedMergersForPTAstate,null);
+			for(Entry<AbstractLabel,VertID> merger:forcedMergersForPTAstate.entrySet())
 			{
-				CmpVertex target = outcome.findVertex(merger.getKey());
+				CmpVertex target = outcome.findVertex(merger.getValue());
 				Collection<VertID> mergedToHardFacts = new ArrayList<VertID>();outcome.getCache().getMergedToHardFacts().put(target,mergedToHardFacts);
-				mergedToHardFacts.add(merger.getKey());mergedToHardFacts.addAll(merger.getValue());
-				transitions.put(initialLabelToAbstractLabel.get(initialInverse.get(merger.getKey()).label),target);
-				for(VertID v:merger.getValue())
-					outcome.transitionMatrix.remove(v);// remove all merged vertices, should have probably done outcome.findVertex(v) instead but v should be find since it is looking for the same object in both cases.
-
+				mergedToHardFacts.add(merger.getValue());
+				List<VertID> otherVerts = p.forcedMergers.get(merger.getValue());
+				if (otherVerts != null)
+				{
+					mergedToHardFacts.addAll(otherVerts);
+					for(VertID v:otherVerts)
+						outcome.transitionMatrix.remove(v);// remove all merged vertices, should have probably done outcome.findVertex(v) instead but v should be find since it is looking for the same object in both cases.
+				}
+				transitions.put(merger.getKey(),target);
 				statesWhereTransitionsNeedAbstracting.add(target);
 			}
 		}

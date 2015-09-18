@@ -29,10 +29,12 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Label;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
@@ -53,31 +55,31 @@ public class TestLearnerWithLabelRefinementViaPta {
 	}
 	
 	@Test
-	public void testReflexivitCheck1()
+	public void testReflexivityCheck1()
 	{
 		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)	
-	public void testReflexivitCheck2()
+	public void testReflexivityCheck2()
 	{
 		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"}}));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)	
-	public void testReflexivitCheck3()
+	public void testReflexivityCheck3()
 	{
 		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"A"}}));
 	}
 	
 	@Test
-	public void testReflexivitCheck4()
+	public void testReflexivityCheck4()
 	{
 		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","A"}}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)	
-	public void testReflexivitCheck5()
+	public void testReflexivityCheck5()
 	{
 		LearnerWithLabelRefinementViaPta.checkReflexivity(constructMap(new Object[]{"A",new String[]{"B","C"},"B",new String[]{"C","A"},"C",new String[]{"B","C","A"}}));
 	}
@@ -152,16 +154,105 @@ public class TestLearnerWithLabelRefinementViaPta {
 		Assert.assertEquals(Arrays.asList(new String[]{"C","D","E","F"}),result);
 	}
 
+	/** Empty graph. */
+	@Test
+	public void testAbstractInitialPta0()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerGraph initialPta = new LearnerGraph(evalConfig.config);initialPta.initPTA();
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = new LearnerGraph(evalConfig.config);expected.initPTA();
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	/** A few states. */
 	@Test
 	public void testAbstractInitialPta1()
 	{
 		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter()),0);
-		LearnerGraph abstractGraph = learner.abstractInitialGraph('(');
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
 		if (diffEx != null)
 			throw diffEx;
 	}
 	
+	/** Parallel transitions, all abstracting into a single one. */
+	@Test
+	public void testAbstractInitialPta2()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1","testAbstractInitialPta2",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	/** Parallel transitions, all abstracting into a single one. */
+	@Test
+	public void testAbstractInitialPta3()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->B2","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	/** Parallel transitions, all abstracting into a single one. Here state D is merged into B. */
+	@Test
+	public void testAbstractInitialPta4()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2 / A-b(3)->B3","testAbstractInitialPta4",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->B3","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	/** Parallel transitions, all abstracting into a single one. */
+	@Test
+	public void testAbstractInitialPta5()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2 / A-b(3)->B3 / A-c(0)->E / A-c(2)->E1","testAbstractInitialPta5",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->D / A-c->E","testAbstractInitialPta5",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	/** Parallel transitions, leading to a merge of a few states. */
+	@Test
+	public void testAbstractInitialPta6()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3 / A-b(3)->B4 / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->E / A-c->D / D-a->C1 / D-b->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	
+	/** Label that cannot be abstracted. */
+	@Test(expected = IllegalArgumentException.class)	
+	public void testAbstractInitialPta_fail1()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B / A-b(0)->B / A-b->B","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter()),0);
+		learner.abstractInitialGraph('(');
+	}
 }

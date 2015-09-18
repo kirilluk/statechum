@@ -29,12 +29,14 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.Label;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
@@ -245,6 +247,19 @@ public class TestLearnerWithLabelRefinementViaPta {
 		if (diffEx != null)
 			throw diffEx;
 	}
+	
+	/** Parallel transitions, leading to a merge of a few states. B3 and B4 end up getting merged. */
+	@Test
+	public void testAbstractInitialPta7()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter()),0);
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->E-a->T / E-b->G-a->H / G-c->I-a->J / A-c->D / D-a->C1 / D-b->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
 
 	
 	/** Label that cannot be abstracted. */
@@ -255,4 +270,96 @@ public class TestLearnerWithLabelRefinementViaPta {
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B / A-b(0)->B / A-b->B","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter()),0);
 		learner.abstractInitialGraph('(');
 	}
+
+	@Test
+	public void testSplitLabels1()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
+		learner.coregraph = learner.abstractInitialGraph('(');
+		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
+		LearnerGraph refinedGraph = learner.refineGraph();
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a,2->B-a,2->C / A-b->E-a,1->T1 / E-a,2->T2 / E-b->G-a,1->H / G-c->I-a,2->J / A-c->D / D-a,2->C1 / D-b->C2","testSplitLabels1",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(refinedGraph);
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+
+	@Test
+	public void testSplitLabels2()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels2_pta",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
+		learner.coregraph = learner.abstractInitialGraph('(');
+		learner.coregraph = MergeStates.mergeAndDeterminize_general(learner.coregraph, new StatePair(learner.coregraph.findVertex(VertexID.parseID("G1")),learner.coregraph.getInit()));learner.coregraph.setName("testSplitLabels2_refined");
+		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
+		LearnerGraph refinedGraph = learner.refineGraph();
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a,2->B-a,2->C / A-a,1->B / A-b->B3-b->A / B3-a,1->T1 / B3-a,2->T2 / A-c->D-a,2->J / D-b->C2","testSplitLabels2_expected",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(refinedGraph);
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	@Test
+	public void testSplitLabels3()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(1)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels3_pta",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
+		learner.coregraph = learner.abstractInitialGraph('(');
+		learner.coregraph = MergeStates.mergeAndDeterminize_general(learner.coregraph, new StatePair(learner.coregraph.findVertex(VertexID.parseID("G1")),learner.coregraph.getInit()));learner.coregraph.setName("testSplitLabels3_refined");
+		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
+		LearnerGraph refinedGraph = learner.refineGraph();
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a,2->B-a,2->C / A-a,1->B / A-b,2->B3-b,2->A / B3-a,1->T2 / B3-a,2->T1 / A-b,1->B4-b,2->A / B4-a,1->T1 / B4-a,2->T1 / A-c->D-a,2->J / D-b,1->C2","testSplitLabels3_expected",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(refinedGraph);
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	/** Integration test of forced mergers. */
+	@Test
+	public void testSplitLabels4()
+	{
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerGraph initialPta = new LearnerGraph(evalConfig.config);initialPta.initPTA();initialPta.setName("testSplitLabels4_pta");
+		Set<VertID> rejectStates = LearnerWithLabelRefinementViaPta.createSetOfVertID(null);
+		for(int i=1;i<=4;++i)
+		{
+			CmpVertex bVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("B"+i),initialPta.config);
+			initialPta.transitionMatrix.put(bVertex, initialPta.createNewRow());
+			initialPta.transitionMatrix.get(initialPta.getInit()).put(AbstractLearnerGraph.generateNewLabel("c("+i+")", initialPta.config, evalConfig.getLabelConverter()), bVertex);
+			
+			for(int j=1;j<=4;++j)
+			{
+				CmpVertex cVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("C"+i+"_"+j),initialPta.config);
+				initialPta.transitionMatrix.put(cVertex, initialPta.createNewRow());
+				initialPta.transitionMatrix.get(bVertex).put(AbstractLearnerGraph.generateNewLabel("b("+j+")", initialPta.config, evalConfig.getLabelConverter()), cVertex);
+				
+				CmpVertex tailVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"+i+"_"+j),initialPta.config);
+				initialPta.transitionMatrix.put(tailVertex, initialPta.createNewRow());
+				initialPta.transitionMatrix.get(cVertex).put(AbstractLearnerGraph.generateNewLabel("a("+0+")", initialPta.config, evalConfig.getLabelConverter()), tailVertex);
+				if (j ==1 || j == 3)
+					rejectStates.add(tailVertex);
+			}
+		}
+				
+		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
+		learner.coregraph = learner.abstractInitialGraph('(');
+		learner.constructMapOfInconsistentStates_fromRejectStates(rejectStates);
+		LearnerGraph refinedGraph = learner.refineGraph();refinedGraph.setName("testSplitLabels4_refined");
+//		Visualiser.updateFrame(initialPta, refinedGraph);
+//		Visualiser.waitForKey();
+		LearnerGraph expected = FsmParser.buildLearnerGraph("A-c->P-b,1->B3-a->T5 / P-b,2->B2-a->T4","testSplitLabels4_expected",evalConfig.config,evalConfig.getLabelConverter());
+		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(refinedGraph);
+		DifferentFSMException diffEx = WMethod.checkM(expected, abstractGraph);
+		if (diffEx != null)
+			throw diffEx;
+	}
+	
+	
 }

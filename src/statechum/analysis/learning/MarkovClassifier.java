@@ -1163,8 +1163,8 @@ public class MarkovClassifier
 	}
 
 	/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. 
-	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed. Depending on the input, can be used for paths in the forward direction or in the inverse one (in which case graphsToCheckForPaths
-	 * should also be an inverse of a graph of interest, to match the paths being considered).
+	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed. Depending on the input, can be used for paths in the forward 
+	 * direction or in the inverse one (in which case graphsToCheckForPaths should also be an inverse of a graph of interest, to match the paths being considered).
 	 *  
 	 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
 	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
@@ -1257,7 +1257,6 @@ public class MarkovClassifier
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
 		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell what whether paths of this length are going to separate states or not.
-		
 		List<List<Label>> whatToMerge = null;
 
 		final AtomicLong maxCount = new AtomicLong(0);

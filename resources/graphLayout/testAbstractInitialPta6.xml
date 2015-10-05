@@ -1,278 +1,212 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<java version="1.7.0_45" class="java.beans.XMLDecoder">
+<java version="1.7.0_07" class="java.beans.XMLDecoder">
  <object class="java.util.TreeMap">
   <void method="put">
-   <int>8000</int>
+   <int>526</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>139.51708984375</double>
+     <double>396.52349853515625</double>
     </void>
     <void property="y">
-     <double>569.763427734375</double>
+     <double>225.0209197998047</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8002</int>
+   <int>534</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>307.4312744140625</double>
+     <double>467.50164794921875</double>
     </void>
     <void property="y">
-     <double>301.7637939453125</double>
+     <double>115.89274597167969</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8008</int>
+   <int>542</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>281.43524169921875</double>
+     <double>480.778564453125</double>
     </void>
     <void property="y">
-     <double>564.9273071289062</double>
+     <double>33.46566390991211</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8016</int>
+   <int>550</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>419.0060119628906</double>
+     <double>219.25518798828125</double>
     </void>
     <void property="y">
-     <double>499.4664306640625</double>
+     <double>199.9580078125</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8024</int>
+   <int>582</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>626.326904296875</double>
+     <double>519.361083984375</double>
     </void>
     <void property="y">
-     <double>476.1986389160156</double>
+     <double>160.2109375</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8032</int>
+   <int>590</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>508.9676513671875</double>
+     <double>633.2653198242188</double>
     </void>
     <void property="y">
-     <double>409.38409423828125</double>
+     <double>235.92282104492188</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8040</int>
+   <int>598</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>405.07391357421875</double>
+     <double>701.1879272460938</double>
     </void>
     <void property="y">
-     <double>421.3417053222656</double>
+     <double>84.11434936523438</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>8048</int>
+   <int>38166</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>264.5594787597656</double>
+     <double>364.6470031738281</double>
     </void>
     <void property="y">
-     <double>349.7193603515625</double>
+     <double>101.51658630371094</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>14480</int>
+   <int>38174</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>421.4157409667969</double>
+     <double>88.27828216552734</double>
     </void>
     <void property="y">
-     <double>663.8911743164062</double>
+     <double>32.79606246948242</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>14488</int>
+   <int>38206</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>546.2931518554688</double>
+     <double>538.822998046875</double>
     </void>
     <void property="y">
-     <double>564.3232421875</double>
+     <double>282.49139404296875</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>14496</int>
+   <int>38310</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>741.244873046875</double>
+     <double>533.343505859375</double>
     </void>
     <void property="y">
-     <double>503.2958984375</double>
+     <double>488.27496337890625</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>17584</int>
+   <int>38934</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>277.5667724609375</double>
+     <double>420.54278564453125</double>
     </void>
     <void property="y">
-     <double>196.38629150390625</double>
+     <double>108.84358215332031</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>40792</int>
+   <int>38942</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>693.0535278320312</double>
+     <double>87.62579345703125</double>
     </void>
     <void property="y">
-     <double>312.8599548339844</double>
+     <double>221.226806640625</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>40800</int>
+   <int>38974</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>914.6568603515625</double>
+     <double>503.190185546875</double>
     </void>
     <void property="y">
-     <double>409.9943542480469</double>
+     <double>260.4898681640625</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>153976</int>
+   <int>39078</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>564.0687255859375</double>
+     <double>475.51806640625</double>
     </void>
     <void property="y">
-     <double>191.94119262695312</double>
+     <double>531.1658325195312</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>153984</int>
+   <int>39702</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>415.6153564453125</double>
+     <double>435.32928466796875</double>
     </void>
     <void property="y">
-     <double>212.44265747070312</double>
+     <double>412.1253662109375</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>661736</int>
+   <int>39846</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>511.6204833984375</double>
+     <double>580.40185546875</double>
     </void>
     <void property="y">
-     <double>259.448486328125</double>
+     <double>388.00457763671875</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>661744</int>
+   <int>40470</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>771.8856201171875</double>
+     <double>442.37652587890625</double>
     </void>
     <void property="y">
-     <double>190.06927490234375</double>
+     <double>355.2638854980469</double>
     </void>
    </object>
   </void>
   <void method="put">
-   <int>661752</int>
+   <int>40614</int>
    <object class="statechum.analysis.learning.Visualiser$DoublePair">
     <void property="x">
-     <double>759.600830078125</double>
+     <double>559.0316772460938</double>
     </void>
     <void property="y">
-     <double>64.95901489257812</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661760</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>558.7606201171875</double>
-    </void>
-    <void property="y">
-     <double>70.81808471679688</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661768</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>408.525146484375</double>
-    </void>
-    <void property="y">
-     <double>57.90580749511719</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661776</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>250.8632354736328</double>
-    </void>
-    <void property="y">
-     <double>63.91615295410156</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661784</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>65.0882568359375</double>
-    </void>
-    <void property="y">
-     <double>57.484771728515625</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661792</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>67.71697998046875</double>
-    </void>
-    <void property="y">
-     <double>237.0950927734375</double>
-    </void>
-   </object>
-  </void>
-  <void method="put">
-   <int>661800</int>
-   <object class="statechum.analysis.learning.Visualiser$DoublePair">
-    <void property="x">
-     <double>76.22056579589844</double>
-    </void>
-    <void property="y">
-     <double>378.401611328125</double>
+     <double>433.935302734375</double>
     </void>
    </object>
   </void>

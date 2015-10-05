@@ -434,7 +434,7 @@ public class Configuration implements Cloneable {
 	 * parsing of them from text.
 	 */
 	public enum LABELKIND {
-		LABEL_STRING, LABEL_ERLANG
+		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT;
 	}
 
 	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;
@@ -1039,7 +1039,22 @@ public class Configuration implements Cloneable {
 	public void setGdFailOnDuplicateNames(boolean value) {
 		gdFailOnDuplicateNames = value;
 	}
+	
+	/** Colour palette for visualisation of differences. */
+	public enum GD_COLOUR_MODE { GD_COL_DEFAULT, GD_COL_REDUCED}
+	
+	protected GD_COLOUR_MODE GDColourMode= GD_COLOUR_MODE.GD_COL_DEFAULT;
+	
+	public GD_COLOUR_MODE getGDColourMode()
+	{
+		return GDColourMode;
+	}
 
+	public void setGDColourMode(GD_COLOUR_MODE newValue)
+	{
+		GDColourMode = newValue;
+	}
+	
 	/**
 	 * All native code (and sometimes JVM) can crash. This tends to happen when
 	 * JVM runs out of memory and then runs native code which I presume
@@ -1113,6 +1128,32 @@ public class Configuration implements Cloneable {
 	public void setSynapseSendFSMFrequency(int newValue)
 	{
 		synapseSendFSMFrequency = newValue;
+	}
+	
+	/** Whether learner should attempt a range of possible values for 'any' type or just one. */
+	protected boolean useANumberOfValues = true;
+	
+	public boolean getUseANumberOfValues()
+	{
+		return useANumberOfValues;
+	}
+	
+	public void setUseANumberOfValues(boolean newValue)
+	{
+		useANumberOfValues = newValue;
+	}
+	
+	/** Whether Statechum should start with most abstract labels and then incrementally refine them. */
+	protected boolean performAbstractionRefinement = false;
+	
+	public boolean getPerformAbstractionRefinement()
+	{
+		return performAbstractionRefinement;
+	}
+	
+	public void setPerformAbstractionRefinement(boolean newValue)
+	{
+		performAbstractionRefinement = newValue;
 	}
 	
 	/** Whether to strip module names from functions that are loaded from modules that are not of the gen_server/gen_event/gen_fsm kind. */

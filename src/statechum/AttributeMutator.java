@@ -30,6 +30,7 @@ import statechum.Configuration.ERLCOVERAGE;
 import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
+import statechum.Configuration.GD_COLOUR_MODE;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.LABELKIND;
 import statechum.Configuration.LEARNER;
@@ -206,6 +207,11 @@ public class AttributeMutator {
 				if (var.getType().equals(LABELKIND.class))
 				{
 					valueA = LABELKIND.LABEL_ERLANG;valueB = LABELKIND.LABEL_STRING;
+				}
+				else
+				if (var.getType().equals(GD_COLOUR_MODE.class))
+				{
+					valueA = GD_COLOUR_MODE.GD_COL_DEFAULT;valueB = GD_COLOUR_MODE.GD_COL_REDUCED;
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))

@@ -197,6 +197,7 @@ public class I2cexperiment extends PairQualityLearner
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			actualAutomaton.setName("i2c_experiment");
 
     		
     		System.out.println(actualAutomaton.getStateNumber());

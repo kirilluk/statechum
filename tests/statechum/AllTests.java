@@ -48,7 +48,8 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
         statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
         statechum.analysis.learning.TestLoadAnswers.class,
-        statechum.model.testset.TestPTA_computePrecisionRecall.class
+        statechum.model.testset.TestPTA_computePrecisionRecall.class,
+        statechum.analysis.learning.TestLearnerWithLabelRefinementViaPta.class
     }) // commas after the last entry compile from within Eclipse but not from ant
     public static class LearnerTests {// all tests are included in the annotation.
     }

@@ -23,6 +23,7 @@ import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.awt.Frame;
@@ -38,6 +39,7 @@ import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.model.testset.PTASequenceEngine;
 
 /**
@@ -108,11 +110,17 @@ public class ErlangOracleLearner extends RPNIUniversalLearner
 		return module.getName();
 	}
 	
+    protected static int instanceNumber = 1;
+    
+	
 	@Override
 	public LearnerGraph learnMachine() {
 		LearnerGraph result = super.learnMachine();
 		finished();
-		setChanged();notifyObservers(getTentativeAutomaton());
+		setChanged();
+		LearnerGraphND newGraph = new LearnerGraphND(getTentativeAutomaton(),getTentativeAutomaton().config);
+		newGraph.setName(newGraph.getNameNotNull()+"_"+instanceNumber++);
+		notifyObservers(ErlangOracleVisualiser.turnToSimpleGraph(newGraph));
 		return result;
 	}
 

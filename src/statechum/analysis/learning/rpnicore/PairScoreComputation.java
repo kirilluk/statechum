@@ -270,7 +270,7 @@ public class PairScoreComputation {
 	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
 	 * using mergedVertices. 
 	 */
-	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, Label input)
+	public CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, Label input)
 	{
 		CmpVertex target = null;
 		List<CmpVertex> associatedVertices = mergedVertices.get(r);

@@ -530,7 +530,7 @@ public class PairQualityLearner
 	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
 	public static abstract class LearnerThatCanClassifyPairs extends RPNIUniversalLearner
 	{
-		final LearnerGraph initialPTA;
+		protected final LearnerGraph initialPTA;
 		
 		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA) 
 		{

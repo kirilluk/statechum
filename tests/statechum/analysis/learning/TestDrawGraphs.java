@@ -154,7 +154,8 @@ public class TestDrawGraphs {
 				DrawGraphs.boxPlotToString(data, null,null,"other attrs"));
 	}
 	
-	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestDrawGraphs__");
+	public static final File tmpDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP));
+	public static final File testDir = new File(tmpDir,"__TestDrawGraphs__");
 
 	@Test
 	public void testBagPlotToStringFail1()
@@ -363,6 +364,8 @@ public class TestDrawGraphs {
 	@Before
 	public void before()
 	{
+		if (!tmpDir.isDirectory()) 
+			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
 		if (!testDir.isDirectory()) 
 			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
 	}

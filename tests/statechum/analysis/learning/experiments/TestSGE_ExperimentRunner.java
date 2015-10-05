@@ -29,8 +29,16 @@ public class TestSGE_ExperimentRunner {
 	@Before
 	public void before()
 	{
-		if (!testDir.isDirectory()) 
+		File tmpDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP));
+		if (!tmpDir.isDirectory())
+		{
+			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
+		}
+		
+		if (!testDir.isDirectory())
+		{
 			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+		}
 	}
 
 	@After

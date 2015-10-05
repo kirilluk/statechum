@@ -320,8 +320,10 @@ public class TestSynapse {
 	public OtpErlangPid startSynapse(boolean accumulateOutput)
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'-DERLANGHOME','"+
-				GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME).replace('\\', '/')+"'}] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
+		String ErlangHome = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME), ErlangHomeSetting="";
+		if (ErlangHome != null)
+			ErlangHomeSetting=",{'-DERLANGHOME','"+ErlangHome.replace('\\', '/')+"'}";
+		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}"+ErlangHomeSetting+"] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()");		
 	}

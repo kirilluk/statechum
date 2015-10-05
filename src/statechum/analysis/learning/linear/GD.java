@@ -1888,27 +1888,50 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public int added,removed,orig;
 		
 		/** Obtains a colour that corresponds to the specific arrangement of changes. */
-		public Color getColor()
+		public Color getColor(Configuration config)
 		{
 			Color outcome =  Color.BLACK;
-			if (added > 0 && removed > 0)
-				outcome = Color.YELLOW.darker();
-			else
-				if (added > 0)
-				{
-					outcome = Color.GREEN;
-					if (orig > 0) outcome.darker().darker();
-				}
+			switch(config.getGDColourMode())
+			{
+			case GD_COL_REDUCED:
+				if (added > 0 && removed > 0)
+					outcome = Color.YELLOW;//.darker();
 				else
-					if (removed > 0)
+					if (added > 0)
 					{
-						outcome = Color.RED;
-						if (removed < orig) 
-							outcome=outcome.darker().darker();
+						outcome = Color.GREEN;
+						//if (orig > 0) outcome.darker().darker();
 					}
-			
+					else
+						if (removed > 0)
+						{
+							outcome = Color.RED;
+							//if (removed < orig) outcome=outcome.darker().darker();
+						}
+				
+				break;
+			default:
+				if (added > 0 && removed > 0)
+					outcome = Color.YELLOW.darker();
+				else
+					if (added > 0)
+					{
+						outcome = Color.GREEN;
+						if (orig > 0) outcome.darker().darker();
+					}
+					else
+						if (removed > 0)
+						{
+							outcome = Color.RED;
+							if (removed < orig) outcome=outcome.darker().darker();
+						}
+				
+				break;
+			}
+
 			return outcome;
 		}
+		
 	}
 	
 	/** This one is similar to applyGD but computes a union of the remove and added parts,
@@ -2037,7 +2060,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						{// this is the first annotation for the specific target state
 							targetToColour = new TreeMap<String,Color>();lbl.put(transition.getKey(),targetToColour);
 						}
-						targetToColour.put(to.getStringId(),pc.getValue().getColor());
+						targetToColour.put(to.getStringId(),pc.getValue().getColor(a.config));
 					}
 		}
 		// There are a few kinds of states, those from the A graph which remain,

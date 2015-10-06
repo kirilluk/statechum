@@ -110,8 +110,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{
 		private final CmpVertex red = getInit();
 		
-		/** Counter used to uniquely identify non-existing states. */ 
-		private int idCounter = 0;
+		/** Counter used to uniquely identify non-existing states. Starts from a value one above the max for the current graph so that it is possible to use an array form of a transition matrix without state aliasing. This assumes that after any new paths are added to the PTA, the question PTA is discarded. */ 
+		private int idCounter = LearnerGraph.this.vertPositiveID+1;
 		
 		/** This one records non-existing transitions as well as some existing ones, 
 		 * those leaving states with at least one non-existing transition.

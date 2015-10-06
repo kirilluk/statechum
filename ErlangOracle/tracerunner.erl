@@ -93,7 +93,7 @@ init([Arg]) ->
 %% Obtains the defines necessary to tailor Statechum to the specific version of Erlang runtime. This is only needed for Typer but in future may be used for other things.
 runtimeSpecificFlags() ->
   case string:substr(erlang:system_info(otp_release),1,3) of
-  	"R14"->{ok,{i,"lib/modified_typer/16"}};
+  	"R14"->{ok,{i,"lib/modified_typer/14"}};
   	"R15"->{ok,{i,"lib/modified_typer/16"}};
   	"R16"->{ok,{i,"lib/modified_typer/16"}};
   	"17"->{ok,{i,"lib/modified_typer/17"}};  	

@@ -36,6 +36,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.Configuration;
+import statechum.Configuration.LABELKIND;
 import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.StatechumXML;
@@ -143,7 +144,8 @@ public class QSMTool {
     }
 
     public static void setSimpleConfiguration(Configuration config, final boolean active, final int k) {
-    	config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
+    	if (config.getLabelKind() == LABELKIND.LABEL_ERLANG)
+    		config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
         if (!active) {
             config.setKlimit(k);
             config.setAskQuestions(false);

@@ -1,0 +1,207 @@
+<html>
+<head>
+<title>Statechum - a brief introduction</title>
+<link rel="icon" href="../icon.jpg"/>
+</head>
+<body>
+<h1>Introduction</h1>
+
+Statechum is the tool that can be used for the inference of models and their comparison as well as for test generation. 
+The inference process can use both passive and active. For the passive one, Blue Fringe can be used; active learner uses QSM.
+<p/>
+After the brief introduction, this document contains three parts, <a href="#installation">installation of Statechum</a>, 
+<a href="#learning">sample Statechum use</a> and <a href="#synapse">how to use Synapse</a>.
+<p/>
+The tool is mostly written in Java, but a few components of it are implemented in C. 
+These are not needed for most tasks but could be useful for model comparison and where domain-specific properties 
+(written in linear temporal logic LTL or the language of Yices constraint solver) are used to help inference. 
+There is also integration with Erlang runtime (Statechum can be exposed as an Erlang node, as well as start Erlang nodes itself) and 
+the R tool in order to plot graphs.
+<p/>
+The supported execution environment is Windows/Linux/MacOS (all x86_64). The tool may work on other platforms (such as 32-bit platforms) but the test suite for the tool is not routinely run on a 32-bit platform and a number of components may be missing or obsolete.
+
+<h1 id="installation">Installation</h1>
+<h2>Building the Java part of the tool</h2>
+The whole directory is a valid Eclipse project and can be directly imported into Eclipse as a project. For developers, 
+it might be useful to set the same warning options in Eclipse as those used during development of Statechum. 
+These are documented in the file <i>src/statechum/analysis/learning/Visualiser.java</i>, search for 'Warning settings for Eclipse'. 
+The first line, 'WWI (non-static access)' means that of the three options starting from the one called 'non-static access', 
+the first two should be set to Warn and the last one to Ignore.
+<p/>
+An Ant build file is provided, where the target 'compileTests' will build the whole Java part of Statechum including its tests. 
+<h2>Running tests</h2>
+Tests can be launched either via Eclipse as a Java unit test (class <i>statechum.AllTests</i>) or via Ant using the `test' target. If everything is fine, the tests will all pass on both Windows x86_64 and on Linux x86_64. The requirements to pass tests are much higher than those to run the tool: on one hand, all the optional components such as the R tool and Erlang should be available and the system running the tests should have at least 20GB for memory for the tests handling large automata.
+
+The run time for all tests is 19 hours on an i7-Ivy Bridge at 3.7 Ghz, however the most important tests (anything not part of `LengthyTets') completes in 13 min on the same PC.
+
+<h2>Special installation instructions for non-Java components of Statechum</h2>
+
+<table width="100%" border="1" cellspacing="0" cellpadding="3">
+<tr><td>Name</td><td>Description</td><td>where used</td><td>Special installation instructions</td></tr>
+<tr><td><i>src</i></td><td>the source code of the Statechum tool.</td><td>all components of Statechum use it</td><td></td></tr>
+<tr><td><i>lib</i></td><td>Various external libraries used by the tool. 
+These are the components of the R tool as well as JUnit, Jung, Weka and a few others. </td>
+<td>
+<ul><li>Components of R are used to automatically plot graphs, without having to invoke R separately. 
+In addition, they are included in order to make sure the whole of Statechum builds from within Eclipse without a working installation 
+of R but they also work with existing installations of R, even if R is newer. </li>
+<li> 
+ltl2ba is a tool that converts LTL formulae into Buchi automata. It is used where domain-specific properties are expressed using LTL. </li>
+<li>Modified typer is used where type information of Erlang functions is used in order to generate traces during active inference process. 
+It is different from typer included with Erlang OTP in that type information is generated in a form that can be easily imported; 
+in contrast, typer included with OTP generates human-readable type information with various abbreviations (such as ellipsis) that are ambiguous. 
+</li>
+<li>Jung is a graph visualisation and manipulation library, used to visualise graphs.</li>
+</ul>
+</td>
+<td>
+For convenience, most components are packaged together with the tool. 
+<ul>
+<li>R needs to be installed separately and has to include RJava, JavaGD and aplpack. Details are at the top of the file
+<i>src/statechum/analysis/learning/DrawGraphs.java</i></li>
+<li>
+ltl2ba needs to be compiled. 
+Most of the time, it is enough to type 'make' in the <i>lib/lbl2ba-1.1</i> directory, with the exception of Windows where Cygwin can be used to build it by invoking <i>make -f Makefile.win64</i>. Mingw will probably also work.
+</li></ul>
+</td></tr>
+<tr><td><i>linear</i></td><td>The C code permitting umfpack to be called from Statechum.</td><td>Comparison of models. If the C part is not available, the comparison will still work but it will fall back onto Java implementation that is very slow and limited to tiny machines.</td>
+<td>The details how to build this are in the comment at the top of the file <i>src/statechum/analysis/learning/rpnicore/LSolver.java</i> and require installation of umfpack. To simplify matters, pre-compiled versions of the library fit for use with Statechum can be found <a href="http://staffwww.dcs.shef.ac.uk/people/K.Bogdanov/statechum/">here</a>, grouped by an operating system. These tend to contain libraries that should go to <i>linear/.libs</i> directory as well as <i>smt/.libs</i>, the latter responsible for the integration with the Yices solver.</td>
+</tr>
+<tr>
+<td><i>smt</i></td><td>The code to utilise Yices from within Statechum.</td><td>Domain-specific constraints in the language of Yices-1</td><td>Install a shared-library version of Yices from its official distribution page at SRI. The process to build the library is described at the top of the file
+<i>src/statechum/analysis/learning/Smt.java</i>. As an alternative, the library distributed <a href="http://staffwww.dcs.shef.ac.uk/people/K.Bogdanov/statechum/">here</a> will provide the integration (but yices-1 still needs to be installed).
+</td></tr>
+<tr><td><i>ErlangExamples</i></td><td>A few examples of Erlang code, used in experiments.</td><td>Erlang integration</td><td>Erlang integration requires Erlang OTP to be installed, versions 15-18 are supported and version 14 may work (it used to be supported in the past). Erlang distributions that come packaged with operating systems such as Debian are not supported but are likely to work. </td></tr>
+<tr><td><i>ErlangOracle</i></td><td>Active learner from Erlang modules, uses type information obtained from Erlang typer to generate random traces run a module of interest through them and based on the traces that the module was happy with, infer a model of it. </td><td>Erlang integration</td><td>Same as for any Erlang integration</td></tr>
+<tr><td><i>htdocs</i></td><td>Statechum documentation on Sourceforge</td><td></td><td></td></tr>
+<tr><td><i>resources</i></td><td>Demo traces and graphs used for demonstration, research experiments and for testing of statechum.</td><td>Various parts of statechum</td><td>none needed</td></tr>
+
+</table>
+
+<h2 id="learning">Running Statechum</h2>
+Depending on the components that are used, specific Java command-line arguments may be needed, such as to set the path where JVM will be looking for libraries to load and environment variables (the R tool needs R_HOME to be set). Examples of such options are provided at the top of the <i>src/statechum/analysis/learning/Visualiser.java</i> file. As a bare minimum, '-ea -DVIZ_DIR=resources/graphLayout' are needed. 
+
+If running Java from a command line rather than Eclipse, you can use
+<pre>java -cp bin;lib/modified_collections;lib/commons-collections-3.1.jar;lib/OtpErlang.jar;lib/colt.jar;lib/javaGD.jar;lib/JRI.jar;lib/jung-1.7.6.jar;lib/polyglotclasses-1.3.4.jar;lib/sootclasses.jar;lib/weka.jar -ea -DVIZ_DIR=resources/graphLayout statechum.apps.QSMTool resources/qsmtooldemo.txt</pre>
+Here <i>statechum.apps.QSMTool</i> is the component of Statechum to run and <i>resources/qsmtooldemo.txt</i> is the input file, with the format described below. The semicolon separting different components of a Java classpath is a semicolon for Windows and a colon for Unix operating systems. 
+The outcome of running the above Java command is shown below.<br/>
+<img src="qsmtooldemo.png"/><br/>
+The star denotes the initial state; the colour is grey because it is currently selected (and hence the label of this state P1000 is in blue).
+
+<h1>Learning from event sequences</h1>
+
+<h2>A simple approach to learning - pass a list of traces to QSMTool</h2>
+The Java class <i>statechum/apps/QSMTool</i> can be used to start the tool and learn from traces. It is useful when only basic customisation is needed.
+
+The input format for traces can be illustrated with the following example which is available as <i>resources/qsmtooldemo.txt</i> 
+and run with the java call shown above.
+<pre>
+passive
++ [ [ a,b,c ], [ a,b,d] ] - [ [ a,a ],[ a,b,e ] ]
+config visualiseOutput true
+</pre>
+On the first line, 'passive' means that the inference process will only rely on the provided information; without it, Statechum will pop queries when it learns so as to confirm its decisions. Traces are given on the second line above, '+' means that what follows is a collection of positive traces. If the first character is '-', what follows are negative traces. Positive means all traces in a collection are valid sequences; a negative trace is the one that is not permitted, but any strict prefix of it is a valid trace. For example, a negative trace [a,a], means that it is possible to attempt 'a' but only once. All traces are assumed to start at the initial state. A negative trace [ a,b,e ] means that [ a,b ] is permitted, but from the state entered after [a,b], it is not possible to do an 'e'.
+
+There could be any number of lines with traces in an input file.
+<br/>
+Some of the traces of the CVS protocol can be found in file <i>resources/CVS.txt</i>
+<br/>
+Cutomisation of the learner usually requires an in-depth knowledge of the implementation. All the options are described in <i>src/statechum/Configuration.java</i> file and can be set by adding lines such as
+<pre>
+config generalisationThreshold 2
+</pre>
+This specific option means that pairs with a score of 2 and above should be merged without any questions and is only useful for active inference.
+<br/>
+In the above example, <i>visualiseOutput</i> option means that the learnt automaton should be displayed. Statechum may also be asked to record it as a .txt or a .dot file (for Graphviz).
+
+
+If requested, an inferred automaton is displayed in a window, using the Jung toolkit with a few changes. The most important of them is that although the layout is automatic in Jung, it does not always produce pretty graphs and will invariably generate horrible ones if a graph contains a significant number of states. It is therefore possible to 'save' the layout but pressing F2 or right-clicking and choosing saveLayout. When a graph with the same name is loaded again (name shown at the top of the graph window), it will not use Jung layout but instead load the saved one. F3 loads a previously-saved layout (useful when edits to it have messed it up) and F4 permits saving the position and size of all currently active Statechum windows. F2 and F4 used together permit one to re-run an earlier experiment and get the window to pop in the right place with the expected layout of the graph; this is very useful to inspect changes if different learning options are selected. The file to save the position of windows is defined via the JVM option '-DVIZ_CONFIG=config_statechum' where config_statechum is the name of the file. Hitting the ESC key from a graph window terminates Statechum; F toggles display of negative states (which can be quite numerous hence a way to hide them).
+
+<h2>Modifying the tool to load traces directly</h2>
+This is illustrated by the <i>src/statechum/analysis/learning/experiments/I2cexperiment.java</i>. If run via  
+<pre>java -cp ... -ea  -Xmx15000m -DVIZ_DIR=resources/graphLayout  statechum.analysis.learning.experiments.I2cexperiment</pre> where ellipsis represents the classpath.
+it will load a single long trace (originally obtained by logging commands both sent and received by a simple device via i2c bus), and learn a model. 
+The outcome is displayed in a window. Running such an experiment takes around 15min on a i7 Haswell at 4.4Ghz and requires a PC 
+with a lot of memory (giving Java 15GB via the <i>-Xmx15000m</i> is enough but 10GB is not). 
+The first output is the length of the trace, followed by the odd-looking alphabet. 
+The learnt graph is stored in a file called <i>outcome_i2c.xml</i> in the GraphML format, which can subsequently 
+be visualised by running <i>statechum.apps.GraphMLVisualiser</i> with the name of Graphml file as a parameter:
+<pre>java -cp ... -ea -DVIZ_DIR=resources/graphLayout statechum.apps.GraphMLVisualiser outcome_i2c.xml</pre>
+
+A copy of the outcome of learning can be found in <i>resources/i2c_study/outcome_i2c_chunk7.xml</i> and loading it 
+produces a picture that can look as follows:<br/>
+<img src="i2cexperiment.png"/>
+
+<h1 id="synapse">Learning using Synapse</h1>
+<h2>Installation</h2>
+Synapse is a project that has to be cloned from GitHub <a href="https://github.com/ramsay-t/Synapse">here</a>.
+After cloning, two files need to be edited in the main Synapse directory, <i>synapse.conf</i> containing an absolute path to the 
+Statechum configuration file, and the statechum configuration file <i>statechum.conf</i> itself. 
+The defaults in <i>statechum.conf</i> need to be edited to include absolute paths to the Java binary 
+(such as 'C:/Program Files/Java/jdk1.7.0_07/bin/java.exe' on Windows) and an absolute path to Statechum. 
+Following this, Erlang tests need to be run by entering Statechum directory and running <pre>ant erlang-test</pre> 
+which will both compile the Java & Erlang portion of Statechum and check that it works correctly. 
+Compiled .beam files can then be found in the <i>tmp/beam ... </i> directory, where dots correspond to an Erlang release and platform being used. 
+This directory needs to be renamed to be called just <i>tmp/beam</i>
+<br/>
+Compiling Synapse can be done by running 'make' in the main Synapse directory; an exception for this is Windows where cygwin is needed and running './rebar compile' builds Synapse.
+<h2>Learning from traces</h2>
+Running Synapse from Erlang command line requires entering the main Synapse directory and typing 
+<pre>erl -pa ebin -name synapse</pre> Here, 'synapse' is Erlang node name that can be really any bit of text.
+
+Calling 
+<pre>Learnt=synapse:passive_learn([{neg,[a,b]},{pos,[a,a,a,b]}],[]).</pre> from Erlang command line will cause Synapse to run Statechum and learn an FSM from the provided traces. The format of inputs is a list of elements {pos,TRACE} or {neg,TRACE} where the former corresponds to a positive trace and the latter - to the negative one (a negative trace is the one where the last element is not permitted but all strict prefixes are valid traces). This produces a few progress messages and a final machine
+<pre>
+{statemachine,['P1000','P1001','P1002','N1000','P1004'],
+              [{'P1000',a,'P1001'},
+               {'P1001',a,'P1002'},
+               {'P1001',b,'N1000'},
+               {'P1002',a,'P1002'},
+               {'P1002',b,'P1004'}],
+              'P1000',
+              [a,b]}
+</pre>
+The machine is an Erlang record, where the first component is a list of states, second one a list of transitions (in the format from-label-to), followed by the initial state and an alphabet.
+
+Such machines can be visualised by calling
+<pre>synapse:visualise(Learnt,[],learnt).</pre>
+which pops a graph similar to running Statechum via QSMTool. The last component of the call to visualise is the file name, used to store layout. 
+Unlike a conventional Statechum window, the one created by calling synapse:visualise function does not respond to the ESC key since it is otherwise far to easy to terminate Statechum.
+<br/>
+<img src="synapse1.png"/>
+<h2>Computation of a diff between machines</h2>
+Calling 
+<pre>Orig={statemachine,['P1000','P1001','P1002'],[{'P1000',a,'P1001'},{'P1001',a,'P1002'},{'P1001',a,'P1001'}],'P1000',[a,b]},
+D=synapse:diff(Orig,Learnt,[]).</pre>
+permits one to compute a 'diff' between the two FSMs, listing transitions that need to be added or removed from the first one to turn it into the second one. The intention here is not to rely on state names and compute the smallest number of additions/deletions to turn one into another one.
+In this example, <i>Orig</i> is <i>Learnt</i> with a few modifications. Running synapse:diff
+produces a rather concise
+<pre>
+{statemachinedifference,[{'P1001',b,'N1000'},
+                         {'P1002',a,'P1002'},
+                         {'P1002',b,'P1004'}],
+                        [{'P1001',a,'P1001'}],
+                        ['N1000','P1004'],
+                        [],[],'P1000'}
+</pre>
+It is now probably best to visualise the <i>Orig</i> graph via
+<pre>synapse:visualise(Orig,[],orig).</pre>
+and then depict the computed difference by calling
+<pre>synapse:visualise_diff(Orig,D,[],diff).</pre>
+where <i>Orig</i> and <i>D</i> are the two variables assigned above.
+<br/><img src="synapse_orig.png"/><img src="synapse1.png"/> <img src="synapse2.png"/><br/>
+Above, the leftmost is <i>Orig</i>, middle graph is <i>Learnt</i> and the one on the right depicts the differences. Black transitions are those that match, red are those to be removed from <i>Orig</i> 
+and green ones are those to be added to it, in order to turn <i>Orig</i> into <i>Learnt</i>. 
+<p/>
+If you have followed the sequence of commands starting from synapse:visualise until now, you will see that the difference 
+has replaced the earlier graph in the window, but it now contains '3/3' in the title. 
+This is a reflection that there are three graphs and you are looking at the third one. Using the arrow keys up/down you can switch between graphs. If a layout of any of them has been saved, it is used; otherwise, layout is recomputed so the graphs may look slightly different when you repeatedly switch between them.
+<h2>Active inference from Erlang modules</h2>
+Synapse also supports active learning from Erlang modules. For example, there is a module <i>ErlangExamples/locker/locker.erl</i> in the Statechum directory. You can then call 
+<pre>L=synapse:learn_erlang('d:/experiment/github/statechum/ErlangExamples/locker/locker.erl').</pre> where <i>'d:/experiment/github/statechum/ErlangExamples/locker/locker.erl'</i> is an Erlang an atom reflecting an absolute path to the Erlang module to learn. When you call it, Statechum is launched in order to inspect types of the functions in the module, generate some random traces and then learn an automaton, where queries by the learner are automatically validated by running them on the module being learnt. The automaton learnt is assigned to variable L and can be visualised with 
+<pre>synapse:visualise(L,[],locker).</pre>
+The outcome of visualisation is the following:
+<br/>
+<img src="synapse3.png"/>
+</body>
+</html>

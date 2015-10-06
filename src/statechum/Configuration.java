@@ -746,7 +746,8 @@ public class Configuration implements Cloneable {
 
 	protected boolean generateTextOutput = false;
 	protected boolean generateDotOutput = false;
-
+	protected boolean visualiseOutput = false;
+	
 	public boolean isGenerateTextOutput() {
 		return generateTextOutput;
 	}
@@ -763,6 +764,14 @@ public class Configuration implements Cloneable {
 		generateDotOutput = generateDot;
 	}
 
+	public void setVisualiseOutput(boolean visualise) {
+		visualiseOutput = visualise;
+	}
+	
+	public boolean isVisualiseOutput() {
+		return visualiseOutput;
+	}
+	
 	/**
 	 * Depth information is used to identify which vertex from a collection of
 	 * them to use as a representative of an equivalence class, however when

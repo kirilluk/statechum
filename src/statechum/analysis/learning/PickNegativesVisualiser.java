@@ -23,7 +23,7 @@ import java.util.*;
 import javax.swing.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
-
+import edu.uci.ics.jung.utils.UserData;
 import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -98,6 +98,12 @@ public class PickNegativesVisualiser extends Visualiser
 		        			OutputUtil.generateTextOutput(learnt,"textOutput.txt");
 		        		if(conf.config.isGenerateDotOutput())
 		        			OutputUtil.generateDotOutput(learnt, "dotOutput.dot");
+		        		if (conf.config.isVisualiseOutput())
+		        		{
+		        			learnt.setUserDatum(JUConstants.TITLE, "graph",UserData.SHARED);
+		        			Visualiser.updateFrame(learnt, null);
+		        			Visualiser.waitForKey();
+		        		}
 		        	}
 	            	catch(java.io.IOException ex)
 	            	{

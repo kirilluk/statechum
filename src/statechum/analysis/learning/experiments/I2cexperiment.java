@@ -578,6 +578,6 @@ public class I2cexperiment extends PairQualityLearner
 		System.out.println("started: "+new Date());
 		LearnerGraph graph = learnerRunner.learn();
 		System.out.println("finished: "+new Date());
-		graph.storage.writeGraphML("outcome_i2c_chunk7.xml");
+		graph.storage.writeGraphML("outcome_i2c.xml");
 	}
 }

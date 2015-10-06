@@ -123,11 +123,75 @@ fi # test "$cross_compiling" = no
 	LIBS="$save_LIBS"
 ])dnl ACX_UMFPACK_CHECKUMF
 
+# This one is almost the same as above, but tailored for Debian Jessie distribution, to be used first if possible.
+
+AC_DEFUN([ACX_UMFPACK_DEBIAN],[
+	acx_umfpack_include_ok=no
+	UMFPACK_INCLUDES="-I/usr/include/suitesparse $BLAS_DIR"
+	for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS;do UMFPACK_INCLUDES="$UMFPACK_INCLUDES -I$JNI_INCLUDE_DIR";done
+	UMFPACK_LIBS="-lumfpack -lamd -lcholmod -lcolamd $LIBRT -lm $BLAS_LIBS"
+	save_CPPFLAGS="$CPPFLAGS"; CPPFLAGS="$CPPFLAGS $UMFPACK_INCLUDES"
+	save_LIBS="$LIBS"; LIBS="$UMFPACK_LIBS $LIBS"
+	AC_CHECK_HEADER(umfpack.h,
+		[acx_umfpack_include_ok=yes],[acx_umfpack_include_ok=no])
+
+	if test $acx_umfpack_include_ok = yes; then
+		AC_MSG_CHECKING([if data types are the same between UMFPACK and JNI])
+dnl this is from default aclocal.m4, checking both if a simple program can be built
+dnl and whether sizes are appropriate.
+
+if test "$cross_compiling" = no; then
+  umf_defsUnknown=0;umf_defsConsistent=1;umf_defsInconsistent=2;
+  lt_status=$umf_defsUnknown
+  cat > conftest.$ac_ext <<EOF
+[#line __oline__ "configure"
+#include "confdefs.h"
+
+#include "umfpack.h"
+#include "solver.h"
+
+int main(int argc,char **argv)
+{
+  if (sizeof(SOLVER_INT) != sizeof(jint))
+    return $umf_defsInconsistent;
+
+  if (sizeof(double) != sizeof(jdouble))
+    return $umf_defsInconsistent;
+
+  return $umf_defsConsistent;
+}]
+EOF
+  if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext} 2>/dev/null; then
+    (./conftest; exit; ) >&AS_MESSAGE_LOG_FD 2>/dev/null
+    lt_status=$?
+    case x$lt_status in
+      x$umf_defsConsistent) 
+	acx_umfpack_ok=yes 
+    	AC_MSG_RESULT([yes])
+	;; # everything ok, we're finished
+      x$umf_defsInconsistent) 
+	AC_MSG_RESULT([inconsistent definitions of int/double between jni and UMFPACK])
+	;;
+    esac
+  else :
+    # compilation failed
+    AC_MSG_RESULT([failure])
+  fi
+  rm -fr conftest*
+else
+  AC_MSG_RESULT([cannot check when cross-compiling])
+fi # test "$cross_compiling" = no
+
+	fi # test $acx_umfpack_include_ok = yes
+
+	CPPFLAGS="$save_CPPFLAGS"
+	LIBS="$save_LIBS"
+])dnl ACX_UMFPACK_DEBIAN
+
 
 AC_DEFUN([ACX_UMFPACK], [
 AC_PREREQ(2.50)
 acx_umfpack_ok=no
-
 AC_ARG_WITH(umfpack,
 	[AC_HELP_STRING([--with-umfpack=<dir>], [use umfpack rooted at <dir>])])
 case $with_umfpack in
@@ -142,9 +206,12 @@ acx_umfpack_save_LIBS="$LIBS"
 
 # First, check UMFPACK_ROOT environment variable
 if test $acx_umfpack_ok = no; then
-if test "x$UMFPACK_ROOT" != x; then
-	ACX_UMFPACK_CHECKUMF([$UMFPACK_ROOT])
-fi
+   if test x"$acx_umfpack_ok" != xyes; then
+      ACX_UMFPACK_DEBIAN([])
+   fi
+   if test "x$UMFPACK_ROOT" != x -a x"$acx_umfpack_ok" != xyes; then
+   	ACX_UMFPACK_CHECKUMF([$UMFPACK_ROOT])
+   fi	
 fi
 
 AC_SUBST(UMFPACK_INCLUDES)

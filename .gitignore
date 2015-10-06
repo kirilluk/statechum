@@ -3,6 +3,7 @@
 /linear/.libs
 /smt/.libs
 /lib/ltl2ba-1.1/*.exe
+/lib/ltl2ba-1.1/ltl2ba
 /lib/ltl2ba-1.1/*.o
 ErlangExamples/WibbleMonster/*.beam
 ErlangExamples/WibbleMonster/*.plt
@@ -13,4 +14,34 @@ ErlangExamples/locker/*.plt
 ErlangExamples/frequency/*.beam
 ErlangExamples/frequency/*.plt
 
+linear/.deps/
+linear/Makefile
+linear/Makefile.in
+linear/aclocal.m4
+linear/autom4te.cache/
+linear/config.log
+linear/config.status
+linear/config/
+linear/libStatechumSolver.la
+linear/libtool
+linear/m4/libtool.m4
+linear/m4/ltoptions.m4
+linear/m4/ltsugar.m4
+linear/m4/ltversion.m4
+linear/m4/lt~obsolete.m4
+linear/umfsolver.lo
 
+smt/.deps/
+smt/Makefile
+smt/Makefile.in
+smt/a.c
+smt/aclocal.m4
+smt/autom4te.cache/
+smt/config.log
+smt/config.status
+smt/config/
+smt/libSMT_Yices.la
+smt/libtool
+smt/m4/
+smt/yices_caller.lo
+smt/yices_caller.o

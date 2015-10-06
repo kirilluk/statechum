@@ -19,6 +19,9 @@ if [ -r /usr/local/soft/umfpack-5.6.1 ];then
     ATLAS=/usr/local/soft/OpenBLAS-be853da
 fi
 
+# This is a fallback if no other path has been found, will autoconfig on Debian Jessie
+if [ -z "${UMFROOT}" ]; then UMFROOT=yes; fi
+
 HOST=
 # For building on Windows-64, there is a special kludge, only tested on Win64.
 if uname | grep -q WOW64;then

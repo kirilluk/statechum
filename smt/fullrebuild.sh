@@ -4,6 +4,9 @@
 
 [ -r /usr/local/soft/yices-1.0.38 ] && YICES_ROOT=/usr/local/soft/yices-1.0.38
 
+# 1.0.40 is the last version of yices-1, there will be no newer versions.
+[ -r /usr/local/soft/yices-1.0.40 ] && YICES_ROOT=/usr/local/soft/yices-1.0.40
+
 HOST=
 # For building on Windows-64, there is a special kludge, only tested on Win64.
 if uname | grep -q WOW64;then

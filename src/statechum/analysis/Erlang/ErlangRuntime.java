@@ -171,12 +171,13 @@ public class ErlangRuntime {
 						"testing that Erlang can be run at all", p);
 				
 				// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
+				// Strings converted to lists of numbers to avoid using quotes that are not compatible between MacOS and Windows (quotes need backslash on Windows, but there should be none for MacOS). Using dollar sign is probably also bad since it may be expanded. 
 				p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "io:format(\\\"~s\\\",[\\\"_\\\"++erlang:system_info(otp_release)++\\\"-\\\"++erlang:system_info(system_architecture)]),halt().", "-name", traceRunnerNode,
+								"-eval", "io:format([126,115],[ [95 | [ erlang:system_info(otp_release) | [45 | erlang:system_info(system_architecture)]]]]),halt().", "-name", traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null);
 				platformDescription=dumpProcessOutputOnFailure("extraction of OTP version string", p);
-				
+
 				// After the first Erlang node is created (by passing -sname to Erlang), epmd appears and we can create a node.
 				ErlangNode.getErlangNode().createNode();
 

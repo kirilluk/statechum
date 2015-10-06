@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum.analysis.learning.experiments.PairSelection;
+package statechum.analysis.learning;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,18 +44,15 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
-import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RGraph;
-import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.Cav2014;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.PairSelection.MarkovScoreComputation;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
@@ -69,8 +66,8 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
-import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
 
 public class ASE2014 extends PairQualityLearner
@@ -788,8 +785,8 @@ public class ASE2014 extends PairQualityLearner
 					
 					@SuppressWarnings("rawtypes")
 					@Override
-					public RGraph[] getGraphs() {
-						return new RGraph[]{gr_StructuralDiff,gr_BCR};
+					public DrawGraphs.RGraph[] getGraphs() {
+						return new DrawGraphs.RGraph[]{gr_StructuralDiff,gr_BCR};
 					}
 					
 				});
@@ -844,8 +841,8 @@ public class ASE2014 extends PairQualityLearner
 				
 				@SuppressWarnings("rawtypes")
 				@Override
-				public RGraph[] getGraphs() {
-					return new RGraph[]{gr_StructuralDiffWithoutInconsistencies,gr_BCRWithoutInconsistencies};
+				public DrawGraphs.RGraph[] getGraphs() {
+					return new DrawGraphs.RGraph[]{gr_StructuralDiffWithoutInconsistencies,gr_BCRWithoutInconsistencies};
 				}
 			});
 			

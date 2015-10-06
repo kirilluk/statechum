@@ -18,12 +18,18 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.apps;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
+import edu.uci.ics.jung.utils.UserData;
 import statechum.Configuration;
+import statechum.JUConstants;
+import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -39,16 +45,27 @@ public class GraphMLVisualiser extends Visualiser {
 	 */
 	private static final long serialVersionUID = 1735419773441272849L;
 
+	protected static DirectedSparseGraph convertToGraphWithoutStateNumbers(LearnerGraphND gr)
+	{
+		Map<String,String> labelling = new TreeMap<String,String>();
+		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+			labelling.put(entry.getKey().toString(),Visualiser.extralabelToReplaceExisting+entry.getKey().getStringId());
+		DirectedSparseGraph result = gr.pathroutines.getGraph();
+		result.addUserDatum(JUConstants.VERTEX, labelling, UserData.SHARED);
+		return result;
+	}
+	
 	public static void main(String[] args) throws IOException{
 		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
+
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
-		AbstractPersistence.loadGraph(args[0], graph0,null);
+		File file0 = new File(args[0]);AbstractPersistence.loadGraph(file0, graph0,null);graph0.setName(file0.getName());
 		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
-			AbstractPersistence.loadGraph(args[1], graph1,null);
+			File file1 = new File(args[1]);AbstractPersistence.loadGraph(file1, graph1,null);graph1.setName(file1.getName());
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			DirectedSparseGraph gr = gd.showGD(
 					graph0,graph1,
@@ -56,7 +73,7 @@ public class GraphMLVisualiser extends Visualiser {
 			Visualiser.updateFrame(gr,null);
 		}
 		else
-			Visualiser.updateFrame(graph0, null);
+			Visualiser.updateFrame(convertToGraphWithoutStateNumbers(graph0), null);
 		
 		Visualiser.waitForKey();
 	}

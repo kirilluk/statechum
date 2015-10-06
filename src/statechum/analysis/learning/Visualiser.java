@@ -46,8 +46,9 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
 import statechum.StringLabel;
 import statechum.analysis.Erlang.ErlangLabel;
-import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.linear.GD;
+import statechum.analysis.learning.linear.DifferenceVisualiser.ChangesToGraph;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 
@@ -1574,9 +1575,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 									public void actionPerformed(@SuppressWarnings("unused") ActionEvent ev) {
 										GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 											new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
-										DirectedSparseGraph gr = gd.showGD(
-												ourGraph,otherGr,
-												ExperimentRunner.getCpuNumber());
+										DirectedSparseGraph gr = 
+												//gd.showGD(ourGraph,otherGr,ExperimentRunner.getCpuNumber());
+												ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(ourGraph), ChangesToGraph.computeGD(ourGraph, otherGr,ourGraph.config));
+
 										Visualiser.updateFrame(gr, null);
 									}
 						

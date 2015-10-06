@@ -138,7 +138,7 @@ lack of tracking dependencies between Java files.
        	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
         <!-- <jvmarg value="-Duser.dir=/home/ramsay/statechum/XMachineTool/trunk/"/> -->
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
-       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+       	<sysproperty key="java.library.path" value="linear/.libs"/>
        	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
        	<sysproperty key="threadnum" value="4"/>
 		<sysproperty key="com.sun.management.jmxremote" value="" />
@@ -146,6 +146,7 @@ lack of tracking dependencies between Java files.
        	<sysproperty key="SMTWARNINGS" value="true"/>
        	<sysproperty key="LINEARWARNINGS" value="true"/>
        	<sysproperty key="FORCEFORK" value="true"/>
+		<sysproperty key="ERLANGOUTPUT_ENABLED" value="true" />
       	<classpath>
          	<path refid="classpath.statechum" />
          	<pathelement location="${statechum_bin}"/>
@@ -153,7 +154,7 @@ lack of tracking dependencies between Java files.
 
        	<formatter type="plain"/>
  
-       	<test name="statechum.analysis.Erlang.ErlangTestSuite" />
+       	<test name="statechum.analysis.Erlang.ErlangTests" />
 
        </junit>
 

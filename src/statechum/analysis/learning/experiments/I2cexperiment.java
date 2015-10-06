@@ -197,6 +197,7 @@ public class I2cexperiment extends PairQualityLearner
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			actualAutomaton.setName("i2c_experiment");
 
     		
     		System.out.println(actualAutomaton.getStateNumber());
@@ -577,6 +578,6 @@ public class I2cexperiment extends PairQualityLearner
 		System.out.println("started: "+new Date());
 		LearnerGraph graph = learnerRunner.learn();
 		System.out.println("finished: "+new Date());
-		graph.storage.writeGraphML("outcome_i2c_chunk7.xml");
+		graph.storage.writeGraphML("outcome_i2c.xml");
 	}
 }

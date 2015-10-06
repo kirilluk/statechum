@@ -21,6 +21,7 @@ import javax.swing.filechooser.FileFilter;
 import statechum.Configuration;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.ErlangRuntime;
 
 /**
  *
@@ -34,11 +35,20 @@ public class Start extends javax.swing.JFrame {
 	 * ID for serialisation.
 	 */
 	private static final long serialVersionUID = -4326469608069940928L;
+	protected static ErlangRuntime erlRuntime = null;
+	protected static ErlangRunner runner = null;
 	
 	/** Creates new form Start */
     public Start(String dir) {
     	initialDirectory = dir;
         initComponents();
+        
+        if (erlRuntime == null)
+        {
+        	erlRuntime = new ErlangRuntime();erlRuntime.setTimeout(500);erlRuntime.startRunner();
+        }
+        if (runner == null)
+        	runner = erlRuntime.createNewRunner();
     }
 
     /** This method is called from within the constructor to
@@ -171,6 +181,7 @@ public class Start extends javax.swing.JFrame {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
             	Configuration config = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(config,chooser.getSelectedFile());
+            	config.setErlangMboxName(runner.getRunnerName()); 
                 ErlangModuleViewer modview = new ErlangModuleViewer(ErlangModule.loadModule(config));
                 modview.setVisible(true);
             } catch (IOException ex) {

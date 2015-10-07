@@ -36,8 +36,6 @@ import java.util.Random;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
-import com.sun.jmx.trace.TraceManager;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;

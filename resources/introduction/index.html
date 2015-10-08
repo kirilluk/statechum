@@ -10,7 +10,7 @@ Statechum is the tool that can be used for the inference of models and their com
 The inference process can use both passive and active. For the passive one, Blue Fringe can be used; active learner uses QSM.
 <p/>
 After the brief introduction, this document contains three parts, <a href="#installation">installation of Statechum</a>, 
-<a href="#learning">sample Statechum use</a> and <a href="#synapse">how to use Synapse</a>.
+<a href="#learning">sample Statechum use</a> and <a href="#synapse">how to use Synapse</a>. If you only intend to use Synapse, skip to the <a href="#synapse">how to use Synapse</a> part.
 <p/>
 The tool is mostly written in Java, but a few components of it are implemented in C. 
 These are not needed for most tasks but could be useful for model comparison and where domain-specific properties 
@@ -21,7 +21,21 @@ the R tool in order to plot graphs.
 The supported execution environment is Windows/Linux/MacOS (all x86_64). The tool may work on other platforms (such as 32-bit platforms) but the test suite for the tool is not routinely run on a 32-bit platform and a number of components may be missing or obsolete.
 
 <h1 id="installation">Installation</h1>
-<h2>Building the Java part of the tool</h2>
+The first step is to clone the Git repository from <a href="https://github.com/kirilluk/statechum">here</a>.
+The next step depends on whether you plan to install it as an end-user (simply uncompress the binary which is 
+fast but does not run built-in tests) or developer (involves building if necessary and possibly running all tests).
+<h2 id="installation-user">Building the Java part of the tool - end-user install</h2>
+First, clone the Git repository from <i>https://github.com/kirilluk/statechum</i> and then uncompress the specific binary into the root directory of it. These
+are provided for specific versions of Statechum, such as the one from <a href="http://www.dcs.shef.ac.uk/~kirill/statechum/statechum-bbec4-bin.zip">Oct 7, 2015 
+(git commit ending at bbec4, Oracle Java 1.8.0_60, Erlang R16)</a>. 
+The .zip contains bin and tmp directories and is intended to be uncompressed into the root of the Statechum folder. 
+The bin part contains Java .class files and tmp contains the `beam' folder with Erlang .beam files. The choice of Java 8/Erlang R16 broadly means it will work with any modern release of Java or Erlang.
+Specific components of Statechum have separate installation instructions, described <a href="#special-installation">below</a>.
+None of them are really needed for Synapse although installing <i>linear</i> may be useful since it can speed-up the computations of differences
+between graphs.
+
+<h2 id="installation-developer">Building the Java part of the tool - developer install</h2>
+The first step is to clone the Git repository from <a href="https://github.com/kirilluk/statechum">here</a>.
 The whole directory is a valid Eclipse project and can be directly imported into Eclipse as a project. For developers, 
 it might be useful to set the same warning options in Eclipse as those used during development of Statechum. 
 These are documented in the file <i>src/statechum/analysis/learning/Visualiser.java</i>, search for 'Warning settings for Eclipse'. 
@@ -34,11 +48,11 @@ Tests can be launched either via Eclipse as a Java unit test (class <i>statechum
 
 The run time for all tests is 19 hours on an i7-Ivy Bridge at 3.7 Ghz, however the most important tests (anything not part of `LengthyTets') completes in 13 min on the same PC.
 
-<h2>Special installation instructions for non-Java components of Statechum</h2>
+<h2 id="special-installation">Directories in the Statechum folder and special installation instructions for non-Java components of Statechum</h2>
 
 <table width="100%" border="1" cellspacing="0" cellpadding="3">
-<tr><td>Name</td><td>Description</td><td>where used</td><td>Special installation instructions</td></tr>
-<tr><td><i>src</i></td><td>the source code of the Statechum tool.</td><td>all components of Statechum use it</td><td></td></tr>
+<tr><td>Directory</td><td>Description</td><td>where used</td><td>Special installation instructions</td></tr>
+<tr><td><i>src</i></td><td>the source code of the Statechum tool.</td><td>all components of Statechum use it</td><td>none</td></tr>
 <tr><td><i>lib</i></td><td>Various external libraries used by the tool. 
 These are the components of the R tool as well as JUnit, Jung, Weka and a few others. </td>
 <td>
@@ -65,7 +79,11 @@ Most of the time, it is enough to type 'make' in the <i>lib/lbl2ba-1.1</i> direc
 </li></ul>
 </td></tr>
 <tr><td><i>linear</i></td><td>The C code permitting umfpack to be called from Statechum.</td><td>Comparison of models. If the C part is not available, the comparison will still work but it will fall back onto Java implementation that is very slow and limited to tiny machines.</td>
-<td>The details how to build this are in the comment at the top of the file <i>src/statechum/analysis/learning/rpnicore/LSolver.java</i> and require installation of umfpack. To simplify matters, pre-compiled versions of the library fit for use with Statechum can be found <a href="http://staffwww.dcs.shef.ac.uk/people/K.Bogdanov/statechum/">here</a>, grouped by an operating system. These tend to contain libraries that should go to <i>linear/.libs</i> directory as well as <i>smt/.libs</i>, the latter responsible for the integration with the Yices solver.</td>
+<td>The details how to build this are in the comment at the top of the file <i>src/statechum/analysis/learning/rpnicore/LSolver.java</i> and 
+require installation of umfpack. To simplify matters, pre-compiled versions of the library fit for use with Statechum can be found 
+<a href="http://staffwww.dcs.shef.ac.uk/people/K.Bogdanov/statechum/">here</a>, grouped by an operating system. These tend to contain 
+libraries that should go to <i>linear/.libs</i> directory as well as <i>smt/.libs</i>, 
+the latter responsible for the integration with the Yices solver.</td>
 </tr>
 <tr>
 <td><i>smt</i></td><td>The code to utilise Yices from within Statechum.</td><td>Domain-specific constraints in the language of Yices-1</td><td>Install a shared-library version of Yices from its official distribution page at SRI. The process to build the library is described at the top of the file
@@ -86,7 +104,7 @@ If running Java from a command line rather than Eclipse, you can use
 Here <i>statechum.apps.QSMTool</i> is the component of Statechum to run and <i>resources/qsmtooldemo.txt</i> is the input file, with the format described below. The semicolon separting different components of a Java classpath is a semicolon for Windows and a colon for Unix operating systems. 
 The outcome of running the above Java command is shown below.<br/>
 <img src="qsmtooldemo.png"/><br/>
-The star denotes the initial state; the colour is grey because it is currently selected (and hence the label of this state P1000 is in blue).
+The star denotes the initial state; it is coloured grey because it is currently selected (and hence the label of this state P1000 is in blue).
 
 <h1>Learning from event sequences</h1>
 
@@ -134,20 +152,36 @@ produces a picture that can look as follows:<br/>
 
 <h1 id="synapse">Learning using Synapse</h1>
 <h2>Installation</h2>
+<ol>
+<li>First, install Statechum. The easiest way is to follow the instructions in the <a href="#installation-user">end user installation</a> 
+part of this document.</li>
+<li>
 Synapse is a project that has to be cloned from GitHub <a href="https://github.com/ramsay-t/Synapse">here</a>.
 After cloning, two files need to be edited in the main Synapse directory, <i>synapse.conf</i> containing an absolute path to the 
 Statechum configuration file, and the statechum configuration file <i>statechum.conf</i> itself. 
 The defaults in <i>statechum.conf</i> need to be edited to include absolute paths to the Java binary 
 (such as 'C:/Program Files/Java/jdk1.7.0_07/bin/java.exe' on Windows) and an absolute path to Statechum. 
-Following this, Erlang tests need to be run by entering Statechum directory and running <pre>ant erlang-test</pre> 
+</li>
+<li>
+If you installed Statechum by uncompressing the binary, you can skip this step. 
+<br/>If you chose to build Statechum from source, you will need to 
+build and run Erlang tests (unless you have run tests as described in the <a href="#installation-developer">developer install guide</a>).
+In order to build and run Erlang tests, you need to enter the Statechum directory and run <pre>ant erlang-test</pre> 
 which will both compile the Java & Erlang portion of Statechum and check that it works correctly. 
-Compiled .beam files can then be found in the <i>tmp/beam ... </i> directory, where dots correspond to an Erlang release and platform being used. 
-This directory needs to be renamed to be called just <i>tmp/beam</i>
-<br/>
-Compiling Synapse can be done by running 'make' in the main Synapse directory; an exception for this is Windows where cygwin is needed and running './rebar compile' builds Synapse.
+Compiled .beam files can then be found in the <i>tmp/beam ... </i> directory, where the ellipsis corresponds to an Erlang release and platform being used. 
+This directory needs to be renamed to be called just <i>tmp/beam</i>. Note that Erlang tests may fail due to timeouts, in which case you may re-run them
+to see if things improve. They may also fail if run with an JDK1.6 due to interaction of different tests, in which case re-running individual tests can 
+be used to confirm whether it is the interaction that is at fault; this problem does not occur with Java 8 on either Windows or Linux.
+</li>
+<li>
+Compiling Synapse can be done on Linux or MacOS by running 'make' in the main Synapse directory (make test can also run tests); on Windows, cygwin is needed and 
+running './rebar compile' builds Synapse. An alternative is to enter the <i>ebin</i> directory of Synapse and type
+<pre>erlc -I../include ../src/synapse.erl ../src/synapse_sm.erl ../src/synapse_stamina.erl ../src/synapse_statechum.erl</pre>
+</li>
+</ol>
 <h2>Learning from traces</h2>
 Running Synapse from Erlang command line requires entering the main Synapse directory and typing 
-<pre>erl -pa ebin -name synapse</pre> Here, 'synapse' is Erlang node name that can be really any bit of text.
+<pre>erl -pa ebin -name synapse</pre> Here, 'synapse' is Erlang node name that can be arbitrary.
 
 Calling 
 <pre>Learnt=synapse:passive_learn([{neg,[a,b]},{pos,[a,a,a,b]}],[]).</pre> from Erlang command line will cause Synapse to run Statechum and learn an FSM from the provided traces. The format of inputs is a list of elements {pos,TRACE} or {neg,TRACE} where the former corresponds to a positive trace and the latter - to the negative one (a negative trace is the one where the last element is not permitted but all strict prefixes are valid traces). This produces a few progress messages and a final machine

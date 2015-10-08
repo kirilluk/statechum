@@ -163,7 +163,7 @@ The defaults in <i>statechum.conf</i> need to be edited to include absolute path
 (such as 'C:/Program Files/Java/jdk1.7.0_07/bin/java.exe' on Windows) and an absolute path to Statechum. 
 </li>
 <li>
-If you installed Statechum by uncompressing the binary, you can skip this step. 
+If you installed Statechum by uncompressing the binary, <b>you can skip this step</b>. 
 <br/>If you chose to build Statechum from source, you will need to 
 build and run Erlang tests (unless you have run tests as described in the <a href="#installation-developer">developer install guide</a>).
 In order to build and run Erlang tests, you need to enter the Statechum directory and run <pre>ant erlang-test</pre> 
@@ -174,17 +174,18 @@ to see if things improve. They may also fail if run with an JDK1.6 due to intera
 be used to confirm whether it is the interaction that is at fault; this problem does not occur with Java 8 on either Windows or Linux.
 </li>
 <li>
-Compiling Synapse can be done on Linux or MacOS by running 'make' in the main Synapse directory (make test can also run tests); on Windows, cygwin is needed and 
-running './rebar compile' builds Synapse. An alternative is to enter the <i>ebin</i> directory of Synapse and type
+Compiling Synapse can be done on Linux or MacOS by running 'make' in the main Synapse directory; on Windows, cygwin is needed and 
+running './rebar compile' builds Synapse. An alternative is to create <i>ebin</i> directory in the main Synapse directory (it does not exist right after cloning Synapse), 
+then enter it and type
 <pre>erlc -I../include ../src/synapse.erl ../src/synapse_sm.erl ../src/synapse_stamina.erl ../src/synapse_statechum.erl</pre>
 </li>
 </ol>
 <h2>Learning from traces</h2>
 Running Synapse from Erlang command line requires entering the main Synapse directory and typing 
-<pre>erl -pa ebin -name synapse</pre> Here, 'synapse' is Erlang node name that can be arbitrary.
-
+<pre>erl -pa ebin -pa ../statechum/tmp/beam -name synapse</pre> Here 'synapse' is Erlang node name that can be arbitrary and <i>../statechum/tmp/beam</i> is a relative path to the <i>tmp/beam</i> directory with beam files of Statechum.
+<p/>
 Calling 
-<pre>Learnt=synapse:passive_learn([{neg,[a,b]},{pos,[a,a,a,b]}],[]).</pre> from Erlang command line will cause Synapse to run Statechum and learn an FSM from the provided traces. The format of inputs is a list of elements {pos,TRACE} or {neg,TRACE} where the former corresponds to a positive trace and the latter - to the negative one (a negative trace is the one where the last element is not permitted but all strict prefixes are valid traces). This produces a few progress messages and a final machine
+<pre>Learnt=synapse:passive_learn([{neg,[a,b]},{pos,[a,a,a,b]}],[]).</pre> from the Erlang command line will cause Synapse to run Statechum and learn an FSM from the provided traces. The format of inputs is a list of elements {pos,TRACE} or {neg,TRACE} where the former corresponds to a positive trace and the latter - to the negative one (a negative trace is the one where the last element is not permitted but all strict prefixes are valid traces). This produces a few progress messages and a final machine
 <pre>
 {statemachine,['P1000','P1001','P1002','N1000','P1004'],
               [{'P1000',a,'P1001'},
@@ -232,10 +233,18 @@ has replaced the earlier graph in the window, but it now contains '3/3' in the t
 This is a reflection that there are three graphs and you are looking at the third one. Using the arrow keys up/down you can switch between graphs. If a layout of any of them has been saved, it is used; otherwise, layout is recomputed so the graphs may look slightly different when you repeatedly switch between them.
 <h2>Active inference from Erlang modules</h2>
 Synapse also supports active learning from Erlang modules. For example, there is a module <i>ErlangExamples/locker/locker.erl</i> in the Statechum directory. You can then call 
-<pre>L=synapse:learn_erlang('d:/experiment/github/statechum/ErlangExamples/locker/locker.erl').</pre> where <i>'d:/experiment/github/statechum/ErlangExamples/locker/locker.erl'</i> is an Erlang an atom reflecting an absolute path to the Erlang module to learn. When you call it, Statechum is launched in order to inspect types of the functions in the module, generate some random traces and then learn an automaton, where queries by the learner are automatically validated by running them on the module being learnt. The automaton learnt is assigned to variable L and can be visualised with 
+<pre>L=synapse:learn_erlang('../statechum/ErlangExamples/locker/locker.erl').</pre> where <i>'../statechum/ErlangExamples/locker/locker.erl'</i> is an Erlang an atom reflecting a relative path to the Erlang module to learn. 
+When you call it, Statechum is launched in order to inspect types of the functions in the module, generate some random traces and then learn an automaton, where queries by the learner are automatically validated by running them on the module being learnt. The automaton learnt is assigned to variable L and can be visualised with 
 <pre>synapse:visualise(L,[],locker).</pre>
 The outcome of visualisation is the following:
 <br/>
-<img src="synapse3.png"/>
+<img src="synapse3.png"/></br><p/>
+<h2>Known bugs</h2>
+<ul><li>if synapse process terminates, indicated by the `Synapse terminated' message, a subsequent call to any Synapse function (such as `synapse:visualise') can report something like 
+`Statechum is at <0.44.0>' with no further progress. 
+This happens when an error caused Statechum to terminate but the component responsible for communication with it still thinks that Statechum is running and presently the simplest solution is to restart Erlang runtime. 
+The problem can be reproduced by calling `L=synapse:learn_erlang' on different automata, in which case the second call causes the `no match of right hand side value' exception, reflecting that L cannot be bound to a different value.
+</li><li>After a fresh clone, a window with a graph may appear too small and needs to be resized. Once the desired size/position is chosen, pressing F4 in that window will cause its size and position to be recorded and used in subsequent runs of the tool.
+</li></ul>
 </body>
 </html>

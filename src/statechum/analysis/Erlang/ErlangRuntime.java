@@ -44,6 +44,7 @@ public class ErlangRuntime {
 	/** Monitors the above machine and dumps its out and err to the console. */
 	protected Thread stdDumper = null;
 
+	/** Name for the Erlang node to create. */
 	protected String traceRunnerNode;
 	
 	public static final int timeBetweenChecks = 100;
@@ -131,6 +132,39 @@ public class ErlangRuntime {
 	/** Contains OTP version. */
 	public static String platformDescription="";
 
+	public static void compileCoreErlangModules(ErlangRunner runner,File whereToPlaceModules) throws IOException
+	{
+		// The compilation phase could a few seconds but only needs to
+		// be done once after installation of Statechum. Here we only compile the core part of Statechum, the rest is compiled by the runtime 
+		// because compile options depend on the version of Erlang in use and this is only known to the runtime.
+		for (String str : new String[] { "tracerunner.erl",
+				"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
+				"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
+			ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), runner,whereToPlaceModules);
+
+	}
+	
+	public static void compileTheRestOfErlangModules(ErlangRunner runner,File whereToPlaceModules) throws IOException
+	{
+		if (runner == null)
+			throw new IllegalArgumentException("these modules require a runtime because they need to be passed an include-path dependent on the target version of Erlang OTP");
+		for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
+			for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
+				if (ErlangRunner.validName(f.getName()))
+					ErlangRunner.compileErl(f, runner, whereToPlaceModules);
+	}
+	
+	public static void main(String [] args) throws IOException
+	{
+		File beamDir = new File(args[0]);
+		if (!beamDir.isDirectory())
+			if (!beamDir.mkdir())
+				throw new IllegalArgumentException("Erlang output directory "+beamDir.getAbsolutePath()+" cannot be created");
+		ErlangRuntime runtime = ErlangRuntime.getDefaultRuntime();runtime.setTimeout(500);runtime.startRunner();
+		ErlangRunner runner = runtime.createNewRunner();
+		compileCoreErlangModules(runner,beamDir);compileTheRestOfErlangModules(runner,beamDir);
+	}
+	
 	/**
 	 * Starts Erlang in the background,
 	 * 
@@ -147,26 +181,37 @@ public class ErlangRuntime {
 		try {
 			if (erlangProcess == null) 
 			{
-				if (displayErlangOutput)
-				{
-					System.out.print("Starting Erlang...");System.out.flush();
-				}
-				
 				final long startTime = System.currentTimeMillis();
 
 				ErlangNode.initNodeParameters(null, null);
 				
-				String tracerunnerProgram = "tracerunner.erl";
-				// It is very important that there is an '@' part to the node name: without it, Erlang adds a host name by default so the actual node name is different from the one supplied via -sname to the process and the node does not respond to the name without '@'.
-				traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "_" + "@" + "127.0.0.1";// + InetAddress.getLocalHost().getHostName().replaceAll("\\..*", "");// eliminates everything starting with the first dot, important on MacOS. 
+				String optionForNodeName = null;
+				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
+				{// short node names
+					traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "@"+"localhost";
+					optionForNodeName = "-sname";
+				}
+				else
+				{// option node names
+
+					// It is very important that there is an '@' part to the node name: without it, Erlang adds a host name by default so the actual node name is different from the one supplied via -sname to the process and the node does not respond to the name without '@'.
+					traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "@" + "127.0.0.1";// + InetAddress.getLocalHost().getHostName().replaceAll("\\..*", "");// eliminates everything starting with the first dot, important on MacOS.
+					optionForNodeName = "-name";
+				}
+
+				if (displayErlangOutput)
+				{
+					System.out.print("Starting Erlang "+optionForNodeName+" "+traceRunnerNode+" ...");System.out.flush();
+				}
+
 				// now we simply evaluate "halt()." which starts epmd if
 				// necessary and we can check along the way that we can run
 				// Erlang at all.
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "halt().", "-name", traceRunnerNode,
+								"-eval", "halt().", optionForNodeName, traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null
-								);//getErlangBeamDirectory());
+								);
 				dumpProcessOutputOnFailure(
 						"testing that Erlang can be run at all", p);
 				
@@ -174,20 +219,21 @@ public class ErlangRuntime {
 				// Strings converted to lists of numbers to avoid using quotes that are not compatible between MacOS and Windows (quotes need backslash on Windows, but there should be none for MacOS). Using dollar sign is probably also bad since it may be expanded. 
 				p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
-								"-eval", "io:format([126,115],[ [95 | [ erlang:system_info(otp_release) | [45 | erlang:system_info(system_architecture)]]]]),halt().", "-name", traceRunnerNode,
+								"-eval", "io:format([126,115],[ [95 | [ erlang:system_info(otp_release) | [45 | erlang:system_info(system_architecture)]]]]),halt().", optionForNodeName, traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() }, null);
 				platformDescription=dumpProcessOutputOnFailure("extraction of OTP version string", p);
 
-				// After the first Erlang node is created (by passing -sname to Erlang), epmd appears and we can create a node.
+				// After the first Erlang node is created (by passing -name or -sname to Erlang), epmd appears and we can create a node.
 				ErlangNode.getErlangNode().createNode();
 
+				compileCoreErlangModules(null,ErlangRunner.getErlangBeamDirectory());
 				// The compilation phase could a few seconds but only needs to
 				// be done once after installation of Statechum. Here we only compile the core part of Statechum, the rest is compiled by the runtime 
 				// because compile options depend on the version of Erlang in use and this is only known to the runtime.
-				for (String str : new String[] { tracerunnerProgram,
+				for (String str : new String[] { "tracerunner.erl",
 						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
-				ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), null,true);
+					ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), null,ErlangRunner.getErlangBeamDirectory());
 
 				// Now build environment variables to ensure that dialyzer will
 				// find a directory to put its plt file in.
@@ -218,10 +264,10 @@ public class ErlangRuntime {
 								// of the original Erlang's one, otherwise I'd
 								// have to rely on tracerunner:compileAndLoad
 								"-run", "tracerunner", "start", ErlangNode.getErlangNode().getName(),
-								runnerMode, "-name", traceRunnerNode,
+								runnerMode, optionForNodeName, traceRunnerNode,
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() },
 								envpList.toArray(new String[0]));
-								//getErlangBeamDirectory());
+
 				stdDumper = new Thread(new Runnable() {
 
 					@Override
@@ -305,10 +351,7 @@ public class ErlangRuntime {
 				{// drain the queue
 				}
 				
-				for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
-					for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
-						if (ErlangRunner.validName(f.getName()))
-							ErlangRunner.compileErl(f, runner, true);
+				compileTheRestOfErlangModules(runner,ErlangRunner.getErlangBeamDirectory());
 				
 				// seems like success, set the value of ErlangProcess
 				erlangProcess = processWithErlangRuntime;

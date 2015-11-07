@@ -26,6 +26,7 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -74,7 +75,7 @@ public class GDVisualDemo
 	
 	public static void main(String str[])
 	{// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
-	
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.CLOSE_TERMINATE,"true");
 		@SuppressWarnings("unchecked")
 		Pair<String,String> [] pairs=new Pair[] {
 				/*

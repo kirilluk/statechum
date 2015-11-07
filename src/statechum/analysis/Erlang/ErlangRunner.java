@@ -155,13 +155,27 @@ public class ErlangRunner {
 	 * @param separateBeamDir whether output files are expected to be located in a separate directory.
 	 */
 	public static String getName(File file, ERL ext,boolean separateBeamDir) {
+		return getName(file,ext,separateBeamDir?ErlangRunner.getErlangBeamDirectory():null);
+	}
+	
+	/**
+	 * Given a file name, converts it to the appropriate extension. Throws
+	 * IllegalArgumentException if this fails.
+	 * 
+	 * @param file
+	 *            file to convert
+	 * @param ext
+	 *            extension to add
+	 * @param beamDir where to place the output files, if null places them in the source directory.
+	 */
+	public static String getName(File file, ERL ext,File beamDir) {
 		String nameToProcess = null;
 		if (ext.getStrip())
 			nameToProcess = file.getName();
 		else
 		{
-			if (separateBeamDir)
-				nameToProcess = ErlangRunner.getErlangBeamDirectory()+File.separator+file.getName();
+			if (beamDir != null)
+				nameToProcess = beamDir+File.separator+file.getName();
 			else
 				nameToProcess = file.getAbsolutePath();
 		}
@@ -309,7 +323,7 @@ public class ErlangRunner {
 	{
 		return GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGFOLDER);
 	}
-	
+
 	/**
 	 * Compiles the supplied file into .beam if .erl has been modified after an
 	 * existing .beam (date of last change is 0 if file does not exist).
@@ -325,15 +339,36 @@ public class ErlangRunner {
 	 */
 	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)	throws IOException 
 	{
-		String erlFileName = getName(whatToCompile, ERL.ERL,false);
+		File beamDirectory = compileIntoBeamDirectory?getErlangBeamDirectory():null;
+		compileErl(whatToCompile,useRunner,beamDirectory);
+	}
+	
+	/**
+	 * Compiles the supplied file into .beam if .erl has been modified after an
+	 * existing .beam (date of last change is 0 if file does not exist).
+	 * 
+	 * @param whatToCompile
+	 *            file to compile
+	 * @param useRunner
+	 *            ask Erlang compiler to perform the compile - no need to launch
+	 *            compiler as a separate process.
+	 * @param beamDirectory where to place the compiled file. If null, will use the file name of the Erlang module to determine where to place the compiled .beam file.
+	 * @throws IOException
+	 *             if something goes wrong.
+	 */
+	public static void compileErl(File whatToCompile, ErlangRunner useRunner, File whereToPlaceBeam)	throws IOException 
+	{
+		String erlFileName = getName(whatToCompile, ERL.ERL,null);
 		if (whatToCompile.getParentFile() == null)
 			throw new IllegalArgumentException(
 					"File does not have a parent directory " + whatToCompile);
-		File beamDirectory = compileIntoBeamDirectory?getErlangBeamDirectory():whatToCompile.getAbsoluteFile().getParentFile();
 
 		if (!whatToCompile.canRead())
 			throw new IOException("file " + erlFileName + " does not exist");
-		if (whatToCompile.lastModified() > new File(getName(whatToCompile, ERL.BEAM,compileIntoBeamDirectory)).lastModified()) 
+		
+		File beamDirectory = whereToPlaceBeam != null? whereToPlaceBeam:whatToCompile.getAbsoluteFile().getParentFile();
+		
+		if (whatToCompile.lastModified() > new File(getName(whatToCompile, ERL.BEAM,whereToPlaceBeam)).lastModified()) 
 		{
 			if (useRunner == null) {
 				Process p = Runtime.getRuntime().exec(

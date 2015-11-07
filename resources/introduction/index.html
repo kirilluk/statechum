@@ -4,14 +4,13 @@
 <link rel="icon" href="../icon.jpg"/>
 </head>
 <body>
+If you only intend to use Synapse, skip to the <a href="#synapse">how to use Synapse</a> part.
 <h1>Introduction</h1>
-
 Statechum is the tool that can be used for the inference of models and their comparison as well as for test generation. 
 The inference process can use both passive and active. For the passive one, Blue Fringe can be used; active learner uses QSM.
 <p/>
 After the brief introduction, this document contains three parts, <a href="#installation">installation of Statechum</a>, 
-<a href="#learning">sample Statechum use</a> and <a href="#synapse">how to use Synapse</a>. If you only intend to use Synapse, skip to the <a href="#synapse">how to use Synapse</a> part.
-<p/>
+<a href="#learning">sample Statechum use</a> and <a href="#synapse">how to use Synapse</a>. 
 The tool is mostly written in Java, but a few components of it are implemented in C. 
 These are not needed for most tasks but could be useful for model comparison and where domain-specific properties 
 (written in linear temporal logic LTL or the language of Yices constraint solver) are used to help inference. 
@@ -25,7 +24,7 @@ The first step is to clone the Git repository from <a href="https://github.com/k
 The next step depends on whether you plan to install it as an end-user (simply uncompress the binary which is 
 fast but does not run built-in tests) or developer (involves building if necessary and possibly running all tests).
 <h2 id="installation-user">Building the Java part of the tool - end-user install</h2>
-First, clone the Git repository from <i>https://github.com/kirilluk/statechum</i> and then uncompress the specific binary into the root directory of it. These
+First, clone the Git repository from <i>https://github.com/kirilluk/statechum</i> and then uncompress the .zip described below into the root directory of it. These zip files
 are provided for specific versions of Statechum, such as the one from <a href="http://www.dcs.shef.ac.uk/~kirill/statechum/statechum-bbec4-bin.zip">Oct 7, 2015 
 (git commit ending at bbec4, Oracle Java 1.8.0_60, Erlang R16)</a>. 
 The .zip contains bin and tmp directories and is intended to be uncompressed into the root of the Statechum folder. 
@@ -46,7 +45,10 @@ An Ant build file is provided, where the target 'compileTests' will build the wh
 <h2>Running tests</h2>
 Tests can be launched either via Eclipse as a Java unit test (class <i>statechum.AllTests</i>) or via Ant using the `test' target. If everything is fine, the tests will all pass on both Windows x86_64 and on Linux x86_64. The requirements to pass tests are much higher than those to run the tool: on one hand, all the optional components such as the R tool and Erlang should be available and the system running the tests should have at least 20GB for memory for the tests handling large automata.
 
-The run time for all tests is 19 hours on an i7-Ivy Bridge at 3.7 Ghz, however the most important tests (anything not part of `LengthyTets') completes in 13 min on the same PC.
+The run time for all tests is 19 hours on an i7-Ivy Bridge at 3.7 Ghz, however the most important tests (anything not part of `LengthyTests') completes in 13 min on the same PC.
+
+Erlang tests may fail due to timeouts, in which case you may re-run them
+to see if things improve. They may also fail if run with an JDK1.6 due to interaction of different tests; this problem does not occur with Java 8 on either Windows or Linux.
 
 <h2 id="special-installation">Directories in the Statechum folder and special installation instructions for non-Java components of Statechum</h2>
 
@@ -100,7 +102,15 @@ the latter responsible for the integration with the Yices solver.</td>
 Depending on the components that are used, specific Java command-line arguments may be needed, such as to set the path where JVM will be looking for libraries to load and environment variables (the R tool needs R_HOME to be set). Examples of such options are provided at the top of the <i>src/statechum/analysis/learning/Visualiser.java</i> file. As a bare minimum, '-ea -DVIZ_DIR=resources/graphLayout' are needed. 
 
 If running Java from a command line rather than Eclipse, you can use
+<ul>
+<li>If running Windows:
 <pre>java -cp bin;lib/modified_collections;lib/commons-collections-3.1.jar;lib/OtpErlang.jar;lib/colt.jar;lib/javaGD.jar;lib/JRI.jar;lib/jung-1.7.6.jar;lib/polyglotclasses-1.3.4.jar;lib/sootclasses.jar;lib/weka.jar -ea -DVIZ_DIR=resources/graphLayout statechum.apps.QSMTool resources/qsmtooldemo.txt</pre>
+</li>
+<li>
+If running Linux or MacOS:
+<pre>java -cp bin:lib/modified_collections:lib/commons-collections-3.1.jar:lib/OtpErlang.jar:lib/colt.jar:lib/javaGD.jar:lib/JRI.jar:lib/jung-1.7.6.jar:lib/polyglotclasses-1.3.4.jar:lib/sootclasses.jar:lib/weka.jar -ea -DVIZ_DIR=resources/graphLayout statechum.apps.QSMTool resources/qsmtooldemo.txt</pre>
+</li>
+</ul>
 Here <i>statechum.apps.QSMTool</i> is the component of Statechum to run and <i>resources/qsmtooldemo.txt</i> is the input file, with the format described below. The semicolon separting different components of a Java classpath is a semicolon for Windows and a colon for Unix operating systems. 
 The outcome of running the above Java command is shown below.<br/>
 <img src="qsmtooldemo.png"/><br/>
@@ -143,12 +153,13 @@ The outcome is displayed in a window. Running such an experiment takes around 15
 with a lot of memory (giving Java 15GB via the <i>-Xmx15000m</i> is enough but 10GB is not). 
 The first output is the length of the trace, followed by the odd-looking alphabet. 
 The learnt graph is stored in a file called <i>outcome_i2c.xml</i> in the GraphML format, which can subsequently 
-be visualised by running <i>statechum.apps.GraphMLVisualiser</i> with the name of Graphml file as a parameter:
-<pre>java -cp ... -ea -DVIZ_DIR=resources/graphLayout statechum.apps.GraphMLVisualiser outcome_i2c.xml</pre>
-
-A copy of the outcome of learning can be found in <i>resources/i2c_study/outcome_i2c_chunk7.xml</i> and loading it 
+be visualised by running <i>statechum.apps.GraphMLVisualiser</i> with the name of Graphml file as a parameter.
+<p/>
+A copy of the outcome of learning can be found in <i>resources/i2c_study/outcome_i2c_chunk5.xml</i> and loading it 
+<pre>java -cp ... -ea -DVIZ_DIR=resources/graphLayout statechum.apps.GraphMLVisualiser resources/i2c_study/outcome_i2c_chunk5.xml</pre>
 produces a picture that can look as follows:<br/>
-<img src="i2cexperiment.png"/>
+<img src="i2cexperiment.png"/><br/>
+In order to close the viewer, you can press ESC or do a right-click inside the window and choose 'terminate'. Closing the window will also work. 
 
 <h1 id="synapse">Learning using Synapse</h1>
 <h2>Installation</h2>
@@ -163,15 +174,11 @@ The defaults in <i>statechum.conf</i> need to be edited to include absolute path
 (such as 'C:/Program Files/Java/jdk1.7.0_07/bin/java.exe' on Windows) and an absolute path to Statechum. 
 </li>
 <li>
-If you installed Statechum by uncompressing the binary, <b>you can skip this step</b>. 
+If you installed Statechum by uncompressing the .zip file with Java class files and Erlang .beam files (mentioned as part of end-user install), <b>you can skip this step</b>. 
 <br/>If you chose to build Statechum from source, you will need to 
-build and run Erlang tests (unless you have run tests as described in the <a href="#installation-developer">developer install guide</a>).
-In order to build and run Erlang tests, you need to enter the Statechum directory and run <pre>ant erlang-test</pre> 
-which will both compile the Java & Erlang portion of Statechum and check that it works correctly. 
-Compiled .beam files can then be found in the <i>tmp/beam ... </i> directory, where the ellipsis corresponds to an Erlang release and platform being used. 
-This directory needs to be renamed to be called just <i>tmp/beam</i>. Note that Erlang tests may fail due to timeouts, in which case you may re-run them
-to see if things improve. They may also fail if run with an JDK1.6 due to interaction of different tests, in which case re-running individual tests can 
-be used to confirm whether it is the interaction that is at fault; this problem does not occur with Java 8 on either Windows or Linux.
+compile the Erlang part of Statechum (unless you have run tests as described in the <a href="#installation-developer">developer install guide</a>).
+In order to do this, you need to enter the Statechum directory and run <pre>ant erlang-build</pre> 
+which will compile both the Java & Erlang portions of Statechum. 
 </li>
 <li>
 Compiling Synapse can be done on Linux or MacOS by running 'make' in the main Synapse directory; on Windows, cygwin is needed and 
@@ -182,7 +189,14 @@ then enter it and type
 </ol>
 <h2>Learning from traces</h2>
 Running Synapse from Erlang command line requires entering the main Synapse directory and typing 
-<pre>erl -pa ebin -pa ../statechum/tmp/beam -name synapse</pre> Here 'synapse' is Erlang node name that can be arbitrary and <i>../statechum/tmp/beam</i> is a relative path to the <i>tmp/beam</i> directory with beam files of Statechum.
+<ul>
+<li>for Windows/MacOS or non-Ubuntu Linux, 
+<pre>erl -pa ebin -pa ../statechum/tmp/beam -name synapse</pre> 
+</li>
+<li>for Ubuntu Linux, 
+<pre>erl -pa ebin -pa ../statechum/tmp/beam -sname synapse</pre> 
+</li></ul>
+Here 'synapse' is Erlang node name that can be arbitrary and <i>../statechum/tmp/beam</i> is a relative path to the <i>tmp/beam</i> directory with beam files of Statechum.
 <p/>
 Calling 
 <pre>Learnt=synapse:passive_learn([{neg,[a,b]},{pos,[a,a,a,b]}],[]).</pre> from the Erlang command line will cause Synapse to run Statechum and learn an FSM from the provided traces. The format of inputs is a list of elements {pos,TRACE} or {neg,TRACE} where the former corresponds to a positive trace and the latter - to the negative one (a negative trace is the one where the last element is not permitted but all strict prefixes are valid traces). This produces a few progress messages and a final machine
@@ -196,12 +210,14 @@ Calling
               'P1000',
               [a,b]}
 </pre>
+The above was tested on Windows 7 x86_64 and Linux Debian Jessie x86_64.
+
 The machine is an Erlang record, where the first component is a list of states, second one a list of transitions (in the format from-label-to), followed by the initial state and an alphabet.
 
 Such machines can be visualised by calling
 <pre>synapse:visualise(Learnt,[],learnt).</pre>
 which pops a graph similar to running Statechum via QSMTool. The last component of the call to visualise is the file name, used to store layout. 
-Unlike a conventional Statechum window, the one created by calling synapse:visualise function does not respond to the ESC key since it is otherwise far to easy to terminate Statechum.
+Unlike a conventional Statechum window, the one created by calling synapse:visualise function does not respond to the ESC key since it is otherwise far to easy to accidentally terminate Statechum.
 <br/>
 <img src="synapse1.png"/>
 <h2>Computation of a diff between machines</h2>

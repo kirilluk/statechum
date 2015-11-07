@@ -21,7 +21,7 @@
 
 -module(synapselauncher).
 
--export([startStatechum/1,convertPath/2,validateOptions/2,constructNodeDetails/0,buildOptions/3,find_statechum/0]).
+-export([startStatechum/1,convertPath/2,validateOptions/2,buildOptions/3,find_statechum/0]).
 -include("synapse.hrl").
 
 %%% @doc Starts the Java runtime with Statechum
@@ -106,8 +106,14 @@ waitForJavaNode(Node,HowLong) ->
 
 
 	
-constructNodeDetails() ->
-    {list_to_atom("statechum" ++ os:getpid() ++ "@" ++ "127.0.0.1"), 'statechum'}
+constructNodeDetails(DotFoundInNodeName) ->
+    {list_to_atom("statechum" ++ os:getpid() ++ "@" ++ 
+    if 
+    	DotFoundInNodeName -> 
+    		"127.0.0.1";
+    	true -> 
+    		"localhost"
+    end), 'statechum'}
 %	case inet:gethostname() of {ok,HostName} -> {list_to_atom("statechum" ++ os:getpid() ++ "@" ++ HostName), 'statechum'} end
 .
 
@@ -133,6 +139,7 @@ launch(OptionsList,PidToNotify) ->
 	MergedOptions = mergeOptions(OptionsList,DefaultsList,['JavaOptionsList']),
 	{Java,StatechumDir,JavaOptionsList}={dict:fetch('Java',MergedOptions),dict:fetch('StatechumDir',MergedOptions),dict:fetch('JavaOptionsList',MergedOptions)},
 	
+	DotFoundInNodeName = 0 < string:str(atom_to_list(node()),"."),
 	%% if R_HOME is defined in the options, move it to the list of environmental arguments. One would additionally have to set an option to java.library.path
 	OtherOptions=case dict:find('R_HOME',MergedOptions) of
 		{ok,Value} -> [{env,[{'R_HOME',Value}]}]; %% Value is an atom, otherwise options validation will fail.
@@ -154,9 +161,13 @@ launch(OptionsList,PidToNotify) ->
 		{'-DVIZ_CONFIG','erlang'}, %% the name of file where to store window layouts
 		{'-DVIZ_DIR','.'}, %% this is usually resources/graphLayout but most likely this path will not be available hence layouts will be dumped locally
 		{'-Dthreadnum',list_to_atom(lists:flatten(io_lib:format("~p", [erlang:system_info(logical_processors_available)])))},
-		{'-Xmx','1500m'}],
+		{'-Xmx','1500m'}] ++
+		if
+			DotFoundInNodeName -> [];
+			true -> [{'-DERLANG_SHORTNODENAME','true'}]
+		end,		
 	FullJavaOptions = buildOptions(JavaOptionsList,JavaDefaultsList,os:type()),
-	case constructNodeDetails() of
+	case constructNodeDetails(DotFoundInNodeName) of
 		{NodeName,PidName} ->
 			Port = open_port({spawn_executable, Java}, [hide,in,stderr_to_stdout,use_stdio,{cd, StatechumDir}] ++ OtherOptions ++[{args,["-ea"] ++ FullJavaOptions ++ 
 				["statechum.analysis.Erlang.Synapse", atom_to_list(NodeName), atom_to_list(Cookie), atom_to_list(PidName), node()]}]),

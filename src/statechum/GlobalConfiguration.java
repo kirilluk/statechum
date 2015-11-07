@@ -72,6 +72,8 @@ public class GlobalConfiguration {
 		,PATH_NATIVELIB // where to load native libraries from, mostly for Eclipse plugins but useful elsewhere.
 		,PATH_JRILIB // where JRI library is located, different from PATH_NATIVELIB because it is not distributed with Statechum
 		,ESC_TERMINATE // whether ESC or the appropriate right-mouse menu selection should terminate Java runtime. Disabled when Statechum is used from within Erlang.
+		,CLOSE_TERMINATE // whether closing of the viewer window should terminate JVM, usually false but is set to true when launched via GraphMLVisualiser
+		,ERLANG_SHORTNODENAME // whether to use Erlang short node names
 		;
 	}
 
@@ -102,6 +104,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGTYPER, "lib/modified_typer");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGSYNAPSE,"lib/synapse");
 		defaultValues.put(G_PROPERTIES.PATH_ERLANGBEAM, defaultValues.get(G_PROPERTIES.TEMP)+File.separator+"beam{0}");// needs to encode the OTP version in case we switch OTPs as what happens for testing.
+		defaultValues.put(G_PROPERTIES.ERLANG_SHORTNODENAME, "false");
 		defaultValues.put(G_PROPERTIES.SCALE_TEXT,"1.0");
 		defaultValues.put(G_PROPERTIES.SCALE_LINES,"1.0");
 		defaultValues.put(G_PROPERTIES.RESOURCES,"resources");
@@ -110,6 +113,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.PATH_JRILIB,null);// no path by default, this implies loading from java.library.path
 		defaultValues.put(G_PROPERTIES.FORCEFORK,"false");
 		defaultValues.put(G_PROPERTIES.ESC_TERMINATE,"true");
+		defaultValues.put(G_PROPERTIES.CLOSE_TERMINATE, "false");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

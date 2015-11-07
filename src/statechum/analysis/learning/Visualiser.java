@@ -508,7 +508,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             System.err.println("Pass the -ea argument to JVM to enable assertions");
         }
 
-        //this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //
+        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE)))
+        	this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        else
         if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
         	this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         else

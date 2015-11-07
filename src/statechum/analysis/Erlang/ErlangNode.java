@@ -23,6 +23,9 @@ import java.net.UnknownHostException;
 
 import com.ericsson.otp.erlang.OtpNode;
 
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+
 public class ErlangNode {
 	
 	/** The name of this node. */
@@ -61,16 +64,20 @@ public class ErlangNode {
 	 */
 	protected ErlangNode()
 	{
-		String hostName = "localhost";
-		try
+		String hostName = "@localhost";
+		if (false == Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
 		{
-			hostName = InetAddress.getLocalHost().getHostName();
-		}
-		catch(UnknownHostException ex)
-		{// ignore this, host name remains as "localhost".
+			try
+			{
+				hostName = "@"+InetAddress.getLocalHost().getHostName();
+			}
+			catch(UnknownHostException ex)
+			{// ignore this, host name remains as "localhost".
+			}
 		}
 		/** This ID is used to construct node name as well as cookie value if it is not provided to us. */
-		final String uniqueID = System.nanoTime()+ "_" + "@" + hostName;
+		final String uniqueID = System.nanoTime()+ hostName;
+		System.out.println("Unique ID is "+uniqueID);
 		ourNode = "java" + uniqueID;
 		cookie = "cookie_"+ uniqueID;
 	}

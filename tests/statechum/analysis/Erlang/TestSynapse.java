@@ -20,11 +20,17 @@ package statechum.analysis.Erlang;
 import static statechum.Helper.checkForCorrectException;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangPid;
@@ -35,6 +41,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
+@RunWith(ParameterizedWithName.class)
 public class TestSynapse {
 
 	protected ErlangRuntime erlRuntime = null, erlPingRuntime = null;
@@ -55,6 +62,7 @@ public class TestSynapse {
 	@Before
 	public void beforeTest()
 	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.ERLANG_SHORTNODENAME, Boolean.toString(useShortNames));// resets the effect of a failed short name test.
 		erlRuntime = new ErlangRuntime();erlRuntime.setTimeout(500);erlRuntime.startRunner();runner = erlRuntime.createNewRunner();
 		erlPingRuntime = new ErlangRuntime();erlPingRuntime.setTimeout(500);erlPingRuntime.startRunner();pingRunner = erlPingRuntime.createNewRunner();
 		
@@ -76,6 +84,7 @@ public class TestSynapse {
 	{
 		if (erlRuntime != null) erlRuntime.killErlang();if (erlPingRuntime != null) erlPingRuntime.killErlang();
 		zapTestDir();
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.ERLANG_SHORTNODENAME, "false");// resets the effect of a failed short name test.
 	}
 	
 	public void zapTestDir()
@@ -83,9 +92,40 @@ public class TestSynapse {
 		ExperimentRunner.zapDir(testDir);
 	}
 
-	public TestSynapse() {
+	protected final boolean useShortNames;
+	protected final String javaOptions;
+	
+	public TestSynapse(boolean shortNames) {
+		useShortNames = shortNames;
+		String shortNameOption=null;
+		if (useShortNames)
+			shortNameOption = "{'-DERLANG_SHORTNODENAME','true'},";
+		else
+			shortNameOption="{'-DERLANG_SHORTNODENAME','false'},";
 		
+		javaOptions=shortNameOption+"{'-DOtpConnection.trace','0'}";
 	}
+
+	
+	@org.junit.runners.Parameterized.Parameters
+	public static Collection<Object[]> data() 
+	{
+		Collection<Object []> result = new LinkedList<Object []>();
+		result.add(new Object[]{new Boolean(false)});
+		result.add(new Object[]{new Boolean(true)});
+		
+		return result;
+	}
+
+	@ParametersToString
+	public static String parametersToString(Boolean b)
+	{
+		if (b)
+			return "Synapse short node names";
+		else
+			return "Synapse long node names";
+	}
+
 	
 	@Test
 	public void testEunitSynapseLauncherTests()
@@ -155,7 +195,7 @@ public class TestSynapse {
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		Assert.assertTrue(
 				runner.evaluateString("process_flag(trap_exit, true),"+
-						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'},[{'pp','qq'}] ]) end)," // this will fail if we cannot start Erlang
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"]},{'AccumulateOutput','false'},[{'pp','qq'}] ]) end)," // this will fail if we cannot start Erlang
 						+ "Response = receive Arg -> Arg end,"
 						+ "process_flag(trap_exit, false),Response").toString().contains("Tuple is not key-value pair"));
 	}
@@ -166,7 +206,7 @@ public class TestSynapse {
 	{
 		Assert.assertTrue(
 			runner.evaluateString("process_flag(trap_exit, true),"+
-					"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','aa'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+					"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','aa'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 					+ "Response = receive Arg -> Arg end,"
 					+ "process_flag(trap_exit, false),Response").toString().contains("spawn_executable,aa"));
 	}
@@ -178,7 +218,7 @@ public class TestSynapse {
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		Assert.assertTrue(
 				runner.evaluateString("process_flag(trap_exit, true),"+
-						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'pp','qq'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+",{'pp','qq'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 						+ "Response = receive Arg -> Arg end,"
 						+ "process_flag(trap_exit, false),Response").toString().contains("Timeout waiting for node"));
 	}
@@ -188,7 +228,7 @@ public class TestSynapse {
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		String response = runner.evaluateString("process_flag(trap_exit, true),"+
-				"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'},{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+				"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+",{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 				+ "Response = receive Arg -> Arg end,"
 				+ "process_flag(trap_exit, false),Response").toString();
 		Assert.assertTrue(
@@ -199,7 +239,7 @@ public class TestSynapse {
 	public void testRunSynapse1()
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','true'}]),"
+		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
 				+ "synapselauncher:find_statechum()!terminate," //io:format(\"waiting for response~n\"),"
 				+ "receive Arg -> Arg end"));
 		Assert.assertTrue(response.contains("Synapse started"));Assert.assertTrue(response.contains("Synapse terminated"));
@@ -207,10 +247,10 @@ public class TestSynapse {
 	
 	
 	@Test
-	public void testRunSynapse2a() throws InterruptedException
+	public void testRunSynapse2a_longnames() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "
@@ -233,7 +273,7 @@ public class TestSynapse {
 	public void testRunSynapse2b() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		OtpErlangTuple pid_node = (OtpErlangTuple)runner.evaluateString("OurPid=self(),Pid = spawn(fun () -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'}]),OurPid!ok,receive stop -> ok end end),"
+		OtpErlangTuple pid_node = (OtpErlangTuple)runner.evaluateString("OurPid=self(),Pid = spawn(fun () -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),OurPid!ok,receive stop -> ok end end),"
 				+ "receive ok -> ok end,"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
@@ -264,7 +304,7 @@ public class TestSynapse {
 	public void testRunSynapse2c() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','true'}]),"+
+		runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"+
 				"OurPid=self(),Ref=make_ref(),Pid = spawn(fun () -> synapselauncher:find_statechum()!{self(),Ref,getStatechumWorker},receive {Ref,WorkerPid} -> "
 				+"WorkerPid!{Ref,echo},receive {Ref,workerok} ->ok,throw(worker_parent_failed)" // check that worker is ok and then make an abnormal termination. Nnow the worker should terminate and this is to appear on standard output.
 				+" end end end)" //
@@ -290,7 +330,7 @@ public class TestSynapse {
 	public void testRunSynapse3() throws InterruptedException
 	{// ,{'Cookie','"+ErlangNode.getErlangNode().getNode().cookie()+"'}
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','true'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "
@@ -323,7 +363,7 @@ public class TestSynapse {
 		String ErlangHome = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME), ErlangHomeSetting="";
 		if (ErlangHome != null)
 			ErlangHomeSetting=",{'-DERLANGHOME','"+ErlangHome.replace('\\', '/')+"'}";
-		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}"+ErlangHomeSetting+"] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
+		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()");		
 	}
@@ -334,7 +374,7 @@ public class TestSynapse {
 	public void testRunSynapse4() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',[{'-DOtpConnection.trace','0'}] },{'AccumulateOutput','false'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "
@@ -364,7 +404,7 @@ public class TestSynapse {
 		Assert.assertEquals("ok",runner.evaluateString("Ref=make_ref(),synapselauncher:find_statechum()!{self(),Ref,junk},receive {Ref,invalidcommand_or_missing_args} -> ok end").toString());
 	}
 
-	/** Start Synapse, send a command an invalid format, get no reponse. */
+	/** Start Synapse, send a command an invalid format, get no response. */
 	@Test
 	public void testRunSynapse6()
 	{

@@ -127,6 +127,43 @@ lack of tracking dependencies between Java files.
        
   </target>
 
+   <target name="erlang-build" depends="compileTests" description="build Statechum Erlang bridge">
+   	<java classname="statechum.analysis.Erlang.ErlangRuntime" fork="on" maxmemory="1500m">
+   			<assertions>
+   	        	<enable/>
+   	      	</assertions>
+   			<arg value="tmp/beam"/> 
+   	    	<!-- <jvmarg value="-XX:+CITime"/> -->
+   	       	<jvmarg value="-ea"/>
+   	    	<jvmarg value="-XX:+UseCompressedOops"/>
+   	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+   	       	<sysproperty key="java.library.path" value="linear/.libs"/>
+   	       	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
+   	       	<sysproperty key="threadnum" value="4"/>
+   			<sysproperty key="com.sun.management.jmxremote" value="" />
+   	       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+   	       	<sysproperty key="SMTWARNINGS" value="true"/>
+   	       	<sysproperty key="LINEARWARNINGS" value="true"/>
+   	       	<sysproperty key="FORCEFORK" value="true"/>
+   			<sysproperty key="ERLANGOUTPUT_ENABLED" value="true" />
+   	      	<classpath>
+   	         	<path refid="classpath.statechum" />
+   	         	<pathelement location="${statechum_bin}"/>
+   	         </classpath>
+   		</java>
+   </target>
+	
+   <target name="binary-build" depends="erlang-build" description="build a binary so that Statechum does not need to be compiled">
+   	<exec executable="git" outputproperty="commitid" failonerror="true"> 
+	   	<arg value="rev-parse"/>
+	   	<arg value="--short"/>
+	   	<arg value="HEAD"/>
+   	</exec>
+	<zip destfile="statechum-${commitid}-bin.zip"
+	       basedir="." includes="bin/**,tmp/beam/**"
+	  />
+ 	</target>
+	
    <target name="erlang-test" depends="compileTests" description="run Erlang unit tests">
        <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>

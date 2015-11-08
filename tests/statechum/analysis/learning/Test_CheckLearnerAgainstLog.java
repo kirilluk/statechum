@@ -122,7 +122,7 @@ public class Test_CheckLearnerAgainstLog
 		final java.io.FileInputStream inputStream = new java.io.FileInputStream(logFileName);
 		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,null);
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setLegacyXML(true);
+		config.setLegacyXML(true);config.setRedOverridesAnyOtherColour(false);
 		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
 		evalData.config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		

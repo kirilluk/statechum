@@ -92,7 +92,7 @@ public class ComputeQuestions {
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:learnt.learnerCache.getMergedStates())
 			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, 
 					learnt.learnerCache.stateLearnt,new MergeData(){
-				@Override 
+				@Override
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
@@ -121,8 +121,8 @@ public class ComputeQuestions {
 		return engine;
 	}
 	
-	/** Replicates QSM question generator using the new question generation framework. */
-	static public class QSMQuestionGenerator implements QuestionConstructor
+	/** A question generator similar to QSM, but uses paths in the merged graph from the initial to the merged state and loops around the initial state. */
+	static public class QuestionGeneratorQSMLikeWithLoops implements QuestionConstructor
 	{
 		private PTASequenceEngine engine = null;
 		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
@@ -176,6 +176,57 @@ public class ComputeQuestions {
 		}
 		
 	}
+	
+	
+	/** Replicates QSM question generator using the new question generation framework. */
+	static public class QuestionGeneratorQSM implements QuestionConstructor
+	{
+		private PTASequenceEngine engine = null;
+		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
+		
+		@Override 
+		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
+		{
+			engine = new PTASequenceEngine();
+			engine.init(original.new NonExistingPaths());
+			return engine;
+		}
+
+		@Override 
+		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
+				LearnerGraph original, LearnerGraph learnt, 
+				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
+				MergeData data) 
+		{
+			if (fanout == null)
+			{// Initialisation
+
+				SequenceSet pathsToMergedRed = data.getPathsToRed();
+				
+				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
+				// This will not affect the underlying graph, but it does not really matter since all
+				// elements in that graph are accept-states by construction of pathsToMergedRed and hence
+				// not be returned.
+				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
+				
+				fanout = learnt.pathroutines.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);// Computes all possible paths from the merged red/blue state pair to other states.
+			}
+						
+			SequenceSet pathsToCurrentState = fanout.get(state.getMergedVertex());
+			if (pathsToCurrentState != null)
+			{
+				assert state.getMergedVertex().getColour() != JUConstants.AMBER;
+				
+				// if a path from the merged red state to the current one can be found, update the set of questions. 
+				pathsToCurrentState.crossWithMap(learnt.transitionMatrix.get(state.getMergedVertex()));
+				// Note that we do not care what the result of crossWithSet is - for those states which 
+				// do not exist in the underlying graph, reject vertices will be added by the engine and
+				// hence will be returned when we do a .getData() on the engine.
+			}
+		}
+		
+	}
+
 	/** Improves on the QSM question generator by using a real loop rather than a single-transition loop. */
 	static public class QSMQuestionGeneratorImproved implements QuestionConstructor
 	{
@@ -404,7 +455,8 @@ public class ComputeQuestions {
 		QuestionConstructor qConstructor=null;
 		switch(original.config.getQuestionGenerator())
 		{
-			case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
+			case QSM: qConstructor=new QuestionGeneratorQSM();break;
+			case CONVENTIONAL: qConstructor=new QuestionGeneratorQSMLikeWithLoops();break;
 			case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
 			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
 			case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.

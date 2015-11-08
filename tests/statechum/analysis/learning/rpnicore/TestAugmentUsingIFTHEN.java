@@ -438,7 +438,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		LearnerGraph graph = buildLearnerGraph(fsm,name,config,converter);
 		StatePair pair = new StatePair(graph.findVertex("A"),graph.findVertex("B"));
 		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
-		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops());
 		LearnerGraph updatedGraphExpected = new LearnerGraph(graph,config),updatedGraphActual = new LearnerGraph(graph,config);
 		updatedGraphActual.transitionMatrix.putAll(((NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix());
 		updatedGraphActual.learnerCache.invalidate();
@@ -972,7 +972,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
 		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
 		compareGraphs(buildLearnerGraph("A1-a->B1-b->A1-c->C-d-#R4/C-c->CC/CC-f-#R3/CC-e->D", "testQuestionAnswering2b",mainConfiguration,converter),merged);
-		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops());
 		// the IF part we're augmenting with is a dummy one
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-s->B / P-c->Q-d-#R / S-c->S1-c->S2-e->S3 / S==THEN==A==THEN==P", "testQuestionAnswering1", mainConfiguration,converter)}; 
 		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1075,7 +1075,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			
 			//Visualiser.updateFrame(graph, merged);Visualiser.waitForKey();
 			compareGraphs(buildLearnerGraph("A-s->A1-a->B1-b->A1-c->C-d-#R4/C-c->CC/CC-f-#R3/CC-e->D", "testQuestionAnswering2b",mainConfiguration,converter),merged);
-			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops());
 			Assert.assertEquals(3,questions.getData().size());// whether questions are correctly generated is tested in "testQuestionAnswering2"
 		}
 		
@@ -1311,7 +1311,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B", "testQuestionAnswering9b",mainConfiguration,converter);
 			//Visualiser.updateFrame(graph, merged);Visualiser.waitForKey();
 			compareGraphs(expectedMergedGraph,merged);
-			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops());
 			graph.learnerCache.questionsPTA=questions;
 			Assert.assertEquals(19,questions.getData().size());
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);

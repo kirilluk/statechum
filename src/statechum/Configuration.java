@@ -186,7 +186,7 @@ public class Configuration implements Cloneable {
 	 * </ul>
 	 */
 	public enum QuestionGeneratorKind {
-		CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL
+		QSM, CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL
 	}
 
 	protected QuestionGeneratorKind questionGenerator = QuestionGeneratorKind.CONVENTIONAL;
@@ -1314,6 +1314,22 @@ public class Configuration implements Cloneable {
 		howManyStatesToAddFromIFTHEN = value;
 	}
 
+	/** When multiple vertices are merged together, we need to choose a 'representative' that will be used to refer to such a collection. 
+	 * This is useful for question generation where one would like a path to a merged vertex to be a path to a red state in an original graph.
+	 * Some earlier tests do not assume this, therefore it is possible to disable this behaviour. 
+	 */
+	protected boolean redOverridesAnyOtherColour = true;
+	
+	public boolean getRedOverridesAnyOtherColour()
+	{
+		return redOverridesAnyOtherColour;
+	}
+	
+	public void setRedOverridesAnyOtherColour(boolean newValue)
+	{
+		redOverridesAnyOtherColour = newValue;
+	}
+	
 	/**
 	 * Types of compatibility learners implemented - these are supposed to be
 	 * set when traces are recorded for compatibility testing with learners used

@@ -49,6 +49,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -276,7 +277,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
 			questionsC = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
 			questionsD = ComputeQuestions.computeQS_general(pairNew2, learner2, MergeStates.mergeAndDeterminize_general(learner2, pairNew2), 
-					new ComputeQuestions.QSMQuestionGenerator()).getData();
+					new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops()).getData();
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		Assert.assertEquals(expectedScore, origScore);
 		Assert.assertEquals(expectedScore, newScoreA);
@@ -293,6 +294,72 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsC,oldQuestions.equals(newQuestionsC));
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsD,oldQuestions.equals(newQuestionsD));
 		}
+	}
+	
+	@Test
+	public final void testQSMvsLoopsQuestionGenerator1()
+	{
+		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C","testQSMvsLoopsQuestionGenerator1",testConfig,getLabelConverter());
+		for(CmpVertex v:s.transitionMatrix.keySet())
+			if (v.getStringId().equals("A5") || v.getStringId().equals("B") || v.getStringId().equals("C"))
+				v.setColour(JUConstants.BLUE);
+			else
+				if (v.getStringId().equals("T"))
+					v.setColour(null);
+				else
+					v.setColour(JUConstants.RED);
+		CmpVertex R = s.findVertex(VertexID.parseID("R")),B=s.findVertex(VertexID.parseID("B"));
+		
+		StatePair pair = new StatePair(B,R);
+		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(s,pair);
+		Assert.assertEquals(9, merged.getAcceptStateNumber());
+		for(CmpVertex v:merged.transitionMatrix.keySet())
+			if (v.getStringId().equals("A5") || v.getStringId().equals("C"))
+				Assert.assertEquals(JUConstants.BLUE,v.getColour());
+			else
+				if (v.getStringId().equals("T"))
+					Assert.assertNull(v.getColour());
+				else
+					Assert.assertEquals(JUConstants.RED,v.getColour());
+		
+		// now check questions
+		List<List<Label>> questionsCompatible = ComputeQuestions.computeQS_general(pair, s, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops()).getData();
+		Assert.assertEquals("[[b, c, q], [a, b, q], [c, b, q], [e, a, r]]",questionsCompatible.toString());// this one takes account of the extra path ea into the merged vertex during question generation.
+		List<List<Label>> questionsQSM = ComputeQuestions.computeQS_general(pair, s, merged, new ComputeQuestions.QuestionGeneratorQSM()).getData();
+		Assert.assertEquals("[[b, c, q], [a, b, q], [c, b, q]]",questionsQSM.toString());
+	}
+	
+	@Test
+	public final void testQSMvsLoopsQuestionGenerator2()
+	{
+		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C / R-w->B","testQSMvsLoopsQuestionGenerator2",testConfig,getLabelConverter());
+		for(CmpVertex v:s.transitionMatrix.keySet())
+			if (v.getStringId().equals("A5") || v.getStringId().equals("B") || v.getStringId().equals("C"))
+				v.setColour(JUConstants.BLUE);
+			else
+				if (v.getStringId().equals("T"))
+					v.setColour(null);
+				else
+					v.setColour(JUConstants.RED);
+		CmpVertex R = s.findVertex(VertexID.parseID("R")),B=s.findVertex(VertexID.parseID("B"));
+		
+		StatePair pair = new StatePair(B,R);
+		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(s,pair);
+		Assert.assertEquals(9, merged.getAcceptStateNumber());
+		for(CmpVertex v:merged.transitionMatrix.keySet())
+			if (v.getStringId().equals("A5") || v.getStringId().equals("C"))
+				Assert.assertEquals(JUConstants.BLUE,v.getColour());
+			else
+				if (v.getStringId().equals("T"))
+					Assert.assertNull(v.getColour());
+				else
+					Assert.assertEquals(JUConstants.RED,v.getColour());
+		
+		// now check questions
+		List<List<Label>> questionsCompatible = ComputeQuestions.computeQS_general(pair, s, merged, new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops()).getData();
+		Assert.assertEquals("[[b, c, w, r], [b, c, w, w], [b, c, q], [a, b, w, r], [a, b, w, w], [a, b, q], [c, b, w, r], [c, b, w, w], [c, b, q], [e, a, w, q], [e, a, w, r], [e, a, w, w], [e, a, r]]",questionsCompatible.toString());// this one takes account of the extra path ea into the merged vertex during question generation.
+		List<List<Label>> questionsQSM = ComputeQuestions.computeQS_general(pair, s, merged, new ComputeQuestions.QuestionGeneratorQSM()).getData();
+		Assert.assertEquals("[[b, c, q], [a, b, q], [c, b, q]]",questionsQSM.toString());
 	}
 	
 	public static final String PTA1 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\n";

@@ -103,32 +103,40 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		assert vert != null;
 		if (representative == null) representative = vert;
 		else
+		if (coregraph.config.getRedOverridesAnyOtherColour() && representative.getColour() == JUConstants.RED && vert.getColour() != JUConstants.RED)
 		{
-			int vertDepth = vert.getDepth();
-			int currentDepth = representative.getDepth();
-			if (vert == coregraph.getInit())
-				representative = vert;// the special case for graphs not built from PTAs where depth labelling would ensure that the init state is chosen as representative. 
+			// do nothing - we keep the red
+		}
+		else
+			if (coregraph.config.getRedOverridesAnyOtherColour() && representative.getColour() != JUConstants.RED && vert.getColour() == JUConstants.RED)
+				representative = vert;// RED overrides anything else
 			else
-			if (coregraph.config.isIgnoreDepthInTheChoiceOfRepresentatives())
-			{ 
-				if (representative.compareTo(vert) > 0)
-					representative = vert;// emulate lexicographical comparison if told to do so
-			}
-			else
-			{// not emulating lexicographical order
-				if (currentDepth == JUConstants.intUNKNOWN)
-				{
-					if (vertDepth != JUConstants.intUNKNOWN || representative.compareTo(vert) > 0)
-						representative = vert;
+			{
+				int vertDepth = vert.getDepth();
+				int currentDepth = representative.getDepth();
+				if (vert == coregraph.getInit())
+					representative = vert;// the special case for graphs not built from PTAs where depth labelling would ensure that the init state is chosen as representative. 
+				else
+				if (coregraph.config.isIgnoreDepthInTheChoiceOfRepresentatives())
+				{ 
+					if (representative.compareTo(vert) > 0)
+						representative = vert;// emulate lexicographical comparison if told to do so
 				}
 				else
-					if (vertDepth != JUConstants.intUNKNOWN)
+				{// not emulating lexicographical order
+					if (currentDepth == JUConstants.intUNKNOWN)
 					{
-						if (currentDepth > vertDepth || 
-								(currentDepth == vertDepth && representative.compareTo(vert) > 0))// emulate lexicographical comparison when depth is the same
+						if (vertDepth != JUConstants.intUNKNOWN || representative.compareTo(vert) > 0)
 							representative = vert;
 					}
-			}	
+					else
+						if (vertDepth != JUConstants.intUNKNOWN)
+						{
+							if (currentDepth > vertDepth || 
+									(currentDepth == vertDepth && representative.compareTo(vert) > 0))// emulate lexicographical comparison when depth is the same
+								representative = vert;
+						}
+				}	
 		}
 	}
 	

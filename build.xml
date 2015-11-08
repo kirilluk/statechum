@@ -139,6 +139,7 @@ lack of tracking dependencies between Java files.
    	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
    	       	<sysproperty key="java.library.path" value="linear/.libs"/>
    	       	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
+		<sysproperty key="ERLANG_SHORTNODENAME" value="true"/>
    	       	<sysproperty key="threadnum" value="4"/>
    			<sysproperty key="com.sun.management.jmxremote" value="" />
    	       	<sysproperty key="ASSERT_ENABLED" value="true"/>

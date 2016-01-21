@@ -122,7 +122,7 @@ public class SmallvsHugeExperiment {
 			// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
 			final int tracesToGenerate = 20;//PairQualityLearner.makeEven(states*traceQuantity*3);
 			final Random rnd = new Random(seed*31+attempt);
-			
+
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override

@@ -234,7 +234,7 @@ public class WekaDataCollector
 	LearnerGraph tentativeGraph = null;
 	
 	
-	void buildSetsForComparatorsThatDoNotDependOnFiltering(Collection<PairScore> pairs, LearnerGraph graph)
+	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
 	{
 		treeForComparators.clear();
 		tentativeGraph = graph;
@@ -248,7 +248,7 @@ public class WekaDataCollector
 	}
 	
 	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
-	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparatorsThatDoNotDependOnFiltering(Collection, LearnerGraph)}.
+	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
 	 * @param pairs pairs to build sets for
 	 * @param measurements where to store the result of measurement.
 	 */
@@ -262,6 +262,7 @@ public class WekaDataCollector
 		
 		Arrays.fill(measurements.valueAverage, 0);Arrays.fill(measurements.valueSD, 0);
 		
+		// prepare auxiliary information that is supposed to be cached rather than recomputed by individual instances of comparators in measurementsForComparators 
 		for(PairScore pair:pairs)
 		{
 			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
@@ -276,18 +277,19 @@ public class WekaDataCollector
 			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
 			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
 			tentativeGraph.config.setLearnerScoreMode(origScore);
-			
 			measurements.measurementsForComparators.put(pair,m);
 		}
 
+		// now run comparators
 		if (assessors != null)
 			for(PairScore pair:pairs)
 				for(int i=0;i<assessors.size();++i)
 				{
 					long value = assessors.get(i).getValue(pair);
-					measurements.valueAverage[i]+=value;measurements.valueSD[i]+=value*value;
+					measurements.valueAverage[i]+=value;
+					measurements.valueSD[i]+=value*value;// abuse valueSD into storing squares of values.
 				}
-		
+
 		if (assessors != null)
 			for(int i=0;i<assessors.size();++i)
 			{
@@ -295,7 +297,7 @@ public class WekaDataCollector
 			}
 	}
 
-	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values of greater for some points and less for others. */
+	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values greater for some points and less for others. */
 	public static final int comparison_inconclusive=-10;
 
 	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> others)
@@ -424,7 +426,7 @@ public class WekaDataCollector
 	 */
 	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparatorsThatDoNotDependOnFiltering(pairs,currentGraph);
+		buildSetsForComparators(pairs,currentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
@@ -442,29 +444,11 @@ public class WekaDataCollector
 			//boolean correctPair = p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
-
-		/*
-		// Compute Weka statistics, where we compare each pair to all others.
-		for(PairScore p:correctPairs)
-		{
-			int []comparisonResults = comparePairWithOthers(p, pairs);
-			//System.out.println(p+" "+Arrays.toString(comparisonResults));
-			trainingData.add(constructInstance(comparisonResults, assessPair(p), true));
-		}
-		
-		for(PairScore p:wrongPairs)
-		{
-			int []comparisonResults = comparePairWithOthers(p, pairs);
-			//System.out.println(p+" "+Arrays.toString(comparisonResults));
-			trainingData.add(constructInstance(comparisonResults, assessPair(p), false));
-		}*/
 	}
 	
-	/**
-	 * Provides helper methods in order to train a classifier to recognise good/bad pairs
+	/** Provides helper methods in order to train a classifier to recognise good/bad pairs
 	 * <hr/>
 	 * It is a nested class to permit access to instance variables. This seems natural because elements of this class need access to data obtained from the transition matrix. 
-	 *
 	 */
 	public abstract class PairRankingSupport
 	{
@@ -505,7 +489,6 @@ public class WekaDataCollector
 	}
 	
 	/** Used to compute values permitting one to train a classifier to recognise good/bad pairs. 
-	 * 
 	 */
 	public class PairComparator extends PairRankingSupport implements Comparator<PairScore> 
 	{
@@ -524,8 +507,6 @@ public class WekaDataCollector
 	
 	/** {@link PairComparator} permits one to compare pairs with each other. This one aims to give a rank to each pair in a collection of pairs, by either retrieving specific attributes or 
 	 * doing the average/standard deviation thresholding.
-	 * @author kirill
-	 *
 	 */
 	public abstract class PairRank extends PairRankingSupport
 	{
@@ -535,7 +516,7 @@ public class WekaDataCollector
 		}
 		
 		
-		/** Returns 0,1, or -1 depending on how the pair scores compared to an average across the collection of pairs, 
+		/** Returns 0,1,2 or -1,-2 depending on how the pair scores compared to an average across the collection of pairs, 
 		 * standard deviation and average.
 		 * 
 		 * @param pair

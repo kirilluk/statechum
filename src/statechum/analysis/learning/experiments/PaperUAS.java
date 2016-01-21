@@ -143,7 +143,6 @@ public class PaperUAS
 	     * Here we accumulate all sequences so {@link #isAccept(Object) isAccept} should always return true. In contrast, the {@link #shouldBeReturned(Object) shouldBeReturned} method is only used 
 	     * on states associated with tail nodes. It should return true or false depending on whether a sequence is supposed to be considered accept or reject
 	     * by the {@link PathRoutines#augmentPTA(PTASequenceEngine)} method.  
-	     *
 	     */
 	    public static class Automaton extends PTASequenceSetAutomaton
 		{
@@ -164,7 +163,7 @@ public class PaperUAS
 				return elem != null && ((Boolean)elem).booleanValue();
 			}
 		}
-	    
+
 	    /** Used to construct long traces from the supplied traces, for an experiment to check whether we can efficiently learn
 	     * from single long traces for a UAV. 
 	     */
@@ -175,7 +174,7 @@ public class PaperUAS
 	}
 	
 	
-    /** Updates the collection of traces for a specific UAV with a new trace. */
+    /** Updates the (provided as an argument) collection of traces for a specific UAV with a new trace. */
     protected static void addTraceToUAV(String UAV, int frame, List<Label> trace,Map<String,Map<Integer,Set<List<Label>>>> collectionOfTraces)
     {
        	Map<Integer,Set<List<Label>>> UAVdetails = collectionOfTraces.get(UAV);
@@ -398,7 +397,7 @@ public class PaperUAS
     							lastPositiveTrace.addAll(trace.subList(1, traceLen));// we do not append it to a collection of traces here because it will be done when we hit a new frame
     					}
     					else
-    					{
+    					{// constructs a negative sequence by appending to the current positive trace. The positive trace itself is preserved because we'll be appending any positive sequence to come to it.  
     						List<Label> negativeTrace = new ArrayList<Label>(lastPositiveTrace.size()-1+trace.size());
     						Iterator<Label> iterLbl = lastPositiveTrace.iterator();
     						for(int i=0;i<lastPositiveTrace.size()-1;++i) negativeTrace.add(iterLbl.next());
@@ -436,11 +435,10 @@ public class PaperUAS
     		newData.tracesForUAVandFrame=new TreeMap<String,Map<Integer,PTASequenceEngine>>();
     		
     		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfPositiveTraces,true,frameNumbers,UAVs);
-    		newData.collectionOfPositiveTraces=null;
+    		newData.collectionOfPositiveTraces=null;// garbage collect traces, they are now part of PTA
     		
     		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfNegativeTraces,false,frameNumbers,UAVs);
-   		
-    		newData.collectionOfNegativeTraces=null;
+    		newData.collectionOfNegativeTraces=null;// garbage collect traces, they are now part of PTA
     	}
     	
     }
@@ -483,14 +481,14 @@ public class PaperUAS
 
     }
     
-    /** UAV(frame) should be an a sum of data across all frames before the specific frame.
+    /** UAV(frame) should be a sum of data across all frames before the specific frame.
      * Such a calculation is done after we load all data because frames from different UAVs might
      * not be synchronized and we need to accumulate data across all of them for UAVAll.
      *   
      * @param whatToUpdate collection of traces to add to
      * @param traces traces to add
      * @param isAccept whether traces to be added are accept or reject-traces
-     * @param frameNumbers all possible frames, to ensure that all UAV frame numbers range over the same set.
+     * @param frameNumbers all possible frames, to ensure that all UAV frame numbers range over the same set. Should be an ordered set, such as a TreeSet.
      * @param UAVs names of all UAVs, used to ensure that all UAV frame numbers range over the same set.
      */
     protected void turnTracesIntoPTAs(Map<String,Map<Integer,PTASequenceEngine>> whatToUpdate,
@@ -518,7 +516,7 @@ public class PaperUAS
         		if (traces.containsKey(uav))
         		{
         			for(int earlierFrame:frameNumbers)
-        			{
+        			{// here we accumulate traces for all frames up to and including the current frame in the traceDetailsUAV trace collection.
         				if (earlierFrame>frame)
         					break;
 

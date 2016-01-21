@@ -291,7 +291,8 @@ public class MarkovScoreComputation
 	        			 		
 	         return high_pair;
 	     }
-	     
+
+	     /** Assuming the collection of pairs passed to this function is sorted, it picks all the elements that have the highest score. */
 	     public static Stack<PairScore> possibleAtTop(Stack<PairScore> stack)
 	     {
 	    	 Stack<PairScore> toptop = new Stack<PairScore>();
@@ -571,6 +572,7 @@ public class MarkovScoreComputation
 					Set<Label> remains = new TreeSet<Label>();remains.addAll(original.transitionMatrix.get(vert).keySet());remains.retainAll(original.transitionMatrix.get(toMerge).keySet());
 					//Set<Label> toAdd = new TreeSet<Label>();toAdd.addAll(original.transitionMatrix.get(toMerge).keySet());toAdd.removeAll(original.transitionMatrix.get(vert).keySet());
 					Set<Label> uniqueToRed = new TreeSet<Label>();uniqueToRed.addAll(original.transitionMatrix.get(vert).keySet());uniqueToRed.removeAll(original.transitionMatrix.get(toMerge).keySet());
+					// outcome+= RedOut \ BlueOut - RedOut ^ BlueOut 
 					remainsMinusToAdd+=remains.size()-uniqueToRed.size();
 				}
 			}

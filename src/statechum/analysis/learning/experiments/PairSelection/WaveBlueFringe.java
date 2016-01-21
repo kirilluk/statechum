@@ -111,6 +111,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		System.out.println("finished dumping inconsistencies");
 	}
 
+	/** Given a collection of collections of paths, such that target state of each sequence in the inner collection is to be merged, computes a collection of pairs of states that are to be merged. */ 
 	public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
 	{
 		List<StatePair> listOfPairs = new LinkedList<StatePair>();
@@ -123,6 +124,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		return listOfPairs;
 	}
 	
+	/** Given a collection of vertices to merge, constructs a collection of pairs to merge. */
 	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
 		List<StatePair> pairsList = new LinkedList<StatePair>();

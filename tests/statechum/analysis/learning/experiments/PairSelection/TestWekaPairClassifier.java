@@ -202,7 +202,7 @@ public class TestWekaPairClassifier {
 	{
 		WekaDataCollector classifier = new WekaDataCollector();
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 		Assert.assertTrue(classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.isEmpty());
 		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
 	}
@@ -215,7 +215,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
@@ -233,7 +233,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
@@ -252,7 +252,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);
@@ -275,7 +275,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
@@ -301,7 +301,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC,pairC,pairC,pairC // we add the same pair a few times and it then seems to buildSetsForComparators that it has a few alternatives
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
@@ -326,7 +326,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
 		Iterator<StatePair> iter = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator();Assert.assertEquals(pairA,iter.next());Assert.assertEquals(pairB,iter.next());
@@ -728,7 +728,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
 		double ave = 1;
@@ -762,7 +762,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
 		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
@@ -796,7 +796,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph);
 		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
 		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
@@ -853,7 +853,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
 		Assert.assertArrayEquals(new int[]{0,0},buffer);
@@ -870,7 +870,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
 		Assert.assertArrayEquals(new int[]{1,0},buffer);
@@ -887,7 +887,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
 		Assert.assertArrayEquals(new int[]{1,-1},buffer);
@@ -904,7 +904,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[]{9,8,7,6};
 		testClassifier.comparePairWithOthers(pairA, pairs,buffer,1);
 		Assert.assertArrayEquals(new int[]{9,1,-1,6},buffer);
@@ -921,7 +921,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
 		Assert.assertArrayEquals(new int[]{0,-1},buffer);
@@ -938,7 +938,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.comparePairWithOthers(pairB, pairs,buffer,0);
 		Assert.assertArrayEquals(new int[]{-1,1},buffer);
@@ -984,7 +984,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
 		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
 		Assert.assertEquals(1,comparisonResults[0]); // a
@@ -1065,7 +1065,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
 		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
 		Assert.assertEquals(1,comparisonResults[0]); // a
@@ -1184,7 +1184,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		final List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC,pairD});
-		dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		final int []comparisonResults = new int[1];
 		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
@@ -1202,7 +1202,7 @@ public class TestWekaPairClassifier {
 			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
@@ -1218,7 +1218,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
 		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
 		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
@@ -1235,7 +1235,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
-		testClassifier.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[]{9,8,7,6};
 		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
 		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);

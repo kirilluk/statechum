@@ -852,10 +852,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public Set<CmpVertex> computeReachableStates()
 	{
 		Queue<CmpVertex> currentFringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// For big graphs, HashMapWithSearch will be needed.
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();// For big graphs, HashMapWithSearch will be needed.
 		if (coregraph.getInit() != null)
 		{// if the graph has an initial state
-			currentFringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
+			currentFringe.add(coregraph.getInit());visitedStates.add(coregraph.getInit());
 			do
 			{
 				Queue<CmpVertex> fringe = currentFringe;currentFringe = new LinkedList<CmpVertex>();
@@ -864,17 +864,17 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 					CmpVertex currentState = fringe.remove();
 					for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(currentState).entrySet())
 						for(CmpVertex target:coregraph.getTargets(transition.getValue()))
-							if (!statesInFringe.contains(target))
+							if (!visitedStates.contains(target))
 							{
 								currentFringe.offer(target);
-								statesInFringe.add(target);
+								visitedStates.add(target);
 							}
 				}
 				
 			}
 			while(!currentFringe.isEmpty());
 		}
-		return statesInFringe;
+		return visitedStates;
 	}
 
 	/** Computes the set of reachable states from which the initial state is not reachable. */
@@ -952,7 +952,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		
 	/** Builds a (non-deterministic in general) transition matrix where all 
 	 * transitions point in an opposite direction to the current one. 
-	 * The matrix produced is used to scan  the state comparison matrix columnwise.
+	 * The matrix produced is used in the PLTSDiff algorithm to scan the state comparison matrix columnwise.
 	 * Filtered out states will never be part of the constructed graph but some other states that had transitions in/out of the filtered states
 	 * may become unreachable and contain no outgoing transitions ({@link TestLearnerGraphND#testBuildInverse7}). 
 	 *

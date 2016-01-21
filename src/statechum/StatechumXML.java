@@ -80,7 +80,7 @@ public enum StatechumXML
 		return stringRepresentation;
 	}
 	
-	/** Given an element, this method returns all direct descendants with the specified tag. 
+	/** Given an element, this method returns all direct descendants with the specified tag. At most two elements will be returned.
 	 */
 	public static NodeList getChildWithTag(Element elem, String tag)
 	{

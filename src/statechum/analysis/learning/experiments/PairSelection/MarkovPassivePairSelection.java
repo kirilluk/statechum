@@ -439,8 +439,10 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	}
 	
 	
-	/** Identifies states <i>steps</i> away from the root state and labels the first of them red and others blue. The aim is to permit Markov predictive power to be used on arbitrary states, 
-	 * without this we cannot predict anything in the vicinity of the root state. 
+	/** Identifies states <i>steps</i> away from the root state and labels the first of them red and others blue. The colour of all other states is removed. When the learner
+	 * starts, the exploration begins not from the root state as per blue fringe but from the marked red state. 
+	 * The aim is to permit Markov predictive power to be used on arbitrary states, 
+	 * without this we cannot predict anything in the vicinity of the root state which has no incoming transitions unless pre-merge is used. 
 	 */ 
 	public static void labelStatesAwayFromRoot(LearnerGraph graph, int steps)
 	{
@@ -473,13 +475,13 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifier ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, WaveBlueFringe.constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
 		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge);
 		
 		Set<CmpVertex> tr=graph.transform.trimGraph(10, graph.getInit()).transitionMatrix.keySet();
 		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
 
-		constructPairsToMergeBasedOnSetsToMerge(graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA);		
+		//WaveBlueFringe.constructPairsToMergeBasedOnSetsToMerge(graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA);		
 		for(CmpVertex v0:tr)
 			for(CmpVertex v1:tr)
 				if (v0 != v1)
@@ -501,38 +503,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				}
 		
 		System.out.println("finished dumping inconsistencies");
-	}
-
-	public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
-	{
-		List<StatePair> listOfPairs = new LinkedList<StatePair>();
-		for(List<List<Label>> lotOfPaths:pathsToMerge)
-		{
-			CmpVertex firstVertex = graph.getVertex(lotOfPaths.get(0));
-			for(List<Label> seq:lotOfPaths)
-				listOfPairs.add(new StatePair(firstVertex,graph.getVertex(seq)));
-		}
-		return listOfPairs;
-	}
-	
-	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
-	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
-		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
-		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
-			if (validStatesInGroup.size() > 1)
-			{
-				CmpVertex v0=validStatesInGroup.iterator().next();
-				for(CmpVertex v:validStatesInGroup)
-				{
-					if (v != v0)
-						pairsList.add(new StatePair(v0,v));
-					v0=v;
-				}
-			}
-		}
-		return pairsList;
 	}
 
 	public static class LearnerRunner implements Callable<ThreadResult>
@@ -934,7 +904,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 
 				{
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, WaveBlueFringe.constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
 					assert genScore >= 0;
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
 					long chains = 0,tails=0,doubleChains=0;

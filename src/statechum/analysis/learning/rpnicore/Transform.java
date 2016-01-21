@@ -652,7 +652,7 @@ public class Transform
 	 * because the decision whether to augment is based on existence of specific paths, thus an addition of them will
 	 * not stop previously-added IF conditions from matching - this is a very important condition relying on 
 	 * linear constraints, i.e. the IF part matches if there is a path to a match state; THENs cannot make existing 
-	 * paths disappear.
+	 * paths (whether they are positive or negative) disappear.
 	 * <br/>
 	 * In the light of three-valued logic (accept/reject/unknown), which has not yet been implemented, the above 
 	 * still applies: if THEN is associated with an unknown vertex, any of accept/reject/unknown is good enough 
@@ -701,7 +701,7 @@ public class Transform
 	
 	
 	
-	/** Given a map reflecting visited states (depending on specific property automaton and specific graph state),
+	/** Given a map reflecting visited states (depending on specific property automaton and a specific graph state),
 	 * this method checks if the exploration element corresponding to these have already been encountered.
 	 * When the answer is false, the supplied exploration element is marked as visited.
 	 */
@@ -743,7 +743,7 @@ public class Transform
 	 * of unrolling THEN parts. All remaining nodes are those which were not answered using if-then automata
 	 * and hence have to be given to a user. In addition, it is possible that some questions contradict if-then automata;
 	 * in this case the merge is clearly impossible since questions are expected to be (positive or negative) 
-	 * paths to be confirmed.
+	 * paths, waiting to be confirmed.
 	 *  
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
@@ -863,10 +863,10 @@ public class Transform
 						// to the state it is reached from (and anything we add forms a tree).
 					graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
 					
-					// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
+					// Given that we have extended this state, all other property graphs may have to be re-evaluated to 
 					// consider what the new transition may bring.  We hence add all previously-considered states
 					// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
-					// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
+					// flushing each other visited far too often, therefore perhaps we'd like to make the described addition to the 
 					// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
 					// Note that there could be a number of "then" states associated to a graph state, hence we use
 					// a collection of exploration elements associated to each graph state which is "flushed" here.

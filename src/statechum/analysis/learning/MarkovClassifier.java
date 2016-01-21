@@ -277,7 +277,8 @@ public class MarkovClassifier
 	}
 	
 	
-	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. 
+	/** Given a collection of vertices that is to be merged, computes the inconsistency of the outcome of a merger. This is defined as the difference in inconsistency scores between the merged
+	 * graph and the original graph. This routine aims to avoid computation of an inconsistency of complete graphs, instead looking only at those vertices that are affected by mergers and the vicinity of them.
 	 * The merged graph should be constructed by merging vertices in verticesToMerge, otherwise merged vertices would not be available as part of elements of {@link AMEquivalenceClass} and we'll crash.
 	 *
 	 * @param coregraph the original graph
@@ -405,7 +406,7 @@ public class MarkovClassifier
 	}
 	
 	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
-	 * with such a label or a positive transition is predicted whereas a negative transition is present. Another case is where no transition is predicted whereas a transition is present.
+	 * with such a label or a positive transition is predicted whereas a negative transition is present. Another case is where no transition is predicted whereas a transition is present in an actual graph.
 	 * <ul>
 	 * <li>
 	 * Whenever {@link #consistent(MarkovOutcome, MarkovOutcome)} returns false, an inconsistencies counter is incremented. 
@@ -418,9 +419,10 @@ public class MarkovClassifier
 	 */
 	public interface ConsistencyChecker
 	{
-		/** Returns an alphabet to use for a specific vertex. This would usually return a collection of labels on transitions from that state but may also be used to return an entire alphabet in order to check that not only that all the 
-		 * existing transitions are not predicted as non-existing but also that all those that do not exist are not predicted as those that are to exist. The latter kind of check is useful on states where we expect all outgoing transitions to
-		 * be correctly identified. 
+		/** Returns an alphabet to use for a specific vertex. This would usually return a collection of labels on transitions from that state but may 
+		 * also be used to return an entire alphabet in order to check that not only that all the existing transitions are not predicted as 
+		 * non-existing but also that all those that do not exist are not predicted as those that are to exist. The latter kind of check is 
+		 * useful on states where we expect all outgoing transitions to be correctly identified. 
 		 *  
 		 * @param graph graph which to process 
 		 * @param v vertex for which to compute an alphabet. 
@@ -441,8 +443,11 @@ public class MarkovClassifier
 		public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted);
 		
 		/**
-		 * Inconsistencies are based on whether predicted paths are matched by the actual ones. Path prediction is based on availability of predictionlen-path in a Markov matrix.
-		 * If a path is not found, all paths from the current state are seen as not predicted, hence where we only consider positive paths all paths from the current state appear inconsistent with predictions.  
+		 * Inconsistencies are based on whether predicted paths are matched by the actual ones. 
+		 * Path prediction is based on availability of predictionlen-path in a Markov matrix.
+		 * If a path is not found, all paths from the current state are seen as not predicted, 
+		 * hence where we only consider positive paths all paths from the current state appear 
+		 * inconsistent with predictions. Returning false here avoids such a problem.  
 		 */
 		public boolean considerPathsWithPrefixMissingInMarkov();
 		
@@ -1198,27 +1203,27 @@ public class MarkovClassifier
 				}
 		}
 		
-		// now we start merging sets until no two of them have paths in common.
+		// now we start merging sets of vertices until no two of them have paths in common.
 		Set<Integer> pathsFromAnyOfVerts=null;
 		Set<CmpVertex> verts = new TreeSet<CmpVertex>();
 		
 		Set<CmpVertex> vertsConsidered = new TreeSet<CmpVertex>();Collection<Set<CmpVertex>> setsConsidered=new LinkedList<Set<CmpVertex>>();
 		do
 		{
-			pathsFromAnyOfVerts=null;verts = new TreeSet<CmpVertex>();vertsConsidered.clear();setsConsidered.clear();
+			pathsFromAnyOfVerts=null;verts.clear();vertsConsidered.clear();setsConsidered.clear();
 			
 			for(Entry<CmpVertex,Set<Integer>> entry:vertToPaths.entrySet())
-				if (!vertsConsidered.contains(entry.getKey())) // we only look at vertices that were not seen before
+				if (!vertsConsidered.contains(entry.getKey())) // we only look at vertices that were not seen before on this iteration of merging
 				{
 					verts = new TreeSet<CmpVertex>();
 					for(Integer p:entry.getValue())
-						verts.addAll(idToVerticesToMerge.get(p));
+						verts.addAll(idToVerticesToMerge.get(p));// these are all the vertices that have path p from them, we will now merge sets of paths for all of them to form pathsFromAnyOfVerts
 					
 					for(CmpVertex v:verts)
 					{
 						Set<Integer> pathsForVert = vertToPaths.get(v);
 						if (pathsForVert != entry.getValue())
-						{// this state is different from our collection, perform the merge.
+						{// this state is different from our collection, perform the merge. Comparison by reference is possible due to 'put(v,pathsFromAnyOfVerts)' below that makes sure that states with identical sets of paths are not merged.
 							if (pathsFromAnyOfVerts == null)
 								pathsFromAnyOfVerts = new TreeSet<Integer>(entry.getValue());
 							pathsFromAnyOfVerts.addAll(pathsForVert);
@@ -1227,16 +1232,12 @@ public class MarkovClassifier
 					if (pathsFromAnyOfVerts != null)
 						break;
 					
-					{
-						vertsConsidered.addAll(verts);setsConsidered.add(verts);// here we update the return value, if we get to the endwith pathsFromAnyOfVerts remaining null, we are done and setsConsidered can be returned
-					}
+					vertsConsidered.addAll(verts);setsConsidered.add(verts);// here we update the return value, if we get to the end with pathsFromAnyOfVerts remaining null, we are done and setsConsidered can be returned
 				}
 			if (pathsFromAnyOfVerts != null)
 			{// had to compute a merge
 				for(CmpVertex v:verts)
 					vertToPaths.put(v,pathsFromAnyOfVerts);
-				//for(Integer p:pathsFromAnyOfVerts)
-				//	idToVerticesToMerge.put(p, verts);
 			}
 		}
 		while(pathsFromAnyOfVerts != null);

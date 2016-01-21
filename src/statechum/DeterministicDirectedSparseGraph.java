@@ -855,7 +855,7 @@ final public class DeterministicDirectedSparseGraph {
 	/** Computes an alphabet of a given graph and adds transitions to a 
 	 * reject state from all states A and inputs a from which there is no B such that A-a->B
 	 * (A-a-#REJECT) gets added. Note: such transitions are even added to reject vertices.
-	 * The behaviour is not defined if reject vertex already exists.
+	 * The behaviour is not defined if reject vertex to add already exists in the graph.
 	 * 
 	 * @param g the graph to add transitions to
 	 * @param reject the name of the reject state, to be added to the graph.

@@ -76,7 +76,6 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -419,7 +418,7 @@ public class PairQualityLearner
 	
 	/** Loads a (potentially large) graph and a small version of it from a supplied file. Much faster than constructing it out of traces. 
 	 * Loaded graphs will be using the configuration loaded from a file rather the one that was passed in, hence
-	 * they need to be copied if you need then with a different type of transition matrix. 
+	 * they need to be copied if you need them with a different type of transition matrix. 
 	 * <br>
 	 * Another reason this is placed in a separate method in order to ensure that an instance of LearnerSimulator
 	 * goes out of scope and is garbage collected as soon as possible. It holds a great deal
@@ -440,7 +439,7 @@ public class PairQualityLearner
 		final LearnerSimulator simulator = new LearnerSimulator(inputStream,true,converter);
 		Configuration defaultConfig = configToUse.copy();
 		//defaultConfig.setRejectPositivePairsWithScoresLessThan(1);
-		assert converter != null : "we expect this methods to be used with large graphs and Array matrix types hence converter must be set";
+		assert converter != null : "we expect this method to be used with large graphs and Array matrix types hence converter must be set";
 		outcome.learnerInitConfiguration = simulator.readLearnerConstructionData(defaultConfig);
 		outcome.learnerInitConfiguration.setLabelConverter(converter);
 		
@@ -471,7 +470,7 @@ public class PairQualityLearner
 	}
 		
 	
-	/** Records scores of pairs that are correctly classified and misclassified. */
+	/** Records scores of pairs that are correctly classified and misclassified. Only considers pairs with scores below 150 in order to have a graph that will fit in a paper. */
 	protected static void updateStatistics( Map<Long,TrueFalseCounter> pairQuality, LearnerGraph tentativeGraph, LearnerGraph referenceGraph, Collection<PairScore> pairsToConsider)
 	{
 		if (!pairsToConsider.isEmpty() && pairQuality != null)
@@ -598,8 +597,10 @@ public class PairQualityLearner
 			return correctPairs.iterator().next();
 		}
 		
-		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, there will be a set of states that is supposed to be merged. 
-		 * It is important to point out that only positive states are taken into account, there are frequent cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
+		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, 
+		 * there will be a set of states that is supposed to be merged. 
+		 * It is important to point out that only positive states are taken into account, there are frequent 
+		 * cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
 		 * except for a transition from that very state that is often to be rejected.
 		 *  
 		 * @param tentativeGraph graph to process
@@ -773,7 +774,7 @@ public class PairQualityLearner
 		}
 	}
 	
-	/** This one is a reference learner. */
+	/** This one is a reference learner, using Sicco heuristic that performs quite well. */
 	public static class ReferenceLearner extends LearnerThatCanClassifyPairs
 	{
 		protected final boolean scoringSiccoRecursive;
@@ -846,7 +847,9 @@ public class PairQualityLearner
 		}		
 	}
 	
-	/** This one uses Weka to learn how to make correct classification of pairs into right and wrong. */
+	/** This one uses Weka to learn how to make correct classification of pairs into right and wrong. As such, it is an inherently cheating learner: 
+	 * resolvePotentialDeadEnd uses a reference graph to make sure that were no valid mergers have been selected as a set of pairs, report one of them to be marked as red. 
+	 */
 	public static class LearnerThatUpdatesWekaResults extends LearnerThatCanClassifyPairs
 	{
 		final WekaDataCollector dataCollector;
@@ -1024,7 +1027,7 @@ public class PairQualityLearner
 			//return Math.min(maxQuality, (long)(maxQuality*ratio/2));
 		}
 		
-		/** Checks if there are transitions from the supplied pair that are worth merging. */
+		/** Checks if there are transitions from the supplied pair that are worth merging, by checking for the existence of transitions with "mandatory merge" labels. */
 		public static boolean checkForMerge(PairScore pair, LearnerGraph tentativeGraph)
 		{
 			Set<Label> labelsOfInterest = null;
@@ -1048,7 +1051,7 @@ public class PairQualityLearner
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
+		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those contradicting mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
 		 */
 		protected ArrayList<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
@@ -1071,7 +1074,7 @@ public class PairQualityLearner
 			 // would make the whole process significantly more complex and hence not done.
 
 				// By the time we get here, it is assumed that all mandatory merge conditions are satisfied and hence every pair can be merged.
-				dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs,tentativeGraph);
+				dataCollector.buildSetsForComparators(pairs,tentativeGraph);
 				for(PairScore p:pairs)
 				{
 					assert p.getScore() >= 0;
@@ -1116,7 +1119,7 @@ public class PairQualityLearner
 			return possibleResults;
 		}
 		
-		/** Where there does not seem to be anything useful to merge, return the pair clearly incorrectly labelled. */
+		/** This function aims to identify a pair that clearly should not be merged. */
 		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
 			for(PairScore p:pairs)
@@ -1129,7 +1132,7 @@ public class PairQualityLearner
 			
 			// if we are here, none of the pairs are clear candidates for mergers.
 			
-			dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs,tentativeGraph);
+			dataCollector.buildSetsForComparators(pairs,tentativeGraph);
 
 			PairScore pairBestToReturnAsRed = null;
 			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -1151,7 +1154,7 @@ public class PairQualityLearner
 					double distribution[]=classifier.distributionForInstance(instance);
 					long quality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
 					if ( quality > 0 )
-					{
+					{// seems like a bad pair
 						if (pairBestToReturnAsRed == null || quality >pairBestToReturnAsRed.getAnotherScore())
 							pairBestToReturnAsRed = new PairScore(p.getQ(), p.getR(), p.getScore(), quality);// this is the pair to return.
 					}
@@ -1161,7 +1164,7 @@ public class PairQualityLearner
 						if (pairBestToReturnAsRed == null || pairBestToReturnAsRed.getAnotherScore() == 0)
 							pairBestToReturnAsRed = new PairScore(p.getQ(), p.getR(), p.getScore(), 0);// this is the pair that may be mergeable but the score is zero and we hence blacklist it.
 					}
-					else
+					else // quality is <= 0 (which means that pair is probably good) and we do not blacklist zeroes
 						return null;// this pair seems a plausible merge candidate.
 				}
 				catch(Exception ex)
@@ -1240,7 +1243,7 @@ public class PairQualityLearner
 			@Override
 			public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph coregraph, Collection<PairScore> pairs) 
 			{
-				dataCollector.buildSetsForComparatorsThatDoNotDependOnFiltering(pairs, coregraph);
+				dataCollector.buildSetsForComparators(pairs, coregraph);
 				return LearnerThatUsesWekaResults.this.obtainEstimateOfTheQualityOfTheCollectionOfPairs(pairs);
 			}
 			
@@ -1586,7 +1589,7 @@ public class PairQualityLearner
 		return labelToStatePair;
 	}
 	
-	/** 
+	/** Identifies labels that are unique from specific states.
 	 *  
 	 * @param graph graph in which to calculate those labels
 	 * @return map from a label to a vertex that can be identified by a transition with a label of interest. 
@@ -1601,18 +1604,18 @@ public class PairQualityLearner
 			CmpVertex state = entry.getKey(); 
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
 				if (!deadLabels.contains(target.getKey()))
-				{// the label is not already recorded as leading to multiple different states.
+				{// the label is not already recorded as present on transitions from different states.
 					CmpVertex recordedState = labelToState.get(target.getKey());
-						if (recordedState == null)
-							// first time we've seen this label in use
-							labelToState.put(target.getKey(),state);
-						else
-							if (recordedState != state)
-							{
-								// record the label as leading to multiple states
-								deadLabels.add(target.getKey());
-								labelToState.remove(target.getKey());
-							}
+					if (recordedState == null)
+						// first time we've seen this label in use
+						labelToState.put(target.getKey(),state);
+					else
+						if (recordedState != state)
+						{
+							// record the label as leading to multiple states
+							deadLabels.add(target.getKey());
+							labelToState.remove(target.getKey());
+						}
 				}
 		}
 		
@@ -1653,6 +1656,7 @@ public class PairQualityLearner
 		}
 	}
 	
+	/** Assuming we know which pairs of labels are not supposed to be merged, this function construts if-then constraints to prevent such mergers. */
 	public static void addIfThenForPairwiseConstraints(LearnerEvaluationConfiguration initialData, Map<Label,Set<Label>> pairwiseConstraints)
 	{
 		if (initialData.ifthenSequences == null)
@@ -1671,12 +1675,16 @@ public class PairQualityLearner
 			}
 	}
 	
+	/** Given a name of a vertex in a PTA, prints a path in it from the supplied initial state of length around 10 in the direction of the root state. Will not give expected results if the graph is not a PTA. 
+	 * Primarily intended for troubleshooting.
+	 * 
+	 * @param graph graph in which to process a vertex
+	 * @param vert vertex of interest.
+	 */
 	public static void printTraceLeadingTo(LearnerGraph graph, String vert)
 	{
 		LearnerGraphND ptaInverse = new LearnerGraphND(graph.config);
-		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
-			@Override public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex v) { return true; }}
-			, ptaInverse);
+		AbstractPathRoutines.buildInverse(graph, LearnerGraphND.ignoreNone, ptaInverse);
 		CmpVertex v=ptaInverse.findVertex(vert);
 		for(int i=0;i<10;++i)
 		{
@@ -1699,6 +1707,10 @@ public class PairQualityLearner
 
 	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. The collection of pairs initial-original is then returned. 
 	 * Important: this method modifies the supplied graph because it needs to add vertices. 
+	 * For instance, A-a->B-b->C-a->D using label "a" as unique is turned into A-a->N1 / N2-a->B-b-C-a->N3 / N4-a->D (with a set of {N2,N4,A} returned). 
+	 * The need to split states accounts for multiple transitions from the same state:
+	 * Init ... A-a->B / A-b->B would turn into A-a->N1 / A-b->B / N2-a->B (with a set of {N2,Init} returned).
+	 * The key advantage is that after merger of the returned vertices, the outcome is a tree, hence can be used as a normal PTA with a non-generalised merger.
 	 */
 	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
 	{

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="1.8.0_60" class="java.beans.XMLDecoder">
+ <object class="java.util.Properties">
+  <void method="put">
+   <string>ERLANGHOME</string>
+   <string>C:\Program Files\erl7.0</string>
+  </void>
+  <void method="put">
+   <string>LTL2BA</string>
+   <string>lib/ltl2ba-1.1/ltl2ba.exe</string>
+  </void>
+  <void method="put">
+   <string>VIZ_CONFIG</string>
+   <string>kirill_home_w64</string>
+  </void>
+  <void method="put">
+   <string>ERLANGOUTPUT_ENABLED</string>
+   <string>false</string>
+  </void>
+  <void method="put">
+   <string>CLOSE_TERMINATE</string>
+   <string>true</string>
+  </void>
+  <void method="put">
+   <string>VIZ_DIR</string>
+   <string>resources/graphLayout</string>
+  </void>
+ </object>
+ <object class="java.util.HashMap">
+  <void method="put">
+   <int>0</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle0">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>646</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>23</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>1614</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle0"/>
+        <int>1306</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+ </object>
+</java>

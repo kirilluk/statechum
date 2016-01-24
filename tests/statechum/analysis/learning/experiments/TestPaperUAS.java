@@ -969,21 +969,21 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("B")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2));// same scores, same red states but different blue ones.
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2));
-		Assert.assertEquals(2,PaperUAS.countChoices(stack));
+		Assert.assertEquals(2,UASPairQuality.countChoices(stack));
 		
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMAX));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMAX));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMIN));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMIN));
 		
 		Random seedSel = new Random(0);
 		
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 	}
 	
 	/** Same scores but different red states. */
@@ -996,7 +996,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("A")), gr.findVertex(VertexID.parseID("A")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2));
-		Assert.assertEquals(1,PaperUAS.countChoices(stack));
+		Assert.assertEquals(1,UASPairQuality.countChoices(stack));
 	}
 	
 	@Test
@@ -1006,20 +1006,20 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2));
-		Assert.assertEquals(2,PaperUAS.countChoices(stack));
+		Assert.assertEquals(2,UASPairQuality.countChoices(stack));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMAX));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMAX));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMIN));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMIN));
 		
 		Random seedSel = new Random(0);
 		
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 	}
 	
 	@Test
@@ -1030,20 +1030,20 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("C")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("B")), gr.findVertex(VertexID.parseID("A")),1,2));
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2));
-		Assert.assertEquals(1,PaperUAS.countChoices(stack));
+		Assert.assertEquals(1,UASPairQuality.countChoices(stack));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMAX));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMAX));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMIN));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMIN));
 		
 		Random seedSel = new Random(0);
 		
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 	}
 	
 	@Test
@@ -1052,27 +1052,27 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		final LearnerGraph gr = buildLearnerGraph("A-a->A-b->B-a->C", "testChoices1a",mainConfiguration,converter);
 		final Stack<PairScore> stack=new Stack<PairScore>();
 		stack.push(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2));
-		Assert.assertEquals(1,PaperUAS.countChoices(stack));
+		Assert.assertEquals(1,UASPairQuality.countChoices(stack));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMAX));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMAX));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairMinMax(gr, stack, PaperUAS.pairchoiceMIN));
+				UASPairQuality.selectPairMinMax(gr, stack, UASPairQuality.pairchoiceMIN));
 		
 		Random seedSel = new Random(0);
 		
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 		Assert.assertEquals(new PairScore(gr.findVertex(VertexID.parseID("C")), gr.findVertex(VertexID.parseID("B")),2,2), 
-				PaperUAS.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
+				UASPairQuality.selectPairAtRandom(stack, new Random(seedSel.nextLong())));
 	}
 	
 	@Test
 	public void testCountChoices3()
 	{
 		final Stack<PairScore> stack=new Stack<PairScore>();
-		Assert.assertEquals(0,PaperUAS.countChoices(stack));
+		Assert.assertEquals(0,UASPairQuality.countChoices(stack));
 	}
 	
 	@Test

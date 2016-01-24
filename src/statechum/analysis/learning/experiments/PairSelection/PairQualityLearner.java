@@ -668,6 +668,16 @@ public class PairQualityLearner
 		 */
 		public List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
+			return filterPairsBasedOnMandatoryMerge(pairs,tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+		}
+		
+		/** Returns a subset of pairs that are not in contradiction with mandatory merge constraints.
+		 *  
+		 * @param pairs pairs to merge
+		 * @return the outcome of merging.
+		 */
+		public static List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
+		{
 			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 			if (pairsList.isEmpty())

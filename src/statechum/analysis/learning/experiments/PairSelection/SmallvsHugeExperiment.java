@@ -27,6 +27,7 @@ import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -193,7 +194,7 @@ public class SmallvsHugeExperiment {
 			}
 			else assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 			
-			LearnerThatCanClassifyPairs learnerOfPairs = null;
+			PairQualityLearner.ReferenceLearner learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
 			
 			//Visualiser.updateFrame(pta, referenceGraph);Visualiser.waitForKey();
@@ -209,7 +210,7 @@ public class SmallvsHugeExperiment {
 			{
 				
 				LearnerGraph reducedPTA = PairQualityLearner.mergeStatesForUnique(pta,uniqueFromInitial);
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA,false);
+				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, reducedPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
 				//learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 				
 				synchronized (AbstractLearnerGraph.syncObj) {
@@ -225,7 +226,7 @@ public class SmallvsHugeExperiment {
 					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 					if (score < 0)
 					{
-						learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, reducedPTA,false);
+						learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, reducedPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
 						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
@@ -239,7 +240,7 @@ public class SmallvsHugeExperiment {
 			}
 
 			{// not merging based on a unique transition from an initial state
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, referenceGraph, pta,false);
+				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, pta,ReferenceLearner.ScoringToApply.SCORING_SICCO);
 				synchronized (AbstractLearnerGraph.syncObj) {
 					PaperUAS.computePTASize(selectionID+" no unique: ", pta, referenceGraph);
 				}

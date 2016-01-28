@@ -29,6 +29,7 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -160,7 +161,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta0()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = new LearnerGraph(evalConfig.config);initialPta.initPTA();
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
@@ -174,7 +175,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta1()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter());
@@ -187,7 +188,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta2()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1","testAbstractInitialPta2",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C","testAbstractInitialPta1",evalConfig.config,evalConfig.getLabelConverter());
@@ -200,7 +201,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta3()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->B2","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter());
@@ -213,7 +214,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta4()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2 / A-b(3)->B3","testAbstractInitialPta4",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->B3","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter());
@@ -226,7 +227,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta5()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B1 / A-b(0)->B2 / A-b(3)->B3 / A-c(0)->E / A-c(2)->E1","testAbstractInitialPta5",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->D / A-c->E","testAbstractInitialPta5",evalConfig.config,evalConfig.getLabelConverter());
@@ -239,7 +240,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta6()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3 / A-b(3)->B4 / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->E / A-c->D / D-a->C1 / D-b->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
@@ -252,7 +253,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testAbstractInitialPta7()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter()),0);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / A-b->E-a->T / E-b->G-a->H / G-c->I-a->J / A-c->D / D-a->C1 / D-b->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
@@ -266,7 +267,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test(expected = IllegalArgumentException.class)	
 	public void testAbstractInitialPta_fail1()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->D / A-a(3)->B / A-b(0)->B / A-b->B","testAbstractInitialPta3",evalConfig.config,evalConfig.getLabelConverter()),0);
 		learner.abstractInitialGraph('(');
 	}
@@ -274,7 +275,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testSplitLabels1()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
 		learner.coregraph = learner.abstractInitialGraph('(');
@@ -290,7 +291,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testSplitLabels2()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels2_pta",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
 		learner.coregraph = learner.abstractInitialGraph('(');
@@ -307,7 +308,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testSplitLabels3()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(1)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels3_pta",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0);
 		learner.coregraph = learner.abstractInitialGraph('(');
@@ -325,7 +326,7 @@ public class TestLearnerWithLabelRefinementViaPta {
 	@Test
 	public void testSplitLabels4()
 	{
-		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(null);
+		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = new LearnerGraph(evalConfig.config);initialPta.initPTA();initialPta.setName("testSplitLabels4_pta");
 		Set<VertID> rejectStates = LearnerWithLabelRefinementViaPta.createSetOfVertID(null);
 		for(int i=1;i<=4;++i)

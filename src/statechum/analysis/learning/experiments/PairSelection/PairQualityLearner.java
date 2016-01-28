@@ -526,25 +526,18 @@ public class PairQualityLearner
 		return labelToSet;
 	}
 
+	
 	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
-	public static abstract class LearnerThatCanClassifyPairs extends RPNIUniversalLearner
+	public static abstract class LearnerWithMandatoryMergeConstraints extends RPNIUniversalLearner
 	{
 		protected final LearnerGraph initialPTA;
 		
-		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA) 
+		public LearnerWithMandatoryMergeConstraints(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA) 
 		{
 			super(null, evalCnf);
-			referenceGraph = reference;initialPTA = argInitialPTA;
+			initialPTA = argInitialPTA;
 		}
 
-		protected final LearnerGraph referenceGraph;
-		protected boolean allMergersCorrect = true;
-		
-		public boolean checkAllMergersCorrect()
-		{
-			return allMergersCorrect;
-		}
-		
 		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<Label>(),labelsLeadingFromStatesToBeMerged = new LinkedList<Label>();
 		
 		public Collection<Label> getLabelsLeadingToStatesToBeMerged()
@@ -566,37 +559,6 @@ public class PairQualityLearner
 		{
 			labelsLeadingFromStatesToBeMerged = labels;
 		}
-
-		/** Returns one of the correct pairs.
-		 */
-		public PairScore pickCorrectPair(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
-		{
-			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
-					
-			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
-			
-			// without sorting the pairs, the learner finds itself in a situation with no valid pairs to choose from.
-			Comparator<PairScore> PairComparator = new Comparator<PairScore>(){
-
-				@Override
-				// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
-				public int compare(PairScore o1, PairScore o2) {
-					// if o1 is negative and o2 is positive, the outcome is negative.
-					int outcome = sgn( o2.getAnotherScore() - o1.getAnotherScore() );
-					return outcome;
-					
-				}};
-				
-			Collections.sort(correctPairs,PairComparator);
-			if (correctPairs.isEmpty())
-			{
-				Collections.sort(wrongPairs, PairComparator);
-				allMergersCorrect = false;
-				return wrongPairs.iterator().next();
-			}
-			return correctPairs.iterator().next();
-		}
-		
 		/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, 
 		 * there will be a set of states that is supposed to be merged. 
 		 * It is important to point out that only positive states are taken into account, there are frequent 
@@ -710,6 +672,71 @@ public class PairQualityLearner
 				}});
 			return pairsSorted.get(pairsSorted.size()-1);
 		}
+
+		@SuppressWarnings("unused")
+		@Override 
+		public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+		{
+			LearnerGraph.copyGraphs(initialPTA, getTentativeAutomaton());
+			return initialPTA;
+		}
+		
+		@SuppressWarnings("unused")
+		@Override 
+		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+		{
+			throw new UnsupportedOperationException();
+		}			
+		
+	}
+	
+	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
+	public static class LearnerThatCanClassifyPairs extends ReferenceLearner
+	{
+		
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,ScoringToApply scoring) 
+		{
+			super(evalCnf,argInitialPTA,scoring);
+			referenceGraph = reference;
+		}
+
+		protected boolean allMergersCorrect = true;
+		
+		public boolean checkAllMergersCorrect()
+		{
+			return allMergersCorrect;
+		}
+		
+		/** Returns one of the correct pairs.
+		 */
+		public PairScore pickCorrectPair(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
+		{
+			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+					
+			SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
+			
+			// without sorting the pairs, the learner finds itself in a situation with no valid pairs to choose from.
+			Comparator<PairScore> PairComparator = new Comparator<PairScore>(){
+
+				@Override
+				// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
+				public int compare(PairScore o1, PairScore o2) {
+					// if o1 is negative and o2 is positive, the outcome is negative.
+					int outcome = sgn( o2.getAnotherScore() - o1.getAnotherScore() );
+					return outcome;
+					
+				}};
+				
+			Collections.sort(correctPairs,PairComparator);
+			if (correctPairs.isEmpty())
+			{
+				Collections.sort(wrongPairs, PairComparator);
+				allMergersCorrect = false;
+				return wrongPairs.iterator().next();
+			}
+			return correctPairs.iterator().next();
+		}
+		
 		
 		/** There are cases when no selected pair is actually valid. The method below chooses a state to be marked as red because it is the only choice that we can make. */
 		public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<PairScore> pairs) 
@@ -731,21 +758,21 @@ public class PairQualityLearner
 			return outcome;
 		}
 		*/
+		protected Map<Long,TrueFalseCounter> pairQuality;
+		protected LearnerGraph referenceGraph;
 
-		@Override 
-		public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
+		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter, LearnerGraph referenceGraph)
 		{
-			LearnerGraph graph = super.init(plus,minus);
-			LearnerGraph.copyGraphs(initialPTA, graph);
-			return initialPTA;
+			pairQuality = argCounter;this.referenceGraph = referenceGraph;
 		}
-		
-		@SuppressWarnings("unused")
-		@Override 
-		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
+
+		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
+		@Override
+		protected void updatePairQualityStatistics(LearnerGraph graph,List<PairScore> outcome)
 		{
-			throw new UnsupportedOperationException();
-		}			
+			if (pairQuality != null && referenceGraph != null)
+				updateStatistics(pairQuality, graph,referenceGraph, outcome);
+		}
 	}
 	
 
@@ -784,23 +811,25 @@ public class PairQualityLearner
 		}
 	}
 	
-	/** This one is a reference learner, using Sicco heuristic that performs quite well. */
-	public static class ReferenceLearner extends LearnerThatCanClassifyPairs
+	/** This one is a reference learner, using Sicco heuristic (if requested) that performs quite well. */
+	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
-		protected final boolean scoringSiccoRecursive;
+		public enum ScoringToApply { SCORING_EDSM, SCORING_SICCO, SCORING_SICCORECURSIVE };
 		
-		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
+		protected final ScoringToApply scoringMethod;
+		
+		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, ScoringToApply scoring) 
 		{
-			super(evalCnf,argReferenceGraph, argInitialPTA);this.scoringSiccoRecursive = scoringSiccoRecursive;
+			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;
 		}
 		
-		protected Map<Long,TrueFalseCounter> pairQuality;
-		
-		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
-		{
-			pairQuality = argCounter;
-		}
 
+		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
+		@SuppressWarnings("unused")
+		protected void updatePairQualityStatistics(LearnerGraph graph,List<PairScore> outcome)
+		{
+		}
+		
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
@@ -835,8 +864,19 @@ public class PairQualityLearner
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					long score = p.getScore();
-					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
-						score = -1;
+					switch(ReferenceLearner.this.scoringMethod)
+					{
+					case SCORING_EDSM:
+						break;// nothing to do, score is already set up correctly
+					case SCORING_SICCO:
+						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,false) < 0)
+							score = -1;
+						break;
+					case SCORING_SICCORECURSIVE:
+						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,true) < 0)
+							score = -1;
+						break;
+					}
 					return score;
 				}
 
@@ -848,8 +888,9 @@ public class PairQualityLearner
 			});
 			if (!outcome.isEmpty())
 			{
-				PairScore chosenPair = pickPairQSMLike(outcome);
-				updateStatistics(pairQuality, graph,referenceGraph, outcome);
+				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome, graph);
+				PairScore chosenPair = pickPairQSMLike(filteredPairs);
+				updatePairQualityStatistics(graph,filteredPairs);
 				outcome.clear();outcome.push(chosenPair);
 			}
 			
@@ -873,7 +914,8 @@ public class PairQualityLearner
 				
 		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph, argInitialPTA);dataCollector = argDataCollector;
+			super(evalCnf,argReferenceGraph, argInitialPTA,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
+			dataCollector = argDataCollector;
 		}
 		
 		@Override 
@@ -939,7 +981,6 @@ public class PairQualityLearner
 		
 		/** The data collector is only used in order to evaluate pairs, no data is actually added to it hence no need to use the same instance across many machines. */
 		final WekaDataCollector dataCollector;
-		protected Map<Long,TrueFalseCounter> pairQuality = null;
 		final int classTrue,classFalse;
 		
 		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
@@ -983,7 +1024,7 @@ public class PairQualityLearner
 		
 		public LearnerThatUsesWekaResults(int ifDepth,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA);
+			super(evalCnf,argReferenceGraph,argInitialPTA,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
 			dataCollector = createDataCollector(ifDepth);
 			classifier=wekaClassifier;
 			classTrue=dataCollector.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=dataCollector.classAttribute.indexOfValue(Boolean.FALSE.toString());
@@ -1513,8 +1554,10 @@ public class PairQualityLearner
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public ScoresForGraph actualLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
+		public ScoresForGraph actualLearner,actualConstrainedLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
 		public Map<String,ScoresForGraph> miscGraphs;
+		
+		public String experimentName;
 		
 		public long traceNumber = 0;
 		
@@ -1949,7 +1992,7 @@ public class PairQualityLearner
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					List<StatePair> pairsList = LearnerThatCanClassifyPairs.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
+					List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
 					if (!pairsList.isEmpty())
 					{
 						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
@@ -2000,7 +2043,7 @@ public class PairQualityLearner
 				if (learnUsingReferenceLearner)
 				{
 					dataSample.actualLearner=estimateDifference(referenceGraph,actualAutomaton,testSet);
-					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,referenceGraph,pta,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,pta,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 					//actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");

@@ -507,7 +507,7 @@ public class Cav2014 extends PairQualityLearner
 		
 		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
 		{
-			super(evalCnf,null, argInitialPTA);this.scoringSiccoRecursive = scoringSiccoRecursive;
+			super(evalCnf,null, argInitialPTA,ScoringToApply.SCORING_SICCO);this.scoringSiccoRecursive = scoringSiccoRecursive;
 		}
 
 		@Override 
@@ -564,7 +564,7 @@ public class Cav2014 extends PairQualityLearner
 		
 		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
 		{
-			super(constructConfiguration(evalCnf,allPaths,k),null, argInitialPTA);
+			super(constructConfiguration(evalCnf,allPaths,k),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
 		}
 		
 		@Override 
@@ -618,7 +618,7 @@ public class Cav2014 extends PairQualityLearner
 
 		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA);
+			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 
@@ -759,7 +759,7 @@ public class Cav2014 extends PairQualityLearner
 
 		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA);
+			super(evalCnf,argReferenceGraph,argInitialPTA,ScoringToApply.SCORING_SICCO);
 		}
 		
 		public static String refToString(Object obj)

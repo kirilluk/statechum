@@ -153,7 +153,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param pair the pair of states merged in the original graph
 	 */
 	@Override 
-	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<Label>> ComputeQuestions(PairScore pair, @SuppressWarnings("unused") LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
 			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);
@@ -169,7 +169,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param pair the pair of states merged in the original graph
 	 */
 	@Override 
-	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
+	public List<List<Label>> RecomputeQuestions(PairScore pair,@SuppressWarnings("unused") LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
 			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);

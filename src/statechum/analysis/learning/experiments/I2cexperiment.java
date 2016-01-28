@@ -265,7 +265,7 @@ public class I2cexperiment extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends LearnerThatCanClassifyPairs implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -386,7 +386,7 @@ public class I2cexperiment extends PairQualityLearner
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA);
+			super(constructConfiguration(evalCnf,threshold),argInitialPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 

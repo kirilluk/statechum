@@ -452,7 +452,7 @@ public class TestErlangModule
     public void testAttemptTracesNotInAlphabet()
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
-       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
     	evalConf.config = config.copy();
     	final String moduleName = "locker";
     	evalConf.config.setErlangModuleName(moduleName);
@@ -476,7 +476,7 @@ public class TestErlangModule
     public void testAttemptTracesWrongModule() throws IOException
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
-       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
        	evalConf.config = config.copy();ErlangModule.setupErlangConfiguration(evalConf.config,new File(ErlangExamples,"locker/locker"+ErlangRunner.ERL.ERL.toString()));
     	final ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
@@ -499,7 +499,7 @@ public class TestErlangModule
     public void testAttemptTraces()
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
-    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
     	final String moduleName = "locker";
     	evalConf.config = config.copy();ErlangModule.setupErlangConfiguration(evalConf.config,new File(ErlangExamples+File.separator+"locker",moduleName + ErlangRunner.ERL.ERL.toString()));
     	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);

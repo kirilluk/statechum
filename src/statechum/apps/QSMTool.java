@@ -63,7 +63,7 @@ public class QSMTool {
     /** Learner configuration to be set. */
     protected Set<List<Label>> sPlus = new HashSet<List<Label>>();
     protected Set<List<Label>> sMinus = new HashSet<List<Label>>();
-    protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(null);
+    protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
     protected Collection<String> dataDescription = null;
     protected boolean active = true;
     protected boolean showLTL = false;

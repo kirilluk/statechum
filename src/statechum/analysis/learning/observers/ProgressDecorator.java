@@ -182,7 +182,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
 
-		public LearnerEvaluationConfiguration(Configuration defaultCnf) {
+		public LearnerEvaluationConfiguration(Configuration defaultCnf) 
+		{
 			// Mostly rely on defaults above.
 			if (defaultCnf == null)
 				config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
@@ -190,13 +191,17 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				config = defaultCnf.copy();
 		}
 		
-		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, 
-				Collection<String> ltl, SmtLabelRepresentation lblDetails)
+		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, Collection<String> ltl, SmtLabelRepresentation lblDetails)
 		{
 			graph = gr;testSet = tests;config = cnf;ifthenSequences = ltl;labelDetails=lblDetails;
-			
 		}
 
+		/** A copy-constructor that does not clone its arguments. */
+		public LearnerEvaluationConfiguration(LearnerEvaluationConfiguration from)
+		{
+			graph = from.graph;testSet = from.testSet;config = from.config;ifthenSequences = from.ifthenSequences; labelDetails = from.labelDetails;labelConverter = from.labelConverter;
+		}
+		
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
 		 */

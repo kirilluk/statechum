@@ -1150,7 +1150,7 @@ public class Synapse implements Runnable {
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
 														pta.clearColours();
-														ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration,null,pta,false) {
+														ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration,pta,ReferenceLearner.ScoringToApply.SCORING_SICCO) {
 
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

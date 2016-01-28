@@ -1008,11 +1008,11 @@ public class Transform
 		return result;
 	}
 	
-	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, Set<Label> alphabet, LearnerGraph graph, Configuration config, ConvertALabel conv)
+	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, Set<Label> alphabet, Configuration config, ConvertALabel conv)
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
 		LTL_to_ba converter = new LTL_to_ba(config,conv);
-		if (converter.ltlToBA(ltl, graph, true,
+		if (converter.ltlToBA(ltl, alphabet, true,
 				GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)))
 			try {
 				LearnerGraph ltlTmpAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
@@ -1024,9 +1024,6 @@ public class Transform
 				Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
 			}
 		
-		Set<Label> alphabetToUse = alphabet;
-		if (alphabetToUse == null)
-			alphabetToUse = graph.pathroutines.computeAlphabet();
 		for(String property:ltl)
 			if (property.startsWith(QSMTool.cmdIFTHENAUTOMATON))
 			{
@@ -1036,7 +1033,7 @@ public class Transform
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph tmpPropertyAutomaton =
 						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
-							.transform.interpretLabelsAsReg(alphabetToUse,conv); // this is inefficient but I can afford this because if-then automata are small.
+							.transform.interpretLabelsAsReg(alphabet,conv); // this is inefficient but I can afford this because if-then automata are small.
 				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
 				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
 				checkTHEN_disjoint_from_IF(propertyAutomaton);

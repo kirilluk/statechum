@@ -709,16 +709,15 @@ public class LTL_to_ba {
 	 * @param ltl formulas to run
 	 * @param graph in order to correctly interpret symbols used by ltl2ba 
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
-	 * This information is extracted from the supplied graph.
 	 * @param invert if the ltl expression is to be inverted before passing it to ltl2ba.
 	 * @param pathTo_ltl2ba path to ltl2ba executable, if null the default path will be used.
 	 * @return false if there is no LTL to extract.
 	 * @throws IncompatibleStatesException 
 	 */
-	public boolean ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert, String pathTo_ltl2ba)
+	public boolean ltlToBA(Collection<String> ltl, Collection<Label> alphabetToUse, boolean invert, String pathTo_ltl2ba)
 	{
-		if (graph != null)
-			setAlphabet(graph.pathroutines.computeAlphabet());
+		if (alphabetToUse != null)
+			setAlphabet(alphabetToUse);
 		String ltlString = concatenateLTL(ltl).toString();
 		if (ltlString.length() == 0)
 			return false;

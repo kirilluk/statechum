@@ -103,9 +103,11 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.linear.GD;
@@ -825,18 +827,75 @@ public class PaperUAS
  		System.out.println(description+computeLeafCount(pta)/(double)stateCoverSize+" leaves, "+computeTransitionCount(pta)/(double)stateCoverSize+" transitions");
  	}
  	
+ 	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
+ 	// Example: 
+ 	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
  	public static void main(String args[]) throws Exception
  	{
 		Configuration mainConfiguration = Configuration.getDefaultConfiguration().copy();mainConfiguration.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		ConvertALabel labelConverter = new Transform.InternStringLabel();
 		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, mainConfiguration, labelConverter);
-		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);
 		LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
+		Set<Label> alphabetToUse = smallGraph.pathroutines.computeAlphabet();
+/*
+		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);
+		
 		
 		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
 		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
-		System.out.printf("positive leaf nodes: %d, transitions: %d",computeLeafCount(hugeGraph)-(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber()),computeTransitionCount(hugeGraph));
-		//PaperUAS paper = new PaperUAS();
-		//paper.LearnReferenceAutomaton();
+		System.out.printf("positive leaf nodes: %d, transitions: %d\n",computeLeafCount(hugeGraph)-(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber()),computeTransitionCount(hugeGraph));
+*/
+		PaperUAS paper = new PaperUAS();
+ 		
+ 		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
+         final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
+         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
+         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.GENERAL);
+         
+         String path = args[0];
+         
+         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
+         
+ 		final int offset=2;
+     	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]); 
+     	int maxFrame = paper.getMaxFrame(inputFiles);
+     	paper.divisor = (maxFrame+1)/10;// the +1 ensures that the last class of frames includes the last point.
+     	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]);// refill the input (it was drained by the computation of maxFrame).
+     	paper.loadDataByConcatenation(inputFiles);
+     	//paper.loadData(inputFiles);
+     	
+    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
+    	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
+    	Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*3,referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size());
+
+    	paper.learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (enough to augment once)
+    	for(String seed:paper.collectionOfTraces.keySet())
+     		if (seed != UAVAllSeeds)
+	     	{
+     		    LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+     			initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll).get(paper.maxFrameNumber));
+     			System.out.printf("seed: %s (before ifthen) positive leaf nodes: %d, transitions: %d\n",seed,computeLeafCount(initialPTA)-(initialPTA.getStateNumber()-initialPTA.getAcceptStateNumber()),computeTransitionCount(initialPTA));
+     			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, alphabetToUse, paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+     			Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
+     			System.out.printf("seed: %s (after  ifthen) positive leaf nodes: %d, transitions: %d\n",seed,computeLeafCount(initialPTA)-(initialPTA.getStateNumber()-initialPTA.getAcceptStateNumber()),computeTransitionCount(initialPTA));
+     			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(paper.learnerInitConfiguration, referenceGraph, initialPTA,false);
+     			final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+     			DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, paper.learnerInitConfiguration.config, 1);
+     			DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,testSet);
+    			System.out.printf("seed: %s (actual) states: %d, transitions: %d, diffMeasure = %f, bcrMeasure = %f\n",
+    					seed,actualAutomaton.getStateNumber(),computeTransitionCount(actualAutomaton),
+    					diffMeasure.getValue(),bcrMeasure.BCR());
+	 	        //actualAutomaton.storage.writeGraphML("resources/"+name+"_"+frame+"_"+i+".xml");
+	     	}
+	    LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+		//initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));
+		System.out.printf("positive leaf nodes: %d, transitions: %d\n",computeLeafCount(initialPTA)-(initialPTA.getStateNumber()-initialPTA.getAcceptStateNumber()),computeTransitionCount(initialPTA));
+		System.out.println(new Date().toString()+" Graph loaded: "+initialPTA.getStateNumber()+" states, adding at most "+ paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN()+" if-then states");
+		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
+/*
+		DifferentFSMException difference = WMethod.checkM(hugeGraph,initialPTA);
+		if (difference != null)
+			throw difference;*/
  	}
 }

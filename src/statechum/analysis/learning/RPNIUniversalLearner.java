@@ -156,7 +156,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
-			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.computeQS(pair, getTentativeAutomaton(),tempNew, ifthenAutomata);
 	}
 
@@ -172,7 +172,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) 
-			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, original, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+			ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.RecomputeQS(pair, getTentativeAutomaton(),temp, ifthenAutomata);
 	}
 	
@@ -225,6 +225,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		final Configuration shallowCopy = getTentativeAutomaton().config.copy();shallowCopy.setLearnerCloneGraph(false);
 		ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		SpinUtil spin = null;
+		setAlphabetUsedForIfThen(ptaHardFacts.pathroutines.computeAlphabet());
 		LearnerGraph.copyGraphs(getTentativeAutomaton(), ptaHardFacts);
 		LearnerGraph ptaSoftFacts = getTentativeAutomaton();
 		setChanged();getTentativeAutomaton().setName(getGraphName()+"_init");
@@ -235,7 +236,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 			StringBuffer counterExampleHolder = new StringBuffer();
 			if (ifthenAutomata == null) 
-				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, ptaHardFacts, config, topLevelListener.getLabelConverter()).toArray(new LearnerGraph[0]);
+				ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, topLevelListener.getLabelConverter()).toArray(new LearnerGraph[0]);
 
 			if (!topLevelListener.AddConstraints(getTentativeAutomaton(),updatedTentativeAutomaton,counterExampleHolder))
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
@@ -483,7 +484,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							}
 							else
 							{
-								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, alphabetUsedForIfThen, getTentativeAutomaton(), config, getLabelConverter()).toArray(new LearnerGraph[0]);
+								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 
 								LearnerGraph.copyGraphs(getTentativeAutomaton(), updatedTentativeAutomaton);
@@ -506,7 +507,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							
 							// make sure constraints are rebuilt if in use
 							if (config.isUseConstraints())
-								ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, ptaHardFacts, config, getLabelConverter()).toArray(new LearnerGraph[0]);
+								ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, alphabetUsedForIfThen, config, getLabelConverter()).toArray(new LearnerGraph[0]);
 							
 							restartLearning = RestartLearningEnum.restartHARD;
 						}

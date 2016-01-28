@@ -159,7 +159,7 @@ public class UASPairQuality extends PaperUAS
  		initConfiguration.setLabelConverter(learnerInitConfiguration.getLabelConverter());// we do not copy if-then automata here because we do not wish to augment from if-then on every iteration because our properties are pairwise and this permits augmentation to be carried out first thing and not any more.
  		initConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
  		
- 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, null, referenceGraph, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+ 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
  		System.out.println(new Date().toString()+" learning commencing.");
  		final Integer frame=6;
    		//for(final Integer frame:allFrames)
@@ -365,7 +365,7 @@ public class UASPairQuality extends PaperUAS
      */
     public DifferenceToReference learnAndEstimateDifference(int ifDepth,LearnerGraph initPTA, LearnerGraph referenceGraph,Classifier c, final Collection<Label> labelsToMergeTo, final Collection<Label> labelsToMergeFrom)
     {
- 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, null, referenceGraph, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+ 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
  			try {
  			Transform.augmentFromIfThenAutomaton(initPTA, null, ifthenAutomata,learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());
  		} catch (AugmentFromIfThenAutomatonException e) {
@@ -737,7 +737,7 @@ public class UASPairQuality extends PaperUAS
 			e1.printStackTrace();
 		}
 		*/
-		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, null, referenceGraph, initConfiguration.config, initConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), initConfiguration.config, initConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 		initConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 		
 		System.out.println(new Date().toString()+" Graph loaded: "+initialPTA.getStateNumber()+" states, adding at most "+ initConfiguration.config.getHowManyStatesToAddFromIFTHEN()+" if-then states");

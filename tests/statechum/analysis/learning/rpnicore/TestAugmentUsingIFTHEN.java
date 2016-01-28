@@ -304,7 +304,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	{
 		String ltlFormula = "!([](a->X[]b))";
 		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" "+ltlFormula}), null,  buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+				QSMTool.cmdLTL+" "+ltlFormula}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-a->A-b->A / I-b->IA-a->A / I-c->IA-b->IA-c->IA / P-c-#P1 / P-a-#P2 / A = THEN = P / " +
@@ -326,7 +326,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdLTL+" "+ltlFormulaB,
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-c->A / I-d->A / A-a->A-b->A-c->A-d->A / P2#-b-P-a-#P1 / I = THEN = P / " +
@@ -354,7 +354,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph next = null;
@@ -378,7 +378,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 		Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdLTL+" !a",
-				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), null, buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		}}, IllegalArgumentException.class,"missing automata name");
 	}
 	
@@ -388,7 +388,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-t->B / P-a->P == THEN == A"
-			}), null, buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter),mainConfiguration,converter);
+			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		
 		}}, IllegalArgumentException.class,"unrecognised label t");
 	}

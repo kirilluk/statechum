@@ -184,7 +184,7 @@ public class SmallvsHugeExperiment {
 					subsetOfPairs.put(entry.getKey(),value);
 				}
 				PairQualityLearner.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
-				LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, null, referenceGraph, learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
+				LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
 				learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 				int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
 				//System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");

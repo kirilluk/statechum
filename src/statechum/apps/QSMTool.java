@@ -74,7 +74,7 @@ public class QSMTool {
         if (tool.showLTL) {
             Learner l = new RPNIUniversalLearner(null, tool.learnerInitConfiguration);
             LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config, tool.learnerInitConfiguration.getLabelConverter());
-            if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus), true,
+            if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus).pathroutines.computeAlphabet(), true,
                     GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA))) {
                 try {
                     LearnerGraph graph = Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph());

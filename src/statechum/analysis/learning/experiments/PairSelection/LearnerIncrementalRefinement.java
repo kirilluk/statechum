@@ -20,10 +20,7 @@ package statechum.analysis.learning.experiments.PairSelection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +30,8 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import statechum.Configuration;
 import statechum.Configuration.STATETREE;
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
@@ -48,7 +42,6 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 
@@ -75,9 +68,9 @@ public class LearnerIncrementalRefinement
 	 */
 	void constructLabelsLeadingToStates()
 	{
-		int coreGraphStateNumber = initialPta.getStateNumber();
 		labelsLeadingToThisInHardFacts = initialPta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<VertID, ArrayList<Label>>(coreGraphStateNumber):new HashMapWithSearch<VertID,ArrayList<Label>>(coreGraphStateNumber);
+				new ArrayMapWithSearch<VertID, ArrayList<Label>>(initialPta.vertPositiveID,initialPta.vertNegativeID):
+					new HashMapWithSearch<VertID,ArrayList<Label>>(initialPta.vertPositiveID+initialPta.vertNegativeID);
 		Map<CmpVertex,List<Label>> cmap = initialPta.pathroutines.computeShortPathsToAllStates();
 		for(Map.Entry<CmpVertex, List<Label>> entry:cmap.entrySet())
 		{
@@ -139,22 +132,36 @@ public class LearnerIncrementalRefinement
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{// we iterate through all outgoing transition, aiming to identify inconsistencies. Labels that lead to both accept and reject-states are candidates for splitting.
 			
-			for(Map.Entry<Label,ArrayList<CmpVertex>> lbl_targets:eqClass.getOutgoing().entrySet())
+			for(Map.Entry<Label,Object> lbl_targets:eqClass.getOutgoing().entrySet())
 			{
-				ArrayList<CmpVertex> Targets = lbl_targets.getValue();
+				Object targetSlot = lbl_targets.getValue();
 			
 	            Collection<VertID> hardVertices = new LinkedList<VertID>();
 	            boolean inconsistency = false;
-				for(CmpVertex v:Targets)
-			    {
+	            if (targetSlot instanceof CmpVertex)
+	            {// singleton element
+	            	CmpVertex v = (CmpVertex)targetSlot;
 			        if (hardOrig != null && hardOrig.containsKey(v))
 			        {
 			            hardVertices.addAll(hardOrig.get(v));
 			        }
 			        else
 			            hardVertices.add(v);
-			    }
-				
+	            }
+	            else
+	            {// a non-singleton collection
+					List<CmpVertex> Targets = (List<CmpVertex>)targetSlot;
+					for(CmpVertex v:Targets)
+				    {
+				        if (hardOrig != null && hardOrig.containsKey(v))
+				        {
+				            hardVertices.addAll(hardOrig.get(v));
+				        }
+				        else
+				            hardVertices.add(v);
+				    }
+	            }
+	            
 				// note that lbl_targets.getKey() returns an abstract label, however we are looking at concrete labels here. These are contained in the labelToProximity map: VertID->{Label,proximity}
 				boolean firstState = rejectStates.contains(hardVertices.iterator().next());
 				for(VertID v:hardVertices)
@@ -221,10 +228,11 @@ public class LearnerIncrementalRefinement
 	{
 		JUConstants newColour = null;
 		
-		int coreGraphStateNumber = graph.getStateNumber();
 		Queue<Pair<CmpVertex,CmpVertex>> fringe = new LinkedList<Pair<CmpVertex,CmpVertex>>();
+		/*
 		Map<CmpVertex,CmpVertex> statesInFringe = initialPta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(graph.vertPositiveID,graph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(graph.vertPositiveID+graph.vertNegativeID);// in order not to iterate through the list all the time.
+				*/
 		fringe.add(new Pair<CmpVertex,CmpVertex>(startingVertex,initialPta.findVertex(ptaVertex)));
 		while(!fringe.isEmpty())
 		{

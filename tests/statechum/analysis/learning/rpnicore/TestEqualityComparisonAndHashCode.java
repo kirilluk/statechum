@@ -775,7 +775,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C");
 		C.setAccept(false);
-		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY);
+		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY/2,HashMapWithSearch.DEFAULT_INITIAL_CAPACITY/2);
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, incompatibles));
@@ -860,10 +860,18 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(E, A, gr.pairCompatibility));
 	}
 	
-	private List<CmpVertex> addOutgoing(Map<Label,ArrayList<CmpVertex>> where, String label)
+	private List<CmpVertex> addOutgoing(Map<Label,Object> where, String label)
 	{
-		Label lbl = AbstractLearnerGraph.generateNewLabel(label, config,converter);if (!where.containsKey(lbl)) where.put(lbl, new ArrayList<CmpVertex>());
-		return where.get(lbl);
+		Label lbl = AbstractLearnerGraph.generateNewLabel(label, config,converter);
+		if (!where.containsKey(lbl)) where.put(lbl, new ArrayList<CmpVertex>());
+		else
+		{
+			if (where.get(lbl) instanceof CmpVertex)
+			{// convert an instance of CmpVertex into a collection.
+				List<CmpVertex> list = new ArrayList<CmpVertex>();list.add((CmpVertex)where.get(lbl));where.put(lbl, list);
+			}
+		}
+		return (List<CmpVertex>)where.get(lbl);
 	}
 	
 	/** Checking whether vertices can be merged correctly.
@@ -880,8 +888,8 @@ public class TestEqualityComparisonAndHashCode {
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
 		Assert.assertSame(A,eqClass.getRepresentative());
-		Map<Label,ArrayList<CmpVertex>> expectedTargets = new TreeMap<Label,ArrayList<CmpVertex>>();
-		AMEquivalenceClass.addTransition(expectedTargets,AbstractLearnerGraph.generateNewLabel("a", config,converter), B);
+		Map<Label,Object> expectedTargets = new TreeMap<Label,Object>();
+		AMEquivalenceClass.addTransition(expectedTargets,AbstractLearnerGraph.generateNewLabel("a", config,converter), B,config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY);
 		
 		addOutgoing(expectedTargets,"b").add(C);
 		addOutgoing(expectedTargets,"a").add(D);
@@ -889,9 +897,12 @@ public class TestEqualityComparisonAndHashCode {
 		
 		Map<Label,ArrayList<CmpVertex>> actualTargetsAsSets = new TreeMap<Label,ArrayList<CmpVertex>>();
 		Set<CmpVertex> vertices = new TreeSet<CmpVertex>();
-		for(Entry<Label,ArrayList<CmpVertex>> entry:eqClass.getOutgoing().entrySet())
+		for(Entry<Label,Object> entry:eqClass.getOutgoing().entrySet())
 		{
-			vertices.addAll(entry.getValue());
+			if (entry.getValue() instanceof CmpVertex)
+				vertices.add((CmpVertex)entry.getValue());
+			else
+				vertices.addAll((List<CmpVertex>)entry.getValue());
 			actualTargetsAsSets.put(entry.getKey(),new ArrayList<CmpVertex>(vertices));
 			vertices.clear();
 		}
@@ -912,15 +923,17 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertNull(eqClass.getRepresentative());Assert.assertEquals(10, eqClass.getNumber());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		Assert.assertSame(A,eqClass.getRepresentative());Assert.assertEquals(10, eqClass.getNumber());
-		Map<Label,ArrayList<CmpVertex>> expectedTargets = new TreeMap<Label,ArrayList<CmpVertex>>();
-		addOutgoing(expectedTargets,"a").add(B);addOutgoing(expectedTargets,"d").add(A);
-		Assert.assertEquals(expectedTargets, eqClass.getOutgoing());
-		
+		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			Assert.assertEquals("{a=B, d=A}", eqClass.getOutgoing().toString());// using a string comparison in order to check that correct objects are stored in the AMEquivalenceClass collection. Where multiple data values it will be a list, otherwise a single object.
+		else
+			Assert.assertEquals("{a=[B], d=[A]}", eqClass.getOutgoing().toString());
 		eqClass.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
 		Assert.assertSame(A,eqClass.getRepresentative());
 
-		addOutgoing(expectedTargets,"b").add(C);expectedTargets.get(AbstractLearnerGraph.generateNewLabel("a", config,converter)).add(D);
-		Assert.assertEquals(expectedTargets, eqClass.getOutgoing());
+		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			Assert.assertEquals("{a=[B, D], b=C, d=A}", eqClass.getOutgoing().toString());
+		else
+			Assert.assertEquals("{a=[B, D], b=[C], d=[A]}", eqClass.getOutgoing().toString());
 	}
 	
 	/** Checking whether vertices can be merged correctly.
@@ -936,9 +949,12 @@ public class TestEqualityComparisonAndHashCode {
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClassB.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
 		
-		Map<Label,ArrayList<CmpVertex>> expectedTargets = new TreeMap<Label,ArrayList<CmpVertex>>();
+		Map<Label,Object> expectedTargets = new TreeMap<Label,Object>();
 		addOutgoing(expectedTargets,"a").add(B);addOutgoing(expectedTargets,"d").add(A);
-		Assert.assertEquals(expectedTargets, eqClassA.getOutgoing());
+		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			Assert.assertEquals("{a=B, d=A}", eqClassA.getOutgoing().toString());
+		else
+			Assert.assertEquals("{a=[B], d=[A]}", eqClassA.getOutgoing().toString());
 
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClassB.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
@@ -947,12 +963,15 @@ public class TestEqualityComparisonAndHashCode {
 		
 		eqClassA.mergeWith(eqClassB);
 		
-		addOutgoing(expectedTargets,"b").add(C);expectedTargets.get(AbstractLearnerGraph.generateNewLabel("a", config,converter)).add(D);
+		addOutgoing(expectedTargets,"b").add(C);((List<CmpVertex>)expectedTargets.get(AbstractLearnerGraph.generateNewLabel("a", config,converter))).add(D);
 		Map<Label,ArrayList<CmpVertex>> actualTargetsAsSets = new TreeMap<Label,ArrayList<CmpVertex>>();
 		Set<CmpVertex> vertices = new TreeSet<CmpVertex>();
-		for(Entry<Label,ArrayList<CmpVertex>> entry:eqClassA.getOutgoing().entrySet())
+		for(Entry<Label,Object> entry:eqClassA.getOutgoing().entrySet())
 		{
-			vertices.addAll(entry.getValue());
+			if (entry.getValue() instanceof CmpVertex)
+				vertices.add((CmpVertex)entry.getValue());
+			else
+				vertices.addAll((List<CmpVertex>)entry.getValue());
 			actualTargetsAsSets.put(entry.getKey(),new ArrayList<CmpVertex>(vertices));
 			vertices.clear();
 		}

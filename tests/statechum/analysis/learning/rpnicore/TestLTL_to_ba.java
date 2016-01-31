@@ -35,6 +35,7 @@ import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
+import statechum.analysis.learning.rpnicore.LTL_to_ba.UnrecognisedLabelException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 import statechum.collections.TreeMapWithSearch;
@@ -326,7 +327,7 @@ public class TestLTL_to_ba
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretInputLabel("d");
-		}},IllegalArgumentException.class,"unrecognised label");
+		}},UnrecognisedLabelException.class,"unrecognised label");
 	}
 	
 	@Test

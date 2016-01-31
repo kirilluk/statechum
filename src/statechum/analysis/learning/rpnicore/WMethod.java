@@ -500,7 +500,7 @@ public class WMethod
 					}
 				}			
 			}			
-			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.config.getMaxStateNumber());
+			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMapWithSearch<CmpVertex,Integer>(fsm.config.getMaxAcceptStateNumber());
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 

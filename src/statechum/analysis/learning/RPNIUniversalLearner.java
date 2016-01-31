@@ -225,8 +225,8 @@ public class RPNIUniversalLearner extends RPNILearner
 		final Configuration shallowCopy = getTentativeAutomaton().config.copy();shallowCopy.setLearnerCloneGraph(false);
 		ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		SpinUtil spin = null;
-		setAlphabetUsedForIfThen(ptaHardFacts.pathroutines.computeAlphabet());
 		LearnerGraph.copyGraphs(getTentativeAutomaton(), ptaHardFacts);
+		setAlphabetUsedForIfThen(ptaHardFacts.pathroutines.computeAlphabet());
 		LearnerGraph ptaSoftFacts = getTentativeAutomaton();
 		setChanged();getTentativeAutomaton().setName(getGraphName()+"_init");
 		final List<List<Label>> extraTracesPlus = new LinkedList<List<Label>>(), extraTracesMinus = new LinkedList<List<Label>>();

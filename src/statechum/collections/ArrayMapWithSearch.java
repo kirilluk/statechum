@@ -47,13 +47,30 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 
 	public ArrayMapWithSearch()
 	{}
-	
+	/*
 	public ArrayMapWithSearch(int currentSize)
 	{
+		if (currentSize < 0)
+			throw new IllegalArgumentException("invalid size of array");
+
 		int currentOffset = currentSize*CELLS_PER_ELEM;
 		Object[] data = new Object[CELLS_PER_ELEM+currentOffset];
 		array_or_key = data;
 		zero = 0;// zero is set in the middle.
+	}*/
+	
+	public ArrayMapWithSearch(int posSize,int negSize)
+	{
+		if (posSize < 0)
+			throw new IllegalArgumentException("invalid size of array (positive part)");
+
+		if (negSize < 0)
+			throw new IllegalArgumentException("invalid size of array (negative part)");
+
+		int currentOffset = (1+posSize+negSize)*CELLS_PER_ELEM;// +1 for the element with toInt() of zero, assuming both posSize and negSize are possible values of elements to be placed in the collection without incurring a resize.
+		Object[] data = new Object[CELLS_PER_ELEM+currentOffset];
+		array_or_key = data;
+		zero = -negSize;// zero is set to the lowest negative number.
 	}
 	
 	@SuppressWarnings("unchecked")

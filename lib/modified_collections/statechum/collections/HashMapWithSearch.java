@@ -134,7 +134,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
      * @throws IllegalArgumentException if the initial capacity is negative
      *         or the load factor is non-positive
      */
-    public HashMapWithSearch(int initialCapacityArg, float loadFactorArg) {
+    protected HashMapWithSearch(int initialCapacityArg, float loadFactorArg) {
         if (initialCapacityArg < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacityArg);
@@ -1118,6 +1118,5 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 		
 		return entrySet();
 	}
-
 }
 

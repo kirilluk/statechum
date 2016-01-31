@@ -45,5 +45,6 @@ public interface MapWithSearch<K,V> extends Map<K, V>
 	 * Returning elements in the same order is needed for testing where the outcome should not depend on the hash function.  
 	 */
 	Set<K> getPotentiallyOrderedKeySet(boolean ordered);	
+
 }
 

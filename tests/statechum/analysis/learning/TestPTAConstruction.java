@@ -473,14 +473,13 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void checkDepthLabelling(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph)
 	{
-		int coreGraphStateNumber = coregraph.getStateNumber();
 		Map<CmpVertex,Integer> stateToDepth = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex, Integer>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,Integer>(coreGraphStateNumber);
+				new ArrayMapWithSearch<CmpVertex, Integer>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,Integer>(coregraph.vertPositiveID+coregraph.vertNegativeID);
 		CmpVertex from = coregraph.getInit();
 		stateToDepth.put(from, 0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

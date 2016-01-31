@@ -241,8 +241,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		
 		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new statechum.collections.ArrayMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber()):
-				new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.getStateNumber());
+				new statechum.collections.ArrayMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.vertPositiveID,coregraph.vertNegativeID):
+				new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.vertPositiveID+coregraph.vertNegativeID);
 		Map<CmpVertex,Integer> stateToDepthMap = new HashMapWithSearch<CmpVertex,Integer>(coregraph.getStateNumber());
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
@@ -529,7 +529,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
 		int newLabelCnt = 0;
-		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix(g.config.getMaxStateNumber());
+		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix(g.vertPositiveID,g.vertNegativeID);
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
 		{
 			Map<Label,TARGET_TYPE> newRow = g.createNewRow();
@@ -770,13 +770,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,List<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		int coreGraphStateNumber = coregraph.getStateNumber();
 		Map<CmpVertex,List<Label>> stateToPath = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex, List<Label>>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,List<Label>>(coreGraphStateNumber);
+				new ArrayMapWithSearch<CmpVertex, List<Label>>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,List<Label>>(coregraph.vertPositiveID+coregraph.vertNegativeID);
 		stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())
@@ -813,11 +812,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public void updateDepthLabelling(int maxDepth)
 	{
-		int coreGraphStateNumber = coregraph.getStateNumber();
 		CmpVertex from = coregraph.getInit();from.setDepth(0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber):new HashMapWithSearch<CmpVertex,CmpVertex>(coreGraphStateNumber);// in order not to iterate through the list all the time.
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

@@ -640,6 +640,26 @@ public class LTL_to_ba {
 		}
 	}
 	
+	
+	public static class UnrecognisedLabelException extends IllegalArgumentException
+	{
+		/**
+		 * ID for serialization
+		 */
+		private static final long serialVersionUID = -7687604869719653857L;
+		protected String unrecognisedLabel;
+		
+		public UnrecognisedLabelException(String stringLabel)
+		{
+			super("unrecognised label "+stringLabel);unrecognisedLabel = stringLabel;
+		}
+		
+		String getLabel()
+		{
+			return unrecognisedLabel;
+		}
+	}
+	
 	/** The notation for each label in a BA is one of the following:
 	 * "label", "1".
 	 * 
@@ -660,7 +680,7 @@ public class LTL_to_ba {
 		{
 			Label label=AbstractLearnerGraph.generateNewLabel(stringLabel,config,converter);
 			if (!alphabet.containsKey(label))
-				throw new IllegalArgumentException("unrecognised label "+stringLabel);
+				throw new UnrecognisedLabelException(stringLabel);
 			result.add(alphabet.get(label));
 		}
 		return result;

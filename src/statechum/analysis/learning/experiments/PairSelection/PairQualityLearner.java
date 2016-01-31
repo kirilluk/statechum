@@ -87,7 +87,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
-import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import weka.classifiers.Classifier;
@@ -577,9 +577,9 @@ public class PairQualityLearner
 				return pairsList;
 			
 			Map<Label,Collection<CmpVertex>> labelToStates = 
-					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 			Map<Label,Collection<CmpVertex>> labelFromStates = 
-					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+					tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 						
 			for(Label lbl:transitionsToTheSameState) labelToStates.put(lbl,new ArrayList<CmpVertex>());
 			for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
@@ -814,7 +814,7 @@ public class PairQualityLearner
 	/** This one is a reference learner, using Sicco heuristic (if requested) that performs quite well. */
 	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
-		public enum ScoringToApply { SCORING_EDSM, SCORING_SICCO, SCORING_SICCORECURSIVE };
+		public enum ScoringToApply { SCORING_EDSM, SCORING_SICCO, SCORING_SICCORECURSIVE }
 		
 		protected final ScoringToApply scoringMethod;
 		
@@ -889,9 +889,12 @@ public class PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome, graph);
-				PairScore chosenPair = pickPairQSMLike(filteredPairs);
-				updatePairQualityStatistics(graph,filteredPairs);
-				outcome.clear();outcome.push(chosenPair);
+				if (!filteredPairs.isEmpty())
+				{
+					PairScore chosenPair = pickPairQSMLike(filteredPairs);
+					updatePairQualityStatistics(graph,filteredPairs);
+					outcome.clear();outcome.push(chosenPair);
+				}
 			}
 			
 			return outcome;

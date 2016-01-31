@@ -1065,7 +1065,9 @@ public class MarkovClassifier
 	{
 		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
 		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=
-				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearch<CmpVertex,Map<Label,MarkovOutcome>>() : new HashMap<CmpVertex,Map<Label,MarkovOutcome>>();
+				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? 
+						new ArrayMapWithSearch<CmpVertex,Map<Label,MarkovOutcome>>(graph.vertPositiveID,graph.vertNegativeID) : 
+							new HashMap<CmpVertex,Map<Label,MarkovOutcome>>(graph.vertPositiveID+graph.vertNegativeID);
 
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		if(vert.isAccept() )

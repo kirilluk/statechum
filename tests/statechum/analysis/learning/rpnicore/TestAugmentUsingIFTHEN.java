@@ -52,6 +52,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LTL_to_ba.UnrecognisedLabelException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
@@ -390,7 +391,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-t->B / P-a->P == THEN == A"
 			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		
-		}}, IllegalArgumentException.class,"unrecognised label t");
+		}}, UnrecognisedLabelException.class,"unrecognised label t");
 	}
 	
 	/** Tests the construction of a PTA from questions. */

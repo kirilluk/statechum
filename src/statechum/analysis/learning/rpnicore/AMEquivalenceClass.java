@@ -35,14 +35,15 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 	implements Comparable<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, ConvertibleToInt
 {
-	/** The list of outgoing transitions from this equivalence class. */ 
-	private Map<Label,ArrayList<CmpVertex>> outgoingTransitions = new TreeMap<Label,ArrayList<CmpVertex>>();
+	/** The list of outgoing transitions from this equivalence class. It maps to Object because where we have singleton entries, it is space-efficient to directly store a CmpVertex and only replace it with ArrayList<CmpVertex> where more than a single entry has been added. */ 
+	private Map<Label,Object> outgoingTransitions = null;
 	
 	/**	Vertices in the original graph corresponding to the merged vertex. 
 	 * A tree is used to permit easy comparison between equivalence classes. 
@@ -68,6 +69,9 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public AMEquivalenceClass(int number, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
 		ClassNumber=number;coregraph=graph;
+		outgoingTransitions = //coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? // I cannot always rely on array-maps because some labels might not be numbered.
+				//new ArrayMapWithSearchPos<Label,Object>(5) : 
+					new TreeMap<Label,Object>();
 	}
 	
 	public int getNumber()
@@ -76,7 +80,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	}
 	
 	/** Returns transitions leaving states contained in this equivalence class. */ 
-	public Map<Label,ArrayList<CmpVertex>> getOutgoing()
+	public Map<Label,Object> getOutgoing()
 	{
 		return outgoingTransitions;
 	}
@@ -182,14 +186,33 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * @param target the target state of the transition of interest.
 	 * @return True if there is only one transition with that input after the supplied one has been added.
 	 */
-	public static boolean addTransition(Map<Label,ArrayList<CmpVertex>> where, Label label, CmpVertex target)
+	@SuppressWarnings("unchecked")
+	public static boolean addTransition(Map<Label,Object> where, Label label, CmpVertex target, boolean useArrayMap)
 	{
-		ArrayList<CmpVertex> targetStates = where.get(label);
-		if (targetStates == null)
+		Object valueInMap = where.get(label);
+		boolean outcome = false;
+		if (valueInMap == null)
 		{
-			targetStates = new ArrayList<CmpVertex>();where.put(label,targetStates);
+			//if (coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
+			if (useArrayMap)
+			{
+				where.put(label,target);
+			}
+			else
+			{
+				List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add(target);where.put(label, details);
+			}
+			outcome = true;
 		}
-		targetStates.add(target);return targetStates.size() == 1;
+		else
+			if (valueInMap instanceof CmpVertex)
+			{
+				List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add((CmpVertex)valueInMap);details.add(target);where.put(label, details);
+			}
+			else
+				((List<CmpVertex>)valueInMap).add(target);
+		
+		return outcome;
 	}
 
 	/** Adds a supplied collection of transitions to the existing collection of outgoing transitions. Returns true if the outcome is a singleton set (since we only add transitions and never remove them, we cannot get an empty set).
@@ -200,17 +223,46 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * @param target the target state of the transition of interest.
 	 * @return True if there is only one transition with that input after the supplied one has been added.
 	 */
-	public static boolean addAllTransitions(Map<Label,ArrayList<CmpVertex>> where, Map<Label,ArrayList<CmpVertex>> what)
+	public static boolean addAllTransitions(Map<Label,Object> where, Map<Label,Object> what, boolean useArrayMap)
 	{
 		boolean singleton = true;
-		for(Entry<Label,ArrayList<CmpVertex>> entry:what.entrySet())
+		//if ()
+		for(Entry<Label,Object> entry:what.entrySet())
 		{
-			ArrayList<CmpVertex> targetStates = where.get(entry.getKey());
-			if (targetStates == null)
+			if (entry.getValue() instanceof CmpVertex)
+				singleton &=addTransition(where,entry.getKey(),(CmpVertex)entry.getValue(), useArrayMap);
+			else
 			{
-				targetStates = new ArrayList<CmpVertex>();where.put(entry.getKey(),targetStates);
+				Label label = entry.getKey();
+				List<CmpVertex> data = (List<CmpVertex>)entry.getValue();
+				
+				Object valueInMap = where.get(label);
+				for(CmpVertex v:data)
+				{
+					if (valueInMap == null)
+					{
+						if (useArrayMap)
+						{// if using array and no value is currently assigned, assign a singleton
+							valueInMap = v;
+						}
+						else
+						{// if not using an array, create a list
+							List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add(v);valueInMap = details;
+						}
+					}
+					else
+						if (valueInMap instanceof CmpVertex)
+						{
+							List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add((CmpVertex)valueInMap);details.add(v);singleton = false;
+							valueInMap = details;
+						}
+						else
+						{
+							((List<CmpVertex>)valueInMap).add(v);singleton = false;
+						}
+				}					
+				where.put(label,valueInMap);// since we iterate over values in the map, we can be confident that there is at least one datum to be stored, hence it is appropriate to use put without checking if valueInMap is null or not - it will not be null.
 			}
-			targetStates.addAll(entry.getValue());singleton &= targetStates.size() == 1; 
 		}
 		return singleton;
 	}
@@ -226,7 +278,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		boolean singleton = true;
 		if (from != null)
 			for(Entry<Label,CmpVertex> entry:from)
-				singleton &= addTransition(outgoingTransitions,entry.getKey(),entry.getValue());
+				singleton &= addTransition(outgoingTransitions,entry.getKey(),entry.getValue(),coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY);
 		
 		return singleton;
 	}
@@ -258,7 +310,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 			}
 		}
 		accept = to.accept;incompatibleStates.addAll(to.incompatibleStates);
-		boolean singleton = addAllTransitions(outgoingTransitions,to.outgoingTransitions);
+		boolean singleton = addAllTransitions(outgoingTransitions,to.outgoingTransitions,coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY);
 		
 		updateRep(to.getRepresentative());
 		if (!to.getStates().isEmpty()) updateColour(to.currentColour);
@@ -437,9 +489,9 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				Collection<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> eqClasses)
 	{
 		final Map<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
-			graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-					new ArrayMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>():
-			new HashMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.getStateNumber());
+			graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?// here we use default values since the matrix is most likely to be mostly empty
+					new ArrayMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber(),graph.config.getMaxRejectStateNumber()):
+			new HashMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
 		for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
 			for(CmpVertex vertex:eqClass.getStates())
 			{

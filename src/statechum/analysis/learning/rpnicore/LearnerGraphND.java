@@ -57,7 +57,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public LearnerGraphND(Configuration conf)
 	{
 		super(conf);
-		transitionMatrix = createNewTransitionMatrix(conf.getMaxStateNumber());
+		transitionMatrix = createNewTransitionMatrix(conf.getMaxAcceptStateNumber(),conf.getMaxRejectStateNumber());
 		setInit(null);
 		initPTA();
 	}
@@ -239,19 +239,19 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	public MapWithSearch<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix(int stateNumber) 
+	public MapWithSearch<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix(int acceptStateNumber, int rejectStateNumber) 
 	{
 		MapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>> outcome=null;
 		switch(config.getTransitionMatrixImplType())
 		{
 		case STATETREE_LINKEDHASH:
-			outcome = new HashMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber); //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+			outcome = new HashMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber+rejectStateNumber);
 			break;
 		case STATETREE_ARRAY:
-			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber);
+			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber,rejectStateNumber);
 			break;
 		case STATETREE_SLOWTREE:
-			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(stateNumber);
+			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber+rejectStateNumber);
 			break;
 		}
 		return outcome;

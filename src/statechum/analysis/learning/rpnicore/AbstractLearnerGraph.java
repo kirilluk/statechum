@@ -44,7 +44,6 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.LearnerWithLabelRefinementViaPta;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 import statechum.collections.ArrayMapWithSearch;
@@ -52,6 +51,7 @@ import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.Label;
+import statechum.Pair;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
@@ -124,8 +124,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 
 	protected AbstractLearnerGraph(Configuration conf) {
 		config = conf;
-		transitionMatrix = createNewTransitionMatrix(config.getMaxStateNumber());
-		pairCompatibility = new PairCompatibility<CmpVertex>(config.getMaxStateNumber());
+		transitionMatrix = createNewTransitionMatrix(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
+		pairCompatibility = new PairCompatibility<CmpVertex>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
 		initEmpty();
 	}
 	
@@ -207,6 +207,15 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++count;
 		return count;
 	}
+	
+	/** Returns the number of accept and reject states. */
+	public Pair<Integer,Integer> getAcceptAndRejectStateNumber()
+	{
+		int countAccept = 0, countReject = 0;
+		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++countAccept;else ++countReject;
+		return new Pair<Integer,Integer>(countAccept,countReject);
+	}
+
 	
 	/** Identifies maximal values of currently used IDs and makes sure 
 	 * that generation of IDs will not return any of the existing ones.
@@ -536,10 +545,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
 	 * such as a TreeMap. 
 	 * 
-	 * @param size the expected maximal number of states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
+	 * @param sizePos the expected maximal number of accept states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
 	 * as is the case for VertexID.
+	 * @param sizeNeg the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	abstract public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(int size);
+	abstract public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(int sizePos, int sizeNeg);
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a new row for a transition matrix is to be created.
@@ -662,13 +672,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		result.initEmpty();
-		result.transitionMatrix = result.createNewTransitionMatrix(from.config.getMaxStateNumber());
+		result.transitionMatrix = result.createNewTransitionMatrix(from.vertPositiveID,from.vertNegativeID);
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
 
 		Map<CmpVertex,CmpVertex> oldToNew = from.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(from.getStateNumber()):
-			new HashMapWithSearch<CmpVertex,CmpVertex>(from.getStateNumber());
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(from.vertPositiveID, from.vertNegativeID):
+			new HashMapWithSearch<CmpVertex,CmpVertex>(from.vertPositiveID);
 		
 		// First, clone vertices
 		for(CmpVertex state:from.transitionMatrix.keySet())
@@ -736,8 +746,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		void interpretLabelsOnGraph(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> from, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result, LabelConverter converter)
 	{
 		Map<CmpVertex,CmpVertex> oldToNew = from.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(from.getStateNumber()):
-				new HashMapWithSearch<CmpVertex,CmpVertex>(from.getStateNumber());
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(from.vertPositiveID,from.vertNegativeID):
+				new HashMapWithSearch<CmpVertex,CmpVertex>(from.vertPositiveID+from.vertNegativeID);
 		result.initEmpty();
 		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
@@ -935,8 +945,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public static class PairCompatibility<VERTEX_TYPE>
 	{
 		public final MapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> compatibility;
-
-		protected final int maxStateNumber;
+		
+		/** These are do not have to be accurate, but if we use array matrix and have a lot of states beyond these, array reallocation will make things slow. */
+		protected final int maxAcceptStateNumber, maxRejectStateNumber;
 		
 		/**
 		 * Creates an instance, using an expected maximal state number
@@ -944,9 +955,10 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		 * @param stateNumber determines the maximal number of states, this is passed to {@link HashMapWithSearch} where it determines the initial size of the
 		 * hash map. 
 		 */
-		public PairCompatibility(int stateNumber)
+		public PairCompatibility(int acceptStateNumber, int rejectStateNumber)
 		{
-			maxStateNumber = stateNumber;compatibility = new HashMapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>>(maxStateNumber);
+			maxAcceptStateNumber = acceptStateNumber;maxRejectStateNumber = rejectStateNumber;
+			compatibility = new HashMapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>>(maxAcceptStateNumber+maxRejectStateNumber);
 		}
 		
 		/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
@@ -1006,7 +1018,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		
 		protected Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> createNewCompatibilityRow(VERTEX_TYPE A)
 		{
-			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMapWithSearch<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>(maxStateNumber);
+			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMapWithSearch<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>(maxAcceptStateNumber+maxRejectStateNumber);
 			compatibility.put(A,incSet);return incSet;
 		}
 		

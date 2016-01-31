@@ -1370,16 +1370,28 @@ public class Configuration implements Cloneable {
 	 * of {@list HashMapWithSearch} class that is essentially a copy of {@list HashMap} but contains {@list HashMapWithSearch#searchByID} function and a slightly different algorithm to 
 	 * compute hash code. For this custom version to avoid resizing, we pre-allocate the maximal size where known. This is configurable below.
 	 */
-	protected int maxStateNumber=2000;
+	protected int maxAcceptStateNumber=2000;
 	
-	public int getMaxStateNumber()
+	public int getMaxAcceptStateNumber()
 	{
-		return maxStateNumber;
+		return maxAcceptStateNumber;
 	}
 	
-	public void setMaxStateNumber(int newValue)
+	public void setMaxAcceptStateNumber(int newValue)
 	{
-		maxStateNumber = newValue;
+		maxAcceptStateNumber = newValue;
+	}
+	
+	protected int maxRejectStateNumber=2000;
+	
+	public int getMaxRejectStateNumber()
+	{
+		return maxRejectStateNumber;
+	}
+	
+	public void setMaxRejectStateNumber(int newValue)
+	{
+		maxRejectStateNumber = newValue;
 	}
 	
 	/** The collection holding a transition matrix can be either a tree map for compatibility with old learners or a {@link HashMapWithSearch} that is a flavour of {@link LinkedHashMap}. 

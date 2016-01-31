@@ -522,8 +522,8 @@ public class MarkovScoreComputation
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
 		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber()):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID,original.vertNegativeID):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID+original.vertNegativeID);
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
@@ -785,8 +785,8 @@ public class MarkovScoreComputation
 		assert cl.graph.transitionMatrix.containsKey(pair.firstElem);
 		assert cl.graph.transitionMatrix.containsKey(pair.secondElem);
 		Map<CmpVertex,List<CmpVertex>> mergedVertices = cl.graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.getStateNumber()):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.getStateNumber());
+				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.vertPositiveID,cl.graph.vertNegativeID):
+				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.vertPositiveID+cl.graph.vertNegativeID);
 		Configuration shallowCopy = cl.graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(cl.graph,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);

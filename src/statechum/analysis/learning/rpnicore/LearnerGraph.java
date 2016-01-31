@@ -116,7 +116,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		/** This one records non-existing transitions as well as some existing ones, 
 		 * those leaving states with at least one non-existing transition.
 		 */
-		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix(LearnerGraph.this.config.getMaxStateNumber());
+		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix(LearnerGraph.this.config.getMaxAcceptStateNumber(), LearnerGraph.this.config.getMaxRejectStateNumber());
 	
 		/** When checking which questions have been answered by IF-THEN automata, we need to record
 		 * which newly-added nodes have been explored by THEN automata. The set below records it.
@@ -484,19 +484,19 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 
 	
 	@Override
-	public MapWithSearch<CmpVertex,Map<Label,CmpVertex>> createNewTransitionMatrix(int stateNumber) 
+	public MapWithSearch<CmpVertex,Map<Label,CmpVertex>> createNewTransitionMatrix(int sizePos, int sizeNeg) 
 	{
 		MapWithSearch<CmpVertex,Map<Label,CmpVertex>> outcome=null;
 		switch(config.getTransitionMatrixImplType())
 		{
 		case STATETREE_LINKEDHASH:
-			outcome = new HashMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber); //TreeMap<CmpVertex, Map<Label, CmpVertex>>();
+			outcome = new HashMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(sizePos+sizeNeg);
 			break;
 		case STATETREE_ARRAY:
-			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
+			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(sizePos,sizeNeg);
 			break;
 		case STATETREE_SLOWTREE:
-			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(stateNumber);
+			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,CmpVertex>>(sizePos+sizeNeg);
 			break;
 		}
 		return outcome;

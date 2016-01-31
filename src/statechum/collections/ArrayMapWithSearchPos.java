@@ -75,11 +75,9 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	public ArrayMapWithSearchPos(int currentSize)
 	{
 		int currentOffset = currentSize*CELLS_PER_ELEM;
-		Object[] data = new Object[CELLS_PER_ELEM+currentOffset];
+		Object [] data = new Object[CELLS_PER_ELEM+currentOffset];
 		array_or_key = data;
 	}
-	
-	
 	
 	/** The new size for the array on each resize is determined by adding the current size divided by this number. */
 	public static final int GROWTHRATE_DIV = 1;

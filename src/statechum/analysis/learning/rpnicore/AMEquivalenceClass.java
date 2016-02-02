@@ -35,7 +35,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
@@ -331,11 +330,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		final int prime = 31;
 		int result = 1;
 		
-		// representative is not used here because it can be derived from the states in this collection.
-		result = prime * result + (mergedVertex == null? 0:mergedVertex.hashCode());
-		result = prime * result + states.size();
-		//result = prime * result + states.hashCode();// this one is very slow and also keeps changing
 		result = prime * result + ClassNumber;
+		if (mergedVertex != null) result = prime * result + mergedVertex.hashCode();
 		return result;
 	}
 
@@ -363,9 +359,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		
 		// representative is not used here because it can be derived from the states in this collection.
 		
-		if (ClassNumber != other.ClassNumber)
-			return false;
-		return states.equals(other.states);
+		return (ClassNumber == other.ClassNumber);
 	}
 	
 	/** The merged vertex. */
@@ -444,6 +438,36 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return result.toString();
 	}
 
+	/** Creates a clone of the supplied vertex with the supplied colour, optionally checking if it already exists in the target graph and if so, creating one with a different ID.
+	 * This does not add a vertex to the graph, only creates one that can be added.
+	 * 
+	 * @param sourceVertex vertex to clone
+	 * @param currentColour the colour to use for the clone
+	 * @param graph the graph to check whether there already is a vertex with the chosen ID
+	 * @param useDifferentNameIfAlreadyExist if true, will rename a vertex if exists in the supplied graph.
+	 * @param setOrigState whether to assign the 'orig' value of the cloned vertex to the supplied one.
+	 * @return cloned vertex, for inclusion in the supplied graph.
+	 */
+	public static <TARGET_C_TYPE,CACHE_C_TYPE extends CachedData<TARGET_C_TYPE,CACHE_C_TYPE>>
+	CmpVertex constructMergedVertexFrom(CmpVertex sourceVertex, JUConstants currentColour, AbstractLearnerGraph<TARGET_C_TYPE,CACHE_C_TYPE> graph,
+			boolean useDifferentNameIfAlreadyExist, boolean setOrigState) 
+	{
+		CmpVertex mergedVertex = null;
+		if (useDifferentNameIfAlreadyExist && graph.transitionMatrix.containsKey(sourceVertex))
+			mergedVertex=graph.copyVertexUnderDifferentName(sourceVertex);
+		else
+		{// we have to clone a vertex regardless whether configuration is for it or not - since we'll later change colour,
+		 // and perhaps even origState, we do have to make a copy here.
+			mergedVertex=AbstractLearnerGraph.generateNewCmpVertex(sourceVertex, graph.config);graph.updateIDWith(mergedVertex);
+			DeterministicDirectedSparseGraph.copyVertexData(sourceVertex, mergedVertex);
+		}
+		mergedVertex.setColour(currentColour == JUConstants.NONE?null:currentColour);
+		if (setOrigState)
+			mergedVertex.setOrigState(sourceVertex);
+		
+		return mergedVertex;
+	}
+	
 	/** Generates a vertex representing the representative vertex. If <em>useDifferentName</em> is false, 
 	 * a true clone of a representative vertex is made, with the same ID; otherwise  
 	 * a new name is chosen.
@@ -457,19 +481,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		void constructMergedVertex(AbstractLearnerGraph<TARGET_C_TYPE,CACHE_C_TYPE> graph,
 				boolean useDifferentNameIfAlreadyExist, boolean setOrigState) 
 	{
-		if (useDifferentNameIfAlreadyExist && graph.transitionMatrix.containsKey(representative))
-			mergedVertex=graph.copyVertexUnderDifferentName(representative);
-		else
-		{// we have to clone a vertex regardless whether configuration is for it or not - since we'll later change colour,
-		 // and perhaps even origState, we do have to make a copy here.
-			mergedVertex=AbstractLearnerGraph.generateNewCmpVertex(representative, graph.config);graph.updateIDWith(mergedVertex);
-			DeterministicDirectedSparseGraph.copyVertexData(representative, mergedVertex);
-			graph.transitionMatrix.put(mergedVertex, graph.createNewRow());
-		}
-		mergedVertex.setColour(currentColour == JUConstants.NONE?null:currentColour);
-		if (setOrigState)
-			mergedVertex.setOrigState(representative);
-		
+		mergedVertex = constructMergedVertexFrom(representative,currentColour,graph,useDifferentNameIfAlreadyExist,setOrigState);
 	}
 	
 	/**	When a merged vertex is built, we need to record states it is not compatible with, 

@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -470,7 +473,6 @@ public class PairScoreComputation {
 		return singleton;
 	}
 	
-	
 	/** Similar to computePairCompatibilityScore_internal but can operate 
 	 * on arbitrary graphs rather than just a graph and a PTA.
 	 * 
@@ -480,18 +482,28 @@ public class PairScoreComputation {
 	 */ 
 	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices) 
 	{
+		return computePairCompatibilityScore_general(pairToMerge,pairsToMerge,mergedVertices,true);
+	}
+	/** Similar to computePairCompatibilityScore_internal but can operate 
+	 * on arbitrary graphs rather than just a graph and a PTA.
+	 * 
+	 *  @param pairToMerge pair to merge
+	 *  @param pairsToMerge more pairs to merge in the process of computation. Can be null.
+	 *  @param mergedVertices collection of sets of merged vertices. Singleton sets reflect those which were not merged with any other.
+	 *  @param fullMergedVertices whether to add all states to equivalence classes, even for states that correspond to singleton equivalence classes. Makes everything slow but may be needed for question generation as well as for SMT.
+	 */ 
+	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean fullMergedVertices) 
+	{
 		int score=-1;
 		
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
-				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-					new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.vertPositiveID,coregraph.vertNegativeID):
-						new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		
+		// For large graphs, there are usually few states participate, compared to graph size, I've seen at most 10% and most often it is a handful out of a possibly million vertices. Hence use TreeMap
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		boolean compatible = true;
 		Queue<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
-		//ArrayList<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack = new ArrayList<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
-		ArrayMapWithSearchPos<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>, AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
-				new ArrayMapWithSearchPos<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>, AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
+		Map<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>,AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
+				new HashMap<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>,AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
 		try
 		{
 			if (pairToMerge != null) 
@@ -509,8 +521,11 @@ public class PairScoreComputation {
 					if (!mergePair(pair,stateToEquivalenceClass,mergingDetails))
 					{// add pairs one after one to avoid creating a huge stack of pairs.
 						AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(pair.firstElem);
-						currentExplorationBoundary.add(eqClass);// in order to explore matching transitions
-						setOfEquivalenceClassesOnStack.put(eqClass, eqClass);
+						if (!setOfEquivalenceClassesOnStack.containsKey(eqClass))
+						{
+							currentExplorationBoundary.add(eqClass);// in order to explore matching transitions
+							setOfEquivalenceClassesOnStack.put(eqClass, eqClass);
+						}
 					}
 				}
 			
@@ -537,20 +552,32 @@ public class PairScoreComputation {
 						{
 							List<CmpVertex> targets = (List<CmpVertex>)targetsSlot;
 							CmpVertex firstVertex = targets.get(0);
-							singleton = false;/*
+							
 							AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> firstEquivalenceClass = stateToEquivalenceClass.get(firstVertex);
-							int firstEqNumber = firstEquivalenceClass.getNumber();*/
+							if (firstEquivalenceClass == null)
+							{// the first outgoing transition is not associated to a known equivalence class.
+								firstEquivalenceClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+								firstEquivalenceClass.mergeWith(firstVertex, coregraph.transitionMatrix.get(firstVertex).entrySet());
+								stateToEquivalenceClass.put(firstVertex, firstEquivalenceClass);
+								currentExplorationBoundary.offer(firstEquivalenceClass);// this may cause elements to be added to the collection of transitions in the considered equivalence classes and possibly even to the component of it denoted by targets.
+								setOfEquivalenceClassesOnStack.put(firstEquivalenceClass, firstEquivalenceClass);
+							}
+							
 							int i=1;
-							while(i<targets.size()) // here we benefit from the ability to iterate over a collection that may be updated as we iterate through it.
+							while(i<targets.size()) // here we benefit from the ability to iterate over a collection that may be updated as we iterate through it. Such an update will only add new vertices to the end and we'll iterate through them in due course.
 							{
 								CmpVertex target = targets.get(i);
-								if (!mergePair(new StatePair(firstVertex,target), stateToEquivalenceClass,mergingDetails))
-								{
-									AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> firstEquivalenceClass = stateToEquivalenceClass.get(firstVertex);
-									if (setOfEquivalenceClassesOnStack.get(firstEquivalenceClass) == null)
-									{// if a merge added something and the equivalence class is not already on the stack, add it.
-										currentExplorationBoundary.offer(firstEquivalenceClass);// this may cause elements to be added to the collection of transitions in the considered equivalence classes and possibly even to the component of it denoted by targets.
-										setOfEquivalenceClassesOnStack.put(firstEquivalenceClass, firstEquivalenceClass);
+								if (firstEquivalenceClass != stateToEquivalenceClass.get(target))
+								{// only consider merging when not already merged. mergePair does not handle this case because it is also called during the initial construction
+									
+									if (!mergePair(new StatePair(firstVertex,target), stateToEquivalenceClass,mergingDetails)) // this is where the targets collection may get updated
+									{// outcome not a singleton
+										singleton = false;
+										if (setOfEquivalenceClassesOnStack.get(firstEquivalenceClass) == null)
+										{// if a merge added something and the equivalence class is not already on the stack, add it.
+											currentExplorationBoundary.offer(firstEquivalenceClass);// this may cause elements to be added to the collection of transitions in the considered equivalence classes and possibly even to the component of it denoted by targets.
+											setOfEquivalenceClassesOnStack.put(firstEquivalenceClass, firstEquivalenceClass);
+										}
 									}
 								}
 								++i;
@@ -568,35 +595,49 @@ public class PairScoreComputation {
 			compatible = false;// encountered incompatible states
 		}
 		assert !compatible || stateToEquivalenceClass.size() > 0 || (pairToMerge == null && (pairsToMerge == null || pairsToMerge.isEmpty()));
-				
 		if (compatible)
 		{// merge successful - collect vertices from the equivalence classes
 			mergedVertices.clear();
-			for(CmpVertex vert:coregraph.transitionMatrix.keySet())
+			if(fullMergedVertices)
 			{
-				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
-				if (eqClass == null)
+				for(CmpVertex vert:coregraph.transitionMatrix.keySet())
 				{
-					eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
-					try {
-						eqClass.mergeWith(vert, coregraph.transitionMatrix.get(vert).entrySet());
-					} catch (IncompatibleStatesException e) {
-						assert false;// this should never happen because we are adding single states which cannot be incompatible to anything.
-					}
-					mergedVertices.add(eqClass);
-				}
-				else
-				{// this is an existing equivalence class. 
-				// After emptying the "frontline" stack, we are left with an empty setOfEquivalenceClassesOnStack because additions/removals from the stack are matched by the corresponding operations with setOfEquivalenceClassesOnStack.
-				// We are hence at liberty to use setOfEquivalenceClassesOnStack to store equivalence classes that we have come across, in order to add only one entry to mergedVertices for each of them.
-					if (setOfEquivalenceClassesOnStack.get(eqClass) == null)
+					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
+					if (eqClass == null)
 					{
-						setOfEquivalenceClassesOnStack.put(eqClass,eqClass);mergedVertices.add(eqClass);
+						eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+						try {
+							eqClass.mergeWith(vert, coregraph.transitionMatrix.get(vert).entrySet());
+						} catch (IncompatibleStatesException e) {
+							assert false;// this should never happen because we are adding single states which cannot be incompatible to anything.
+						}
+						mergedVertices.add(eqClass);
 					}
-							
+					else
+					{// this is an existing equivalence class. 
+					// After emptying the "frontline" stack, we are left with an empty setOfEquivalenceClassesOnStack because additions/removals from the stack are matched by the corresponding operations with setOfEquivalenceClassesOnStack.
+					// We are hence at liberty to use setOfEquivalenceClassesOnStack to store equivalence classes that we have come across, in order to add only one entry to mergedVertices for each of them.
+						if (setOfEquivalenceClassesOnStack.get(eqClass) == null)
+						{
+							setOfEquivalenceClassesOnStack.put(eqClass,eqClass);mergedVertices.add(eqClass);
+						}
+								
+					}
 				}
+				score=coregraph.transitionMatrix.size()-mergedVertices.size();
 			}
-			score=coregraph.transitionMatrix.size()-mergedVertices.size();
+			else
+			{
+				score = 0;
+				setOfEquivalenceClassesOnStack.clear();
+				for(Entry<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
+					if (!setOfEquivalenceClassesOnStack.containsKey(entry.getValue()))
+					{
+						setOfEquivalenceClassesOnStack.put(entry.getValue(),entry.getValue());
+						mergedVertices.add(entry.getValue());
+						score+=entry.getValue().getStates().size()-1;
+					}
+			}
 		}
 
 		return score;

@@ -64,6 +64,7 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -1802,13 +1803,15 @@ public class PairQualityLearner
 		List<StatePair> pairs = new LinkedList<StatePair>();
 		LearnerGraph sourcePta = new LearnerGraph(pta,pta.config);
 		List<CmpVertex> whatToMerge = constructPairsToMergeWithOutgoing(sourcePta,unique);
+		Visualiser.updateFrame(pta, sourcePta);
+		//Visualiser.waitForKey();
 		for(CmpVertex vert:whatToMerge)
 			pairs.add(new StatePair(sourcePta.getInit(),vert));
 		List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		
 		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
 			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+unique);
-		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge);
+		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge, true);
 		outcome.pathroutines.updateDepthLabelling();
 		return outcome;
 	}
@@ -2007,7 +2010,7 @@ public class PairQualityLearner
 							score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
 							throw new RuntimeException("last merge in the learning process was not possible");
 						}
-						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge);
+						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, true);
 					}
 				}
 				else

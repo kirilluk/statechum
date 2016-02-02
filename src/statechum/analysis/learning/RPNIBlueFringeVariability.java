@@ -82,7 +82,7 @@ public class RPNIBlueFringeVariability
 				{
 					Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices);
-					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
+					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
 					
 					if (score != original.getStateNumber()-outcome.getStateNumber())
 					{// This is either a bug somewhere in the merger or (most likely) that the phantomVertex has been removed by the generalised learner. 

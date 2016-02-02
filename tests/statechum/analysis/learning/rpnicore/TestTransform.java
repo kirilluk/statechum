@@ -59,7 +59,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataExcep
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.TestStateMerging;
 import statechum.analysis.learning.observers.TestWriteReadPair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.linear.GD;
@@ -1247,14 +1247,14 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter3() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		LearnerGraph fsm = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		checkLoading(fsm);
 	}
 	
 	@Test
 	public final void testGraphMLWriter4() throws IOException
 	{
-		LearnerGraph fsm = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		LearnerGraph fsm = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		fsm.findVertex("BD2").setHighlight(true);
 		fsm.findVertex("BB1").setAccept(false);fsm.findVertex("BB1").setColour(JUConstants.RED);
 		fsm.findVertex("B").setColour(JUConstants.RED);
@@ -1330,7 +1330,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_boolean() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1343,7 +1343,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_colour() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1362,7 +1362,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_depth() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1381,7 +1381,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1399,7 +1399,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate1() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1427,7 +1427,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate2() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1456,7 +1456,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknowncompatibilitycode1() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1476,7 +1476,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_pairs_unknowncompatibilitycode2() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1495,7 +1495,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_fail_on_load_invalid_node() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		final LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		final StringWriter writer = new StringWriter();
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1512,7 +1512,7 @@ public class TestTransform
 	@Test
 	public final void testGraphMLWriter_load_despite_Initial() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1",config,converter);
+		LearnerGraph gr = buildLearnerGraph(TestStateMerging.largeGraph1_invalid5, "testMerge_fail1",config,converter);
 		StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.

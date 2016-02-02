@@ -214,7 +214,9 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 			incompatibleLabelsForAbstractLabel = null;
 		}
 		
-		/** Given a pair of labels that this abstract label abstracts from, records them as incompatible, eventually forcing a split of this label. */
+		/** Given a pair of labels that this abstract label abstracts from, records them as incompatible, eventually forcing a split of this label 
+		 * (the split happens when all incompatible elements are found and we have clustered compatible ones). 
+		 */
 		public void recordLabelsAsIncompatible(Label label1, Label label2) 
 		{
 			if (!labelsThisoneabstracts.contains(label1))
@@ -421,7 +423,7 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	public void updatePtaStateToCoreState(CmpVertex vert)
 	{
 		if (!coreStateDetailsAddedToPtaStateToCoreState.contains(vert))
-		{
+		{// for performance reasons, we cache vertices which details have been added to ptaStateToCoreState
 			for(VertID v: coregraph.getCache().getMergedToHardFacts().get(vert))
 				ptaStateToCoreState.put(v,vert);
 			coreStateDetailsAddedToPtaStateToCoreState.add(vert);
@@ -459,7 +461,7 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 				for(VertID pos:ptaVertices)
 				{
 					PrevAndLabel lblToPos = initialInverse.get(pos);
-					if (!negatives.contains(pos))
+					if (!negatives.contains(pos)) // is true if pos is ID of a positive vertex 
 						for(VertID v:negatives)
 						{
 							markPairAsIncompatible(pos,v);
@@ -524,7 +526,6 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 					if (initialPTA.findVertex(other).isAccept() == accept)
 						p.stateCompatibility.put(v,possibleStates);
 			}
-			ptaMergers.put(abstractVert, p);
 		}
 		return p;
 	}
@@ -687,7 +688,8 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 					target=ptaStateToCoreState.get(outgoing.getValue());// since there is nothing in ptaToNewState, the target is the original vertex.
 				
 				CmpVertex origTarget = transitions.put(abstractLabel,target);
-				assert origTarget == null || origTarget == target;// otherwise a non-deterministic choice.
+				if (!(origTarget == null || origTarget == target))// otherwise a non-deterministic choice.
+					assert false : "non-deterministic choice";
 			}
 		}
 		

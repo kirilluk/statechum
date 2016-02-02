@@ -51,6 +51,7 @@ import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.TestStateMerging;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.UnrecognisedLabelException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
@@ -502,7 +503,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testBuildPTAofQuestions6()
 	{
-		checkQuestionAugmentation(TestRpniLearner.testGeneralD_fsm,
+		checkQuestionAugmentation(TestStateMerging.testGeneralD_fsm,
 				"testPairCompatible5");
 	}
 	

@@ -391,7 +391,7 @@ public class MarkovClassifier
 				outcome = dREJECT;
 			else
 			{
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
+				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, true);
 				outcome = computeInconsistency(merged,model,checker,false);
 			}
 		}
@@ -1359,7 +1359,7 @@ public class MarkovClassifier
 					scoreAfterBigMerge = dREJECT;
 				else
 				{
-					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);
+					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, true);
 					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
 				}
 			}

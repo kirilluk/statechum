@@ -981,7 +981,7 @@ public class PathRoutines {
 		}
 		catch(EquivalentStatesException ex)
 		{
-			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction());
+			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction(),true);
 		}
 		
 		// Now we need to eliminate the sink vertex - due to merging, there will only be one of them,

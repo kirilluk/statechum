@@ -1258,16 +1258,16 @@ public class TestEqualityComparisonAndHashCode {
 				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 						new StringVertex("B"),new StringVertex("A"),new StringVertex("C")}),
 
-				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,testGraphString),new CmpVertex[]{
 						new StringVertex("A"),new StringVertex("A"),new StringVertex("C")}),
 
-				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+				buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(2,testGraphString),new CmpVertex[]{
 						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}),
 				false
 		);
 	}
-
-	/** Tests that equality does not depend on the order in which vertices are added. */
+/*
+	// Tests that equality does not depend on the order in which vertices are added.
 	@Test
 	public final void testEqClassEquality2()
 	{
@@ -1287,7 +1287,7 @@ public class TestEqualityComparisonAndHashCode {
 		);
 	}
 
-	/** Tests that equality does not depend on the order in which vertices are added. */
+	// Tests that equality does not depend on the order in which vertices are added. 
 	@Test
 	public final void testEqClassEquality3()
 	{
@@ -1306,7 +1306,7 @@ public class TestEqualityComparisonAndHashCode {
 				false
 		);
 	}
-
+*/
 	/** Checks that merged vertex and number of associated to the equivalence class are used in both
 	 * equals() and hashCode() methods. 
 	 */

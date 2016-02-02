@@ -202,7 +202,8 @@ public class AllTests {
     @SuiteClasses({
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
         statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
-    	statechum.analysis.learning.TestRpniLearner.TestRandomFSMMergers.class,
+    	statechum.analysis.learning.TestStateMerging.class,
+    	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,

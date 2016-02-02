@@ -159,7 +159,6 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			result.unite(pathsToVertSource);
 			return true;// nothing to do, return paths to an initial state.
 		}
-		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
 		currentExplorationPath.offer(null);currentExplorationState.offer(null);// mark the end of the first (singleton) wave.
 		CmpVertex currentVert = null;List<CmpVertex> currentPath = null;
@@ -691,7 +690,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int eqClassNumber = 0;
 		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.mergeWith(initialState,null);
 		initial.constructMergedVertex(result,true,false);
-		result.setInit(initial.getMergedVertex());
+		result.setInit(initial.getMergedVertex());result.transitionMatrix.put(initial.getMergedVertex(), result.createNewRow());
 		Queue<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
 
 		Map<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
@@ -734,6 +733,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 					currentExplorationBoundary.offer(realTargetState);
 					equivalenceClasses.put(realTargetState.getStates(),realTargetState);
 					realTargetState.constructMergedVertex(result,true,false);
+					result.transitionMatrix.put(realTargetState.getMergedVertex(), result.createNewRow());
 				}
 								
 				row.put(transition.getKey(), realTargetState.getMergedVertex());

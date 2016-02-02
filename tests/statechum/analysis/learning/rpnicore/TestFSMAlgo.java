@@ -19,9 +19,9 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
-import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
@@ -1063,8 +1063,8 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2",config,converter);
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
-		
 		Assert.assertNotNull(graph.getVertexToAbstractState());
+		System.out.println();
 		lbls.buildVertexToAbstractStateMap(mergedAB,graph,true);
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		

@@ -2,16 +2,16 @@
 <java version="1.8.0_60" class="java.beans.XMLDecoder">
  <object class="java.util.Properties">
   <void method="put">
-   <string>ERLANGHOME</string>
-   <string>C:\Program Files\erl7.0</string>
+   <string>VIZ_CONFIG</string>
+   <string>kirill_home_w64</string>
   </void>
   <void method="put">
    <string>LTL2BA</string>
    <string>lib/ltl2ba-1.1/ltl2ba.exe</string>
   </void>
   <void method="put">
-   <string>VIZ_CONFIG</string>
-   <string>kirill_home_w64</string>
+   <string>ERLANGHOME</string>
+   <string>C:\Program Files\erl7.0</string>
   </void>
   <void method="put">
    <string>ERLANGOUTPUT_ENABLED</string>
@@ -36,28 +36,65 @@
        <string>x</string>
        <void method="set">
         <object idref="Rectangle0"/>
-        <int>646</int>
+        <int>112</int>
        </void>
       </void>
       <void class="java.awt.Rectangle" method="getField">
        <string>y</string>
        <void method="set">
         <object idref="Rectangle0"/>
-        <int>23</int>
+        <int>329</int>
        </void>
       </void>
       <void class="java.awt.Rectangle" method="getField">
        <string>width</string>
        <void method="set">
         <object idref="Rectangle0"/>
-        <int>1614</int>
+        <int>903</int>
        </void>
       </void>
       <void class="java.awt.Rectangle" method="getField">
        <string>height</string>
        <void method="set">
         <object idref="Rectangle0"/>
-        <int>1306</int>
+        <int>821</int>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <int>1</int>
+   <object class="statechum.GlobalConfiguration$WindowPosition">
+    <void property="rect">
+     <object class="java.awt.Rectangle" id="Rectangle1">
+      <void class="java.awt.Rectangle" method="getField">
+       <string>x</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>1200</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>y</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>730</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>width</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>400</int>
+       </void>
+      </void>
+      <void class="java.awt.Rectangle" method="getField">
+       <string>height</string>
+       <void method="set">
+        <object idref="Rectangle1"/>
+        <int>300</int>
        </void>
       </void>
      </object>

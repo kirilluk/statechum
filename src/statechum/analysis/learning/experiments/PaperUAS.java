@@ -750,7 +750,7 @@ public class PaperUAS
 				Arrays.asList(new Label[]{labelToMerge}));
 		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge) < 0)
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that are associated with the unique state cannot be merged in the PTA");
-		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge);
+		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge, true);
    }
    
    public static LearnerGraph makeMerge(PaperUAS paper, String faileNameToWriteResultTo, String transitionNameToMerge) throws IOException

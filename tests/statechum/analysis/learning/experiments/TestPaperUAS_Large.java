@@ -75,11 +75,18 @@ public class TestPaperUAS_Large extends TestWithMultipleConfigurations
 		if (diffFSM != null)
 			throw diffFSM;
 		
-		LearnerGraph mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
-		LearnerGraph mergedSmallB=PaperUAS.mergePTA(smallGraph, labelToMerge);// we do not particularly care what we get but there should be no exception generated.
+		LearnerGraph mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
+		LearnerGraph mergedSmallB=PaperUAS.mergePTA(smallGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
 		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB);// the two graphs should reduce to the same one since they were built out of the same data, one by concatenation and another one without, however transitions between elements that have been concatenated are merged by the merger above so the outcome should be the same. 
 		if (diffFSM != null)
 			throw diffFSM;
+
+		// now do the same merge but this time without update of auxiliary information
+		mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge, false);
+		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB); 
+		if (diffFSM != null)
+			throw diffFSM;
+		
 	}
 		
 }

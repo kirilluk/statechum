@@ -374,7 +374,7 @@ public class SGE_ExperimentRunner
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
 			case RUN_STANDALONE:			
 				if(graph.getFileName().endsWith(".csv"))
-					graph.addPairValues((Comparable)x, y, colour, label);				
+					graph.addPairValues(x, y, colour, label);				
 				else
 					graph.add(x,y,colour,label);			
 				break;

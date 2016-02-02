@@ -81,8 +81,8 @@ public class WaveBlueFringe extends PairQualityLearner
 	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifier ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
-		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, true);
+		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, false);
 		
 		Set<CmpVertex> tr=graph.transform.trimGraph(10, graph.getInit()).transitionMatrix.keySet();
 		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
@@ -98,8 +98,8 @@ public class WaveBlueFringe extends PairQualityLearner
 					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
 					
 					verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
-					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, true);
+					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, false);
 					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker, false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
@@ -337,9 +337,9 @@ public class WaveBlueFringe extends PairQualityLearner
 
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
-				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, true);
+				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, false);
 				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
 				ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
@@ -367,9 +367,9 @@ public class WaveBlueFringe extends PairQualityLearner
 						PairScore p = LearnerWithMandatoryMergeConstraints.pickPairQSMLike(pairs);
 						LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 						// constructPairsToMergeBasedOnSetsToMerge(coregraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA)
-						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 						assert genScore >= 0;
-						LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, true);
+						LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, false);
 						long value = MarkovClassifier.computeInconsistency(merged, m, checker, false);
 						inconsistencyFromAnEarlierIteration = value;
 						return null;
@@ -410,10 +410,10 @@ public class WaveBlueFringe extends PairQualityLearner
 						double relativeInconsistency = 0.;
 						Integer a=vertexToPartition.get(p.getR()), b = vertexToPartition.get(p.getQ());
 						LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 						if (genScore >= 0)
 						{
-							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, true);
+							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, false);
 							currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker, 
 									false
 									//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
@@ -452,9 +452,9 @@ public class WaveBlueFringe extends PairQualityLearner
 
 				{
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, true);
+					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
 				}
 
 				SampleData dataSample = new SampleData(null,null);

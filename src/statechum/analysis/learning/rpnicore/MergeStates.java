@@ -265,7 +265,7 @@ public class MergeStates {
 	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 
-		if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices) < 0)
+		if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, true) < 0)
 		{/*
 			try {
 			

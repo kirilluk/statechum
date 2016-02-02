@@ -50,7 +50,6 @@ import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.TestStateMerging;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.UnrecognisedLabelException;

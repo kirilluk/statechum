@@ -37,7 +37,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.Pair;
 import statechum.StringLabel;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -316,11 +315,5 @@ public class LearnerIncrementalRefinement
 			}
 		
 		return null;
-	}
-	
-	public int computePairCompatibilityScore(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices) 
-	{
-		int computedScore = graph.pairscores.computePairCompatibilityScore_general(pairToMerge,pairsToMerge, mergedVertices);
-		return computedScore;
 	}
 }

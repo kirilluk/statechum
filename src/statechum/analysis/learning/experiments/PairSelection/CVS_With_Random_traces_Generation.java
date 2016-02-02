@@ -283,9 +283,9 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
 				{
 					LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge,true);
+					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge,false);
 				}			
 				
 				SampleData dataSample = new SampleData(null,null);
@@ -575,7 +575,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			++comparisonsPerformed;
 			long currentInconsistency = 0;
 			List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
-			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 			long score= genScore;
 			if (genScore >= 0)
 			{			

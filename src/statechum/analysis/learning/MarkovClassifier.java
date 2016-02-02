@@ -386,12 +386,12 @@ public class MarkovClassifier
 		List<StatePair> pairsList = buildVerticesToMergeForPath(paths);
 		if (!pairsList.isEmpty())
 		{
-			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 			if (score < 0)
 				outcome = dREJECT;
 			else
 			{
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, true);
+				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, false);
 				outcome = computeInconsistency(merged,model,checker,false);
 			}
 		}
@@ -1354,12 +1354,12 @@ public class MarkovClassifier
 					!pairsList.isEmpty())
 			{
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+				int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 				if (score < 0)
 					scoreAfterBigMerge = dREJECT;
 				else
 				{
-					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, true);
+					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, false);
 					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
 				}
 			}

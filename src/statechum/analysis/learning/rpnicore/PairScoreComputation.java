@@ -30,7 +30,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -50,7 +49,6 @@ import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
 
 public class PairScoreComputation {
@@ -212,7 +210,7 @@ public class PairScoreComputation {
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
 		{
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge);compatibilityScore=computedScore;
+			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
 		}
 		else
 		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
@@ -473,17 +471,6 @@ public class PairScoreComputation {
 		return singleton;
 	}
 	
-	/** Similar to computePairCompatibilityScore_internal but can operate 
-	 * on arbitrary graphs rather than just a graph and a PTA.
-	 * 
-	 *  @param pairToMerge pair to merge
-	 *  @param pairsToMerge more pairs to merge in the process of computation. Can be null.
-	 *  @param mergedVertices collection of sets of merged vertices. Singleton sets reflect those which were not merged with any other.
-	 */ 
-	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices) 
-	{
-		return computePairCompatibilityScore_general(pairToMerge,pairsToMerge,mergedVertices,true);
-	}
 	/** Similar to computePairCompatibilityScore_internal but can operate 
 	 * on arbitrary graphs rather than just a graph and a PTA.
 	 * 

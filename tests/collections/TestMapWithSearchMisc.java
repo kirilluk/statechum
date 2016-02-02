@@ -1,8 +1,8 @@
 package collections;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import junit.framework.Assert;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import collections.TestMapWithSearch.CInteger;

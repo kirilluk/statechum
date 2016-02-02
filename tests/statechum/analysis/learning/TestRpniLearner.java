@@ -250,7 +250,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
-			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), true),
+			newScoreD = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false);
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
@@ -266,6 +267,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(expectedScore, newScoreA);
 		Assert.assertTrue( expectedScore < 0? (newScoreB < 0):(newScoreB >= 0));
 		Assert.assertTrue( expectedScore < 0? (newScoreC < 0):(newScoreC >= 0));
+		Assert.assertEquals(newScoreC, newScoreD);
 		if (expectedScore != -1)
 		{
 			Set<List<Label>> oldQuestions = new HashSet<List<Label>>();oldQuestions.addAll(generateQuestions(g,temp, pairOrig));

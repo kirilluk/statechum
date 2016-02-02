@@ -64,7 +64,6 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -650,7 +649,7 @@ public class PairQualityLearner
 			for(PairScore p:pairs)
 				if (
 						!p.getQ().isAccept() || !p.getR().isAccept() || // if any is a negative, it can always be merged.
-						tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) >= 0 // the pair does not contradict mandatory merge.
+						tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge, false) >= 0 // the pair does not contradict mandatory merge.
 				)
 				outcome.add(p);
 			return outcome;
@@ -1195,7 +1194,7 @@ public class PairQualityLearner
 			
 			for(PairScore p:pairs)
 			{
-				if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge) < 0)
+				if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge, false) < 0)
 				// This pair cannot be merged, return as red. Note that this computation is deferred to this stage from computePairScores in order to consider 
 				// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory merge conditions are taken into account.
 					return p;
@@ -1800,18 +1799,17 @@ public class PairQualityLearner
 	
 	public static LearnerGraph mergeStatesForUnique(LearnerGraph pta, Label unique)
 	{
+		boolean buildAuxInfo = false;
 		List<StatePair> pairs = new LinkedList<StatePair>();
 		LearnerGraph sourcePta = new LearnerGraph(pta,pta.config);
 		List<CmpVertex> whatToMerge = constructPairsToMergeWithOutgoing(sourcePta,unique);
-		Visualiser.updateFrame(pta, sourcePta);
-		//Visualiser.waitForKey();
 		for(CmpVertex vert:whatToMerge)
 			pairs.add(new StatePair(sourcePta.getInit(),vert));
 		List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		
-		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge) < 0)
+		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+unique);
-		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge, true);
+		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge, buildAuxInfo);
 		outcome.pathroutines.updateDepthLabelling();
 		return outcome;
 	}
@@ -2001,16 +1999,16 @@ public class PairQualityLearner
 					List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
 					if (!pairsList.isEmpty())
 					{
-						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 						if (score < 0)
 						{
 							learnerOfPairs = createLearner(learnerEval,referenceGraph,dataCollector,pta);
 							learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 							actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-							score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+							score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 							throw new RuntimeException("last merge in the learning process was not possible");
 						}
-						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, true);
+						actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
 					}
 				}
 				else

@@ -249,7 +249,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
 				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge,true);
 				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
@@ -270,9 +270,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
 			{
 				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge);
+				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 				assert genScore >= 0;
-				actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge,true);
+				actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge,false);
 			}			
 			
 			SampleData dataSample = new SampleData(null,null);
@@ -467,7 +467,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			++comparisonsPerformed;
 			long currentInconsistency = 0;
 			List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
-			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge);
+			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 			long score= genScore;
 			if (genScore >= 0)
 			{			

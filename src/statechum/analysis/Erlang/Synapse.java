@@ -991,9 +991,9 @@ public class Synapse implements Runnable {
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
-																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, true);
+																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, false);
 																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
 																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
@@ -1064,9 +1064,9 @@ public class Synapse implements Runnable {
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 																LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge);
+																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
-																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, true);
+																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, false);
 																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
 																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);

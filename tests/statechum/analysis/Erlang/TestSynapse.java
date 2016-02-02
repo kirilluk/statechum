@@ -22,7 +22,6 @@ import static statechum.Helper.checkForCorrectException;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Random;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -122,8 +121,8 @@ public class TestSynapse {
 	{
 		if (b)
 			return "Synapse short node names";
-		else
-			return "Synapse long node names";
+
+		return "Synapse long node names";
 	}
 
 	

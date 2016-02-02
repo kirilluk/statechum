@@ -17,9 +17,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import junit.framework.Assert;
-
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
@@ -1219,6 +1218,7 @@ public class TestMapWithSearch
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testSizeOne5()
 	{
@@ -1631,6 +1631,7 @@ public class TestMapWithSearch
 		Assert.assertSame(vert2, ((MapWithSearch<VertexID,Long>)map.getOurs()).findElementById(VertexID.parseID("P99")));
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testSizeTwo7()
 	{

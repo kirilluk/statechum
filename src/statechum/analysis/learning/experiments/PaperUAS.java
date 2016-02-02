@@ -743,17 +743,17 @@ public class PaperUAS
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that lead to unique state in the reference graph cannot be merged in the PTA");
    }*/
    
-   public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge)
+   public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
    {
 	   LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 	   List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),
 				Arrays.asList(new Label[]{labelToMerge}));
-		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge) < 0)
+		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that are associated with the unique state cannot be merged in the PTA");
-		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge, true);
+		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge, buildAuxInfo);
    }
    
-   public static LearnerGraph makeMerge(PaperUAS paper, String faileNameToWriteResultTo, String transitionNameToMerge) throws IOException
+   public static LearnerGraph makeMerge(PaperUAS paper, String faileNameToWriteResultTo, String transitionNameToMerge, boolean buildAuxInfo) throws IOException
    {
 	   LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 	   //String fileNameToLoad = faileNameToWriteResultTo+"-before_merging.xml";
@@ -761,7 +761,7 @@ public class PaperUAS
 	   initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));
 	   initialPTA.storage.writeGraphML(faileNameToWriteResultTo+"-before_merging.xml");
 	   
-		LearnerGraph outcome = mergePTA(initialPTA,AbstractLearnerGraph.generateNewLabel(transitionNameToMerge,initialPTA.config,paper.learnerInitConfiguration.getLabelConverter()));
+		LearnerGraph outcome = mergePTA(initialPTA,AbstractLearnerGraph.generateNewLabel(transitionNameToMerge,initialPTA.config,paper.learnerInitConfiguration.getLabelConverter()),buildAuxInfo);
 		outcome.storage.writeGraphML(faileNameToWriteResultTo+"-after_merging.xml");
 		return outcome;
    }
@@ -869,7 +869,7 @@ public class PaperUAS
 				
 	 			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
 				{// pre-merge and then learn
-		 	  		LearnerGraph smallPta = mergePTA(buildPTA(),uniqueLabel);
+		 	  		LearnerGraph smallPta = mergePTA(buildPTA(),uniqueLabel,false);
 		 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
 	
 		 			final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

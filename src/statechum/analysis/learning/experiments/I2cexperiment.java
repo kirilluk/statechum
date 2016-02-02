@@ -193,7 +193,6 @@ public class I2cexperiment extends PairQualityLearner
 			}
 
 			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
-			learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -288,18 +287,6 @@ public class I2cexperiment extends PairQualityLearner
 		LearnerGraphND inverseGraph = null;
 		long comparisonsPerformed = 0;
 		
-		boolean useNewScoreNearRoot = true, useClassifyPairs = true;
-
-		public void setUseNewScoreNearRoot(boolean v)
-		{
-			useNewScoreNearRoot = v;
-		}
-		
-		public void setUseClassifyPairs(boolean v)
-		{
-			useClassifyPairs = v;
-		}
-		
 		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 		
 		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
@@ -345,13 +332,6 @@ public class I2cexperiment extends PairQualityLearner
 					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
 				//System.out.println("genScore= "+ genScore +" p.getScore= "+p.getScore());
 				score=p.getScore()-currentInconsistency;
-				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
-				{
-					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
-							!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),Markov.getPredictionLen()))
-						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
-							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
-				}
 			}
 			return score;
 		}
@@ -413,19 +393,7 @@ public class I2cexperiment extends PairQualityLearner
 				Collections.sort(pairsWithScoresComputedUsingGeneralMerger);
 				*/
 				PairScore chosenPair = null;
-				if (useClassifyPairs)
-				{// This part is to prioritise pairs based on the classify Pairs method.
-					Stack<PairScore> NEwresult = MarkovScoreComputation.possibleAtTop(pairsWithScoresComputedUsingGeneralMerger);
-					List<PairScore> filter = this.classifyPairs(NEwresult, graph, extendedGraph);
-
-					if(filter.size() >= 1)
-						chosenPair = pickPairQSMLike(filter);
-					else
-						chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
-				}
-				else
-					chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
-
+				chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				outcome.clear();outcome.push(chosenPair);
 			}
 			

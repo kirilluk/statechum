@@ -37,14 +37,14 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	 * this variable stores equivalence classes. Used by the pluggable
 	 * question generator.
 	 */ 
-	protected Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedStates = null;
+	protected Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedStates = null;
 	
-	public Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getMergedStates()
+	public Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> getMergedStates()
 	{
 		return mergedStates;
 	}
 	
-	public void setMergedStates(Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> eqClasses)
+	public void setMergedStates(Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> eqClasses)
 	{
 		mergedStates = eqClasses;
 	}
@@ -68,6 +68,16 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	
 	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
 	protected CmpVertex stateLearnt = null;
+	
+	public CmpVertex getStateLearnt()
+	{
+		return stateLearnt;
+	}
+	
+	public void setStateLearnt(CmpVertex arg)
+	{
+		stateLearnt = arg;
+	}
 	
 	@Override
 	public void invalidate()

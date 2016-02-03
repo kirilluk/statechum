@@ -668,7 +668,7 @@ public class TestWMethod {
 
 	public static void checkEquivalentStatesException(EquivalentStatesException e,LearnerGraph fsm)
 	{
-		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroup:e.getEquivalentStates())
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqStatesGroup:e.getEquivalentStates())
 		{
 			// Checks that all states recorded as equivalent are indeed equivalent
 			for(CmpVertex eA:eqStatesGroup.getStates())
@@ -678,7 +678,7 @@ public class TestWMethod {
 					Assert.assertNull("states "+eA+" and "+eB+" should belong to the same equivalence class, got "+(exception == null?"":exception.getMessage()),exception);
 				}
 			// Checks that all states in different equivalence classes are not equivalent. 
-			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroupAnother:e.getEquivalentStates())
+			for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqStatesGroupAnother:e.getEquivalentStates())
 				if (eqStatesGroup != eqStatesGroupAnother)
 				{
 					for(CmpVertex eA:eqStatesGroup.getStates()) // our states

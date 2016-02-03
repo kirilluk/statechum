@@ -634,8 +634,8 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals("[ NULL, NULL ]", new StatePair(null,null).toString());
 	}
 	
-	private final <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>
-		buildClass(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> result,CmpVertex vertices[])
+	private final <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> EquivalenceClass<TARGET_TYPE, CACHE_TYPE>
+		buildClass(EquivalenceClass<TARGET_TYPE, CACHE_TYPE> result,CmpVertex vertices[])
 	{
 		//new AMEquivalenceClass(0,testGraphString);
 		for(CmpVertex vert:vertices)
@@ -659,7 +659,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClass_toString1a()
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
 				new StringVertex("B"),new StringVertex("A"),new StringVertex("D")});
 		eqClass.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertEquals("[A->{A,B,D}]", eqClass.toString());		
@@ -669,7 +669,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClass_toString1b()
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
 				new StringVertex("B"),new StringVertex("A"),new StringVertex("D")});
 		eqClass.constructMergedVertex(new LearnerGraph(config),true,false);
 		Assert.assertEquals("[A->{A,B,D}]", eqClass.toString());		
@@ -679,7 +679,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClass_toString1c()
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString), new CmpVertex[]{
 				new StringVertex("B"),new StringVertex("A"),new StringVertex("D")});
 		eqClass.constructMergedVertex(testGraphString,true,false);
 		Assert.assertEquals("[P1000->{A,B,D}]", eqClass.toString());		
@@ -688,7 +688,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClass_toString2()
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{ new StringVertex("B")});
 		eqClass.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertEquals("[B->{B}]",eqClass.toString());		
@@ -700,7 +700,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
 		B.setDepth(5);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{A,B,C,D});
 		Assert.assertSame(B,eqClass.getRepresentative());
 	}
@@ -711,7 +711,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
 		B.setDepth(5);C.setDepth(45);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{A,B,C,D});
 		Assert.assertSame(B,eqClass.getRepresentative());
 	}
@@ -722,7 +722,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{A,B,C,D});
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{A,B,C,D});
 		Assert.assertSame(D,eqClass.getRepresentative());
 	}
 	
@@ -732,7 +732,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{A,B}),eqClassB = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{C,D});
 		eqClassA.mergeWith(eqClassB);
@@ -745,7 +745,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 					new CmpVertex[]{A,B}),eqClassB = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{C,D});
 		eqClassB.mergeWith(eqClassA);
@@ -759,7 +759,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D"),
 			E = new DeterministicVertex("E");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);E.setDepth(4);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 					new CmpVertex[]{A,B}),
 			eqClassB = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
@@ -882,7 +882,7 @@ public class TestEqualityComparisonAndHashCode {
 		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",config,converter);
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);Assert.assertEquals(0, eqClass.getNumber());
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);Assert.assertEquals(0, eqClass.getNumber());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
@@ -915,9 +915,9 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testEqClassMerging2() throws IncompatibleStatesException
 	{
 		LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E\nA-d->A", "testEqClassMerging",config,converter);
-		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
+		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B");
 		
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(10,gr);
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(10,gr);
 		
 		Assert.assertNull(eqClass.getRepresentative());Assert.assertEquals(10, eqClass.getNumber());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
@@ -986,7 +986,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
@@ -1004,7 +1004,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.mergeWith(B, gr.transitionMatrix.get(B).entrySet());
@@ -1022,7 +1022,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassMerging2",config,converter);
 		final CmpVertex C=gr.findVertex("C"), F=gr.findVertex("F");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		eqClass.mergeWith(F, gr.transitionMatrix.get(F).entrySet());
@@ -1041,7 +1041,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
@@ -1058,7 +1058,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClass.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
@@ -1075,7 +1075,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = buildLearnerGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1",config,converter);
 		final CmpVertex C=gr.findVertex("C"),D=gr.findVertex("D");
 		
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
@@ -1096,7 +1096,7 @@ public class TestEqualityComparisonAndHashCode {
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassB.mergeWith(eqClassA);
@@ -1114,7 +1114,7 @@ public class TestEqualityComparisonAndHashCode {
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
@@ -1137,7 +1137,7 @@ public class TestEqualityComparisonAndHashCode {
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
 		
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
@@ -1158,7 +1158,7 @@ public class TestEqualityComparisonAndHashCode {
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
 		
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
@@ -1177,7 +1177,7 @@ public class TestEqualityComparisonAndHashCode {
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
@@ -1197,7 +1197,7 @@ public class TestEqualityComparisonAndHashCode {
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.MERGED);
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		
 		eqClassA.mergeWith(D,gr.transitionMatrix.get(D).entrySet());// should be no exception
@@ -1214,7 +1214,7 @@ public class TestEqualityComparisonAndHashCode {
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
 		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
@@ -1233,7 +1233,7 @@ public class TestEqualityComparisonAndHashCode {
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		
 		gr.addToCompatibility(E, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		final EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.mergeWith(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
@@ -1342,7 +1342,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testConstructionOfRepresentative1()
 	{
 		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("test"));
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, false, false);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vert,eqClass.getMergedVertex()));
@@ -1354,7 +1354,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testConstructionOfRepresentative2()
 	{
 		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("test"));
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, false, true);
 		Assert.assertEquals(vert,eqClass.getMergedVertex().getOrigState());
@@ -1368,7 +1368,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("origVertex"));
 		vert.setOrigState(VertexID.parseID("test"));
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, false);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(eqClass.getMergedVertex(),vert));
@@ -1379,7 +1379,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testConstructionOfRepresentative4()
 	{
 		CmpVertex vert = new StringVertex("B");vert.setColour(JUConstants.AMBER);vert.setOrigState(VertexID.parseID("test"));
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, true);
 		// no point comparing all attributes here since origState will be set to a different value than that of vert
@@ -1391,7 +1391,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testAM_colour1()
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				new StringVertex("A"),new StringVertex("B"),new StringVertex("C")});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertNull(eq.getMergedVertex().getColour());
@@ -1402,7 +1402,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.RED);
 		CmpVertex vertC = new StringVertex("C");
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				new StringVertex("A"),vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.RED);
@@ -1413,7 +1413,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.BLUE);
 		CmpVertex vertC = new StringVertex("C");
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				new StringVertex("A"),vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
@@ -1424,7 +1424,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.AMBER);
 		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				new StringVertex("A"),vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
@@ -1436,7 +1436,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
 		CmpVertex vertB = new StringVertex("B");
 		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				vertA,vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
@@ -1448,7 +1448,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
 		CmpVertex vertB = new StringVertex("B");
 		CmpVertex vertC = new StringVertex("C");
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				vertA,vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertNull(eq.getMergedVertex().getColour());
@@ -1460,7 +1460,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
 		CmpVertex vertB = new StringVertex("B");
 		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.AMBER);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				vertA,vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertNull(eq.getMergedVertex().getColour());
@@ -1472,7 +1472,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex vertA = new StringVertex("A");
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.AMBER);
 		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.AMBER);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				vertA,vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertNull(eq.getMergedVertex().getColour());
@@ -1482,7 +1482,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testAM_colour2h()
 	{
 		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				vertA});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.AMBER);
@@ -1493,7 +1493,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.RED);
 		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq =buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{
 				new StringVertex("A"),vertB,vertC});
 		eq.constructMergedVertex(new LearnerGraph(config),false,false);
 		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.RED);

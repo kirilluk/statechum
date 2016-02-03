@@ -39,7 +39,7 @@ import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
-	implements Comparable<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, ConvertibleToInt
+	implements Comparable<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, EquivalenceClass<TARGET_TYPE, CACHE_TYPE>
 {
 	/** The list of outgoing transitions from this equivalence class. It maps to Object because where we have singleton entries, it is space-efficient to directly store a CmpVertex and only replace it with ArrayList<CmpVertex> where more than a single entry has been added. */ 
 	private Map<Label,Object> outgoingTransitions = null;
@@ -73,17 +73,28 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 					new TreeMap<Label,Object>();
 	}
 	
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#getNumber()
+	 */
+	@Override
 	public int getNumber()
 	{
 		return ClassNumber;
 	}
 	
-	/** Returns transitions leaving states contained in this equivalence class. */ 
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#getOutgoing()
+	 */ 
+	@Override
 	public Map<Label,Object> getOutgoing()
 	{
 		return outgoingTransitions;
 	}
 	
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#getStates()
+	 */
+	@Override
 	public Set<CmpVertex> getStates()
 	{
 		return states;
@@ -92,7 +103,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	/** A representative of this equivalence class. */
 	private CmpVertex representative = null;
 	
-	/** Returns the current representative. */
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#getRepresentative()
+	 */
+	@Override
 	public CmpVertex getRepresentative()
 	{
 		return representative;
@@ -266,11 +280,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return singleton;
 	}
 	
-	/** Adds transitions from the supplied collection.
-	 * 
-	 * @param from transitions to add from.
-	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#mergeWith(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.util.Collection)
 	 */
+	@Override
 	public boolean mergeWith(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
 	{
 		addState(vert);
@@ -282,13 +295,19 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return singleton;
 	}
 	
-	/** Adds the contents of the supplied argument to outgoing transitions of this class.
-	 * 
-	 * @param to the equivalence class to merge with
-	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#mergeWith(statechum.analysis.learning.rpnicore.AMEquivalenceClass)
 	 */
-	public boolean mergeWith(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> to) throws IncompatibleStatesException
+	@SuppressWarnings("unchecked")
+	@Override
+	public boolean mergeWith(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> whatToMergeWith) throws IncompatibleStatesException
 	{
+		if (!(whatToMergeWith instanceof AMEquivalenceClass))
+			throw new IllegalArgumentException("compareTo was called with an instance of a type other than AMEquivalenceClass");
+		
+		@SuppressWarnings("rawtypes")
+		AMEquivalenceClass to = (AMEquivalenceClass)whatToMergeWith;
+		
 		if (!states.isEmpty())
 		{ 
 			if (accept != to.accept)
@@ -317,9 +336,15 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return singleton;
 	}
 	
-	@Override 
-	public int compareTo(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> o) {
-		return ClassNumber - o.ClassNumber;
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#compareTo(statechum.analysis.learning.rpnicore.AMEquivalenceClass)
+	 */
+	@SuppressWarnings("rawtypes")
+	@Override
+	public int compareTo(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> o) {
+		if (!(o instanceof AMEquivalenceClass))
+			throw new IllegalArgumentException("compareTo was called with an instance of a type other than AMEquivalenceClass");
+		return ClassNumber - ((AMEquivalenceClass)o).ClassNumber;
 	}
 
 	/* (non-Javadoc)
@@ -365,6 +390,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	/** The merged vertex. */
 	private CmpVertex mergedVertex;
 	
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#getMergedVertex()
+	 */
+	@Override
 	public CmpVertex getMergedVertex()
 	{
 		return mergedVertex;
@@ -468,15 +497,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return mergedVertex;
 	}
 	
-	/** Generates a vertex representing the representative vertex. If <em>useDifferentName</em> is false, 
-	 * a true clone of a representative vertex is made, with the same ID; otherwise  
-	 * a new name is chosen.
-	 * 
-	 * @param graph the graph which will be used to store the generated vertex
-	 * @param useDifferentNameIfAlreadyExist whether to retain the ID of a representative vertex in the merged one or 
-	 * check if the representative vertex already exists in the graph and if so create a new one.
-	 * @param setOrigState whether to set the original state of a merged vertex to the ID of the representative state.
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#constructMergedVertex(statechum.analysis.learning.rpnicore.AbstractLearnerGraph, boolean, boolean)
 	 */
+	@Override
 	public <TARGET_C_TYPE,CACHE_C_TYPE extends CachedData<TARGET_C_TYPE,CACHE_C_TYPE>>
 		void constructMergedVertex(AbstractLearnerGraph<TARGET_C_TYPE,CACHE_C_TYPE> graph,
 				boolean useDifferentNameIfAlreadyExist, boolean setOrigState) 
@@ -498,37 +522,45 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		CACHE_IN_TYPE extends CachedData<TARGET_IN_TYPE,CACHE_IN_TYPE>,
 		CACHE_OUT_TYPE extends CachedData<TARGET_OUT_TYPE,CACHE_OUT_TYPE>> 
 		void populateCompatible(final AbstractLearnerGraph<TARGET_OUT_TYPE,CACHE_OUT_TYPE> graph, 
-				Collection<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> eqClasses)
+				Collection<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> eqClasses)
 	{
-		final Map<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
+		final Map<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
 			graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?// here we use default values since the matrix is most likely to be mostly empty
-					new ArrayMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber(),graph.config.getMaxRejectStateNumber()):
-			new HashMapWithSearch<CmpVertex, List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
-		for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
+					new ArrayMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber(),graph.config.getMaxRejectStateNumber()):
+			new HashMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
+		for(EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
 			for(CmpVertex vertex:eqClass.getStates())
 			{
-				List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
+				List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
 				if (classes == null)
 				{
-					classes = new LinkedList<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>();vertexToEqClassesContainingIt.put(vertex,classes);
+					classes = new LinkedList<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>();vertexToEqClassesContainingIt.put(vertex,classes);
 				}
 				classes.add(eqClass);
 			}
 		
-		for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
-			for(CmpVertex vertex:eqClass.incompatibleStates)
+		for(EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
+			for(CmpVertex vertex:eqClass.incompatibleStates())
 			{
-				List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
+				List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
 				if (classes != null)
-					for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> incompClass:classes)
+					for(EquivalenceClass<TARGET_IN_TYPE, CACHE_IN_TYPE> incompClass:classes)
 						graph.addToCompatibility(eqClass.getMergedVertex(), incompClass.getMergedVertex(),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 			}
 		
 	}
 
+	/* (non-Javadoc)
+	 * @see statechum.analysis.learning.rpnicore.EquivalenceClass#toInt()
+	 */
 	@Override
 	public int toInt() {
 		return getNumber();
+	}
+
+	@Override
+	public Collection<CmpVertex> incompatibleStates() {
+		return incompatibleStates;
 	}
 	
 }

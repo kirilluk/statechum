@@ -39,6 +39,7 @@ import statechum.Pair;
 import statechum.StringLabel;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.collections.ArrayMapWithSearch;
@@ -128,7 +129,7 @@ public class LearnerIncrementalRefinement
 	{
         final Map<VertID,Collection<VertID>> hardOrig = graph.learnerCache.getMergedToHardFacts();
 		final List<LabelListPair> abstractLabelsToSplit = new ArrayList<LabelListPair>();
-		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:mergedVertices)
 		{// we iterate through all outgoing transition, aiming to identify inconsistencies. Labels that lead to both accept and reject-states are candidates for splitting.
 			
 			for(Map.Entry<Label,Object> lbl_targets:eqClass.getOutgoing().entrySet())

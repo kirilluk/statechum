@@ -53,9 +53,9 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -563,7 +563,7 @@ public class TestMatrixComputationWithMultipleThreads {
 					if (LearnerGraphND.ignoreRejectStates.stateToConsider(stateB.getKey()))
 					{
 						StatePair currentPair = new StatePair(entryA.getKey(),stateB.getKey());
-						if (gr.pairscores.computePairCompatibilityScore_general(currentPair,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false) < 0)
+						if (gr.pairscores.computePairCompatibilityScore_general(currentPair,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false) < 0)
 						{// result is constructed as a synchronized set
 							result.add(currentPair);
 						}

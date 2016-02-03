@@ -677,7 +677,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		
 		/** Maps sets of target states to the corresponding known states. */
-		Map<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new LinkedHashMap<Set<CmpVertex>,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
+		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
 		
 		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 		if (coregraph.transitionMatrix.isEmpty())
@@ -691,14 +691,14 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.mergeWith(initialState,null);
 		initial.constructMergedVertex(result,true,false);
 		result.setInit(initial.getMergedVertex());result.transitionMatrix.put(initial.getMergedVertex(), result.createNewRow());
-		Queue<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+		Queue<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
 
-		Map<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
+		Map<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
 		currentExplorationBoundary.add(initial);equivalenceClasses.put(initial.getStates(),initial);
 		while(!currentExplorationBoundary.isEmpty())
 		{// Unlike PairScoreComputation, here all target states are merged in one go. This is why it does not seem to
 		 // make sense expanding them into individual input-state pairs.
-			AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> currentClass = currentExplorationBoundary.remove();
+			EquivalenceClass<TARGET_TYPE, CACHE_TYPE> currentClass = currentExplorationBoundary.remove();
 			//System.out.println("considering state "+currentClass+" orig "+currentClass.getRepresentative());
 			
 			inputToTargetClass.clear();
@@ -706,7 +706,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			{
 				for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(vertex).entrySet())
 				{
-					AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> targets = inputToTargetClass.get(transition.getKey());
+					EquivalenceClass<TARGET_TYPE,CACHE_TYPE> targets = inputToTargetClass.get(transition.getKey());
 					if (targets == null)
 					{
 						targets = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);
@@ -724,9 +724,9 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			// Now I need to iterate through those new classes and
 			// 1. update the transition diagram.
 			// 2. append those I've not yet seen to the exploration stack.
-			for(Entry<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
+			for(Entry<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
 			{
-				AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = equivalenceClasses.get(transition.getValue().getStates());
+				EquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = equivalenceClasses.get(transition.getValue().getStates());
 				if (realTargetState == null)
 				{// this is a new state
 					realTargetState = transition.getValue();

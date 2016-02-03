@@ -76,7 +76,7 @@ public class MergeStates {
 	{
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
 	}
 	
@@ -94,13 +94,13 @@ public class MergeStates {
 	 * (significant for a million-vertex graph where a merge only affects a handful of vertices). 
 	 * @param currentExplorationBoundary contains vertices to process later on in the loop inside mergeCollectionOfVertices.
 	 */
-	private static void processVertex(Map<Label,CmpVertex> row,CmpVertex current,LearnerGraph original,LearnerGraph result,Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew,
+	private static void processVertex(Map<Label,CmpVertex> row,CmpVertex current,LearnerGraph original,LearnerGraph result,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew,
 			Map<CmpVertex,CmpVertex> visitedTargetStates,Queue<CmpVertex> currentExplorationBoundary,Map<VertID,Collection<VertID>> mergedToHard)
 	{
 		for(Entry<Label,CmpVertex> entry:original.transitionMatrix.get(current).entrySet())
 		{
 			CmpVertex targetState = entry.getValue();
-			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> nextClass = origToNew.get(targetState);
+			EquivalenceClass<CmpVertex, LearnerGraphCachedData> nextClass = origToNew.get(targetState);
 			if (nextClass != null)
 			// next state belongs to an equivalence class
 				targetState = nextClass.getRepresentative();
@@ -158,23 +158,23 @@ public class MergeStates {
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeCollectionOfVertices(LearnerGraph original,CmpVertex redVertex, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean updateAuxInformation)
+	public static LearnerGraph mergeCollectionOfVertices(LearnerGraph original,CmpVertex redVertex, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean updateAuxInformation)
 	{
 		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		System.out.println(new Date()+" merge started");
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				/*original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID,original.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID+original.vertNegativeID);*/
+				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID,original.vertNegativeID):
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID+original.vertNegativeID);*/
 				
         Map<VertID,Collection<VertID>> mergedToHard = null;
         if (updateAuxInformation)
         	mergedToHard = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
         		new ArrayMapWithSearch<VertID,Collection<VertID>>(original.vertPositiveID,original.vertNegativeID):new TreeMap<VertID,Collection<VertID>>();
-		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
 			eqClass.constructMergedVertex(configHolder,false,true);
 			for(CmpVertex v:eqClass.getStates())
@@ -198,7 +198,7 @@ public class MergeStates {
 		
 		System.out.println(new Date()+" orig built");
 		CmpVertex initVertexOriginal= original.getInit(), initVertexResult = null;
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> initEqClass = origToNew.get(initVertexOriginal);
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> initEqClass = origToNew.get(initVertexOriginal);
 		if (initEqClass != null)
 		{
 			initVertexOriginal = initEqClass.getRepresentative();initVertexResult = initEqClass.getMergedVertex();
@@ -218,7 +218,7 @@ public class MergeStates {
 		 // navigate the existing transition diagram, in its entirety.
 			CmpVertex current = currentExplorationBoundary.remove();
 			Map<Label,CmpVertex> row = result.transitionMatrix.get(originalVertexToClonedVertex.get(current));
-			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = origToNew.get(current);
+			EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = origToNew.get(current);
 			assert row != null;
 
 			if (eqClass != null)
@@ -233,19 +233,20 @@ public class MergeStates {
 		}
 		System.out.println(new Date()+" transitions constructed");
 		
+		result.layoutOptions = original.layoutOptions.copy();result.learnerCache.invalidate();
+		if (redVertex != null)
+		{
+			CmpVertex vertInSource = redVertex;
+			EquivalenceClass<CmpVertex, LearnerGraphCachedData> redEqClass = origToNew.get(redVertex);
+			if (redEqClass != null)
+				vertInSource=redEqClass.getMergedVertex();
+			result.learnerCache.stateLearnt=originalVertexToClonedVertex.get(vertInSource);
+		}
+
 		if (updateAuxInformation)
 		{
 			AMEquivalenceClass.populateCompatible(result, mergedVertices);
-			result.layoutOptions = original.layoutOptions.copy();
-			result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
-			if (redVertex != null)
-			{
-				CmpVertex vertInSource = redVertex;
-				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> redEqClass = origToNew.get(redVertex);
-				if (redEqClass != null)
-					vertInSource=redEqClass.getMergedVertex();
-				result.learnerCache.stateLearnt=originalVertexToClonedVertex.get(vertInSource);
-			}
+			result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 			result.pathroutines.updateDepthLabelling();
 		}
 		System.out.println(new Date()+" merge complete, "+result.getAcceptStateNumber()+" states");
@@ -262,7 +263,7 @@ public class MergeStates {
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 
 		if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, true) < 0)

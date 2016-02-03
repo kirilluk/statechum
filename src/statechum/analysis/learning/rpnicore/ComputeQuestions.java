@@ -66,7 +66,7 @@ public class ComputeQuestions {
 		 * @param stateLearnt the state in the merged graph corresponding to the red 
 		 * and blue states of the original graph.
 		 */
-		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, LearnerGraph original, LearnerGraph learnt, 
+		public void addQuestionsForState(EquivalenceClass<CmpVertex, LearnerGraphCachedData> state, LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig,CmpVertex stateLearnt,MergeData data);
 	}
 	
@@ -89,7 +89,7 @@ public class ComputeQuestions {
 		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
 		
 		final SequenceSet identity = engine.new SequenceSet();identity.setIdentity();
-		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:learnt.learnerCache.getMergedStates())
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eq:learnt.learnerCache.getMergedStates())
 			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, 
 					learnt.learnerCache.stateLearnt,new MergeData(){
 				@Override
@@ -136,7 +136,7 @@ public class ComputeQuestions {
 		}
 
 		@Override 
-		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
+		public void addQuestionsForState(EquivalenceClass<CmpVertex, LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
@@ -193,7 +193,7 @@ public class ComputeQuestions {
 		}
 
 		@Override 
-		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
+		public void addQuestionsForState(EquivalenceClass<CmpVertex, LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
@@ -242,7 +242,7 @@ public class ComputeQuestions {
 		}
 
 		@Override 
-		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
+		public void addQuestionsForState(EquivalenceClass<CmpVertex, LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
@@ -288,7 +288,7 @@ public class ComputeQuestions {
 		}
 
 		@Override 
-		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
+		public void addQuestionsForState(EquivalenceClass<CmpVertex, LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, @SuppressWarnings("unused") CmpVertex stateLearnt,
 				@SuppressWarnings("unused") MergeData data) 

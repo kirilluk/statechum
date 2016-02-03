@@ -209,7 +209,7 @@ public class PairScoreComputation {
 		else		
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
 		{
-			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
 		}
 		else
@@ -479,7 +479,7 @@ public class PairScoreComputation {
 	 *  @param mergedVertices collection of sets of merged vertices. Singleton sets reflect those which were not merged with any other.
 	 *  @param fullMergedVertices whether to add all states to equivalence classes, even for states that correspond to singleton equivalence classes. Makes everything slow but may be needed for question generation as well as for SMT.
 	 */ 
-	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean fullMergedVertices) 
+	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean fullMergedVertices) 
 	{
 		int score=-1;
 		
@@ -518,7 +518,7 @@ public class PairScoreComputation {
 			
 			while(!currentExplorationBoundary.isEmpty())
 			{
-				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = currentExplorationBoundary.remove();setOfEquivalenceClassesOnStack.remove(equivalenceClass);
+				EquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass = currentExplorationBoundary.remove();setOfEquivalenceClassesOnStack.remove(equivalenceClass);
 				
 				// We reconsider every equivalence class that has outgoing transitions with the same labels leading to different equivalence classes.  
 				// Note there may be still pairs from the past which may have originally 

@@ -47,6 +47,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.CachedData;
+import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -287,10 +288,10 @@ public class MarkovClassifier
 	 * @param m Markov model used to compute inconsistencies.
 	 * @param origClassifier the classifier used on the original graph. 
 	 */
-	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
+	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
 	{
 		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
-		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:verticesToMerge)
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
 			if (eqClass.getStates().size() > 1)
 			{
 				affectedVerticesInOrigGraph.addAll(eqClass.getStates());affectedVerticesInMergedGraph.add(eqClass.getMergedVertex());
@@ -382,7 +383,7 @@ public class MarkovClassifier
 	{
 		long outcome = 0;
 		
-		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsList = buildVerticesToMergeForPath(paths);
 		if (!pairsList.isEmpty())
 		{
@@ -1353,7 +1354,7 @@ public class MarkovClassifier
 			if (//thresholdToInconsistency.entrySet().iterator().next().getKey() == 0 && 
 					!pairsList.isEmpty())
 			{
-				LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 				if (score < 0)
 					scoreAfterBigMerge = dREJECT;

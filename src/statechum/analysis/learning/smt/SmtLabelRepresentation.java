@@ -43,8 +43,8 @@ import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -1309,7 +1309,7 @@ public class SmtLabelRepresentation
 			labelMapConstructionOfOperations=null;
 		}
 		else // after a previous successful merge 
-			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
+			for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
 				if (eqClass.getMergedVertex().isAccept())
 				{// TODO: to test this
 					List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();

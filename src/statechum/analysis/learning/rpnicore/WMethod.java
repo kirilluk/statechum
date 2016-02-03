@@ -24,8 +24,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.framework.Assert;
-
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Helper;
@@ -214,12 +212,12 @@ public class WMethod
 		 */
 		private static final long serialVersionUID = 6988899034488999997L;
 		
-		private final Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> statesToReduce;
+		private final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> statesToReduce;
 		
-		public Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getEquivalentStates()
+		public Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> getEquivalentStates()
 		{
-			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:getStatesToComputeReduction())
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:getStatesToComputeReduction())
 				if (eqClass.getStates().size() > 1)
 					equivalentStates.add(eqClass);
 			
@@ -227,21 +225,21 @@ public class WMethod
 		}
 		
 		/** Returns a collection which can be passed to <em>mergeCollectionOfVertices</em> in order to compute a reduced FSM. */
-		public Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getStatesToComputeReduction()
+		public Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> getStatesToComputeReduction()
 		{
 			return statesToReduce;
 		}
 		
-		public static Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> IdentifyEquivalentStates(
+		public static Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> IdentifyEquivalentStates(
 				final Map<CmpVertex,Integer> equivalenceClasses,LearnerGraph graph, CmpVertex sink)
 		{
-			Map<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mapOfEquivalentStates = new TreeMap<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			Map<Integer,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mapOfEquivalentStates = new TreeMap<Integer,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			int number =0;
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 				if (stateA.getKey() != sink)
 				{
-					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> equiv = mapOfEquivalentStates.get(stateA.getValue());
+					EquivalenceClass<CmpVertex,LearnerGraphCachedData> equiv = mapOfEquivalentStates.get(stateA.getValue());
 					if (equiv == null)
 					{
 						equiv = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(number++,graph);mapOfEquivalentStates.put(stateA.getValue(), equiv);
@@ -254,7 +252,7 @@ public class WMethod
 				}
 			
 			boolean equivFound = false;
-			for(Entry<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:mapOfEquivalentStates.entrySet())
+			for(Entry<Integer,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:mapOfEquivalentStates.entrySet())
 			{
 				equivalentStates.add(entry.getValue());
 				if (entry.getValue().getStates().size() > 1) equivFound=true;
@@ -268,7 +266,7 @@ public class WMethod
 			return new EquivalentStatesException(IdentifyEquivalentStates(equivalenceClasses,graph,sink));
 		}
 		
-		private EquivalentStatesException(Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> argStatesToReduce)
+		private EquivalentStatesException(Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> argStatesToReduce)
 		{
 			statesToReduce=argStatesToReduce;
 		}
@@ -1394,7 +1392,7 @@ public class WMethod
 				transitionList.add(new Pair<CmpVertex,Label>(row.getKey(),nextState.getKey()));
 		
 		ArrayList<Pair<CmpVertex,Label>> permutation = perm.getPermutation(transitionList);
-		Assert.assertEquals(transitionList.size(), permutation.size());
+		assert transitionList.size() == permutation.size();
 		StringBuffer newFsm = new StringBuffer();
 		for(Pair<CmpVertex,Label> p:permutation)
 		{

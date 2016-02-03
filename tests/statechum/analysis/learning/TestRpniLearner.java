@@ -50,9 +50,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
+import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -60,6 +60,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
@@ -250,8 +251,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
-			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), true),
-			newScoreD = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false);
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), true),
+			newScoreS = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false),
+			newScoreT = new OldPairScoreComputation(s).computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
@@ -261,13 +263,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
 			questionsC = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
 			questionsD = ComputeQuestions.computeQS_general(pairNew2, learner2, MergeStates.mergeAndDeterminize_general(learner2, pairNew2), 
+					new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops()).getData(),
+			questionsT = ComputeQuestions.computeQS_general(pairNew2, learner2, OldPairScoreComputation.mergeAndDeterminize_general(learner2, pairNew2),
 					new ComputeQuestions.QuestionGeneratorQSMLikeWithLoops()).getData();
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		Assert.assertEquals(expectedScore, origScore);
 		Assert.assertEquals(expectedScore, newScoreA);
 		Assert.assertTrue( expectedScore < 0? (newScoreB < 0):(newScoreB >= 0));
 		Assert.assertTrue( expectedScore < 0? (newScoreC < 0):(newScoreC >= 0));
-		Assert.assertEquals(newScoreC, newScoreD);
+		Assert.assertEquals(newScoreC, newScoreS);
+		Assert.assertEquals(newScoreC, newScoreT);
 		if (expectedScore != -1)
 		{
 			Set<List<Label>> oldQuestions = new HashSet<List<Label>>();oldQuestions.addAll(generateQuestions(g,temp, pairOrig));
@@ -275,9 +280,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			Set<List<Label>> newQuestionsB = new HashSet<List<Label>>();newQuestionsB.addAll(questionsB);
 			Set<List<Label>> newQuestionsC = new HashSet<List<Label>>();newQuestionsC.addAll(questionsC);
 			Set<List<Label>> newQuestionsD = new HashSet<List<Label>>();newQuestionsD.addAll(questionsD);
+			Set<List<Label>> newQuestionsT = new HashSet<List<Label>>();newQuestionsT.addAll(questionsT);
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsB,oldQuestions.equals(newQuestionsB));
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsC,oldQuestions.equals(newQuestionsC));
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsD,oldQuestions.equals(newQuestionsD));
+			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsT,oldQuestions.equals(newQuestionsT));
 		}
 	}
 	

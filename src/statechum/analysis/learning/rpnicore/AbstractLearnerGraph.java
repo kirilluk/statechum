@@ -76,6 +76,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		return layoutOptions;
 	}
+	
+	public void setLayoutOptions(LayoutOptions arg)
+	{
+		layoutOptions = arg;
+	}
     
 	public final CACHE_TYPE learnerCache = createCache();
 

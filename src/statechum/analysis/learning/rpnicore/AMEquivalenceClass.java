@@ -35,7 +35,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 

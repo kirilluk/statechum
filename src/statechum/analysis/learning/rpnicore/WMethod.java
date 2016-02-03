@@ -1096,13 +1096,14 @@ public class WMethod
 	 * cannot be done.
 	 * 
 	 * @param compareVertices if DEEP, compares attributes of every pair of states reached; NAMES means only names are compared.
+	 * @param checkAssociations if True, checks that pairwise associations between vertices (such as INCOMPATIBLE or THEN) match. 
 	 * @return DifferentFSMException if machines are different and null otherwise.
 	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
 	DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expectedArg,CmpVertex stateExpectedArg,
-			AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> actualArg,CmpVertex stateActualArg, VERTEX_COMPARISON_KIND compareVertices)
+			AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> actualArg,CmpVertex stateActualArg, VERTEX_COMPARISON_KIND compareVertices, boolean checkAssociations)
 {
 	assert stateExpectedArg != null && stateActualArg != null;
 	LearnerGraph expected = null, actual = null;
@@ -1222,8 +1223,9 @@ public class WMethod
 		}
 	}
 
-	// now iterate through the maps of incompatible states and make updates.
-	statesAddedToBoundary.checkPairsAssociatedCorrectly();
+	// now iterate through the maps of incompatible states and check them.
+	if (checkAssociations)
+		statesAddedToBoundary.checkPairsAssociatedCorrectly();
 	return null;
 }
 
@@ -1284,10 +1286,9 @@ public class WMethod
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
-		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expected,
-				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graph)
+		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expected, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graph)
 	{
-		return checkM(expected,expected.getInit(), graph, graph.getInit(),VERTEX_COMPARISON_KIND.NONE);
+		return checkM(expected,expected.getInit(), graph, graph.getInit(),VERTEX_COMPARISON_KIND.NONE, true);
 	}
 	
 	/** Verifies that vertices contain the same attributes in the two graphs
@@ -1300,15 +1301,14 @@ public class WMethod
 		public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
-		DifferentFSMException checkM_and_colours(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> A,
-				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> B, VERTEX_COMPARISON_KIND howToCompare)
+		DifferentFSMException checkM_and_colours(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> A, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> B, VERTEX_COMPARISON_KIND howToCompare)
 				
 	{
-		DifferentFSMException ex = WMethod.checkM(A, A.getInit(),B,B.getInit(),howToCompare);if (ex != null) return ex;
+		DifferentFSMException ex = WMethod.checkM(A, A.getInit(),B,B.getInit(),howToCompare, true);if (ex != null) return ex;
 		return null;
 	}
 		
-				
+
 	/** Checks if the two graphs have the same set of states. */
 	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
 	{

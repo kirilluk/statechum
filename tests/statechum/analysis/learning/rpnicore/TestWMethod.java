@@ -674,7 +674,7 @@ public class TestWMethod {
 			for(CmpVertex eA:eqStatesGroup.getStates())
 				for(CmpVertex eB:eqStatesGroup.getStates())
 				{
-					DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+					DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 					Assert.assertNull("states "+eA+" and "+eB+" should belong to the same equivalence class, got "+(exception == null?"":exception.getMessage()),exception);
 				}
 			// Checks that all states in different equivalence classes are not equivalent. 
@@ -684,15 +684,15 @@ public class TestWMethod {
 					for(CmpVertex eA:eqStatesGroup.getStates()) // our states
 						for(CmpVertex eB:eqStatesGroupAnother.getStates()) // other states
 						{
-							DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+							DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 							if (exception == null)
 							{// failure tracing
 								fsm.config.setPrefixClosed(true);
-								DifferentFSMException ex = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+								DifferentFSMException ex = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 								System.out.println("B: "+fsm.transitionMatrix.get(fsm.findVertex("B"))+" ; D:  "+fsm.transitionMatrix.get(fsm.findVertex("D")));
 								System.out.println(ex);
 								fsm.config.setPrefixClosed(false);
-								DifferentFSMException ex2 = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+								DifferentFSMException ex2 = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 								System.out.println(ex2==null?"NULL":ex);
 							}
 							Assert.assertNotNull("states "+eA+" and "+eB+" should belong to different equivalence classes",exception);

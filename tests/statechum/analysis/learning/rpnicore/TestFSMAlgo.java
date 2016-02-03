@@ -847,7 +847,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,3}, -1	,config,converter);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"),
 				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5",config,converter), 
-				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	@Test
@@ -862,7 +862,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0,3}, -1	,config,converter);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
 				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6",config,converter), 
-				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 
 	@Test
@@ -877,7 +877,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1}, -1	,config,converter);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
 				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7",config,converter), 
-				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	@Test
@@ -892,7 +892,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1	,config,converter);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
 				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8",config,converter), 
-				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 
 	@Test

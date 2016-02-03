@@ -1597,7 +1597,7 @@ public class TestGD_Multithreaded {
 			LearnerGraph graph = buildLearnerGraph(graphA,name+"A",config,converter);
 			ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()), converter);
 			Assert.assertNull(WMethod.checkM(graph, grB));
-			Assert.assertNull(WMethod.checkM(graph, graph.findVertex(otherA), grB, grB.findVertex(otherB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+			Assert.assertNull(WMethod.checkM(graph, graph.findVertex(otherA), grB, grB.findVertex(otherB),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 		}
 	}
 

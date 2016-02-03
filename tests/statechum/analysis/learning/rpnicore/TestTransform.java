@@ -422,7 +422,7 @@ public class TestTransform
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 
 	@Test
@@ -461,7 +461,7 @@ public class TestTransform
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmSrc,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmSrc,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 
 	@Test
@@ -500,7 +500,7 @@ public class TestTransform
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	@Test
@@ -513,19 +513,19 @@ public class TestTransform
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(), fsm,fsm.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.getInit(),fsm,newA,WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(), fsm,fsm.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.getInit(),fsm,newA,WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 		
 		StatePair whatToMerge = new StatePair(fsm.getInit(),newA);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,null,collectionOfVerticesToMerge, true));
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(fsm, whatToMerge,collectionOfVerticesToMerge);
-		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(),result,result.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(),result,result.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 
 	@Test
@@ -1117,7 +1117,7 @@ public class TestTransform
 		LearnerGraph loaded = loadLearnerGraph(new StringReader(writer.toString()));
 
 		Assert.assertTrue(!gr.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
-		Exception ex=WMethod.checkM(gr,gr.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP);
+		Exception ex=WMethod.checkM(gr,gr.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP, true);
 		Assert.assertNull(ex == null?"":ex.toString(),ex);
 		Assert.assertTrue(ids_are_valid(loaded));
 		Assert.assertEquals(gr.pairCompatibility,loaded.pairCompatibility);

@@ -224,9 +224,9 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6",mainConfiguration,converter);
 		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("A"),expected,expected.findVertex("S")));
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("B"),expected,expected.findVertex("U")));
@@ -237,20 +237,20 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	public final void testCheckM_multipleEq1() // equivalent states
 	{
 		final LearnerGraph graph = buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1",mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D"),graph,graph.findVertex("C2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C2"),graph,graph.findVertex("D"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D"),graph,graph.findVertex("C2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C2"),graph,graph.findVertex("D"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 		
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("D1"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("D1"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("K2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("K2"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("K2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("K2"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("A1"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("A1"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("F1"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("F1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("F1"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("F1"),graph,graph.findVertex("D2"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("D"),graph,graph.findVertex("C2")));
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("C2"),graph,graph.findVertex("D")));
@@ -277,7 +277,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 			for(String stB:states)
 			{
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
-						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
 						WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 			}
@@ -292,7 +292,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 			for(String stB:states)
 			{
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
-						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
 						WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 			}
@@ -308,14 +308,14 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 				if (stA.equals(stB))
 				{
 					Assert.assertNull("states "+stA+" and "+stB+" should be equivalent",
-							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 					Assert.assertNull("states "+stA+" and "+stB+" should be equivalent",
 							WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 				}
 				else
 				{
 					Assert.assertNotNull("states "+stA+" and "+stB+" should not be equivalent",
-							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE));
+							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 					Assert.assertNotNull("states "+stA+" and "+stB+" should not be equivalent",
 							WMethod.checkReduction(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 				}
@@ -326,18 +326,18 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->B-a->C", "testCheck6", mainConfiguration,converter);
 		final LearnerGraph expected = buildLearnerGraph("U<-b-U\nQ<-a-U<-a-S","expected graph",mainConfiguration,converter);
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),graph,graph.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),graph,graph.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),graph,graph.findVertex("C"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),graph,graph.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),graph,graph.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),graph,graph.findVertex("C"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 		
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("A"),graph,graph.findVertex("A")));
 		Assert.assertNull(WMethod.checkReduction(graph,graph.findVertex("B"),graph,graph.findVertex("B")));

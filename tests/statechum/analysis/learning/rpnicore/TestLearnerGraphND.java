@@ -382,7 +382,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), graph.config), graph.createNewRow());
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertNull(WMethod.checkM(graph, graph.findVertex("S"), actual, actual.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph, graph.findVertex("S"), actual, actual.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	/** A not so simple graph with multiple disconnected parts. */
@@ -392,7 +392,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-a->V-a->U","testConvertToND6",config,converter);
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertNull(WMethod.checkM(graph, graph.findVertex("U"), actual, actual.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(graph, graph.findVertex("U"), actual, actual.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	/** Given two ND graph, compares them but prior to that,

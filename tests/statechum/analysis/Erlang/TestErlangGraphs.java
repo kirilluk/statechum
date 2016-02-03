@@ -392,9 +392,9 @@ public class TestErlangGraphs {
 		final LearnerGraph convertedBack = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(converted,convertedBack,mod.behaviour.new ConverterModToErl());
 		final LearnerGraph converted2 = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(gr,converted2,mod.behaviour.new ConverterErlToMod());
 		final LearnerGraph convertedBack2 = new LearnerGraph(config);AbstractLearnerGraph.interpretLabelsOnGraph(converted2,convertedBack2,mod.behaviour.new ConverterModToErl());
-		Assert.assertNull(WMethod.checkM(converted,converted.getInit(),converted2,converted2.getInit(),VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertNull(WMethod.checkM(convertedBack,convertedBack.getInit(),convertedBack2,convertedBack2.getInit(),VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertNotNull(WMethod.checkM(converted,converted.getInit(),convertedBack,convertedBack.getInit(),VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNull(WMethod.checkM(converted,converted.getInit(),converted2,converted2.getInit(),VERTEX_COMPARISON_KIND.DEEP, true));
+		Assert.assertNull(WMethod.checkM(convertedBack,convertedBack.getInit(),convertedBack2,convertedBack2.getInit(),VERTEX_COMPARISON_KIND.DEEP, true));
+		Assert.assertNotNull(WMethod.checkM(converted,converted.getInit(),convertedBack,convertedBack.getInit(),VERTEX_COMPARISON_KIND.DEEP, true));
 	}
 	
 	/** ErlToMod for text. */
@@ -450,6 +450,6 @@ public class TestErlangGraphs {
 		AbstractPersistence.loadGraph(new StringReader(writer.toString()), loaded, converter);
 		// add function declarations back
 		LearnerGraph erlangLoadedGraph = new LearnerGraph(loaded.config);AbstractLearnerGraph.interpretLabelsOnGraph(loaded,erlangLoadedGraph,mod.behaviour.new ConverterErlToMod());
-		Assert.assertNull(WMethod.checkM(erlangGraph,erlangGraph.getInit(),erlangLoadedGraph,erlangLoadedGraph.getInit(),VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNull(WMethod.checkM(erlangGraph,erlangGraph.getInit(),erlangLoadedGraph,erlangLoadedGraph.getInit(),VERTEX_COMPARISON_KIND.DEEP, true));
 	}	
 }

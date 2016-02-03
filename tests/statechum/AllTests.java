@@ -110,6 +110,7 @@ public class AllTests {
         statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
         statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
         statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner.class,
+    	statechum.analysis.learning.TestStateMerging.class,
         statechum.TestProgressIndicator.class
     })
     public static class GraphTests {// all tests are included in the annotation.
@@ -201,9 +202,8 @@ public class AllTests {
     @RunWith(Suite.class)
     @SuiteClasses({
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
-        statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
-    	statechum.analysis.learning.TestStateMerging.class,
     	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
+        statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,

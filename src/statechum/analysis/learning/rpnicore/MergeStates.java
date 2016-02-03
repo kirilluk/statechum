@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -40,6 +41,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
@@ -169,11 +171,15 @@ public class MergeStates {
 				/*original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID,original.vertNegativeID):
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID+original.vertNegativeID);*/
-				
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedForCompatibility = null;
+		
         Map<VertID,Collection<VertID>> mergedToHard = null;
         if (updateAuxInformation)
+        {
         	mergedToHard = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
         		new ArrayMapWithSearch<VertID,Collection<VertID>>(original.vertPositiveID,original.vertNegativeID):new TreeMap<VertID,Collection<VertID>>();
+        	mergedForCompatibility = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedForCompatibility.addAll(mergedVertices);
+        }
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
 			eqClass.constructMergedVertex(configHolder,false,true);
@@ -229,6 +235,18 @@ public class MergeStates {
 			else
 			{// current vertex is standalone (that is, a singleton equivalence class) 
 				processVertex(row,current,original,result,origToNew,originalVertexToClonedVertex,currentExplorationBoundary,mergedToHard);
+				if (mergedForCompatibility != null)
+				{// add a singleton equivalence class with this state 
+					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> vertexToValue = original.pairCompatibility.compatibility.get(current);
+					if (vertexToValue != null)
+					{// if we have any vertices associated with the current one
+						Collection<CmpVertex> incompatibleVertices = new LinkedList<CmpVertex>();
+						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:vertexToValue.entrySet())
+							if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE)
+								incompatibleVertices.add(entry.getKey());
+						mergedForCompatibility.add(new EquivalenceClassForConstructionOfCompatibility(current, originalVertexToClonedVertex.get(current), incompatibleVertices));
+					}
+				}
 			}
 		}
 		System.out.println(new Date()+" transitions constructed");
@@ -245,7 +263,8 @@ public class MergeStates {
 
 		if (updateAuxInformation)
 		{
-			AMEquivalenceClass.populateCompatible(result, mergedVertices);
+			
+			AMEquivalenceClass.populateCompatible(result, mergedForCompatibility);
 			result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 			result.pathroutines.updateDepthLabelling();
 		}
@@ -254,6 +273,84 @@ public class MergeStates {
 		return result;
 	}
 
+	/** This is a very simplified version of an equivalence class, only for the use with {@link AMEquivalenceClass#populateCompatible(AbstractLearnerGraph, Collection)} 
+	 * routine. Unlike a real equivalence class, it store much less information and hence takes up less space. 
+	 */
+	public static class EquivalenceClassForConstructionOfCompatibility implements EquivalenceClass<CmpVertex,LearnerGraphCachedData>
+	{
+		private final CmpVertex representative,merged;
+		private final Collection<CmpVertex> incompatibleVertices;
+		private final Set<CmpVertex> states = new TreeSet<CmpVertex>();
+
+		public EquivalenceClassForConstructionOfCompatibility(CmpVertex representative, CmpVertex merged, Collection<CmpVertex> incompatibleVertices)
+		{
+			this.representative = representative;this.merged = merged;this.incompatibleVertices = incompatibleVertices;states.add(representative);
+		}
+		@Override
+		public int getNumber() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Map<Label, Object> getOutgoing() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Set<CmpVertex> getStates() {
+			return states;
+		}
+
+		@Override
+		public CmpVertex getRepresentative() {
+			return representative;
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public boolean mergeWith(CmpVertex vert, Collection<Entry<Label, CmpVertex>> from) throws IncompatibleStatesException 
+		{
+			throw new UnsupportedOperationException();
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public boolean mergeWith(EquivalenceClass<CmpVertex, LearnerGraphCachedData> to) throws IncompatibleStatesException 
+		{
+			throw new UnsupportedOperationException();
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public int compareTo(EquivalenceClass<CmpVertex, LearnerGraphCachedData> o) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public CmpVertex getMergedVertex() {
+			return merged;
+		}
+
+		@Override
+		public Collection<CmpVertex> incompatibleStates() {
+			return incompatibleVertices;
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public <TARGET_C_TYPE, CACHE_C_TYPE extends CachedData<TARGET_C_TYPE, CACHE_C_TYPE>> void constructMergedVertex(
+				AbstractLearnerGraph<TARGET_C_TYPE, CACHE_C_TYPE> graph, boolean useDifferentNameIfAlreadyExist,
+				boolean setOrigState) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public int toInt() {
+			throw new UnsupportedOperationException();
+		}
+		
+	}
+	
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  

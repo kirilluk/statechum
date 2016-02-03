@@ -169,11 +169,11 @@ public class TestRejectManipulation {
 		Assert.assertTrue(graph.pathroutines.completeGraph(
 				VertexID.parseID("REJ")));
 		final LearnerGraph expected = buildLearnerGraph(fsmExpected,"completeGraphTest7",config,converter);
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("A"),expected,expected.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("B"),expected,expected.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("REJ"),expected,expected.findVertex("REJ"),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("A"),expected,expected.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("B"),expected,expected.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("REJ"),expected,expected.findVertex("REJ"),WMethod.VERTEX_COMPARISON_KIND.NONE, true));
 	}
 	
 	

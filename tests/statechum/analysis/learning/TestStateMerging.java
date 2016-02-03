@@ -36,6 +36,7 @@ import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
 import edu.uci.ics.jung.graph.Vertex;
+import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -56,6 +57,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 
@@ -533,7 +535,7 @@ public class TestStateMerging
 			       throw diff;
 			
 			    mergedTmp = MergeStates.mergeCollectionOfVertices(fsm, fsm.findVertex(VertexID.parseID("A")), result, false);
-				diff = WMethod.checkM(mergedGraph, mergedTmp);
+				diff = WMethod.checkM(mergedGraph, mergedGraph.getInit(), mergedTmp, mergedTmp.getInit(), VERTEX_COMPARISON_KIND.NONE, false);
 			    if (diff != null)
 			       throw diff;
 			}
@@ -548,7 +550,7 @@ public class TestStateMerging
 			       throw diff;
 			
 			    mergedTmp = MergeStates.mergeCollectionOfVertices(fsm, fsm.findVertex(VertexID.parseID("A")), result, false);
-				diff = WMethod.checkM(mergedGraph, mergedTmp);
+				diff = WMethod.checkM(mergedGraph, mergedGraph.getInit(), mergedTmp, mergedTmp.getInit(), VERTEX_COMPARISON_KIND.NONE, false);
 			    if (diff != null)
 			       throw diff;
 			}
@@ -965,19 +967,18 @@ public class TestStateMerging
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					int score = scoring.computeScore(new StatePair(a,b),null,verticesToMerge);
-							// referenceGraph.pairscores.computePairCompatibilityScore_general(new StatePair(a,b),null,verticesToMerge, true);
 					if (score >= 0)
 					{
 						Set<Set<CmpVertex>> origVertexPairs = new HashSet<Set<CmpVertex>>();
 						for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> cls:verticesToMerge)
-							origVertexPairs.add(cls.getStates());
+							if (cls.getStates().size() > 1)
+								origVertexPairs.add(cls.getStates());
 						Random rnd = new Random(fsmNumber);
 						for(int experiment=0;experiment < 10;++experiment)
 						{
 							List<StatePair> pairs = new ArrayList<StatePair>(1000);
 							for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> cls:verticesToMerge)
 							{
-								origVertexPairs.add(cls.getStates());
 								CmpVertex bufferOfVertices[] = cls.getStates().toArray(new CmpVertex[]{});
 								for(int i=0;i<10;++i)
 									pairs.add(new StatePair(bufferOfVertices[rnd.nextInt(bufferOfVertices.length)],bufferOfVertices[rnd.nextInt(bufferOfVertices.length)]));
@@ -996,7 +997,10 @@ public class TestStateMerging
 								
 							}*/
 							Assert.assertEquals(score,newScore);
-							Set<Set<CmpVertex>> newVertexPairs = new HashSet<Set<CmpVertex>>();for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> cls:newVerticesToMerge) newVertexPairs.add(cls.getStates());
+							Set<Set<CmpVertex>> newVertexPairs = new HashSet<Set<CmpVertex>>();
+							for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> cls:newVerticesToMerge) 
+								if (cls.getStates().size() > 1) 
+									newVertexPairs.add(cls.getStates());
 							Assert.assertEquals(origVertexPairs,newVertexPairs);
 						}
 					}
@@ -1033,7 +1037,7 @@ public class TestStateMerging
 				s.findVertex(VertexID.parseID("B")),
 				s.findVertex(VertexID.parseID("A")));
 		
-		Test_Orig_RPNIBlueFringeLearner origLearner = new Test_Orig_RPNIBlueFringeLearner(null,config,getLabelConverter());
+		Test_Orig_RPNIBlueFringeLearner origLearner = new Test_Orig_RPNIBlueFringeLearner(null,config,getLabelConverter());origLearner.doneEdges = new HashSet<DirectedSparseEdge>();
 		
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);s.setMaxScore(TestStateMerging.maxScoreConstant-1);
 		long origScore = origLearner.computeScore(g, pairOrig),

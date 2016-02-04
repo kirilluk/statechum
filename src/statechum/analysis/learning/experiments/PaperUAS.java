@@ -813,12 +813,13 @@ public class PaperUAS
 	{
 		protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 		protected final LearnerGraph initialPTA, referenceGraph;
-		protected final String experimentName;
+		protected final String experimentName, inputGraphFileName;
 		protected final boolean useIfThen;
 
-		public UASExperiment(LearnerEvaluationConfiguration eval, LearnerGraph initialPta, LearnerGraph referenceGraph, String experimentName, boolean useIfThen)
+		public UASExperiment(LearnerEvaluationConfiguration eval, LearnerGraph initialPta, LearnerGraph referenceGraph, String experimentName, String inputGraphFileName, boolean useIfThen)
 		{
 			learnerInitConfiguration = eval;this.initialPTA = initialPta;this.referenceGraph = referenceGraph;this.experimentName = experimentName;this.useIfThen = useIfThen;
+			this.inputGraphFileName = inputGraphFileName;
 		}
 
 		protected LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException
@@ -847,6 +848,35 @@ public class PaperUAS
  		    }	
 			return pta;
 		}
+		
+		
+		protected String constructFileName(String experimentSuffix)
+		{
+			return inputGraphFileName+"_"+experimentSuffix+".xml";
+		}
+		
+		/** The outcome of learning might have been stored in a file from the previous run. For this reason, it makes sense to try to load it. 
+		 * @throws IOException if the outcome of learning exists but cannot be loaded
+		 */
+		protected LearnerGraph loadOutcomeOfLearning(String experimentSuffix) throws IOException
+		{
+			LearnerGraph outcome = null;
+			String graphFileName = constructFileName(experimentSuffix);
+			
+	    	if (new File(graphFileName).canExecute())
+	    	{
+		    	outcome = new LearnerGraph(learnerInitConfiguration.config);
+	    		AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());return outcome;
+	    	}
+	    	
+	    	return outcome;
+		}
+		
+		protected void saveOutcomeOfLearning(String experimentSuffix, LearnerGraph outcome) throws IOException
+		{
+			outcome.storage.writeGraphML(constructFileName(experimentSuffix));	
+		}
+		
 		@Override
 		public ThreadResult call() throws Exception 
 		{
@@ -856,11 +886,15 @@ public class PaperUAS
 	 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
 				
 				{
-					LearnerGraph pta = buildPTA();
-		 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
-		 			
-		 			final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-		
+					LearnerGraph actualAutomaton = loadOutcomeOfLearning("usual_"+scoringMethod.toString());
+					if(actualAutomaton == null)
+					{
+						LearnerGraph pta = buildPTA();
+			 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+			 			
+			 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			 			saveOutcomeOfLearning("usual_"+scoringMethod.toString(),actualAutomaton);
+					}		
 		 			DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		 			DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		 			sample.referenceLearner = new ScoresForGraph(); 
@@ -869,10 +903,15 @@ public class PaperUAS
 				
 	 			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
 				{// pre-merge and then learn
-		 	  		LearnerGraph smallPta = mergePTA(buildPTA(),uniqueLabel,false);
-		 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+					LearnerGraph actualAutomaton = loadOutcomeOfLearning("premerge_"+scoringMethod.toString());
+					if(actualAutomaton == null)
+					{
+						LearnerGraph smallPta = mergePTA(buildPTA(),uniqueLabel,false);
+						ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
 	
-		 			final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		 				actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			 			saveOutcomeOfLearning("premerge_"+scoringMethod.toString(),actualAutomaton);
+					}		
 		 			
 		 			DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		 			DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -881,11 +920,16 @@ public class PaperUAS
 				}
 	
 				{// conventional learning, but check each merger against the unique-label merge
-					LearnerGraph pta = buildPTA();
-		 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
-		 			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
-	
-		 			final LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					LearnerGraph actualAutomaton = loadOutcomeOfLearning("checkunique_"+scoringMethod.toString());
+					if(actualAutomaton == null)
+					{
+						LearnerGraph pta = buildPTA();
+			 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+			 			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
+		
+			 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			 			saveOutcomeOfLearning("checkunique_"+scoringMethod.toString(),actualAutomaton);
+					}		
 		 			
 		 			DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		 			DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -995,7 +1039,7 @@ public class PaperUAS
 		PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, mainConfiguration, labelConverter).initial.graph.storage.writeGraphML(sprintf("huge.xml",outPathPrefix));;
 		System.out.println("huge alphabet: "+initialPTA.pathroutines.computeAlphabet());
 		*/
-		UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,hugeGraph,referenceGraph,"All",true);
+		UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,hugeGraph,referenceGraph,"All","all.xml",true);
     	experiment.call();
  	}	
 	
@@ -1117,12 +1161,20 @@ public class PaperUAS
 		LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 		Map<Integer,PTASequenceEngine> framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds); 
 		initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
-		UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"All",true);
+		
+		// compute the maximal depth for filtering.
+		int depth = -1;
+		for(CmpVertex vert:initialPTA.transitionMatrix.keySet())		
+			depth = Math.max(depth, vert.getDepth());
+		System.out.println("maximal depth: "+depth);
+		
+		String graphName = outPathPrefix+"uas-All";
+		initialPTA.storage.writeGraphML(graphName+".xml");
+		UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"All",graphName,true);
 		//printLastFrame("All",framesToTraces.keySet());
 		experimentRunner.submitTask(experiment);
     	experimentRunner.collectOutcomeOfExperiments(resultHandler);// process the 'all' task separately - Java is likely to run out of memory if anything is run in parallel with this task.
     	
-		initialPTA.storage.writeGraphML(outPathPrefix+"uas-All.xml");
 		// for each seed, all UAVs
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
@@ -1130,21 +1182,24 @@ public class PaperUAS
      			initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
      			framesToTraces = paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll);
      			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-     			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"AU",true);
+     			graphName = sprintf("%suas-%2s-AU",outPathPrefix,seed);
+     			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"AU",graphName,true);
      			//printLastFrame("AU_"+seed,framesToTraces.keySet());
-     			initialPTA.storage.writeGraphML(sprintf("%suas-%2s-AU.xml",outPathPrefix,seed));
+     			initialPTA.storage.writeGraphML(graphName+".xml");
      			experimentRunner.submitTask(experiment);
 
      			for(int fraction:rangeOfValues)
      			{
          			initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-         			initialPTA.storage.writeGraphML(sprintf("%suas-%2s-AU-%2d.xml",outPathPrefix,seed,fraction));
-         			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"AU"+fraction,true);
+         			graphName = sprintf("%suas-%2s-AU-%2d",outPathPrefix,seed,fraction);
+         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
+         			initialPTA.storage.writeGraphML(graphName+".xml");
+         			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"AU"+fraction,graphName,true);
          			experimentRunner.submitTask(experiment);
      			}
      		}
-		
+		experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		// for each seed, individual UAVs
     	for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
@@ -1157,25 +1212,28 @@ public class PaperUAS
 	     			{
 	         			initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 	         			framesToTraces = tracesSeed.tracesForUAVandFrame.get(uav);
+	         			graphName = sprintf("%suas-%2s-%2s-U",outPathPrefix,seed,uav);
 	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-	         			initialPTA.storage.writeGraphML(sprintf("%suas-%2s-%2s-U.xml",outPathPrefix,seed,uav));
-	         			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"U",true);
+	         			initialPTA.storage.writeGraphML(graphName+".xml");
+	         			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"U",graphName,true);
 	         			//printLastFrame("U_"+seed+"_"+uav,framesToTraces.keySet());
 	         			experimentRunner.submitTask(experiment);
 
 	         			for(int fraction:rangeOfValues)
 	         			{
 	             			initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-	             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-		         			initialPTA.storage.writeGraphML(sprintf("%suas-%2s-%2s-U-%2d.xml",outPathPrefix,seed,uav,fraction));
-	             			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"U"+fraction,true);
+	             			graphName = sprintf("%suas-%2s-%2s-U-%2d",outPathPrefix,seed,uav,fraction);
+	             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+	             			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
+		         			initialPTA.storage.writeGraphML(graphName + ".xml");
+	             			experiment = new UASExperiment(paper.learnerInitConfiguration,initialPTA,referenceGraph,"U"+fraction,graphName,true);
 	             			experimentRunner.submitTask(experiment);
 	         			}
 	     	         			
 	     			}
  	     	}
 
-		
+    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		
     	/*
 		//initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));

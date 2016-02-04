@@ -953,7 +953,7 @@ public class PaperUAS
 		return tmpOutput.toString();
 	}
 	
- 	public static void main(String args[]) throws Exception
+ 	public static void mainSmall(String args[]) throws Exception
  	{
 		String outDir = "tmp"+File.separator+new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		if (!new java.io.File(outDir).mkdir())
@@ -970,7 +970,7 @@ public class PaperUAS
          final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
          learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
          learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);learnerConfig.setUseConstraints(false);
-         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.GENERAL);
+         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
          String path = args[0];
         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
        	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
@@ -1002,7 +1002,7 @@ public class PaperUAS
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
- 	public static void mainOrig(String args[]) throws Exception
+ 	public static void main(String args[]) throws Exception
  	{
 		String outDir = "tmp"+File.separator+new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		if (!new java.io.File(outDir).mkdir())
@@ -1029,7 +1029,7 @@ public class PaperUAS
          final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
          learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
          learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
-         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.GENERAL);
+         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
          
          String path = args[0];
          

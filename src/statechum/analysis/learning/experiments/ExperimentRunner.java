@@ -1086,7 +1086,7 @@ public class ExperimentRunner
 					} catch (InterruptedException e) {
 						// ignore
 					}
-					if (!f.delete()) throw new IllegalArgumentException("cannot delete file "+f);// if we cannot delete a file after waiting for a second, no point to keep waiting 
+					if (!f.delete()) throw new IllegalArgumentException("cannot delete file "+f+" which is exists="+f.exists()+" directory="+f.isDirectory()+" file="+f.isFile()+" contains files: "+f.list());// if we cannot delete a file after waiting for a second, no point to keep waiting 
 				}
 			}
 			directory.delete();

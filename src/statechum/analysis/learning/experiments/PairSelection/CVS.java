@@ -523,7 +523,7 @@ public class CVS extends PairQualityLearner
 				if (!disableInconsistenciesInMergers)
 					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
 				System.out.println("genScore= "+ genScore +" p.getScore= "+p.getScore());
-				score=p.getScore()-currentInconsistency;
+				score=genScore-currentInconsistency;
 				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 				{
 					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||

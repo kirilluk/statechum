@@ -104,18 +104,20 @@ public class PairScoreComputation {
 	{
 		coregraph.pairsAndScores.clear();
 		if (decisionProcedure != null) decisionProcedure.initComputation(coregraph);
-		Collection<CmpVertex> reds = new LinkedList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
+		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			if (v.getColour() == JUConstants.RED)
 				reds.add(v);
-
+		System.out.println("choose state pairs with "+reds.size()+" red states");
+		
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
-		Collection<CmpVertex> RedStatesFound = new LinkedList<CmpVertex>();
+		Collection<CmpVertex> RedStatesFound = new ArrayList<CmpVertex>();
 		
 		do
 		{
 			RedStatesFound.clear();coregraph.pairsAndScores.clear();
 			currentExplorationBoundary.addAll(reds);
+			System.out.println("iterating through loop with "+reds.size()+" red states");
 			if (coregraph.additionalExplorationRoot != null) currentExplorationBoundary.addAll(coregraph.additionalExplorationRoot);
 			while(!currentExplorationBoundary.isEmpty())
 			{

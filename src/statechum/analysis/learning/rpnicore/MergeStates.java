@@ -19,7 +19,6 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -165,7 +164,6 @@ public class MergeStates {
 		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
-		System.out.println(new Date()+" merge started");
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				/*original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
@@ -202,7 +200,6 @@ public class MergeStates {
 			}
 		}
 		
-		System.out.println(new Date()+" orig built");
 		CmpVertex initVertexOriginal= original.getInit(), initVertexResult = null;
 		EquivalenceClass<CmpVertex, LearnerGraphCachedData> initEqClass = origToNew.get(initVertexOriginal);
 		if (initEqClass != null)
@@ -217,7 +214,9 @@ public class MergeStates {
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
 		
 		// This map associates vertices in the original graph to those in the cloned one. It is populated when new vertices are explored and therefore doubles as a 'visited' set.
-		Map<CmpVertex,CmpVertex> originalVertexToClonedVertex = new ArrayMapWithSearch<CmpVertex,CmpVertex>(original.vertPositiveID,original.vertNegativeID);
+		Map<CmpVertex,CmpVertex> originalVertexToClonedVertex = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,CmpVertex>(original.vertPositiveID,original.vertNegativeID):
+					new HashMap<CmpVertex,CmpVertex>();
 		currentExplorationBoundary.add(initVertexOriginal);originalVertexToClonedVertex.put(initVertexOriginal,initVertexResult);
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
@@ -249,7 +248,6 @@ public class MergeStates {
 				}
 			}
 		}
-		System.out.println(new Date()+" transitions constructed");
 		
 		result.layoutOptions = original.layoutOptions.copy();result.learnerCache.invalidate();
 		if (redVertex != null)
@@ -268,7 +266,6 @@ public class MergeStates {
 			result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 			result.pathroutines.updateDepthLabelling();
 		}
-		System.out.println(new Date()+" merge complete, "+result.getAcceptStateNumber()+" states");
 
 		return result;
 	}

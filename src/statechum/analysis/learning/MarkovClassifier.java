@@ -140,8 +140,9 @@ public class MarkovClassifier
 	 */
 	public static LearnerGraphND computeInverseGraph(LearnerGraph graph)
 	{
-		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraphND inverseGraph = new LearnerGraphND(shallowCopy);inverseGraph.initEmpty();
+		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);shallowCopy.setMaxAcceptStateNumber(graph.vertPositiveID);shallowCopy.setMaxRejectStateNumber(graph.vertNegativeID);
+		LearnerGraphND inverseGraph = new LearnerGraphND(shallowCopy);
+		inverseGraph.initEmpty();
 		AbstractPathRoutines.buildInverse(graph,LearnerGraphND.ignoreNone,inverseGraph);  // do the inverse to the tentative graph
 		return inverseGraph;
 	}

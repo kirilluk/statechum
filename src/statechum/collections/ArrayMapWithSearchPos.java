@@ -65,7 +65,9 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	 * <li>unused otherwise. In principle, it can be used to count the number of non-nulls
 	 * in the collection, but in this case I would have to keep a static collection of Integer-objects
 	 * for different lengths (otherwise it'll consume +20 bytes or I'll have to introduce
-	 * another attribue).</li>. 
+	 * another attribue).</li>
+	 * <li>child classes may use it for any other purpose.</li>
+	 * </ul>. 
 	 */
 	V value;
 	

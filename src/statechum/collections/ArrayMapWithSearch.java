@@ -18,6 +18,7 @@
 package statechum.collections;
 
 import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
@@ -25,6 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
  * A map backed by an array. Expects key to be convertible to an integer and be non-negative.
@@ -37,16 +39,35 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
  * Ordinarily, this would have been derived from {@link AbstractMap}, however in the interest of memory use
  * this is not done as it would bring in all the attributes of {@link AbstractMap} that we aim to avoid.
  * <br>
- * Important: this collection does not track modifications, so it will never throw {@link ConcurrentModificationException}
+ * Important: 
+ * <ul>
+ * <li>This collection does not track modifications, so it will never throw {@link ConcurrentModificationException}
  * but instead may return completely wrong values. This is done to reduce memory footprint when storing
- * tens of millions of entries, some of which could be instances of this class.
- * 
+ * tens of millions of entries, some of which could be instances of this class.</li>
+ * <li>There are two ways to initialise this collection, a default constructor and the one with arguments, forcing creation of an array of specific size.
+ * Usually, {@link ArrayMapWithSearch#clear()} would clear everything and set an array to null. This makes it impossible to pre-allocate data of the right size, then do {@link LearnerGraph#initEmpty()}
+ * and expect the array to remain. At the same time, one should be able to initialise this with a default constructor and start with an empty array. Therefore, this collection records the information how it was 
+ * initialised and {@link ArrayMapWithSearch#clear()} will not deallocate the array if {@link ArrayMapWithSearch#ArrayMapWithSearch(int, int)} was used to create it. Since such collections (permitting both
+ * positive and negative arguments tend to be used at the top-level for transition matrices and such rather than in nested, extra 4 bytes for a boolean will not significantly increase its memory footprint.  
+ * </ul>
  * @author kirill
  */
 public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWithSearchPos<K, V> {
+	
+	@Override
+	public void clear() {
+		if (throwAwayArrayOnClear || !(array_or_key instanceof Object[]))
+			super.clear();
+		else
+			Arrays.fill((Object [])array_or_key, null);
+	}
 
+	protected boolean throwAwayArrayOnClear = true;
+	
 	public ArrayMapWithSearch()
-	{}
+	{
+		throwAwayArrayOnClear = true;		
+	}
 	/*
 	public ArrayMapWithSearch(int currentSize)
 	{
@@ -71,6 +92,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 		Object[] data = new Object[CELLS_PER_ELEM+currentOffset];
 		array_or_key = data;
 		zero = -negSize;// zero is set to the lowest negative number.
+		throwAwayArrayOnClear = false;
 	}
 	
 	@SuppressWarnings("unchecked")

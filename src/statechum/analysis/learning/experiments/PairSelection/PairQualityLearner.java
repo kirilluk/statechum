@@ -862,8 +862,10 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public long overrideScoreComputation(PairScore p) {
-					long score = p.getScore();
+				public long overrideScoreComputation(PairScore p) 
+				{
+					long score = coregraph.pairscores.computePairCompatibilityScore_general(p,null,new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false);
+					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
 					case SCORING_EDSM:

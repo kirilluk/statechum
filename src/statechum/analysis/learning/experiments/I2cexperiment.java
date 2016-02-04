@@ -21,10 +21,7 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,17 +52,21 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
-import statechum.analysis.learning.experiments.PairSelection.MarkovScoreComputation;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
+import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 import statechum.collections.ArrayMapWithSearchPos;
 
 
@@ -305,7 +306,7 @@ public class I2cexperiment extends PairQualityLearner
 			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
 			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
-		    extendedGraph = cl.constructMarkovTentative();
+		    //extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 		}
@@ -323,15 +324,16 @@ public class I2cexperiment extends PairQualityLearner
 			++comparisonsPerformed;
 			long currentInconsistency = 0;
 			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
-			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+			int genScore = //new OldPairScoreComputation(coregraph).computePairCompatibilityScore_general(p, null, verticesToMerge);
+					coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 			long score= genScore;
 			if (genScore >= 0)
 			{			
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, false);
+				LearnerGraph merged = //OldMergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge); 
+						MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, false);
 				if (!disableInconsistenciesInMergers)
 					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, merged, Markov, cl, checker);
-				//System.out.println("genScore= "+ genScore +" p.getScore= "+p.getScore());
-				score=p.getScore()-currentInconsistency;
+				score=genScore-currentInconsistency;
 			}
 			return score;
 		}
@@ -373,6 +375,7 @@ public class I2cexperiment extends PairQualityLearner
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
 			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(this);
+			System.out.println("pairs: "+outcome);
 			if (!outcome.isEmpty())
 			{
 				Stack<PairScore> pairsWithScoresComputedUsingGeneralMerger = outcome;
@@ -400,62 +403,6 @@ public class I2cexperiment extends PairQualityLearner
 			return outcome;
 		}		
 		
-		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
-		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
-		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
-		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param extension_graph 
-		 * @param learnerGraph 
-		 * @param pairs 
-		 */
-		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
-		{
-			boolean allPairsNegative = true;
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (p.getQ().isAccept() || p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-				{
-					allPairsNegative = false;break;
-				}
-			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
-			if (allPairsNegative)
-				possibleResults.addAll(pairs);
-			else
-			{
-				for(PairScore p:pairs)
-				{
-					assert p.getScore() >= 0;
-					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new MarkovPassivePairSelection.PairScoreWithDistance(p,0));
-					else
-						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
-				}
-				
-				for(PairScore p:nonNegPairs)
-				{
-					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
-					if(d >= 0.0)
-						possibleResults.add(new MarkovPassivePairSelection.PairScoreWithDistance(p, d));
-				}
-			
-					
-				Collections.sort(possibleResults, new Comparator<PairScore>(){
-	
-					@Override
-					public int compare(PairScore o1, PairScore o2) {
-						int outcome = sgn( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
-						if (outcome != 0)
-							return outcome;
-						return o2.compareTo(o1);
-					}}); 
-			}				
-			return possibleResults;
-		}
-
 		@Override
 		public String toString()
 		{
@@ -520,11 +467,30 @@ public class I2cexperiment extends PairQualityLearner
         System.out.println("trace length: "+returnValue.size());
         return returnValue;
 	}
+	/*
+	public static void runExperimentCompare(@SuppressWarnings("unused") String args[]) throws Exception
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+		ConvertALabel converter = new Transform.InternStringLabel();
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
+		final int chunkSize = 7;
 	
+		// Inference from a few traces
+		final boolean onlyPositives=true;
+		LearnerGraph graphRef = new LearnerGraph(config);AbstractPersistence.loadGraph("resources/i2c_study/outcome_i2c_chunk7.xml",graphRef,converter);
+		LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph("outcome_i2c.xml",graph,converter);
+		
+		DifferentFSMException diff = WMethod.checkM(graphRef, graph);
+		if (diff != null)
+			throw diff;
+		System.out.println("same graph");
+	}
+*/
 	public static void runExperiment(@SuppressWarnings("unused") String args[]) throws Exception
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.GENERAL);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int chunkSize = 7;

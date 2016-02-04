@@ -182,10 +182,11 @@ public class RPNIBlueFringeVariability
 					@Override
 					public long overrideScoreComputation(PairScore p) {
 						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						int scoreFalse = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, false);
-						Assert.assertEquals(p.getScore(), scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
+						int scoreTrue = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, true);
 						int scoreOld = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge);
-						Assert.assertEquals(p.getScore(), scoreOld);// ensures that the old computation gets us the same score
+						Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
+						int scoreFalse = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, false);
+						Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
 						
 						return p.getScore();// return the existing score
 					}

@@ -377,7 +377,7 @@ public class MergeStates {
 	}
 
 	/**
-	 * Mergers a pair of states QSM-like. Does not merge compatibility information, use generalised merger if that is needed..
+	 * Mergers a pair of states QSM-like. Does not merge compatibility information, use generalised merger if that is needed.
 	 *  
 	 * @param original the graph in which to merge a pair of states
 	 * @param pair states to merge

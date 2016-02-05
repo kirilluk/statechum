@@ -151,8 +151,8 @@ If requested, an inferred automaton is displayed in a window, using the Jung too
 This is illustrated by the <i>src/statechum/analysis/learning/experiments/I2cexperiment.java</i>. If run via  
 <pre>java -cp ... -ea  -Xmx15000m -DVIZ_DIR=resources/graphLayout  statechum.analysis.learning.experiments.I2cexperiment</pre> where ellipsis represents the classpath.
 it will load a single long trace (originally obtained by logging commands both sent and received by a simple device via i2c bus), and learn a model. 
-The outcome is displayed in a window. Running such an experiment takes around 15min on a i7 Haswell at 4.4Ghz and requires a PC 
-with a lot of memory (giving Java 15GB via the <i>-Xmx15000m</i> is enough but 10GB is not). 
+The outcome is displayed in a window. Running such an experiment takes around 6-7min on a i7 Haswell at 4.4Ghz 
+with a lot of memory (giving Java 10GB via the <i>-Xmx10000m</i>); with only 2GB accessible to JVM the same experiment takes 10min to complete. 
 The first output is the length of the trace, followed by the odd-looking alphabet. 
 The learnt graph is stored in a file called <i>outcome_i2c.xml</i> in the GraphML format, which can subsequently 
 be visualised by running <i>statechum.apps.GraphMLVisualiser</i> with the name of Graphml file as a parameter.

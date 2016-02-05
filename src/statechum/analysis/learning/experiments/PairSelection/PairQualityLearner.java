@@ -614,10 +614,6 @@ public class PairQualityLearner
 					prevVertex = v;
 				}
 			}
-			/*
-			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			long score = tentativeGraph.pairscores.computePairCompatibilityScore_general(pairsList, verticesToMerge);
-			return score >= 0;// negative if the merge fails*/
 			
 			return pairsList;
 		}
@@ -640,7 +636,7 @@ public class PairQualityLearner
 		 */
 		public static List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
 		{
-			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 			if (pairsList.isEmpty())
 				return pairs;
@@ -687,7 +683,17 @@ public class PairQualityLearner
 		{
 			throw new UnsupportedOperationException();
 		}			
-		
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, false) < 0)
+				throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
+			LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices,false);
+
+			outcome.pathroutines.updateDepthLabelling();// this is important for the choice of representative vertices in merging of states, this in turn affects IDs of merged states which affects selection of pairs for merging.
+			return outcome;
+		}
 	}
 	
 	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */

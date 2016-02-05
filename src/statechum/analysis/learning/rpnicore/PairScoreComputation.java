@@ -108,7 +108,7 @@ public class PairScoreComputation {
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			if (v.getColour() == JUConstants.RED)
 				reds.add(v);
-		System.out.println("choose state pairs with "+reds.size()+" red states");
+		//System.out.println("choose state pairs with "+reds.size()+" red states");
 		
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
 		Collection<CmpVertex> RedStatesFound = new ArrayList<CmpVertex>();
@@ -117,7 +117,7 @@ public class PairScoreComputation {
 		{
 			RedStatesFound.clear();coregraph.pairsAndScores.clear();
 			currentExplorationBoundary.addAll(reds);
-			System.out.println("iterating through loop with "+reds.size()+" red states");
+			//System.out.println("iterating through loop with "+reds.size()+" red states");
 			if (coregraph.additionalExplorationRoot != null) currentExplorationBoundary.addAll(coregraph.additionalExplorationRoot);
 			while(!currentExplorationBoundary.isEmpty())
 			{

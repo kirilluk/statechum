@@ -54,19 +54,13 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
-import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 import statechum.collections.ArrayMapWithSearchPos;
 
 

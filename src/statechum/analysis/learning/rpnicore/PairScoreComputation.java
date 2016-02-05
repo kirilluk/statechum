@@ -20,7 +20,6 @@ package statechum.analysis.learning.rpnicore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,7 +28,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -49,6 +47,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
 
 public class PairScoreComputation {
@@ -406,11 +405,11 @@ public class PairScoreComputation {
 	/** Merges the equivalence classes associated with the supplied pair.
 	 * It is important to point out that classes merged can be incomplete, in that they will contain  
 	 */
-	private boolean mergePair(StatePair currentPair,Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass, AMEquivalenceClassMergingDetails mergingDetails) throws IncompatibleStatesException
+	private boolean mergePair(StatePair currentPair,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass, AMEquivalenceClassMergingDetails mergingDetails) throws IncompatibleStatesException
 	{
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
-		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = null;
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = null;
 
 		boolean singleton = true;
 		if (firstClass == null)
@@ -457,7 +456,7 @@ public class PairScoreComputation {
 					for(CmpVertex vert:secondClass.getStates())
 						stateToEquivalenceClass.put(vert,equivalenceClass);
 					if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-						for(Entry<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
+						for(Entry<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
 							assert entry.getValue().getNumber() != secondClass.getNumber();
 				}
 				else
@@ -486,20 +485,29 @@ public class PairScoreComputation {
 		int score=-1;
 		
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
+
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
+				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+						new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>():
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(5);// these are going to be small sets, no point creating really big ones.
+		boolean compatible = true;
+		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
+		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
+				new ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
 		
 		// For large graphs, there are usually few states participate, compared to graph size, I've seen at most 10% and most often it is a handful out of a possibly million vertices. Hence use TreeMap
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		boolean compatible = true;
-		Queue<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
-		Map<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>,AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
-				new HashMap<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>,AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
+		//Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+/*
+		Map<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
+				new TreeMap<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
+*/
 		try
 		{
 			if (pairToMerge != null) 
 			{
 				if (!mergePair(pairToMerge,stateToEquivalenceClass,mergingDetails))
 				{
-					AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(pairToMerge.firstElem);
+					EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(pairToMerge.firstElem);
 					currentExplorationBoundary.add(eqClass);// in order to explore matching transitions
 					setOfEquivalenceClassesOnStack.put(eqClass, eqClass);
 				}
@@ -509,7 +517,7 @@ public class PairScoreComputation {
 				{
 					if (!mergePair(pair,stateToEquivalenceClass,mergingDetails))
 					{// add pairs one after one to avoid creating a huge stack of pairs.
-						AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(pair.firstElem);
+						EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(pair.firstElem);
 						if (!setOfEquivalenceClassesOnStack.containsKey(eqClass))
 						{
 							currentExplorationBoundary.add(eqClass);// in order to explore matching transitions
@@ -542,7 +550,7 @@ public class PairScoreComputation {
 							List<CmpVertex> targets = (List<CmpVertex>)targetsSlot;
 							CmpVertex firstVertex = targets.get(0);
 							
-							AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> firstEquivalenceClass = stateToEquivalenceClass.get(firstVertex);
+							EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstEquivalenceClass = stateToEquivalenceClass.get(firstVertex);
 							if (firstEquivalenceClass == null)
 							{// the first outgoing transition is not associated to a known equivalence class.
 								firstEquivalenceClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
@@ -591,7 +599,7 @@ public class PairScoreComputation {
 			{
 				for(CmpVertex vert:coregraph.transitionMatrix.keySet())
 				{
-					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
+					EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
 					if (eqClass == null)
 					{
 						eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
@@ -619,7 +627,7 @@ public class PairScoreComputation {
 			{
 				score = 0;
 				setOfEquivalenceClassesOnStack.clear();
-				for(Entry<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
+				for(Entry<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
 					if (!setOfEquivalenceClassesOnStack.containsKey(entry.getValue()))
 					{
 						setOfEquivalenceClassesOnStack.put(entry.getValue(),entry.getValue());

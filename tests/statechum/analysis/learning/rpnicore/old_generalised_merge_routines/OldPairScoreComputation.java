@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
 
-import statechum.Configuration.STATETREE;
 import statechum.GlobalConfiguration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
@@ -33,7 +32,6 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
 
@@ -143,8 +141,8 @@ public class OldPairScoreComputation
 		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		if (new OldPairScoreComputation(original).computePairCompatibilityScore_general(pair,null,mergedVertices) > 0)
 			return OldMergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
-		else
-			return null;
+
+		return null;
 	}
 
 	/** Similar to computePairCompatibilityScore_internal but can operate 
@@ -160,8 +158,6 @@ public class OldPairScoreComputation
 		
 		OldEquivalenceClassMergingDetails mergingDetails = new OldEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
-				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-						new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>():
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(5);// these are going to be small sets, no point creating really big ones.
 		boolean compatible = true;
 		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored

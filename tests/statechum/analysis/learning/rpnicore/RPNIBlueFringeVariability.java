@@ -123,6 +123,7 @@ public class RPNIBlueFringeVariability
 			public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 			{
 				LearnerGraph outcome = null;
+				System.out.println(new java.util.Date()+" (new) started merging "+original.getStateNumber()+" states");
 				int extraPhantomVertices = 0;
 				if (usePTAMErging)
 				{
@@ -130,8 +131,6 @@ public class RPNIBlueFringeVariability
 					outcome = MergeStates.mergeAndDeterminize(original, pair);
 					
 					outcome.pathroutines.updateDepthLabelling();
-					long score = original.pairscores.computePairCompatibilityScore(pair);
-					checkMergers(original,pair,score,outcome);
 				}
 				else
 				{
@@ -157,13 +156,22 @@ public class RPNIBlueFringeVariability
 						extraPhantomVertices = 1;// now certain it was indeed a phantom vertex added when the PTA was initially built.
 					}
 					Assert.assertEquals(score+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
-					checkMergers(original,pair,score,outcome);
 				}
 				ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
 				long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);
 				original.config.setLearnerScoreMode(origScore);
 				
 				Assert.assertEquals(compatibilityScore+1+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
+				checkMergers(original,pair,compatibilityScore+1+extraPhantomVertices,outcome);
+				System.out.println(new java.util.Date()+" (new) finished merging by removing "+(original.getStateNumber()-outcome.getStateNumber())+" states");
+				/*
+				if (outcome.getStateNumber() < 6700)
+					try {
+						outcome.storage.writeGraphML(usePTAMErging+"_"+config.getLearnerScoreMode());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					*/
 				return outcome;
 			}
 

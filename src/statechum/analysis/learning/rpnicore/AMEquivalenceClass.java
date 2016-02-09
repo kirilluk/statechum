@@ -34,8 +34,6 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 	implements Comparable<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, EquivalenceClass<TARGET_TYPE, CACHE_TYPE>
@@ -524,9 +522,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				Collection<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> eqClasses)
 	{
 		final Map<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
-			graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?// here we use default values since the matrix is most likely to be mostly empty
-					new ArrayMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber(),graph.config.getMaxRejectStateNumber()):
-			new HashMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
+			// here we use default values since the matrix is most likely to be mostly empty
+					new statechum.collections.HashMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
 		for(EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
 			for(CmpVertex vertex:eqClass.getStates())
 			{

@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -42,8 +41,6 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 
 public class LearnerIncrementalRefinement 
 {
@@ -68,9 +65,7 @@ public class LearnerIncrementalRefinement
 	 */
 	void constructLabelsLeadingToStates()
 	{
-		labelsLeadingToThisInHardFacts = initialPta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<VertID, ArrayList<Label>>(initialPta.vertPositiveID,initialPta.vertNegativeID):
-					new HashMapWithSearch<VertID,ArrayList<Label>>(initialPta.vertPositiveID+initialPta.vertNegativeID);
+		labelsLeadingToThisInHardFacts = AbstractLearnerGraph.constructMap(initialPta);
 		Map<CmpVertex,List<Label>> cmap = initialPta.pathroutines.computeShortPathsToAllStates();
 		for(Map.Entry<CmpVertex, List<Label>> entry:cmap.entrySet())
 		{
@@ -230,8 +225,7 @@ public class LearnerIncrementalRefinement
 		
 		Queue<Pair<CmpVertex,CmpVertex>> fringe = new LinkedList<Pair<CmpVertex,CmpVertex>>();
 		/*
-		Map<CmpVertex,CmpVertex> statesInFringe = initialPta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(graph.vertPositiveID,graph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(graph.vertPositiveID+graph.vertNegativeID);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = initialPta.config.constructMap(graph.vertPositiveID,graph.vertNegativeID);// in order not to iterate through the list all the time.
 				*/
 		fringe.add(new Pair<CmpVertex,CmpVertex>(startingVertex,initialPta.findVertex(ptaVertex)));
 		while(!fringe.isEmpty())

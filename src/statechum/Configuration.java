@@ -34,7 +34,11 @@ import org.w3c.dom.NodeList;
 
 import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 
 /**
  * Represents a configuration for a learner. The purpose is a possibility of a
@@ -1414,6 +1418,26 @@ public class Configuration implements Cloneable {
 		transitionMatrixImplType = value;
 	}
 	
+	/** Transition matrices below this size will has a hashmap. This is important: for a big transition matrix, we absolutely have to use an array, otherwise inefficiency of Java Hash collections bites hard. 
+	 *  After a large graph got some mergers completed, things still take time because array access uses state IDs so we need  to have an array with elements with that number. Test mergers from large PTA
+	 *  eventually spends all its time constructing large arrays only to merge a few vertices - not very efficient.  
+	 *  Renumbering during state merging is a good idea that does has a pitfall: either we change vertex identifiers or we add another field that will originally be set to vertex IDs 
+	 *  but then get adjusted to a smaller number due to renaming. The former idea is not very good because pair selection often uses vertex IDs for comparison when scores are equal and hence
+	 *  renaming affects decision-making, making it hard to compare different experiments. The latter means extra 4 bytes per vertex, which is precisely what we aim to avoid with array maps.
+	 *  Solution: start with array maps and then switch to hashmaps, since both share an interface {@link MapWithSearch}. The value below is a threshold below which to switch collection types.  
+	 */
+	protected int thresholdToGoHash = 100000;
+	
+	public int getThresholdToGoHash()
+	{
+		return thresholdToGoHash;
+	}
+
+	public void setThresholdToGoHash( int arg )
+	{
+		thresholdToGoHash = arg;
+	}
+		
 	/** With a switch to {@link LinkedHashMap} for representation of a transition matrix, performance is better however the order is dependent on hash code generation which may change. Using this attribute one
 	 * can switch the hashcode order to compare-order (like that of {@link TreeMap}) which is useful for recording test results.
 	 */

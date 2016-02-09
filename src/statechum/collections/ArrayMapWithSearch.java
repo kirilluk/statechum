@@ -1,4 +1,4 @@
-/* Copyright (c) 2012 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2012 The University of Sheffield
  * 
  * This file is part of StateChum
  * 

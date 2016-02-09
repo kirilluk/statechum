@@ -33,7 +33,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Configuration;
 import statechum.JUConstants;
@@ -49,8 +48,6 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 
 public class MarkovScoreComputation 
 {
@@ -521,9 +518,7 @@ public class MarkovScoreComputation
 		assert pair.getQ() != pair.getR();
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID,original.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID+original.vertNegativeID);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(original);
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
@@ -546,14 +541,12 @@ public class MarkovScoreComputation
 				}
 		}
 		
-		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
 		Set<Label> inputsUsed = new HashSet<Label>();
 		long remainsMinusToAdd=0;
 		// I iterate over the elements of the original graph in order to be able to update the target one.
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
-			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
 			if (mergedVertices.containsKey(vert))
 			{// there are some vertices to merge with this one.
 				Collection<Label> newLabelsAddedToVert = labelsAdded.get(entry.getKey());
@@ -583,9 +576,7 @@ public class MarkovScoreComputation
 	
 	public long computeMarkovScoring(PairScore pair, LearnerGraph graph, LearnerGraph extension_model, int chunkLen)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>():
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(graph.getStateNumber());
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(graph);
 		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),graph.pairCompatibility))
 			return -1;
 		if(pair.getR().isAccept()==false && pair.getQ().isAccept()==false)
@@ -784,9 +775,7 @@ public class MarkovScoreComputation
 		assert pair.getQ() != pair.getR();
 		assert cl.graph.transitionMatrix.containsKey(pair.firstElem);
 		assert cl.graph.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = cl.graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.vertPositiveID,cl.graph.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(cl.graph.vertPositiveID+cl.graph.vertNegativeID);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(cl.graph);
 		Configuration shallowCopy = cl.graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(cl.graph,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);

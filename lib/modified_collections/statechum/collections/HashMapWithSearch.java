@@ -119,10 +119,10 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
      * 
      * @param stateNumber maximal expected number of states
      */
-    public HashMapWithSearch(int stateNumber)
+    public HashMapWithSearch(@SuppressWarnings("unused") int stateNumber)
     {
-    	//this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR);
-    	this(stateNumber, DEFAULT_LOAD_FACTOR);
+    	this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR);
+    	//this(stateNumber, DEFAULT_LOAD_FACTOR);
     }
     
     /**

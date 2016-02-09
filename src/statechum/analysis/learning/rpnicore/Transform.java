@@ -41,7 +41,6 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.StringLabelInt;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
@@ -53,7 +52,6 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.QSMTool;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -764,7 +762,7 @@ public class Transform
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.getNonExistingVertices();
-		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix(graph.vertPositiveID,graph.vertNegativeID):questionPaths.getNonExistingTransitionMatrix();
+		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		@SuppressWarnings("unchecked")
 		final Map<CmpVertex,Object>[] visited = new Map[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
@@ -772,8 +770,7 @@ public class Transform
 
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
-			visited[i]=graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new ArrayMapWithSearch<CmpVertex,Object>(graph.vertPositiveID,graph.vertNegativeID) :
-					new HashMapWithSearch<CmpVertex,Object>(graph.vertPositiveID+graph.vertNegativeID);// previously the number of states was shifted left by one to create space for more vertices
+			visited[i]=AbstractLearnerGraph.constructMap(graph);// previously the number of states was shifted left by one to create space for more vertices
 			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
 			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();
@@ -978,7 +975,7 @@ public class Transform
 		
 		// first pass - computing an alphabet
 		Set<Label> alphabet = result.learnerCache.getAlphabet();
-		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix(ltl.config.getMaxAcceptStateNumber(),ltl.config.getMaxRejectStateNumber());
+		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix(new Pair<Integer,Integer>(ltl.config.getMaxAcceptStateNumber(),ltl.config.getMaxRejectStateNumber()));
 		// second pass - checking if any transitions need to be added and adding them.
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 		{

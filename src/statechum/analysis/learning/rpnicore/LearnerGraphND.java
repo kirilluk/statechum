@@ -39,11 +39,8 @@ import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
-import statechum.collections.ArrayMapWithSearch;
+import statechum.Pair;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.collections.HashMapWithSearch;
-import statechum.collections.MapWithSearch;
-import statechum.collections.TreeMapWithSearch;
 
 /** This is a non-deterministic graph. Strictly speaking, all the methods here are applicable to the
  * generalised graph too and thus could have been placed in <em>AbstractPathRoutines</em>. The reason
@@ -57,7 +54,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public LearnerGraphND(Configuration conf)
 	{
 		super(conf);
-		transitionMatrix = createNewTransitionMatrix(conf.getMaxAcceptStateNumber(),conf.getMaxRejectStateNumber());
+		transitionMatrix = createNewTransitionMatrix(new Pair<Integer,Integer>(conf.getMaxAcceptStateNumber(),conf.getMaxRejectStateNumber()));
 		setInit(null);
 		initPTA();
 	}
@@ -238,25 +235,6 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		return new LearnerGraphNDCachedData(this);
 	}
 
-	@Override
-	public MapWithSearch<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix(int acceptStateNumber, int rejectStateNumber) 
-	{
-		MapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>> outcome=null;
-		switch(config.getTransitionMatrixImplType())
-		{
-		case STATETREE_LINKEDHASH:
-			outcome = new HashMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber+rejectStateNumber);
-			break;
-		case STATETREE_ARRAY:
-			outcome = new ArrayMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber,rejectStateNumber);
-			break;
-		case STATETREE_SLOWTREE:
-			outcome = new TreeMapWithSearch<CmpVertex,Map<Label,List<CmpVertex>>>(acceptStateNumber+rejectStateNumber);
-			break;
-		}
-		return outcome;
-	}
-	
 	@Override
 	public Collection<CmpVertex> getTargets(List<CmpVertex> targ) {
 		return targ;

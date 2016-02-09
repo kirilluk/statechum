@@ -430,7 +430,7 @@ public class PathRoutines {
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 			Map<CmpVertex,Map<CmpVertex,Set<Label>>> flowgraph = coregraph.pathroutines.getFlowgraph();
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.getStateNumber());
+			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);
 			// add states
 			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
 			{
@@ -534,7 +534,7 @@ public class PathRoutines {
 		// assuming that only those labelled RED can have multiple incoming transitions. Given that
 		// merging routines merge PTA states _into_ the original ones, thus preserving the red colour,
 		// those left with blue colour or without any have to be PTA parts. 
-		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMapWithSearch<CmpVertex,AtomicInteger>(mergeResult.getStateNumber());
+		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMapWithSearch<CmpVertex,AtomicInteger>(mergeResult.vertPositiveID+mergeResult.vertNegativeID);
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:mergeResult.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> targ:entry.getValue().entrySet())
 			{
@@ -608,7 +608,7 @@ public class PathRoutines {
 				CmpVertex InterestingUnreachableVertex = unreachables.iterator().next();
 				List<Label> seq = original.pathroutines.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
 				System.out.println(seq);// dumps a seq from a blue state to the first unreachable vertex (after merging) which was on the PTA in the original machine.
-				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.getStateNumber());
+				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID+original.vertNegativeID);
 				if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 					throw new IllegalArgumentException("elements of the pair are incompatible in the original machine, no idea why they got merged in the first place");
 				

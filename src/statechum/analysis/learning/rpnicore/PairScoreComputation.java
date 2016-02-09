@@ -31,7 +31,6 @@ import java.util.Stack;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
-import statechum.Configuration.STATETREE;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -46,7 +45,6 @@ import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRig
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.analysis.learning.rpnicore.LSolver;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
 
@@ -255,9 +253,7 @@ public class PairScoreComputation {
 
 	public int computePairCompatibilityScore(StatePair origPair)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.vertPositiveID,coregraph.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph);
 		// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 		// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
 		return computePairCompatibilityScore_internal(origPair, mergedVertices);
@@ -487,9 +483,7 @@ public class PairScoreComputation {
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 
 		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
-				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-						new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>():
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(5);// these are going to be small sets, no point creating really big ones.
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.config.getMaxAcceptStateNumber()+coregraph.config.getMaxRejectStateNumber());// these are going to be small sets, no point creating really big ones.
 		boolean compatible = true;
 		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
 		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
@@ -789,9 +783,7 @@ public class PairScoreComputation {
 		assert pair.getQ() != pair.getR();
 		assert coregraph.transitionMatrix.containsKey(pair.firstElem);
 		assert coregraph.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.vertPositiveID,coregraph.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph);
 		Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 
 		long pairScore = coregraph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);

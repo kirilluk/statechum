@@ -25,15 +25,14 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 import statechum.Label;
 
 public class OldMergeStates 
@@ -68,9 +67,7 @@ public class OldMergeStates
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getAcceptStateNumber(),original.getStateNumber()-original.getAcceptStateNumber()):
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.getStateNumber());
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = AbstractLearnerGraph.constructMap(original);
                 Map<VertID,Collection<VertID>> mergedToHard = new TreeMap<VertID,Collection<VertID>>();
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{

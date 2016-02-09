@@ -174,8 +174,7 @@ public class MergeStates {
         Map<VertID,Collection<VertID>> mergedToHard = null;
         if (updateAuxInformation)
         {
-        	mergedToHard = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-        		new ArrayMapWithSearch<VertID,Collection<VertID>>(original.vertPositiveID,original.vertNegativeID):new TreeMap<VertID,Collection<VertID>>();
+        	mergedToHard = AbstractLearnerGraph.constructMap(original);
         	mergedForCompatibility = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedForCompatibility.addAll(mergedVertices);
         }
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)

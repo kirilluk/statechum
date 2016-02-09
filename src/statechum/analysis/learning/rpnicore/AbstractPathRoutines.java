@@ -43,7 +43,6 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -52,7 +51,6 @@ import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
@@ -239,9 +237,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		
-		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new statechum.collections.ArrayMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.vertPositiveID,coregraph.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,PTASequenceEngine.SequenceSet>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = AbstractLearnerGraph.constructMap(coregraph);
 		Map<CmpVertex,Integer> stateToDepthMap = new HashMapWithSearch<CmpVertex,Integer>(coregraph.getStateNumber());
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
@@ -528,7 +524,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
 		int newLabelCnt = 0;
-		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix(g.vertPositiveID,g.vertNegativeID);
+		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
 		{
 			Map<Label,TARGET_TYPE> newRow = g.createNewRow();
@@ -770,12 +766,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,List<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		Map<CmpVertex,List<Label>> stateToPath = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex, List<Label>>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,List<Label>>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		Map<CmpVertex,List<Label>> stateToPath = AbstractLearnerGraph.constructMap(coregraph);
 		stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())
@@ -814,8 +808,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		CmpVertex from = coregraph.getInit();from.setDepth(0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

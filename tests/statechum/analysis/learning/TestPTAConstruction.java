@@ -39,7 +39,6 @@ import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
@@ -51,8 +50,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.DebugDataValues;
@@ -473,13 +470,11 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void checkDepthLabelling(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph)
 	{
-		Map<CmpVertex,Integer> stateToDepth = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex, Integer>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,Integer>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		Map<CmpVertex,Integer> stateToDepth = AbstractLearnerGraph.constructMap(coregraph);
 		CmpVertex from = coregraph.getInit();
 		stateToDepth.put(from, 0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID,coregraph.vertNegativeID):new HashMapWithSearch<CmpVertex,CmpVertex>(coregraph.vertPositiveID+coregraph.vertNegativeID);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

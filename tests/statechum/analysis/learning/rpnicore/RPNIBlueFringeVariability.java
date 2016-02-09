@@ -1,4 +1,4 @@
-package statechum.analysis.learning;
+package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +18,11 @@ import statechum.Label;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.PairOfPaths;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -41,7 +46,7 @@ public class RPNIBlueFringeVariability
 	private Learner learner;
 	final List<PairOfPaths> listOfPairsToWrite;
 	final Iterator<PairOfPaths> listOfPairsToCheckAgainstIterator;
-	final boolean useOptimizedMerge;
+	final boolean usePTAMErging;
 	LearnerGraph initPta = null;
 	final Configuration config;
 	
@@ -52,17 +57,59 @@ public class RPNIBlueFringeVariability
 		return learner;
 	}
 	
+	protected static boolean graphSmallEnoughToTestDifferentAlgorithms(LearnerGraph graph)
+	{
+		return false;//graph.vertPositiveID < 100;// limiting this to smaller graphs permits tests to run in reasonable time while still doing a good job of testing.
+	}
+	
+	protected static void checkMergers(LearnerGraph graph, StatePair pair,long score, LearnerGraph expectedOutcome)
+	{
+		if (graphSmallEnoughToTestDifferentAlgorithms(graph))
+		{
+			// another test is to check that merger from a partial set of equivalence classes produces the same graph, regardless whether auxiliary information is returned as part of mergers or not.
+			for(boolean useReducedListOfEquivalenceClasses:new boolean[]{true,false})
+			{
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				long otherscore = graph.pairscores.computePairCompatibilityScore_general(pair,null,reducedVertices,useReducedListOfEquivalenceClasses);
+				Assert.assertEquals(score, otherscore);
+				LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, true);
+		        DifferentFSMException diff = WMethod.checkM(expectedOutcome, outcomeTmp);
+		        if (diff != null)
+		        	throw diff;
+		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, false);
+		        diff = WMethod.checkM(expectedOutcome, outcomeTmp);
+		        if (diff != null)
+		        	throw diff;
+			}
+			
+			// the final test is to check that done by the old generalised score routines produces the same outcome.
+			{
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				long otherscore = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(pair,null,reducedVertices);
+				Assert.assertEquals(score, otherscore);
+				LearnerGraph outcomeTmp = OldMergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices);
+		        DifferentFSMException diff = WMethod.checkM(expectedOutcome, outcomeTmp);
+		        if (diff != null)
+		        	throw diff;
+		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, true);
+		        diff = WMethod.checkM(expectedOutcome, outcomeTmp);
+		        if (diff != null)
+		        	throw diff;
+			}
+		}
+
+	}
 	/** Constructs an instance of this learner. 
 	 * 
 	 * @param evaluationConfiguration configuration to initialise with. Uses ifthensequences, configuration and converter.
-	 * @param optimisedMerge whether to use a slow ({@link PairScoreComputation#computePairCompatibilityScore_general} or a fast {@link MergeStates#mergeAndDeterminize}. 
+	 * @param useConventionalPTAMerging whether to use a slow ({@link PairScoreComputation#computePairCompatibilityScore_general} or a fast {@link MergeStates#mergeAndDeterminize}. 
 	 * Fast merger is much faster but expects to merge a PTA into a graph; the slow one can merge arbitrary states in a graph.
 	 * @param lw if non-<i>null</i>, stores the list of pairs encountered while learning.
 	 * @param lc if non-<i>null</i>, uses this as a source of pairs to merge. This is used to check that a learner will learn the same automaton when it goes through the same sequences of mergers.
 	 */
-	public RPNIBlueFringeVariability(final LearnerEvaluationConfiguration evaluationConfiguration, boolean optimisedMerge, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
+	public RPNIBlueFringeVariability(final LearnerEvaluationConfiguration evaluationConfiguration, boolean useConventionalPTAMerging, final List<PairOfPaths> lw, final List<PairOfPaths> lc) 
 	{
-		listOfPairsToWrite = lw;useOptimizedMerge = optimisedMerge;
+		listOfPairsToWrite = lw;usePTAMErging = useConventionalPTAMerging;
 		if (lc != null) listOfPairsToCheckAgainstIterator = lc.iterator();else listOfPairsToCheckAgainstIterator = null;
 		final LearnerEvaluationConfiguration bfLearnerInitConfiguration = new LearnerEvaluationConfiguration(evaluationConfiguration.config);
 		bfLearnerInitConfiguration.ifthenSequences = evaluationConfiguration.ifthenSequences;
@@ -77,16 +124,21 @@ public class RPNIBlueFringeVariability
 			{
 				LearnerGraph outcome = null;
 				int extraPhantomVertices = 0;
-				if (useOptimizedMerge)
+				if (usePTAMErging)
 				{
 					// Use the old and limited version to compute the merge because the general one is too slow on large graphs and we do not need either to merge arbitrary states or to handle "incompatibles".
-					outcome = MergeStates.mergeAndDeterminize(original, pair);outcome.pathroutines.updateDepthLabelling();
+					outcome = MergeStates.mergeAndDeterminize(original, pair);
+					
+					outcome.pathroutines.updateDepthLabelling();
+					long score = original.pairscores.computePairCompatibilityScore(pair);
+					checkMergers(original,pair,score,outcome);
 				}
 				else
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,true);
-					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+					long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,false);
+					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
+					outcome.pathroutines.updateDepthLabelling();
 					
 					if (score != original.getStateNumber()-outcome.getStateNumber())
 					{// This is either a bug somewhere in the merger or (most likely) that the phantomVertex has been removed by the generalised learner. 
@@ -104,37 +156,8 @@ public class RPNIBlueFringeVariability
 						Assert.assertEquals(0, alphabetUsedOnPhantom.size());
 						extraPhantomVertices = 1;// now certain it was indeed a phantom vertex added when the PTA was initially built.
 					}
-
-					// another test is to check that merger from a partial set of equivalence classes produces the same graph, regardless whether auxiliary information is returned as part of mergers or not.
-					{
-						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						long otherscore = original.pairscores.computePairCompatibilityScore_general(pair,null,reducedVertices,false);
-						Assert.assertEquals(score, otherscore);
-						LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices, true);
-				        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
-				        if (diff != null)
-				        	throw diff;
-				        outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices, false);
-				        diff = WMethod.checkM(outcome, outcomeTmp);
-				        if (diff != null)
-				        	throw diff;
-					}
-					
-					// the final test is to check that done by the old generalised score routines produces the same outcome.
-					{
-						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						long otherscore = new OldPairScoreComputation(original).computePairCompatibilityScore_general(pair,null,reducedVertices);
-						Assert.assertEquals(score, otherscore);
-						LearnerGraph outcomeTmp = OldMergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices);
-				        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
-				        if (diff != null)
-				        	throw diff;
-				        outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices, true);
-				        diff = WMethod.checkM(outcome, outcomeTmp);
-				        if (diff != null)
-				        	throw diff;
-					}
 					Assert.assertEquals(score+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
+					checkMergers(original,pair,score,outcome);
 				}
 				ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
 				long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);
@@ -181,13 +204,25 @@ public class RPNIBlueFringeVariability
 
 					@Override
 					public long overrideScoreComputation(PairScore p) {
-						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-						int scoreTrue = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, true);
-						int scoreOld = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge);
-						Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
-						int scoreFalse = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, false);
-						Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
+						boolean haveToUseGeneralisedComputation = graph.config.getLearnerScoreMode() == ScoreMode.GENERAL || graph.config.getLearnerScoreMode() == ScoreMode.ONLYOVERRIDE;
+						int scoreGeneral = -1;
+						if (haveToUseGeneralisedComputation)
+						{
+							Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+							scoreGeneral = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, false);
+						}
 						
+						if (graphSmallEnoughToTestDifferentAlgorithms(graph))
+						{
+							Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+							int scoreFalse = haveToUseGeneralisedComputation?scoreGeneral:graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, false);// only compute the generalised score here if required
+							int scoreTrue = graph.pairscores.computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge, true);
+							int scoreOld = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge);
+							Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
+							Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
+						}						
+						if (haveToUseGeneralisedComputation)
+							return scoreGeneral;
 						return p.getScore();// return the existing score
 					}
 
@@ -273,7 +308,7 @@ public class RPNIBlueFringeVariability
 		{
 			PTASequenceEngine positives = new PTASequenceEngine();positives.init(new Automaton());
 			SequenceSet initSeq = positives.new SequenceSet();initSeq.setIdentity();
-			initSeq.cross(engineArg.getData());
+			initSeq.cross(engineArg.getData());// only returns positive sequences
 			engine = positives;
 		}
 		else

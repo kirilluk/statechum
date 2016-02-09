@@ -30,11 +30,14 @@ import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Configuration.ScoreMode;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.RPNIBlueFringeVariability;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
@@ -101,7 +104,7 @@ Total time: 20492 sec
    	
 	public TestLearnerFromLargePTA(Boolean merger, String pairs,Configuration.STATETREE matrixType)
    	{
-   		pairsToUse = pairs;mergerToUse = merger;matrixToUse = matrixType;
+   		pairsToUse = pairs;useConventionalPTAMerging = merger;matrixToUse = matrixType;
    	}
 	
    	public static String mergerTypeToXml(boolean optimizedMerge)
@@ -132,23 +135,30 @@ Total time: 20492 sec
 	final String pairsToUse;
 
 	/** Whether to use an old merger that relies on merging a PTA into an automaton or a general one that mergers an arbitrary pairs of states. */ 
-	final boolean mergerToUse;
+	final boolean useConventionalPTAMerging;
 
 	/** The kind of transition matrix to create. */
 	final Configuration.STATETREE matrixToUse;
 	
 	@Test
-	public void runCompareTwoLearners() throws IOException
+	public void runCompareTwoLearners() throws IOException, AugmentFromIfThenAutomatonException
     {
 		Transform.InternStringLabel converter = new Transform.InternStringLabel();Configuration learnerConf = Configuration.getDefaultConfiguration().copy();
 		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, learnerConf, converter);
 		initialConfigurationData.learnerInitConfiguration.config.setTransitionMatrixImplType(matrixToUse);// set the expected matrix type
+		if (initialConfigurationData.learnerInitConfiguration.config.getLearnerScoreMode() == ScoreMode.GENERAL)
+			initialConfigurationData.learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);// using ONLYOVERRIDE instead of GENERAL for performance reasons - the 'false' argument to generalised score computation helps a lot.
+		System.out.println(" current scoring : "+initialConfigurationData.learnerInitConfiguration.config.getLearnerScoreMode());
+		initialConfigurationData.learnerInitConfiguration.config.setUseConstraints(false);
 		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,initialConfigurationData.learnerInitConfiguration.config);// change the transition matrix type of the graph
+		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(initialConfigurationData.learnerInitConfiguration.ifthenSequences, hugeGraph.pathroutines.computeAlphabet(), initialConfigurationData.learnerInitConfiguration.config, initialConfigurationData.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+		Transform.augmentFromIfThenAutomaton(hugeGraph, null, ifthenAutomata, initialConfigurationData.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
         FileReader listOptReader = new FileReader(PairQualityLearner.largePTALogsDir+pairsToUse);
         List<PairOfPaths> listOpt=PairOfPaths.readPairs(listOptReader, learnerConf,converter);
         listOptReader.close();
         TestPTAConstruction.checkDepthLabelling(hugeGraph);
-        LearnerGraph graphD=new RPNIBlueFringeVariability(initialConfigurationData.learnerInitConfiguration,mergerToUse,null,listOpt).learn(hugeGraph);
+        
+        LearnerGraph graphD=new RPNIBlueFringeVariability(initialConfigurationData.learnerInitConfiguration,useConventionalPTAMerging,null,listOpt).learn(hugeGraph);
         String outcomeName = PairQualityLearner.largePTALogsDir+"outcome_"+pairsToUse;
         //graphD.storage.writeGraphML(outcomeName);
         LearnerGraph referenceA = new LearnerGraph(learnerConf);AbstractPersistence.loadGraph(outcomeName, referenceA, converter);

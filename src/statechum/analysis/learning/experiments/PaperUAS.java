@@ -39,7 +39,7 @@ package statechum.analysis.learning.experiments;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -67,7 +67,6 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.RPNIBlueFringeVariability;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -96,7 +95,6 @@ import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
@@ -109,13 +107,27 @@ public class PaperUAS
 	/** All traces, maps a seed to a collection of traces for the specific seed. */
 	protected Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
 	
+	public Map<String,TracesForSeed> getCollectionOfTraces()
+	{
+		return collectionOfTraces;
+	}
 	/** The maximal frame number encountered. */
 	protected int maxFrameNumber = -1;
+	
+	public int getMaxFrameNumber()
+	{
+		return maxFrameNumber;
+	}
 	
 	/** When processing graphs with numerous data points, the task is to cluster those points so as not to have too many of them
 	 * on the graphs. The easiest way is to divide a frame number by the maximal number so as to get %%.
 	 */
 	protected int divisor=1;
+	
+	public int getDivisor()
+	{
+		return divisor;
+	}
 	
 	/** Data recorded for each seed. */
 	public static class TracesForSeed
@@ -767,27 +779,7 @@ public class PaperUAS
 		return outcome;
    }
    
-   /** Records the initial PTA. The Pta from the paper is recorded as the initial automaton and the automaton passed as an argument is recorded as the expected outcome of learning of the evaluation configuration. 
-    */
-   public void recordInitialConfiguration(LearnerGraph smallPTA) throws IOException
-   {
-       PTASequenceEngine engine = collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber);
-       
-       FileOutputStream log = new java.io.FileOutputStream("resources/largePTA/VeryLargePTA.zip");
-       RPNIBlueFringeVariability ourLearner = new RPNIBlueFringeVariability(learnerInitConfiguration,true,null,null);
-       LearnerGraph automatonAfterInit = ourLearner.getLearner().init(engine,0,0);
-       final Configuration shallowCopy = automatonAfterInit.config.copy();shallowCopy.setLearnerCloneGraph(false);
-       LearnerGraph copyOfAutomaton = new LearnerGraph(shallowCopy);LearnerGraph.copyGraphs(automatonAfterInit, copyOfAutomaton);
-       ourLearner.setInitPta(copyOfAutomaton);
-       RecordProgressDecorator recorder = new RecordProgressDecorator(ourLearner.getLearner(),log,1,learnerInitConfiguration.config,true);
-       learnerInitConfiguration.graph = smallPTA;learnerInitConfiguration.testSet = new LinkedList<List<statechum.Label>>();
-		recorder.writeLearnerEvaluationData(learnerInitConfiguration);
-		recorder.init(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-		recorder.close();
-		log.close();// double-close in fact (should already been closed by recorder) but it does not really matter.
-   }
 
- 	
  	public static int computeLeafCount(LearnerGraph graph)
  	{
  		int count = 0;
@@ -1062,33 +1054,18 @@ public class PaperUAS
  	{
  		return arg+".xml";
  	}
- 	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
- 	// Example: 
- 	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
- 	public static void mainAll(String args[]) throws Exception
+ 	
+ 	/** Loads traces using the supplied args. Will concatenate them if the <i>concatenateTraces</i> argument is true.
+ 	 * 
+ 	 * @param args first is a path to most files, followed by a configuration file parameters.txt and then all the seed files. These are all expected to be in the UASpaper directory.
+ 	 * @param concatenateTraces whether to concatenate traces (as they will be when observed from an actual experiment).
+ 	 * @return constructed instance of the paper.
+ 	 * @throws FileNotFoundException 
+ 	 */
+ 	public static PaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
  	{
-		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
-		String outPathPrefix = outDir + File.separator;
 		Configuration mainConfiguration = Configuration.getDefaultConfiguration().copy();mainConfiguration.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		ConvertALabel labelConverter = new Transform.InternStringLabel();
-		/*
-		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, mainConfiguration, labelConverter);
-		LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
-		Set<Label> alphabetToUse = smallGraph.pathroutines.computeAlphabet();
-		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);
-		
-		
-		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
-		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
-		System.out.printf("positive leaf nodes: %d, transitions: %d\n",computeLeafCount(hugeGraph)-(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber()),computeTransitionCount(hugeGraph));
-*/
 		PaperUAS paper = new PaperUAS();
  		
  		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
@@ -1106,8 +1083,40 @@ public class PaperUAS
      	int maxFrame = paper.getMaxFrame(inputFiles);
      	paper.divisor = (maxFrame+1)/20;// the +1 ensures that the last class of frames includes the last point.
      	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]);// refill the input (it was drained by the computation of maxFrame).
-     	//paper.loadData(inputFiles);
      	
+     	if (concatenateTraces)
+     		paper.loadDataByConcatenation(inputFiles);
+     	else
+     		paper.loadData(inputFiles);
+ 		
+     	return paper;
+ 	}
+ 	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
+ 	// Example: 
+ 	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
+ 	public static void mainAll(String args[]) throws Exception
+ 	{
+		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		if (!new java.io.File(outDir).isDirectory())
+		{
+			if (!new java.io.File(outDir).mkdir())
+			{
+				System.out.println("failed to create a work directory");return ;
+			}
+		}
+		String outPathPrefix = outDir + File.separator;
+		/*
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, mainConfiguration, labelConverter);
+		LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
+		Set<Label> alphabetToUse = smallGraph.pathroutines.computeAlphabet();
+		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);
+		
+		
+		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
+		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
+		System.out.printf("positive leaf nodes: %d, transitions: %d\n",computeLeafCount(hugeGraph)-(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber()),computeTransitionCount(hugeGraph));
+*/
+     	PaperUAS paper = loadTraces(args,true);
     	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = PaperUAS.computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*3,referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size());
@@ -1183,7 +1192,6 @@ public class PaperUAS
 		// compute the maximal depth for filtering.
 		int depth = -1;
 		{// load the data
-	     	paper.loadDataByConcatenation(inputFiles);
 			framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds); 
 			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 			initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));

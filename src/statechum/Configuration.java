@@ -1438,7 +1438,7 @@ public class Configuration implements Cloneable {
 	/** If an array matrix is requested but the amount of data is small, we can gain a lot by switching to hashmap, because after a series of transformation the graph still looks big but is very sparse and hashmap can take advantage of this.
 	 * For testing, we often need to keep matrix type unchanged, in which case this needs to be set to true.
 	 */
-	protected boolean alwaysUseTheSameMatrixType = false;
+	protected boolean alwaysUseTheSameMatrixType = true;
 	
 	public boolean getAlwaysUseTheSameMatrixType()
 	{

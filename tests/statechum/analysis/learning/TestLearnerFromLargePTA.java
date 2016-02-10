@@ -150,7 +150,7 @@ Total time: 20492 sec
 			initialConfigurationData.learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);// using ONLYOVERRIDE instead of GENERAL for performance reasons - the 'false' argument to generalised score computation helps a lot.
 		System.out.println(" current scoring : "+initialConfigurationData.learnerInitConfiguration.config.getLearnerScoreMode());
 		initialConfigurationData.learnerInitConfiguration.config.setUseConstraints(false);
-		
+		initialConfigurationData.learnerInitConfiguration.config.setAlwaysUseTheSameMatrixType(false);
 		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,initialConfigurationData.learnerInitConfiguration.config);// change the transition matrix type of the graph
 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(initialConfigurationData.learnerInitConfiguration.ifthenSequences, hugeGraph.pathroutines.computeAlphabet(), initialConfigurationData.learnerInitConfiguration.config, initialConfigurationData.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(hugeGraph, null, ifthenAutomata, initialConfigurationData.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.

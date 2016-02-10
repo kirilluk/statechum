@@ -34,11 +34,8 @@ import org.w3c.dom.NodeList;
 
 import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
-import statechum.collections.TreeMapWithSearch;
 
 /**
  * Represents a configuration for a learner. The purpose is a possibility of a
@@ -1438,6 +1435,21 @@ public class Configuration implements Cloneable {
 		thresholdToGoHash = arg;
 	}
 		
+	/** If an array matrix is requested but the amount of data is small, we can gain a lot by switching to hashmap, because after a series of transformation the graph still looks big but is very sparse and hashmap can take advantage of this.
+	 * For testing, we often need to keep matrix type unchanged, in which case this needs to be set to true.
+	 */
+	protected boolean alwaysUseTheSameMatrixType = false;
+	
+	public boolean getAlwaysUseTheSameMatrixType()
+	{
+		return alwaysUseTheSameMatrixType;
+	}
+	
+	public void setAlwaysUseTheSameMatrixType(boolean newValue)
+	{
+		alwaysUseTheSameMatrixType = newValue;
+	}
+	
 	/** With a switch to {@link LinkedHashMap} for representation of a transition matrix, performance is better however the order is dependent on hash code generation which may change. Using this attribute one
 	 * can switch the hashcode order to compare-order (like that of {@link TreeMap}) which is useful for recording test results.
 	 */

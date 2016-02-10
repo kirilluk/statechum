@@ -963,7 +963,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
 			break;
 		case STATETREE_ARRAY:
-			if (pos_neg.firstElem+pos_neg.secondElem > config.getThresholdToGoHash())
+			if (pos_neg.firstElem+pos_neg.secondElem > config.getThresholdToGoHash() || config.getAlwaysUseTheSameMatrixType())
 				map = new ArrayMapWithSearch<K,V>(pos_neg.firstElem,pos_neg.secondElem);
 			else
 				map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);

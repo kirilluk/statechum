@@ -135,7 +135,7 @@ public class TestLearnFromTracesUsingMarkov {
 		final int chunkLen = 3;
 
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);config.setAlwaysUseTheSameMatrixType(true);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		

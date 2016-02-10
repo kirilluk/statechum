@@ -61,5 +61,10 @@ public class TreeMapWithSearch<K,V> extends TreeMap<K,V> implements MapWithSearc
 	public Set<K> getPotentiallyOrderedKeySet(@SuppressWarnings("unused") boolean ordered) {
 		return keySet();
 	}
+
+	@Override
+	public boolean expectsConvertibleToInt() {
+		return false;
+	}
 }
 

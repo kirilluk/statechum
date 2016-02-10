@@ -59,7 +59,7 @@ public class RPNIBlueFringeVariability
 	
 	protected static boolean graphSmallEnoughToTestDifferentAlgorithms(LearnerGraph graph)
 	{
-		return false;//graph.vertPositiveID < 100;// limiting this to smaller graphs permits tests to run in reasonable time while still doing a good job of testing.
+		return graph.vertPositiveID < 100000;// limiting this to smaller graphs permits tests to run in reasonable time while still doing a good job of testing.
 	}
 	
 	protected static void checkMergers(LearnerGraph graph, StatePair pair,long score, LearnerGraph expectedOutcome)
@@ -123,7 +123,7 @@ public class RPNIBlueFringeVariability
 			public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 			{
 				LearnerGraph outcome = null;
-				System.out.println(new java.util.Date()+" (new) started merging "+original.getStateNumber()+" states");
+				//System.out.println(new java.util.Date()+" (new) started merging "+original.getStateNumber()+" states");
 				int extraPhantomVertices = 0;
 				if (usePTAMErging)
 				{
@@ -163,15 +163,7 @@ public class RPNIBlueFringeVariability
 				
 				Assert.assertEquals(compatibilityScore+1+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
 				checkMergers(original,pair,compatibilityScore+1+extraPhantomVertices,outcome);
-				System.out.println(new java.util.Date()+" (new) finished merging by removing "+(original.getStateNumber()-outcome.getStateNumber())+" states");
-				/*
-				if (outcome.getStateNumber() < 6700)
-					try {
-						outcome.storage.writeGraphML(usePTAMErging+"_"+config.getLearnerScoreMode());
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					*/
+				//System.out.println(new java.util.Date()+" (new) finished merging by removing "+(original.getStateNumber()-outcome.getStateNumber())+" states");
 				return outcome;
 			}
 

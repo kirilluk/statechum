@@ -28,6 +28,9 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
  */
 public interface MapWithSearch<K,V> extends Map<K, V>
 {
+	/** Returns true if the collection expects to store elements that implement {@link ConvertibleToInt} interface. */
+	boolean expectsConvertibleToInt();
+	
 	/** Searches a map for an element with a specific ID and returns an element of its domain that matches that ID. */
 	K findElementById(VertID id);
 	

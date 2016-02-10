@@ -1118,5 +1118,10 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
 		
 		return entrySet();
 	}
+
+	@Override
+	public boolean expectsConvertibleToInt() {
+		return false;
+	}
 }
 

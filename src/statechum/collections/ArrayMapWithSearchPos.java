@@ -674,4 +674,9 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 		return true;
 	}
 
+	@Override
+	public boolean expectsConvertibleToInt() {
+		return true;
+	}
+
 }

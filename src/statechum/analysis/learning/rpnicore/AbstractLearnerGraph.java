@@ -45,7 +45,8 @@ import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
-import statechum.collections.ArrayMapWithSearchAndCounter;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.MapWithSearchAndCounter;
 import statechum.collections.ConvertibleToInt;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
@@ -554,19 +555,21 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * as is the case for VertexID.
 	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE_A>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
 	{
 		return constructMap(config, pos_neg);
 	}
 	
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
-	 * such as a TreeMap. 
+	 * such as a TreeMap. Note that template arguments of the return value match this class, but that it is possible to pass it an object with any template arguments but get a map with expected ones.  
 	 * 
-	 * @param graph the inspiration for the type of transition matrix to use. 
+	 * @param pos_neg pair of values. The former is the expected maximal number of accept states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
+	 * as is the case for VertexID.
+	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix()
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
 	{
-		return constructMap(this);
+		return constructMap(graph);
 	}
 
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
@@ -690,7 +693,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		result.initEmpty();
-		result.transitionMatrix = result.createNewTransitionMatrix();
+		result.transitionMatrix = result.createNewTransitionMatrix(from);
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
 
@@ -946,30 +949,30 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public static <K extends ConvertibleToInt,V,TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>  
 		MapWithSearch<K, V> constructMap(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
-		if (graph.transitionMatrix instanceof ArrayMapWithSearchAndCounter)
-			return constructMap(graph.config,((ArrayMapWithSearchAndCounter)graph.transitionMatrix).getPosNeg());
+		if (graph.transitionMatrix instanceof MapWithSearchAndCounter)
+			return constructMap(graph.config,((MapWithSearchAndCounter)graph.transitionMatrix).getPosNeg());
 		return constructMap(graph.config,graph.getAcceptAndRejectStateNumber());
 	}
 	
-	public static <K extends ConvertibleToInt,V>  MapWithSearch<K, V> constructMap(Configuration config,Pair<Integer,Integer> pos_neg)
+	public static <K extends ConvertibleToInt,V>  MapWithSearchAndCounter<K, V> constructMap(Configuration config,Pair<Integer,Integer> pos_neg)
 	{
-		MapWithSearch<K,V> outcome=null;
+		MapWithSearch<K,V> map=null;
 		switch(config.getTransitionMatrixImplType())
 		{
 		case STATETREE_LINKEDHASH:
-			outcome = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
+			map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
 			break;
 		case STATETREE_ARRAY:
 			if (pos_neg.firstElem+pos_neg.secondElem > config.getThresholdToGoHash())
-				outcome = new ArrayMapWithSearchAndCounter<K,V>(pos_neg.firstElem,pos_neg.secondElem);
+				map = new ArrayMapWithSearch<K,V>(pos_neg.firstElem,pos_neg.secondElem);
 			else
-				outcome = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
+				map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
 			break;
 		case STATETREE_SLOWTREE:
-			outcome = new TreeMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
+			map = new TreeMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
 			break;
 		}
-		return outcome;
+		return new MapWithSearchAndCounter<K,V>(map);
 	}
 
 	public final PairCompatibility<CmpVertex> pairCompatibility;

@@ -524,7 +524,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
 		int newLabelCnt = 0;
-		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
+		MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix(g);
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
 		{
 			Map<Label,TARGET_TYPE> newRow = g.createNewRow();

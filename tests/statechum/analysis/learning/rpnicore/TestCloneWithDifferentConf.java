@@ -13,7 +13,6 @@ import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
-import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 /** Tests that cloning and comparison of both deterministic and non-deterministic graphs works. */
@@ -32,15 +31,18 @@ public final class TestCloneWithDifferentConf
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
 	
+	protected static final String PTA_4 = "\nB1-d->Z1-d->Z2-c->Z3-c->Z4\nZ1-c->Y1-c->Y2-c->Y3\nY4-d->B4-c->Y5-c->Y6\nB1-c->Y4-c->Y7-c->Y8-c->Y9\n";
+	protected static final String PTA3 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2"+PTA_4;
 		
 	// AbstractLearnerGraph is polymorphic in this context: I can use both deterministic and non-deterministic graphs.
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		config.setAlwaysUseTheSameMatrixType(true);// we are testing copying of different graphs, hence need to use specific matrix types.
 		ConvertALabel converter = new Transform.InternStringLabel();
-		final String fsmA = "S-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3;
-		final String fsmB = "S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3;
+		final String fsmA = "S-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3;
+		final String fsmB = "S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3;
 		LearnerGraph graphD=FsmParser.buildLearnerGraph(fsmA, "testCopyGraph2",config,converter);
 		LearnerGraphND graphND=FsmParser.buildLearnerGraphND(fsmB, "testCopyGraph4",config,converter);
 		LearnerGraph graphDNotIntern=FsmParser.buildLearnerGraph(fsmA, "testCopyGraph2",config,null);

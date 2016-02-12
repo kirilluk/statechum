@@ -518,9 +518,9 @@ public class MarkovScoreComputation
 		assert pair.getQ() != pair.getR();
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(original);
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(shallowCopy,original);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
 
@@ -576,7 +576,7 @@ public class MarkovScoreComputation
 	
 	public long computeMarkovScoring(PairScore pair, LearnerGraph graph, LearnerGraph extension_model, int chunkLen)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(graph);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(graph.config,graph);
 		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),graph.pairCompatibility))
 			return -1;
 		if(pair.getR().isAccept()==false && pair.getQ().isAccept()==false)
@@ -775,9 +775,9 @@ public class MarkovScoreComputation
 		assert pair.getQ() != pair.getR();
 		assert cl.graph.transitionMatrix.containsKey(pair.firstElem);
 		assert cl.graph.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(cl.graph);
 		Configuration shallowCopy = cl.graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(cl.graph,shallowCopy);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(shallowCopy,cl.graph);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
 

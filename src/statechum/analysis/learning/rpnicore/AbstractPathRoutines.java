@@ -237,7 +237,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		
-		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = AbstractLearnerGraph.constructMap(coregraph);
+		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		Map<CmpVertex,Integer> stateToDepthMap = new HashMapWithSearch<CmpVertex,Integer>(coregraph.getStateNumber());
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
@@ -766,10 +766,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,List<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		Map<CmpVertex,List<Label>> stateToPath = AbstractLearnerGraph.constructMap(coregraph);
+		Map<CmpVertex,List<Label>> stateToPath = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())
@@ -808,7 +808,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		CmpVertex from = coregraph.getInit();from.setDepth(0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

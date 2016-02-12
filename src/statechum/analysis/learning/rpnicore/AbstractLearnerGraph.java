@@ -569,7 +569,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
 	{
-		return constructMap(graph);
+		return constructMap(config,graph);
 	}
 
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
@@ -697,7 +697,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
 
-		Map<CmpVertex,CmpVertex> oldToNew = constructMap(from);
+		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,from);
 		
 		// First, clone vertices
 		for(CmpVertex state:from.transitionMatrix.keySet())
@@ -764,7 +764,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
 		void interpretLabelsOnGraph(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> from, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result, LabelConverter converter)
 	{
-		Map<CmpVertex,CmpVertex> oldToNew = constructMap(from);
+		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,from);
 		result.initEmpty();
 		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
@@ -946,12 +946,19 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public CmpVertex getInit() {
 		return init;
 	}
+	/** Constructs a map with the type requested by the configuration (the first argument), using the number of states in the provided graph. 
+	 * May create a different one if the supplied configuration permits this and the number of states demands a different matrix.
+	 * 
+	 * @param config the kind of matrix to create. 
+	 * @param graph determines the number of states to create a matrix with. The aim here is to avoid array reallocations if using array matrix.
+	 * @return constructed map.
+	 */
 	public static <K extends ConvertibleToInt,V,TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>  
-		MapWithSearch<K, V> constructMap(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
+		MapWithSearch<K, V> constructMap(Configuration config, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
 		if (graph.transitionMatrix instanceof MapWithSearchAndCounter)
-			return constructMap(graph.config,((MapWithSearchAndCounter)graph.transitionMatrix).getPosNeg());
-		return constructMap(graph.config,graph.getAcceptAndRejectStateNumber());
+			return constructMap(config,((MapWithSearchAndCounter<CmpVertex, Map<Label,TARGET_TYPE>>)graph.transitionMatrix).getPosNeg());
+		return constructMap(config,graph.getAcceptAndRejectStateNumber());
 	}
 	
 	public static <K extends ConvertibleToInt,V>  MapWithSearchAndCounter<K, V> constructMap(Configuration config,Pair<Integer,Integer> pos_neg)

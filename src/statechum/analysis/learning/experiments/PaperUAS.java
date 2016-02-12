@@ -1001,9 +1001,9 @@ public class PaperUAS
 		return tmpOutput.toString();
 	}
 	
-	public final static String nameForExperimentRun = "feb_2016";
+	public final static String nameForExperimentRun = "feb_2016_3";
 	
- 	public static void main(String args[]) throws Exception
+ 	public static void mainA(String args[]) throws Exception
  	{
 		String outDir = "tmp"+File.separator+nameForExperimentRun;
 		if (!new java.io.File(outDir).isDirectory())
@@ -1091,10 +1091,57 @@ public class PaperUAS
  		
      	return paper;
  	}
+ 	
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
- 	public static void mainAll(String args[]) throws Exception
+ 	public static void mainB(String args[]) throws Exception
+ 	{
+		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		if (!new java.io.File(outDir).isDirectory())
+		{
+			if (!new java.io.File(outDir).mkdir())
+			{
+				System.out.println("failed to create a work directory");return ;
+			}
+		}
+		String outPathPrefix = outDir + File.separator;
+     	PaperUAS paper = loadTraces(args,false);
+    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
+    	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
+    	paper.learnerInitConfiguration.testSet = PaperUAS.computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*3,referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size());
+
+    	paper.learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (enough to augment once)
+		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		Map<Integer,PTASequenceEngine> framesToTraces = null; 
+		// compute the maximal depth for filtering.
+		int depth = -1;
+		{// load the data
+			framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds); 
+			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+			initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
+			for(CmpVertex vert:initialPTA.transitionMatrix.keySet())		
+				depth = Math.max(depth, vert.getDepth());
+			System.out.println("maximal depth: "+depth);
+		}
+		
+		{// process all the traces from all UAVs and seeds in one go
+			String graphName = outPathPrefix+"uas-All";
+			if (!new File(PaperUAS.fileName(graphName)).canRead())
+			{
+				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+				initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
+				initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+			}
+			UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"All",graphName,true);
+			experiment.call();
+		}
+	}	
+ 	
+ 	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
+ 	// Example: 
+ 	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
+ 	public static void main(String args[]) throws Exception
  	{
 		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		if (!new java.io.File(outDir).isDirectory())
@@ -1155,6 +1202,8 @@ public class PaperUAS
 				default:
 					throw new IllegalArgumentException("Unexpected scoring");
 				}
+				
+				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue());
 				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
 			}

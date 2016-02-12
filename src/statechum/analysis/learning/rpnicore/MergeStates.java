@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
@@ -174,7 +173,7 @@ public class MergeStates {
         Map<VertID,Collection<VertID>> mergedToHard = null;
         if (updateAuxInformation)
         {
-        	mergedToHard = AbstractLearnerGraph.constructMap(original);
+        	mergedToHard = AbstractLearnerGraph.constructMap(cloneConfig,original);
         	mergedForCompatibility = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedForCompatibility.addAll(mergedVertices);
         }
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)

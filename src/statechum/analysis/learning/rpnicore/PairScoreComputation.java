@@ -253,7 +253,7 @@ public class PairScoreComputation {
 
 	public int computePairCompatibilityScore(StatePair origPair)
 	{
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 		// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
 		return computePairCompatibilityScore_internal(origPair, mergedVertices);
@@ -783,7 +783,7 @@ public class PairScoreComputation {
 		assert pair.getQ() != pair.getR();
 		assert coregraph.transitionMatrix.containsKey(pair.firstElem);
 		assert coregraph.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		Configuration shallowCopy = coregraph.config.copy();shallowCopy.setLearnerCloneGraph(false);
 
 		long pairScore = coregraph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);

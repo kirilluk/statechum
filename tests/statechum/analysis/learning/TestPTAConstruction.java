@@ -470,11 +470,11 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void checkDepthLabelling(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph)
 	{
-		Map<CmpVertex,Integer> stateToDepth = AbstractLearnerGraph.constructMap(coregraph);
+		Map<CmpVertex,Integer> stateToDepth = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		CmpVertex from = coregraph.getInit();
 		stateToDepth.put(from, 0);
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph);// in order not to iterate through the list all the time.
+		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
 		while(!fringe.isEmpty())

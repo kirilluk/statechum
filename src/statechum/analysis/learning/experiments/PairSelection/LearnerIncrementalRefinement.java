@@ -65,7 +65,7 @@ public class LearnerIncrementalRefinement
 	 */
 	void constructLabelsLeadingToStates()
 	{
-		labelsLeadingToThisInHardFacts = AbstractLearnerGraph.constructMap(initialPta);
+		labelsLeadingToThisInHardFacts = AbstractLearnerGraph.constructMap(initialPta.config,initialPta);
 		Map<CmpVertex,List<Label>> cmap = initialPta.pathroutines.computeShortPathsToAllStates();
 		for(Map.Entry<CmpVertex, List<Label>> entry:cmap.entrySet())
 		{

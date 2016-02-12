@@ -523,6 +523,9 @@ public class GDLearnerGraph
 					int currentStatePair = vertexToIntNR(stateB.getKey(),entryA.getKey());
 					assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
 					
+					System.out.println("[ ] current state pair is "+currentStatePair+" stateA is "+entryA.getKey()+ " and B is "+stateB.getKey());
+					
+					
 					// Note that we are iterating state pairs consecutively in an increasing order and 
 					// different threads handle non-intersecting ranges of them, hence most of the time,
 					// there should be no "cache thrashing".
@@ -1162,7 +1165,6 @@ public class GDLearnerGraph
 							// of arguments is important:
 							// we have to iterate such that each thread has a continuous sequence of state pair numbers
 							// (and these numbers are never shared between threads).
-					
 					if (currentStatePair >= 0)
 					{// this state pair is not an outright reject - if it is, we do not need to fill in b[currentStatePair]
 					 // and not even go through the column because entries in the column reflect the contribution of the 

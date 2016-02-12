@@ -770,7 +770,7 @@ public class Transform
 
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
-			visited[i]=AbstractLearnerGraph.constructMap(graph);// previously the number of states was shifted left by one to create space for more vertices
+			visited[i]=AbstractLearnerGraph.constructMap(graph.config,graph);// previously the number of states was shifted left by one to create space for more vertices
 			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
 			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();

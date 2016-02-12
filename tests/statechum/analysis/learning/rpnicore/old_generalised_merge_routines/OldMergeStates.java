@@ -67,7 +67,7 @@ public class OldMergeStates
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = AbstractLearnerGraph.constructMap(original);
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = AbstractLearnerGraph.constructMap(cloneConfig,original);
                 Map<VertID,Collection<VertID>> mergedToHard = new TreeMap<VertID,Collection<VertID>>();
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{

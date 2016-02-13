@@ -62,6 +62,7 @@ public class GraphMLVisualiser extends Visualiser {
 		//File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
 		//String wholePath = graphDir.getAbsolutePath()+File.separator;
+		GlobalConfiguration.getConfiguration().loadConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.CLOSE_TERMINATE,"true");
 
 		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;

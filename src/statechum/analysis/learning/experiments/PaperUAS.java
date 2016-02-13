@@ -1262,6 +1262,8 @@ public class PaperUAS
 			//printLastFrame("All",framesToTraces.keySet());
 			listOfExperiments.add(experiment);
 		}    	
+		
+		/*
 		// for each seed, all UAVs
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
@@ -1331,7 +1333,7 @@ public class PaperUAS
 	     	         			
 	     			}
  	     	}
-
+*/
     	System.out.println("completed constructing the source graphs");
     	paper = null;// throw the original traces away
     	System.gc();

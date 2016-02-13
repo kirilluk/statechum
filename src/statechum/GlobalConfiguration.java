@@ -166,7 +166,7 @@ public class GlobalConfiguration {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected void loadConfiguration()
+	public void loadConfiguration()
 	{
 		String configFileName = getConfigurationFileName();
 		boolean debugGlobalConfiguration = Boolean.parseBoolean(defaultValues.get(G_PROPERTIES.DEBUG_GLOBALCONFIGURATION));

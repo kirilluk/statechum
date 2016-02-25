@@ -895,12 +895,13 @@ public class PaperUAS
 		 			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		 			sample.referenceLearner = new ScoresForGraph(); 
 		 			sample.referenceLearner.differenceStructural = diffMeasure;sample.referenceLearner.differenceBCR = bcrMeasure;
+		 			sample.referenceLearner.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 				}
 				
 	 			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
 	 			
 	 			if (scoringMethod != ScoringToApply.SCORING_SICCO)
-				{// pre-merge and then learn
+				{// pre-merge and then learn. SICCO scoring expects learning from a PTA and hence is not easy to apply.
 	 				String experimentName = "premerge_"+scoringMethod.toString();
 					LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 					if(actualAutomaton == null)
@@ -918,6 +919,7 @@ public class PaperUAS
 		 			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		 			sample.actualLearner = new ScoresForGraph();
 		 			sample.actualLearner.differenceStructural = diffMeasure;sample.actualLearner.differenceBCR = bcrMeasure;
+		 			sample.actualLearner.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 				}
 	
 				{// conventional learning, but check each merger against the unique-label merge
@@ -939,6 +941,7 @@ public class PaperUAS
 		 			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		 			sample.actualConstrainedLearner = new ScoresForGraph(); 
 		 			sample.actualConstrainedLearner.differenceStructural = diffMeasure;sample.actualConstrainedLearner.differenceBCR = bcrMeasure;
+		 			sample.actualConstrainedLearner.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 				}
 				
 				outcome.samples.add(sample);
@@ -993,7 +996,49 @@ public class PaperUAS
 		int v=constructFractionOfFrameNumberThatIsAvailable(frameToTraces.keySet(),value);
 		pta.paths.augmentPTA(frameToTraces.get(v));
 	}
-	
+
+ 	public static String fileName(String arg)
+ 	{
+ 		return arg+".xml";
+ 	}
+ 	
+ 	/** Loads traces using the supplied args. Will concatenate them if the <i>concatenateTraces</i> argument is true.
+ 	 * 
+ 	 * @param args first is a path to most files, followed by a configuration file parameters.txt and then all the seed files. These are all expected to be in the UASpaper directory.
+ 	 * @param concatenateTraces whether to concatenate traces (as they will be when observed from an actual experiment).
+ 	 * @return constructed instance of the paper.
+ 	 * @throws FileNotFoundException 
+ 	 */
+ 	public static PaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
+ 	{
+		Configuration mainConfiguration = Configuration.getDefaultConfiguration().copy();mainConfiguration.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+		ConvertALabel labelConverter = new Transform.InternStringLabel();
+		PaperUAS paper = new PaperUAS();
+ 		
+ 		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
+         final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
+         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
+         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
+         
+         String path = args[0];
+         
+         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
+         
+ 		final int offset=2;
+     	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]); 
+     	int maxFrame = paper.getMaxFrame(inputFiles);
+     	paper.divisor = (maxFrame+1)/20;// the +1 ensures that the last class of frames includes the last point.
+     	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]);// refill the input (it was drained by the computation of maxFrame).
+     	
+     	if (concatenateTraces)
+     		paper.loadDataByConcatenation(inputFiles);
+     	else
+     		paper.loadData(inputFiles);
+ 		
+     	return paper;
+ 	}
+ 	
 	public static String sprintf(String format,Object ...args)
 	{
 		java.io.ByteArrayOutputStream tmpOutput = new java.io.ByteArrayOutputStream();
@@ -1003,6 +1048,9 @@ public class PaperUAS
 	
 	public final static String nameForExperimentRun = "feb_2016_3";
 	
+	
+	// A very simple experiment that learns from absolutely all traces and that's it. Expects the initial traces to be recorded in an appropriate configuration file rather than loaded
+	// from the source data, which makes learning start much faster.
  	public static void mainA(String args[]) throws Exception
  	{
 		String outDir = "tmp"+File.separator+nameForExperimentRun;
@@ -1048,50 +1096,8 @@ public class PaperUAS
 		UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"all",outPathPrefix+"uas-All",true);
     	experiment.call();
  	}	
-	
- 	
- 	public static String fileName(String arg)
- 	{
- 		return arg+".xml";
- 	}
- 	
- 	/** Loads traces using the supplied args. Will concatenate them if the <i>concatenateTraces</i> argument is true.
- 	 * 
- 	 * @param args first is a path to most files, followed by a configuration file parameters.txt and then all the seed files. These are all expected to be in the UASpaper directory.
- 	 * @param concatenateTraces whether to concatenate traces (as they will be when observed from an actual experiment).
- 	 * @return constructed instance of the paper.
- 	 * @throws FileNotFoundException 
- 	 */
- 	public static PaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
- 	{
-		Configuration mainConfiguration = Configuration.getDefaultConfiguration().copy();mainConfiguration.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
-		ConvertALabel labelConverter = new Transform.InternStringLabel();
-		PaperUAS paper = new PaperUAS();
- 		
- 		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
-         final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
-         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
-         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
-         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
-         
-         String path = args[0];
-         
-         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
-         
- 		final int offset=2;
-     	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]); 
-     	int maxFrame = paper.getMaxFrame(inputFiles);
-     	paper.divisor = (maxFrame+1)/20;// the +1 ensures that the last class of frames includes the last point.
-     	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]);// refill the input (it was drained by the computation of maxFrame).
-     	
-     	if (concatenateTraces)
-     		paper.loadDataByConcatenation(inputFiles);
-     	else
-     		paper.loadData(inputFiles);
- 		
-     	return paper;
- 	}
- 	
+
+ 	// A very simple experiment that learns from absolutely all traces; it also records the initial traces in a file.
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
@@ -1112,7 +1118,6 @@ public class PaperUAS
     	paper.learnerInitConfiguration.testSet = PaperUAS.computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*3,referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size());
 
     	paper.learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (enough to augment once)
-		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 		Map<Integer,PTASequenceEngine> framesToTraces = null; 
 		// compute the maximal depth for filtering.
 		int depth = -1;
@@ -1203,7 +1208,8 @@ public class PaperUAS
 					throw new IllegalArgumentException("Unexpected scoring");
 				}
 				
-				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue());
+				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
+						", learning outcome has "+difference.nrOfstates.getValue());
 				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
 			}

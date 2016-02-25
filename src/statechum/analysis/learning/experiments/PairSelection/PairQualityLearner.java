@@ -1420,6 +1420,23 @@ public class PairQualityLearner
 		public double getValue();
 	}
 	
+	public static class DifferenceOfTheNumberOfStates implements DifferenceToReference
+	{
+		private final int difference;
+		
+		public DifferenceOfTheNumberOfStates(int val)
+		{
+			difference = val;
+		}
+		
+		@Override
+		public double getValue()
+		{
+			return difference;
+		}
+		
+	}
+	
 	public static class DifferenceToReferenceFMeasure extends ConfusionMatrix implements DifferenceToReference
 	{		
 		protected DifferenceToReferenceFMeasure(int tpArg, int tnArg, int fpArg, int fnArg) 
@@ -1531,6 +1548,7 @@ public class PairQualityLearner
 	public static class ScoresForGraph implements DifferenceToReference
 	{
 		public DifferenceToReference differenceStructural, differenceBCR , differenceFMeasure;
+		public DifferenceToReference nrOfstates;
 		public long inconsistency;
 		
 		@Override

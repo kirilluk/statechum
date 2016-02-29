@@ -51,6 +51,9 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -362,7 +365,7 @@ public class I2cexperiment extends PairQualityLearner
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),argInitialPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold),argInitialPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 
@@ -390,7 +393,7 @@ public class I2cexperiment extends PairQualityLearner
 				Collections.sort(pairsWithScoresComputedUsingGeneralMerger);
 				*/
 				PairScore chosenPair = null;
-				chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+				chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				outcome.clear();outcome.push(chosenPair);
 			}
 			

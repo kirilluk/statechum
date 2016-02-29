@@ -54,12 +54,12 @@ import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.AbstractionRefinement;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -643,7 +643,7 @@ public class Synapse implements Runnable {
 			ConvertALabel converter = new Transform.InternStringLabel();
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			int states = referenceGraph.getAcceptStateNumber();
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,PairQualityLearner.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
 			
 			DifferenceToReferenceDiff differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, config, 1);
 			DifferenceToReferenceLanguageBCR differenceBCRlearnt=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, learntGraph,testSet);

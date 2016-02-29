@@ -11,9 +11,7 @@ import statechum.Configuration.ScoreMode;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.EDSMReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.LearnerMarkovPassive;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.RedPriorityOverBluePairSelectionRoutine;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatDelegatesToTheSuppliedClassifier;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -52,9 +50,9 @@ public class LearnFromTracesUsingExperimentalLearners {
 		
 		new MarkovClassifier(m, pta).updateMarkov(false);
 		LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-		LearnerMarkovPassive learnerOfPairs = new LearnerMarkovPassive(learnerEval,null,pta);learnerOfPairs.setMarkovModel(m);
+		LearnerThatDelegatesToTheSuppliedClassifier learnerOfPairs = new LearnerThatDelegatesToTheSuppliedClassifier(learnerEval,null,pta);
 
-		learnerOfPairs.setScoreComputationOverride(new RedPriorityOverBluePairSelectionRoutine(m));
+		learnerOfPairs.setScoreComputationOverride(new LearningAlgorithms.RedPriorityOverBluePairSelectionRoutine(m));
 		System.out.println("PTA states: "+pta.getStateNumber());
 		System.out.println("Alphabet of "+pta.getCache().getAlphabet().size()+" : "+pta.getCache().getAlphabet());
 
@@ -62,7 +60,7 @@ public class LearnFromTracesUsingExperimentalLearners {
 		LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 		
 		LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-		LearnerGraph edsm2Outcome = new EDSMReferenceLearner(learnerEval,ptaCopy,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		LearnerGraph edsm2Outcome = new LearningAlgorithms.EDSMReferenceLearner(learnerEval,ptaCopy,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		System.out.println("Outcome states: "+edsm2Outcome.getStateNumber());
 		Visualiser.updateFrame(actualAutomaton, edsm2Outcome);
 		Visualiser.waitForKey();

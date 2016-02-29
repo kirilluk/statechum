@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
@@ -1320,6 +1322,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
 	}
 
 	@Test
@@ -1329,7 +1338,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
-	}
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+}
 	
 	@Test
 	public final void testSiccoScoring2()
@@ -1338,6 +1354,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
 	}
 	
 	@Test
@@ -1347,6 +1370,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
 	}
 	
 	// Same as above but states not red
@@ -1356,6 +1386,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
 	}
 
 	@Test
@@ -1365,7 +1401,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
-	}
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+}
 
 	// Same as above but states not red
 	@Test
@@ -1374,9 +1417,107 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
 	}
-	
-/*
+
+	// This test aims to check the logic of the Sicco checking, hence red-blue marking is not the one that may happen in reality
+	@Test
+	public final void testSiccoScoring5()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring5",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	@Test
+	public final void testSiccoScoring6()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testSiccoScoring6",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		// c from A and d from B.
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	@Test
+	public final void testSiccoScoring7()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring7",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("C").setColour(JUConstants.BLUE);fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// Here J-e->K-a->L-a->Q-a->R branch will be partly merged into B-e->P-a->C branch and the two 'a' at the end are not merged but ignored because all these states are not coloured.
+	// The H-d-E-b->U-b->V branch has 'd' which should be merged into I-D->M-a->S-a->T. The d part is new to A and should be flagged for all the three merger types;
+	// the rest of it (starting from a and starting from b are not coloured and hence should be ignored.
+	// I will be merged into A and therefore f will be a new one that should be flagged as inconsistent by the S_RED policy but not by S_RED_BLUE or S_ONEPAIR because I is not labelled.
+	@Test
+	public final void testSiccoScoring8()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("P").setColour(JUConstants.BLUE);fsm.findVertex("H").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	@Test
+	public final void testSiccoScoring9()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("P").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	@Test
+	public final void testSiccoScoring10()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("P").setColour(JUConstants.RED);
+		fsm.findVertex("H").setColour(JUConstants.BLUE);fsm.findVertex("E").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED_BLUE));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	/*
 	@Test
 	public final void testPairCompatible8()
 	{

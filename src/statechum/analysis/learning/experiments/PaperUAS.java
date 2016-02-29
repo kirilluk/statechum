@@ -63,6 +63,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
@@ -83,13 +84,14 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Label;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.ScoringToApply;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
@@ -291,7 +293,7 @@ public class PaperUAS
 		});
 		
 		
-      	constructSequencesForAllUAVandFrame(data, UAVs, frameNumbers);
+      	constructSequencesForAllUAVandFrame(data, frameNumbers);
    }
 
    protected void AddLastPositiveTrace(String seed, String UAV, Map<String,TracesForSeed> data)
@@ -300,6 +302,7 @@ public class PaperUAS
    		Integer lastFrameNumberInteger = dataForSeed.maxFrameNumber.get(UAV);
    		if (lastFrameNumberInteger == null && dataForSeed.collectionOfNegativeTraces.containsKey(UAV))
    			throw new IllegalArgumentException("no max frame number for UAV "+UAV+" when seed is "+seed);
+
    		if (lastFrameNumberInteger != null)
    		{
 			int lastFrameNumber = lastFrameNumberInteger.intValue();
@@ -407,6 +410,22 @@ public class PaperUAS
     				}
             		
             	},learnerInitConfiguration.getLabelConverter());
+            	
+          		// Ensure that only one of the two is present.
+          		if (seed == UAVAllSeeds)
+          		{
+          			assert !dataForSeed.collectionOfPositiveTraces.containsKey(UAVAll);
+          			assert !dataForSeed.collectionOfNegativeTraces.containsKey(UAVAll);
+
+          			assert dataForSeed.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
+          			assert dataForSeed.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
+          		}
+          		else
+          		{
+          			assert !dataForSeed.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
+          			assert !dataForSeed.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
+          		}
+       
 			}
 		});
 		
@@ -418,27 +437,101 @@ public class PaperUAS
 	        	if (!UAV.equals(UAVAll) && !UAV.equals(UAVAllSeeds))
 	        		AddLastPositiveTrace(seed, UAV, data);
 
-      	constructSequencesForAllUAVandFrame(data, UAVs, frameNumbers);
+      	constructSequencesForAllUAVandFrame(data, frameNumbers);
    }
     
 
-    protected void constructSequencesForAllUAVandFrame(Map<String,TracesForSeed> data,Set<String> UAVs, Set<Integer> frameNumbers)
+    protected void constructSequencesForAllUAVandFrame(Map<String,TracesForSeed> data,Set<Integer> frameNumbers)
     {
-    	collectionOfTraces.clear();
+  		Configuration config = Configuration.getDefaultConfiguration().copy();
+   		
+   		config.setGeneralisationThreshold(0);config.setGdFailOnDuplicateNames(false);
+      config.setGdLowToHighRatio(0.75);config.setGdKeyPairThreshold(0.5);
+      config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+      //config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+      config.setAskQuestions(false);config.setDebugMode(false);
+      config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
+
+      collectionOfTraces.clear();
     	lexer=null;
     	for(Entry<String,TracesForSeed> entry:data.entrySet())
     	{
     		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
+/*
+    		for(Entry<String,Map<Integer,Set<List<Label>>>> uavToFrameDetails:traceDetails.collectionOfPositiveTraces.entrySet())
+	    		for(Entry<Integer,Set<List<Label>>> frameToData:uavToFrameDetails.getValue().entrySet())
+		    		for(List<Label> trace:frameToData.getValue())
+		    		{
+		    			boolean foundValue = false;
+		      		LearnerGraph pta = new LearnerGraph(config);
+			    		pta.paths.augmentPTA(trace,true,false,null);
+			 				for (Label l:pta.pathroutines.computeAlphabet())
+			 					if (l.toString().equals("Data_Deprecates_Waypoint"))
+			 					{
+			 						foundValue = true;
+			 						System.out.println("BEFORE BUILDING TREES: Data_Deprecates_Waypoint is in seed "+entry.getKey()+" and UAV "+uavToFrameDetails.getKey());break;
+			 					}
+			 				
+			 				if (foundValue)
+			 					break;
+		    		}
+*/
+    		if (entry.getKey() == UAVAllSeeds)
+    		{
+    			assert !traceDetails.collectionOfPositiveTraces.containsKey(UAVAll);
+    			assert !traceDetails.collectionOfNegativeTraces.containsKey(UAVAll);
+
+    			assert traceDetails.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
+    			assert traceDetails.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
+    		}
+    		else
+    		{
+    			assert !traceDetails.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
+    			assert !traceDetails.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
+    		}
+
     		collectionOfTraces.put(entry.getKey(), newData);
     		newData.tracesForUAVandFrame=new TreeMap<String,Map<Integer,PTASequenceEngine>>();
-    		
-    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfPositiveTraces,true,frameNumbers,UAVs);
+    		System.out.println("*** processing seed "+entry.getKey()+", positive entries ***");
+    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfPositiveTraces,true,frameNumbers);
     		newData.collectionOfPositiveTraces=null;// garbage collect traces, they are now part of PTA
-    		
-    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfNegativeTraces,false,frameNumbers,UAVs);
+
+    		System.out.println("*** processing seed "+entry.getKey()+", negative entries ***");
+    		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfNegativeTraces,false,frameNumbers);
     		newData.collectionOfNegativeTraces=null;// garbage collect traces, they are now part of PTA
+    		
+    		// Ensure that only one of the two is present.
+    		if (newData.tracesForUAVandFrame.containsKey(UAVAllSeeds))
+    		{
+    			assert entry.getKey() == UAVAllSeeds;
+    			assert !newData.tracesForUAVandFrame.containsKey(UAVAll);
+    		}
+    		else
+    		{
+    			assert entry.getKey() != UAVAllSeeds;
+    			assert newData.tracesForUAVandFrame.containsKey(UAVAll);
+    			assert !newData.tracesForUAVandFrame.containsKey(UAVAllSeeds);
+    		}
+    		
+
+    		String uavToUse = (entry.getKey() == UAVAllSeeds)?UAVAllSeeds:UAVAll;
+    		for(Entry<Integer,PTASequenceEngine> frameToData:newData.tracesForUAVandFrame.get(uavToUse).entrySet())
+    		{
+    			boolean foundValue = false;
+      		LearnerGraph pta = new LearnerGraph(config);
+	    		pta.paths.augmentPTA(frameToData.getValue());
+	 				for (Label l:pta.pathroutines.computeAlphabet())
+	 					if (l.toString().equals("Data_Deprecates_Waypoint"))
+	 					{
+	 						foundValue = true;
+	 						System.out.println("AFTER AUGMENT: Data_Deprecates_Waypoint is in seed "+entry.getKey());break;
+	 					}
+	 				
+	 				if (foundValue)
+	 					break;
+    		}
+
     	}
-    	
     }
     
     /** Loads traces from the file, calling the user-supplied observer for every line.
@@ -490,11 +583,10 @@ public class PaperUAS
      * @param UAVs names of all UAVs, used to ensure that all UAV frame numbers range over the same set.
      */
     protected void turnTracesIntoPTAs(Map<String,Map<Integer,PTASequenceEngine>> whatToUpdate,
-    		Map<String,Map<Integer,Set<List<Label>>>> traces, boolean isAccept, Set<Integer> frameNumbers,Set<String> UAVs)
+    		Map<String,Map<Integer,Set<List<Label>>>> traces, boolean isAccept, Set<Integer> frameNumbers)
 	{
-        for(String uav:UAVs)
+        for(String uav:traces.keySet())
         {
-        	
         	Map<Integer,PTASequenceEngine> outcomeUAV = whatToUpdate.get(uav);
         	if (outcomeUAV == null)
         	{
@@ -513,23 +605,46 @@ public class PaperUAS
         		
         		if (traces.containsKey(uav))
         		{
+        			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+        			{
+        				Set<Integer> usedFrames = new TreeSet<Integer>();usedFrames.addAll(traces.get(uav).keySet());usedFrames.removeAll(frameNumbers);
+        				assert(usedFrames.isEmpty());// ensure that there are no frames that are not going to be iterated through.
+        			}
         			for(int earlierFrame:frameNumbers)
         			{// here we accumulate traces for all frames up to and including the current frame in the traceDetailsUAV trace collection.
         				if (earlierFrame>frame)
         					break;
 
         				Set<List<Label>> traceData = traces.get(uav).get(earlierFrame);
-	        			
 	        			if (traceData != null)
 	        			{
+
 		        			SequenceSet initSeq = traceDetailsUAV.new SequenceSet();initSeq.setIdentity();((Automaton)traceDetailsUAV.getFSM()).setAccept(isAccept);
 		        			initSeq.cross(traceData);
 	        			}
        				}
         		}
+        		
+        		/*
+        		Configuration config = Configuration.getDefaultConfiguration().copy();
+         		
+         		config.setGeneralisationThreshold(0);config.setGdFailOnDuplicateNames(false);
+            config.setGdLowToHighRatio(0.75);config.setGdKeyPairThreshold(0.5);
+            config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+            //config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+            config.setAskQuestions(false);config.setDebugMode(false);
+            config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
+                 
+        		LearnerGraph pta = new LearnerGraph(config);
+        		pta.paths.augmentPTA(traceDetailsUAV);
+        		
+     				for (Label l:pta.pathroutines.computeAlphabet())
+     					if (l.toString().equals("Data_Deprecates_Waypoint"))
+     						System.out.println("AFTER AUGMENTING: Data_Deprecates_Waypoint is in uav " + uav +" and frame "+frame);
+     						*/
         	}
-        }
-        
+      }
+      
 	}
     
     public LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
@@ -653,11 +768,11 @@ public class PaperUAS
 	    */
    }
    
-   public void LearnReferenceAutomaton(ReferenceLearner.ScoringToApply scoringToUse) throws Exception
+   public void LearnReferenceAutomaton(LearningAlgorithms.ReferenceLearner.ScoringToApply scoringToUse) throws Exception
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,initPTA,scoringToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = new LearningAlgorithms.ReferenceLearner(learnerInitConfiguration,initPTA,scoringToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -759,7 +874,7 @@ public class PaperUAS
    public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
    {
 	   LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-	   List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),
+	   List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),
 				Arrays.asList(new Label[]{labelToMerge}));
 		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that are associated with the unique state cannot be merged in the PTA");
@@ -851,7 +966,7 @@ public class PaperUAS
 		/** The outcome of learning might have been stored in a file from the previous run. For this reason, it makes sense to try to load it. 
 		 * @throws IOException if the outcome of learning exists but cannot be loaded
 		 */
-		protected LearnerGraph loadOutcomeOfLearning(String experimentSuffix) throws IOException
+		protected LearnerGraph loadOutcomeOfLearning(String experimentSuffix)
 		{
 			LearnerGraph outcome = null;
 			String graphFileName = constructFileName(experimentSuffix);
@@ -859,7 +974,17 @@ public class PaperUAS
 	    	if (new File(graphFileName).canRead())
 	    	{
 		    	outcome = new LearnerGraph(learnerInitConfiguration.config);
-	    		AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());return outcome;
+	    		try
+					{
+	    			AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());
+					} catch (IOException e)
+					{
+						System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+					}
+	    		catch (IllegalArgumentException e)
+					{
+						System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+					}
 	    	}
 	    	
 	    	return outcome;
@@ -884,7 +1009,7 @@ public class PaperUAS
 					if(actualAutomaton == null)
 					{
 						LearnerGraph pta = buildPTA();
-			 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+			 			ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
 			 			
 			 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			 			saveOutcomeOfLearning(experimentName,actualAutomaton);
@@ -907,7 +1032,7 @@ public class PaperUAS
 					if(actualAutomaton == null)
 					{
 						LearnerGraph smallPta = mergePTA(buildPTA(),uniqueLabel,false);
-						ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+						ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
 	
 		 				actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			 			saveOutcomeOfLearning(experimentName,actualAutomaton);
@@ -928,7 +1053,7 @@ public class PaperUAS
 					if(actualAutomaton == null)
 					{
 						LearnerGraph pta = buildPTA();
-			 			ReferenceLearner learner = new PairQualityLearner.ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+			 			ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
 			 			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 		
 			 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -972,10 +1097,7 @@ public class PaperUAS
 				return v;
 			else
 			{// transition: we have seen value > prevValue, now v > value
-				if ( v-value > value - prevValue)
 					return prevValue;
-				
-				return v;
 			}
 		}
 		
@@ -1011,13 +1133,14 @@ public class PaperUAS
  	 */
  	public static PaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
  	{
-		Configuration mainConfiguration = Configuration.getDefaultConfiguration().copy();mainConfiguration.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		ConvertALabel labelConverter = new Transform.InternStringLabel();
 		PaperUAS paper = new PaperUAS();
  		
  		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
          final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
-         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
+         learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+         //learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
          learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
          learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
          
@@ -1046,7 +1169,7 @@ public class PaperUAS
 		return tmpOutput.toString();
 	}
 	
-	public final static String nameForExperimentRun = "feb_2016_3";
+	public final static String nameForExperimentRun = "feb_2016_3_hashmap";
 	
 	
 	// A very simple experiment that learns from absolutely all traces and that's it. Expects the initial traces to be recorded in an appropriate configuration file rather than loaded
@@ -1068,7 +1191,8 @@ public class PaperUAS
     	System.out.println(new Date()+" started");
  		paper.learnerInitConfiguration.setLabelConverter(labelConverter);
          final Configuration learnerConfig = paper.learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
-         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
+         learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);//learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
          learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);learnerConfig.setUseConstraints(false);
          learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
      	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
@@ -1142,6 +1266,22 @@ public class PaperUAS
 			experiment.call();
 		}
 	}	
+ 	
+ 	/** Returns a string padded to the specified width with the supplied character.
+ 	 * 
+ 	 * @param whatToPad
+ 	 * @param ch character to pad with
+ 	 * @param length the length to pad to
+ 	 * @return
+ 	 */
+ 	public static String padString(String whatToPad, char ch, int length)
+ 	{
+ 		StringBuffer buf = new StringBuffer();
+ 		for(int i=0;i<length-whatToPad.length();++i)
+ 			buf.append(ch);
+ 		buf.append(whatToPad);
+ 		return buf.toString();
+ 	}
  	
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
@@ -1269,17 +1409,20 @@ public class PaperUAS
 			listOfExperiments.add(experiment);
 		}    	
 		
-		/*
 		// for each seed, all UAVs
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
      		{
-     			String graphName = sprintf("%suas-%2s-AU",outPathPrefix,seed);
+     			String seedPadded = padString(seed, '_', 2);
+     			String graphName = sprintf("%suas-%s-AU",outPathPrefix,seedPadded);
      			if (!new File(PaperUAS.fileName(graphName)).canRead())
      			{
      				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
      				framesToTraces = paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll);
      				augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+     				for (Label l:initialPTA.pathroutines.computeAlphabet())
+     					if (l.toString().equals("Data_Deprecates_Waypoint"))
+     						System.out.println("Data_Deprecates_Waypoint is in seed "+seed);
      				initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
      			}
      			UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"AU",graphName,true);
@@ -1288,7 +1431,7 @@ public class PaperUAS
 
      			for(int fraction:rangeOfValues)
      			{
-     				graphName = sprintf("%suas-%2s-AU-%2d",outPathPrefix,seed,fraction);
+     				graphName = sprintf("%suas-%s-AU-%02d",outPathPrefix,seedPadded,fraction);
          			if (!new File(PaperUAS.fileName(graphName)).canRead())
          			{
          				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
@@ -1305,41 +1448,45 @@ public class PaperUAS
     	for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
 	     	{
-     		    TracesForSeed tracesSeed = paper.collectionOfTraces.get(seed);
+     		  TracesForSeed tracesSeed = paper.collectionOfTraces.get(seed);
      			Set<String> UAVsInSeed = tracesSeed.tracesForUAVandFrame.keySet(); 
-
+     			String seedPadded = padString(seed, '_', 2);
      			for(String uav:UAVsInSeed)
      				if (uav != UAVAll && uav != UAVAllSeeds)
 	     			{
-     					String graphName = sprintf("%suas-%2s-%2s-U",outPathPrefix,seed,uav);
+     					String uavPadded = padString(uav, '_', 2);
+     					String graphName = sprintf("%suas-%s-%s-U",outPathPrefix,seedPadded,uavPadded);
      					if (!new File(PaperUAS.fileName(graphName)).canRead())
-             			{
-		         			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-		         			framesToTraces = tracesSeed.tracesForUAVandFrame.get(uav);
-		         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-		         			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
-             			}
-	         			UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"U",graphName,true);
-	         			//printLastFrame("U_"+seed+"_"+uav,framesToTraces.keySet());
-	         			listOfExperiments.add(experiment);
+         			{
+	         			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+	         			framesToTraces = tracesSeed.tracesForUAVandFrame.get(uav);
+	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+	       				for (Label l:initialPTA.pathroutines.computeAlphabet())
+	       					if (l.toString().equals("Data_Deprecates_Waypoint"))
+	       						System.out.println("Data_Deprecates_Waypoint is in uav " + uav +" and seed "+seed);
+	         			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+         			}
+         			UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"U",graphName,true);
+         			//printLastFrame("U_"+seed+"_"+uav,framesToTraces.keySet());
+         			listOfExperiments.add(experiment);
 
-	         			for(int fraction:rangeOfValues)
-	         			{
-	         				graphName = sprintf("%suas-%2s-%2s-U-%2d",outPathPrefix,seed,uav,fraction);
-	     					if (!new File(PaperUAS.fileName(graphName)).canRead())
-	             			{
-		             			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-		             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
-		             			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-			         			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
-	             			}
-	             			experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"U"+fraction,graphName,true);
-	             			listOfExperiments.add(experiment);
-	         			}
+         			for(int fraction:rangeOfValues)
+         			{
+         				graphName = sprintf("%suas-%s-%s-U-%02d",outPathPrefix,seedPadded,uavPadded,fraction);
+         				if (!new File(PaperUAS.fileName(graphName)).canRead())
+             		{
+             			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+             			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
+             			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+	             	}
+	             	experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"U"+fraction,graphName,true);
+	             	listOfExperiments.add(experiment);
+	         		}
 	     	         			
 	     			}
  	     	}
-*/
+
     	System.out.println("completed constructing the source graphs");
     	paper = null;// throw the original traces away
     	System.gc();

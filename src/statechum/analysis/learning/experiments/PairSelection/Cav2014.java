@@ -19,16 +19,11 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Stack;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -42,7 +37,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
@@ -51,16 +45,11 @@ import statechum.analysis.learning.DrawGraphs.ScatterPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -73,23 +62,6 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
 public class Cav2014 extends PairQualityLearner
 {
-	public static class LearnerAbortedException extends RuntimeException
-	{
-
-		/**
-		 * ID for serialisation
-		 */
-		private static final long serialVersionUID = 5271079210565150062L;
-		
-		public static void throwExceptionIfTooManyReds( LearnerGraph graph )
-		{
-			long countOfRed = 0;
-			for(CmpVertex v:graph.transitionMatrix.keySet())
-				if (v.getColour() == JUConstants.RED)
-					if (countOfRed++ > 200)
-						throw new LearnerAbortedException();
-		}
-	}
 	
 	public static class LearnerRunner implements Callable<ThreadResult>
 	{
@@ -155,13 +127,13 @@ public class Cav2014 extends PairQualityLearner
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = makeEven(traceQuantity);
+				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
@@ -210,7 +182,7 @@ public class Cav2014 extends PairQualityLearner
 				else 
 					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 				
-				LearnerMarkovPassive learnerOfPairs = null;
+				LearningAlgorithms.LearnerThatDelegatesToTheSuppliedClassifier learnerOfPairs = null;
 				LearnerGraph actualAutomaton = null;
 				
 				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
@@ -221,9 +193,9 @@ public class Cav2014 extends PairQualityLearner
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(referenceGraph, m, checker, false);
 				
-				learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+				learnerOfPairs = new LearningAlgorithms.LearnerThatDelegatesToTheSuppliedClassifier(learnerEval,referenceGraph,pta);
 
-				learnerOfPairs.setScoreComputationOverride(new RedPriorityOverBluePairSelectionRoutine(m));
+				learnerOfPairs.setScoreComputationOverride(new LearningAlgorithms.RedPriorityOverBluePairSelectionRoutine(m));
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				
 				SampleData dataSample = new SampleData(null,null);
@@ -242,16 +214,16 @@ public class Cav2014 extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 				dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(actualAutomaton, m, checker, false);
-				dataSample.referenceLearner = zeroScore;
+				dataSample.referenceLearner = LearningAlgorithms.zeroScore;
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(config);
 				try
 				{
 					outcomeOfReferenceLearner = //new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-							new EDSMReferenceLearner(learnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+							new LearningAlgorithms.EDSMReferenceLearner(learnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker, false);
 				}
-				catch(LearnerAbortedException ex)
+				catch(LearningAlgorithms.LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 				}				
 				dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
@@ -289,509 +261,6 @@ public class Cav2014 extends PairQualityLearner
 		}
 	}
 	
-	public static class RedPriorityOverBluePairSelectionRoutine implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
-	{
-		protected final MarkovModel m;
-		
-		public RedPriorityOverBluePairSelectionRoutine(MarkovModel mm)
-		{
-			m=mm;
-		}
-		
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex selectRedNode(LearnerGraph gr,Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-		{
-			return tentativeRedNodes.iterator().next();
-		}
-		
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
-		{
-			return null;
-		}
-		
-		LearnerGraph coregraph = null;
-		LearnerGraph extendedGraph = null;
-		MarkovClassifier cl=null;
-		
-		@Override
-		public void initComputation(LearnerGraph graph) 
-		{
-			coregraph = graph;
-
-			cl = new MarkovClassifier(m, coregraph);
-		    extendedGraph = cl.constructMarkovTentative();
-		}
-		
-		@Override
-		public long overrideScoreComputation(PairScore p) 
-		{
-
-			long pairScore = p.getScore();
-			
-			if (pairScore >= 0)
-				pairScore = MarkovScoreComputation.computenewscore(p, extendedGraph);
-			
-			return pairScore;
-		}
-
-		/** This one returns a set of transitions in all directions. */
-		@SuppressWarnings("unused")
-		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
-		{
-			return null;
-		}
-
-	}
-	
-	public static class EvaluationOfExisingLearnerRunner implements Callable<ThreadResult>
-	{
-		protected final Configuration config;
-		protected final ConvertALabel converter;
-		protected final int states,sample;
-		protected boolean onlyUsePositives;
-		protected final int seed;
-		protected int chunkLen=4;
-		protected final int traceQuantity;
-		protected String selectionID;
-		protected double alphabetMultiplier = 2.;
-		protected double traceLengthMultiplier = 2;
-		public void setSelectionID(String value)
-		{
-			selectionID = value;
-		}
-		
-		public void setTraceLengthMultiplier(double value)
-		{
-			traceLengthMultiplier = value;
-		}
-		
-		/** Whether to filter the collection of traces such that only positive traces are used. */
-		public void setOnlyUsePositives(boolean value)
-		{
-			onlyUsePositives = value;
-		}
-		
-		public void setAlphabetMultiplier(double mult)
-		{
-			alphabetMultiplier = mult;
-		}
-		
-		public void setChunkLen(int len)
-		{
-			chunkLen = len;
-		}
-		
-		public EvaluationOfExisingLearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
-		{
-			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
-		}
-		
-		@Override
-		public ThreadResult call() throws Exception 
-		{
-			final int alphabet = (int)(alphabetMultiplier*states);
-			LearnerGraph referenceGraph = null;
-			ThreadResult outcome = new ThreadResult();
-			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-			
-			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*alphabet));
-
-			for(int attempt=0;attempt<2;++attempt)
-			{// try learning the same machine a few times
-				LearnerGraph pta = new LearnerGraph(config);
-				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = makeEven(traceQuantity);
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-										
-						@Override
-						public int getLength() {
-							return (int)(traceLengthMultiplier*states*alphabet);
-						}
-		
-						@Override
-						public int getPrefixLength(int len) {
-							return len;
-						}
-					});
-
-				if (onlyUsePositives)
-				{
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
-				}
-				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));
-
-				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
-				new MarkovClassifier(m, pta).updateMarkov(false);
-				pta.clearColours();
-
-				if (!onlyUsePositives)
-					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				else 
-					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-				
-				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
-				SampleData dataSample=new SampleData();
-				dataSample.miscGraphs = new TreeMap<String,ScoresForGraph>();
-				List<LearnerThatCanClassifyPairs> learnerList = new ArrayList<LearnerThatCanClassifyPairs>();
-				
-				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,true));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,false));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,3));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,4));
-				
-				for(LearnerThatCanClassifyPairs learnerToUse:learnerList)
-					try
-					{
-						dataSample.miscGraphs.put(learnerToUse.toString(),estimateDifference(referenceGraph,learnerToUse.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()),testSet));
-					}
-					catch(LearnerAbortedException ex)
-					{// the exception is thrown because the learner failed to learn anything completely.
-						dataSample.miscGraphs.put(learnerToUse.toString(),zeroScore);
-					}
-				System.out.println(dataSample);
-				outcome.samples.add(dataSample);
-			}
-			
-			return outcome;
-		}
-
-		// Delegates to a specific estimator
-		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
-		{
-			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
-			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
-			return outcome;
-		}
-	}
-		
-	public static final ScoresForGraph zeroScore;
-	static
-	{
-		zeroScore = new ScoresForGraph();zeroScore.differenceBCR=new DifferenceToReferenceLanguageBCR(0, 0, 0, 0);zeroScore.differenceStructural=new DifferenceToReferenceDiff(0, 0);
-	}
-	
-	/** Merges states using a routing relying on PTA, that faster and consumes less memory than the general one. */
-	public static class ReferenceLearnerUsingSiccoScoring extends LearnerThatCanClassifyPairs
-	{
-
-		protected final boolean scoringSiccoRecursive;
-		
-		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
-		{
-			super(evalCnf,null, argInitialPTA,ScoringToApply.SCORING_SICCO);this.scoringSiccoRecursive = scoringSiccoRecursive;
-		}
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					long score = p.getScore();
-					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
-						score = -1;
-					return score;
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
-		
-		@Override
-		public String toString()
-		{
-			return scoringSiccoRecursive? "SiccoR":"SiccoN";
-		}
-	}
-	
-	/** This one is a reference learner. */
-	public static class KTailsReferenceLearner extends LearnerThatCanClassifyPairs
-	{
-		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, boolean allPaths, int k)
-		{
-			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(allPaths? Configuration.ScoreMode.KTAILS:Configuration.ScoreMode.KTAILS_ANY);config.setKlimit(k);
-			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
-			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
-			copy.setLabelConverter(evalCnf.getLabelConverter());
-			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
-			return copy;
-		}
-		
-		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
-		{
-			super(constructConfiguration(evalCnf,allPaths,k),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
-		}
-		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					return super.overrideScoreComputation(p);
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-
-		@Override
-		public String toString()
-		{
-			return (config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS? "k-tails":"k-tails(a)")+","+config.getKlimit();
-		}		
-	}
-	
-	/** This one is a reference learner. */
-	public static class EDSMReferenceLearner extends LearnerThatCanClassifyPairs
-	{
-		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
-		{
-			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
-			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
-			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
-			copy.setLabelConverter(evalCnf.getLabelConverter());
-			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
-			return copy;
-		}
-
-		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
-		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
-		}
-
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairQualityLearner.DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					return super.overrideScoreComputation(p);
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-		
-		@Override
-		public String toString()
-		{
-			return "EDSM,>="+config.getRejectPositivePairsWithScoresLessThan();
-		}		
-	}
-
-	/** Uses the supplied classifier to rank pairs. */
-	public static class LearnerMarkovPassive extends LearnerThatCanClassifyPairs
-	{
-		protected Map<Long,TrueFalseCounter> pairQuality = null;
-		private int num_states;
-		private int numtraceQuantity;
-		private int num_seed;
-		private int lengthMultiplier;
-		public MarkovModel Markov;
-		RedNodeSelectionProcedure computationOverride = null;
-		
-		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
-		{
-			pairQuality = argCounter;
-		}
-		
-		List<List<List<Label>>> pairsToMerge = null;
-		
-		public void setPairsToMerge(List<List<List<Label>>> pairs)
-		{
-			pairsToMerge = pairs;
-		}
-		
-		public List<List<List<Label>>> getPairsToMerge()
-		{
-			return pairsToMerge;
-		}
-		
-		public void  setlengthMultiplier(int setlengthMultiplier)
-		{
-			lengthMultiplier = setlengthMultiplier;
-		}
-		
-		public int  getlengthMultiplier()
-		{
-			return lengthMultiplier;
-		}
-
-		public void set_States(int states) 
-		{
-			num_states=	states;		
-		}
-		
-		public MarkovModel Markov() 
-		{
-			return Markov;			
-		}
-			
-		public void setMarkovModel(MarkovModel m) 
-		{
-			Markov=m;
-		}
-
-		public void set_traceQuantity(int traceQuantity) 
-		{
-			numtraceQuantity=traceQuantity;			
-		}
-		
-		public int get_States() 
-		{
-			return num_states;		
-		}
-	
-		public int get_traceQuantity() 
-		{
-			return numtraceQuantity;			
-		}
-		
-		public void set_seed(int i) 
-		{
-			num_seed=i;
-		}
-		
-		public int get_seed() 
-		{
-			return num_seed;
-		}
-
-		public void setScoreComputationOverride(RedNodeSelectionProcedure c)
-		{
-			computationOverride = c;
-		}
-		
-		
-		/** During the evaluation of the red-blue pairs, where all pairs are predicted to be unmergeable, one of the blue states will be returned as red. */
-		protected boolean classifierToChooseWhereNoMergeIsAppropriate = false;
-		
-		/** Used to select next red state based on the subjective quality of the subsequent set of red-blue pairs, as determined by the classifier. */
-		protected boolean useClassifierToChooseNextRed = false;
-		
-		public void setUseClassifierForRed(boolean classifierForRed)
-		{
-			useClassifierToChooseNextRed = classifierForRed;
-		}
-		
-		public void setUseClassifierToChooseNextRed(boolean classifierToBlockAllMergers)
-		{
-			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
-		}
-
-		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
-		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,ScoringToApply.SCORING_SICCO);
-		}
-		
-		public static String refToString(Object obj)
-		{
-			return obj == null?"null":obj.toString();
-		}
-		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerMarkovPassive.this.computationOverride);
-			
-			if (!outcome.isEmpty())
-			{
-				PairScore result = null;
-				
-				result=pickPairQSMLike(outcome);
-				assert result!=null;
-				assert result.getScore()>=0;
-
-				outcome.clear();outcome.push(result);
-			}	
-			return outcome;
-
-		}
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-	}
 
 	public static void main(String args[]) throws Exception
 	{

@@ -15,6 +15,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -65,12 +66,12 @@ public class TestPaperUAS_Large extends TestWithMultipleConfigurations
 		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
 		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
 		Label labelToMerge = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected",mainConfiguration,converter);
-		LearnerGraph mergedHuge = PairQualityLearner.mergeStatesForUnique(hugeGraph, labelToMerge);
+		LearnerGraph mergedHuge = LearningSupportRoutines.mergeStatesForUnique(hugeGraph, labelToMerge);
 		DifferentFSMException diffFSM = WMethod.checkM(smallGraph, mergedHuge);
 		if (diffFSM != null)
 			throw diffFSM;
 
-		LearnerGraph mergedSmall = PairQualityLearner.mergeStatesForUnique(smallGraph,labelToMerge);
+		LearnerGraph mergedSmall = LearningSupportRoutines.mergeStatesForUnique(smallGraph,labelToMerge);
 		diffFSM = WMethod.checkM(smallGraph,mergedSmall);
 		if (diffFSM != null)
 			throw diffFSM;

@@ -26,8 +26,6 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerWithMandatoryMergeConstraints;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -93,7 +91,7 @@ public class SmallvsHugeExperiment {
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			if (pickUniqueFromInitial)
 			{
-				Map<Label,CmpVertex> uniques = PairQualityLearner.uniqueFromState(referenceGraph);
+				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
 				if(!uniques.isEmpty())
 				{ 
 					// some uniques are loops, hence eliminate them to match our case study
@@ -117,7 +115,7 @@ public class SmallvsHugeExperiment {
 			generator.setWalksShouldLeadToInitialState();
 			// test sequences will be distributed around 
 			final int pathLength = generator.getPathLength();
-			final int sequencesPerChunk = PairQualityLearner.makeEven(alphabet*states*traceQuantity);// we are only using one chunk here but the name is unchanged.
+			final int sequencesPerChunk = LearningSupportRoutines.makeEven(alphabet*states*traceQuantity);// we are only using one chunk here but the name is unchanged.
 			// Usually, the total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
 			// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 			// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
@@ -169,7 +167,7 @@ public class SmallvsHugeExperiment {
 			if (!onlyUsePositives)
 			{
 				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				Map<Label,Set<Label>> infeasiblePairs = PairQualityLearner.computeInfeasiblePairs(referenceGraph);
+				Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
 				Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
 				for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
 				{
@@ -184,7 +182,7 @@ public class SmallvsHugeExperiment {
 					}
 					subsetOfPairs.put(entry.getKey(),value);
 				}
-				PairQualityLearner.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
+				LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
 				LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
 				learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 				int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
@@ -194,7 +192,7 @@ public class SmallvsHugeExperiment {
 			}
 			else assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 			
-			PairQualityLearner.ReferenceLearner learnerOfPairs = null;
+			LearningAlgorithms.ReferenceLearner learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
 			
 			//Visualiser.updateFrame(pta, referenceGraph);Visualiser.waitForKey();
@@ -209,8 +207,8 @@ public class SmallvsHugeExperiment {
 			
 			{
 				
-				LearnerGraph reducedPTA = PairQualityLearner.mergeStatesForUnique(pta,uniqueFromInitial);
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, reducedPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
+				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
 				//learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 				
 				synchronized (AbstractLearnerGraph.syncObj) {
@@ -220,13 +218,13 @@ public class SmallvsHugeExperiment {
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
 				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
+				List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
 				if (!pairsList.isEmpty())
 				{
 					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 					if (score < 0)
 					{
-						learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, reducedPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+						learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
 						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
@@ -240,7 +238,7 @@ public class SmallvsHugeExperiment {
 			}
 
 			{// not merging based on a unique transition from an initial state
-				learnerOfPairs = new PairQualityLearner.ReferenceLearner(learnerEval, pta,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, pta,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
 				synchronized (AbstractLearnerGraph.syncObj) {
 					PaperUAS.computePTASize(selectionID+" no unique: ", pta, referenceGraph);
 				}

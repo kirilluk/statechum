@@ -50,6 +50,9 @@ import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.Cav2014;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.MarkovScoreComputation;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -173,13 +176,13 @@ public class ASE2014 extends PairQualityLearner
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
 				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = makeEven(traceQuantity);
+				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
@@ -294,11 +297,11 @@ public class ASE2014 extends PairQualityLearner
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,ptaCopy,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
-				catch(Cav2014.LearnerAbortedException ex)
+				catch(LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 				}				
 				dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
@@ -365,7 +368,7 @@ public class ASE2014 extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends LearningAlgorithms.ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -486,7 +489,7 @@ public class ASE2014 extends PairQualityLearner
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold), argInitialPTA, ReferenceLearner.ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA, LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 
@@ -519,12 +522,12 @@ public class ASE2014 extends PairQualityLearner
 					List<PairScore> filter = this.classifyPairs(NEwresult, graph, extendedGraph);
 
 					if(filter.size() >= 1)
-						chosenPair = pickPairQSMLike(filter);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(filter);
 					else
-						chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				}
 				else
-					chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+					chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 
 				outcome.clear();outcome.push(chosenPair);
 			}
@@ -579,7 +582,7 @@ public class ASE2014 extends PairQualityLearner
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						int outcome = sgn( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
+						int outcome = (int) Math.signum( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
 						if (outcome != 0)
 							return outcome;
 						return o2.compareTo(o1);

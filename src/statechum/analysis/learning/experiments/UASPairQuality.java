@@ -53,17 +53,17 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -244,14 +244,14 @@ public class UASPairQuality extends PaperUAS
   				 */
 
    			initPTA.storage.writeGraphML("hugegraph.xml");
- 			LearnerGraph ptaSmall = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
+ 			LearnerGraph ptaSmall = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
    			//Visualiser.updateFrame(initPTA.transform.trimGraph(4, initPTA.getInit()), ptaSmall.transform.trimGraph(4, ptaSmall.getInit()));
    			//Visualiser.waitForKey();
    			{
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				PairQualityLearner.LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -269,8 +269,8 @@ public class UASPairQuality extends PaperUAS
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_refM.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				LearnerGraph ptaAfterMergingBasedOnUniques = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
-   				PairQualityLearner.LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearnerGraph ptaAfterMergingBasedOnUniques = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -374,13 +374,13 @@ public class UASPairQuality extends PaperUAS
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
  			ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(ifDepth,learnerInitConfiguration,referenceGraph,c,initPTA):
- 					new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,initPTA,ScoringToApply.SCORING_SICCO);
+ 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
          
          // Now merge everything that we need to merge
          LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
- 		List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
+ 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
  		if (!pairsList.isEmpty())
  		{
  			int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, true);

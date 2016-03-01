@@ -14,8 +14,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
@@ -31,15 +33,21 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
@@ -838,6 +846,102 @@ public class LearningAlgorithms
 	{
 		zeroScore = new ScoresForGraph();zeroScore.differenceBCR=new DifferenceToReferenceLanguageBCR(0, 0, 0, 0);zeroScore.differenceStructural=new DifferenceToReferenceDiff(0, 0);
 	}
+
+	/** Checks if the supplied graph has <i>k</i> matching transitions from vA and vB. Expects a graph to contain sequence and
+	 * a single disconnected state for an initial state.
+	 *  
+	 * @param gr graph to consider
+	 * @param vA first vertex
+	 * @param vB second vertex
+	 * @param k length of paths to consider
+	 * @return whether paths of length k are the same and false otherwise.
+	 */
+	public static boolean checkMatch(LearnerGraph gr, CmpVertex vA, CmpVertex vB, int k)
+	{
+		if (k == 0)
+			return true;
+		if (k < 0)
+			throw new IllegalArgumentException("k has to be 0 or above");
+		Map<Label,CmpVertex> outgoingA = gr.transitionMatrix.get(vA), outgoingB = gr.transitionMatrix.get(vB);
+		if (outgoingA.size() == 0)
+			return false;
+		if (outgoingB.size() == 0)
+			return false;
+		
+		if (outgoingA.size() != 1 || outgoingB.size() != 1)
+			throw new IllegalArgumentException("the graph should have traces in it with no branches");
+		
+		Label out = outgoingA.keySet().iterator().next();
+		if (!outgoingB.containsKey(out))
+			return false;
+		
+		return checkMatch(gr,outgoingA.get(out), outgoingB.get(out),k-1);
+	}
 	
+	public static LearnerGraph traditionalKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
+	{
+		LearnerGraph outcome = null;
+		try
+		{
+			outcome = traditionalKtailsHelper(positive,negative,k,config);
+		}
+		catch(IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to build a graph", e);
+		}
+		
+		return outcome;
+	}
+	
+	public static LearnerGraph traditionalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException
+	{
+		LearnerGraph graphWithTraces = new LearnerGraph(config);
+		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+				config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+1,negative.size()+1):
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+negative.size()+1);
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,graphWithTraces);
+			initialEQ.mergeWith(graphWithTraces.getInit(),null);
+			stateToEquivalenceClass.put(graphWithTraces.getInit(), initialEQ);
+			for(List<Label> pos:positive)
+			{
+				CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
+				graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
+				graphWithTraces.paths.augmentPTA(pos, startForPath, true, false,null);
+				initialEQ.mergeWith(startForPath,graphWithTraces.transitionMatrix.get(startForPath).entrySet());
+			}
+			for(List<Label> neg:negative)
+			{
+				if (neg.size() == 0)
+				{
+					//CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(outcome.nextID(false),outcome.config);
+					//outcome.transitionMatrix.put(startForPath,outcome.createNewRow());
+					throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
+				}
+				else
+				{
+					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
+					graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
+					graphWithTraces.paths.augmentPTA(neg, startForPath, false, false,null);
+					initialEQ.mergeWith(startForPath,graphWithTraces.transitionMatrix.get(startForPath).entrySet());
+				}
+			}
+			
+			mergedVertices.add(initialEQ);
+			for(CmpVertex vA:graphWithTraces.transitionMatrix.keySet())
+			{
+				for(CmpVertex vB:graphWithTraces.transitionMatrix.keySet())
+					if (vA == vB)
+						break;
+					else
+					{
+						if (checkMatch(graphWithTraces,vA,vB,k))
+							graphWithTraces.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
+					}
+			}
+			return graphWithTraces.pathroutines.buildDeterministicGraphHelper(initialEQ, stateToEquivalenceClass.values());
+	}
 }
 

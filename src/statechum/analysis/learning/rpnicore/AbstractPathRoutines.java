@@ -19,6 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -672,25 +673,52 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public LearnerGraph buildDeterministicGraph(CmpVertex initialState) throws IncompatibleStatesException
 	{
 		
-		/** Maps sets of target states to the corresponding known states. */
-		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
 		
-		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 		if (coregraph.transitionMatrix.isEmpty())
 		{
 			if (initialState != null) throw new IllegalArgumentException("non-null supplied state "+initialState);
+			LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 			return result;
 		}
 		if (!coregraph.transitionMatrix.containsKey(initialState)) throw new IllegalArgumentException("the supplied state "+initialState+" is not in the graph");
 
-		int eqClassNumber = 0;
-		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.mergeWith(initialState,null);
-		initial.constructMergedVertex(result,true,false);
-		result.setInit(initial.getMergedVertex());result.transitionMatrix.put(initial.getMergedVertex(), result.createNewRow());
-		Queue<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+		
+		EquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(0,coregraph);initial.mergeWith(initialState,null);
+		Collection<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> eqClasses = new ArrayList<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(1);eqClasses.add(initial);
 
+		return buildDeterministicGraphHelper(initial,eqClasses);
+	}
+	
+	/** A Helper routine to construct a deterministic graph from a non-deterministic one.
+	 * 
+	 * @param result graph to modify.
+	 * @param initial the equivalence class that is to be an initial state in the outcome
+	 * @param equivalenceClasses equivalence classes corresponding to groups of states in the current graph 
+	 * @return deterministic version of the graph
+	 * @throws IncompatibleStatesException
+	 */
+	public LearnerGraph buildDeterministicGraphHelper(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial,
+			Collection<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses) throws IncompatibleStatesException
+	{
+		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
+		/** Maps sets of target states to the corresponding known states. */
+		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> statesToEquivalenceClass = new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
+		Queue<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+		boolean initialInEqClasses = false;
+		for(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> eq:equivalenceClasses)
+		{
+			if (eq == initial)
+				initialInEqClasses = true;
+			eq.constructMergedVertex(result,true,false);
+			statesToEquivalenceClass.put(eq.getStates(), eq);currentExplorationBoundary.add(eq);
+		}
+		if (!initialInEqClasses)
+			throw new IllegalArgumentException("the supplied initial equivalence class should be included in the list of equivalence classes");
+		
+		result.setInit(initial.getMergedVertex());result.transitionMatrix.put(initial.getMergedVertex(), result.createNewRow());
+		
 		Map<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
-		currentExplorationBoundary.add(initial);equivalenceClasses.put(initial.getStates(),initial);
+		int eqClassNumber = statesToEquivalenceClass.size();
 		while(!currentExplorationBoundary.isEmpty())
 		{// Unlike PairScoreComputation, here all target states are merged in one go. This is why it does not seem to
 		 // make sense expanding them into individual input-state pairs.
@@ -722,12 +750,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			// 2. append those I've not yet seen to the exploration stack.
 			for(Entry<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
 			{
-				EquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = equivalenceClasses.get(transition.getValue().getStates());
+				EquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = statesToEquivalenceClass.get(transition.getValue().getStates());
 				if (realTargetState == null)
 				{// this is a new state
 					realTargetState = transition.getValue();
 					currentExplorationBoundary.offer(realTargetState);
-					equivalenceClasses.put(realTargetState.getStates(),realTargetState);
+					statesToEquivalenceClass.put(realTargetState.getStates(),realTargetState);
 					realTargetState.constructMergedVertex(result,true,false);
 					result.transitionMatrix.put(realTargetState.getMergedVertex(), result.createNewRow());
 				}
@@ -736,7 +764,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 		}
 
-		AMEquivalenceClass.populateCompatible(result, equivalenceClasses.values());
+		AMEquivalenceClass.populateCompatible(result, statesToEquivalenceClass.values());
 		result.setName("after making deterministic");
 		return result;
 	}

@@ -51,6 +51,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -63,6 +64,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
@@ -112,7 +114,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	/** The working configuration to use when running tests. */
-	private Configuration testConfig = null;
+	Configuration testConfig = null;
 	
 	/** Each test starts with this configuration. */
 	private Configuration mainConfiguration = null;
@@ -1543,6 +1545,86 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
 		}},IllegalArgumentException.class,"invalid merge: pair");
 
+	}
+	
+	@Test
+	public final void testcheckMatch1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.checkMatch(null, null, null, -1);
+		}},IllegalArgumentException.class,"k has to be 0 or above");
+	}
+	
+	@Test
+	public final void testcheckMatch2()
+	{
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(null, null, null, 0));
+	}
+	
+	@Test
+	public final void testcheckMatch3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-b->C-a->C", "testcheckMatch3",testConfig,getLabelConverter());
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1);
+		}},IllegalArgumentException.class,"the graph should have traces in it with no branches");
+	}
+	
+	@Test
+	public final void testcheckMatch4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testcheckMatch4",testConfig,getLabelConverter());
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 2));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 3));
+	}
+	
+	@Test
+	public final void testcheckMatch5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B / T-b->C-a->C", "testcheckMatch5",testConfig,getLabelConverter());
+		for(int i=0;i<100;++i)
+		{
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("C"), i));
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), i));
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), i));
+		}
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("T"), 1));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("T"), 1));
+	}
+	@Test
+	public final void testcheckMatch6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->T / C-a->D-a->C", "testcheckMatch6",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
+	}		
+	
+	@Test
+	public final void testTraditionalKTails1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig);
+		}},IllegalArgumentException.class,"graphs with initial state reject-stat");
+	}
+
+	@Test
+	public final void testTraditionalKTails2()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig);
+		Assert.assertEquals(1, actual.getStateNumber());
+		Assert.assertEquals(0, actual.pathroutines.countEdges());
+	}
+	
+	@Test
+	public final void testTraditionalKTails3()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
 	}
 	/*
 	@Test

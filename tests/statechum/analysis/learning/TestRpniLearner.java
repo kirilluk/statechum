@@ -76,6 +76,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import static statechum.Helper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
 
 @RunWith(ParameterizedWithName.class)
@@ -1623,6 +1624,82 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testTraditionalKTails4()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	// Same traces as testTraditionalKTails4 but no mergers because k is too high. 
+	@Test
+	public final void testTraditionalKTails5()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testTraditionalKTails6()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildList(new String[][]{
+			new String[]{"a","b"},
+			new String[]{"a","b"},
+			new String[]{"a","a","b","a","b"},
+			new String[]{"b","b","a","b"}
+		},testConfig,getLabelConverter()),buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testTraditionalKTails7()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildList(new String[][]{
+			new String[]{"a","b"},
+			new String[]{"a","b"},
+			new String[]{"a","a","b","a","b"},
+			new String[]{"b","b","a","b"}
+		},testConfig,getLabelConverter()),buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testTraditionalKTails8()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildList(new String[][]{
+			new String[]{"a","b"},
+			new String[]{"a","b"},
+			new String[]{"a","a","b","a","b"},
+			new String[]{"b","b","a","b"}
+		},testConfig,getLabelConverter()),buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testTraditionalKTails9()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildList(new String[][]{
+			new String[]{"a","b"},
+			new String[]{"a","b"},
+			new String[]{"a","a","b","a","b"},
+			new String[]{"b","b","a","b"}
+		},testConfig,getLabelConverter()),buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		//Visualiser.updateFrame(fsm, actual);Visualiser.waitForKey();
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}

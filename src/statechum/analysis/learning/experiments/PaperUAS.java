@@ -102,6 +102,7 @@ import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class PaperUAS 
@@ -1395,6 +1396,29 @@ public class PaperUAS
 			System.out.println("maximal depth: "+depth);
 		}
 		List<UASExperiment> listOfExperiments = new ArrayList<UASExperiment>();
+		
+		// Try ktails
+		{
+			for(int i=1;i<4;++i)
+			{
+				String graphName = outPathPrefix+"uas-All-ktails"+i;
+				if (!new File(PaperUAS.fileName(graphName)).canRead())
+				{
+					System.out.println(new Date()+" trying ktails "+i);
+					final PTASequenceEngine samples = framesToTraces.get(paper.maxFrameNumber);
+					PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();
+					PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
+						FilterPredicate origFilter = samples.getFSM_filterPredicate();
+						public @Override boolean shouldBeReturned(Object name) {
+							return !origFilter.shouldBeReturned(name);
+						}
+					};
+					LearnerGraph kTailsOutcome = LearningAlgorithms.traditionalKtails(samples.getData(posPredicate),samples.getData(negPredicate),2,paper.learnerInitConfiguration.config);
+					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
+					System.out.println(new Date()+" finished ktails "+i);
+				}
+			}
+		}
 		
 		{// process all the traces from all UAVs and seeds in one go
 			String graphName = outPathPrefix+"uas-All";

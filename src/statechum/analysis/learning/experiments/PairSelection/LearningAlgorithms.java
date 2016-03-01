@@ -38,6 +38,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -910,7 +911,7 @@ public class LearningAlgorithms
 				CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
 				graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
 				graphWithTraces.paths.augmentPTA(pos, startForPath, true, false,null);
-				initialEQ.mergeWith(startForPath,graphWithTraces.transitionMatrix.get(startForPath).entrySet());
+				graphWithTraces.pairscores.mergePair(new StatePair(graphWithTraces.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
 			}
 			for(List<Label> neg:negative)
 			{
@@ -925,7 +926,7 @@ public class LearningAlgorithms
 					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
 					graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
 					graphWithTraces.paths.augmentPTA(neg, startForPath, false, false,null);
-					initialEQ.mergeWith(startForPath,graphWithTraces.transitionMatrix.get(startForPath).entrySet());
+					graphWithTraces.pairscores.mergePair(new StatePair(graphWithTraces.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
 				}
 			}
 			
@@ -941,7 +942,39 @@ public class LearningAlgorithms
 							graphWithTraces.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
 					}
 			}
-			return graphWithTraces.pathroutines.buildDeterministicGraphHelper(initialEQ, stateToEquivalenceClass.values());
+			
+			LearnerGraphND ndGraph = new LearnerGraphND(config.copy());
+			// we are not building merged vertices, preferring instead to use representative vertices.
+
+			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graphWithTraces.transitionMatrix.entrySet())
+			{
+				EquivalenceClass<CmpVertex,LearnerGraphCachedData> sourceEq = stateToEquivalenceClass.get(entry.getKey());
+				CmpVertex considerTransitionsOriginatingFrom = entry.getKey();
+				if (sourceEq != null)
+					// the current state is part of an equivalence class. Associate all outgoing transitions with a representative state.
+					considerTransitionsOriginatingFrom = sourceEq.getRepresentative();
+				
+				Map<Label,List<CmpVertex>> transitionRow = ndGraph.transitionMatrix.get(considerTransitionsOriginatingFrom);
+				if (transitionRow == null)
+				{
+					transitionRow = ndGraph.createNewRow();ndGraph.transitionMatrix.put(considerTransitionsOriginatingFrom, transitionRow);
+				}
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				{
+					EquivalenceClass<CmpVertex,LearnerGraphCachedData> targetEq = stateToEquivalenceClass.get(transition.getValue());
+					CmpVertex considerTarget = transition.getValue();
+					if (targetEq != null)
+						considerTarget = targetEq.getRepresentative();
+					List<CmpVertex> targetStates = transitionRow.get(transition.getKey());
+					if (targetStates == null)
+					{
+						targetStates = new LinkedList<CmpVertex>();transitionRow.put(transition.getKey(), targetStates);
+					}
+					targetStates.add(considerTarget);
+				}
+			}
+			ndGraph.setInit(initialEQ.getRepresentative());
+			return ndGraph.pathroutines.buildDeterministicGraph();
 	}
 }
 

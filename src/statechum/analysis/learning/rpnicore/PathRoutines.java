@@ -243,7 +243,6 @@ public class PathRoutines {
 			augmentPTA(sequence, accepted,maximalAutomaton,null);
 		return coregraph;
 	}
-	
 	/** Given a path and whether it is an accept or reject-path adds this path to the graph. 
 	 * An accept-path added in its entirety; reject-path has the last node as reject and the rest are accept ones.
 	 * <p>
@@ -262,7 +261,28 @@ public class PathRoutines {
 	 */
 	public LearnerGraph augmentPTA(List<Label> sequence, boolean accepted, boolean maximalAutomaton, JUConstants newColour)
 	{
-		CmpVertex currentState = coregraph.getInit(), prevState = null;
+		return augmentPTA(sequence, coregraph.getInit(),accepted, maximalAutomaton, newColour);
+	}
+	
+	/** Given a path and whether it is an accept or reject-path adds this path to the graph. 
+	 * An accept-path added in its entirety; reject-path has the last node as reject and the rest are accept ones.
+	 * <p>
+	 * The special case is when we add a path to a maximal automaton which is accepting a language which is not
+	 * prefix-closed. For this reason, when a reject path is added which clashes with an existing path,
+	 * the existing path is truncated at the new reject-node. Repeated addition of reject sequences can hence
+	 * render parts of the state space inaccessible; this is to be expected and can be easily removed by computing
+	 * a state cover (as a map of states->sequences) and removing all state not mentioned in it. 
+	 * 
+	 * @param sequence the path to add
+	 * @param accepted whether the last element is accept or reject.
+	 * @param maxAutomaton whether to interpret the current automaton as a maximal automaton 
+	 * (where a reject-node overrides an accept one)
+	 * @param newColour the colour to assign to all new vertices, usually this should be left at null.
+	 * @return the current (updated) graph. 
+	 */
+	public LearnerGraph augmentPTA(List<Label> sequence, CmpVertex startingState, boolean accepted, boolean maximalAutomaton, JUConstants newColour)
+	{
+		CmpVertex currentState = startingState, prevState = null;
 		Iterator<Label> inputIt = sequence.iterator();
 		Label lastInput = null;
 		int position = 0;

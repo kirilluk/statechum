@@ -880,6 +880,38 @@ public class PairScoreComputation {
 		return outcome;
 	}
 	
+	
+	public LearnerGraph traditionalKtails(Collection<List<Label>> positive, Collection<List<Label>> negative)
+	{
+		
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		LearnerGraph outcome = new LearnerGraph(coregraph.config);
+		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,coregraph);
+		for(List<Label> pos:positive)
+		{
+			CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(outcome.nextID(true),outcome.config);
+			outcome.transitionMatrix.put(startForPath,outcome.createNewRow());
+			outcome.paths.augmentPTA(pos, startForPath, true, false,null);
+			//initialEQ.
+		}
+		for(List<Label> neg:negative)
+		{
+			if (neg.size() == 0)
+			{
+				//CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(outcome.nextID(false),outcome.config);
+				//outcome.transitionMatrix.put(startForPath,outcome.createNewRow());
+				throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
+			}
+			else
+			{
+				CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(outcome.nextID(true),outcome.config);
+				outcome.transitionMatrix.put(startForPath,outcome.createNewRow());
+				outcome.paths.augmentPTA(neg, startForPath, false, false,null);
+			}
+		}
+		return outcome;
+	}
+	
 	/** Computes a stack of states with scores over a given threshold, using Linear. 
 	 * States which are filtered out by GDLearnerGraph's filter are ignored.
 	 * The outcome is not sorted - this internal routine is used by 

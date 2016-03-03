@@ -21,6 +21,7 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
@@ -423,12 +424,13 @@ public class I2cexperiment extends PairQualityLearner
 		}
 	}
 	
+	/** Alphabet that is expected in a trace to load. */
 	protected static String alphabet[]=new String[]{
 			"=S","@","=R","=TA","[*9]","-Ta","~SnA","~SnB","~R","#S","#W","#Ta","#s","#RA","[+1]","^Ra","~r",
 			"~SwA","~swA","^E","#L","~Xr","?"					
 	};
-	
-	
+	protected static String alphabetElementToConsiderErr = "?";
+	protected static String errElement = "Err";
 	private static List<Label> loadTrace(String inputFileName,ConvertALabel converter)
 	{
 		List<Label> returnValue = new LinkedList<Label>();
@@ -453,6 +455,8 @@ public class I2cexperiment extends PairQualityLearner
 	            	if (aFound == null)
 	            		throw new IllegalArgumentException("failed to match the beginning of line "+lineOfLog);
 	            	lineOfLog = lineOfLog.substring(aFound.length());
+	            	if (aFound.equals(alphabetElementToConsiderErr))
+	            		aFound =errElement;
 	            	returnValue.add(converter.convertLabelToLabel(new StringLabel(aFound)));
             	}
             }
@@ -488,21 +492,24 @@ public class I2cexperiment extends PairQualityLearner
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
+		config.setHowManyStatesToAddFromIFTHEN(1);
 		ConvertALabel converter = new Transform.InternStringLabel();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int chunkSize = 7;
 	
 		// Inference from a few traces
-		final boolean onlyPositives=true;
+		final boolean onlyPositives=false;
 
-		LearnerGraph initialPta = new LearnerGraph(config);
-		initialPta.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",converter), true, false,null);
-	    System.out.println(initialPta.learnerCache.getAlphabet());
-	    LearnerRunner learnerRunner = new LearnerRunner(config, converter);
-	    learnerRunner.setOnlyUsePositives(onlyPositives);
+		LearnerGraph initialPTA = new LearnerGraph(config);
+		initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",converter), true, false,null);
+    //System.out.println(initialPta.learnerCache.getAlphabet());
+		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), config, converter).toArray(new LearnerGraph[0]);
+		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
+	  LearnerRunner learnerRunner = new LearnerRunner(config, converter);
+	  learnerRunner.setOnlyUsePositives(onlyPositives);
 		learnerRunner.setChunkLen(chunkSize);
 		
-		learnerRunner.setpta(initialPta);
+		learnerRunner.setpta(initialPTA);
 
 		//learnerRunner.setPresetLearningParameters(0);
 		learnerRunner.setlearningParameters(false, false, false, false, false);

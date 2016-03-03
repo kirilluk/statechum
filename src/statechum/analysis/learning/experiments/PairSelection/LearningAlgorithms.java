@@ -1,5 +1,6 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -920,12 +922,12 @@ public class LearningAlgorithms
 		return outcome;
 	}
 	
-	public static LearnerGraph ptaConcurrentKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
+	public static LearnerGraph ptaConcurrentKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config, String ndFileName)
 	{
 		
 		LearnerGraph pta = new LearnerGraph(config);
 		pta.paths.augmentPTA(positive, true, false);pta.paths.augmentPTA(negative, false, false);
-		return ptaConcurrentKtails(pta, k);
+		return ptaConcurrentKtails(pta, k,ndFileName);
 	}
 	
 	public static LearnerGraph ptaKtails(LearnerGraph graph, int k)
@@ -969,7 +971,18 @@ public class LearningAlgorithms
 		return currentGraph;
 	}
 	
-	static LearnerGraph constructKTailsNDGraphAndDeterminizeIt(LearnerGraph existingGraph,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass,CmpVertex initial) throws IncompatibleStatesException
+	/**
+	 * Given a map from vertices to vertices to merge with, constructs a non-deterministic graph and then calls 
+	 * {@link AbstractPathRoutines#buildDeterministicGraph()} to build a deterministic version of it.
+	 *  
+	 * @param existingGraph graph with traces from which an ND graph will be built by merging states. 
+	 * @param stateToEquivalenceClass determines which states to merge.
+	 * @param initial the initial state in the ND graph
+	 * @param ndFileName the name of the file to save the graph before running the determinisation, in case it blows and I need to re-run a lengthy experiment. Ignored if null.
+	 * @return deterministic version of the provided graph with state mergers described by<i>stateToEquivalenceClass</i> carried out.
+	 * @throws IncompatibleStatesException
+	 */
+	static LearnerGraph constructKTailsNDGraphAndDeterminizeIt(LearnerGraph existingGraph,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass,CmpVertex initial, String ndFileName) throws IncompatibleStatesException
 	{
 		LearnerGraphND ndGraph = new LearnerGraphND(existingGraph.config.copy());
 		// we are not building merged vertices, preferring instead to use representative vertices.
@@ -1002,6 +1015,15 @@ public class LearningAlgorithms
 			}
 		}
 		ndGraph.setInit(initial);
+		if (ndFileName != null)
+			try
+			{
+				ndGraph.storage.writeGraphML(ndFileName);
+			} catch (IOException e)
+			{
+				System.err.println("Failed to write ND graph to "+ndFileName+", exception "+e.getMessage());
+				e.printStackTrace();
+			}
 		return ndGraph.pathroutines.buildDeterministicGraph();		
 	}
 	
@@ -1040,7 +1062,7 @@ public class LearningAlgorithms
 				else
 					vA=null;
 			}
-			return constructKTailsNDGraphAndDeterminizeIt(existingGraph,stateToEquivalenceClass,initialEQ.getRepresentative());	
+			return constructKTailsNDGraphAndDeterminizeIt(existingGraph,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 	
 	public static long computeStateScoreKTails(LearnerGraph gr, StatePair pair, int k, boolean anyPath)
@@ -1158,7 +1180,7 @@ public class LearningAlgorithms
 					}
 			}
 			
-			return constructKTailsNDGraphAndDeterminizeIt(graphWithTraces,stateToEquivalenceClass,initialEQ.getRepresentative());	
+			return constructKTailsNDGraphAndDeterminizeIt(graphWithTraces,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 
 	public static LearnerGraph traditionalPTAKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative,int k,Configuration config) throws IncompatibleStatesException
@@ -1203,10 +1225,10 @@ public class LearningAlgorithms
 					}
 			}
 			System.out.println(new Date()+"started to make deterministic");
-			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative());	
+			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 	
-	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k)
+	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k, String ndFileName)
 	{
 		final AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
@@ -1225,12 +1247,10 @@ public class LearningAlgorithms
 			}
 			
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			AtomicLong time = new AtomicLong(System.currentTimeMillis()),Cnt=new AtomicLong(0);
 			double total=(double)pta.transitionMatrix.size()*(pta.transitionMatrix.size()+1)/2;
 			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
 			int threadNumber = ExperimentRunner.getCpuNumber();
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
-			final AtomicLong progressCounter = new AtomicLong();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			handlerList.add(new HandleRow<CmpVertex>()
 			{
@@ -1240,7 +1260,7 @@ public class LearningAlgorithms
 				}
 
 				@Override
-				public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, int threadNo)
+				public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo)
 				{// we are never called with entryA which has been filtered out.
 					CmpVertex stateA=entryA.getKey();
 					Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = pta.transitionMatrix.entrySet().iterator();
@@ -1275,7 +1295,7 @@ public class LearningAlgorithms
 			LearnerGraph outcome = null;
 			try
 			{
-				outcome = constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative());
+				outcome = constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),ndFileName);
 			}
 			catch(IncompatibleStatesException e)
 			{

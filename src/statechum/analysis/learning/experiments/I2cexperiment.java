@@ -501,6 +501,7 @@ public class I2cexperiment extends PairQualityLearner
 	    LearnerRunner learnerRunner = new LearnerRunner(config, converter);
 	    learnerRunner.setOnlyUsePositives(onlyPositives);
 		learnerRunner.setChunkLen(chunkSize);
+		
 		learnerRunner.setpta(initialPta);
 
 		//learnerRunner.setPresetLearningParameters(0);

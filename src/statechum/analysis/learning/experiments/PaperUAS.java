@@ -1418,7 +1418,7 @@ public class PaperUAS
 					*/
 					LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 					initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
-					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaConcurrentKtails(initialPTA, i);
+					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i);
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

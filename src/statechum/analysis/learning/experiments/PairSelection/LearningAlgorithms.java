@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -28,6 +31,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
@@ -36,6 +40,8 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.GDLearnerGraph;
+import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -914,6 +920,14 @@ public class LearningAlgorithms
 		return outcome;
 	}
 	
+	public static LearnerGraph ptaConcurrentKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
+	{
+		
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(positive, true, false);pta.paths.augmentPTA(negative, false, false);
+		return ptaConcurrentKtails(pta, k);
+	}
+	
 	public static LearnerGraph ptaKtails(LearnerGraph graph, int k)
 	{
 		LearnerGraph outcome = null;
@@ -1165,7 +1179,9 @@ public class LearningAlgorithms
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
 			initialEQ.mergeWith(pta.getInit(),null);
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			
+			long time = System.currentTimeMillis(),Cnt=0, mergersCnt=0;
+			double total=(double)pta.transitionMatrix.size()*(pta.transitionMatrix.size()+1)/2;
+			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
 			for(CmpVertex vA:pta.transitionMatrix.keySet())
 			{
 				for(CmpVertex vB:pta.transitionMatrix.keySet())
@@ -1173,13 +1189,102 @@ public class LearningAlgorithms
 						break;
 					else
 					{
+						long curr = System.currentTimeMillis();
+						if (curr-time > 60000)
+						{
+							System.out.println(new Date()+"Progress: "+(100*(double)Cnt/total)+" current value "+Cnt+" completed "+mergersCnt+" mergers");
+							time = curr;
+						}
 						if (computeStateScoreKTails(pta,new StatePair(vA,vB),k,true) >=0)
-							pta.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
+						{
+							pta.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);mergersCnt++;
+						}
+						++Cnt;
 					}
 			}
-			
+			System.out.println(new Date()+"started to make deterministic");
 			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative());	
 	}
+	
+	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k)
+	{
+		final AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
+		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
+		final Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
+			try
+			{
+				initialEQ.mergeWith(pta.getInit(),null);
+			}
+			catch(IncompatibleStatesException e)
+			{
+				Helper.throwUnchecked("failed to merge states in the construction of the initial eq class", e);
+			}
+			
+			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
+			AtomicLong time = new AtomicLong(System.currentTimeMillis()),Cnt=new AtomicLong(0);
+			double total=(double)pta.transitionMatrix.size()*(pta.transitionMatrix.size()+1)/2;
+			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
+			int threadNumber = ExperimentRunner.getCpuNumber();
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			final AtomicLong progressCounter = new AtomicLong();
+			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
+			handlerList.add(new HandleRow<CmpVertex>()
+			{
+				@Override
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
+
+				@Override
+				public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, int threadNo)
+				{// we are never called with entryA which has been filtered out.
+					CmpVertex stateA=entryA.getKey();
+					Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = pta.transitionMatrix.entrySet().iterator();
+					while(stateB_It.hasNext())
+					{
+						CmpVertex stateB = stateB_It.next().getKey();
+						if (stateB.equals(stateA)) 
+							break; // we only process a triangular subset.
+						
+						if (computeStateScoreKTails(pta,new StatePair(stateA,stateB),k,true) >=0)
+						{
+							try
+							{
+								synchronized(stateToEquivalenceClass)
+								{// modifications to equivalence classes have to be made in sync
+									pta.pairscores.mergePair(new StatePair(stateA,stateB),stateToEquivalenceClass,mergingDetails);
+								}
+							} catch (IncompatibleStatesException e)
+							{
+								Helper.throwUnchecked("failed to merge states", e);
+							}
+						}
+						//long currentProgress = progressCounter.incrementAndGet();
+						
+					}
+				}
+			});
+			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, new LearnerGraphND.ignoreNoneClass(),
+					GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix.size()));
+			
+			System.out.println(new Date()+"started to make deterministic");
+			LearnerGraph outcome = null;
+			try
+			{
+				outcome = constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative());
+			}
+			catch(IncompatibleStatesException e)
+			{
+				Helper.throwUnchecked("failed to merge states in the final merge", e);
+			}
+			
+			return outcome;
+	}
+
 }
 
 

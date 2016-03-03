@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -17,6 +20,7 @@ import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
@@ -848,19 +852,20 @@ public class LearningAlgorithms
 		zeroScore = new ScoresForGraph();zeroScore.differenceBCR=new DifferenceToReferenceLanguageBCR(0, 0, 0, 0);zeroScore.differenceStructural=new DifferenceToReferenceDiff(0, 0);
 	}
 
-	/** Checks if the supplied graph has <i>k</i> matching transitions from vA and vB. Expects a graph to contain sequence and
-	 * a single disconnected state for an initial state.
+	/** Checks if the supplied graph has <i>k</i> matching transitions from vA and vB. Expects a graph on the left-hand side to contain sequence and
+	 * a the one on the right to form a directed graph, permitting one to merge sequences into an existing machine, thereby avoiding having to perform
+	 * pairwise comparisons between millions of states.
 	 *  
 	 * @param gr graph to consider
-	 * @param vA first vertex
-	 * @param vB second vertex
+	 * @param vA first vertex (should be a sequence)
+	 * @param vB second vertex (can be a state machine)
 	 * @param k length of paths to consider
 	 * @return whether paths of length k are the same and false otherwise.
 	 */
 	public static boolean checkMatch(LearnerGraph gr, CmpVertex vA, CmpVertex vB, int k)
 	{
 		if (k == 0)
-			return true;
+			return vA.isAccept() == vB.isAccept();
 		if (k < 0)
 			throw new IllegalArgumentException("k has to be 0 or above");
 		Map<Label,CmpVertex> outgoingA = gr.transitionMatrix.get(vA), outgoingB = gr.transitionMatrix.get(vB);
@@ -869,7 +874,7 @@ public class LearningAlgorithms
 		if (outgoingB.size() == 0)
 			return false;
 		
-		if (outgoingA.size() != 1 || outgoingB.size() != 1)
+		if (outgoingA.size() != 1)
 			throw new IllegalArgumentException("the graph should have traces in it with no branches");
 		
 		Label out = outgoingA.keySet().iterator().next();
@@ -877,6 +882,51 @@ public class LearningAlgorithms
 			return false;
 		
 		return checkMatch(gr,outgoingA.get(out), outgoingB.get(out),k-1);
+	}
+	
+	public static LearnerGraph incrementalKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
+	{
+		LearnerGraph outcome = null;
+		try
+		{
+			outcome = incrementalKtailsHelper(positive,negative,k,config);
+		}
+		catch(IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to build a graph", e);
+		}
+		
+		return outcome;
+	}
+	
+	public static LearnerGraph ptaKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
+	{
+		LearnerGraph outcome = null;
+		try
+		{
+			outcome = traditionalPTAKtailsHelper(positive,negative,k,config);
+		}
+		catch(IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to build a graph", e);
+		}
+		
+		return outcome;
+	}
+	
+	public static LearnerGraph ptaKtails(LearnerGraph graph, int k)
+	{
+		LearnerGraph outcome = null;
+		try
+		{
+			outcome = traditionalPTAKtailsHelper(graph,k);
+		}
+		catch(IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to build a graph", e);
+		}
+		
+		return outcome;
 	}
 	
 	public static LearnerGraph traditionalKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config)
@@ -894,6 +944,159 @@ public class LearningAlgorithms
 		return outcome;
 	}
 	
+	
+	public static LearnerGraph incrementalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException
+	{
+		LearnerGraph currentGraph = new LearnerGraph(config);
+		for(List<Label> pos:positive)
+			currentGraph=incrementalKtailsHelper(pos,true,k,currentGraph);
+		for(List<Label> neg:negative)
+			currentGraph=incrementalKtailsHelper(neg,false,k,currentGraph);
+		return currentGraph;
+	}
+	
+	static LearnerGraph constructKTailsNDGraphAndDeterminizeIt(LearnerGraph existingGraph,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass,CmpVertex initial) throws IncompatibleStatesException
+	{
+		LearnerGraphND ndGraph = new LearnerGraphND(existingGraph.config.copy());
+		// we are not building merged vertices, preferring instead to use representative vertices.
+
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:existingGraph.transitionMatrix.entrySet())
+		{
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> sourceEq = stateToEquivalenceClass.get(entry.getKey());
+			CmpVertex considerTransitionsOriginatingFrom = entry.getKey();
+			if (sourceEq != null)
+				// the current state is part of an equivalence class. Associate all outgoing transitions with a representative state.
+				considerTransitionsOriginatingFrom = sourceEq.getRepresentative();
+			
+			Map<Label,List<CmpVertex>> transitionRow = ndGraph.transitionMatrix.get(considerTransitionsOriginatingFrom);
+			if (transitionRow == null)
+			{
+				transitionRow = ndGraph.createNewRow();ndGraph.transitionMatrix.put(considerTransitionsOriginatingFrom, transitionRow);
+			}
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+			{
+				EquivalenceClass<CmpVertex,LearnerGraphCachedData> targetEq = stateToEquivalenceClass.get(transition.getValue());
+				CmpVertex considerTarget = transition.getValue();
+				if (targetEq != null)
+					considerTarget = targetEq.getRepresentative();
+				List<CmpVertex> targetStates = transitionRow.get(transition.getKey());
+				if (targetStates == null)
+				{
+					targetStates = new ArrayList<CmpVertex>();transitionRow.put(transition.getKey(), targetStates);
+				}
+				targetStates.add(considerTarget);
+			}
+		}
+		ndGraph.setInit(initial);
+		return ndGraph.pathroutines.buildDeterministicGraph();		
+	}
+	
+	public static LearnerGraph incrementalKtailsHelper(List<Label> sequence, boolean positive, int k,LearnerGraph existingGraph) throws IncompatibleStatesException
+	{
+		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
+		Pair<Integer,Integer> acceptRejectNumber = existingGraph.getAcceptAndRejectStateNumber();
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+				existingGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,existingGraph);
+			initialEQ.mergeWith(existingGraph.getInit(),null);
+			stateToEquivalenceClass.put(existingGraph.getInit(), initialEQ);
+			if (!positive && sequence.size() == 0)
+				throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
+		
+			CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(existingGraph.nextID(true),existingGraph.config);
+			existingGraph.transitionMatrix.put(startForPath,existingGraph.createNewRow());
+			existingGraph.paths.augmentPTA(sequence, startForPath, positive, false,null);
+			existingGraph.pairscores.mergePair(new StatePair(existingGraph.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
+		
+			CmpVertex vA = startForPath;
+			Set<CmpVertex> visitedVertices = new LinkedHashSet<CmpVertex>();
+			while(vA != null)
+			{
+				visitedVertices.add(vA);
+				
+				for(CmpVertex vB:existingGraph.transitionMatrix.keySet())
+					if (!visitedVertices.contains(vB) && checkMatch(existingGraph,vA,vB,k))
+						existingGraph.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
+
+				Map<Label,CmpVertex> next = existingGraph.transitionMatrix.get(vA);
+				if (!next.isEmpty())
+					vA=next.values().iterator().next();
+				else
+					vA=null;
+			}
+			return constructKTailsNDGraphAndDeterminizeIt(existingGraph,stateToEquivalenceClass,initialEQ.getRepresentative());	
+	}
+	
+	public static long computeStateScoreKTails(LearnerGraph gr, StatePair pair, int k, boolean anyPath)
+	{
+		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),gr.pairCompatibility))
+			return -1;
+
+		boolean anyMatched = false;// we need to distinguish a wave where all (or any) transitions matched from a wave where no transitions were possible. This variable is set when any match is obtained.
+		int currentExplorationDepth=1;// when we look at transitions from the initial pair of states, this is depth 1.
+		assert pair.getQ() != pair.getR();
+		
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		if (currentExplorationDepth <= k)
+			currentExplorationBoundary.add(pair);
+		currentExplorationBoundary.offer(null);
+		
+		while(true) // we'll do a break at the end of the last wave
+		{
+			StatePair currentPair = currentExplorationBoundary.remove();
+			if (currentPair == null)
+			{// we got to the end of a wave
+				if (currentExplorationBoundary.isEmpty())
+					break;// we are at the end of the last wave, stop looping.
+
+				// mark the end of a wave.
+				currentExplorationBoundary.offer(null);currentExplorationDepth++;anyMatched = false;
+			}
+			else
+			{
+				Map<Label,CmpVertex> targetRed = gr.transitionMatrix.get(currentPair.getR()),
+					targetBlue = gr.transitionMatrix.get(currentPair.getQ());
+	
+				for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
+				{
+					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
+					if (nextBlueState != null)
+					{// both states can make a transition
+						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,gr.pairCompatibility))
+							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
+						
+						anyMatched = true;// mark that in the current wave, we've seen at least one matched pair of transitions.
+						
+						if (currentExplorationDepth < k)
+						{// if our current depth is less than the one to explore, make subsequent steps.
+							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+							currentExplorationBoundary.offer(nextStatePair);
+						}
+						// If we did not take the above condition (aka reached the maximal depth to explore), we still cannot break out of a loop even if we have anyPath
+						// set to true, because there could be transitions leading to states with different accept-conditions, hence explore all matched transitions.						
+					}
+					else
+					{
+						// if the red can make a move, but the blue one cannot, do not merge the pair unless any path is good enough
+						if (!anyPath)
+							return -1;
+					}
+				}
+				
+				for(Entry<Label,CmpVertex> blueEntry:targetBlue.entrySet())
+					if (null == targetRed.get(blueEntry.getKey()))
+					{
+						if (!anyPath)
+							return -1;// if blue can make a transition and red cannot, stop unless we are looking for any path
+					}
+			}
+		}
+		
+		return anyMatched || k == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
+	}
+
 	public static LearnerGraph traditionalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException
 	{
 		LearnerGraph graphWithTraces = new LearnerGraph(config);
@@ -902,7 +1105,6 @@ public class LearningAlgorithms
 				config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+1,negative.size()+1):
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+negative.size()+1);
-			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,graphWithTraces);
 			initialEQ.mergeWith(graphWithTraces.getInit(),null);
 			stateToEquivalenceClass.put(graphWithTraces.getInit(), initialEQ);
@@ -930,7 +1132,6 @@ public class LearningAlgorithms
 				}
 			}
 			
-			mergedVertices.add(initialEQ);
 			for(CmpVertex vA:graphWithTraces.transitionMatrix.keySet())
 			{
 				for(CmpVertex vB:graphWithTraces.transitionMatrix.keySet())
@@ -943,38 +1144,42 @@ public class LearningAlgorithms
 					}
 			}
 			
-			LearnerGraphND ndGraph = new LearnerGraphND(config.copy());
-			// we are not building merged vertices, preferring instead to use representative vertices.
+			return constructKTailsNDGraphAndDeterminizeIt(graphWithTraces,stateToEquivalenceClass,initialEQ.getRepresentative());	
+	}
 
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graphWithTraces.transitionMatrix.entrySet())
+	public static LearnerGraph traditionalPTAKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative,int k,Configuration config) throws IncompatibleStatesException
+	{
+		LearnerGraph pta = new LearnerGraph(config);
+		pta.paths.augmentPTA(positive, true, false);pta.paths.augmentPTA(negative, false, false);
+		return traditionalPTAKtailsHelper(pta,k);
+	}
+	
+	public static LearnerGraph traditionalPTAKtailsHelper(LearnerGraph pta, int k) throws IncompatibleStatesException
+	{
+		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
+		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
+				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
+			initialEQ.mergeWith(pta.getInit(),null);
+			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
+			
+			for(CmpVertex vA:pta.transitionMatrix.keySet())
 			{
-				EquivalenceClass<CmpVertex,LearnerGraphCachedData> sourceEq = stateToEquivalenceClass.get(entry.getKey());
-				CmpVertex considerTransitionsOriginatingFrom = entry.getKey();
-				if (sourceEq != null)
-					// the current state is part of an equivalence class. Associate all outgoing transitions with a representative state.
-					considerTransitionsOriginatingFrom = sourceEq.getRepresentative();
-				
-				Map<Label,List<CmpVertex>> transitionRow = ndGraph.transitionMatrix.get(considerTransitionsOriginatingFrom);
-				if (transitionRow == null)
-				{
-					transitionRow = ndGraph.createNewRow();ndGraph.transitionMatrix.put(considerTransitionsOriginatingFrom, transitionRow);
-				}
-				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				{
-					EquivalenceClass<CmpVertex,LearnerGraphCachedData> targetEq = stateToEquivalenceClass.get(transition.getValue());
-					CmpVertex considerTarget = transition.getValue();
-					if (targetEq != null)
-						considerTarget = targetEq.getRepresentative();
-					List<CmpVertex> targetStates = transitionRow.get(transition.getKey());
-					if (targetStates == null)
+				for(CmpVertex vB:pta.transitionMatrix.keySet())
+					if (vA == vB)
+						break;
+					else
 					{
-						targetStates = new LinkedList<CmpVertex>();transitionRow.put(transition.getKey(), targetStates);
+						if (computeStateScoreKTails(pta,new StatePair(vA,vB),k,true) >=0)
+							pta.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
 					}
-					targetStates.add(considerTarget);
-				}
 			}
-			ndGraph.setInit(initialEQ.getRepresentative());
-			return ndGraph.pathroutines.buildDeterministicGraph();
+			
+			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative());	
 	}
 }
+
 

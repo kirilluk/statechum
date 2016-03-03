@@ -102,7 +102,6 @@ import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class PaperUAS 
@@ -1404,7 +1403,9 @@ public class PaperUAS
 				String graphName = outPathPrefix+"uas-All-ktails"+i;
 				if (!new File(PaperUAS.fileName(graphName)).canRead())
 				{
+					Configuration config = paper.learnerInitConfiguration.config.copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 					System.out.println(new Date()+" trying ktails "+i);
+					/*
 					final PTASequenceEngine samples = framesToTraces.get(paper.maxFrameNumber);
 					PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();
 					PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
@@ -1413,7 +1414,11 @@ public class PaperUAS
 							return !origFilter.shouldBeReturned(name);
 						}
 					};
-					LearnerGraph kTailsOutcome = LearningAlgorithms.traditionalKtails(samples.getData(posPredicate),samples.getData(negPredicate),2,paper.learnerInitConfiguration.config);
+					LearnerGraph kTailsOutcome = LearningAlgorithms.incrementalKtails(samples.getData(posPredicate),samples.getData(negPredicate),i,config);
+					*/
+					LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+					initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
+					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaKtails(initialPTA, i);
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

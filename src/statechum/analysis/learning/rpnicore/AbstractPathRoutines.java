@@ -48,9 +48,12 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.Pair;
+import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
@@ -672,7 +675,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public LearnerGraph buildDeterministicGraph(CmpVertex initialState) throws IncompatibleStatesException
 	{
 		/** Maps sets of target states to the corresponding known states. */
-		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> statesToEquivalenceClass = new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
+		//Pair<Integer,Integer> acceptReject = coregraph.getAcceptAndRejectStateNumber();
+		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> statesToEquivalenceClass = 
+				//coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				//new ArrayMapWithSearch<Set,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(acceptReject.firstElem,acceptReject.secondElem):
+				new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
 		
 		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 		if (coregraph.transitionMatrix.isEmpty())

@@ -38,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.linear.GDLearnerGraph;
@@ -713,71 +714,9 @@ public class PairScoreComputation {
 	 */
 	public long computeStateScoreKTails(StatePair pair, boolean anyPath)
 	{
-		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
-			return -1;
-
-		boolean anyMatched = false;// we need to distinguish a wave where all (or any) transitions matched from a wave where no transitions were possible. This variable is set when any match is obtained.
-		int currentExplorationDepth=1;// when we look at transitions from the initial pair of states, this is depth 1.
-		assert pair.getQ() != pair.getR();
-		
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		if (currentExplorationDepth <= coregraph.config.getKlimit())
-			currentExplorationBoundary.add(pair);
-		currentExplorationBoundary.offer(null);
-		
-		while(true) // we'll do a break at the end of the last wave
-		{
-			StatePair currentPair = currentExplorationBoundary.remove();
-			if (currentPair == null)
-			{// we got to the end of a wave
-				if (currentExplorationBoundary.isEmpty())
-					break;// we are at the end of the last wave, stop looping.
-
-				// mark the end of a wave.
-				currentExplorationBoundary.offer(null);currentExplorationDepth++;anyMatched = false;
-			}
-			else
-			{
-				Map<Label,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
-					targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
-	
-				for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
-				{
-					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
-					if (nextBlueState != null)
-					{// both states can make a transition
-						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.pairCompatibility))
-							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
-						
-						anyMatched = true;// mark that in the current wave, we've seen at least one matched pair of transitions.
-						
-						if (currentExplorationDepth < coregraph.config.getKlimit())
-						{// if our current depth is less than the one to explore, make subsequent steps.
-							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
-							currentExplorationBoundary.offer(nextStatePair);
-						}
-						// If we did not take the above condition (aka reached the maximal depth to explore), we still cannot break out of a loop even if we have anyPath
-						// set to true, because there could be transitions leading to states with different accept-conditions, hence explore all matched transitions.						
-					}
-					else
-					{
-						// if the red can make a move, but the blue one cannot, do not merge the pair unless any path is good enough
-						if (!anyPath)
-							return -1;
-					}
-				}
-				
-				for(Entry<Label,CmpVertex> blueEntry:targetBlue.entrySet())
-					if (null == targetRed.get(blueEntry.getKey()))
-					{
-						if (!anyPath)
-							return -1;// if blue can make a transition and red cannot, stop unless we are looking for any path
-					}
-			}
-		}
-		
-		return anyMatched || coregraph.config.getKlimit() == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
+		return LearningAlgorithms.computeStateScoreKTails(coregraph,pair,coregraph.config.getKlimit(), anyPath);
 	}
+	
 
 	public long computeScoreSicco(StatePair pair, boolean recursive)
 	{

@@ -55,6 +55,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
@@ -279,7 +280,10 @@ public class LearningAlgorithms
 	/** This one is a reference learner, using Sicco heuristic (if requested) that performs quite well. */
 	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
-		public enum ScoringToApply { SCORING_EDSM, SCORING_SICCO, SCORING_SICCORECURSIVE }
+		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
+		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
+		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
+		public enum ScoringToApply { SCORING_EDSM, EDSM_1, EDSM_2, SCORING_SICCO, SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE, SCORING_SICCORECURSIVE }
 		
 		protected final ScoringToApply scoringMethod;
 		
@@ -339,8 +343,20 @@ public class LearningAlgorithms
 						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,false) < 0)
 							score = -1;
 						break;
+					case SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE:
+						if (score >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeScoreSicco(p,false) < 0)
+							score = -1;
+						break;
 					case SCORING_SICCORECURSIVE:
 						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,true) < 0)
+							score = -1;
+						break;
+					case EDSM_1:
+						if (score < 1)
+							score = -1;
+						break;
+					case EDSM_2:
+						if (score < 2)
 							score = -1;
 						break;
 					}
@@ -1269,27 +1285,38 @@ public class LearningAlgorithms
 						CmpVertex stateB = stateB_It.next().getKey();
 						if (stateB.equals(stateA)) 
 							break; // we only process a triangular subset.
-						
-						if (computeStateScoreKTails(pta,new StatePair(stateA,stateB),k,true) >=0)
+						if (k == 0 || stateB.isAccept())
 						{
-							try
+							StatePair pair = new StatePair(stateA,stateB);
+							if (pta.pairscores.computePairCompatibilityScore(pair) >= 0 && computeStateScoreKTails(pta,pair,k,true) >=0)
 							{
-								synchronized(stateToEquivalenceClass)
-								{// modifications to equivalence classes have to be made in sync
-									pta.pairscores.mergePair(new StatePair(stateA,stateB),stateToEquivalenceClass,mergingDetails);
+								try
+								{
+									synchronized(stateToEquivalenceClass)
+									{// modifications to equivalence classes have to be made in sync
+										pta.pairscores.mergePair(new StatePair(stateA,stateB),stateToEquivalenceClass,mergingDetails);
+									}
+								} catch (IncompatibleStatesException e)
+								{
+									Helper.throwUnchecked("failed to merge states", e);
 								}
-							} catch (IncompatibleStatesException e)
-							{
-								Helper.throwUnchecked("failed to merge states", e);
 							}
 						}
-						//long currentProgress = progressCounter.incrementAndGet();
-						
 					}
 				}
 			});
-			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, new LearnerGraphND.ignoreNoneClass(),
-					GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix.size()));
+			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, new StatesToConsider()
+					{
+				@Override
+				public boolean stateToConsider(CmpVertex vert) 
+				{
+					if (k == 0)
+						return true;
+					
+					return vert.isAccept();
+				}
+			},
+			GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix.size()));
 			
 			System.out.println(new Date()+"started to make deterministic");
 			LearnerGraph outcome = null;

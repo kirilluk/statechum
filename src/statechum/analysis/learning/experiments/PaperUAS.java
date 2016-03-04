@@ -913,8 +913,8 @@ public class PaperUAS
  	
  	public static void computePTASize(String description,LearnerGraph pta, LearnerGraph referenceGraph)
  	{
- 		final int stateCoverSize = referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size();
- 		System.out.println(description+computeLeafCount(pta)/(double)stateCoverSize+" leaves, "+computeTransitionCount(pta)/(double)stateCoverSize+" transitions");
+ 		final int transitionCoverSize = referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size();
+ 		System.out.println(description+computeLeafCount(pta)/(double)transitionCoverSize+" leaves, "+computeTransitionCount(pta)/(double)transitionCoverSize+" transitions");
  	}
 	
 	public static class UASExperiment implements Callable<ThreadResult>
@@ -1420,7 +1420,7 @@ public class PaperUAS
 					initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
 		 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, initialPTA.pathroutines.computeAlphabet(), paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 		 			Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
-					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i);
+					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i+".xml");
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

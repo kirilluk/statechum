@@ -52,6 +52,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -1978,6 +1979,67 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		);
 	}
 */
+	
+	@Test
+	public final void testComputeInfeasiblePairs1()
+	{
+		Assert.assertTrue(LearningSupportRoutines.computeInfeasiblePairs(new LearnerGraph(testConfig)).isEmpty());
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs2()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testComputeInfeasiblePairs2",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a-#B", "testComputeInfeasiblePairs3",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a], b=[a, b]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
+	}
+	
+	@Test
+	public final void testComputeInfeasiblePairs7()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C / A-b->A", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a], b=[]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	@BeforeClass

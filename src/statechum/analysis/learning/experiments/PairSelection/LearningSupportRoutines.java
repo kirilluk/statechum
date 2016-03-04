@@ -143,7 +143,9 @@ public class LearningSupportRoutines
 		}
 	}
 	
-	/** Assuming we know which pairs of labels are not supposed to be merged, this function construts if-then constraints to prevent such mergers. */
+	/** Assuming we know which pairs of labels are not supposed to be merged, this function construts if-then constraints to prevent such mergers.
+	 * This is used in the SmallvsHugeExperiment. 
+	 */
 	public static void addIfThenForPairwiseConstraints(LearnerEvaluationConfiguration initialData, Map<Label,Set<Label>> pairwiseConstraints)
 	{
 		if (initialData.ifthenSequences == null)
@@ -272,8 +274,8 @@ public class LearningSupportRoutines
 		return false;
 	}
 	
-	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence. This is subsequently used to construct if-then automata.
-	 * 
+	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence, from any state. If a pair is possible from some states and not others, it will not be included. 
+	 * This is subsequently used to construct if-then automata.
 	 */
 	public static Map<Label,Set<Label>> computeInfeasiblePairs(LearnerGraph tentativeGraph)
 	{

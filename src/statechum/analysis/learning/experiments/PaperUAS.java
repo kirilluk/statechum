@@ -457,32 +457,14 @@ public class PaperUAS
     	for(Entry<String,TracesForSeed> entry:data.entrySet())
     	{
     		TracesForSeed traceDetails = entry.getValue(), newData = new TracesForSeed();
-/*
-    		for(Entry<String,Map<Integer,Set<List<Label>>>> uavToFrameDetails:traceDetails.collectionOfPositiveTraces.entrySet())
-	    		for(Entry<Integer,Set<List<Label>>> frameToData:uavToFrameDetails.getValue().entrySet())
-		    		for(List<Label> trace:frameToData.getValue())
-		    		{
-		    			boolean foundValue = false;
-		      		LearnerGraph pta = new LearnerGraph(config);
-			    		pta.paths.augmentPTA(trace,true,false,null);
-			 				for (Label l:pta.pathroutines.computeAlphabet())
-			 					if (l.toString().equals("Data_Deprecates_Waypoint"))
-			 					{
-			 						foundValue = true;
-			 						System.out.println("BEFORE BUILDING TREES: Data_Deprecates_Waypoint is in seed "+entry.getKey()+" and UAV "+uavToFrameDetails.getKey());break;
-			 					}
-			 				
-			 				if (foundValue)
-			 					break;
-		    		}
-*/
+
     		if (entry.getKey() == UAVAllSeeds)
     		{
     			assert !traceDetails.collectionOfPositiveTraces.containsKey(UAVAll);
     			assert !traceDetails.collectionOfNegativeTraces.containsKey(UAVAll);
 
-    			assert traceDetails.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
-    			assert traceDetails.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
+    			assert traceDetails.collectionOfPositiveTraces.isEmpty() || traceDetails.collectionOfPositiveTraces.containsKey(UAVAllSeeds);
+    			assert traceDetails.collectionOfNegativeTraces.isEmpty() || traceDetails.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
     		}
     		else
     		{
@@ -507,30 +489,12 @@ public class PaperUAS
     			assert !newData.tracesForUAVandFrame.containsKey(UAVAll);
     		}
     		else
+    		if (!newData.tracesForUAVandFrame.isEmpty())
     		{
     			assert entry.getKey() != UAVAllSeeds;
-    			assert newData.tracesForUAVandFrame.containsKey(UAVAll);
+    			assert newData.tracesForUAVandFrame.isEmpty() || newData.tracesForUAVandFrame.containsKey(UAVAll);
     			assert !newData.tracesForUAVandFrame.containsKey(UAVAllSeeds);
     		}
-    		
-
-    		String uavToUse = (entry.getKey() == UAVAllSeeds)?UAVAllSeeds:UAVAll;
-    		for(Entry<Integer,PTASequenceEngine> frameToData:newData.tracesForUAVandFrame.get(uavToUse).entrySet())
-    		{
-    			boolean foundValue = false;
-      		LearnerGraph pta = new LearnerGraph(config);
-	    		pta.paths.augmentPTA(frameToData.getValue());
-	 				for (Label l:pta.pathroutines.computeAlphabet())
-	 					if (l.toString().equals("Data_Deprecates_Waypoint"))
-	 					{
-	 						foundValue = true;
-	 						System.out.println("AFTER AUGMENT: Data_Deprecates_Waypoint is in seed "+entry.getKey());break;
-	 					}
-	 				
-	 				if (foundValue)
-	 					break;
-    		}
-
     	}
     }
     

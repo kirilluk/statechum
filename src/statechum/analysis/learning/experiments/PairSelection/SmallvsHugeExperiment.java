@@ -107,7 +107,7 @@ public class SmallvsHugeExperiment {
 		{// try learning the same machine a few times
 			LearnerGraph pta = new LearnerGraph(config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
-			generator.setWalksShouldLeadToInitialState();
+			//generator.setWalksShouldLeadToInitialState();
 			final int tracesToGenerate = LearningSupportRoutines.makeEven(states*traceQuantity);
 			final Random rnd = new Random(seed*31+attempt);
 
@@ -141,7 +141,7 @@ public class SmallvsHugeExperiment {
 				pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
 				// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
 				// This is done below if onlyUsePositives is not set. 
-				
+			
 			synchronized (AbstractLearnerGraph.syncObj) {
 				PaperUAS.computePTASize(selectionID+" with unique "+uniqueFromInitial+" : ", pta, referenceGraph);
 			}
@@ -171,9 +171,9 @@ public class SmallvsHugeExperiment {
 				learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 				int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
 				System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
-				//Visualiser.updateFrame(pta.transform.trimGraph(3, pta.getInit()), null);
+				
 				Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
-				Visualiser.updateFrame(pta.transform.trimGraph(3, pta.getInit()), null);
+				Visualiser.updateFrame(pta.transform.trimGraph(4, pta.getInit()), null);
 				System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
 			}
 			else 
@@ -189,17 +189,17 @@ public class SmallvsHugeExperiment {
 				boolean shouldBe = vert==null?false:vert.isAccept();
 				assert accept == shouldBe: "state "+vert+" is incorrectly annotated as "+accept+" in path "+path;
 			}
-			
+
 			{// Perform pre-merge and learn from there
 				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				Visualiser.updateFrame(reducedPTA.transform.trimGraph(3, pta.getInit()), null);
-				
-				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.EDSM_1);
-				
 				synchronized (AbstractLearnerGraph.syncObj) {
 					PaperUAS.computePTASize(selectionID+" premerge "+uniqueFromInitial+" : ", reducedPTA, referenceGraph);
 				}
+				Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, pta.getInit()), referenceGraph);
+				
+				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
+				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_EDSM);
+				
 				System.out.println("premerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
@@ -209,11 +209,9 @@ public class SmallvsHugeExperiment {
 
 			{// Use constraints on labels, but no pre-merge
 				LearnerGraph ptaToStartFrom = new LearnerGraph(pta, pta.config);
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,LearningAlgorithms.ReferenceLearner.ScoringToApply.EDSM_1);
+				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_EDSM_1);
 				learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-//				for(CmpVertex v:ptaToStartFrom.transform.trimGraph(5, ptaToStartFrom.getInit()).transitionMatrix.keySet())
-//					System.out.println("initial and "+v+" has a score of "+ptaToStartFrom.pairscores.computeScoreSicco(pair, recursive))
-					
+				
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 
 				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -223,7 +221,7 @@ public class SmallvsHugeExperiment {
 					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 					if (score < 0)
 					{
-						learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,LearningAlgorithms.ReferenceLearner.ScoringToApply.EDSM_1);
+						learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_EDSM_1);
 						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
@@ -261,7 +259,7 @@ public class SmallvsHugeExperiment {
 		if (rejectVertexID == null)
 			rejectVertexID = actualAutomaton.nextID(false);
 		actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-		Visualiser.updateFrame(actualAutomaton, referenceGraph);
+		//Visualiser.updateFrame(actualAutomaton, referenceGraph);
 		return DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton, testSet);
 	}
 	
@@ -287,8 +285,8 @@ public class SmallvsHugeExperiment {
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
-				for(int traceQuantity=10;traceQuantity<=10;++traceQuantity)
-					for(int traceLengthMultiplier=20;traceLengthMultiplier<=20;++traceLengthMultiplier)
+				for(int traceQuantity=20;traceQuantity<=20;++traceQuantity)
+					for(int traceLengthMultiplier=40;traceLengthMultiplier<=40;++traceLengthMultiplier)
 				{
 					try
 					{

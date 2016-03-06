@@ -18,7 +18,6 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -116,18 +115,7 @@ public class LearningAlgorithms
 		public void setLabelsLeadingFromStatesToBeMerged(Collection<Label> labels)
 		{
 			labelsLeadingFromStatesToBeMerged = labels;
-		}
-		
-		/** Returns a subset of pairs that are not in contradiction with mandatory merge constraints.
-		 *  
-		 * @param pairs pairs to merge
-		 * @return the outcome of merging.
-		 */
-		public List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph)
-		{
-			return LearningSupportRoutines.filterPairsBasedOnMandatoryMerge(pairs,tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
-		}
-		
+		}		
 
 		@SuppressWarnings("unused")
 		@Override 
@@ -283,7 +271,7 @@ public class LearningAlgorithms
 		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
-		public enum ScoringToApply { SCORING_EDSM, EDSM_1, EDSM_2, SCORING_SICCO, SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE, SCORING_SICCORECURSIVE }
+		public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE, SCORING_SICCORECURSIVE }
 		
 		protected final ScoringToApply scoringMethod;
 		
@@ -351,15 +339,20 @@ public class LearningAlgorithms
 						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,true) < 0)
 							score = -1;
 						break;
-					case EDSM_1:
+					case SCORING_EDSM_1:
 						if (score < 1)
 							score = -1;
 						break;
-					case EDSM_2:
+					case SCORING_EDSM_2:
 						if (score < 2)
 							score = -1;
 						break;
 					}
+					
+					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
+						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, coregraph, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
+							score = -1;
+					
 					return score;
 				}
 
@@ -371,13 +364,9 @@ public class LearningAlgorithms
 			});
 			if (!outcome.isEmpty())
 			{
-				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome, graph);
-				if (!filteredPairs.isEmpty())
-				{
-					PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(filteredPairs);
-					updatePairQualityStatistics(graph,filteredPairs);
+					PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
+					updatePairQualityStatistics(graph,outcome);
 					outcome.clear();outcome.push(chosenPair);
-				}
 			}
 			
 			return outcome;

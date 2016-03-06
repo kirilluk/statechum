@@ -448,13 +448,19 @@ public class PairQualityLearner
 					//return null;// for no resolution
 				}
 				
+				LearnerGraph g=null;
+				
 				@Override
 				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
+					g=gr;
 				}
 
 				@Override
 				public long overrideScoreComputation(PairScore p) {
+					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
+						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, g, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
+							return -1;
+					
 					return p.getScore();// dummy
 				}
 
@@ -467,9 +473,7 @@ public class PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
-				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
-				assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
-				PairScore chosenPair = pickCorrectPair(filteredPairs, graph);
+				PairScore chosenPair = pickCorrectPair(outcome, graph);
 				outcome.clear();outcome.push(chosenPair);
 			}
 			
@@ -811,31 +815,27 @@ public class PairQualityLearner
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					CmpVertex stateToLabelRed = null;
-					List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(pairs,graph);
-					if (filteredPairs.isEmpty())
-						stateToLabelRed = pairs.get(0).getQ();// if mandatory merge rules out all mergers, return any of the states to be marked red
-					else
-						if (classifierToChooseWhereNoMergeIsAppropriate)
+					if (classifierToChooseWhereNoMergeIsAppropriate)
+					{
+						PairScore worstPair = getPairToBeLabelledRed(pairs,coregraph);
+						if (worstPair != null)
 						{
-							PairScore worstPair = getPairToBeLabelledRed(filteredPairs,coregraph);
-							if (worstPair != null)
+							stateToLabelRed = worstPair.getQ();
+/*
+							long highestScore=-1;
+							for(PairScore p:pairs)
+								if (p.getScore() > highestScore) highestScore = p.getScore();
 							{
-								stateToLabelRed = worstPair.getQ();
-	/*
-								long highestScore=-1;
-								for(PairScore p:pairs)
-									if (p.getScore() > highestScore) highestScore = p.getScore();
-								{
-									List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
-									List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
-									SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
-									// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
-									System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
-								}
-								*/
+								List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
+								List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
+								SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+								// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
+								System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
 							}
-							//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
+							*/
 						}
+						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
+					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
 				}
 				
@@ -857,16 +857,13 @@ public class PairQualityLearner
 			});
 			if (!outcome.isEmpty())
 			{
-				List<PairScore> filteredPairs = filterPairsBasedOnMandatoryMerge(outcome,graph);
-				assert !outcome.isEmpty() : "no feasible pairs left for a choice by QSM, this case should have been handled by resolvePotentialDeadEnd";
-
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
-				ArrayList<PairScore> possibleResults = classifyPairs(filteredPairs,graph);
-				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, filteredPairs);
+				ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
+				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 
 				if (possibleResults.isEmpty())
 				{
-					possibleResults.add(LearningSupportRoutines.pickPairQSMLike(filteredPairs));// no pairs have been provided by the modified algorithm, hence using the default one.
+					possibleResults.add(LearningSupportRoutines.pickPairQSMLike(outcome));// no pairs have been provided by the modified algorithm, hence using the default one.
 					//System.out.println("no suitable pair was found");
 				}
 				PairScore result = possibleResults.iterator().next();

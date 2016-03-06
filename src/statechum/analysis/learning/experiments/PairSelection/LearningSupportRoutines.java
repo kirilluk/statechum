@@ -292,6 +292,22 @@ public class LearningSupportRoutines
 		return labelToSet;
 	}
 	
+	
+	public static long computeScoreBasedOnMandatoryMerge(PairScore pair,LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
+	{
+		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+		if (pairsList.isEmpty())
+			return pair.getScore();
+		
+		if (
+				!pair.getQ().isAccept() || !pair.getR().isAccept() || // if any is a negative, it can always be merged.
+				tentativeGraph.pairscores.computePairCompatibilityScore_general(pair, pairsList, verticesToMerge, false) >= 0 // the pair does not contradict mandatory merge.
+		)
+		return pair.getScore();
+		
+		return -1;// cannot be merged
+	}
 	/** Returns a subset of pairs that are not in contradiction with mandatory merge constraints.
 	 *  
 	 * @param pairs pairs to merge

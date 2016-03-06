@@ -393,8 +393,7 @@ public class UASPairQuality extends PaperUAS
  		DirectedSparseGraph gr = gd.showGD(
  					learntGraph,referenceGraph,
  					ExperimentRunner.getCpuNumber());
- 			Visualiser.updateFrame(gr,null);
- 			Visualiser.waitForKey();
+ 			//Visualiser.updateFrame(gr,null);Visualiser.waitForKey();
         return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
     }
     

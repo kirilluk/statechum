@@ -1207,7 +1207,7 @@ public class LearningAlgorithms
 			initialEQ.mergeWith(pta.getInit(),null);
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
 			long time = System.currentTimeMillis(),Cnt=0, mergersCnt=0;
-			double total=(double)pta.transitionMatrix.size()*(pta.transitionMatrix.size()+1)/2;
+			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
 			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
 			for(CmpVertex vA:pta.transitionMatrix.keySet())
 			{
@@ -1252,7 +1252,7 @@ public class LearningAlgorithms
 			}
 			
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			double total=(double)pta.transitionMatrix.size()*(pta.transitionMatrix.size()+1)/2;
+			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
 			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
 			int threadNumber = ExperimentRunner.getCpuNumber();
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
@@ -1294,8 +1294,9 @@ public class LearningAlgorithms
 					}
 				}
 			});
-			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, new StatesToConsider()
-					{
+			
+			StatesToConsider filter = new StatesToConsider()
+			{
 				@Override
 				public boolean stateToConsider(CmpVertex vert) 
 				{
@@ -1304,8 +1305,8 @@ public class LearningAlgorithms
 					
 					return vert.isAccept();
 				}
-			},
-			GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix.size()));
+			};
+			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, filter,GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix,filter));
 			
 			System.out.println(new Date()+"started to make deterministic");
 			LearnerGraph outcome = null;

@@ -329,6 +329,63 @@ public class GDLearnerGraph
 		return result;
 	}
 	
+	/** Processing of data in a triangular matrix using multiple CPUs has to be done by
+	 * identifying subsets of rows and columns to handle. This computes rows for each thread taking into account that many rows will be ignored.
+	 * 
+	 * @param ThreadNumber number of threads to parallelise for.
+	 * @param matrix transition matrix to navigate.
+	 * @param filter determines which rows to process.
+	 * @return the row to start from for each thread
+	 */
+	public static <TARGET_TYPE> int [] partitionWorkLoadTriangular(int ThreadNumber, final Map<CmpVertex,Map<Label, TARGET_TYPE>> matrix, final StatesToConsider filter)
+	{
+		long entryCounter = 0;
+		Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
+		while(stateB_It.hasNext())
+		{
+			Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
+			if (filter.stateToConsider(entry.getKey()))
+				++entryCounter;
+		}
+		
+		int [] finalPartitioning = new int[ThreadNumber+1];
+		int currentThread = 0;
+		long amountPerThread = entryCounter*(entryCounter-1)/(2*ThreadNumber);
+		if (amountPerThread == 0)
+			amountPerThread = 1;
+		long currentAmount = 0;
+		int rowsVisited = 0, nonEmptyRow=0;
+		int prevRow = 0;
+		int lastValue = 0;
+		stateB_It = matrix.entrySet().iterator();
+		while(stateB_It.hasNext() && currentThread < ThreadNumber)
+		{
+			++rowsVisited;
+			Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
+			if (filter.stateToConsider(entry.getKey()))
+			{
+				currentAmount+=(long)nonEmptyRow;
+				nonEmptyRow++;// placing this at the end ensures that currentAmount is incremented by the value of nonEmptyRow-1, associated with iterating through the row, stopping when diagonal is reached.
+				if (currentAmount >= amountPerThread)
+				{
+					finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
+					
+					++currentThread;currentAmount =0;
+				}
+			}
+		}
+		
+		if (currentThread < ThreadNumber && nonEmptyRow > 0)
+		{
+			finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
+			
+			++currentThread;currentAmount =0;
+		}
+		
+		while(currentThread <= ThreadNumber)
+			finalPartitioning[currentThread++]=matrix.size();
+		return finalPartitioning;
+	}	
 	/** Processing of data in a square matrix by a number of processors is done
 	 * by chopping the work into a number of rows, so that each thread is given 
 	 * the same number of rows to process.

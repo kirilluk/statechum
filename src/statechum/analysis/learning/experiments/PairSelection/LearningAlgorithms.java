@@ -1029,7 +1029,7 @@ public class LearningAlgorithms
 				System.err.println("Failed to write ND graph to "+ndFileName+", exception "+e.getMessage());
 				e.printStackTrace();
 			}
-		return ndGraph.pathroutines.buildDeterministicGraph();		
+		return ndGraph.pathroutines.buildDeterministicGraph();
 	}
 	
 	public static LearnerGraph incrementalKtailsHelper(List<Label> sequence, boolean positive, int k,LearnerGraph existingGraph) throws IncompatibleStatesException
@@ -1208,13 +1208,23 @@ public class LearningAlgorithms
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
 			long time = System.currentTimeMillis(),Cnt=0, mergersCnt=0;
 			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
-			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
+			final Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(pta.config,pta);
+			boolean hasNegativesTentative = false;// if no negatives, no need to check compatibility of vertices for mergers.
+			for(CmpVertex v:pta.transitionMatrix.keySet())
+				if (!v.isAccept())
+				{
+					hasNegativesTentative = true;break;
+				}
+			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
+			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
 			for(CmpVertex vA:pta.transitionMatrix.keySet())
+			if (vA.isAccept() || k ==0)
 			{
 				for(CmpVertex vB:pta.transitionMatrix.keySet())
 					if (vA == vB)
 						break;
 					else
+					if (vB.isAccept() || k ==0)
 					{
 						long curr = System.currentTimeMillis();
 						if (curr-time > 60000)
@@ -1222,9 +1232,18 @@ public class LearningAlgorithms
 							System.out.println(new Date()+"Progress: "+(100*(double)Cnt/total)+" current value "+Cnt+" completed "+mergersCnt+" mergers");
 							time = curr;
 						}
-						if (computeStateScoreKTails(pta,new StatePair(vA,vB),k,true) >=0)
+						StatePair pair = new StatePair(vA,vB);
+						if (computeStateScoreKTails(pta,pair,k,true) >=0)
 						{
-							pta.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);mergersCnt++;
+							boolean mergerPossible = true;
+						
+							if (hasNegatives)
+							{
+								mergedVertices.clear();
+								mergerPossible = pta.pairscores.computePairCompatibilityScore_internal(pair, mergedVertices) >= 0;
+							}
+							if (mergerPossible)
+								pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
 						}
 						++Cnt;
 					}
@@ -1253,6 +1272,14 @@ public class LearningAlgorithms
 			
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
 			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
+			final Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(pta.config,pta);
+			boolean hasNegativesTentative = false;// if no negatives, no need to check compatibility of vertices for mergers.
+			for(CmpVertex v:pta.transitionMatrix.keySet())
+				if (!v.isAccept())
+				{
+					hasNegativesTentative = true;break;
+				}
+			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
 			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
 			int threadNumber = ExperimentRunner.getCpuNumber();
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
@@ -1277,17 +1304,27 @@ public class LearningAlgorithms
 						if (k == 0 || stateB.isAccept())
 						{
 							StatePair pair = new StatePair(stateA,stateB);
-							if (pta.pairscores.computePairCompatibilityScore(pair) >= 0 && computeStateScoreKTails(pta,pair,k,true) >=0)
+							if (computeStateScoreKTails(pta,pair,k,true) >=0)
 							{
-								try
+								boolean mergerPossible = true;
+							
+								if (hasNegatives)
 								{
-									synchronized(stateToEquivalenceClass)
-									{// modifications to equivalence classes have to be made in sync
-										pta.pairscores.mergePair(new StatePair(stateA,stateB),stateToEquivalenceClass,mergingDetails);
+									mergedVertices.clear();
+									mergerPossible = pta.pairscores.computePairCompatibilityScore_internal(pair, mergedVertices) >= 0;
+								}
+								if (mergerPossible)
+								{
+									try
+									{
+										synchronized(stateToEquivalenceClass)
+										{// modifications to equivalence classes have to be made in sync
+											pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
+										}
+									} catch (IncompatibleStatesException e)
+									{
+										Helper.throwUnchecked("failed to merge states", e);
 									}
-								} catch (IncompatibleStatesException e)
-								{
-									Helper.throwUnchecked("failed to merge states", e);
 								}
 							}
 						}

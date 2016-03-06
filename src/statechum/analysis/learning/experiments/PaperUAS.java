@@ -1382,9 +1382,22 @@ public class PaperUAS
 					*/
 					LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 					initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
-		 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, initialPTA.pathroutines.computeAlphabet(), paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
-		 			Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
-					LearnerGraph kTailsOutcome = LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i+".xml");
+					
+					// now remove all the reject-vertices so that k-tails does not need to check compatibility
+					LearnerGraph ptaTmp = new LearnerGraph(initialPTA,paper.learnerInitConfiguration.config);
+					for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:ptaTmp.transitionMatrix.entrySet())
+					{
+						if (!entry.getKey().isAccept())
+								initialPTA.transitionMatrix.remove(entry.getKey());
+						else
+							for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+								if (!transition.getValue().isAccept())
+									initialPTA.transitionMatrix.get(entry.getKey()).remove(transition.getKey());
+					}
+		 			//LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, initialPTA.pathroutines.computeAlphabet(), paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+		 			//Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
+					LearnerGraph kTailsOutcome = LearningAlgorithms.traditionalPTAKtailsHelper(initialPTA, i); 
+							//LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i+".xml");
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

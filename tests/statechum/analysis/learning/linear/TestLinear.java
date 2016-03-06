@@ -179,7 +179,7 @@ public class TestLinear {
 	public final void testWorkLoadDistributionUsingFilter4()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7",configMain,converter);
-		Assert.assertArrayEquals(new int[]{0,3,4,4,4,4},GDLearnerGraph.partitionWorkLoadTriangular(5, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
+		Assert.assertArrayEquals(new int[]{0,2,3,4,4,4},GDLearnerGraph.partitionWorkLoadTriangular(5, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 // identical values mean that it will be the last thread that will run on row 3 and over; thread 0 will start at 0 and all other threads will be doing nothing.
 			@Override
 			public boolean stateToConsider(CmpVertex vert) {
@@ -193,7 +193,7 @@ public class TestLinear {
 	public final void testWorkLoadDistributionUsingFilter5()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7",configMain,converter);
-		Assert.assertArrayEquals(new int[]{0,0,0,0,0,4},GDLearnerGraph.partitionWorkLoadTriangular(5, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
+		Assert.assertArrayEquals(new int[]{4,4,4,4,4,4},GDLearnerGraph.partitionWorkLoadTriangular(5, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 
 			@Override
 			public boolean stateToConsider(CmpVertex vert) {
@@ -207,7 +207,7 @@ public class TestLinear {
 	public final void testWorkLoadDistributionUsingFilter6()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A-e->E-f->F-g->G","testWorkLoadDistributionUsingFilter6",configMain,converter);
-		Assert.assertArrayEquals(new int[]{0,4,5,6,7},GDLearnerGraph.partitionWorkLoadTriangular(4, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
+		Assert.assertArrayEquals(new int[]{0,3,4,5,7},GDLearnerGraph.partitionWorkLoadTriangular(4, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 
 			@Override
 			public boolean stateToConsider(CmpVertex vert) {
@@ -217,11 +217,12 @@ public class TestLinear {
 		}));
 	}
 	
+	/** Gives the same results as testWorkLoadDistributionUsingFilter6 essentially because we are counting active rows rather than absolute ones. */ 
 	@Test
 	public final void testWorkLoadDistributionUsingFilter7()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A-e->E-f->F-g->G","testWorkLoadDistributionUsingFilter6",configMain,converter);
-		Assert.assertArrayEquals(new int[]{0,3,4,6,7},GDLearnerGraph.partitionWorkLoadTriangular(4, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
+		Assert.assertArrayEquals(new int[]{0,3,4,5,7},GDLearnerGraph.partitionWorkLoadTriangular(4, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 
 			@Override
 			public boolean stateToConsider(CmpVertex vert) {
@@ -235,7 +236,7 @@ public class TestLinear {
 	public final void testWorkLoadDistributionUsingFilter8()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A-e->E-f->F-g->G","testWorkLoadDistributionUsingFilter6",configMain,converter);
-		Assert.assertArrayEquals(new int[]{0,6,7},GDLearnerGraph.partitionWorkLoadTriangular(2, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
+		Assert.assertArrayEquals(new int[]{0,5,7},GDLearnerGraph.partitionWorkLoadTriangular(2, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 
 			@Override
 			public boolean stateToConsider(CmpVertex vert) {

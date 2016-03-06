@@ -365,26 +365,25 @@ public class GDLearnerGraph
 			if (filter.stateToConsider(entry.getKey()))
 			{
 				currentAmount+=(long)nonEmptyRow;
+				nonEmptyRow++;// placing this at the end ensures that currentAmount is incremented by the value of nonEmptyRow-1, associated with iterating through the row, stopping when diagonal is reached.
 				if (currentAmount >= amountPerThread)
 				{
-					finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = rowsVisited;
+					finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
 					
 					++currentThread;currentAmount =0;
 				}
-				nonEmptyRow++;// placing this at the end ensures that currentAmount is incremented by the value of nonEmptyRow-1, associated with iterating through the row, stopping when diagonal is reached.
 			}
 		}
 		
-		if (currentThread < ThreadNumber)
+		if (currentThread < ThreadNumber && nonEmptyRow > 0)
 		{
-			finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = rowsVisited;
+			finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
 			
 			++currentThread;currentAmount =0;
 		}
 		
-		while(currentThread < ThreadNumber)
-			finalPartitioning[currentThread++]=lastValue;
-		finalPartitioning[currentThread]=matrix.size();
+		while(currentThread <= ThreadNumber)
+			finalPartitioning[currentThread++]=matrix.size();
 		return finalPartitioning;
 	}	
 	/** Processing of data in a square matrix by a number of processors is done

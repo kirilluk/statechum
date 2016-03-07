@@ -1396,8 +1396,8 @@ public class PaperUAS
 					}
 		 			//LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, initialPTA.pathroutines.computeAlphabet(), paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 		 			//Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
-					LearnerGraph kTailsOutcome = LearningAlgorithms.traditionalPTAKtailsHelper(initialPTA, i); 
-							//LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i+".xml");
+					LearnerGraph kTailsOutcome = //LearningAlgorithms.traditionalPTAKtailsHelper(initialPTA, i); 
+							LearningAlgorithms.ptaConcurrentKtails(initialPTA, i,"ktailsnd-"+i+".xml");
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

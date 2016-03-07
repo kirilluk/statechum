@@ -1280,7 +1280,7 @@ public class LearningAlgorithms
 					hasNegativesTentative = true;break;
 				}
 			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
-			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total);
+			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
 			int threadNumber = ExperimentRunner.getCpuNumber();
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)

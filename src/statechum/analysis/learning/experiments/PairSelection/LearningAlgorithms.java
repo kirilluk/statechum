@@ -352,7 +352,7 @@ public class LearningAlgorithms
 					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
 						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, coregraph, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
 							score = -1;
-					
+
 					return score;
 				}
 

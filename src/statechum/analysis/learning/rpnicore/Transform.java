@@ -1320,6 +1320,9 @@ public class Transform
 	 */
 	public LearnerGraph trimGraph(int depth,CmpVertex startingState)
 	{
+		if (coregraph.findVertex(startingState) != startingState)
+			throw new IllegalArgumentException("starting state passed as an argument to trimGraph does not belong to coregraph");
+		
 		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
 		trimmedOne.initEmpty();
 		

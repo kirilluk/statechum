@@ -48,12 +48,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
-import statechum.Pair;
-import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
@@ -292,6 +289,23 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 		return stateToPathMap;
 	}
+	
+	/** The purpose of this routine is to check that all states in the graph are not only equal as far as their IDs go but are also referring to the same object. This is an important property that is supposed to be 
+	 * preserved by graph transformation routines, although not always.
+	 */
+	public void checkValidityOfStates()
+	{
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			CmpVertex targetA = entry.getKey();
+			assert coregraph.findVertex(targetA) == targetA : "A: was looking for vertex with name "+targetA+", got "+coregraph.findVertex(targetA);
+			for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
+			for(CmpVertex targetB:coregraph.getTargets(transition.getValue()))
+			{
+				assert coregraph.findVertex(targetB) == targetB : "B: was looking for vertex with name "+targetB+", got "+coregraph.findVertex(targetB);
+			}
+		}
+	}
 
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
 	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
@@ -314,6 +328,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public DirectedSparseGraph getGraph(String name)
 	{
+		checkValidityOfStates();
 		DirectedSparseGraph result = null;
 		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
 		synchronized (AbstractLearnerGraph.syncObj) 
@@ -350,6 +365,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 		}
 		return result;
+
 	}
 
 	/** Numerous methods using this class expect to be able to interpret the state 

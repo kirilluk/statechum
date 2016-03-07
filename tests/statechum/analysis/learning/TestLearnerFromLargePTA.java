@@ -148,7 +148,6 @@ Total time: 20492 sec
 		initialConfigurationData.learnerInitConfiguration.config.setTransitionMatrixImplType(matrixToUse);// set the expected matrix type
 		if (initialConfigurationData.learnerInitConfiguration.config.getLearnerScoreMode() == ScoreMode.GENERAL)
 			initialConfigurationData.learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);// using ONLYOVERRIDE instead of GENERAL for performance reasons - the 'false' argument to generalised score computation helps a lot.
-		System.out.println(" current scoring : "+initialConfigurationData.learnerInitConfiguration.config.getLearnerScoreMode());
 		initialConfigurationData.learnerInitConfiguration.config.setUseConstraints(false);
 		initialConfigurationData.learnerInitConfiguration.config.setAlwaysUseTheSameMatrixType(false);
 		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,initialConfigurationData.learnerInitConfiguration.config);// change the transition matrix type of the graph

@@ -156,6 +156,35 @@ public class RPNIBlueFringeVariability
 						extraPhantomVertices = 1;// now certain it was indeed a phantom vertex added when the PTA was initially built.
 					}
 					Assert.assertEquals(score+extraPhantomVertices,original.getStateNumber()-outcome.getStateNumber());
+
+					// another test is to check that merger from a partial set of equivalence classes produces the same graph, regardless whether auxiliary information is returned as part of mergers or not.
+					{
+		        LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+		        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
+		        if (diff != null)
+		        	throw diff;
+						long otherscore = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,true);
+						Assert.assertEquals(score, otherscore);
+						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+				    diff = WMethod.checkM(outcome, outcomeTmp);
+				    if (diff != null)
+				    	throw diff;
+				    outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
+				    diff = WMethod.checkM(outcome, outcomeTmp);
+				    if (diff != null)
+				    	throw diff;
+					}
+					
+					// the final test is to check that done by the old generalised score routines produces the same outcome.
+					{
+						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						long otherscore = new OldPairScoreComputation(original).computePairCompatibilityScore_general(pair,null,reducedVertices);
+						Assert.assertEquals(score, otherscore);
+						LearnerGraph outcomeTmp = OldMergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices);
+				    DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
+				        if (diff != null)
+				        	throw diff;
+					}
 				}
 				ScoreMode origScore = original.config.getLearnerScoreMode();original.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
 				long compatibilityScore = original.pairscores.computePairCompatibilityScore(pair);

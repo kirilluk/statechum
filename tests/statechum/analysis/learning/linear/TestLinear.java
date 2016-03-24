@@ -20,7 +20,6 @@ package statechum.analysis.learning.linear;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -196,7 +195,7 @@ public class TestLinear {
 		Assert.assertArrayEquals(new int[]{4,4,4,4,4,4},GDLearnerGraph.partitionWorkLoadTriangular(5, gr.transitionMatrix, new LearnerGraphND.StatesToConsider() {
 
 			@Override
-			public boolean stateToConsider(CmpVertex vert) {
+			public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
 				return false;
 			}
 			

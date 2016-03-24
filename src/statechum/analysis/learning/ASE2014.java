@@ -46,10 +46,9 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014;
+import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -176,7 +175,7 @@ public class ASE2014 extends PairQualityLearner
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times

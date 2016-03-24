@@ -755,7 +755,7 @@ public class PairScoreComputation {
 		return pairScore;
 	}
 
-	public enum SiccoGeneralScoring { S_ONEPAIR, S_RED_BLUE, S_RED };
+	public enum SiccoGeneralScoring { S_ONEPAIR, S_RED_BLUE, S_RED }
 	
 	/** This is similar in spirit to Sicco score computation but capable of handling arbitrary state mergers. 
 	 * The method does not intend to compute a positive score since it is expected to be used to reject incompatible ones and will return 0 if provided with an empty set of equivalence 

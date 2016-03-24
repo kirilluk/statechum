@@ -56,9 +56,9 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
@@ -234,7 +234,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				LearnerGraph trimmedReference = referenceGraph;//MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
-				final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
+				final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 

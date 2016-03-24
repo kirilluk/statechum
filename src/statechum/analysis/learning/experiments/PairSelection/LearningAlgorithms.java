@@ -32,7 +32,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
@@ -57,6 +57,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearch;
@@ -271,7 +272,7 @@ public class LearningAlgorithms
 		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
-		public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE, SCORING_SICCORECURSIVE }
+		public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
 		
 		protected final ScoringToApply scoringMethod;
 		
@@ -321,22 +322,31 @@ public class LearningAlgorithms
 				@Override
 				public long overrideScoreComputation(PairScore p) 
 				{
-					long score = coregraph.pairscores.computePairCompatibilityScore_general(p,null,new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false);
+					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					long score = coregraph.pairscores.computePairCompatibilityScore_general(p,null,mergedVertices, false);
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
 					case SCORING_EDSM:
 						break;// nothing to do, score is already set up correctly
 					case SCORING_SICCO:
-						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,false) < 0)
+						mergedVertices.clear();
+						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
 							score = -1;
 						break;
-					case SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE:
-						if (score >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeScoreSicco(p,false) < 0)
+					case SCORING_SICCO_NIS:
+						mergedVertices.clear();
+						if (score >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
 							score = -1;
 						break;
-					case SCORING_SICCORECURSIVE:
-						if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,true) < 0)
+					case SCORING_SICCO_REDBLUE:
+						mergedVertices.clear();
+						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED_BLUE) < 0)
+							score = -1;
+						break;
+					case SCORING_SICCO_RED:
+						mergedVertices.clear();
+						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED) < 0)
 							score = -1;
 						break;
 					case SCORING_EDSM_1:
@@ -766,7 +776,7 @@ public class LearningAlgorithms
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*alphabet));
+			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*alphabet));
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times

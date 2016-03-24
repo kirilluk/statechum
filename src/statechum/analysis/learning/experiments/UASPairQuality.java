@@ -50,7 +50,6 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
@@ -148,7 +147,7 @@ public class UASPairQuality extends PaperUAS
     
     public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
     {
- 	   final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph,-1,-1);
+ 	   final Collection<List<Label>> evaluationTestSet = UASExperiment.computeEvaluationSet(referenceGraph,-1,-1);
     		DrawGraphs gr = new DrawGraphs();
  		final RBoxPlot<String>
  			uas_F=new RBoxPlot<String>("Time","F-measure",new File("time_"+name+"_f.pdf")),

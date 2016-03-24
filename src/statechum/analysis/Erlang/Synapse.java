@@ -52,7 +52,7 @@ import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.AbstractionRefinement;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
@@ -643,7 +643,7 @@ public class Synapse implements Runnable {
 			ConvertALabel converter = new Transform.InternStringLabel();
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			int states = referenceGraph.getAcceptStateNumber();
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
+			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
 			
 			DifferenceToReferenceDiff differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, config, 1);
 			DifferenceToReferenceLanguageBCR differenceBCRlearnt=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, learntGraph,testSet);

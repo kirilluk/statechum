@@ -2083,6 +2083,97 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(1,actual.getStateNumber());
 		Assert.assertTrue(actual.transitionMatrix.get(actual.getInit()).isEmpty());
 	}
+	
+	@Test
+	public void testRemoveNegatives1()
+	{
+		LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives2()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A","testRemoveNegatives2",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives3()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A","testRemoveNegatives3",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives4()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A","testRemoveNegatives4a",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives4b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives5()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A-c-#D","testRemoveNegatives5a",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives5b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	// This one covers the case of a graph with a single state
+	@Test
+	public void testRemoveNegatives6()
+	{
+		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.getInit().setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		Assert.assertEquals(0,actual.getStateNumber());				
+	}
+
+	// This one covers the case of a graph that will develop holes if negatives are removed.
+	@Test
+	public void testRemoveNegatives7()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives7a",mainConfiguration,converter);
+		graph.findVertex("B").setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(new LearnerGraph(mainConfiguration),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	// This one covers the case of a graph that will develop holes if negatives are removed.
+	@Test
+	public void testRemoveNegatives8()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		graph.findVertex("C").setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B","testRemoveNegatives8b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
 }
 
 

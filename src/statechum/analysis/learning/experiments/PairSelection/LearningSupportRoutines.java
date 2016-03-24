@@ -495,4 +495,52 @@ public class LearningSupportRoutines
 				gr_PairQuality.add(entry.getKey(), 100*entry.getValue().trueCounter/((double)entry.getValue().trueCounter+entry.getValue().falseCounter));
 		}		
 	}
+	
+ 	/** Given a graph, removes all negatives and returns the outcome.
+ 	 * 
+ 	 * @param args
+ 	 * @throws Exception
+ 	 */
+ 	public static LearnerGraph removeAllNegatives(LearnerGraph initialPTA)
+ 	{
+		LearnerGraph ptaTmp = new LearnerGraph(initialPTA,initialPTA.config);
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:initialPTA.transitionMatrix.entrySet())
+		{
+			if (!entry.getKey().isAccept())
+				ptaTmp.transitionMatrix.remove(entry.getKey());
+			else
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+					if (!transition.getValue().isAccept())
+						ptaTmp.transitionMatrix.get(entry.getKey()).remove(transition.getKey());
+		}
+		return ptaTmp;
+ 	}
+
+
+ 	public static void addSeparator(StringBuffer buf)
+ 	{
+ 		buf.append(',');
+ 	}
+ 	public static void addNewLine(StringBuffer buf)
+ 	{
+ 		buf.append(',');
+ 	}
+ 	
+ 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */ 
+ 	public static void appendToLines(StringBuffer[] lines,String[] whatToAppend,String [] valuesForLastLine)
+ 	{
+ 		if (lines.length != whatToAppend.length+1)
+ 			throw new IllegalArgumentException("the number of lines to append is not the same as the number of lines to append to");
+ 		for(String valueForLastLine:valuesForLastLine)
+ 		{
+ 			for(int i=0;i<whatToAppend.length;++i)
+ 			{
+ 				addSeparator(lines[i]);lines[i].append(whatToAppend[i]);
+ 			}
+ 			addSeparator(lines[whatToAppend.length]);lines[whatToAppend.length].append(valueForLastLine);
+ 		}
+ 	}
+ 	
 }
+
+

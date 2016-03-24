@@ -1,10 +1,10 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -15,46 +15,37 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Label;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
+import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallvsHugeExperiment {
-	protected final Configuration config;
-	protected final ConvertALabel converter;
-	protected final int states,sample;
+public class SmallvsHugeExperiment extends UASExperiment
+{
+	protected final int states,fsmSample;
 	protected boolean learnUsingReferenceLearner, onlyUsePositives;
 	protected final int seed;
 	protected final int traceQuantity;
-	protected String selectionID;
 	protected final int lengthMultiplier;
-	
-	public void setSelectionID(String value)
-	{
-		selectionID = value;
-	}
+	protected final int attempt;
 	
 	/** Whether to compute the value from QSM as a reference learner. */
 	public void setEvaluateAlsoUsingReferenceLearner(boolean value)
@@ -68,22 +59,23 @@ public class SmallvsHugeExperiment {
 		onlyUsePositives = value;
 	}
 	
-	public SmallvsHugeExperiment(int argStates, int argSample, int argSeed, int nrOfTraces, int lengthmult,Configuration conf, ConvertALabel conv)
+	public SmallvsHugeExperiment(int argStates, int argFsmSample, int argAttempt, int argSeed, int nrOfTraces, int lengthmult, LearnerEvaluationConfiguration eval)
 	{
-		states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;lengthMultiplier = lengthmult;
+		super(eval);
+		states = argStates;fsmSample = argFsmSample;seed = argSeed;traceQuantity=nrOfTraces;lengthMultiplier = lengthmult;attempt= argAttempt;
 	}
 	
+	@Override
 	public ThreadResult call() throws Exception 
 	{
 		final int alphabet = 2*states;
-		LearnerGraph referenceGraph = null;
 		ThreadResult outcome = new ThreadResult();
 		Label uniqueFromInitial = null;
 		final boolean pickUniqueFromInitial = true;
 		MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 		do
 		{
-			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+			referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			if (pickUniqueFromInitial)
 			{
 				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
@@ -100,125 +92,114 @@ public class SmallvsHugeExperiment {
 		}
 		while(pickUniqueFromInitial && uniqueFromInitial == null);
 		
-		LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-		final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 		
-		for(int attempt=0;attempt<3;++attempt)
-		{// try learning the same machine a few times
-			LearnerGraph pta = new LearnerGraph(config);
-			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
-			//generator.setWalksShouldLeadToInitialState();
-			final int tracesToGenerate = LearningSupportRoutines.makeEven(states*traceQuantity);
-			final Random rnd = new Random(seed*31+attempt*states);
+		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
+		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
+		//generator.setWalksShouldLeadToInitialState();
+		final int tracesToGenerate = LearningSupportRoutines.makeEven(states*traceQuantity);
+		final Random rnd = new Random(seed*31+attempt*states);
 
-			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-									
-					@Override
-					public int getLength() {
-						return  lengthMultiplier*states;
-					}
-	
-					@Override
-					public int getPrefixLength(int len) {
-						return len;
-					}
-				},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
+		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+								
+				@Override
+				public int getLength() {
+					return  lengthMultiplier*states;
+				}
+
+				@Override
+				public int getPrefixLength(int len) {
+					return len;
+				}
+			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
+		
+		/*
+		for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(1))
+		{
+			pta.paths.augmentPTA(seq, referenceGraph.getVertex(seq) != null, false, null);
+		}*/
+		//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));// this one will not set any states as rejects because it uses shouldbereturned
+		if (onlyUsePositives)
+			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
+				@Override
+				public boolean shouldBeReturned(Object name) {
+					return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+				}
+			}));
+		else
+			pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
+			// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
+			// This is done below if onlyUsePositives is not set. 
+		
+
+		pta.clearColours();
+		
+		if (!onlyUsePositives)
+		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
+			assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
+			Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
+			Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
+			for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
+			{
+				Set<Label> value = new TreeSet<Label>();
+				if (!entry.getValue().isEmpty()) 
+				{// we add a single entry per label, to mimic what was done with UAS study, where labels could not be repeated.
+					Label possibleLabels[]=entry.getValue().toArray(new Label[]{});
+					if (possibleLabels.length == 1)
+						value.add(possibleLabels[0]);
+					else
+						value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
+				}
+				subsetOfPairs.put(entry.getKey(),value);
+			}
+			LearnerEvaluationConfiguration learnerEval = UASExperiment.constructLearnerInitConfiguration();
+			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
+			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
+			learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
+			int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
+			//System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
 			
+			Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
+			//Visualiser.updateFrame(pta.transform.trimGraph(4, pta.getInit()), null);
+			//System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
+		}
+		else 
+			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+		
+		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
+		{
+			boolean accept = path.getKey().isAccept();
+			CmpVertex vert = referenceGraph.getVertex(path.getValue());
+			boolean shouldBe = vert==null?false:vert.isAccept();
+			assert accept == shouldBe: "state "+vert+" is incorrectly annotated as "+accept+" in path "+path;
+		}
+
+		learnerInitConfiguration.testSet = UASExperiment.buildEvaluationSet(referenceGraph);
+		final int attemptFinal = attempt;
+		UASExperiment.BuildPTAInterface ptaConstructor = new BuildPTAInterface() {
+			@Override
+			public String kindOfPTA()
+			{
+				return "-"+attemptFinal;
+			}
+			@Override
+			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException {
+				return pta;
+			}
+		};
+
+		for(ReferenceLearner.ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+		{
+ 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed;
+
+ 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
+ 			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 			sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
+			
+			outcome.samples.add(sample);
+
 			/*
-			for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(1))
-			{
-				pta.paths.augmentPTA(seq, referenceGraph.getVertex(seq) != null, false, null);
-			}*/
-			//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));// this one will not set any states as rejects because it uses shouldbereturned
-			if (onlyUsePositives)
-				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-					}
-				}));
-			else
-				pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
-				// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-				// This is done below if onlyUsePositives is not set. 
-			
-			synchronized (AbstractLearnerGraph.syncObj) {
-				PaperUAS.computePTASize(selectionID+" with unique "+uniqueFromInitial+" : ", pta, referenceGraph);
-			}
-			
-			pta.clearColours();
-			
-			if (!onlyUsePositives)
-			{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
-				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
-				Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
-				for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
-				{
-					Set<Label> value = new TreeSet<Label>();
-					if (!entry.getValue().isEmpty()) 
-					{// we add a single entry per label, to mimic what was done with UAS study, where labels could not be repeated.
-						Label possibleLabels[]=entry.getValue().toArray(new Label[]{});
-						if (possibleLabels.length == 1)
-							value.add(possibleLabels[0]);
-						else
-							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
-					}
-					subsetOfPairs.put(entry.getKey(),value);
-				}
-				LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
-				LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
-				learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
-				int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
-				System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
-				
-				Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
-				//Visualiser.updateFrame(pta.transform.trimGraph(4, pta.getInit()), null);
-				System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
-			}
-			else 
-				assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-			
-			LearningAlgorithms.ReferenceLearner learnerOfPairs = null;
-			LearnerGraph actualAutomaton = null;
-			
-			for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
-			{
-				boolean accept = path.getKey().isAccept();
-				CmpVertex vert = referenceGraph.getVertex(path.getValue());
-				boolean shouldBe = vert==null?false:vert.isAccept();
-				assert accept == shouldBe: "state "+vert+" is incorrectly annotated as "+accept+" in path "+path;
-			}
-			
-			LearningAlgorithms.ReferenceLearner.ScoringToApply scoringToUse = LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_EDSM;
-			{// Perform pre-merge
-				List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(pta,Arrays.asList(new Label[]{}),Arrays.asList(new Label[]{uniqueFromInitial}));
-			
-				int score = pta.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-				if (score < 0)
-				{
-					throw new RuntimeException("the initial merge in the learning process was not possible");
-				}
-				LearnerGraph reducedPTA = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMerge, false);
-				synchronized (AbstractLearnerGraph.syncObj) {
-					PaperUAS.computePTASize(selectionID+" premerge "+uniqueFromInitial+" : ", reducedPTA, referenceGraph);
-				}
-				//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
-				System.out.println("premerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-
-				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
-				System.out.println(sample+"  permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
-			}
-			
-			{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there
+			{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				synchronized (AbstractLearnerGraph.syncObj) {
-					PaperUAS.computePTASize(selectionID+" premerge "+uniqueFromInitial+" : ", reducedPTA, referenceGraph);
-				}
 				//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
 				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
 				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
@@ -229,39 +210,10 @@ public class SmallvsHugeExperiment {
 				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
 				System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
 			}
-
-			{// Use constraints on labels, but no pre-merge
-				LearnerGraph ptaToStartFrom = new LearnerGraph(pta, pta.config);
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,scoringToUse);
-				learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-				
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
-				if (!pairsList.isEmpty())
-				{// now we check that if doing a 'pre-merge' on the final graph is feasible - it is a basic check that the learner has honoured the constraints we have supplied via setLabelsLeadingFromStatesToBeMerged
-					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-					if (score < 0)
-					{
-						learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, ptaToStartFrom,scoringToUse);
-						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-						throw new RuntimeException("last merge in the learning process was not possible");
-					}
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
-				}
-				
-				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
-				System.out.println(sample+" learner with constraints, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
-			}
-			
+			 */
+			/*
 			{// Perform semi-pre-merge by building a PTA rather than a graph with loops and then use constraints
 				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				synchronized (AbstractLearnerGraph.syncObj) {
-					PaperUAS.computePTASize(selectionID+" premerge "+uniqueFromInitial+" : ", reducedPTA, referenceGraph);
-				}
 				//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
 				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
 				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
@@ -273,48 +225,118 @@ public class SmallvsHugeExperiment {
 				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
 				System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
 			}
-
-			{// not doing anything specific regarding a unique transition from an initial state
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, pta,scoringToUse);
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
-				System.out.println(sample+" generic learner, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
-				System.out.println();
-			}
-
+			 */
 		}
 		
 		return outcome;
 	}
-
-	public static DifferenceToReference getMeasure(LearnerGraph actualAutomaton, LearnerGraph referenceGraph, final Collection<List<Label>> testSet)
-	{
-		VertID rejectVertexID = null;
-		for(CmpVertex v:actualAutomaton.transitionMatrix.keySet())
-			if (!v.isAccept())
-			{
-				assert rejectVertexID == null : "multiple reject vertices in learnt automaton, such as "+rejectVertexID+" and "+v;
-				rejectVertexID = v;break;
-			}
-		if (rejectVertexID == null)
-			rejectVertexID = actualAutomaton.nextID(false);
-		actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-		//Visualiser.updateFrame(actualAutomaton, referenceGraph);
-		return DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton, testSet);
-	}
 	
-	public static void main(String []args)
+	public static void main(String []args) throws IOException
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(statechum.Configuration.ScoreMode.ONLYOVERRIDE);
-		ConvertALabel converter = new Transform.InternStringLabel();
+		String outDir = "tmp"+File.separator+"smallvshuge";//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		if (!new java.io.File(outDir).isDirectory())
+		{
+			if (!new java.io.File(outDir).mkdir())
+			{
+				System.out.println("failed to create a work directory");return ;
+			}
+		}
+		String outPathPrefix = outDir + File.separator;
+		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+
+
+		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int samplesPerFSM = 4;
-		final int minStateNumber = 7;
-/*
+		final int samplesPerFSMSize = 4;
+		final int minStateNumber = 10;
+		final int attemptsPerFSM = 4;
+
+		final DrawGraphs gr = new DrawGraphs();
+		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+		
+		final StringBuffer csv = new StringBuffer();
+		StringBuffer firstLine = new StringBuffer(),secondLine = new StringBuffer(),thirdLine = new StringBuffer(), fourthLine = new StringBuffer();
+		StringBuffer lines[]=new StringBuffer[]{firstLine,secondLine,thirdLine,fourthLine};
+		for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+		{
+			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
+			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+		}
+		for(StringBuffer line:lines)
+		{
+			csv.append(line.toString());csv.append('\n');
+		}
+		
+    	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+
+			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,ReferenceLearner.ScoringToApply scoring,ScoresForGraph difference) throws IOException
+			{
+				String scoringAsString = null;
+				switch(scoring)
+				{
+				case SCORING_EDSM:
+					scoringAsString = "E";break;
+				case SCORING_EDSM_1:
+					scoringAsString = "E1";break;
+				case SCORING_EDSM_2:
+					scoringAsString = "E2";break;
+				case SCORING_SICCO:
+					scoringAsString = "S";break;
+				case SCORING_SICCO_NIS:
+					scoringAsString = "SI";break;
+				case SCORING_SICCO_REDBLUE:
+					scoringAsString = "SRB";break;
+				case SCORING_SICCO_RED:
+					scoringAsString = "SR";break;
+				default:
+					throw new IllegalArgumentException("Unexpected scoring");
+				}
+				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
+				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				
+				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
+						", learning outcome has "+difference.nrOfstates.getValue());
+				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
+				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
+			}
+			
+			@Override
+			public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
+			{
+				int i=0;
+				csv.append(result.samples.get(0).experimentName);
+				for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+				{
+					PairQualityLearner.SampleData score = result.samples.get(i++);
+					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+				}
+				csv.append('\n');
+				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
+			}
+			
+			@Override
+			public String getSubExperimentName()
+			{
+				return "UAV experiments";
+			}
+			
+			@Override
+			public DrawGraphs.RGraph[] getGraphs() {
+				return new DrawGraphs.RGraph[]{BCR_vs_experiment,diff_vs_experiment};
+			}
+		};
+		List<UASExperiment> listOfExperiments = new ArrayList<UASExperiment>();
+		/*
 		for(final double threshold:new double[]{1,1.2,1.5,3,10})
 		for(final int ifDepth:new int []{0,1})
 		for(final boolean onlyPositives:new boolean[]{true,false})
@@ -325,19 +347,19 @@ public class SmallvsHugeExperiment {
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
-				for(int traceQuantity=1;traceQuantity<=1;++traceQuantity)
-					for(int traceLengthMultiplier=20;traceLengthMultiplier<=20;++traceLengthMultiplier)
+				for(int traceQuantity=15;traceQuantity<=15;++traceQuantity)
+					for(int traceLengthMultiplier=5;traceLengthMultiplier<=5;++traceLengthMultiplier)
 				{
 					try
 					{
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+15;states+=5)
-							for(int sample=0;sample<samplesPerFSM;++sample)
-							{
-								SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,1+numberOfTasks,traceQuantity, traceLengthMultiplier, config, converter);
-								learnerRunner.setSelectionID("states"+states+"_sample"+sample);
-								learnerRunner.call();
-							}
+						for(int states=minStateNumber;states < minStateNumber+1;states+=5)
+							for(int sample=0;sample<samplesPerFSMSize;++sample)
+								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+								{
+									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity, traceLengthMultiplier, eval);
+									listOfExperiments.add(learnerRunner);
+								}
 					}
 					catch(Exception ex)
 					{
@@ -347,5 +369,28 @@ public class SmallvsHugeExperiment {
 					}
 				}
 			}
+			
+			
+    	for(UASExperiment e:listOfExperiments)
+    		experimentRunner.submitTask(e);
+    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		
+    	FileWriter writer = null;
+    	try
+    	{
+    		writer = new FileWriter(outPathPrefix+"results.csv");
+    		writer.write(csv.toString());
+    	}
+    	finally
+    	{
+    		if (writer != null)
+    			writer.close();
+    	}
+		if (BCR_vs_experiment != null) BCR_vs_experiment.drawPdf(gr);
+		if (diff_vs_experiment != null) diff_vs_experiment.drawPdf(gr);
+		
+		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
+		experimentRunner.successfulTermination();
+
 	}
 }

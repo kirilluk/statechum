@@ -1051,7 +1051,8 @@ public class PairQualityLearner
 	public static class SampleData
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
-		public ScoresForGraph actualLearner,actualConstrainedLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
+		public ScoresForGraph premergeLearner, actualLearner,actualConstrainedLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
+		public ScoresForGraph posPremergeLearner, posConstrained, posReference;
 		public Map<String,ScoresForGraph> miscGraphs;
 		
 		public String experimentName;

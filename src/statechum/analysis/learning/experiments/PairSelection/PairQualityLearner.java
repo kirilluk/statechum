@@ -934,7 +934,8 @@ public class PairQualityLearner
 		public static DifferenceToReferenceFMeasure estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 		{
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
+	       	LearnerGraph refGraph = new LearnerGraph(referenceGraph.config);AbstractPathRoutines.removeRejectStates(referenceGraph,refGraph);
+	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, refGraph, learntGraph);
 			return new DifferenceToReferenceFMeasure(mat);
 		}
 	}
@@ -968,7 +969,8 @@ public class PairQualityLearner
 		public static DifferenceToReferenceLanguageBCR estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 		{
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
+	       	LearnerGraph refGraph = new LearnerGraph(referenceGraph.config);AbstractPathRoutines.removeRejectStates(referenceGraph,refGraph);
+	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, refGraph, learntGraph);
 			return new DifferenceToReferenceLanguageBCR(mat);
 		}
 		
@@ -999,11 +1001,12 @@ public class PairQualityLearner
 		public static DifferenceToReferenceDiff estimationOfDifferenceDiffMeasure(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Configuration config, int cpuNumber)
 		{
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+	       	LearnerGraph refGraph = new LearnerGraph(referenceGraph.config);AbstractPathRoutines.removeRejectStates(referenceGraph,refGraph);
 			statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 			statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, learntGraph, null);
-			gd.computeGD(referenceGraph, learntGraph, cpuNumber,changesCounter,config);
+			gd.computeGD(refGraph, learntGraph, cpuNumber,changesCounter,config);
 			
-			int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
+			int referenceEdges = refGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
 			//return (((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
 			return new DifferenceToReferenceDiff(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges,
 					(((double)actualEdges-changesCounter.getAdded())/actualEdges));

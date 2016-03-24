@@ -68,6 +68,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -1359,7 +1360,7 @@ public class PaperUAS
 			System.out.println("maximal depth: "+depth);
 		}
 		List<UASExperiment> listOfExperiments = new ArrayList<UASExperiment>();
-		
+		/*
 		// Try ktails
 		{
 			for(int i=1;i<4;++i)
@@ -1369,17 +1370,17 @@ public class PaperUAS
 				{
 					Configuration config = paper.learnerInitConfiguration.config.copy();config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 					System.out.println(new Date()+" trying ktails "+i);
-					/*
-					final PTASequenceEngine samples = framesToTraces.get(paper.maxFrameNumber);
-					PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();
-					PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
-						FilterPredicate origFilter = samples.getFSM_filterPredicate();
-						public @Override boolean shouldBeReturned(Object name) {
-							return !origFilter.shouldBeReturned(name);
-						}
-					};
-					LearnerGraph kTailsOutcome = LearningAlgorithms.incrementalKtails(samples.getData(posPredicate),samples.getData(negPredicate),i,config);
-					*/
+
+//					final PTASequenceEngine samples = framesToTraces.get(paper.maxFrameNumber);
+//					PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();
+//					PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
+//						FilterPredicate origFilter = samples.getFSM_filterPredicate();
+//						public @Override boolean shouldBeReturned(Object name) {
+//							return !origFilter.shouldBeReturned(name);
+//						}
+//					};
+//					LearnerGraph kTailsOutcome = LearningAlgorithms.incrementalKtails(samples.getData(posPredicate),samples.getData(negPredicate),i,config);
+
 					LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 					initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
 					
@@ -1402,7 +1403,7 @@ public class PaperUAS
 					System.out.println(new Date()+" finished ktails "+i);
 				}
 			}
-		}
+		}*/
 		
 		{// process all the traces from all UAVs and seeds in one go
 			String graphName = outPathPrefix+"uas-All";
@@ -1412,6 +1413,18 @@ public class PaperUAS
 				initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
 				initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
 			}
+/*
+			{
+				LearnerGraph pta = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(PaperUAS.fileName(graphName), pta, paper.learnerInitConfiguration.getLabelConverter());
+				System.out.println("states: "+pta.getStateNumber()+" accept states: "+pta.getAcceptStateNumber());
+	 			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", paper.learnerInitConfiguration.config,paper.learnerInitConfiguration.getLabelConverter());
+	 			LearnerGraph smallPta = mergePTA(pta,uniqueLabel,false);
+	 			System.out.println("small pta: states: "+smallPta.getStateNumber()+" accept states: "+smallPta.getAcceptStateNumber());
+	 			//System.out.println("from initial state: "+smallPta.transitionMatrix.get(smallPta.getInit()));
+	 			Visualiser.updateFrame(smallPta.transform.trimGraph(3, smallPta.getInit()), null);
+	 			Visualiser.waitForKey();
+			}
+*/
 			UASExperiment experiment = new UASExperiment(paper.learnerInitConfiguration,referenceGraph,"All",graphName,true);
 			//printLastFrame("All",framesToTraces.keySet());
 			listOfExperiments.add(experiment);

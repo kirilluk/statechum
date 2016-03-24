@@ -143,7 +143,7 @@ public class LearningSupportRoutines
 		}
 	}
 	
-	/** Assuming we know which pairs of labels are not supposed to be merged, this function construts if-then constraints to prevent such mergers.
+	/** Assuming we know which pairs of labels are not supposed to be merged, this function constructs if-then constraints to prevent such mergers.
 	 * This is used in the SmallvsHugeExperiment. 
 	 */
 	public static void addIfThenForPairwiseConstraints(LearnerEvaluationConfiguration initialData, Map<Label,Set<Label>> pairwiseConstraints)

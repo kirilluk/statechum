@@ -147,7 +147,7 @@ public class UASPairQuality extends PaperUAS
     
     public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
     {
- 	   final Collection<List<Label>> evaluationTestSet = UASExperiment.computeEvaluationSet(referenceGraph,-1,-1);
+ 	   final Collection<List<Label>> evaluationTestSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,-1,-1);
     		DrawGraphs gr = new DrawGraphs();
  		final RBoxPlot<String>
  			uas_F=new RBoxPlot<String>("Time","F-measure",new File("time_"+name+"_f.pdf")),
@@ -250,7 +250,7 @@ public class UASPairQuality extends PaperUAS
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -269,7 +269,7 @@ public class UASPairQuality extends PaperUAS
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
    				LearnerGraph ptaAfterMergingBasedOnUniques = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
-   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -373,7 +373,7 @@ public class UASPairQuality extends PaperUAS
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
  			ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(ifDepth,learnerInitConfiguration,referenceGraph,c,initPTA):
- 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+ 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
          

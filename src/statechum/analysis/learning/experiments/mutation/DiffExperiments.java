@@ -62,6 +62,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.linear.GD.ChangesCounter;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.ForestFireLabelledNoRepeatStateMachineGenerator;
 import statechum.analysis.learning.experiments.ForestFireLabelledStateMachineGenerator;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.DOUBLE_V;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.LONG_V;
@@ -567,7 +568,7 @@ public class DiffExperiments {
 	}
 
 	@SuppressWarnings("unused")
-	private ExperimentResult getAverage(List<ExperimentResult> toPrint) 
+	private static ExperimentResult getAverage(List<ExperimentResult> toPrint) 
 	{
 		ExperimentResult average = new ExperimentResult();average.experimentValid = true;
 		int count=0;
@@ -596,7 +597,16 @@ public class DiffExperiments {
 			generateConnected = value;
 		}
 		
-		public MachineGenerator(int target, int phaseArg, int errorArg){
+		/** Whether to generate a machine where subsequent labels are not repeated. */
+		private boolean generateLabelsNoRepeat;
+		
+		public void setGenerateNoRepeat(boolean value)
+		{
+			generateLabelsNoRepeat = value;
+		}
+		
+		public MachineGenerator(int target, int phaseArg, int errorArg)
+		{
 			this.phaseSize = phaseArg;
 			this.actualTargetSize = target;
 			this.artificialTargetSize = target;
@@ -612,7 +622,9 @@ public class DiffExperiments {
 			Random connectTransitions = new Random(counter);
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
-					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
+					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
+							new ForestFireLabelledNoRepeatStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
 					synchronized(AbstractLearnerGraph.syncObj)
 					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
 						machine = gen.buildMachine(artificialTargetSize);

@@ -56,7 +56,6 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -253,7 +252,7 @@ public class WaveBlueFringe extends PairQualityLearner
 			final LearnerGraph referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 			
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -474,7 +473,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 
-				LearnerGraph outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(learnerEval,ptaCopy,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);
@@ -685,7 +684,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		
 		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
+			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 		
 		public static String refToString(Object obj)

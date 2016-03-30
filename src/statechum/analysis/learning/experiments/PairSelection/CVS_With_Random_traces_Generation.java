@@ -58,9 +58,9 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -234,7 +234,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				LearnerGraph trimmedReference = referenceGraph;//MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
-				final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
+				final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
@@ -264,7 +264,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
 
-				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
@@ -321,7 +321,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("Sicco's Reference");
 						dataSample.referenceLearner = estimateDifference(trimmedReference, outcomeOfReferenceLearner,testSet);
 						dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
@@ -504,7 +504,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends LearnerThatCanClassifyPairs implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearnerUsingSiccoScoring implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -635,9 +635,9 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph reference, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),reference, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,false);
 		}
 
 		@Override 

@@ -55,7 +55,6 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
@@ -184,11 +183,6 @@ public class CVS extends PairQualityLearner
 			{// try learning the same machine a few times
 				LearnerGraph referenceGraph = FsmParser.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
 
- 				final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,20*10,LearningSupportRoutines.makeEven(20*10));
-
-//				Visualiser.updateFrame(referenceGraph, null);	
-// 				Visualiser.waitForKey();
-
 				final MarkovModel m= new MarkovModel(chunkLen,true,true, disableInconsistenciesInMergers);
 
 				new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
@@ -290,7 +284,7 @@ public class CVS extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,ptaCopy,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						outcomeOfReferenceLearner = new ReferenceLearnerUsingSiccoScoring(referenceLearnerEval,ptaCopy,false).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("Sicco's Reference");
 						dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 						dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
@@ -443,7 +437,7 @@ public class CVS extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends LearnerThatCanClassifyPairs implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearnerUsingSiccoScoring implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -564,7 +558,7 @@ public class CVS extends PairQualityLearner
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,false);
 		}
 
 		@Override 

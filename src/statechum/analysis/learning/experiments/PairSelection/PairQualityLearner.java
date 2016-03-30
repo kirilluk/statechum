@@ -1327,7 +1327,7 @@ public class PairQualityLearner
 				if (learnUsingReferenceLearner)
 				{
 					dataSample.actualLearner=estimateDifference(referenceGraph,actualAutomaton,testSet);
-					LearnerGraph outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(learnerEval,pta,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					LearnerGraph outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(learnerEval,pta,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 					//actualAutomaton.storage.writeGraphML("seed="+seed+";attempt="+attempt+"-actual.xml");

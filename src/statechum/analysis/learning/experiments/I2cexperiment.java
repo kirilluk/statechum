@@ -52,8 +52,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -263,7 +262,7 @@ public class I2cexperiment extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearnerUsingSiccoScoring implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -366,7 +365,7 @@ public class I2cexperiment extends PairQualityLearner
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),argInitialPTA,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold),argInitialPTA,false);
 		}
 
 		@Override 

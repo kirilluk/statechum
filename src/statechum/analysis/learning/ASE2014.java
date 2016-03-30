@@ -48,7 +48,6 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -175,7 +174,7 @@ public class ASE2014 extends PairQualityLearner
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -254,7 +253,7 @@ public class ASE2014 extends PairQualityLearner
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
 				
-				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0,referenceGraph.getAcceptStateNumber()*LearningAlgorithms.maxStateNumberMultiplier);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 				
@@ -296,7 +295,7 @@ public class ASE2014 extends PairQualityLearner
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
@@ -468,13 +467,10 @@ public class ASE2014 extends PairQualityLearner
 		protected MarkovModel Markov;
 		protected ConsistencyChecker checker;
 		
-		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold, int maxNumberOfStates)
 		{
-			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
-			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
-			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
-			copy.setLabelConverter(evalCnf.getLabelConverter());
-			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
+			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);config.setOverride_maximalNumberOfStates(maxNumberOfStates);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
 			return copy;
 		}
 		
@@ -486,9 +482,9 @@ public class ASE2014 extends PairQualityLearner
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int maxNumberOfStates, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold), argInitialPTA, LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold,maxNumberOfStates), argInitialPTA, LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 

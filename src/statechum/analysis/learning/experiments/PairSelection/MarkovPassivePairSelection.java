@@ -58,9 +58,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.ScoringToApply;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -634,7 +632,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			while(pickUniqueFromInitial && uniqueFromInitial == null);
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 			
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -735,7 +733,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				if (pickUniqueFromInitial)
 				{
 					pta = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+					learnerOfPairs = new LearnerMarkovPassive(learnerEval,pta);learnerOfPairs.setMarkovModel(m);
 					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 					
 					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -747,7 +745,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 						int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 						if (score < 0)
 						{
-							learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+							learnerOfPairs = new LearnerMarkovPassive(learnerEval,pta);learnerOfPairs.setMarkovModel(m);
 							learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
 							actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 							score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
@@ -759,7 +757,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				else
 				{// not merging based on a unique transition from an initial state
 					//learnerEval.config.setGeneralisationThreshold(1);
-					learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,pta);learnerOfPairs.setMarkovModel(m);
+					learnerOfPairs = new LearnerMarkovPassive(learnerEval,pta);learnerOfPairs.setMarkovModel(m);
 
 					//learnerOfPairs.setPairsToMerge(checkVertices(pta, referenceGraph, m));
 					final LearnerGraph finalReferenceGraph = referenceGraph;
@@ -944,7 +942,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 
-				LearnerGraph outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(learnerEval,ptaCopy,ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);
@@ -1121,7 +1119,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	}
 	
 	/** Uses the supplied classifier to rank pairs. */
-	public static class LearnerMarkovPassive extends LearnerThatCanClassifyPairs
+	public static class LearnerMarkovPassive extends ReferenceLearnerUsingSiccoScoring
 	{
 		protected Map<Long,TrueFalseCounter> pairQuality = null;
 		private int num_states;
@@ -1231,9 +1229,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 			blacklistZeroScoringPairs = value;
 		}
 		
-		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(evalCnf,argInitialPTA,false);
 		}
 		
 		public static String refToString(Object obj)

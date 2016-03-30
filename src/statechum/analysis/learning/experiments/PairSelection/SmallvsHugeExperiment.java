@@ -21,9 +21,10 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
@@ -112,12 +113,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 				}
 			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
 		
-		/*
-		for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(1))
-		{
-			pta.paths.augmentPTA(seq, referenceGraph.getVertex(seq) != null, false, null);
-		}*/
-		//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));// this one will not set any states as rejects because it uses shouldbereturned
 		if (onlyUsePositives)
 			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 				@Override
@@ -156,15 +151,15 @@ public class SmallvsHugeExperiment extends UASExperiment
 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
 			learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
 			int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
-			//System.out.println(new Date().toString()+" Graph loaded: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states), adding at most "+ statesToAdd+" if-then states");
 			
 			Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
-			//Visualiser.updateFrame(pta.transform.trimGraph(4, pta.getInit()), null);
-			//System.out.println(new Date().toString()+" Graph augmented: "+pta.getStateNumber()+" states ("+pta.getAcceptStateNumber()+" accept states)");
 		}
 		else 
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 		
+		
+		//Visualiser.updateFrame(referenceGraph, null);
+		//Visualiser.waitForKey();
 		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
 			boolean accept = path.getKey().isAccept();
@@ -173,7 +168,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			assert accept == shouldBe: "state "+vert+" is incorrectly annotated as "+accept+" in path "+path;
 		}
 
-		learnerInitConfiguration.testSet = UASExperiment.buildEvaluationSet(referenceGraph);
+		learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 		final int attemptFinal = attempt;
 		UASExperiment.BuildPTAInterface ptaConstructor = new BuildPTAInterface() {
 			@Override
@@ -187,13 +182,13 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 		};
 
-		for(ReferenceLearner.ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
 		{
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed;
 
- 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
+ 			//sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
  			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
- 			sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 			
 			outcome.samples.add(sample);
 
@@ -261,12 +256,12 @@ public class SmallvsHugeExperiment extends UASExperiment
 		final StringBuffer csv = new StringBuffer();
 		StringBuffer firstLine = new StringBuffer(),secondLine = new StringBuffer(),thirdLine = new StringBuffer(), fourthLine = new StringBuffer();
 		StringBuffer lines[]=new StringBuffer[]{firstLine,secondLine,thirdLine,fourthLine};
-		for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+		for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 		}
 		for(StringBuffer line:lines)
 		{
@@ -275,7 +270,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
-			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,ReferenceLearner.ScoringToApply scoring,ScoresForGraph difference) throws IOException
+			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,ScoringToApply scoring,ScoresForGraph difference) throws IOException
 			{
 				String scoringAsString = null;
 				switch(scoring)
@@ -312,13 +307,13 @@ public class SmallvsHugeExperiment extends UASExperiment
 			{
 				int i=0;
 				csv.append(result.samples.get(0).experimentName);
-				for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+				for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
+					//recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
 					recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 				}
 				csv.append('\n');
 				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
@@ -347,8 +342,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
-				for(int traceQuantity=15;traceQuantity<=15;++traceQuantity)
-					for(int traceLengthMultiplier=5;traceLengthMultiplier<=5;++traceLengthMultiplier)
+				for(int traceQuantity=50;traceQuantity<=50;++traceQuantity)
+					for(int traceLengthMultiplier=1;traceLengthMultiplier<=5;++traceLengthMultiplier)
 				{
 					try
 					{

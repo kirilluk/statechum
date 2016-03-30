@@ -179,7 +179,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			labelConverter = conv;
 		}
 		
-		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
+		/** The number of graphs to be included in this log file. This one does not participate in equality or hashcode computations.*/
 		public transient int graphNumber = -1; 
 
 		public LearnerEvaluationConfiguration(Configuration defaultCnf) 

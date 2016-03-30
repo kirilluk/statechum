@@ -197,38 +197,29 @@ public class PairScoreComputation {
 	public PairScore obtainPair(CmpVertex blue, CmpVertex red, ScoreComputationCallback scoreComputationOverride)
 	{
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.ONLYOVERRIDE)
+		switch(coregraph.config.getLearnerScoreMode())
 		{
-			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
-			return new PairScore(blue,red,computedScore, compatibilityScore);
-		}
-		else		
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
-		{
-			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
-		}
-		else		
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
-		{
-			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
-		}
-		else
-		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
-		{
-			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
-			if (computedScore >= 0)
-				computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
-		}
-		else
-			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS_ANY)
-			{
+			case ONLYOVERRIDE:
+				computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
+				return new PairScore(blue,red,computedScore, compatibilityScore);
+			case COMPATIBILITY:
+				computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
+				break;
+			case GENERAL:
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
+				break;
+			case KTAILS:
+				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+				if (computedScore >= 0)
+					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
+				break;
+			case KTAILS_ANY:
 				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,true);
-			}
-			else
-			{
+				break;
+			default:
 				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 				if (computedScore >= 0)
 				{
@@ -243,11 +234,12 @@ public class PairScoreComputation {
 					int compatScore = computePairCompatibilityScore(pairToComputeFrom);
 					assert compatScore <= computedScore;
 				}
-			}
+				break;
+		}
 
 		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
 			computedScore = -1;
-		
+
 		if (computedScore >= 0 && scoreComputationOverride != null)
 			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		return new PairScore(blue,red,computedScore, compatibilityScore);

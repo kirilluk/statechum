@@ -15,9 +15,11 @@ import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -28,10 +30,8 @@ import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
-import statechum.model.testset.PTASequenceEngine;
 
 public abstract class UASExperiment implements Callable<ThreadResult>
 {
@@ -82,9 +82,9 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		outcome.storage.writeGraphML(constructFileName(experimentSuffix));	
 	}
 	
-	public static List<ReferenceLearner.ScoringToApply> listOfScoringMethodsToApply()
+	public static List<ScoringToApply> listOfScoringMethodsToApply()
 	{
-		return Arrays.asList(ReferenceLearner.ScoringToApply.values());
+		return Arrays.asList(ScoringToApply.values());
 	}
 
    public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
@@ -119,44 +119,14 @@ public abstract class UASExperiment implements Callable<ThreadResult>
         return learnerInitConfiguration;
 	}
 
-   public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
-   {
-	   for(CmpVertex vert:referenceGraph.transitionMatrix.keySet()) 
-		   if (!vert.isAccept())
-			   throw new IllegalArgumentException("test set generation should not be attempted on an automaton with reject-states");
-	   assert numberOfSeq > 0 && seqLength > 0;
-		RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),seqLength,referenceGraph.getInit());
-		pathGen.generateRandomPosNeg(numberOfSeq, 1, false, null, true,true,null,null);
-		return  pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);
-	   /*
-		Collection<List<Label>> evaluationTestSet = referenceGraph.wmethod.getFullTestSet(1);
-		
-		RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),5,referenceGraph.getInit());
-		int wPos=0;
-		for(List<Label> seq:evaluationTestSet)
-			if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
-		pathGen.generateRandomPosNeg(2*(evaluationTestSet.size()-2*wPos), 1, false, null, true,false,evaluationTestSet,null);
-		evaluationTestSet = pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);// we replacing the test set with new sequences rather than adding to it because existing sequences could be prefixes of the new ones.
-		wPos = 0;
-		for(List<Label> seq:evaluationTestSet) if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
-		return evaluationTestSet;
-	    */
-   }
-
-   /** Returns a test set to use for evaluation of the supplied reference graph using BCR. */
-	public static Collection<List<Label>> buildEvaluationSet(LearnerGraph referenceGraph)
-	{
-		return computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*3,LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
-	}
-	
-	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ReferenceLearner.ScoringToApply scoringMethod) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = "conventional_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+ 			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
  			
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
@@ -180,17 +150,24 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	 * @throws AugmentFromIfThenAutomatonException
 	 * @throws IOException
 	 */
-	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ReferenceLearner.ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
-		if(actualAutomaton == null)
+		//if(actualAutomaton == null)
 		{
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaSource.buildPTA(),uniqueLabel,false);
-			ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+			LearnerGraph trimmedGraph = smallPta.transform.trimGraph(5, smallPta.getInit());
+			trimmedGraph.setName(experimentName+"-part_of_premerge");
+			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
+			
+			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
 
 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
- 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+			actualAutomaton.setName(experimentName+"-actual");
+			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
+			//Visualiser.waitForKey();
+ 			//saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -203,14 +180,14 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return outcome;
 	}
 
-	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ReferenceLearner.ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = "constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+ 			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

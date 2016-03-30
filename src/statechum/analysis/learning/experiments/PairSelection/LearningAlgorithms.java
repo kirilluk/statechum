@@ -25,6 +25,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.STATETREE;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
@@ -32,7 +33,6 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
@@ -67,6 +67,42 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class LearningAlgorithms
 {
+	/** In a number of experiments, evaluation of automata is conducted by exploration either by generating a test set or by generating walks of some length. Both are governed by a bound:
+	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all check with flying colours.
+	 * This is the maximal number of states permitted in a learnt graph, as a multiplier of a number of states in a reference graph. 
+	 */
+	public static int maxStateNumberMultiplier = 3;
+	
+	public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
+	{
+	   for(CmpVertex vert:referenceGraph.transitionMatrix.keySet()) 
+		   if (!vert.isAccept())
+			   throw new IllegalArgumentException("test set generation should not be attempted on an automaton with reject-states");
+	   assert numberOfSeq > 0 && seqLength > 0;
+	   RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),seqLength,referenceGraph.getInit());
+	   pathGen.generateRandomPosNeg(numberOfSeq, 1, false, null, true,true,null,null);
+	   return  pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);
+	   /*
+		Collection<List<Label>> evaluationTestSet = referenceGraph.wmethod.getFullTestSet(1);
+		
+		RandomPathGenerator pathGen = new RandomPathGenerator(referenceGraph,new Random(0),5,referenceGraph.getInit());
+		int wPos=0;
+		for(List<Label> seq:evaluationTestSet)
+			if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
+		pathGen.generateRandomPosNeg(2*(evaluationTestSet.size()-2*wPos), 1, false, null, true,false,evaluationTestSet,null);
+		evaluationTestSet = pathGen.getAllSequences(0).getData(PTASequenceEngine.truePred);// we replacing the test set with new sequences rather than adding to it because existing sequences could be prefixes of the new ones.
+		wPos = 0;
+		for(List<Label> seq:evaluationTestSet) if (referenceGraph.paths.tracePathPrefixClosed(seq) == AbstractOracle.USER_ACCEPTED) wPos++;
+		return evaluationTestSet;
+	    */
+	}
+
+	/** Returns a test set to use for evaluation of the supplied reference graph using BCR. */
+	public static Collection<List<Label>> buildEvaluationSet(LearnerGraph referenceGraph)
+	{
+		return computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*maxStateNumberMultiplier,LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
+	}
+	
 	public static class LearnerAbortedException extends RuntimeException
 	{
 
@@ -75,13 +111,16 @@ public class LearningAlgorithms
 		 */
 		private static final long serialVersionUID = 5271079210565150062L;
 		
-		public static void throwExceptionIfTooManyReds( LearnerGraph graph )
+		public static void throwExceptionIfTooManyReds( LearnerGraph graph, int maxNumberOfReds )
 		{
-			long countOfRed = 0;
-			for(CmpVertex v:graph.transitionMatrix.keySet())
-				if (v.getColour() == JUConstants.RED)
-					if (countOfRed++ > 200)
-						throw new LearnerAbortedException();
+			if (maxNumberOfReds >= 0)
+			{
+				long countOfRed = 0;
+				for(CmpVertex v:graph.transitionMatrix.keySet())
+					if (v.getColour() == JUConstants.RED)
+						if (countOfRed++ > maxNumberOfReds)
+							throw new LearnerAbortedException();
+			}
 		}
 	}
 
@@ -148,10 +187,16 @@ public class LearningAlgorithms
 	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
 	public static class LearnerThatCanClassifyPairs extends ReferenceLearner
 	{
-		
-		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,ScoringToApply scoring) 
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int maxNumberOfStates)
 		{
-			super(evalCnf,argInitialPTA,scoring);
+			Configuration config = evalCnf.config.copy();config.setOverride_maximalNumberOfStates(maxNumberOfStates);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
+			return copy;
+		}
+		
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring) 
+		{
+			super(constructConfiguration(evalCnf,reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring);
 			referenceGraph = reference;
 		}
 
@@ -265,22 +310,52 @@ public class LearningAlgorithms
 			return null;// dummy, ignored if null.
 		}
 	}
+
+	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
+	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+	public static ReferenceLearner constructReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph initialPTA, ScoringToApply howToScore) 
+	{
+		ReferenceLearner outcome = null;
+		switch(howToScore)
+		{
+		case SCORING_EDSM:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, -1);break;
+		case SCORING_EDSM_1:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 1);break;
+		case SCORING_EDSM_2:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 2);break;
+		case SCORING_SICCO:
+			outcome = new ReferenceLearner(constructLearningConfiguration_Compatibility(evalCnf), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
+		case SCORING_SICCO_NIS:
+			outcome = new ReferenceLearner(constructLearningConfiguration_Compatibility(evalCnf), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS);break;
+		case SCORING_SICCO_REDBLUE:
+			outcome = new ReferenceLearner(constructLearningConfiguration_Compatibility(evalCnf), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_REDBLUE);break;
+		case SCORING_SICCO_RED:
+			outcome = new ReferenceLearner(constructLearningConfiguration_Compatibility(evalCnf), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED);break;
+		default:
+			throw new IllegalArgumentException("unknown learner "+howToScore);
+
+		}
+		return outcome;
+	}
 	
-	/** This one is a reference learner, using Sicco heuristic (if requested) that performs quite well. */
+	/** This one is a reference learner, delegating the computation to the actual learner and adding a series of different heuristics that are not present there. 
+	 * The primary purpose of this method is to add an additional check to pair score computation, either based on different heuristics such as Sicco heuristic, or mandatory merge constraints. 
+	 * 
+	 *  The nae reflects that apart from possibly minor changes to scoring, there are no significant manipulation of PTA taking place.
+	 */
 	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
 		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
-		public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_RECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+		protected final OverrideScoringToApply scoringMethod;
 		
-		protected final ScoringToApply scoringMethod;
-		
-		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, ScoringToApply scoring) 
+		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring) 
 		{
 			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;
 		}
-		
 
 		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
 		@SuppressWarnings("unused")
@@ -288,9 +363,48 @@ public class LearningAlgorithms
 		{
 		}
 		
+		/** Override in child classes to permit learning FSM without a limit on state number. Useful in production use but not for research experiments where evaluation explores learnt automata up to a specfic limit. */
+		protected boolean permitUnlimitedNumberOfStates()
+		{
+			return false;
+		}
+		
+		@Override
+		public LearnerGraph learnMachine()
+		{
+			if (!permitUnlimitedNumberOfStates() && config.getOverride_maximalNumberOfStates() < 0)
+				throw new IllegalArgumentException("Reference learner requires a limit on a number of states in an automaton to learn");
+			
+			LearnerGraph outcome = null;
+			try
+			{
+				outcome = super.learnMachine();
+			}
+			catch(LearnerAbortedException ex)
+			{
+				outcome = new LearnerGraph(config);
+				outcome.getInit().setAccept(false);
+			}
+			return outcome;
+		}
+
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			if (config.getOverride_usePTAMerging())
+				return MergeStates.mergeAndDeterminize(original, pair);
+			
+			return 
+				super.MergeAndDeterminize(original, pair);
+		}
+
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
+			LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates());
+			if (graph.config.getLearnerScoreMode() == ScoreMode.ONLYOVERRIDE) // we only check this here because in the constructor it is too early - derived classes may choose to substitute an alternative scoring method.
+				throw new IllegalArgumentException("this method complements an existing scoring routine, it is not a replacement for it, hence ONLYOVERRIDE scoring mode cannot be used");
+
 			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new PairScoreComputation.RedNodeSelectionProcedure(){
 
 				// Here I could use a learner based on metrics of both tentative reds and the perceived quality of the red-blue pairs obtained if I choose any given value.
@@ -323,39 +437,31 @@ public class LearningAlgorithms
 				public long overrideScoreComputation(PairScore p) 
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					long score = coregraph.pairscores.computePairCompatibilityScore_general(p,null,mergedVertices, false);
+					long score = p.getScore();
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
-					case SCORING_EDSM:
-						break;// nothing to do, score is already set up correctly
 					case SCORING_SICCO:
-						mergedVertices.clear();
-						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+							score = -1;
+						break;
+					case SCORING_SICCO_RECURSIVE:
+						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
 							score = -1;
 						break;
 					case SCORING_SICCO_NIS:
-						mergedVertices.clear();
-						if (score >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+						if (p.getScore() >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
 							score = -1;
 						break;
 					case SCORING_SICCO_REDBLUE:
-						mergedVertices.clear();
-						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED_BLUE) < 0)
+						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED_BLUE) < 0)
 							score = -1;
 						break;
 					case SCORING_SICCO_RED:
-						mergedVertices.clear();
-						if (score >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED) < 0)
+						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED) < 0)
 							score = -1;
 						break;
-					case SCORING_EDSM_1:
-						if (score < 1)
-							score = -1;
-						break;
-					case SCORING_EDSM_2:
-						if (score < 2)
-							score = -1;
+					default:// do nothing since this is the case where nothing needs to be done.
 						break;
 					}
 					
@@ -383,48 +489,25 @@ public class LearningAlgorithms
 		}		
 	}
 	
+	static LearnerEvaluationConfiguration constructLearningConfiguration_Compatibility(LearnerEvaluationConfiguration evalCnf)
+	{
+		Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(Configuration.ScoreMode.COMPATIBILITY);
+		LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
+		return copy;
+	}
+	
 	/** Merges states using a routing relying on PTA, that faster and consumes less memory than the general one. In addition, it aborts learning if the outcome has too many red states. */
-	public static class ReferenceLearnerUsingSiccoScoring extends LearnerThatCanClassifyPairs
+	public static class ReferenceLearnerUsingSiccoScoring extends ReferenceLearner
 	{
 
 		protected final boolean scoringSiccoRecursive;
 		
-		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean scoringSiccoRecursive) 
+		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive) 
 		{
-			super(evalCnf,null, argInitialPTA,ScoringToApply.SCORING_SICCO);this.scoringSiccoRecursive = scoringSiccoRecursive;
+			super(constructLearningConfiguration_Compatibility(evalCnf),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_RECURSIVE:OverrideScoringToApply.SCORING_SICCO);
+			scoringSiccoRecursive = SiccoRecursive;
 		}
 
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					long score = p.getScore();
-					if (score >= 0 && coregraph.pairscores.computeScoreSicco(p,scoringSiccoRecursive) < 0)
-						score = -1;
-					return score;
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
 		
 		@Override
 		public String toString()
@@ -434,52 +517,20 @@ public class LearningAlgorithms
 	}
 	
 	/** This one is a reference learner. */
-	public static class KTailsReferenceLearner extends LearnerThatCanClassifyPairs
+	public static class KTailsReferenceLearner extends ReferenceLearner
 	{
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, boolean allPaths, int k)
 		{
 			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(allPaths? Configuration.ScoreMode.KTAILS:Configuration.ScoreMode.KTAILS_ANY);config.setKlimit(k);
-			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
-			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
-			copy.setLabelConverter(evalCnf.getLabelConverter());
-			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
 			return copy;
 		}
 		
 		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
 		{
-			super(constructConfiguration(evalCnf,allPaths,k),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,allPaths,k),argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
 		}
 		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					return super.overrideScoreComputation(p);
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-
 		@Override
 		public String toString()
 		{
@@ -487,57 +538,25 @@ public class LearningAlgorithms
 		}		
 	}
 	
-	/** This one is a reference learner. */
-	public static class EDSMReferenceLearner extends LearnerThatCanClassifyPairs
+	/** This one is a reference EDSM learner, using the provided thresholds for pair rejection (negative means no rejection). */
+	public static class EDSMReferenceLearner extends ReferenceLearner
 	{
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
 		{
-			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
-			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(config);
-			copy.graph = evalCnf.graph;copy.testSet = evalCnf.testSet;
-			copy.setLabelConverter(evalCnf.getLabelConverter());
-			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
+			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);config.setRejectPositivePairsWithScoresLessThan(threshold);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
 			return copy;
 		}
 
 		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
 		}
 
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(new DefaultRedNodeSelectionProcedure() {
-
-				/* (non-Javadoc)
-				 * @see statechum.analysis.learning.experiments.PairSelection.DefaultRedNodeSelectionProcedure#overrideScoreComputation(statechum.analysis.learning.PairScore)
-				 */
-				@Override
-				public long overrideScoreComputation(PairScore p) 
-				{
-					LearnerAbortedException.throwExceptionIfTooManyReds(coregraph);
-					return super.overrideScoreComputation(p);
-				}});
-			if (!outcome.isEmpty())
-			{
-				PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
-
-		@Override 
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
-		{
-			return MergeStates.mergeAndDeterminize(original, pair);
-		}
-		
 		@Override
 		public String toString()
 		{
-			return "EDSM,>="+config.getRejectPositivePairsWithScoresLessThan();
+			return config.getLearnerScoreMode()+",>="+config.getRejectPositivePairsWithScoresLessThan();
 		}		
 	}
 
@@ -629,9 +648,16 @@ public class LearningAlgorithms
 			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
 		}
 
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf)
+		{
+			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
+			return copy;
+		}
+
 		public LearnerThatDelegatesToTheSuppliedClassifier(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf),argReferenceGraph,argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
 		}
 		
 		public static String refToString(Object obj)
@@ -776,7 +802,7 @@ public class LearningAlgorithms
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*alphabet));
+			final Collection<List<Label>> testSet = buildEvaluationSet(referenceGraph);
 
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -820,7 +846,7 @@ public class LearningAlgorithms
 				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
 				SampleData dataSample=new SampleData();
 				dataSample.miscGraphs = new TreeMap<String,ScoresForGraph>();
-				List<LearnerThatCanClassifyPairs> learnerList = new ArrayList<LearnerThatCanClassifyPairs>();
+				List<ReferenceLearner> learnerList = new ArrayList<ReferenceLearner>();
 				
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,true));
@@ -843,7 +869,7 @@ public class LearningAlgorithms
 				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,4));
 				
-				for(LearnerThatCanClassifyPairs learnerToUse:learnerList)
+				for(ReferenceLearner learnerToUse:learnerList)
 					try
 					{
 						dataSample.miscGraphs.put(learnerToUse.toString(),estimateDifference(referenceGraph,learnerToUse.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()),testSet));

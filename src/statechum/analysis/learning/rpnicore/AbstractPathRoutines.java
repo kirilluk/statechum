@@ -900,6 +900,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		return reachableStates;
 	}
 
+	/** The name of this routine is misleading - it also filters out unreachable states though the process of exploration. */ 
 	public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>> void removeReachableStatesFromWhichInitIsNotReachable(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> outcome)
 	{
 		final Set<CmpVertex> reachableStates = computeReachableStatesFromWhichInitIsNotReachable();

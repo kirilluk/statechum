@@ -76,7 +76,6 @@ import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
@@ -697,11 +696,11 @@ public class PaperUAS
 	   return outcome;
    }
    	   
-   public void LearnReferenceAutomaton(LearningAlgorithms.ReferenceLearner.ScoringToApply scoringToUse) throws Exception
+   public void LearnReferenceAutomaton(LearningAlgorithms.ScoringToApply scoringToUse) throws Exception
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = new LearningAlgorithms.ReferenceLearner(learnerInitConfiguration,initPTA,scoringToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration,initPTA,scoringToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -968,7 +967,7 @@ public class PaperUAS
  		public ThreadResult call() throws Exception 
  		{
  			ThreadResult outcome = new ThreadResult();
- 			for(ReferenceLearner.ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+ 			for(LearningAlgorithms.ScoringToApply scoringMethod:listOfScoringMethodsToApply())
  			{
  	 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = experimentTitle;
  	 			UASExperiment.BuildPTAInterface ptaWithNegatives = new BuildPTAInterface() {
@@ -1046,7 +1045,7 @@ public class PaperUAS
      	PaperUAS paper = loadTraces(args,true);
     	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
-    	paper.learnerInitConfiguration.testSet = UASExperiment.buildEvaluationSet(referenceGraph);
+    	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
  		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
    	
@@ -1070,7 +1069,7 @@ public class PaperUAS
 		final StringBuffer csv = new StringBuffer();
 		StringBuffer firstLine = new StringBuffer(),secondLine = new StringBuffer(),thirdLine = new StringBuffer(), fourthLine = new StringBuffer();
 		StringBuffer lines[]=new StringBuffer[]{firstLine,secondLine,thirdLine,fourthLine};
-		for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+		for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
 			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
@@ -1087,7 +1086,7 @@ public class PaperUAS
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
-			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,ReferenceLearner.ScoringToApply scoring,ScoresForGraph difference) throws IOException
+			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,LearningAlgorithms.ScoringToApply scoring,ScoresForGraph difference) throws IOException
 			{
 				String scoringAsString = null;
 				switch(scoring)
@@ -1124,7 +1123,7 @@ public class PaperUAS
 			{
 				int i=0;
 				csv.append(result.samples.get(0).experimentName);
-				for(ReferenceLearner.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+				for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.

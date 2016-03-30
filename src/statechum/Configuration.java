@@ -33,7 +33,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import statechum.AttributeMutator.GETMETHOD_KIND;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 
@@ -165,6 +167,40 @@ public class Configuration implements Cloneable {
 		speculativeQuestionAsking = newValue;
 	}
 
+	/** In many experiments, FSM evaluation only explores paths of length up to a specific boundary. If an outcome of learning has many long paths, anything beyond that boundary will not be explored.
+	 * We therefore put a bound on the length of paths, stopping the learning process with an error that can be caught and a special 'failure' FSM returned (that can be stored as an outcome of learning).
+	 * Such routines are not standard in the main learner but are implemented as part of {@link LearningAlgorithms#RefenceLearner}.
+	 * The default is a negative indicating that no restriction is to be applied.
+	 */
+	protected int override_maximalNumberOfStates = -1;
+	
+	public int getOverride_maximalNumberOfStates()
+	{
+		return override_maximalNumberOfStates;
+	}
+	
+	public void setOverride_maximalNumberOfStates(int newValue)
+	{
+		override_maximalNumberOfStates = newValue;
+	}
+	
+	/** In a number of experiments, it is possible to choose whether to merge states using {@link MergeStates#mergeAndDeterminize} merger that work on PTAs or a generalised merger that works on anything.
+	 * The difference between the two is a number of states that may affect the learning outcome; sometimes, PTA merging can be much faster. 
+	 * For this reason, overridded versions of learner routines permit selection of PTA v.s. generalised mergers.
+	 * The default is generalised mergers.
+	 */
+	protected boolean override_usePTAMerging = false;
+	
+	public boolean getOverride_usePTAMerging()
+	{
+		return override_usePTAMerging;
+	}
+	
+	public void setOverride_usePTAMerging(boolean value)
+	{
+		override_usePTAMerging = value;
+	}
+	
 	/**
 	 * There could be different ways to query the current strategy for asking
 	 * questions. The enumeration below includes those implemented:

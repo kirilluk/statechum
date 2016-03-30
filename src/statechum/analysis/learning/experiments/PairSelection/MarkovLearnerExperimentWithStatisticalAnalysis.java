@@ -58,7 +58,6 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
@@ -182,7 +181,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = UASExperiment.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
 			
 			
 			// try learning the same machine using a random generator selector passed as a parameter.
@@ -261,7 +260,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 			}
 			
-			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 			learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 			
@@ -303,7 +302,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				try
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-					outcomeOfReferenceLearner = new LearningAlgorithms.ReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
@@ -515,9 +514,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph referenceGraph,int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 

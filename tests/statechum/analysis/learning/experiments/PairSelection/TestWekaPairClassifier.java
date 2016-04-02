@@ -2050,7 +2050,6 @@ public class TestWekaPairClassifier {
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4-c->P03 /  M1-a->A1-b->M2-c->C2 / M2-a->A2-b->M3-c->C3 / M2-b->B","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
 
 		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
-		Visualiser.updateFrame(actual,graph);
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
 		if (ex != null)
 			throw ex;

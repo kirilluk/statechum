@@ -21,7 +21,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
@@ -60,20 +59,34 @@ public class SmallvsHugeExperiment extends UASExperiment
 		onlyUsePositives = value;
 	}
 	
+	private void setAlwaysRunExperiment(boolean b) 
+	{
+		alwaysRunExperiment = b;
+	}
+
 	public SmallvsHugeExperiment(int argStates, int argFsmSample, int argAttempt, int argSeed, int nrOfTraces, int lengthmult, LearnerEvaluationConfiguration eval)
 	{
 		super(eval);
 		states = argStates;fsmSample = argFsmSample;seed = argSeed;traceQuantity=nrOfTraces;lengthMultiplier = lengthmult;attempt= argAttempt;
+
+		String outDir = "tmp"+File.separator+"smallvshuge_Mar_2016-"+argStates+"-"+nrOfTraces+"-"+lengthmult;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		if (!new java.io.File(outDir).isDirectory())
+		{
+			if (!new java.io.File(outDir).mkdir())
+				throw new RuntimeException("failed to create a work directory");
+		}
+		inputGraphFileName = outDir + File.separator+"rnd";
 	}
 	
 	@Override
 	public ThreadResult call() throws Exception 
 	{
-		final int alphabet = 2*states;
+		final int alphabet = states*2;
 		ThreadResult outcome = new ThreadResult();
 		Label uniqueFromInitial = null;
 		final boolean pickUniqueFromInitial = true;
 		MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+
 		do
 		{
 			referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
@@ -92,10 +105,11 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 		}
 		while(pickUniqueFromInitial && uniqueFromInitial == null);
-		
-		
+
+		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
+		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
+		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(states*traceQuantity);
 		final Random rnd = new Random(seed*31+attempt*states);
@@ -104,7 +118,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 								
 				@Override
 				public int getLength() {
-					return  lengthMultiplier*states;
+					return  generator.getPathLength();//lengthMultiplier*states;
 				}
 
 				@Override
@@ -112,7 +126,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 					return len;
 				}
 			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
-		
+
+		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (onlyUsePositives)
 			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 				@Override
@@ -142,7 +157,10 @@ public class SmallvsHugeExperiment extends UASExperiment
 					if (possibleLabels.length == 1)
 						value.add(possibleLabels[0]);
 					else
-						value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
+					{
+						for(int cnt=0;cnt < 1;++cnt)
+							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
+					}
 				}
 				subsetOfPairs.put(entry.getKey(),value);
 			}
@@ -174,7 +192,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			@Override
 			public String kindOfPTA()
 			{
-				return "-"+attemptFinal;
+				return states+"-"+fsmSample+"-"+seed+"-"+attemptFinal;
 			}
 			@Override
 			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException {
@@ -184,10 +202,10 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
 		{
- 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed;
-
+ 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
  			//sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
- 			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 			sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
+ 			//sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 			
 			outcome.samples.add(sample);
@@ -240,13 +258,13 @@ public class SmallvsHugeExperiment extends UASExperiment
 		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 
-		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
+		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();eval.config.setOverride_usePTAMerging(true);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSMSize = 4;
-		final int minStateNumber = 10;
+		final int minStateNumber = 20;
 		final int attemptsPerFSM = 4;
 
 		final DrawGraphs gr = new DrawGraphs();
@@ -259,8 +277,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 		}
 		for(StringBuffer line:lines)
@@ -295,9 +313,9 @@ public class SmallvsHugeExperiment extends UASExperiment
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				
+
 				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
-						", learning outcome has "+difference.nrOfstates.getValue());
+						", learning outcome has "+difference.nrOfstates.getValue()+" more states than the original");
 				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
 			}
@@ -311,8 +329,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
-					//recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
+					//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
 					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 				}
 				csv.append('\n');
@@ -322,7 +340,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			@Override
 			public String getSubExperimentName()
 			{
-				return "UAV experiments";
+				return "Small v.s huge experiments";
 			}
 			
 			@Override
@@ -342,8 +360,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
-				for(int traceQuantity=50;traceQuantity<=50;++traceQuantity)
-					for(int traceLengthMultiplier=1;traceLengthMultiplier<=5;++traceLengthMultiplier)
+				for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
+					for(int traceLengthMultiplier=1;traceLengthMultiplier<=1;traceLengthMultiplier+=3)
 				{
 					try
 					{
@@ -352,7 +370,10 @@ public class SmallvsHugeExperiment extends UASExperiment
 							for(int sample=0;sample<samplesPerFSMSize;++sample)
 								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 								{
-									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity, traceLengthMultiplier, eval);
+									LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+									ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity, traceLengthMultiplier, ev);
+									learnerRunner.setAlwaysRunExperiment(true);
 									listOfExperiments.add(learnerRunner);
 								}
 					}
@@ -388,4 +409,5 @@ public class SmallvsHugeExperiment extends UASExperiment
 		experimentRunner.successfulTermination();
 
 	}
+
 }

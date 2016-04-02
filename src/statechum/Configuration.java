@@ -99,7 +99,10 @@ public class Configuration implements Cloneable {
 													// prohibited.
 
 	public enum ScoreMode {
-		CONVENTIONAL, COMPATIBILITY, KTAILS, KTAILS_ANY, GENERAL, ONLYOVERRIDE
+		// GENERAL_PLUS_NOFULLMERGE means two things:
+		// 1. scoring is based only on positive vertices, so if a number of negatives are merged, we do not count this towards a score. This gives a similar score to 'compatible' mergers and much better learning results.
+		// 2. that during a merger, we should not construct a full partition of vertices - those are left out are in singleton clusters. This is much faster but may fail where questions are generated.
+		CONVENTIONAL, COMPATIBILITY, KTAILS, KTAILS_ANY, GENERAL, GENERAL_PLUS_NOFULLMERGE, ONLYOVERRIDE
 	}
 
 	/**

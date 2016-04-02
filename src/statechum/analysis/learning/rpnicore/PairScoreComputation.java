@@ -206,9 +206,25 @@ public class PairScoreComputation {
 				computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
 				break;
 			case GENERAL:
+			{
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
 				break;
+			}
+			case GENERAL_PLUS_NOFULLMERGE:
+			{
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
+	
+				if (computedScore >= 0)
+				{
+					computedScore = 0;
+					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge)
+						if (eqClass.getRepresentative().isAccept())
+							computedScore += eqClass.getStates().size()-1;					
+				}
+				break;
+			}
 			case KTAILS:
 				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 				if (computedScore >= 0)
@@ -489,6 +505,9 @@ public class PairScoreComputation {
 		Map<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
 				new TreeMap<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
 */
+		if (!AbstractLearnerGraph.checkCompatible(pairToMerge.getQ(),pairToMerge.getR(),coregraph.pairCompatibility))
+			return -1;// incompatible states, perform a quick bailout.
+
 		try
 		{
 			if (pairToMerge != null) 
@@ -622,7 +641,7 @@ public class PairScoreComputation {
 						mergedVertices.add(entry.getValue());
 						score+=entry.getValue().getStates().size()-1;
 					}
-			}
+			}				
 		}
 
 		return score;

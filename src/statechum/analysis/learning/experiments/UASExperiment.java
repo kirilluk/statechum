@@ -3,17 +3,16 @@ package statechum.analysis.learning.experiments;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Callable;
 
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -25,6 +24,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -38,6 +38,8 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
 	protected String inputGraphFileName;
+	
+	protected boolean alwaysRunExperiment = false;
 	
 	public UASExperiment(LearnerEvaluationConfiguration eval)
 	{
@@ -55,25 +57,27 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	protected LearnerGraph loadOutcomeOfLearning(String experimentSuffix)
 	{
 		LearnerGraph outcome = null;
-		String graphFileName = constructFileName(experimentSuffix);
-		
-    	if (new File(graphFileName).canRead())
-    	{
-	    	outcome = new LearnerGraph(learnerInitConfiguration.config);
-    		try
-			{
-    			AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());
-			} 
-    		catch (IOException e)
-			{
-				System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
-			}
-    		catch (IllegalArgumentException e)
-			{
-				System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
-			}
-    	}
-    	
+		if (!alwaysRunExperiment)
+		{
+			String graphFileName = constructFileName(experimentSuffix);
+			
+	    	if (new File(graphFileName).canRead())
+	    	{
+		    	outcome = new LearnerGraph(learnerInitConfiguration.config);
+	    		try
+				{
+	    			AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());
+				} 
+	    		catch (IOException e)
+				{
+					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+				}
+	    		catch (IllegalArgumentException e)
+				{
+					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+				}
+	    	}
+		}    	
     	return outcome;
 	}
 	
@@ -121,7 +125,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 
 	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod) throws AugmentFromIfThenAutomatonException, IOException
 	{
-		String experimentName = "conventional_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
@@ -130,14 +134,48 @@ public abstract class UASExperiment implements Callable<ThreadResult>
  			
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
-		}		
+		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
 		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
-		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(learntGraph.getStateNumber() - referenceGraph.getStateNumber());
+		/*
+		if (bcrMeasure.getValue() == 1.0 && outcome.nrOfstates.getValue() == -1.0)
+		{
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			DirectedSparseGraph gr = gd.showGD(
+					actualAutomaton,referenceGraph,
+					ExperimentRunner.getCpuNumber());
+			Visualiser.updateFrame(gr, referenceGraph);
+			Visualiser.waitForKey();
+		}*/
+		return outcome;
+	}
+	
+	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	{
+		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		if(actualAutomaton == null)
+		{
+			LearnerGraph pta = ptaSource.buildPTA();
+ 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod), pta, uniqueLabel);
+ 			
+ 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+		}
+		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
+		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
+		actualAutomaton.setName(experimentName);
+		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
+		ScoresForGraph outcome = new ScoresForGraph(); 
+		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
+		LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(learntGraph.getStateNumber() - referenceGraph.getStateNumber());
 		return outcome;
 	}
 	

@@ -199,7 +199,8 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			trimmedGraph.setName(experimentName+"-part_of_premerge");
 			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
 			
-			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+					new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
 
 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			actualAutomaton.setName(experimentName+"-actual");

@@ -505,7 +505,7 @@ public class PairScoreComputation {
 		Map<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
 				new TreeMap<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
 */
-		if (!AbstractLearnerGraph.checkCompatible(pairToMerge.getQ(),pairToMerge.getR(),coregraph.pairCompatibility))
+		if (pairToMerge != null && !AbstractLearnerGraph.checkCompatible(pairToMerge.getQ(),pairToMerge.getR(),coregraph.pairCompatibility))
 			return -1;// incompatible states, perform a quick bailout.
 
 		try

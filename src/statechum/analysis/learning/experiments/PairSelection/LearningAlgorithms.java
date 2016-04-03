@@ -547,27 +547,29 @@ public class LearningAlgorithms
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
 			LearnerGraph outcome = learner.learnMachine(plus, minus);
-			//Visualiser.updateFrame(outcome, null);
 			if (outcome.getInit().getColour() == null)
 			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
 				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
 				CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
 				Map<Label,CmpVertex> outOfDummy = tmp.createNewRow();
 				tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
-				tmp.addToCompatibility(tmp.getInit(), dummyVertex, PAIRCOMPATIBILITY.INCOMPATIBLE);// make sure our new vertex is not merged with the initial one (since it is red, it will not be merged with any other vertex).
-				Visualiser.updateFrame(tmp, null);
-				learner.init(tmp);
-				// now the initial vertex is accessible from the dummy red state (and no other state), therefore, it will hopefully be merged somewhere.
-				// It is important that we do not do this by hand since the decision to merge is with the learner, so EDSM_1 may decide differently to SICCO- type learner.
-				outcome = learner.learnMachine(plus, minus);
-				// now we do not have an initial state any more (it was merged somewhere) and compatibility map mentions a non-existing vertex (the one that was the initial one).
-				outcome.removeFromIncompatibles(outcome.getInit(), dummyVertex);// this resolves the problem of invalid vertex in vertex compatibility map.
-				Visualiser.updateFrame(outcome, null);
-				// now remove the dummy vertex.
-				outcome.removeFromIncompatibles(outcome.getInit(), dummyVertex);
-				outcome.transitionMatrix.remove(dummyVertex);
+				Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
+				PairScore initialToMergeWith = null;
+				for(PairScore p:pairs)
+					if (p.getQ() == tmp.getInit() && p.getR() != dummyVertex)
+					{
+						initialToMergeWith = p;break;
+					}
+				if (initialToMergeWith != null)
+				{// merge the initial vertex with one of the existing ones
+					tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
+					tmp.setInit(initialToMergeWith.getR());
+				}
+				tmp.transitionMatrix.remove(dummyVertex);
+				//Visualiser.updateFrame(tmp, outcome);
+				outcome = tmp;
 			}
-			Visualiser.updateFrame(outcome, null);
+			//Visualiser.updateFrame(outcome, null);
 			return outcome;
 		}
 

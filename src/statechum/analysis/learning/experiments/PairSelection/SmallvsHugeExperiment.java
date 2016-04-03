@@ -204,8 +204,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		{
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
  			//sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
- 			sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
- 			//sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
+ 			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 			
 			outcome.samples.add(sample);
@@ -258,7 +258,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 
-		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();eval.config.setOverride_usePTAMerging(true);
+		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();eval.config.setOverride_usePTAMerging(false);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
@@ -329,8 +329,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
-					//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+					//recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
 					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 				}
 				csv.append('\n');

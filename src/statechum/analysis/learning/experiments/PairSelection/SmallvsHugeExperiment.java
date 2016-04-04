@@ -268,7 +268,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSMSize = 4;
-		final int minStateNumber = 40;
+		final int minStateNumber = 20;
 		final int attemptsPerFSM = 4;
 
 		final DrawGraphs gr = new DrawGraphs();
@@ -379,6 +379,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
+				int multFactor=1;
 				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
 				for(int traceQuantity=5;traceQuantity<=10;traceQuantity+=5)
 					for(int traceLengthMultiplier=1;traceLengthMultiplier<=2;traceLengthMultiplier+=1)
@@ -392,7 +393,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 								{
 									LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 									ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity, traceLengthMultiplier, ev);
+									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity*multFactor, traceLengthMultiplier*multFactor, ev);
 									learnerRunner.setAlwaysRunExperiment(true);
 									listOfExperiments.add(learnerRunner);
 								}

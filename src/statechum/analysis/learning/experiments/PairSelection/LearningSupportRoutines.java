@@ -194,12 +194,17 @@ public class LearningSupportRoutines
 		
 	}
 
-	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. The collection of pairs initial-original is then returned. 
+	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. 
+	 * The collection of pairs initial-original is then returned. 
 	 * Important: this method modifies the supplied graph because it needs to add vertices. 
 	 * For instance, A-a->B-b->C-a->D using label "a" as unique is turned into A-a->N1 / N2-a->B-b-C-a->N3 / N4-a->D (with a set of {N2,N4,A} returned). 
 	 * The need to split states accounts for multiple transitions from the same state:
 	 * Init ... A-a->B / A-b->B would turn into A-a->N1 / A-b->B / N2-a->B (with a set of {N2,Init} returned).
 	 * The key advantage is that after merger of the returned vertices, the outcome is a tree, hence can be used as a normal PTA with a non-generalised merger.
+	 * The problem with this is that with long sequences, EDSM has to be used with a threshold greater than 1. In fact, it is the case most of the time and hence this
+	 * idea does not really encourage mergers as much as it should. I could possibly improve on this by adding a new element of an alphabet so that each transition
+	 * with a unique label will be followed by a long sequence of such transitions; after the learning is complete, transitions with the extra element of an alphabet 
+	 * could be removed. This idea is not currently pursued because the generalised learner seems as fast as PTA learner and just about as good.  
 	 */
 	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
 	{

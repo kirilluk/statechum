@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import statechum.Configuration;
@@ -88,7 +90,11 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApply()
 	{
-		return Arrays.asList(ScoringToApply.values());
+		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,ScoringToApply.SCORING_EDSM_2,
+				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
+				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
+				});
+				//ScoringToApply.values());
 	}
 
    public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
@@ -171,7 +177,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
+		//Visualiser.waitForKey();
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
@@ -192,15 +198,31 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
-		//if(actualAutomaton == null)
+		double fanoutPos=0, fanoutNeg = 0;
+		int ptaStateNumber=0;
+		if(actualAutomaton == null)
 		{
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaSource.buildPTA(),uniqueLabel,false);
-			LearnerGraph trimmedGraph = smallPta.transform.trimGraph(5, smallPta.getInit());
-			trimmedGraph.setName(experimentName+"-part_of_premerge");
+			ptaStateNumber=smallPta.getAcceptStateNumber();
+			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:smallPta.transitionMatrix.entrySet())
+			{
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+					if (transition.getValue().isAccept())
+						fanoutPos++;
+					else
+						fanoutNeg++;
+			}
+			
+			if (ptaStateNumber > 0)
+			{
+				fanoutPos/=ptaStateNumber;fanoutNeg/=ptaStateNumber;
+			}
+			//LearnerGraph trimmedGraph = smallPta.transform.trimGraph(5, smallPta.getInit());
+			//trimmedGraph.setName(experimentName+"-part_of_premerge");
 			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
 			
-			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
-					new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
+			Learner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+					//new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
 
 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			actualAutomaton.setName(experimentName+"-actual");
@@ -216,9 +238,48 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		ScoresForGraph outcome =  new ScoresForGraph();
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.fanoutPos = fanoutPos;outcome.fanoutNeg = fanoutNeg;outcome.ptaStateNumber=ptaStateNumber;
 		return outcome;
 	}
+	
+	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
+		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		int ptaStateNumber = 0;
+		if(actualAutomaton == null)
+		{
+			// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
+			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(ptaSource.buildPTA(),uniqueLabel);
+			ptaStateNumber = reducedPTA.getAcceptStateNumber();
+			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
+					new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod),reducedPTA,uniqueLabel);
 
+			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			actualAutomaton.setName(experimentName+"-actual");
+		}		
+		
+		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
+		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
+		actualAutomaton.setName(experimentName);
+		/*
+		if (diffMeasure.getValue()>0.9)
+		{
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			DirectedSparseGraph gr = gd.showGD(
+				actualAutomaton,referenceGraph,
+				ExperimentRunner.getCpuNumber());
+			Visualiser.updateFrameWithPos(gr,3);
+			Visualiser.updateFrame(actualAutomaton, referenceGraph);
+			Visualiser.waitForKey();
+		}*/
+		ScoresForGraph outcome =  new ScoresForGraph();
+		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.ptaStateNumber=ptaStateNumber;
+		return outcome;
+	}
+	
 	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = "constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();

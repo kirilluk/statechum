@@ -1024,6 +1024,8 @@ public class PairQualityLearner
 		public DifferenceToReference differenceStructural, differenceBCR , differenceFMeasure;
 		public DifferenceToReference nrOfstates;
 		public long inconsistency;
+		public double fanoutPos,fanoutNeg;
+		public int ptaStateNumber;
 		
 		@Override
 		public double getValue()

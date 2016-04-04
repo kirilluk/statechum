@@ -17,9 +17,11 @@ import java.util.concurrent.Executors;
 
 import statechum.GlobalConfiguration;
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -118,7 +120,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 								
 				@Override
 				public int getLength() {
-					return  generator.getPathLength();//lengthMultiplier*states;
+					return  lengthMultiplier*states;
 				}
 
 				@Override
@@ -164,12 +166,11 @@ public class SmallvsHugeExperiment extends UASExperiment
 				}
 				subsetOfPairs.put(entry.getKey(),value);
 			}
-			LearnerEvaluationConfiguration learnerEval = UASExperiment.constructLearnerInitConfiguration();
-			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
-			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
-			learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
-			int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
 			
+			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerInitConfiguration,subsetOfPairs);
+			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
+			learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
+			int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
 			Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
 		}
 		else 
@@ -202,9 +203,11 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
 		{
- 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = states+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
+ 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
  			//sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
  			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
+ 			//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 					
  			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 			
@@ -258,13 +261,14 @@ public class SmallvsHugeExperiment extends UASExperiment
 		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 
-		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();eval.config.setOverride_usePTAMerging(false);
+		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
+		eval.config.setOverride_usePTAMerging(false);eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 		final int samplesPerFSMSize = 4;
-		final int minStateNumber = 20;
+		final int minStateNumber = 40;
 		final int attemptsPerFSM = 4;
 
 		final DrawGraphs gr = new DrawGraphs();
@@ -277,7 +281,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States","PTA states"});
 			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 		}
@@ -299,6 +303,18 @@ public class SmallvsHugeExperiment extends UASExperiment
 					scoringAsString = "E1";break;
 				case SCORING_EDSM_2:
 					scoringAsString = "E2";break;
+				case SCORING_EDSM_3:
+					scoringAsString = "E3";break;
+				case SCORING_EDSM_4:
+					scoringAsString = "E4";break;
+				case SCORING_EDSM_5:
+					scoringAsString = "E5";break;
+				case SCORING_EDSM_6:
+					scoringAsString = "E6";break;
+				case SCORING_EDSM_7:
+					scoringAsString = "E7";break;
+				case SCORING_EDSM_8:
+					scoringAsString = "E8";break;
 				case SCORING_SICCO:
 					scoringAsString = "S";break;
 				case SCORING_SICCO_NIS:
@@ -308,11 +324,14 @@ public class SmallvsHugeExperiment extends UASExperiment
 				case SCORING_SICCO_RED:
 					scoringAsString = "SR";break;
 				default:
-					throw new IllegalArgumentException("Unexpected scoring");
+					throw new IllegalArgumentException("Unexpected scoring method");
 				}
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.ptaStateNumber);
+				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutPos);
+				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutNeg);
 
 				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
 						", learning outcome has "+difference.nrOfstates.getValue()+" more states than the original");
@@ -360,8 +379,9 @@ public class SmallvsHugeExperiment extends UASExperiment
 				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
-				for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
-					for(int traceLengthMultiplier=1;traceLengthMultiplier<=1;traceLengthMultiplier+=3)
+				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
+				for(int traceQuantity=5;traceQuantity<=10;traceQuantity+=5)
+					for(int traceLengthMultiplier=1;traceLengthMultiplier<=2;traceLengthMultiplier+=1)
 				{
 					try
 					{
@@ -404,7 +424,7 @@ public class SmallvsHugeExperiment extends UASExperiment
     	}
 		if (BCR_vs_experiment != null) BCR_vs_experiment.drawPdf(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.drawPdf(gr);
-		
+		Visualiser.waitForKey();
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
 		experimentRunner.successfulTermination();
 

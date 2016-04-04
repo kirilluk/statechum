@@ -333,7 +333,7 @@ public class LearningAlgorithms
 	static public final Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE; 
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
 	public static ReferenceLearner constructReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph initialPTA, ScoringToApply howToScore) 
 	{
 		ReferenceLearner outcome = null;
@@ -345,6 +345,18 @@ public class LearningAlgorithms
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 1);break;
 		case SCORING_EDSM_2:
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 2);break;
+		case SCORING_EDSM_3:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 3);break;
+		case SCORING_EDSM_4:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 4);break;
+		case SCORING_EDSM_5:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 5);break;
+		case SCORING_EDSM_6:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 6);break;
+		case SCORING_EDSM_7:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 7);break;
+		case SCORING_EDSM_8:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 8);break;
 		case SCORING_SICCO:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
 		case SCORING_SICCO_NIS:
@@ -547,6 +559,7 @@ public class LearningAlgorithms
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
 			LearnerGraph outcome = learner.learnMachine(plus, minus);
+			//Visualiser.updateFrameWithPos(outcome,4);
 			if (outcome.getInit().getColour() == null)
 			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
 				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
@@ -562,11 +575,16 @@ public class LearningAlgorithms
 					}
 				if (initialToMergeWith != null)
 				{// merge the initial vertex with one of the existing ones
-					tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
-					tmp.setInit(initialToMergeWith.getR());
+					//tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
+					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
+						throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
+					tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
+					tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
+					//Visualiser.updateFrameWithPos(tmp, 5);
 				}
 				tmp.transitionMatrix.remove(dummyVertex);
-				//Visualiser.updateFrame(tmp, outcome);
+				//
 				outcome = tmp;
 			}
 			//Visualiser.updateFrame(outcome, null);

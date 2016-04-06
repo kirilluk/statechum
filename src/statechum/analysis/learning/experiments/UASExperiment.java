@@ -243,7 +243,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
-		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = "ptapremerge+constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		int ptaStateNumber = 0;
 		if(actualAutomaton == null)
@@ -251,8 +251,10 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(ptaSource.buildPTA(),uniqueLabel);
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
+			ReferenceLearner refLearner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
+			refLearner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
-					new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod),reducedPTA,uniqueLabel);
+					new LearningAlgorithms.LearnerWithUniqueFromInitial(refLearner,reducedPTA,uniqueLabel);
 
 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			actualAutomaton.setName(experimentName+"-actual");

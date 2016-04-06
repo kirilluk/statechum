@@ -1215,13 +1215,6 @@ public class PairQualityLearner
 							return len;
 						}
 					});
-				/*
-				for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(1))
-				{
-					pta.paths.augmentPTA(seq, referenceGraph.getVertex(seq) != null, false, null);
-				}*/
-				//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));// this one will not set any states as rejects because it uses shouldbereturned
-				//referenceGraph.pathroutines.completeGraph(referenceGraph.nextID(false));
 				if (onlyUsePositives)
 					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 						@Override

@@ -297,7 +297,6 @@ public class LearningSupportRoutines
 		return labelToSet;
 	}
 	
-	
 	public static long computeScoreBasedOnMandatoryMerge(PairScore pair,LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
 	{
 		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -313,6 +312,7 @@ public class LearningSupportRoutines
 		
 		return -1;// cannot be merged
 	}
+	
 	/** Returns a subset of pairs that are not in contradiction with mandatory merge constraints.
 	 *  
 	 * @param pairs pairs to merge
@@ -520,7 +520,6 @@ public class LearningSupportRoutines
 		}
 		return ptaTmp;
  	}
-
 
  	public static void addSeparator(StringBuffer buf)
  	{

@@ -28,14 +28,12 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
@@ -75,7 +73,7 @@ public class LearningAlgorithms
 	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all check with flying colours.
 	 * This is the maximal number of states permitted in a learnt graph, as a multiplier of a number of states in a reference graph. 
 	 */
-	public static int maxStateNumberMultiplier = 3;
+	public static int maxStateNumberMultiplier = 2;
 	
 	public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
 	{
@@ -269,14 +267,7 @@ public class LearningAlgorithms
 			
 			return stateToMarkRed;
 		}
-/*
-		@Override
-		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
-		{// fast merger
-			LearnerGraph outcome = MergeStates.mergeAndDeterminize(original, pair);outcome.pathroutines.updateDepthLabelling();
-			return outcome;
-		}
-		*/
+
 		protected Map<Long,TrueFalseCounter> pairQuality;
 		protected LearnerGraph referenceGraph;
 
@@ -330,10 +321,10 @@ public class LearningAlgorithms
 		}
 	}
 	
-	static public final Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE; 
+	static public final Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.CONVENTIONAL;//GENERAL_PLUS_NOFULLMERGE; 
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, SCORING_SICCO, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, SCORING_SICCO, SCORING_SICCO_PTA,SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
 	public static ReferenceLearner constructReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph initialPTA, ScoringToApply howToScore) 
 	{
 		ReferenceLearner outcome = null;
@@ -357,6 +348,10 @@ public class LearningAlgorithms
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 7);break;
 		case SCORING_EDSM_8:
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 8);break;
+		case SCORING_SICCO_PTA:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA);break;
+		case SCORING_SICCO_PTARECURSIVE:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE);break;
 		case SCORING_SICCO:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
 		case SCORING_SICCO_NIS:
@@ -382,7 +377,7 @@ public class LearningAlgorithms
 		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
-		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_RECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_PTA, SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
 		protected final OverrideScoringToApply scoringMethod;
 		
 		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring) 
@@ -464,11 +459,15 @@ public class LearningAlgorithms
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
-					case SCORING_SICCO:
-						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+					case SCORING_SICCO_PTA:
+						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreSicco(p, false) < 0)
 							score = -1;
 						break;
-					case SCORING_SICCO_RECURSIVE:
+					case SCORING_SICCO_PTARECURSIVE:
+						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreSicco(p, true) < 0)
+							score = -1;
+						break;
+					case SCORING_SICCO:
 						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
 							score = -1;
 						break;
@@ -539,7 +538,6 @@ public class LearningAlgorithms
 			uniqueLabel = uniqueFromInitial;
 			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(new Label[]{uniqueFromInitial}));
 			learner = learnerToUse;learner.init(initPTA);
-			//Visualiser.updateFrame(initPTA.transform.trimGraph(3, initPTA.getInit()), null);
 		}
 
 		@Override
@@ -559,7 +557,6 @@ public class LearningAlgorithms
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
 			LearnerGraph outcome = learner.learnMachine(plus, minus);
-			//Visualiser.updateFrameWithPos(outcome,4);
 			if (outcome.getInit().getColour() == null)
 			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
 				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
@@ -581,7 +578,6 @@ public class LearningAlgorithms
 						throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
 					tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
 					tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
-					//Visualiser.updateFrameWithPos(tmp, 5);
 				}
 				tmp.transitionMatrix.remove(dummyVertex);
 				//
@@ -672,7 +668,7 @@ public class LearningAlgorithms
 		
 		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive) 
 		{
-			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_RECURSIVE:OverrideScoringToApply.SCORING_SICCO);
+			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE:OverrideScoringToApply.SCORING_SICCO_PTA);
 			scoringSiccoRecursive = SiccoRecursive;
 		}
 

@@ -93,20 +93,20 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,ScoringToApply.SCORING_EDSM_2,
 				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
 				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
+				ScoringToApply.SCORING_SICCO,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE
 				});
 				//ScoringToApply.values());
 	}
 
-   public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
-   {
+	public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
+	{
 	   LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 	   List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),
 				Arrays.asList(new Label[]{labelToMerge}));
 		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that are associated with the unique state cannot be merged in the PTA");
 		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge, buildAuxInfo);
-   }
-   
+	}
 
 	/** Used by the learners to request a PTA to learn from. */
 	public interface BuildPTAInterface
@@ -114,7 +114,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		String kindOfPTA();
 		LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException;
 	}
-	
+
 	public static LearnerEvaluationConfiguration constructLearnerInitConfiguration()
 	{
 		LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
@@ -147,8 +147,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
-		LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(learntGraph.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 		/*
 		if (bcrMeasure.getValue() == 1.0 && outcome.nrOfstates.getValue() == -1.0)
 		{
@@ -184,7 +183,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(learntGraph.getStateNumber() - referenceGraph.getStateNumber());
 		return outcome;
 	}
-	
+
 	/** Learns an automaton by requesting it from a supplier ptaSource.
 	 * 
 	 * @param ptaSource where to get automaton from

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -110,12 +109,12 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(states*traceQuantity);
 		final Random rnd = new Random(seed*31+attempt*states);
-
+/*
+		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
 				@Override
@@ -128,6 +127,20 @@ public class SmallvsHugeExperiment extends UASExperiment
 					return len;
 				}
 			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
+*/
+		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());
+		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+								
+				@Override
+				public int getLength() {
+					return  lengthMultiplier*states;
+				}
+
+				@Override
+				public int getPrefixLength(int len) {
+					return len;
+				}
+			},true,true,null,null);
 
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (onlyUsePositives)
@@ -160,7 +173,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 						value.add(possibleLabels[0]);
 					else
 					{
-						for(int cnt=0;cnt < 1;++cnt)
+						for(int cnt=0;cnt < 2;++cnt)
 							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
 					}
 				}
@@ -203,12 +216,12 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
 		{
- 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
- 			//sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
+ 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
+ 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
  			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
  			//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  					
- 			sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+ 			//sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 			
 			outcome.samples.add(sample);
@@ -262,14 +275,15 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
-		eval.config.setOverride_usePTAMerging(false);eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
+		eval.config.setOverride_usePTAMerging(true);
+		//eval.config.setOverride_usePTAMerging(false);eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int samplesPerFSMSize = 4;
-		final int minStateNumber = 40;
-		final int attemptsPerFSM = 4;
+		final int samplesPerFSMSize = 100;
+		final int minStateNumber = 20;
+		final int attemptsPerFSM = 2;
 
 		final DrawGraphs gr = new DrawGraphs();
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
@@ -315,6 +329,10 @@ public class SmallvsHugeExperiment extends UASExperiment
 					scoringAsString = "E7";break;
 				case SCORING_EDSM_8:
 					scoringAsString = "E8";break;
+				case SCORING_SICCO_PTA:
+					scoringAsString = "SP";break;
+				case SCORING_SICCO_PTARECURSIVE:
+					scoringAsString = "SPR";break;
 				case SCORING_SICCO:
 					scoringAsString = "S";break;
 				case SCORING_SICCO_NIS:
@@ -348,8 +366,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
-					//recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
+					//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
 					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 				}
 				csv.append('\n');
@@ -380,8 +398,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
 		*/
 				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
-				for(int traceQuantity=5;traceQuantity<=10;traceQuantity+=5)
-					for(int traceLengthMultiplier=1;traceLengthMultiplier<=2;traceLengthMultiplier+=1)
+				for(int traceQuantity=10;traceQuantity<=20;traceQuantity+=5)
+					for(int traceLengthMultiplier=2;traceLengthMultiplier<=4;traceLengthMultiplier+=1)
 				{
 					try
 					{

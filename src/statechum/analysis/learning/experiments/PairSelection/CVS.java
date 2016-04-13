@@ -69,6 +69,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.apps.QSMTool;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.*;
@@ -277,7 +278,8 @@ public class CVS extends PairQualityLearner
 				
 				
 				// This is to ensure that scoring is computed in the usual way rather than with override.
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+				ScoreMode scoringModeToUse = ScoreMode.COMPATIBILITY;
+				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(scoringModeToUse);
 				
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
 				{
@@ -315,7 +317,7 @@ public class CVS extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerzero = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerzero = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 0 Reference");
 
 						dataSample.EDSMzero = estimateDifference(referenceGraph, EDSMReferenceLearnerzero,testSet);
@@ -332,7 +334,7 @@ public class CVS extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerone = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerone = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 1 Reference");
 
 						dataSample.EDSMone = estimateDifference(referenceGraph, EDSMReferenceLearnerone,testSet);
@@ -349,7 +351,7 @@ public class CVS extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnertwo = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnertwo = new EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 2 Reference");
 
 						dataSample.EDSMtwo = estimateDifference(referenceGraph, EDSMReferenceLearnertwo,testSet);
@@ -683,6 +685,18 @@ public class CVS extends PairQualityLearner
 		}
 	}
 	
+	public static class TraceLoader extends QSMTool
+	{
+		public TraceLoader(Configuration c,ConvertALabel converter)
+		{
+			learnerInitConfiguration.config = c;learnerInitConfiguration.setLabelConverter(converter);
+		}
+		
+		public LearnerGraph getPTA()
+		{
+			LearnerGraph outcome = new LearnerGraph(learnerInitConfiguration.config);outcome.paths.augmentPTA(sPlus, true, false);outcome.paths.augmentPTA(sMinus, false, false);return outcome;
+		}
+	}
 	
 	public static void runExperiment(@SuppressWarnings("unused") String args[]) throws Exception
 	{
@@ -701,7 +715,7 @@ public class CVS extends PairQualityLearner
 		for(final int preset: new int[]{0})//0,1,2})
 		{
 				
-			LearnFromTracesUsingExperimentalLearners.TraceLoader tool = new LearnFromTracesUsingExperimentalLearners.TraceLoader(config,converter);
+			TraceLoader tool = new TraceLoader(config,converter);
 			tool.loadConfig("resources/CVS.txt");
 
 			LearnerGraph pta = tool.getPTA();

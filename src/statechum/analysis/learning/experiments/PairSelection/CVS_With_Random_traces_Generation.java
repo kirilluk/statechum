@@ -314,14 +314,15 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 
 //				dataSample.miscGraphs.put("EDSM-Markov",dataSample.actualLearner);
 				// This is to ensure that scoring is computed in the usual way rather than with override.
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+				ScoreMode scoringModeToUse = ScoreMode.COMPATIBILITY;
+				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(scoringModeToUse);
 				
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
 				{
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,scoringModeToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("Sicco's Reference");
 						dataSample.referenceLearner = estimateDifference(trimmedReference, outcomeOfReferenceLearner,testSet);
 						dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
@@ -377,7 +378,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerzero = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerzero = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 0 Reference");
 
 						dataSample.EDSMzero = estimateDifference(trimmedReference, EDSMReferenceLearnerzero,testSet);
@@ -395,7 +396,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerone = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerone = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 1 Reference");
 
 						dataSample.EDSMone = estimateDifference(trimmedReference, EDSMReferenceLearnerone,testSet);
@@ -413,7 +414,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnertwo = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnertwo = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 2 Reference");
 
 						dataSample.EDSMtwo = estimateDifference(trimmedReference, EDSMReferenceLearnertwo,testSet);

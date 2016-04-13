@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
@@ -209,15 +210,17 @@ public class SmallvsHugeExperiment extends UASExperiment
 				return states+"-"+fsmSample+"-"+seed+"-"+attemptFinal;
 			}
 			@Override
-			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException {
+			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
+			{
 				return pta;
 			}
 		};
 
+		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE;
 		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
 		{
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
- 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod);
+ 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod,scoringForEDSM);
  			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
  			//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
  					

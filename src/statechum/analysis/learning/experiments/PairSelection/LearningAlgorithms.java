@@ -16,9 +16,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -34,16 +32,13 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
+import statechum.analysis.learning.observers.LearnerReturningOriginalGraph;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -60,12 +55,10 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConside
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.HashMapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class LearningAlgorithms
 {
@@ -167,6 +160,7 @@ public class LearningAlgorithms
 			return initialPTA;
 		}
 		
+		@Override
 		public LearnerGraph init(LearnerGraph initPta)
 		{
 			if (getTentativeAutomaton() == initPta)
@@ -321,33 +315,63 @@ public class LearningAlgorithms
 		}
 	}
 	
-	static public final Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.CONVENTIONAL;//GENERAL_PLUS_NOFULLMERGE; 
-
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, SCORING_SICCO, SCORING_SICCO_PTA,SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
-	public static ReferenceLearner constructReferenceLearner(LearnerEvaluationConfiguration evalCnf, LearnerGraph initialPTA, ScoringToApply howToScore) 
+	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, 
+		SCORING_SICCO, SCORING_SICCO_PTA,SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED,
+		SCORING_KT_1, SCORING_KT_2, SCORING_KT_3, SCORING_KT_4
+	}
+	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 
 	{
-		ReferenceLearner outcome = null;
+		Learner outcome = null;
+		//final int threadNumber = 1;// we run each experiment on a separate thread hence do not create many threads.
 		switch(howToScore)
 		{
 		case SCORING_EDSM:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, -1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, -1);break;
 		case SCORING_EDSM_1:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 1);break;
 		case SCORING_EDSM_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2);break;
 		case SCORING_EDSM_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 3);break;
 		case SCORING_EDSM_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 4);break;
 		case SCORING_EDSM_5:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 5);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 5);break;
 		case SCORING_EDSM_6:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 6);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 6);break;
 		case SCORING_EDSM_7:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 7);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 7);break;
 		case SCORING_EDSM_8:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, 8);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 8);break;
+		case SCORING_KT_1:
+			outcome = new LearnerReturningOriginalGraph() {
+				@Override
+				public LearnerGraph constructGraph() {
+					return  ptaKtails(initialPTA,1);
+				}};
+			break;
+		case SCORING_KT_2:
+			outcome = new LearnerReturningOriginalGraph() {
+				@Override
+				public LearnerGraph constructGraph() {
+					return  ptaKtails(initialPTA,2);
+				}};
+			break;
+		case SCORING_KT_3:
+			outcome = new LearnerReturningOriginalGraph() {
+				@Override
+				public LearnerGraph constructGraph() {
+					return  ptaKtails(initialPTA,3);
+				}};
+			break;
+		case SCORING_KT_4:
+			outcome = new LearnerReturningOriginalGraph() {
+				@Override
+				public LearnerGraph constructGraph() {
+					return  ptaKtails(initialPTA,4);
+				}};
+			break;
 		case SCORING_SICCO_PTA:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA);break;
 		case SCORING_SICCO_PTARECURSIVE:
@@ -517,7 +541,7 @@ public class LearningAlgorithms
 	 */
 	public static class LearnerWithUniqueFromInitial implements Learner
 	{
-		final ReferenceLearner learner;
+		final Learner learner;
 		final Label uniqueLabel;
 		
 		@Override
@@ -533,7 +557,7 @@ public class LearningAlgorithms
 			return recolouredPTA;
 		}
 		
-		public LearnerWithUniqueFromInitial(ReferenceLearner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
+		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
 			uniqueLabel = uniqueFromInitial;
 			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(new Label[]{uniqueFromInitial}));
@@ -601,6 +625,12 @@ public class LearningAlgorithms
 		@SuppressWarnings("unused")
 		@Override
 		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) {
+			throw new UnsupportedOperationException("The initial graph should be set by the constructor of LearnerWithUniqueFromInitial");
+		}
+
+		@SuppressWarnings("unused")
+		@Override
+		public LearnerGraph init(LearnerGraph initPta) {
 			throw new UnsupportedOperationException("The initial graph should be set by the constructor of LearnerWithUniqueFromInitial");
 		}
 
@@ -705,16 +735,17 @@ public class LearningAlgorithms
 	/** This one is a reference EDSM learner, using the provided thresholds for pair rejection (negative means no rejection). */
 	public static class EDSMReferenceLearner extends ReferenceLearner
 	{
-		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
+		
+		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, Configuration.ScoreMode scoringForEDSM, int threshold)
 		{
 			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(scoringForEDSM);config.setRejectPositivePairsWithScoresLessThan(threshold);
 			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
 			return copy;
 		}
 
-		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, Configuration.ScoreMode scoringForEDSM, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf,scoringForEDSM,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
 		}
 
 		@Override
@@ -913,152 +944,6 @@ public class LearningAlgorithms
 
 	}
 	
-	public static class EvaluationOfExisingLearnerRunner implements Callable<ThreadResult>
-	{
-		protected final Configuration config;
-		protected final ConvertALabel converter;
-		protected final int states,sample;
-		protected boolean onlyUsePositives;
-		protected final int seed;
-		protected int chunkLen=4;
-		protected final int traceQuantity;
-		protected String selectionID;
-		protected double alphabetMultiplier = 2.;
-		protected double traceLengthMultiplier = 2;
-		public void setSelectionID(String value)
-		{
-			selectionID = value;
-		}
-		
-		public void setTraceLengthMultiplier(double value)
-		{
-			traceLengthMultiplier = value;
-		}
-		
-		/** Whether to filter the collection of traces such that only positive traces are used. */
-		public void setOnlyUsePositives(boolean value)
-		{
-			onlyUsePositives = value;
-		}
-		
-		public void setAlphabetMultiplier(double mult)
-		{
-			alphabetMultiplier = mult;
-		}
-		
-		public void setChunkLen(int len)
-		{
-			chunkLen = len;
-		}
-		
-		public EvaluationOfExisingLearnerRunner(int argStates, int argSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
-		{
-			states = argStates;sample = argSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
-		}
-		
-		@Override
-		public ThreadResult call() throws Exception 
-		{
-			final int alphabet = (int)(alphabetMultiplier*states);
-			LearnerGraph referenceGraph = null;
-			ThreadResult outcome = new ThreadResult();
-			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-			
-			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = buildEvaluationSet(referenceGraph);
-
-			for(int attempt=0;attempt<2;++attempt)
-			{// try learning the same machine a few times
-				LearnerGraph pta = new LearnerGraph(config);
-				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-										
-						@Override
-						public int getLength() {
-							return (int)(traceLengthMultiplier*states*alphabet);
-						}
-		
-						@Override
-						public int getPrefixLength(int len) {
-							return len;
-						}
-					});
-
-				if (onlyUsePositives)
-				{
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
-				}
-				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));
-
-				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
-				new MarkovClassifier(m, pta).updateMarkov(false);
-				pta.clearColours();
-
-				if (!onlyUsePositives)
-					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				else 
-					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-				
-				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
-				SampleData dataSample=new SampleData();
-				dataSample.miscGraphs = new TreeMap<String,ScoresForGraph>();
-				List<ReferenceLearner> learnerList = new ArrayList<ReferenceLearner>();
-				
-				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,true));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new ReferenceLearnerUsingSiccoScoring(learnerEval,ptaCopy,false));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,true,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new KTailsReferenceLearner(learnerEval,ptaCopy,false,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,1));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,2));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,3));
-				ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
-				learnerList.add(new EDSMReferenceLearner(learnerEval,ptaCopy,4));
-				
-				for(ReferenceLearner learnerToUse:learnerList)
-					try
-					{
-						dataSample.miscGraphs.put(learnerToUse.toString(),estimateDifference(referenceGraph,learnerToUse.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>()),testSet));
-					}
-					catch(LearnerAbortedException ex)
-					{// the exception is thrown because the learner failed to learn anything completely.
-						dataSample.miscGraphs.put(learnerToUse.toString(),zeroScore);
-					}
-				System.out.println(dataSample);
-				outcome.samples.add(dataSample);
-			}
-			
-			return outcome;
-		}
-
-		// Delegates to a specific estimator
-		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
-		{
-			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
-			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
-			return outcome;
-		}
-	}
-	
 	public static final ScoresForGraph zeroScore;
 	static
 	{
@@ -1127,12 +1012,12 @@ public class LearningAlgorithms
 		return outcome;
 	}
 	
-	public static LearnerGraph ptaConcurrentKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config, String ndFileName)
+	public static LearnerGraph ptaConcurrentKtails(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config, int threadNumber, String ndFileName)
 	{
 		
 		LearnerGraph pta = new LearnerGraph(config);
 		pta.paths.augmentPTA(positive, true, false);pta.paths.augmentPTA(negative, false, false);
-		return ptaConcurrentKtails(pta, k,ndFileName);
+		return ptaConcurrentKtails(pta, k,threadNumber, ndFileName);
 	}
 	
 	public static LearnerGraph ptaKtails(LearnerGraph graph, int k)
@@ -1232,6 +1117,9 @@ public class LearningAlgorithms
 		return ndGraph.pathroutines.buildDeterministicGraph();
 	}
 	
+	/** This is a learner that is intended to merge traces into a graph of interest one-by-one. After a decision is reached which state 
+	 * of the graph is to be added to which state in an existing graph, the outcome is made deterministic and returned.
+	 */
 	public static LearnerGraph incrementalKtailsHelper(List<Label> sequence, boolean positive, int k,LearnerGraph existingGraph) throws IncompatibleStatesException
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
@@ -1240,34 +1128,34 @@ public class LearningAlgorithms
 				existingGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,existingGraph);
-			initialEQ.mergeWith(existingGraph.getInit(),null);
-			stateToEquivalenceClass.put(existingGraph.getInit(), initialEQ);
-			if (!positive && sequence.size() == 0)
-				throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
-		
-			CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(existingGraph.nextID(true),existingGraph.config);
-			existingGraph.transitionMatrix.put(startForPath,existingGraph.createNewRow());
-			existingGraph.paths.augmentPTA(sequence, startForPath, positive, false,null);
-			existingGraph.pairscores.mergePair(new StatePair(existingGraph.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
-		
-			CmpVertex vA = startForPath;
-			Set<CmpVertex> visitedVertices = new LinkedHashSet<CmpVertex>();
-			while(vA != null)
-			{
-				visitedVertices.add(vA);
-				
-				for(CmpVertex vB:existingGraph.transitionMatrix.keySet())
-					if (!visitedVertices.contains(vB) && checkMatch(existingGraph,vA,vB,k))
-						existingGraph.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,existingGraph);
+		initialEQ.mergeWith(existingGraph.getInit(),null);
+		stateToEquivalenceClass.put(existingGraph.getInit(), initialEQ);
+		if (!positive && sequence.size() == 0)
+			throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
+	
+		CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(existingGraph.nextID(true),existingGraph.config);
+		existingGraph.transitionMatrix.put(startForPath,existingGraph.createNewRow());
+		existingGraph.paths.augmentPTA(sequence, startForPath, positive, false,null);
+		existingGraph.pairscores.mergePair(new StatePair(existingGraph.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
+	
+		CmpVertex vA = startForPath;
+		Set<CmpVertex> visitedVertices = new LinkedHashSet<CmpVertex>();
+		while(vA != null)
+		{
+			visitedVertices.add(vA);
+			
+			for(CmpVertex vB:existingGraph.transitionMatrix.keySet()) // this picks up both vertices in the graph we started with and those in the sequence.
+				if (!visitedVertices.contains(vB) && checkMatch(existingGraph,vA,vB,k))
+					existingGraph.pairscores.mergePair(new StatePair(vA,vB),stateToEquivalenceClass,mergingDetails);
 
-				Map<Label,CmpVertex> next = existingGraph.transitionMatrix.get(vA);
-				if (!next.isEmpty())
-					vA=next.values().iterator().next();
-				else
-					vA=null;
-			}
-			return constructKTailsNDGraphAndDeterminizeIt(existingGraph,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
+			Map<Label,CmpVertex> next = existingGraph.transitionMatrix.get(vA);
+			if (!next.isEmpty())
+				vA=next.values().iterator().next();// there can only be one 'next' element because our PTA is built from a sequence.
+			else
+				vA=null;
+		}
+		return constructKTailsNDGraphAndDeterminizeIt(existingGraph,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 	
 	public static long computeStateScoreKTails(LearnerGraph gr, StatePair pair, int k, boolean anyPath)
@@ -1338,7 +1226,7 @@ public class LearningAlgorithms
 		return anyMatched || k == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
 	}
 
-	public static LearnerGraph traditionalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException
+	private static LearnerGraph traditionalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException
 	{
 		LearnerGraph graphWithTraces = new LearnerGraph(config);
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
@@ -1388,14 +1276,14 @@ public class LearningAlgorithms
 			return constructKTailsNDGraphAndDeterminizeIt(graphWithTraces,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 
-	public static LearnerGraph traditionalPTAKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative,int k,Configuration config) throws IncompatibleStatesException
+	private static LearnerGraph traditionalPTAKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative,int k,Configuration config) throws IncompatibleStatesException
 	{
 		LearnerGraph pta = new LearnerGraph(config);
 		pta.paths.augmentPTA(positive, true, false);pta.paths.augmentPTA(negative, false, false);
 		return traditionalPTAKtailsHelper(pta,k);
 	}
 	
-	public static LearnerGraph traditionalPTAKtailsHelper(LearnerGraph pta, int k) throws IncompatibleStatesException
+	private static LearnerGraph traditionalPTAKtailsHelper(LearnerGraph pta, int k) throws IncompatibleStatesException
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
@@ -1406,8 +1294,6 @@ public class LearningAlgorithms
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
 			initialEQ.mergeWith(pta.getInit(),null);
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			long time = System.currentTimeMillis(),Cnt=0, mergersCnt=0;
-			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
 			final Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(pta.config,pta);
 			boolean hasNegativesTentative = false;// if no negatives, no need to check compatibility of vertices for mergers.
 			for(CmpVertex v:pta.transitionMatrix.keySet())
@@ -1416,7 +1302,6 @@ public class LearningAlgorithms
 					hasNegativesTentative = true;break;
 				}
 			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
-			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
 			for(CmpVertex vA:pta.transitionMatrix.keySet())
 			if (vA.isAccept() || k ==0)
 			{
@@ -1426,12 +1311,6 @@ public class LearningAlgorithms
 					else
 					if (vB.isAccept() || k ==0)
 					{
-						long curr = System.currentTimeMillis();
-						if (curr-time > 60000)
-						{
-							System.out.println(new Date()+"Progress: "+(100*(double)Cnt/total)+" current value "+Cnt+" completed "+mergersCnt+" mergers");
-							time = curr;
-						}
 						StatePair pair = new StatePair(vA,vB);
 						if (computeStateScoreKTails(pta,pair,k,true) >=0)
 						{
@@ -1445,14 +1324,12 @@ public class LearningAlgorithms
 							if (mergerPossible)
 								pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
 						}
-						++Cnt;
 					}
 			}
-			System.out.println(new Date()+"started to make deterministic");
 			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
 	}
 	
-	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k, String ndFileName)
+	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k, int threadNumber, String ndFileName)
 	{
 		final AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
@@ -1481,7 +1358,6 @@ public class LearningAlgorithms
 				}
 			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
 			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
-			int threadNumber = ExperimentRunner.getCpuNumber();
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			handlerList.add(new HandleRow<CmpVertex>()

@@ -49,7 +49,10 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.analysis.learning.AbstractOracle;
 
@@ -552,6 +555,13 @@ public class LearnerSimulator extends ProgressDecorator
 		return initial.graph;
 	}
 
+	@Override 
+	public LearnerGraph init(@SuppressWarnings("unused") LearnerGraph graph)
+	{
+		InitialData initial = readInitialData(currentElement);// wastefully load the element once again - does not matter because this is done very infrequently
+		return initial.graph;
+	}
+	
 	/** Since it is a simulator, only the return value is loaded from XML and whatever is 
 	 * passed in is estimated.
 	 */

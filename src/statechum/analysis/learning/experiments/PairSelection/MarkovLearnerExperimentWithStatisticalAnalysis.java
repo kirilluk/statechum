@@ -302,7 +302,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				try
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-					outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,ScoreMode.COMPATIBILITY).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}

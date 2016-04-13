@@ -234,6 +234,12 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 
 	@Override
+	public LearnerGraph init(@SuppressWarnings("unused") LearnerGraph graph)
+	{
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
 	public LearnerGraph learnMachine(@SuppressWarnings("unused") PTASequenceEngine en, 
 			@SuppressWarnings("unused") int plus, 
 			@SuppressWarnings("unused") int minus) 

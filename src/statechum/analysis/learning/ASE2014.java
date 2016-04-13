@@ -288,14 +288,15 @@ public class ASE2014 extends PairQualityLearner
 				
 				
 				// This is to ensure that scoring is computed in the usual way rather than with override.
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+				Configuration.ScoreMode scoringForEDSM = ScoreMode.COMPATIBILITY;
+				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(scoringForEDSM);
 				
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
 				try
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					outcomeOfReferenceLearner = LearningAlgorithms.constructReferenceLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO, scoringForEDSM).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}

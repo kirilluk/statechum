@@ -1549,6 +1549,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testcheckMatch1()
 	{
@@ -1677,11 +1678,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(1, actual.getStateNumber());
 		Assert.assertEquals(0, actual.pathroutines.countEdges());
 	}
+
+	/** How many threads to run in testing of concurrent implementation of ktails. */
+	protected final int threadNumber = 4;
 	
 	@Test
 	public final void testConcurrentKTails2()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig,threadNumber,null);
 		Assert.assertEquals(1, actual.getStateNumber());
 		Assert.assertEquals(0, actual.pathroutines.countEdges());
 	}
@@ -1716,7 +1720,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails3()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1743,7 +1747,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails4()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1780,7 +1784,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails5()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1825,7 +1829,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testPTAConcurrentKTails6()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1869,7 +1873,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails7()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1911,7 +1915,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails8()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
@@ -1954,7 +1958,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testConcurrentKTails9()
 	{
-		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig,null);
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig,threadNumber,null);
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);

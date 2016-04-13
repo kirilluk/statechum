@@ -110,6 +110,15 @@ public interface Learner
 	 */
 	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize);
 
+	/** Initialises the learner.
+	 * 
+	 * @param initPta the graph to start with, usually it will be a PTA but is not strictly required to be such. 
+	 * Starting with a PTA is very useful if the graph is augmented with if-then information.
+	 *  
+	 * @return the supplied PTA.
+	 */
+	public LearnerGraph init(LearnerGraph initPta);
+	
 	/** Identifies a collection of states to merge, sorted in the order of scores. 
 	 * <p>
 	 * Important: decorators use this one to observe changes to graph. Last time this one

@@ -129,14 +129,14 @@ public abstract class UASExperiment implements Callable<ThreadResult>
         return learnerInitConfiguration;
 	}
 
-	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+ 			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
  			
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
@@ -161,14 +161,14 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod), pta, uniqueLabel);
+ 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
  			
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
@@ -193,7 +193,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	 * @throws AugmentFromIfThenAutomatonException
 	 * @throws IOException
 	 */
-	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
@@ -220,7 +220,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			//trimmedGraph.setName(experimentName+"-part_of_premerge");
 			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
 			
-			Learner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod);
+			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod,scoringForEDSM);
 					//new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
 
 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -241,7 +241,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = "ptapremerge+constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
@@ -251,7 +251,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(ptaSource.buildPTA(),uniqueLabel);
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
-			ReferenceLearner refLearner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
+			ReferenceLearner refLearner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, reducedPTA,scoringMethod, scoringForEDSM);
 			refLearner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
 					new LearningAlgorithms.LearnerWithUniqueFromInitial(refLearner,reducedPTA,uniqueLabel);
@@ -281,14 +281,14 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = "constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			ReferenceLearner learner = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, pta,scoringMethod);
+ 			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 
  			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

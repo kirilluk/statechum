@@ -696,11 +696,11 @@ public class PaperUAS
 	   return outcome;
    }
    	   
-   public void LearnReferenceAutomaton(LearningAlgorithms.ScoringToApply scoringToUse) throws Exception
+   public void LearnReferenceAutomaton(LearningAlgorithms.ScoringToApply scoringToUse,Configuration.ScoreMode scoringForEDSM) throws Exception
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration,initPTA,scoringToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = LearningAlgorithms.constructLearner(learnerInitConfiguration,initPTA,scoringToUse,scoringForEDSM).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -995,14 +995,15 @@ public class PaperUAS
  					}
  				};
  	 			
- 	 			sample.referenceLearner = runExperimentUsingConventional(ptaWithNegatives,scoringMethod);
+ 				Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE;
+ 				sample.referenceLearner = runExperimentUsingConventional(ptaWithNegatives,scoringMethod,scoringForEDSM);
  	 			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
- 	 			sample.premergeLearner = runExperimentUsingPremerge(ptaWithNegatives,scoringMethod,uniqueLabel);
- 	 			sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaWithNegatives,scoringMethod,uniqueLabel);
+ 	 			sample.premergeLearner = runExperimentUsingPremerge(ptaWithNegatives,scoringMethod,scoringForEDSM,uniqueLabel);
+ 	 			sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaWithNegatives,scoringMethod,scoringForEDSM,uniqueLabel);
 
- 	 			sample.posReference = runExperimentUsingConventional(ptaWithoutNegatives,scoringMethod);
- 	 			sample.posPremergeLearner = runExperimentUsingPremerge(ptaWithoutNegatives,scoringMethod,uniqueLabel);
- 	 			sample.posConstrained = runExperimentUsingConstraints(ptaWithoutNegatives,scoringMethod,uniqueLabel);
+ 	 			sample.posReference = runExperimentUsingConventional(ptaWithoutNegatives,scoringMethod,scoringForEDSM);
+ 	 			sample.posPremergeLearner = runExperimentUsingPremerge(ptaWithoutNegatives,scoringMethod,scoringForEDSM,uniqueLabel);
+ 	 			sample.posConstrained = runExperimentUsingConstraints(ptaWithoutNegatives,scoringMethod,scoringForEDSM,uniqueLabel);
  				
  				
  				outcome.samples.add(sample);
@@ -1194,7 +1195,7 @@ public class PaperUAS
 		 			//LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(paper.learnerInitConfiguration.ifthenSequences, initialPTA.pathroutines.computeAlphabet(), paper.learnerInitConfiguration.config, paper.learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 		 			//Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
 					LearnerGraph kTailsOutcome = //LearningAlgorithms.traditionalPTAKtailsHelper(initialPTA, i); 
-							LearningAlgorithms.ptaConcurrentKtails(LearningSupportRoutines.removeAllNegatives(initialPTA), i,"ktailsnd-"+i+".xml");
+							LearningAlgorithms.ptaConcurrentKtails(LearningSupportRoutines.removeAllNegatives(initialPTA), i,ExperimentRunner.getCpuNumber(),"ktailsnd-"+i+".xml");
 					kTailsOutcome.storage.writeGraphML(PaperUAS.fileName(graphName));
 					System.out.println(new Date()+" finished ktails "+i);
 				}

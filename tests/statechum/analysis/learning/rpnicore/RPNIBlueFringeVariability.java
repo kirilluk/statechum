@@ -31,6 +31,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
@@ -249,6 +250,10 @@ public class RPNIBlueFringeVariability
 							int scoreOld = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge);
 							Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
 							Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
+
+							long scoreSicco = graph.pairscores.computeScoreSicco(p, false);
+							long scoreSiccoGeneral = graph.pairscores.computeSiccoRejectScoreGeneral(p, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+							Assert.assertEquals(scoreSicco, scoreSiccoGeneral);// the one-pair test should be the same
 						}						
 						if (haveToUseGeneralisedComputation)
 							return scoreGeneral;

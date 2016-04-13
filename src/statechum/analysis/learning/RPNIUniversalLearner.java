@@ -100,6 +100,16 @@ public class RPNIUniversalLearner extends RPNILearner
 		return getTentativeAutomaton();
 	}
 	
+	@Override
+	public LearnerGraph init(LearnerGraph gr) 
+	{
+		//getTentativeAutomaton()
+		final Configuration shallowCopy = gr.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		tentativeAutomaton = new LearnerGraph(shallowCopy);
+		LearnerGraph.copyGraphs(gr,tentativeAutomaton);
+		return tentativeAutomaton;
+	}
+	
 	/** Returns statistics reflecting the learning. 
 	 */
 	@Override 

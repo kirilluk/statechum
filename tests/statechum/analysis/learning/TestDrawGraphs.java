@@ -201,154 +201,72 @@ public class TestDrawGraphs {
 	public void testWilcoxonTestToStringFail1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.WilcoxonTest(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), null);
+			new DrawGraphs.Wilcoxon(new File("test")).getDrawingCommand();
 		}},IllegalArgumentException.class,"empty");
 	}
+	
+	// here we only testing for lists valuesA and valuesB being empty because they cannot be null by construction due to being final and a non-null initialisation. 
 	
 	@Test
 	public void testWilcoxonTestToStringFail2()
 	{
+		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
+		w.valuesB.clear();
+		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.WilcoxonTest(new LinkedList<Double>(), null ,new LinkedList<String>(),new LinkedList<String>(), new String());
+			w.getDrawingCommand();
 		}},IllegalArgumentException.class,"empty");
 	}
-	
+
 	@Test
 	public void testWilcoxonTestToStringFail3()
 	{
-		LinkedList<Double> data1 = new LinkedList<Double>();
-		LinkedList<Double> data2 = new LinkedList<Double>();
-		data1.addAll(Arrays.asList(new Double[]{}));
-		data2.addAll(Arrays.asList(new Double[]{}));
+		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
+		w.valuesA.clear();
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.WilcoxonTest(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"cannot plot an empty graph");
+			w.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
 	}
-	
+
 	@Test
 	public void testWilcoxonTestToStringFail4()
 	{
-		final LinkedList<Double> data1 = new LinkedList<Double>();
-		final LinkedList<Double> data2 = new LinkedList<Double>();
-		data1.addAll(Arrays.asList(new Double[]{4.,5.,5.}));
-		data2.addAll(Arrays.asList(new Double[]{7.,8.}));
+		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);w.valuesB.remove(2);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.WilcoxonTest(data1, data2,new LinkedList<String>(),new LinkedList<String>(), new String());
+			w.getDrawingCommand();
 		}},IllegalArgumentException.class," 'x' and 'y' must have the same length");
 	}
 	
 	@Test
 	public void testWilcoxonTestToString1()
 	{
-		final LinkedList<Double> data1 = new LinkedList<Double>();
-		final LinkedList<Double> data2 = new LinkedList<Double>();
-
-		data1.addAll(Arrays.asList(new Double[]{4.,5.,5.}));
-		data2.addAll(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = DrawGraphs.defaultColour;
-		Assert.assertEquals("m=wilcox.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0),paired=TRUE)",
-				DrawGraphs.WilcoxonTest(data1,data2, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),null));
+		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		Assert.assertEquals("[m=wilcox.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0),paired=TRUE)]",
+				w.getDrawingCommand().toString());
 	}
 	
-	@Test
-	public void testMann_Whitney_U_TestToStringFail1()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Mann_Whitney_U_Test(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), null);
-		}},IllegalArgumentException.class,"empty");
-	}
-	
-	@Test
-	public void testMann_Whitney_U_TestToStringFail2()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Mann_Whitney_U_Test(new LinkedList<Double>(), null ,new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"empty");
-	}
-	
-	@Test
-	public void testMann_Whitney_U_TestToStringFail3()
-	{
-		LinkedList<Double> data1 = new LinkedList<Double>();
-		LinkedList<Double> data2 = new LinkedList<Double>();
-		data1.addAll(Arrays.asList(new Double[]{}));
-		data2.addAll(Arrays.asList(new Double[]{}));
-		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Mann_Whitney_U_Test(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"cannot plot an empty graph");
-	}
-	
-
 	@Test
 	public void testMann_Whitney_U_TestToString1()
 	{
-		final LinkedList<Double> data1 = new LinkedList<Double>();
-		final LinkedList<Double> data2 = new LinkedList<Double>();
-
-		data1.addAll(Arrays.asList(new Double[]{4.,5.,5.}));
-		data2.addAll(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = DrawGraphs.defaultColour;
-		Assert.assertEquals("m=wilcox.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0))",
-				DrawGraphs.Mann_Whitney_U_Test(data1,data2, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),null));
-	}
-	
-	
-	@Test
-	public void testKruskal_Wallis_TestToStringFail1()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Kruskal_Wallis_Test(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), null);
-		}},IllegalArgumentException.class,"empty");
-	}
-	
-	@Test   
-	public void testKruskal_Wallis_TestToStringFail2()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Kruskal_Wallis_Test(new LinkedList<Double>(), null ,new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"empty");
-	}
-	
-	@Test
-	public void testKruskal_Wallis_TestToStringFail3()
-	{
-		LinkedList<Double> data1 = new LinkedList<Double>();
-		LinkedList<Double> data2 = new LinkedList<Double>();
-		data1.addAll(Arrays.asList(new Double[]{}));
-		data2.addAll(Arrays.asList(new Double[]{}));
-		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Kruskal_Wallis_Test(new LinkedList<Double>(), new LinkedList<Double>(),new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"cannot plot an empty graph");
-	}
-	
-	@Test
-	public void testKruskal_Wallis_TestToStringFail4()
-	{
-		final LinkedList<Double> data1 = new LinkedList<Double>();
-		final LinkedList<Double> data2 = new LinkedList<Double>();
-		data1.addAll(Arrays.asList(new Double[]{4.,5.,5.}));
-		data2.addAll(Arrays.asList(new Double[]{7.,8.}));
-		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.Kruskal_Wallis_Test(data1, data2,new LinkedList<String>(),new LinkedList<String>(), new String());
-		}},IllegalArgumentException.class,"'x' and 'y' must have the same length");
+		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		Assert.assertEquals("[m=wilcox.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0))]",
+				w.getDrawingCommand().toString());
 	}
 	
 	@Test
 	public void testKruskal_Wallis_TestToString1()
 	{
-		final LinkedList<Double> data1 = new LinkedList<Double>();
-		final LinkedList<Double> data2 = new LinkedList<Double>();
-
-		data1.addAll(Arrays.asList(new Double[]{4.,5.,5.}));
-		data2.addAll(Arrays.asList(new Double[]{7.,8.,3.}));
-		String colour = DrawGraphs.defaultColour;
+		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
 		Assert.assertEquals("m=kruskal.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0))",
-				DrawGraphs.Kruskal_Wallis_Test(data1,data2, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),null));
+				w.getDrawingCommand().toString());
 	}
 	
 	
@@ -420,11 +338,11 @@ public class TestDrawGraphs {
 		RGraph<String> g=new RBoxPlot<String>(X,Y, output);
 		g.add("one",34.,"cyan","lbl");
 		g.add("one",34.);
-		g.add("one",2.,"magenta");
+		g.add("one",2.,"magenta",null);
 		g.add("two",3.);
 		g.add("three",4.,"blue","");
 		g.add("three",5.);
-		g.drawPdf(gr);
+		g.reportResults(gr);
 
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		StringBuffer buffer = new StringBuffer();
@@ -530,11 +448,11 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
-		g.add("one",34.,"cyan");
+		g.add("one",34.,"cyan",null);
 		g.add("one",34.);
-		g.add("one",2.,"magenta");
+		g.add("one",2.,"magenta",null);
 		g.add("two",3.);
-		g.add("three",4.,"blue");
+		g.add("three",4.,"blue",null);
 		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"one\",\"three\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
@@ -546,7 +464,7 @@ public class TestDrawGraphs {
 		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.,"cyan","lbl");
 		g.add("one",34.);
-		g.add("one",2.,"magenta");
+		g.add("one",2.,"magenta",null);
 		g.add("two",3.);
 		g.add("three",4.,"blue","");
 		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"lbl\",\"\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());

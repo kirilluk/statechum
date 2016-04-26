@@ -45,9 +45,9 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.Wilcoxon;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
+import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
@@ -784,12 +784,12 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
 				// in order to compute the statistical test for each group of states, we generate a lot of object to add the mean of BCR and structural difference
-				final Wilcoxon <String> Wilcoxon_test_Structural=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-				final Wilcoxon <String> Wilcoxon_Test_BCR=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
+				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
 
 
 					for(int sample=0;sample<samplesPerFSM;++sample)
@@ -841,9 +841,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					
 					@SuppressWarnings("rawtypes")
 					@Override
-					public RGraph[] getGraphs() {
+					public RExperimentResult[] getGraphs() {
 						
-						return new RGraph[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov,Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR};
+						return new RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov,Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR};
 					}
 					
 				});

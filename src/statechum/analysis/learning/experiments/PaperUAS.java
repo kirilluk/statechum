@@ -1324,8 +1324,8 @@ public class PaperUAS
     		if (writer != null)
     			writer.close();
     	}
-		if (BCR_vs_experiment != null) BCR_vs_experiment.drawPdf(gr);
-		if (diff_vs_experiment != null) diff_vs_experiment.drawPdf(gr);
+		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
+		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
 		experimentRunner.successfulTermination();

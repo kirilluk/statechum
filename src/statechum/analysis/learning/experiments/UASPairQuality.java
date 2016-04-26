@@ -258,7 +258,7 @@ public class UASPairQuality extends PaperUAS
  		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
  		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
  		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
- 				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
+ 				uas_F.add(frame+"_R",differenceF.getValue(),"red",null);uas_Diff.add(frame+"_R",differenceD.getValue(),"red",null);gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
  				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
  				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -277,7 +277,7 @@ public class UASPairQuality extends PaperUAS
  		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
  		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
  		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
- 				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
+ 				uas_F.add(frame+"_RM",differenceF.getValue(),"red",null);uas_Diff.add(frame+"_RM",differenceD.getValue(),"red",null);gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
  				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
  				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -286,7 +286,7 @@ public class UASPairQuality extends PaperUAS
  			
  			uas_F.drawInteractive(gr);uas_Diff.drawInteractive(gr);gr_diff_to_f.drawInteractive(gr);
    		}
-   		uas_F.drawPdf(gr);uas_Diff.drawPdf(gr);gr_diff_to_f.drawPdf(gr);
+   		uas_F.reportResults(gr);uas_Diff.reportResults(gr);gr_diff_to_f.reportResults(gr);
  		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
    }
     	
@@ -575,8 +575,8 @@ public class UASPairQuality extends PaperUAS
  			if (executorService != null) executorService.shutdown();
  		}
  		
- 		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
- 		uas_threshold.drawPdf(gr);
+ 		uas_outcome.reportResults(gr);uas_A.reportResults(gr);uas_S.reportResults(gr);uas_U.reportResults(gr);
+ 		uas_threshold.reportResults(gr);
  		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
      }
      

@@ -305,17 +305,17 @@ public class DiffExperiments {
 			}
 
 		}
-		gr_Diff_States.drawPdf(gr);gr_W_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
-		gr_Diff_threshold.drawPdf(gr);gr_Diff_lowtohigh.drawPdf(gr);gr_Diff_thresholdslowhigh.drawPdf(gr);gr_Diff_k.drawPdf(gr);
-		gr_Diff_MutationsToOriginal.drawPdf(gr);
-		gr_DiffGD_StatesLevel.drawPdf(gr);gr_DiffW_StatesLevel.drawPdf(gr);gr_DiffRand_StatesLevel.drawPdf(gr);
-		gr_Diff_W.drawPdf(gr);gr_Rand_W.drawPdf(gr);
-		gr_MismatchedPairs.drawPdf(gr);gr_Diff_MismatchedPairs.drawPdf(gr);
+		gr_Diff_States.reportResults(gr);gr_W_States.reportResults(gr);gr_MutationsToOriginal_StatesLevel.reportResults(gr);
+		gr_Diff_threshold.reportResults(gr);gr_Diff_lowtohigh.reportResults(gr);gr_Diff_thresholdslowhigh.reportResults(gr);gr_Diff_k.reportResults(gr);
+		gr_Diff_MutationsToOriginal.reportResults(gr);
+		gr_DiffGD_StatesLevel.reportResults(gr);gr_DiffW_StatesLevel.reportResults(gr);gr_DiffRand_StatesLevel.reportResults(gr);
+		gr_Diff_W.reportResults(gr);gr_Rand_W.reportResults(gr);
+		gr_MismatchedPairs.reportResults(gr);gr_Diff_MismatchedPairs.reportResults(gr);
 		
-		gr_TimeDiff_StatesLevel.drawPdf(gr);gr_TimeW_StatesLevel.drawPdf(gr);gr_TimeRand_StatesLevel.drawPdf(gr);
-		gr_Pairs_States.drawPdf(gr);gr_TimeDiff_States.drawPdf(gr);gr_TimeRand_States.drawPdf(gr);gr_TimeW_States.drawPdf(gr);
-		gr_F_measures.drawPdf(gr);
-		gr_FMeasure_Level.drawPdf(gr);
+		gr_TimeDiff_StatesLevel.reportResults(gr);gr_TimeW_StatesLevel.reportResults(gr);gr_TimeRand_StatesLevel.reportResults(gr);
+		gr_Pairs_States.reportResults(gr);gr_TimeDiff_States.reportResults(gr);gr_TimeRand_States.reportResults(gr);gr_TimeW_States.reportResults(gr);
+		gr_F_measures.reportResults(gr);
+		gr_FMeasure_Level.reportResults(gr);
 	}
 	
 

@@ -1466,7 +1466,7 @@ public class PairQualityLearner
 						gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
 					}
 					//gr_HistogramOfAttributeValues.drawInteractive(gr);
-					gr_HistogramOfAttributeValues.drawPdf(gr);
+					gr_HistogramOfAttributeValues.reportResults(gr);
 					/*
 					// write arff
 					FileWriter wekaInstances = null;
@@ -1589,7 +1589,7 @@ public class PairQualityLearner
 									//	gr_QualityForNumberOfTraces.drawInteractive(gr);
 								}
 							}
-							if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);
+							if (gr_PairQuality != null) gr_PairQuality.reportResults(gr);
 						}
 						catch(Exception ex)
 						{
@@ -1597,8 +1597,8 @@ public class PairQualityLearner
 							if (executorService != null) { executorService.shutdownNow();executorService = null; }
 							throw e;
 						}
-						if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);
-						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
+						if (gr_NewToOrig != null) gr_NewToOrig.reportResults(gr);
+						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.reportResults(gr);
 					}
 				}
 			}

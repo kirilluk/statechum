@@ -17,7 +17,6 @@ import java.util.concurrent.Executors;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Label;
-import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
@@ -445,8 +444,8 @@ public class SmallvsHugeExperiment extends UASExperiment
     		if (writer != null)
     			writer.close();
     	}
-		if (BCR_vs_experiment != null) BCR_vs_experiment.drawPdf(gr);
-		if (diff_vs_experiment != null) diff_vs_experiment.drawPdf(gr);
+		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
+		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		Visualiser.waitForKey();
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
 		experimentRunner.successfulTermination();

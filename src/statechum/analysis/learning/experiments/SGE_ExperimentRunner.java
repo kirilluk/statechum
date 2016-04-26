@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 
 /**
  * @author kirill
@@ -65,7 +65,7 @@ public class SGE_ExperimentRunner
 		
 		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
 		@SuppressWarnings("rawtypes")
-		public RGraph[] getGraphs();
+		public RExperimentResult[] getGraphs();
 		
 		/** Returns the name of the current experiment. */
 		public String getSubExperimentName();
@@ -196,15 +196,15 @@ public class SGE_ExperimentRunner
 		 * @param graphs graphs to plot
 		 * @param counter determines whether to plot them on the screen or into a file.
 		 */
-		protected void plotAllGraphs(@SuppressWarnings("rawtypes") Collection<RGraph> graphs, int counter)
+		protected void plotAllGraphs(@SuppressWarnings("rawtypes") Collection<RExperimentResult> graphs, int counter)
 		{
 //			if (counter > 0 && counter % 10 == 0)
 //				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
 //					g.drawInteractive(gr);
 				
 			if (counter < 0)
-				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
-					g.drawPdf(gr);
+				for(@SuppressWarnings("rawtypes") RExperimentResult g:graphs)
+					g.reportResults(gr);
 		}
 		
 		/** Returns true if this is run all in the same jvm, permitting one to collect statistics during collection of results and output it via println. 
@@ -216,13 +216,14 @@ public class SGE_ExperimentRunner
 			return phase == PhaseEnum.RUN_STANDALONE;
 		}
 		
-		Map<String,RGraph> nameToGraph = null;
+		@SuppressWarnings("rawtypes")
+		Map<String,RExperimentResult> nameToGraph = null;
 		BufferedWriter outputWriter = null;
 		
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public void collectOutcomeOfExperiments(processSubExperimentResult<RESULT> handlerForExperimentResults)
 		{
-			nameToGraph = new TreeMap<String,RGraph>();for(RGraph g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
+			nameToGraph = new TreeMap<String,RExperimentResult>();for(RExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
 
@@ -301,15 +302,11 @@ public class SGE_ExperimentRunner
 												else
 													throw new IllegalArgumentException("cannot load a value of type "+argType);
 								
-								RGraph thisPlot = nameToGraph.get(name);
+								RExperimentResult thisPlot = nameToGraph.get(name);
 								if (thisPlot == null)
-									throw new IllegalArgumentException("unknown graph with file name "+name);
+									throw new IllegalArgumentException("unknown graph/statistical experiment with file name "+name);
 								
-								if(thisPlot.getFileName().endsWith(".csv"))
-									thisPlot.addPairValues((Comparable)argValue, yValue, color, label);
-								
-								else
-									thisPlot.add((Comparable)argValue, yValue, color, label);
+								thisPlot.add((Comparable)argValue, yValue, color, label);
 
 
 								line = reader.readLine();
@@ -348,7 +345,7 @@ public class SGE_ExperimentRunner
 		 * @throws IOException 
 		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public void Record(RGraph graph, Comparable x, Double y, String colour, String label) throws IOException
+		public void Record(RExperimentResult graph, Comparable x, Double y, String colour, String label) throws IOException
 		{
 			if (graph.getFileName().split(separatorRegEx).length > 1)
 				throw new IllegalArgumentException("invalid file name "+graph.getFileName()+" in graph");
@@ -373,10 +370,7 @@ public class SGE_ExperimentRunner
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
 			case RUN_STANDALONE:			
-				if(graph.getFileName().endsWith(".csv"))
-					graph.addPairValues(x, y, colour, label);				
-				else
-					graph.add(x,y,colour,label);			
+				graph.add(x,y,colour,label);			
 				break;
 			
 			}

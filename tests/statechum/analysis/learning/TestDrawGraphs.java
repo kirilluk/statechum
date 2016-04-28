@@ -22,6 +22,7 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Helper;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -30,6 +31,7 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 public class TestDrawGraphs {
 
@@ -354,6 +356,40 @@ public class TestDrawGraphs {
 			reader.close();
 		}
 		Assert.assertEquals("", buffer.toString());
+	}
+	
+	@Test
+	public void testCSVwriteFile3() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
+		w.add("line A");w.add("line B");w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+	}
+	
+	@Test
+	public void testCSVwriteFileFail1()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.appendToHeader(new String[]{},new String[]{"BCR","Diff","States","PTA states"});
+		}}, IllegalArgumentException.class,"cannot handle zero");
 	}
 	
 	@Test

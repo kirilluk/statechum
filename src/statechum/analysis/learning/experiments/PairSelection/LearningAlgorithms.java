@@ -314,12 +314,19 @@ public class LearningAlgorithms
 			return null;// dummy, ignored if null.
 		}
 	}
-	
+
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_EDSM_3, SCORING_EDSM_4, SCORING_EDSM_5, SCORING_EDSM_6, SCORING_EDSM_7, SCORING_EDSM_8, 
-		SCORING_SICCO, SCORING_SICCO_PTA,SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED,
-		SCORING_KT_1, SCORING_KT_2, SCORING_KT_3, SCORING_KT_4
+	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), 
+		SCORING_SICCO("SICCO"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_REDBLUE("SICRB"), SCORING_SICCO_RED("SICRED"),
+		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4");
+		
+		public final String name;
+		private ScoringToApply(String nameText)
+		{
+			name = nameText;
+		}
 	}
+
 	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 
 	{
 		Learner outcome = null;

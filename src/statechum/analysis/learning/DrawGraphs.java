@@ -503,18 +503,17 @@ public class DrawGraphs {
 	 			throw new IllegalArgumentException("cannot handle zero number of lines");
 	 		if (spreadsheetHeader == null)
 	 		{
-	 			spreadsheetHeader = new StringBuffer[whatToAppend.length];for(int i=0;i<whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
+	 			spreadsheetHeader = new StringBuffer[whatToAppend.length+1];for(int i=0;i<=whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
 	 		}
-	 		else
-	 		if (spreadsheetHeader.length != whatToAppend.length+1)
-	 			throw new IllegalArgumentException("the number of lines to append is not the same as the number of lines to append to");
+	 		boolean firstEntry = true;
 	 		for(String valueForLastLine:valuesForLastLine)
 	 		{
 	 			for(int i=0;i<whatToAppend.length;++i)
 	 			{
-	 				addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
+	 				if (!firstEntry) addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
 	 			}
-	 			addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
+	 			if (!firstEntry) addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
+	 			firstEntry = false;
 	 		}
 	 	}
 	 	
@@ -673,6 +672,7 @@ public class DrawGraphs {
 		}
 
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		@SuppressWarnings("unchecked")
 		@Override
 		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
 		{

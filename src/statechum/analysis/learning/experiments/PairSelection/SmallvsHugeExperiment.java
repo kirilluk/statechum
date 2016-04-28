@@ -22,6 +22,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
@@ -78,6 +79,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		}
 		inputGraphFileName = outDir + File.separator+"rnd";
 	}
+	
+	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public ThreadResult call() throws Exception 
@@ -215,54 +218,54 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 		};
 
-		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE;
-		for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
-		{
- 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
- 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod,scoringForEDSM);
- 			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
- 			//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
- 					
- 			//sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
- 			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
-			
-			outcome.samples.add(sample);
-
-			/*
-			{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
-				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
+		for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
+			for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+			{
+	 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
+	 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod,scoringForEDSM);
+	 			//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
+	 			//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+	 					
+	 			//sample.premergeLearner = runExperimentUsingPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
+	 			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 				
-				System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-
-				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
-				System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
+				outcome.samples.add(sample);
+	
+				/*
+				{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
+					LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
+					//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
+					// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
+					learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
+					
+					System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
+					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+	
+					DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
+					System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
+				}
+				 */
+				/*
+				{// Perform semi-pre-merge by building a PTA rather than a graph with loops and then use constraints
+					LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
+					//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
+					// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
+					learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
+					
+					System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
+					learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
+					actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+	
+					DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
+					System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
+				}
+				 */
 			}
-			 */
-			/*
-			{// Perform semi-pre-merge by building a PTA rather than a graph with loops and then use constraints
-				LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-				// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
-				learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
-				
-				System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
-				learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-
-				DifferenceToReference similarityMeasure = getMeasure(actualAutomaton,referenceGraph,testSet);
-				System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
-			}
-			 */
-		}
 		
 		return outcome;
 	}
 	
-	public static void main(String []args) throws IOException
+	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+"smallvshuge";//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		if (!new java.io.File(outDir).isDirectory())
@@ -305,42 +308,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 
 			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,ScoringToApply scoring,ScoresForGraph difference) throws IOException
 			{
-				String scoringAsString = null;
-				switch(scoring)
-				{
-				case SCORING_EDSM:
-					scoringAsString = "E0";break;
-				case SCORING_EDSM_1:
-					scoringAsString = "E1";break;
-				case SCORING_EDSM_2:
-					scoringAsString = "E2";break;
-				case SCORING_EDSM_3:
-					scoringAsString = "E3";break;
-				case SCORING_EDSM_4:
-					scoringAsString = "E4";break;
-				case SCORING_EDSM_5:
-					scoringAsString = "E5";break;
-				case SCORING_EDSM_6:
-					scoringAsString = "E6";break;
-				case SCORING_EDSM_7:
-					scoringAsString = "E7";break;
-				case SCORING_EDSM_8:
-					scoringAsString = "E8";break;
-				case SCORING_SICCO_PTA:
-					scoringAsString = "SP";break;
-				case SCORING_SICCO_PTARECURSIVE:
-					scoringAsString = "SPR";break;
-				case SCORING_SICCO:
-					scoringAsString = "S";break;
-				case SCORING_SICCO_NIS:
-					scoringAsString = "SI";break;
-				case SCORING_SICCO_REDBLUE:
-					scoringAsString = "SRB";break;
-				case SCORING_SICCO_RED:
-					scoringAsString = "SR";break;
-				default:
-					throw new IllegalArgumentException("Unexpected scoring method");
-				}
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
@@ -348,10 +315,10 @@ public class SmallvsHugeExperiment extends UASExperiment
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutPos);
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutNeg);
 
-				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
+				System.out.println(experimentName + "_" + scoring.name+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
 						", learning outcome has "+difference.nrOfstates.getValue()+" more states than the original");
-				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
+				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceBCR.getValue(),null,null);
+				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceStructural.getValue(),null,null);
 			}
 			
 			@Override
@@ -360,14 +327,15 @@ public class SmallvsHugeExperiment extends UASExperiment
 				int i=0;
 				StringBuffer csv = new StringBuffer();
 				csv.append(result.samples.get(0).experimentName);
-				for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
-				{
-					PairQualityLearner.SampleData score = result.samples.get(i++);
-					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
-					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
-					//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
-					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
-				}
+				for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
+					for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+					{
+						PairQualityLearner.SampleData score = result.samples.get(i++);
+						// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
+						recordResultsFor(csv,experimentrunner, score.experimentName+"_R_"+scoringForEDSM.name,scoringMethod,score.referenceLearner);
+						//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
+						//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
+					}
 				experimentRunner.RecordCSV(resultCSV, csv.toString());
 				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
 			}
@@ -379,7 +347,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 			
 			@Override
-			public DrawGraphs.RGraph[] getGraphs() {
+			public SGEExperimentResult[] getGraphs() {
 				return new DrawGraphs.RGraph[]{BCR_vs_experiment,diff_vs_experiment};
 			}
 		};
@@ -431,7 +399,7 @@ public class SmallvsHugeExperiment extends UASExperiment
     	if (resultCSV != null) resultCSV.reportResults(gr);
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
-		Visualiser.waitForKey();
+		//Visualiser.waitForKey();
 		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
 		experimentRunner.successfulTermination();
 

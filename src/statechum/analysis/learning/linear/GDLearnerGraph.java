@@ -354,21 +354,19 @@ public class GDLearnerGraph
 		if (amountPerThread == 0)
 			amountPerThread = 1;
 		long currentAmount = 0;
-		int rowsVisited = 0, nonEmptyRow=0;
+		int nonEmptyRow=0;
 		int prevRow = 0;
-		int lastValue = 0;
 		stateB_It = matrix.entrySet().iterator();
 		while(stateB_It.hasNext() && currentThread < ThreadNumber)
 		{
-			++rowsVisited;
 			Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
 			if (filter.stateToConsider(entry.getKey()))
 			{
-				currentAmount+=(long)nonEmptyRow;
+				currentAmount+=nonEmptyRow;
 				nonEmptyRow++;// placing this at the end ensures that currentAmount is incremented by the value of nonEmptyRow-1, associated with iterating through the row, stopping when diagonal is reached.
 				if (currentAmount >= amountPerThread)
 				{
-					finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
+					finalPartitioning[currentThread]=prevRow;prevRow = nonEmptyRow;
 					
 					++currentThread;currentAmount =0;
 				}
@@ -377,7 +375,7 @@ public class GDLearnerGraph
 		
 		if (currentThread < ThreadNumber && nonEmptyRow > 0)
 		{
-			finalPartitioning[currentThread]=prevRow;lastValue = prevRow;prevRow = nonEmptyRow;
+			finalPartitioning[currentThread]=prevRow;prevRow = nonEmptyRow;
 			
 			++currentThread;currentAmount =0;
 		}

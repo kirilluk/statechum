@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -18,13 +19,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
 public class TestDrawGraphs {
@@ -243,7 +247,7 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testWilcoxonTestToString1()
+	public void testWilcoxonTestToString()
 	{
 		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
@@ -252,7 +256,18 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testMann_Whitney_U_TestToString1()
+	public void testWilcoxonTest() throws IOException
+	{
+		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.41421617824252505\n",s.toString());
+	}
+	
+	@Test
+	public void testMann_Whitney_U_TestToString()
 	{
 		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
@@ -261,14 +276,85 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testKruskal_Wallis_TestToString1()
+	public void testMann_Whitney_U_Test() throws IOException
+	{
+		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,3.0,0.6579050194284821\n",s.toString());
+	}
+	
+	@Test
+	public void testKruskal_Wallis_TestToString()
 	{
 		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
-		Assert.assertEquals("m=kruskal.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0))",
+		Assert.assertEquals("[m=kruskal.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0))]",
 				w.getDrawingCommand().toString());
 	}
+
+	@Test
+	public void testKruskal_Wallis_Test() throws IOException
+	{
+		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		StringWriter s=new StringWriter();
+		
+		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		Assert.assertEquals(2.0,result.statistic,Configuration.fpAccuracy);// values obtained by recording the results rather than attempting to determine what should be returned.
+		Assert.assertEquals(0.36787944117144233,result.pvalue,Configuration.fpAccuracy);Assert.assertEquals(2.0,result.parameter,Configuration.fpAccuracy);
+		Assert.assertNull(result.alternative);
+		
+		Assert.assertEquals("Method,Statistic,P-value,parameter\nKruskal-Wallis rank sum test,2.0,0.36787944117144233,2.0\n",s.toString());
+		//System.out.println(result.statistic+" "+result.pvalue+" "+result.alternative+" "+result.parameter+" ");
+	}
+
+	@Test
+	public void testCSVwriteFile1() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		w.add("line A");w.add("line B");w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[line A][line B]", buffer.toString());
+	}
 	
+	@Test
+	public void testCSVwriteFile2() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("", buffer.toString());
+	}
 	
 	@Test
 	public void testBagPlotToString1()
@@ -324,8 +410,6 @@ public class TestDrawGraphs {
 		}
 
 		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
-		
-		
 	}
 	
 	@Test
@@ -469,7 +553,7 @@ public class TestDrawGraphs {
 		g.add("three",4.,"blue","");
 		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"lbl\",\"\",\"two\"),col=c(\"magenta\",\"blue\",\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
-	
+
 	/** This one is a bagplot. */
 	@Test
 	public void testGenerateGraph2c()
@@ -653,6 +737,7 @@ public class TestDrawGraphs {
 		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
+	
 	@Test
 	public void testDrawBagPlotWithDiagonal2()
 	{
@@ -662,6 +747,7 @@ public class TestDrawGraphs {
 		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")"}),
 				g.getDrawingCommand());
 	}
+	
 	@Test
 	public void testDrawBagPlotWithDiagonal3()
 	{
@@ -672,4 +758,6 @@ public class TestDrawGraphs {
 		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000)","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
 				g.getDrawingCommand());
 	}
+
+	
 }

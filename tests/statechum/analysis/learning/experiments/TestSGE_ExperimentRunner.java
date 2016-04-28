@@ -15,7 +15,9 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
+import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 
@@ -66,7 +68,7 @@ public class TestSGE_ExperimentRunner {
 	
 	public static class MockPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
-		public String data="";
+		private String data="";
 		
 		public MockPlot(String x, String y, File name) {
 			super(x, y, name);
@@ -100,11 +102,35 @@ public class TestSGE_ExperimentRunner {
 		}
 	}
 
+	public static class MockCSV extends CSVExperimentResult
+	{
+		private String data="";
+
+		@Override
+		public void add(String text) 
+		{
+			super.add(text);
+			data=data+"["+text+"]";
+		}
+
+		public MockCSV(File arg) {
+			super(arg);
+		}
+
+		public String getData()
+		{
+			return data;
+		}
+		
+	}
+	
 	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
 	final MockPlot<String> gr_BCR = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_BCR.pdf"));		
 	final MockPlot<String> gr_a = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_a.pdf"));
 	final MockPlot<String> gr_b = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_b.pdf"));		
-
+	final MockCSV csvA = new MockCSV(new File("tmp/runCSV_A.csv"));
+	final MockCSV csvB = new MockCSV(new File("tmp/runCSV_B.csv"));
+			
 	public int runA(String []args)
 	{
 		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
@@ -118,8 +144,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -132,6 +158,73 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public RGraph[] getGraphs() {
 					return new RGraph[]{gr_StructuralDiff,gr_BCR};
+				}
+				
+		});
+		return experimentRunner.successfulTermination();
+	}
+
+	public int runcsv_A(String []args)
+	{
+		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		for(int sample=0;sample<3;++sample)
+		{
+			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			experimentRunner.submitTask(learnerRunner);
+		}
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+
+				@Override
+				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				{
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordCSV(csvA,"line A"+result);
+					experimentrunner.RecordCSV(csvB,"line B"+result);					
+				}
+
+				@Override
+				public String getSubExperimentName()
+				{
+					return "tmp/experiment_runcsv_A";
+				}
+				
+				@Override
+				public SGEExperimentResult[] getGraphs() {
+					return new SGEExperimentResult[]{gr_StructuralDiff,csvA,csvB};
+				}
+				
+		});
+		return experimentRunner.successfulTermination();
+	}
+
+	/** Same as runcsv_A but only csvA is populated with data. */
+	public int runcsv_B(String []args)
+	{
+		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		for(int sample=0;sample<3;++sample)
+		{
+			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			experimentRunner.submitTask(learnerRunner);
+		}
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+
+				@Override
+				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				{
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordCSV(csvA,"line A1_"+result);
+					experimentrunner.RecordCSV(csvA,"line A2_"+result);					
+				}
+
+				@Override
+				public String getSubExperimentName()
+				{
+					return "tmp/experiment_runcsv_B";
+				}
+				
+				@Override
+				public SGEExperimentResult[] getGraphs() {
+					return new SGEExperimentResult[]{gr_StructuralDiff,csvA,csvB};
 				}
 				
 		});
@@ -152,8 +245,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -195,8 +288,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -238,8 +331,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -272,8 +365,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new java.io.File("gg"+result),new Double(result+1),"dd"+new Double(result+1),null);// invalid data is an instance of class file rather than an instance of 
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new java.io.File("gg"+result),new Double(result+1),"dd"+new Double(result+1),null);// invalid data is an instance of class file rather than an instance of 
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -306,8 +399,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -333,8 +426,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.Record(gr_b,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
+					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -367,8 +460,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
 				}
 
 				@Override
@@ -403,8 +496,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.Record(gr_b,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
+					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -436,8 +529,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -469,8 +562,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -503,8 +596,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.Record(gr,new Double(result),new Double(result+1),null,null);
-					experimentrunner.Record(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
 				}
 
 				@Override
@@ -540,6 +633,13 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
+	public void testCount1c() throws Exception
+	{
+		Assert.assertEquals(3,runcsv_A(new String[]{"COUNT_TASKS"}));
+		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());// until we actually run tasks, there should be nothing recorded.
+	}
+
+	@Test
 	public void testCount2() throws Exception
 	{
 		Assert.assertEquals(5,runMultiple(new String[]{"COUNT_TASKS"}));
@@ -548,12 +648,32 @@ public class TestSGE_ExperimentRunner {
 	}
 
 	@Test
-	public void testRun1() throws Exception
+	public void testRun1a() throws Exception
 	{
 		Assert.assertEquals(0,runA(new String[]{}));// runs standalone
 		Assert.assertEquals("[1.0,-1.0,NULL,NULL][2.0,0.0,NULL,NULL][3.0,1.0,NULL,NULL]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testRun1b() throws Exception
+	{
+		Assert.assertEquals(0,runcsv_A(new String[]{}));// runs standalone
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
+		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+	}
+
+	@Test
+	public void testRun1c() throws Exception
+	{
+		Assert.assertEquals(0,runcsv_B(new String[]{}));// runs standalone
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[line A1_0][line A2_0][line A1_1][line A2_1][line A1_2][line A2_2]",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
 	}
 
 	@Test
@@ -575,7 +695,7 @@ public class TestSGE_ExperimentRunner {
 	}
 
 	@Test
-	public void testRun4() throws Exception
+	public void testRun4a() throws Exception
 	{
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_TASK","1"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
@@ -594,6 +714,22 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
+	public void testRun4b() throws Exception
+	{
+		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","1"}));
+		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
+		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","2"}));
+		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
+		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","3"}));
+		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
+		Assert.assertEquals(0,runcsv_A(new String[]{"COLLECT_RESULTS"}));
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
+		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
 	public void testRun5a() throws Exception
 	{
 		for(int i=1;i<=runMultiple(new String[]{"COUNT_TASKS"});++i)
@@ -608,6 +744,34 @@ public class TestSGE_ExperimentRunner {
 	
 	@Test
 	public void testRun5b() throws Exception
+	{
+		int count = runcsv_A(new String[]{"COUNT_TASKS"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK",""+i}));
+		Assert.assertEquals(0,runcsv_A(new String[]{"COLLECT_RESULTS"}));
+
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
+		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+	}
+
+	@Test
+	public void testRun5c() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
+		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS"}));
+
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[line A1_0][line A2_0][line A1_1][line A2_1][line A1_2][line A2_2]",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
+	}
+
+	@Test
+	public void testRun5d() throws Exception
 	{
 		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS"});
 		for(int i=1;i<=counter-1;++i)
@@ -638,7 +802,7 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
-	public void testRun5c() throws Exception
+	public void testRun5e() throws Exception
 	{
 		int counter = runE_invalid_data_in_output_file(new String[]{"COUNT_TASKS"});
 		for(int i=1;i<=counter;++i)
@@ -658,7 +822,7 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
-	public void testRun5d() throws Exception
+	public void testRun5f() throws Exception
 	{
 		for(int i=1;i<=runMultipleFail2(new String[]{"COUNT_TASKS"})-1;++i)
 			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+i}));
@@ -674,7 +838,7 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
-	public void testRun5e() throws Exception
+	public void testRun5g() throws Exception
 	{
 		for(int i=1;i<=runMultiple(new String[]{"COUNT_TASKS"})-1;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK",""+i}));

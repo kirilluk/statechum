@@ -766,11 +766,11 @@ public class ASE2014 extends PairQualityLearner
 					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 					{
 						for(SampleData sample:result.samples)
-							experimentrunner.Record(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
+							experimentrunner.RecordR(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
 					
 						for(SampleData sample:result.samples)
 						{
-							experimentrunner.Record(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}
 						
@@ -822,11 +822,11 @@ public class ASE2014 extends PairQualityLearner
 				public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 				{
 					for(SampleData sample:result.samples)
-						experimentrunner.Record(gr_StructuralDiffWithoutInconsistencies,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
+						experimentrunner.RecordR(gr_StructuralDiffWithoutInconsistencies,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
 				
 					for(SampleData sample:result.samples)
 					{
-						experimentrunner.Record(gr_BCRWithoutInconsistencies,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+						experimentrunner.RecordR(gr_BCRWithoutInconsistencies,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
 						comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 					}
 					

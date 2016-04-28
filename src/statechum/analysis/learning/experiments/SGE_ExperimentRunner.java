@@ -35,7 +35,9 @@ import java.util.concurrent.Executors;
 import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RExperimentResult;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 
 /**
  * @author kirill
@@ -45,11 +47,13 @@ public class SGE_ExperimentRunner
 {
 	
 	/**
-	 * 
+	 * Default constructor. 
 	 */
 	public SGE_ExperimentRunner() {
 	}
 
+	public static final String separator = "|", separatorRegEx="\\|";
+	
 	
 	public static final String passCollectTasks="collectTasks", passRunTask="passRunTask", passCollateResults="passCollate", passStandalone = "passStandalone";
 	
@@ -64,8 +68,7 @@ public class SGE_ExperimentRunner
 		public void processSubResult(RESULT r,RunSubExperiment<RESULT> experimentrunner)  throws IOException;
 		
 		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
-		@SuppressWarnings("rawtypes")
-		public RExperimentResult[] getGraphs();
+		public SGEExperimentResult[] getGraphs();
 		
 		/** Returns the name of the current experiment. */
 		public String getSubExperimentName();
@@ -183,8 +186,6 @@ public class SGE_ExperimentRunner
 			return taskCounter;
 		}
 		
-		public static final String separator = "|", separatorRegEx="\\|";
-		
 		protected String constructFileName(int rCounter)
 		{
 			return tmpDir+experimentName.replaceAll("[:\\// ]", "_")+"-"+rCounter;				
@@ -196,14 +197,14 @@ public class SGE_ExperimentRunner
 		 * @param graphs graphs to plot
 		 * @param counter determines whether to plot them on the screen or into a file.
 		 */
-		protected void plotAllGraphs(@SuppressWarnings("rawtypes") Collection<RExperimentResult> graphs, int counter)
+		protected void plotAllGraphs(Collection<SGEExperimentResult> graphs, int counter)
 		{
 //			if (counter > 0 && counter % 10 == 0)
 //				for(@SuppressWarnings("rawtypes") RGraph g:graphs)
 //					g.drawInteractive(gr);
 				
 			if (counter < 0)
-				for(@SuppressWarnings("rawtypes") RExperimentResult g:graphs)
+				for(SGEExperimentResult g:graphs)
 					g.reportResults(gr);
 		}
 		
@@ -216,14 +217,12 @@ public class SGE_ExperimentRunner
 			return phase == PhaseEnum.RUN_STANDALONE;
 		}
 		
-		@SuppressWarnings("rawtypes")
-		Map<String,RExperimentResult> nameToGraph = null;
+		Map<String,SGEExperimentResult> nameToGraph = null;
 		BufferedWriter outputWriter = null;
-		
-		@SuppressWarnings({ "unchecked", "rawtypes" })
+
 		public void collectOutcomeOfExperiments(processSubExperimentResult<RESULT> handlerForExperimentResults)
 		{
-			nameToGraph = new TreeMap<String,RExperimentResult>();for(RExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
+			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
 
@@ -273,44 +272,16 @@ public class SGE_ExperimentRunner
 							while(line != null)
 							{
 								String [] data = line.split(separatorRegEx,-2);
-								if (data.length != 6)
-									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" logged result with invalid number of values ("+data.length+") at "+line);
-								String argType = data[1], argStringValue = data[2], name = data[0], color=null, label = null;
-								if (!data[4].isEmpty())
-									color = data[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
-								if (!data[5].isEmpty())
-									label = data[5];
-								Double yValue = new Double(data[3]);
-								if (!nameToGraph.containsKey(data[0]))
-									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+data[0]);
+								if (data.length < 1)
+									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" did not log any result");
+								String name = data[0];
+								if (!nameToGraph.containsKey(name))
+									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
 								
-								Object argValue = null;
-								if (argType.equals("java.lang.String"))
-									argValue = argStringValue;
-								else
-									if (argType.equals("java.lang.Double"))
-										argValue = new Double(argStringValue);
-									else
-										if (argType.equals("java.lang.Float"))
-											argValue = new Float(argStringValue);
-										else
-											if (argType.equals("java.lang.Integer"))
-												argValue = new Integer(argStringValue);
-											else
-												if (argType.equals("java.lang.Long"))
-													argValue = new Long(argStringValue);
-												else
-													throw new IllegalArgumentException("cannot load a value of type "+argType);
+								SGEExperimentResult thisPlot = nameToGraph.get(name);
 								
-								RExperimentResult thisPlot = nameToGraph.get(name);
-								if (thisPlot == null)
-									throw new IllegalArgumentException("unknown graph/statistical experiment with file name "+name);
-								
-								thisPlot.add((Comparable)argValue, yValue, color, label);
-
-
+								thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter));
 								line = reader.readLine();
-
 							}
 							
 							// if we got here, handling of the output has been successful, plot graphs.
@@ -345,7 +316,7 @@ public class SGE_ExperimentRunner
 		 * @throws IOException 
 		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public void Record(RExperimentResult graph, Comparable x, Double y, String colour, String label) throws IOException
+		public void RecordR(RExperimentResult graph, Comparable x, Double y, String colour, String label) throws IOException
 		{
 			if (graph.getFileName().split(separatorRegEx).length > 1)
 				throw new IllegalArgumentException("invalid file name "+graph.getFileName()+" in graph");
@@ -355,15 +326,7 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case RUN_TASK:
-				outputWriter.write(graph.getFileName());outputWriter.write(separator);
-				outputWriter.write(x.getClass().getCanonicalName());outputWriter.write(separator);outputWriter.write(x.toString());outputWriter.write(separator);
-				outputWriter.write(y.toString());outputWriter.write(separator);
-				if (colour != null)
-					outputWriter.write(colour);
-				outputWriter.write(separator);
-				if (label != null)
-					outputWriter.write(label);
-				outputWriter.write("\n");
+				graph.writeTaskOutput(outputWriter,x,y,colour,label);
 				break;
 			case COUNT_TASKS:
 				break;
@@ -372,8 +335,30 @@ public class SGE_ExperimentRunner
 			case RUN_STANDALONE:			
 				graph.add(x,y,colour,label);			
 				break;
-			
 			}
+		}
+		
+		public void RecordCSV(CSVExperimentResult experimentResult, String text) throws IOException
+		{
+			if (experimentResult.getFileName().split(separatorRegEx).length > 1)
+				throw new IllegalArgumentException("invalid file name "+experimentResult.getFileName()+" in spreadsheet");
+			if (!nameToGraph.containsKey(experimentResult.getFileName()))
+				throw new IllegalArgumentException("unknown graph "+experimentResult.getFileName());
+			if (text.contains("\n"))
+				throw new IllegalArgumentException("lines of text should not contain newlines, append multiple lines instead");
+			switch(phase)
+			{
+			case RUN_TASK:
+				experimentResult.writeTaskOutput(outputWriter,text);
+				break;
+			case COUNT_TASKS:
+				break;
+			case COLLECT_RESULTS:
+				throw new IllegalArgumentException("this should not be called during phase "+phase);
+			case RUN_STANDALONE:			
+				experimentResult.add(text);			
+				break;
+			}		
 		}
 	}
 

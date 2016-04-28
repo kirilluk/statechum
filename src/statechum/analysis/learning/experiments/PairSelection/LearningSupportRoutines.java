@@ -521,30 +521,6 @@ public class LearningSupportRoutines
 		return ptaTmp;
  	}
 
- 	public static void addSeparator(StringBuffer buf)
- 	{
- 		buf.append(',');
- 	}
- 	public static void addNewLine(StringBuffer buf)
- 	{
- 		buf.append(',');
- 	}
- 	
- 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */ 
- 	public static void appendToLines(StringBuffer[] lines,String[] whatToAppend,String [] valuesForLastLine)
- 	{
- 		if (lines.length != whatToAppend.length+1)
- 			throw new IllegalArgumentException("the number of lines to append is not the same as the number of lines to append to");
- 		for(String valueForLastLine:valuesForLastLine)
- 		{
- 			for(int i=0;i<whatToAppend.length;++i)
- 			{
- 				addSeparator(lines[i]);lines[i].append(whatToAppend[i]);
- 			}
- 			addSeparator(lines[whatToAppend.length]);lines[whatToAppend.length].append(valueForLastLine);
- 		}
- 	}
- 	
 }
 
 

@@ -100,6 +100,7 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -459,12 +460,140 @@ public class DrawGraphs {
 		}
 	}
 	
+	public interface SGEExperimentResult
+	{
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages);
+		
+		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		public void drawInteractive(DrawGraphs gr);
+		
+		/** Records results in a file. The argument is used if R is needed. */
+		public abstract void reportResults(DrawGraphs gr);
+				
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		public String getFileName();
+	}
+
+	public static class CSVExperimentResult implements SGEExperimentResult
+	{
+		StringBuffer[] spreadsheetHeader = null;
+		StringBuffer csvText = new StringBuffer();
+		protected final File file;
+		
+		public CSVExperimentResult(File arg)
+		{
+			file = arg;
+		}
+		
+	 	public static void addSeparator(StringBuffer buf)
+	 	{
+	 		buf.append(',');
+	 	}
+	 	
+	 	public static void addNewLine(StringBuffer buf)
+	 	{
+	 		buf.append('\n');
+	 	}
+	 	
+	 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */ 
+	 	public void appendToHeader(String[] whatToAppend,String [] valuesForLastLine)
+	 	{
+	 		if (whatToAppend.length == 0)
+	 			throw new IllegalArgumentException("cannot handle zero number of lines");
+	 		if (spreadsheetHeader == null)
+	 		{
+	 			spreadsheetHeader = new StringBuffer[whatToAppend.length];for(int i=0;i<whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
+	 		}
+	 		else
+	 		if (spreadsheetHeader.length != whatToAppend.length+1)
+	 			throw new IllegalArgumentException("the number of lines to append is not the same as the number of lines to append to");
+	 		for(String valueForLastLine:valuesForLastLine)
+	 		{
+	 			for(int i=0;i<whatToAppend.length;++i)
+	 			{
+	 				addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
+	 			}
+	 			addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
+	 		}
+	 	}
+	 	
+	 	/** Adds text to the spreadsheet. */
+		public void add(String text)
+		{
+			csvText.append(text);addNewLine(csvText);
+		}
+		
+
+		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		@Override
+		public void drawInteractive(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+		}
+		
+
+		public void writeFile(Writer wr) throws IOException
+		{
+			if (spreadsheetHeader != null)
+				for(StringBuffer line:spreadsheetHeader)
+				{
+					wr.append(line.toString());wr.append('\n');
+				}
+			wr.append(csvText.toString());
+		}
+		
+		public void writeTaskOutput(Writer outputWriter, String text) throws IOException
+		{
+			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(text);
+			outputWriter.write("\n");
+		}
+		
+		@Override
+		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+			FileWriter wr = null;
+			
+			try {
+				wr = new FileWriter(file);
+				writeFile(wr);
+			} catch (IOException e) {
+				Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
+			}
+			finally
+			{
+				if (wr != null)
+					try {
+						wr.close();
+					} catch (IOException e) {
+						// ignored
+					}
+			}
+		}
+				
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		@Override
+		public String getFileName()
+		{
+			return file.getName();
+		}
+
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		@Override
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		{
+			if (line.length != 2)
+				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record just 2");
+			add(line[1]);
+		}
+	}
+
 	/**
 	 * Represents a graph.
 	 * 
 	 * @param <ELEM> type of elements for the X axis, vertical is always a Double
 	 */
-	public static abstract class RExperimentResult<ELEM extends Comparable<? super ELEM>>
+	public static abstract class RExperimentResult<ELEM extends Comparable<? super ELEM>> implements SGEExperimentResult
 	{
 		protected final File file;
 		
@@ -514,21 +643,69 @@ public class DrawGraphs {
 		public abstract void add(ELEM el,Double value);
 		
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		@Override
 		public void drawInteractive(@SuppressWarnings("unused") DrawGraphs gr)
 		{
 		}
 		
 
+		@Override
 		public abstract void reportResults(DrawGraphs gr);
 				
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		@Override
 		public String getFileName()
 		{
 			return file.getName();
 		}
-	}
-	
-	
+
+		public <T> void writeTaskOutput(Writer outputWriter,Comparable<T> x, Double y, String colour, String label) throws IOException
+		{
+			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(x.getClass().getCanonicalName());outputWriter.write(SGE_ExperimentRunner.separator);outputWriter.write(x.toString());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(y.toString());outputWriter.write(SGE_ExperimentRunner.separator);
+			if (colour != null)
+				outputWriter.write(colour);
+			outputWriter.write(SGE_ExperimentRunner.separator);
+			if (label != null)
+				outputWriter.write(label);
+			outputWriter.write("\n");
+		}
+
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		@Override
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		{
+			if (line.length != 6)
+				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+line);
+			String argType = line[1], argStringValue = line[2], color=null, label = null;
+			if (!line[4].isEmpty())
+				color = line[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
+			if (!line[5].isEmpty())
+				label = line[5];
+			Double yValue = new Double(line[3]);
+			
+			Object argValue = null;
+			if (argType.equals("java.lang.String"))
+				argValue = argStringValue;
+			else
+				if (argType.equals("java.lang.Double"))
+					argValue = new Double(argStringValue);
+				else
+					if (argType.equals("java.lang.Float"))
+						argValue = new Float(argStringValue);
+					else
+						if (argType.equals("java.lang.Integer"))
+							argValue = new Integer(argStringValue);
+						else
+							if (argType.equals("java.lang.Long"))
+								argValue = new Long(argStringValue);
+							else
+								throw new IllegalArgumentException("cannot load a value of type "+argType);
+			add((ELEM) argValue,yValue,color,label);
+		}
+	}	
+
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
 	{
 		protected final String xAxis,yAxis;
@@ -612,6 +789,8 @@ public class DrawGraphs {
 				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
 		}
+		
+		
 	}
 	
 	
@@ -678,7 +857,12 @@ public class DrawGraphs {
 		}
 		
 		/** Requests results of statistical analysis from R. */
-		public abstract StatisticalTestResult obtainResultFromR();
+		public StatisticalTestResult obtainResultFromR()
+		{
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,getMethodName());
+		}
 
 		public List<String> getDrawingCommand()
 		{
@@ -701,28 +885,32 @@ public class DrawGraphs {
 			return Collections.singletonList(result.toString());
 		}
 		
+		public abstract String getMethodName();
+		
 		/**
 		 * Records the result of statistical analysis to a file.
 		 */
 		public abstract void writetofile(StatisticalTestResult result, Writer writer) throws IOException;
 	
+		public void writeSeparator(Writer writer) throws IOException { writer.append(','); }
+		public void writeEndl(Writer writer) throws IOException { writer.append('\n'); }
+		
 		public void writeHeaderToFile(Writer writer) throws IOException
 		{			
 		    writer.append("Method");
-		    writer.append(',');
-		    writer.append("Alternative");
-		    writer.append(',');
+		    writeSeparator(writer);
+		    writer.append("Statistic");
+		    writeSeparator(writer);
 		    writer.append("P-value");
-		    writer.append(',');
 		}
 		
 		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
 		{
+			writer.append(getMethodName());
+			writeSeparator(writer);
 		    writer.append(String.valueOf(o.statistic));
-		    writer.append(',');
+		    writeSeparator(writer);
 		    writer.append(String.valueOf(o.pvalue));
-		    writer.append(',');
-		    writer.append(String.valueOf(o.statistic));
 		}
 		
 	}
@@ -801,22 +989,18 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public StatisticalTestResult obtainResultFromR()
+		public String getMethodName()
 		{
-			List<String> drawingCommands = new LinkedList<String>();
-			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,"Wilcoxon signed rank test");
+			return "Wilcoxon signed rank test";
 		}
-
+		
 		@Override
 		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
 		{
 			writeHeaderToFile(writer);
-	    	writer.append("V");
-		    
-		    writer.append('\n');
+			writeEndl(writer);
 		    writeMainData(result, writer);
-            writer.append('\n');
+			writeEndl(writer);
 		}
 	}
 	
@@ -827,21 +1011,18 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public StatisticalTestResult obtainResultFromR()
+		public String getMethodName()
 		{
-			List<String> drawingCommands = new LinkedList<String>();
-			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,"Wilcoxon rank sum test");
+			return "Wilcoxon rank sum test";
 		}
 
 		@Override
 		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
 		{
 			writeHeaderToFile(writer);
-		    writer.append("W");
-		    writer.append('\n');
+			writeEndl(writer);
 		    writeMainData(result, writer);
-            writer.append('\n');
+			writeEndl(writer);
 		}
 	}
 	
@@ -852,25 +1033,22 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public StatisticalTestResult obtainResultFromR()
+		public String getMethodName()
 		{
-			List<String> drawingCommands = new LinkedList<String>();
-			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,"Kruskal-Wallis rank sum test");
+			return "Kruskal-Wallis rank sum test";
 		}
-		
+
 		@Override
 		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
 		{
 			writeHeaderToFile(writer);
-			writer.append("Kruskal-Wallis chi-squared ");
-			writer.append(',');
-		    writer.append("df");
-		    writer.append('\n');
+			writeSeparator(writer);
+		    writer.append("parameter");
+			writeEndl(writer);
 		    writeMainData(result, writer);
-		    writer.append(',');		    
+			writeSeparator(writer);
 		    writer.append(String.valueOf(result.parameter));
-            writer.append('\n');
+			writeEndl(writer);
 		}
 	}
 	
@@ -1056,7 +1234,7 @@ public class DrawGraphs {
 		double statistic=0.;
 		double pvalue=0.;
 		String alternative; 
-		double parameter;
+		double parameter=0.;
 
 		
 		/** Using a supplied list of commands, obtains a result. 
@@ -1077,7 +1255,7 @@ public class DrawGraphs {
 			STR.statistic=engine.eval(varName+"$statistic").asDouble();
 			STR.pvalue=engine.eval(varName+"$p.value").asDouble();
 			String methodName = engine.eval(varName+"$method").asString();
-			if (!expectedMethodName.equals(methodName))
+			if (!methodName.startsWith(expectedMethodName))
 				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
 			STR.alternative=engine.eval(varName+"$alternative").asString();
 			STR.parameter=engine.eval(varName+"$parameter").asDouble();

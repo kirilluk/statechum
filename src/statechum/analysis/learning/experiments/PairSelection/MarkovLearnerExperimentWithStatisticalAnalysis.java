@@ -812,20 +812,20 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
 						for(SampleData sample:result.samples)
-							experimentrunner.Record(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
+							experimentrunner.RecordR(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
 					
 						for(SampleData sample:result.samples)
 						{
-							experimentrunner.Record(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-							experimentrunner.Record(BCRAgainstKtails, sample.ktailsLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-							experimentrunner.Record(BCRAgainstMarkov, sample.markovLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(BCRAgainstKtails, sample.ktailsLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(BCRAgainstMarkov, sample.markovLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
 
-							experimentrunner.Record(Wilcoxon_Test_BCR,  sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Wilcoxon_test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
-							experimentrunner.Record(Mann_Whitney_U_Test_BCR, sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Mann_Whitney_U_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
-							experimentrunner.Record(Kruskal_Wallis_Test_BCR,sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Kruskal_Wallis_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Wilcoxon_Test_BCR,  sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Wilcoxon_test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Mann_Whitney_U_Test_BCR, sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Mann_Whitney_U_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Kruskal_Wallis_Test_BCR,sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Kruskal_Wallis_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
 
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}

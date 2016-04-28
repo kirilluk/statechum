@@ -129,6 +129,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
         return learnerInitConfiguration;
 	}
 
+	/** The reason behind using ptaSource is that where it is expensive to build a PTA, it will only be requested if the learner has not stored it or store the outcome of inference somewhere. */
 	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();

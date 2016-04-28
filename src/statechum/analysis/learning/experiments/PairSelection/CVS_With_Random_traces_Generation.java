@@ -860,8 +860,8 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 								
 								if (score.getValue().differenceBCR.getValue() > 0)
 								{
-									experimentrunner.Record(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-									experimentrunner.Record(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
+									experimentrunner.RecordR(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+									experimentrunner.RecordR(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
 								}
 							}
 						}

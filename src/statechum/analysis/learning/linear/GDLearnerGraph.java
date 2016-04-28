@@ -580,8 +580,7 @@ public class GDLearnerGraph
 					int currentStatePair = vertexToIntNR(stateB.getKey(),entryA.getKey());
 					assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
 					
-					System.out.println("[ ] current state pair is "+currentStatePair+" stateA is "+entryA.getKey()+ " and B is "+stateB.getKey());
-					
+					//System.out.println("[ ] current state pair is "+currentStatePair+" stateA is "+entryA.getKey()+ " and B is "+stateB.getKey());
 					
 					// Note that we are iterating state pairs consecutively in an increasing order and 
 					// different threads handle non-intersecting ranges of them, hence most of the time,

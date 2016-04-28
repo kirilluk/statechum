@@ -41,7 +41,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -63,6 +62,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -1067,22 +1067,16 @@ public class PaperUAS
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
-		final StringBuffer csv = new StringBuffer();
-		StringBuffer firstLine = new StringBuffer(),secondLine = new StringBuffer(),thirdLine = new StringBuffer(), fourthLine = new StringBuffer();
-		StringBuffer lines[]=new StringBuffer[]{firstLine,secondLine,thirdLine,fourthLine};
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"Pos","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"Pos","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			LearningSupportRoutines.appendToLines(lines,new String[]{"Pos","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-		}
-		for(StringBuffer line:lines)
-		{
-			csv.append(line.toString());csv.append('\n');
+			resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			resultCSV.appendToHeader(new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			resultCSV.appendToHeader(new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			resultCSV.appendToHeader(new String[]{"Pos","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			resultCSV.appendToHeader(new String[]{"Pos","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			resultCSV.appendToHeader(new String[]{"Pos","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 		}
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
@@ -1109,20 +1103,21 @@ public class PaperUAS
 				default:
 					throw new IllegalArgumentException("Unexpected scoring");
 				}
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				
 				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
 						", learning outcome has "+difference.nrOfstates.getValue());
-				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
+				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
+				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
 			}
 			
 			@Override
 			public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 			{
 				int i=0;
+				StringBuffer csv = new StringBuffer();
 				csv.append(result.samples.get(0).experimentName);
 				for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 				{
@@ -1313,17 +1308,7 @@ public class PaperUAS
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		*/
     	
-    	FileWriter writer = null;
-    	try
-    	{
-    		writer = new FileWriter(outPathPrefix+"results.csv");
-    		writer.write(csv.toString());
-    	}
-    	finally
-    	{
-    		if (writer != null)
-    			writer.close();
-    	}
+    	if (resultCSV != null) resultCSV.reportResults(gr);
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		

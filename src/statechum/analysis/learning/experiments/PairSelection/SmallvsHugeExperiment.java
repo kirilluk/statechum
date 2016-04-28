@@ -1,7 +1,6 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -273,7 +273,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 		}
 		String outPathPrefix = outDir + File.separator;
-		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		final RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
@@ -291,20 +291,14 @@ public class SmallvsHugeExperiment extends UASExperiment
 		final DrawGraphs gr = new DrawGraphs();
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
-		
-		final StringBuffer csv = new StringBuffer();
-		StringBuffer firstLine = new StringBuffer(),secondLine = new StringBuffer(),thirdLine = new StringBuffer(), fourthLine = new StringBuffer();
-		StringBuffer lines[]=new StringBuffer[]{firstLine,secondLine,thirdLine,fourthLine};
+
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States","PTA states"});
+			resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States","PTA states"});
 			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-		}
-		for(StringBuffer line:lines)
-		{
-			csv.append(line.toString());csv.append('\n');
 		}
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
@@ -315,7 +309,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 				switch(scoring)
 				{
 				case SCORING_EDSM:
-					scoringAsString = "E";break;
+					scoringAsString = "E0";break;
 				case SCORING_EDSM_1:
 					scoringAsString = "E1";break;
 				case SCORING_EDSM_2:
@@ -347,23 +341,24 @@ public class SmallvsHugeExperiment extends UASExperiment
 				default:
 					throw new IllegalArgumentException("Unexpected scoring method");
 				}
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.ptaStateNumber);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.ptaStateNumber);
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutPos);
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutNeg);
 
 				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
 						", learning outcome has "+difference.nrOfstates.getValue()+" more states than the original");
-				experimentrunner.Record(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.Record(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
+				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
+				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
 			}
 			
 			@Override
 			public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 			{
 				int i=0;
+				StringBuffer csv = new StringBuffer();
 				csv.append(result.samples.get(0).experimentName);
 				for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 				{
@@ -373,7 +368,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 					//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
 					//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 				}
-				csv.append('\n');
+				experimentRunner.RecordCSV(resultCSV, csv.toString());
 				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
 			}
 			
@@ -433,17 +428,7 @@ public class SmallvsHugeExperiment extends UASExperiment
     		experimentRunner.submitTask(e);
     	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		
-    	FileWriter writer = null;
-    	try
-    	{
-    		writer = new FileWriter(outPathPrefix+"results.csv");
-    		writer.write(csv.toString());
-    	}
-    	finally
-    	{
-    		if (writer != null)
-    			writer.close();
-    	}
+    	if (resultCSV != null) resultCSV.reportResults(gr);
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		Visualiser.waitForKey();

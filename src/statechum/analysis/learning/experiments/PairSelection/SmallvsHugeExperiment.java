@@ -216,7 +216,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		};
 
 		for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
-			for(ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+			for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 			{
 	 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
 	 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod,scoringForEDSM);
@@ -227,7 +227,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 	 			//sample.actualConstrainedLearner = runExperimentUsingConstraints(ptaConstructor,scoringMethod,uniqueFromInitial);
 				
 				outcome.samples.add(sample);
-	
+			}
 				/*
 				{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 					LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
@@ -257,8 +257,13 @@ public class SmallvsHugeExperiment extends UASExperiment
 					System.out.println(sample+" PTA permerge, similarity = "+similarityMeasure.getValue()+" ( "+similarityMeasure+" )");
 				}
 				 */
-			}
 		
+		for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
+		{
+ 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = ""+states+"-"+traceQuantity+"-"+lengthMultiplier+"-A"+attemptFinal;//+"-"+fsmSample+"-"+seed+"-"+attemptFinal;// attempt is a passed via an instance of BuildPTAInterface
+ 			sample.referenceLearner = runExperimentUsingConventional(ptaConstructor,scoringMethod,null);
+			outcome.samples.add(sample);
+		}
 		return outcome;
 	}
 	
@@ -284,7 +289,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 
-		final int samplesPerFSMSize = 10;
+		final int samplesPerFSMSize = 20;
 		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
 
@@ -293,14 +298,19 @@ public class SmallvsHugeExperiment extends UASExperiment
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+		resultCSV.appendToHeader(new String[]{"","","",""},new String[]{"machine"});
 		for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
-			for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+			for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 			{
 				// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-				resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringForEDSM.name,scoringMethod.name},new String[]{"BCR","Diff","States","PTA states"});
+				resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringForEDSM.name,scoringMethod.name},new String[]{"BCR","Diff","States"});
 				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			}
+		for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
+		{
+			resultCSV.appendToHeader(new String[]{"posNeg","reference","",scoringMethod.name},new String[]{"BCR","Diff","States"});
+		}	
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
@@ -309,7 +319,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.ptaStateNumber);
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutPos);
 				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutNeg);
 
@@ -326,7 +335,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 				StringBuffer csv = new StringBuffer();
 				csv.append(result.samples.get(0).experimentName);// since the first entry is always an experiment name, all subsequent entries (experiment results) have to start with a separator.
 				for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
-					for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+					for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 					{
 						PairQualityLearner.SampleData score = result.samples.get(i++);
 						// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
@@ -334,6 +343,12 @@ public class SmallvsHugeExperiment extends UASExperiment
 						//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
 						//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 					}
+				for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
+				{
+					PairQualityLearner.SampleData score = result.samples.get(i++);
+					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
+					recordResultsFor(csv,experimentrunner, score.experimentName+"_R",scoringMethod,score.referenceLearner);
+				}
 				experimentRunner.RecordCSV(resultCSV, csv.toString());
 				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
 			}
@@ -363,13 +378,13 @@ public class SmallvsHugeExperiment extends UASExperiment
 		*/
 				int multFactor=1;
 				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
-				for(int traceQuantity=10;traceQuantity<=10;traceQuantity+=5)
-					for(int traceLengthMultiplier=2;traceLengthMultiplier<=2;traceLengthMultiplier+=1)
+				for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
+					for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
 				{
 					try
 					{
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+1;states+=5)
+						for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
 							for(int sample=0;sample<samplesPerFSMSize;++sample)
 								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 								{

@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -26,15 +25,12 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -321,6 +317,7 @@ public class LearningAlgorithms
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
 	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), 
 		SCORING_SICCO("SICCO"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_RED("SICRED"),
+		SCORING_PTAK_1("KTPTA1"),SCORING_PTAK_2("KTPTA2"),SCORING_PTAK_3("KTPTA3"),SCORING_PTAK_4("KTPTA4"),
 		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4");
 		
 		public final String name;
@@ -382,6 +379,14 @@ public class LearningAlgorithms
 					return  ptaKtails(initialPTA,4);
 				}};
 			break;
+		case SCORING_PTAK_1:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 1);break;
+		case SCORING_PTAK_2:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 2);break;
+		case SCORING_PTAK_3:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 3);break;
+		case SCORING_PTAK_4:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 4);break;
 		case SCORING_SICCO_PTA:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA);break;
 		case SCORING_SICCO_PTARECURSIVE:
@@ -439,6 +444,7 @@ public class LearningAlgorithms
 			try
 			{
 				outcome = super.learnMachine();
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
 			}
 			catch(LearnerAbortedException ex)
 			{
@@ -765,7 +771,9 @@ public class LearningAlgorithms
 		
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, Configuration.ScoreMode scoringForEDSM, int threshold)
 		{
-			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(scoringForEDSM);config.setRejectPositivePairsWithScoresLessThan(threshold);
+			Configuration config = evalCnf.config.copy();config.setLearnerScoreMode(scoringForEDSM);config.setRejectPositivePairsWithScoresLessThan(threshold);config.setKlimit(threshold);
+			if (scoringForEDSM == Configuration.ScoreMode.KTAILS || scoringForEDSM == Configuration.ScoreMode.KTAILS_ANY)
+				config.setRejectPositivePairsWithScoresLessThan(0);// with k-tails, the outcome is zero for a merge and -1 for not. Where the threshold is above zero, mergers will never take place.
 			LearnerEvaluationConfiguration copy = new LearnerEvaluationConfiguration(evalCnf);copy.config = config;
 			return copy;
 		}
@@ -1321,14 +1329,11 @@ public class LearningAlgorithms
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
 			initialEQ.mergeWith(pta.getInit(),null);
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			final Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(pta.config,pta);
-			boolean hasNegativesTentative = false;// if no negatives, no need to check compatibility of vertices for mergers.
 			for(CmpVertex v:pta.transitionMatrix.keySet())
 				if (!v.isAccept())
 				{
-					hasNegativesTentative = true;break;
+					throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
 				}
-			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
 			for(CmpVertex vA:pta.transitionMatrix.keySet())
 			if (vA.isAccept() || k ==0)
 			{
@@ -1340,17 +1345,7 @@ public class LearningAlgorithms
 					{
 						StatePair pair = new StatePair(vA,vB);
 						if (computeStateScoreKTails(pta,pair,k,true) >=0)
-						{
-							boolean mergerPossible = true;
-						
-							if (hasNegatives)
-							{
-								mergedVertices.clear();
-								mergerPossible = pta.pairscores.computePairCompatibilityScore_internal(pair, mergedVertices) >= 0;
-							}
-							if (mergerPossible)
-								pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
-						}
+							pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
 					}
 			}
 			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
@@ -1375,16 +1370,11 @@ public class LearningAlgorithms
 			}
 			
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			double total=(double)pta.getAcceptStateNumber()*(pta.getAcceptStateNumber()+1)/2;
-			final Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(pta.config,pta);
-			boolean hasNegativesTentative = false;// if no negatives, no need to check compatibility of vertices for mergers.
 			for(CmpVertex v:pta.transitionMatrix.keySet())
 				if (!v.isAccept())
 				{
-					hasNegativesTentative = true;break;
+					throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
 				}
-			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
-			//System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			handlerList.add(new HandleRow<CmpVertex>()
@@ -1409,25 +1399,15 @@ public class LearningAlgorithms
 							StatePair pair = new StatePair(stateA,stateB);
 							if (computeStateScoreKTails(pta,pair,k,true) >=0)
 							{
-								boolean mergerPossible = true;
-							
-								if (hasNegatives)
+								try
 								{
-									mergedVertices.clear();
-									mergerPossible = pta.pairscores.computePairCompatibilityScore_internal(pair, mergedVertices) >= 0;
-								}
-								if (mergerPossible)
-								{
-									try
-									{
-										synchronized(stateToEquivalenceClass)
-										{// modifications to equivalence classes have to be made in sync
-											pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
-										}
-									} catch (IncompatibleStatesException e)
-									{
-										Helper.throwUnchecked("failed to merge states", e);
+									synchronized(stateToEquivalenceClass)
+									{// modifications to equivalence classes have to be made in sync
+										pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
 									}
+								} catch (IncompatibleStatesException e)
+								{
+									Helper.throwUnchecked("failed to merge states", e);
 								}
 							}
 						}

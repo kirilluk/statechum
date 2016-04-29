@@ -968,7 +968,7 @@ public class PaperUAS
  		public ThreadResult call() throws Exception 
  		{
  			ThreadResult outcome = new ThreadResult();
- 			for(LearningAlgorithms.ScoringToApply scoringMethod:listOfScoringMethodsToApply())
+ 			for(LearningAlgorithms.ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDependOnEDSMScoring())
  			{
  	 			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();sample.experimentName = experimentTitle;
  	 			UASExperiment.BuildPTAInterface ptaWithNegatives = new BuildPTAInterface() {
@@ -1069,7 +1069,7 @@ public class PaperUAS
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+		for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 		{
 			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
 			resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
@@ -1100,7 +1100,7 @@ public class PaperUAS
 				int i=0;
 				StringBuffer csv = new StringBuffer();
 				csv.append(result.samples.get(0).experimentName);
-				for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+				for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 				{
 					PairQualityLearner.SampleData score = result.samples.get(i++);
 					// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.

@@ -31,6 +31,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
@@ -99,6 +100,7 @@ public class RPNIBlueFringeVariability
 		}
 
 	}
+
 	/** Constructs an instance of this learner. 
 	 * 
 	 * @param evaluationConfiguration configuration to initialise with. Uses ifthensequences, configuration and converter.
@@ -159,20 +161,20 @@ public class RPNIBlueFringeVariability
 
 					// another test is to check that merger from a partial set of equivalence classes produces the same graph, regardless whether auxiliary information is returned as part of mergers or not.
 					{
-		        LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
-		        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
-		        if (diff != null)
-		        	throw diff;
+				        LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+				        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
+				        if (diff != null)
+				        	throw diff;
 						long otherscore = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,true);
 						Assert.assertEquals(score, otherscore);
 						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
-				    diff = WMethod.checkM(outcome, outcomeTmp);
-				    if (diff != null)
-				    	throw diff;
-				    outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
-				    diff = WMethod.checkM(outcome, outcomeTmp);
-				    if (diff != null)
-				    	throw diff;
+						diff = WMethod.checkM(outcome, outcomeTmp);
+						if (diff != null)
+							throw diff;
+						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
+						diff = WMethod.checkM(outcome, outcomeTmp);
+						if (diff != null)
+							throw diff;
 					}
 					
 					// the final test is to check that done by the old generalised score routines produces the same outcome.
@@ -181,7 +183,7 @@ public class RPNIBlueFringeVariability
 						long otherscore = new OldPairScoreComputation(original).computePairCompatibilityScore_general(pair,null,reducedVertices);
 						Assert.assertEquals(score, otherscore);
 						LearnerGraph outcomeTmp = OldMergeStates.mergeCollectionOfVertices(original,pair.getR(),reducedVertices);
-				    DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
+						DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
 				        if (diff != null)
 				        	throw diff;
 					}
@@ -249,6 +251,10 @@ public class RPNIBlueFringeVariability
 							int scoreOld = new OldPairScoreComputation(graph).computePairCompatibilityScore_general(p, null, collectionOfVerticesToMerge);
 							Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
 							Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
+
+							long scoreSicco = graph.pairscores.computeScoreSicco(p, false);
+							long scoreSiccoGeneral = graph.pairscores.computeSiccoRejectScoreGeneral(p, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+							Assert.assertEquals(scoreSicco, scoreSiccoGeneral);// the one-pair test should be the same
 						}						
 						if (haveToUseGeneralisedComputation)
 							return scoreGeneral;

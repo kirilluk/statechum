@@ -56,11 +56,11 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -188,7 +188,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 
  				LearnerGraph pta = new LearnerGraph(config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = makeEven(traceQuantity);
+				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
 
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
@@ -234,7 +234,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				LearnerGraph trimmedReference = referenceGraph;//MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
-				final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,makeEven(alphabet*traceQuantity));
+				final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
@@ -264,7 +264,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				}
 
-				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
@@ -314,19 +314,20 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 
 //				dataSample.miscGraphs.put("EDSM-Markov",dataSample.actualLearner);
 				// This is to ensure that scoring is computed in the usual way rather than with override.
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+				ScoreMode scoringModeToUse = ScoreMode.COMPATIBILITY;
+				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(scoringModeToUse);
 				
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
 				{
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,ptaCopy,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,scoringModeToUse).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("Sicco's Reference");
 						dataSample.referenceLearner = estimateDifference(trimmedReference, outcomeOfReferenceLearner,testSet);
 						dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 					}
-					catch(Cav2014.LearnerAbortedException ex)
+					catch(LearnerAbortedException ex)
 					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 					}
 				}
@@ -339,13 +340,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						outcomeOfKTailsLearner = new KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						outcomeOfKTailsLearner = new LearningAlgorithms.KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("K-tails Reference K=1");
 
 						dataSample.ktailsLearner = estimateDifference(trimmedReference, outcomeOfKTailsLearner,testSet);
 						dataSample.ktailsLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfKTailsLearner, m, checker,false);
 					}
-					catch(Cav2014.LearnerAbortedException ex)
+					catch(LearnerAbortedException ex)
 					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 					}
 				}
@@ -377,13 +378,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerzero = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerzero = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,0).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 0 Reference");
 
 						dataSample.EDSMzero = estimateDifference(trimmedReference, EDSMReferenceLearnerzero,testSet);
 						dataSample.EDSMzero.inconsistency = MarkovClassifier.computeInconsistency(EDSMReferenceLearnerzero, m, checker,false);
 					}
-					catch(Cav2014.LearnerAbortedException ex)
+					catch(LearnerAbortedException ex)
 					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 					}
 				}
@@ -395,13 +396,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnerone = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnerone = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 1 Reference");
 
 						dataSample.EDSMone = estimateDifference(trimmedReference, EDSMReferenceLearnerone,testSet);
 						dataSample.EDSMone.inconsistency = MarkovClassifier.computeInconsistency(EDSMReferenceLearnerone, m, checker,false);
 					}
-					catch(Cav2014.LearnerAbortedException ex)
+					catch(LearnerAbortedException ex)
 					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 					}
 				}
@@ -413,13 +414,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					try
 					{
 						LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-						EDSMReferenceLearnertwo = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+						EDSMReferenceLearnertwo = new LearningAlgorithms.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,scoringModeToUse,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 						System.out.println("EDSM >= 2 Reference");
 
 						dataSample.EDSMtwo = estimateDifference(trimmedReference, EDSMReferenceLearnertwo,testSet);
 						dataSample.EDSMtwo.inconsistency = MarkovClassifier.computeInconsistency(EDSMReferenceLearnertwo, m, checker,false);
 					}
-					catch(Cav2014.LearnerAbortedException ex)
+					catch(LearnerAbortedException ex)
 					{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 					}
 				}
@@ -504,7 +505,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends LearnerThatCanClassifyPairs implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearnerUsingSiccoScoring implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -635,9 +636,9 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph reference, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),reference, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,false);
 		}
 
 		@Override 
@@ -670,12 +671,12 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					List<PairScore> filter = this.classifyPairs(NEwresult, graph, extendedGraph);
 
 					if(filter.size() >= 1)
-						chosenPair = pickPairQSMLike(filter);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(filter);
 					else
-						chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				}
 				else
-					chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+					chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 
 				outcome.clear();outcome.push(chosenPair);
 			}
@@ -730,7 +731,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						int outcome = sgn( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
+						int outcome = (int) Math.signum( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
 						if (outcome != 0)
 							return outcome;
 						return o2.compareTo(o1);
@@ -859,8 +860,8 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 								
 								if (score.getValue().differenceBCR.getValue() > 0)
 								{
-									experimentrunner.Record(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-									experimentrunner.Record(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
+									experimentrunner.RecordR(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+									experimentrunner.RecordR(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
 								}
 							}
 						}

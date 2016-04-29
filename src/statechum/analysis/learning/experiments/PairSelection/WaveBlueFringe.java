@@ -56,7 +56,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -95,7 +95,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					PairScore p = new PairScore(v0,v1,0,0);
 					ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
 					
 					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
@@ -252,7 +252,7 @@ public class WaveBlueFringe extends PairQualityLearner
 			final LearnerGraph referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,states*alphabet);
 			
 			for(int attempt=0;attempt<2;++attempt)
 			{// try learning the same machine a few times
@@ -263,7 +263,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
 				// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
 
-				final int tracesToGenerate = makeEven(traceQuantity);
+				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
@@ -364,7 +364,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					@Override
 					public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
 					{
-						PairScore p = LearnerWithMandatoryMergeConstraints.pickPairQSMLike(pairs);
+						PairScore p = LearningSupportRoutines.pickPairQSMLike(pairs);
 						LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 						// constructPairsToMergeBasedOnSetsToMerge(coregraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA)
 						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
@@ -402,7 +402,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					{
 						ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 						List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-						SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
+						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
 						long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
 						if (score < 0)
 							return score;
@@ -473,7 +473,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
 
-				LearnerGraph outcomeOfReferenceLearner = new ReferenceLearner(learnerEval,ptaCopy,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,Configuration.ScoreMode.COMPATIBILITY).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);
@@ -684,7 +684,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		
 		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 		
 		public static String refToString(Object obj)
@@ -700,7 +700,7 @@ public class WaveBlueFringe extends PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				PairScore result = null;
-				result=pickPairQSMLike(outcome);
+				result=LearningSupportRoutines.pickPairQSMLike(outcome);
 				assert result!=null;
 				assert result.getScore()>=0;
 				outcome.clear();outcome.push(result);
@@ -835,14 +835,14 @@ public class WaveBlueFringe extends PairQualityLearner
 							{
 								synchronized(pairQualityCounter)
 								{
-									updateGraph(gr_PairQuality,pairQualityCounter);
+									LearningSupportRoutines.updateGraph(gr_PairQuality,pairQualityCounter);
 									//gr_PairQuality.drawInteractive(gr);
 									//gr_NewToOrig.drawInteractive(gr);
 									//if (gr_QualityForNumberOfTraces.size() > 0)
 									//	gr_QualityForNumberOfTraces.drawInteractive(gr);
 								}
 							}
-							if (gr_PairQuality != null) gr_PairQuality.drawPdf(gr);
+							if (gr_PairQuality != null) gr_PairQuality.reportResults(gr);
 						}
 						catch(Exception ex)
 						{
@@ -850,8 +850,8 @@ public class WaveBlueFringe extends PairQualityLearner
 							if (executorService != null) { executorService.shutdownNow();executorService = null; }
 							throw e;
 						}
-						if (gr_NewToOrig != null) gr_NewToOrig.drawPdf(gr);
-						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.drawPdf(gr);
+						if (gr_NewToOrig != null) gr_NewToOrig.reportResults(gr);
+						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.reportResults(gr);
 					}
 			}
 		if (executorService != null) { executorService.shutdown();executorService = null; }

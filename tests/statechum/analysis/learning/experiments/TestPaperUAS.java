@@ -246,20 +246,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		paper.loadData(new StringReader("0,AA,4,  "));
 		TracesForSeed tr = paper.collectionOfTraces.get("4");
 		
-		// two special UAVs, collecting all traces in a specific seed and the one collecting traces across seeds.
-		Assert.assertEquals(3,tr.tracesForUAVandFrame.size());
-		Assert.assertEquals(3,tr.tracesForUAVandFrame.size());
-		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),true).size());
-		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),false).size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
-				constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),true).get(0)));// empty trace corresponds to a single accept state in a PTA
-		Assert.assertTrue(constructCollectionOfTraces(tr.tracesForUAVandFrame.get("AA"),false).get(0).isEmpty());// nothing among reject states, an empty trace here would mean that the initial state is the reject one 
-
-		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true).size());
-		Assert.assertEquals(1,constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false).size());
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
-				constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),true).get(0)));// empty trace corresponds to a single accept state in a PTA
-		Assert.assertTrue(constructCollectionOfTraces(tr.tracesForUAVandFrame.get(PaperUAS.UAVAll),false).get(0).isEmpty());
+		Assert.assertTrue(tr.tracesForUAVandFrame.isEmpty());
 	}
 	
 	/** A single trace, cannot parse invalid trace. */
@@ -482,15 +469,10 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Assert.assertTrue(uav3Negative2.get(0).isEmpty());
 		Assert.assertTrue(uav3Negative2.get(1).isEmpty());
 		
-		Map<Integer,Set<List<Label>>> uav55Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),true);
-		Map<Integer,Set<List<Label>>> uav55Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),false);
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(uav55Positive2.get(0)));
-		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(uav55Positive2.get(1)));
-		Assert.assertTrue(uav55Negative2.get(0).isEmpty());
-		Assert.assertTrue(uav55Negative2.get(1).isEmpty());
+		Assert.assertFalse(tr2.tracesForUAVandFrame.containsKey("UAV55"));
 		
 		TracesForSeed trAll = paper.collectionOfTraces.get(PaperUAS.UAVAllSeeds);
-		Assert.assertEquals(4,trAll.tracesForUAVandFrame.size());
+		Assert.assertEquals(1,trAll.tracesForUAVandFrame.size());
 		Map<Integer,Set<List<Label>>> uavAllPositiveAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(PaperUAS.UAVAllSeeds),true);
 		Map<Integer,Set<List<Label>>> uavAllNegativeAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(PaperUAS.UAVAllSeeds),false);
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"},new String[]{"Taa"}}, mainConfiguration,converter).equals(
@@ -500,14 +482,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
 				uavAllNegativeAll.get(0)));
 		Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"},new String[]{"bb"}}, mainConfiguration,converter).equals(
-				uavAllNegativeAll.get(1)));
-		for(Entry<String,Map<Integer,PTASequenceEngine>> entry:trAll.tracesForUAVandFrame.entrySet())
-			if (!entry.getKey().equals(PaperUAS.UAVAllSeeds))
-			{
-				for(Entry<Integer,Set<List<Label>>> pair:constructCollectionOfTraces(entry.getValue(),true).entrySet())
-					Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(pair.getValue()));
-			}
-		
+				uavAllNegativeAll.get(1)));		
 	}
 	
 	
@@ -623,16 +598,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		}		
 		
 		{
-			Map<Integer,Set<List<Label>>> uav55Positive2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),true);
-			Map<Integer,Set<List<Label>>> uav55Negative2 = constructCollectionOfTraces(tr2.tracesForUAVandFrame.get("UAV55"),false);
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
-					uav55Positive2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{new String[]{}}, mainConfiguration,converter).equals(
-					uav55Positive2.get(1)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
-					uav55Negative2.get(0)));
-			Assert.assertTrue(TestFSMAlgo.buildSet(new String[][]{}, mainConfiguration,converter).equals(
-					uav55Negative2.get(1)));
+			Assert.assertFalse(tr2.tracesForUAVandFrame.containsKey("UAV55"));
 		}		
 		
 	}

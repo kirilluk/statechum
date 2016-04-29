@@ -45,9 +45,9 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.Wilcoxon;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
+import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
@@ -56,11 +56,10 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -182,13 +181,13 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
 			
 			
 			// try learning the same machine using a random generator selector passed as a parameter.
 			LearnerGraph pta = new LearnerGraph(config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(trainingSample),5,null);
-			final int tracesToGenerate = makeEven(traceQuantity);
+			final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
@@ -261,7 +260,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 			}
 			
-			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
+			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 			learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 			
@@ -303,11 +302,11 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				try
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-					outcomeOfReferenceLearner = new ReferenceLearner(referenceLearnerEval,ptaCopy,ReferenceLearner.ScoringToApply.SCORING_SICCO).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,ScoreMode.COMPATIBILITY).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
-				catch(Cav2014.LearnerAbortedException ex)
+				catch(LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 				}
 			}
@@ -317,11 +316,11 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				try
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
-					outcomeOfKTailsLearner = new KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfKTailsLearner = new LearningAlgorithms.KTailsReferenceLearner(referenceLearnerEval,ptaCopy,true,1).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 					dataSample.ktailsLearner = estimateDifference(referenceGraph, outcomeOfKTailsLearner,testSet);
 					dataSample.ktailsLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfKTailsLearner, m, checker,false);
 				}
-				catch(Cav2014.LearnerAbortedException ex)
+				catch(LearnerAbortedException ex)
 				{// the exception is thrown because the learner failed to learn anything completely. Ignore it because the default score is zero assigned via zeroScore. 
 				}
 			}
@@ -515,9 +514,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph referenceGraph,int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold),null, argInitialPTA,ScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 
@@ -550,12 +549,12 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					List<PairScore> filter = this.classifyPairs(NEwresult, graph, extendedGraph);
 
 					if(filter.size() >= 1)
-						chosenPair = pickPairQSMLike(filter);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(filter);
 					else
-						chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+						chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				}
 				else
-					chosenPair = pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
+					chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 
 				outcome.clear();outcome.push(chosenPair);
 			}
@@ -610,7 +609,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						int outcome = sgn( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
+						int outcome = (int) Math.signum( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
 						if (outcome != 0)
 							return outcome;
 						return o2.compareTo(o1);
@@ -785,12 +784,12 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
 				// in order to compute the statistical test for each group of states, we generate a lot of object to add the mean of BCR and structural difference
-				final Wilcoxon <String> Wilcoxon_test_Structural=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-				final Wilcoxon <String> Wilcoxon_Test_BCR=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
+				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
 
 
 					for(int sample=0;sample<samplesPerFSM;++sample)
@@ -813,20 +812,20 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
 						for(SampleData sample:result.samples)
-							experimentrunner.Record(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
+							experimentrunner.RecordR(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
 					
 						for(SampleData sample:result.samples)
 						{
-							experimentrunner.Record(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-							experimentrunner.Record(BCRAgainstKtails, sample.ktailsLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-							experimentrunner.Record(BCRAgainstMarkov, sample.markovLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(BCRAgainstKtails, sample.ktailsLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+							experimentrunner.RecordR(BCRAgainstMarkov, sample.markovLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
 
-							experimentrunner.Record(Wilcoxon_Test_BCR,  sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Wilcoxon_test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
-							experimentrunner.Record(Mann_Whitney_U_Test_BCR, sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Mann_Whitney_U_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
-							experimentrunner.Record(Kruskal_Wallis_Test_BCR,sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
-							experimentrunner.Record(Kruskal_Wallis_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Wilcoxon_Test_BCR,  sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Wilcoxon_test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Mann_Whitney_U_Test_BCR, sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Mann_Whitney_U_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
+							experimentrunner.RecordR(Kruskal_Wallis_Test_BCR,sample.actualLearner.differenceBCR.getValue(), sample.referenceLearner.differenceBCR.getValue(), null, null);
+							experimentrunner.RecordR(Kruskal_Wallis_Test_Structural,  sample.actualLearner.differenceStructural.getValue(), sample.referenceLearner.differenceStructural.getValue(), null, null);
 
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}
@@ -842,9 +841,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					
 					@SuppressWarnings("rawtypes")
 					@Override
-					public RGraph[] getGraphs() {
+					public RExperimentResult[] getGraphs() {
 						
-						return new RGraph[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov,Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR};
+						return new RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov,Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR};
 					}
 					
 				});

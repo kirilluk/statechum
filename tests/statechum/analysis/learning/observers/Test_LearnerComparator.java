@@ -561,6 +561,38 @@ public class Test_LearnerComparator extends LearnerDecorator {
 
 		return result;
 	}
+	
+	@Override 
+	public LearnerGraph init(LearnerGraph graph) 
+	{
+		LearnerGraph result = null, copyOfResult = null;
+		// First, we call the expected method
+		if (Thread.currentThread() == secondThread)
+		{
+			result = whatToCompareWith.init(graph);
+			copyOfResult = new LearnerGraph(result,result.config);
+			iGraph = copyOfResult;
+		}
+		else
+		{
+			result = decoratedLearner.init(graph);
+			copyOfResult = new LearnerGraph(result,result.config);
+		}
+		syncOnCallOf(KIND_OF_METHOD.M_INIT);
+
+		if (Thread.currentThread() != secondThread)
+		{// second thread, checking.
+			checkGraphEquality(iGraph, copyOfResult);
+
+			iGraph=null;// reset stored data
+		}
+
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
+
+		return result;
+	}
 
 	/** Not supported. */
 	@Override 

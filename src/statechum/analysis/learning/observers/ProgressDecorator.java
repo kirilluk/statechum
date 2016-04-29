@@ -179,7 +179,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			labelConverter = conv;
 		}
 		
-		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
+		/** The number of graphs to be included in this log file. This one does not participate in equality or hashcode computations.*/
 		public transient int graphNumber = -1; 
 
 		public LearnerEvaluationConfiguration(Configuration defaultCnf) 
@@ -478,8 +478,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		{
 			plus = argPlus;minus = argMinus;plusSize = argPlusSize;minusSize = argMinusSize;graph = pta;
 			
-			if (plus.size() > plusSize) throw new IllegalArgumentException("inconsistent positive size, "+plus.size()+" elements in collection but expected "+plusSize);
-			if (minus.size() != minusSize) throw new IllegalArgumentException("inconsistent negative size, "+minus.size()+" elements in collection but expected "+minusSize);
+			if (plus != null && plus.size() > plusSize) throw new IllegalArgumentException("inconsistent positive size, "+plus.size()+" elements in collection but expected "+plusSize);
+			if (minus != null && minus.size() != minusSize) throw new IllegalArgumentException("inconsistent negative size, "+minus.size()+" elements in collection but expected "+minusSize);
 		}
 	}
 

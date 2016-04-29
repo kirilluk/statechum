@@ -15,6 +15,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.experiments.PaperUAS;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -65,24 +66,24 @@ public class TestPaperUAS_Large extends TestWithMultipleConfigurations
 		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");
 		System.out.println("Small: "+smallGraph.getStateNumber()+" states, "+(smallGraph.getStateNumber()-smallGraph.getAcceptStateNumber())+" reject states");
 		Label labelToMerge = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected",mainConfiguration,converter);
-		LearnerGraph mergedHuge = PairQualityLearner.mergeStatesForUnique(hugeGraph, labelToMerge);
+		LearnerGraph mergedHuge = LearningSupportRoutines.mergeStatesForUnique(hugeGraph, labelToMerge);
 		DifferentFSMException diffFSM = WMethod.checkM(smallGraph, mergedHuge);
 		if (diffFSM != null)
 			throw diffFSM;
 
-		LearnerGraph mergedSmall = PairQualityLearner.mergeStatesForUnique(smallGraph,labelToMerge);
+		LearnerGraph mergedSmall = LearningSupportRoutines.mergeStatesForUnique(smallGraph,labelToMerge);
 		diffFSM = WMethod.checkM(smallGraph,mergedSmall);
 		if (diffFSM != null)
 			throw diffFSM;
 		
-		LearnerGraph mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
-		LearnerGraph mergedSmallB=PaperUAS.mergePTA(smallGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
+		LearnerGraph mergedHugeB=UASExperiment.mergePTA(hugeGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
+		LearnerGraph mergedSmallB=UASExperiment.mergePTA(smallGraph, labelToMerge, true);// we do not particularly care what we get but there should be no exception generated.
 		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB);// the two graphs should reduce to the same one since they were built out of the same data, one by concatenation and another one without, however transitions between elements that have been concatenated are merged by the merger above so the outcome should be the same. 
 		if (diffFSM != null)
 			throw diffFSM;
 
 		// now do the same merge but this time without update of auxiliary information
-		mergedHugeB=PaperUAS.mergePTA(hugeGraph, labelToMerge, false);
+		mergedHugeB=UASExperiment.mergePTA(hugeGraph, labelToMerge, false);
 		diffFSM = WMethod.checkM(mergedHugeB,mergedSmallB); 
 		if (diffFSM != null)
 			throw diffFSM;

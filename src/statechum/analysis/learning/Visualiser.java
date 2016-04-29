@@ -952,8 +952,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     AffineTransform labelTransform = new AffineTransform();
                     // Debug code: 
                     //g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
-                    labelTransform.translate(xLabel, yLabel);
+                    labelTransform.translate(xLabel*scalex+old.getTranslateX(), yLabel*scaley+old.getTranslateY());
                     labelTransform.rotate(rotation);
+                    labelTransform.scale(scalex, scaley);
                     g2d.setTransform(labelTransform);
                     rendererPane.paintComponent(g2d, labelComponent, screenDevice, 
                             0, 0,

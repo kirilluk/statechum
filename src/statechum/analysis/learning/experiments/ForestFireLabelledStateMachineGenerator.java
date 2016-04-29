@@ -79,11 +79,25 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		return true;			
 	}
 	
+	/** Makes it possible for derived classes to use different patterns for selection of plausible labels. */
+	protected Label selectLabel(@SuppressWarnings("unused") DeterministicVertex v, Set<Label> outgoingAlphabet)
+	{
+		Set<Label> possibles = new TreeSet<Label>();
+		possibles.addAll(alphabet);
+		possibles.removeAll(outgoingAlphabet);
+		if(possibles.isEmpty())
+			return null;
+		
+		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray);
+		return possiblesArray[randomInt(possiblesArray.length)];
+	}
+	
 	@SuppressWarnings("unchecked")
 	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
 	{
 		Set<Label> vertexAlphabet = new TreeSet<Label>();
 		DirectedSparseEdge existingEdge = null;
+		
 		for (Object e : v.getOutEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
 			if (edge.getDest() == random)
@@ -92,14 +106,11 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			assert labels!=null : "vertex "+v.getStringId()+" has outgoing edges without labels";
 			vertexAlphabet.addAll(labels);
 		}
-		Set<Label> possibles = new TreeSet<Label>();
-		possibles.addAll(alphabet);
-		possibles.removeAll(vertexAlphabet);
-		Label label = null;
-		if(possibles.isEmpty())
+
+		Label label = selectLabel(v,vertexAlphabet);
+		if(label == null)
 			return false;// failure to add an edge since all possible letters of an alphabet have already been used
-		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray);
-		label = possiblesArray[randomInt(possiblesArray.length)];
+		
 		if (existingEdge != null)
 		{// a parallel edge
 			((Set<Label>)existingEdge.getUserDatum(JUConstants.LABEL)).add(label);

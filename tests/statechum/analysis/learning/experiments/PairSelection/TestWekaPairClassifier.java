@@ -47,9 +47,9 @@ import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.CollectionOfPairsEstimator;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -85,7 +85,7 @@ public class TestWekaPairClassifier {
 	public void testSplitSetOfPairsIntoRightAndWrong1()
 	{
 		Collection<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{}), correctPairs, wrongPairs);
 		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
 		Assert.assertTrue(correctPairs.isEmpty());Assert.assertTrue(wrongPairs.isEmpty());
 	}
@@ -96,7 +96,7 @@ public class TestWekaPairClassifier {
 		Collection<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		PairScore pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A1"),0,0);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
 				pairA
 		}), correctPairs, wrongPairs);
 		Assert.assertEquals(0, outcome);
@@ -111,7 +111,7 @@ public class TestWekaPairClassifier {
 		PairScore pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,0),pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,0),
 				pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
 				pairA,pairC,pairB
 		}), correctPairs, wrongPairs);
 		Assert.assertEquals(0, outcome);
@@ -126,7 +126,7 @@ public class TestWekaPairClassifier {
 		PairScore pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,0),pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,0),
 				pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
 				pairC,pairB,pairB,pairA
 		}), correctPairs, wrongPairs);
 		Assert.assertEquals(1, outcome);
@@ -141,7 +141,7 @@ public class TestWekaPairClassifier {
 		PairScore pairA = new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("A2"),0,0),pairB=new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("C2"),0,0),
 				pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
 				pairC,pairB,pairB,pairA
 		}), correctPairs, wrongPairs);
 		Assert.assertEquals(1, outcome);
@@ -156,7 +156,7 @@ public class TestWekaPairClassifier {
 		PairScore pairA = new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("A2"),0,0),pairB=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("C2"),0,0),
 				pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 		
-		int outcome = PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
+		int outcome = LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, correctGraph, Arrays.asList(new PairScore[]{
 				pairC,pairB,pairB,pairA
 		}), correctPairs, wrongPairs);
 		Assert.assertEquals(JUConstants.intUNKNOWN, outcome);
@@ -340,9 +340,9 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testSgn()
 	{
-		Assert.assertEquals(0, PairQualityLearner.sgn(0));
-		Assert.assertEquals(1, PairQualityLearner.sgn(10));
-		Assert.assertEquals(-1, PairQualityLearner.sgn(-10));
+		Assert.assertEquals(0, LearningSupportRoutines.signum(0));
+		Assert.assertEquals(1, LearningSupportRoutines.signum(10));
+		Assert.assertEquals(-1, LearningSupportRoutines.signum(-10));
 	}
 	
 	
@@ -1460,21 +1460,21 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState1()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertTrue(PairQualityLearner.uniqueIntoState(graph).isEmpty());
+		Assert.assertTrue(LearningSupportRoutines.uniqueIntoState(graph).isEmpty());
 	}
 	
 	@Test
 	public void TestUniqueFromState1()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertTrue(PairQualityLearner.uniqueFromState(graph).isEmpty());
+		Assert.assertTrue(LearningSupportRoutines.uniqueFromState(graph).isEmpty());
 	}
 	
 	@Test
 	public void TestUniqueIntoState2()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
 		Assert.assertEquals(2, mapUniqueInto.size());
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInto.entrySet().iterator();
@@ -1488,14 +1488,14 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState3()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
-		Assert.assertTrue(PairQualityLearner.uniqueIntoState(graph).isEmpty());
+		Assert.assertTrue(LearningSupportRoutines.uniqueIntoState(graph).isEmpty());
 	}
 
 	@Test
 	public void TestUniqueFromState3()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
-		Assert.assertTrue(PairQualityLearner.uniqueFromState(graph).isEmpty());
+		Assert.assertTrue(LearningSupportRoutines.uniqueFromState(graph).isEmpty());
 	}
 
 	/** Multiple labels to choose from. */
@@ -1503,7 +1503,7 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState4a()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(3, mapUniqueInfo.size());
 		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
@@ -1520,7 +1520,7 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState4b()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(2, mapUniqueInfo.size());
 		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
@@ -1535,7 +1535,7 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState4c()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / A-d->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) if (entry.getValue().firstElem != null) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(2, mapUniqueInfo.size());
 		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
@@ -1550,7 +1550,7 @@ public class TestWekaPairClassifier {
 	public void TestUniqueIntoState5()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-e-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		
 		Assert.assertEquals(5, mapUniqueInto.size());
@@ -1572,7 +1572,7 @@ public class TestWekaPairClassifier {
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
 		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration))));
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A1"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration))));
@@ -1585,7 +1585,7 @@ public class TestWekaPairClassifier {
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
 		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) < 0);
 	}
 	
@@ -1594,9 +1594,9 @@ public class TestWekaPairClassifier {
 	{
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
 		Assert.assertNull(evaluationConfiguration.ifthenSequences);
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
+		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+"Mandatory_1_via_b A- !b || toMerge_1_b ->A-b->B - b ->B / B- !b || toMerge_1_b ->A / B == THEN == C / C-toMerge_1_b->D",ifthenIterator.next());
@@ -1608,9 +1608,9 @@ public class TestWekaPairClassifier {
 	{
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
+		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals("junk",ifthenIterator.next());
@@ -1621,14 +1621,14 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestDetectionOfMandatoryTransitions()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_1->C-"+PairQualityLearner.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
-		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("B"),graph.findVertex("A"),0,0),graph));
-		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("A"),0,0),graph));
-		Assert.assertTrue(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("B"),0,0),graph));
-		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("C"),graph.findVertex("A"),0,0),graph));
-		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("C"),0,0),graph));
-		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("D"),graph.findVertex("A"),0,0),graph));
-		Assert.assertFalse(PairQualityLearner.LearnerThatUsesWekaResults.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("D"),0,0),graph));
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->C-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
+		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("B"),graph.findVertex("A"),0,0),graph));
+		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("A"),0,0),graph));
+		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("B"),0,0),graph));
+		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("C"),graph.findVertex("A"),0,0),graph));
+		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("C"),0,0),graph));
+		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("D"),graph.findVertex("A"),0,0),graph));
+		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("D"),0,0),graph));
 	}
 	
 	@Test
@@ -1636,9 +1636,9 @@ public class TestWekaPairClassifier {
 	{
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=PairQualityLearner.uniqueIntoState(graph);
+		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		PairQualityLearner.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
+		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(1,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals("junk",ifthenIterator.next());
@@ -1648,7 +1648,7 @@ public class TestWekaPairClassifier {
 	public void TestConstructPairsOfInfeasibleTransitions0()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Map<Label,Set<Label>> mapOfLabelToSet = PairQualityLearner.computeInfeasiblePairs(graph);
+		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
 		Assert.assertTrue(mapOfLabelToSet.isEmpty());
 	}
 	
@@ -1657,7 +1657,7 @@ public class TestWekaPairClassifier {
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		PairQualityLearner.addIfThenForPairwiseConstraints(evaluationConfiguration, PairQualityLearner.computeInfeasiblePairs(graph));
+		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
 		Assert.assertTrue(evaluationConfiguration.ifthenSequences.isEmpty());
 	}
 
@@ -1667,7 +1667,7 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b","c"},new String[]{}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = PairQualityLearner.computeInfeasiblePairs(graph);
+		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
 		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","c"})
@@ -1683,11 +1683,11 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		PairQualityLearner.addIfThenForPairwiseConstraints(evaluationConfiguration, PairQualityLearner.computeInfeasiblePairs(graph));
+		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
 		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
 		Assert.assertEquals("junk",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+PairQualityLearner.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -b-#D/ C -c-#D/ B == THEN == C",ifthenIterator.next());
+		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -b-#D/ C -c-#D/ B == THEN == C",ifthenIterator.next());
 	}
 	
 	@Test
@@ -1696,7 +1696,7 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A-a->B-c->B-b->A / B-a-#C", "TestConstructPairsOfInfeasibleTransitions2", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b"},new String[]{}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = PairQualityLearner.computeInfeasiblePairs(graph);
+		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
 		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","c"})
@@ -1712,7 +1712,7 @@ public class TestWekaPairClassifier {
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{"e"},new String[]{"e"},new String[]{"a","b"}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = PairQualityLearner.computeInfeasiblePairs(graph);
+		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
 		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","e"})
@@ -1727,12 +1727,12 @@ public class TestWekaPairClassifier {
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		PairQualityLearner.addIfThenForPairwiseConstraints(evaluationConfiguration, PairQualityLearner.computeInfeasiblePairs(graph));
+		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
 		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+PairQualityLearner.pairwiseAutomata+"_a A- !a ->A-a->B - a ->B / B- !a ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+PairQualityLearner.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+PairQualityLearner.pairwiseAutomata+"_e A- !e ->A-e->B - e ->B / B- !e ->A / C -a-#D/ C -b-#D/ B == THEN == C",ifthenIterator.next());
+		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_a A- !a ->A-a->B - a ->B / B- !a ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
+		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
+		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_e A- !e ->A-e->B - e ->B / B- !e ->A / C -a-#D/ C -b-#D/ B == THEN == C",ifthenIterator.next());
 	}
 	
 	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
@@ -1901,7 +1901,7 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected1()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.initEmpty();
-		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
+		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		Assert.assertTrue(actual.transitionMatrix.isEmpty());Assert.assertNull(actual.getInit());
@@ -1911,7 +1911,7 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected2()
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
+		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		LearnerGraph expected = new LearnerGraph(mainConfiguration);
@@ -1923,7 +1923,7 @@ public class TestWekaPairClassifier {
 	public void testAutomatonConnected3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertNull(PairQualityLearner.uniqueFromInitial(graph));
+		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		DifferentFSMException ex = WMethod.checkM(graph, actual);
@@ -1934,13 +1934,13 @@ public class TestWekaPairClassifier {
 	public void testUniqueFromInitial1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter), PairQualityLearner.uniqueFromInitial(graph));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
 	}
 	@Test
 	public void testUniqueFromInitial2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A-b->B / C-a->A-t->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("t", mainConfiguration, converter), PairQualityLearner.uniqueFromInitial(graph));
+		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("t", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
 	}
 	
 	@Test
@@ -1971,7 +1971,7 @@ public class TestWekaPairClassifier {
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, unique));
+		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(4,actual.size());
 		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
 		for(CmpVertex v:actual)
@@ -1990,7 +1990,7 @@ public class TestWekaPairClassifier {
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, unique));
+		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(3,actual.size());
 		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
 		for(CmpVertex v:actual)
@@ -2010,7 +2010,7 @@ public class TestWekaPairClassifier {
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, unique));
+		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(3,actual.size());
 		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C4")}));
 		for(CmpVertex v:actual)
@@ -2028,7 +2028,7 @@ public class TestWekaPairClassifier {
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
 		Assert.assertTrue(actual.isEmpty());
 	}
 	
@@ -2037,7 +2037,7 @@ public class TestWekaPairClassifier {
 	{
 		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(PairQualityLearner.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
 		Assert.assertTrue(actual.isEmpty());
 	}
 	
@@ -2049,7 +2049,7 @@ public class TestWekaPairClassifier {
 				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4-c->P03 /  M1-a->A1-b->M2-c->C2 / M2-a->A2-b->M3-c->C3 / M2-b->B","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
 
-		LearnerGraph actual = PairQualityLearner.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
+		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
 		if (ex != null)
 			throw ex;
@@ -2065,7 +2065,7 @@ public class TestWekaPairClassifier {
 		final LearnerGraph graph = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
 				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
 		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
-		LearnerGraph actual = PairQualityLearner.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
+		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
 		if (ex != null)
 			throw ex;
@@ -2078,10 +2078,101 @@ public class TestWekaPairClassifier {
 	public void testMergeStatesForUniqueFromInitial3()
 	{
 		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		LearnerGraph actual = PairQualityLearner.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
+		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
 		Assert.assertEquals(1,actual.getStateNumber());
 		Assert.assertTrue(actual.transitionMatrix.get(actual.getInit()).isEmpty());
 	}
+	
+	@Test
+	public void testRemoveNegatives1()
+	{
+		LearnerGraph graph = new LearnerGraph(mainConfiguration);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives2()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A","testRemoveNegatives2",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives3()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A","testRemoveNegatives3",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(graph,actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives4()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A","testRemoveNegatives4a",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives4b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	@Test
+	public void testRemoveNegatives5()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A-c-#D","testRemoveNegatives5a",mainConfiguration,converter);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives5b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	// This one covers the case of a graph with a single state
+	@Test
+	public void testRemoveNegatives6()
+	{
+		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.getInit().setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		Assert.assertEquals(0,actual.getStateNumber());				
+	}
+
+	// This one covers the case of a graph that will develop holes if negatives are removed.
+	@Test
+	public void testRemoveNegatives7()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives7a",mainConfiguration,converter);
+		graph.findVertex("B").setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(new LearnerGraph(mainConfiguration),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
+	// This one covers the case of a graph that will develop holes if negatives are removed.
+	@Test
+	public void testRemoveNegatives8()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		graph.findVertex("C").setAccept(false);
+		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
+		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B","testRemoveNegatives8b",mainConfiguration,converter),actual);
+		if (ex != null)
+			throw ex;
+		
+	}
+
 }
 
 

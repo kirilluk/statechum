@@ -79,6 +79,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -99,6 +100,7 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -249,26 +251,6 @@ public class DrawGraphs {
 		return result;
 	}
 	
-	protected static StatsticatTestResult eval1(String whatToEval, String errMsg)
-	{
-		StatsticatTestResult STR=new StatsticatTestResult();
-
-		callbacks.clearBuffer();
-		REXP result = engine.eval(whatToEval);
-		if (result == null)
-			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
-
-		if(whatToEval.startsWith("m="))
-		{
-			STR.statistic=engine.eval("m$statistic").asDouble();
-			STR.pvalue=engine.eval("m$p.value").asDouble();
-			STR.Method=engine.eval("m$method").asString();
-			STR.alternative=engine.eval("m$alternative").asString();
-			STR.parameter=engine.eval("m$parameter").asDouble();
-		}	
-		return STR;
-	}
-
 	protected static <ELEM> String vectorToR(List<ELEM> vector, boolean addQuotes)
 	{
 		if (vector.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
@@ -338,77 +320,6 @@ public class DrawGraphs {
 			}
 		}
 		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
-		result.append(")");
-		return result.toString();
-	}
-	
-	
-	
-	/**
-	 * Formats a WilcoxonTest command to R.
-	 * 
-	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
-	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
-	 * @return The string to be sent to R for evaluation.
-	 */
-	protected static String WilcoxonTest(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
-	{
-		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
-		if (data.size() != data1.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
-
-		StringBuffer result = new StringBuffer();
-		result.append("m=wilcox.test(");
-		
-		result.append(vectorToR(data,false));
-		result.append(",");
-		result.append(vectorToR(data1,false));
-
-		result.append(",paired=TRUE");
-
-		result.append(")");
-		return result.toString();
-	}
-	
-	/**
-	 * Formats a Mann-Whitney U Test command to R.
-	 * 
-	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
-	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
-	 * @return The string to be sent to R for evaluation.
-	 */
-	protected static String Mann_Whitney_U_Test(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
-	{
-		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
-
-		StringBuffer result = new StringBuffer();
-		result.append("m=wilcox.test(");
-		result.append(vectorToR(data,false));
-		result.append(",");
-		result.append(vectorToR(data1,false));
-
-		result.append(")");
-		return result.toString();
-	}
-	
-	
-	/**
-	 * Formats a Kruskal-Wallis Test command to R.
-	 * 
-	 * @param data that represent x in the wilcox.test(X,y,paired=TRUE) 
-	 * @param data1 that represent Y in the wilcox.test(X,y,paired=TRUE) 
-	 * @return The string to be sent to R for evaluation.
-	 */
-	protected static String Kruskal_Wallis_Test(List<Double> data,List<Double> data1,List<String> names,List<String> colour, String otherAttrs)
-	{
-		if (data.size() == 0 || data1.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
-		if (data.size() != data1.size()) throw new IllegalArgumentException("'x' and 'y' must have the same length");
-
-		StringBuffer result = new StringBuffer();
-		result.append("m=kruskal.test(");
-		result.append(vectorToR(data,false));
-		result.append(",");
-		result.append(vectorToR(data1,false));
-
 		result.append(")");
 		return result.toString();
 	}
@@ -520,23 +431,7 @@ public class DrawGraphs {
 			eval(cmd,"failed to run "+cmd);
 		eval("dev.off()","failed to write to "+file.getAbsolutePath());
 	}
-	
-	/** Draws a plot given the data to plot and stores it in the given file.
-	 * 
-	 * @param drawingCommand drawing command to pass to R
-	 * @param xDim horizontal size in inches, R default is 7.
-	 * @param yDim vertical size in inches, R default is 7.
-	 * @param fileName where to store result.
-	 */
-	public StatsticatTestResult CollectResultStatsticalResult(List<String> drawingCommand)
-	{
-		StatsticatTestResult STR=new StatsticatTestResult();
-		for(String cmd:drawingCommand)
-			STR=eval1(cmd,"failed to run "+cmd);
-		return STR;
 		
-	}
-	
 	/**
 	 * Shuts down jri thread - since jri is not a daemon thread JVM will not exit if this is not called.
 	 */
@@ -565,42 +460,144 @@ public class DrawGraphs {
 		}
 	}
 	
-	/**
-	 * A version DataColoumn method that allow the user to store two results in a MAP <ELEM,DataColumnPairValues>();
-	 *  where DataColumnPairValues has pair of value to add each time
-	 */
-	public static class DataColumnPairValues
+	public interface SGEExperimentResult
 	{
-		/** Data to be displayed. */
-		final List<Double> results;
-		final List<Double> results1;
-
-		/** Colour to use, if {@code null} default colour is used. */
-		String colour;
-		/** Label to be used, if {@code null} column identifier is used. */
-		String label;
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages);
 		
-		public DataColumnPairValues()
-		{
-			results = new ArrayList<Double>(1000); 
-			results1 = new ArrayList<Double>(1000); 
+		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		public void drawInteractive(DrawGraphs gr);
+		
+		/** Records results in a file. The argument is used if R is needed. */
+		public abstract void reportResults(DrawGraphs gr);
+				
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		public String getFileName();
+	}
 
+	public static class CSVExperimentResult implements SGEExperimentResult
+	{
+		StringBuffer[] spreadsheetHeader = null;
+		StringBuffer csvText = new StringBuffer();
+		protected final File file;
+		
+		public CSVExperimentResult(File arg)
+		{
+			file = arg;
+		}
+		
+	 	public static void addSeparator(StringBuffer buf)
+	 	{
+	 		buf.append(',');
+	 	}
+	 	
+	 	public static void addNewLine(StringBuffer buf)
+	 	{
+	 		buf.append('\n');
+	 	}
+	 	
+	 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */ 
+	 	public void appendToHeader(String[] whatToAppend,String [] valuesForLastLine)
+	 	{
+	 		if (whatToAppend.length == 0)
+	 			throw new IllegalArgumentException("cannot handle zero number of lines");
+	 		boolean firstEntry = true;
+	 		if (spreadsheetHeader == null)
+	 		{
+	 			spreadsheetHeader = new StringBuffer[whatToAppend.length+1];for(int i=0;i<=whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
+	 		}
+	 		else
+	 			if (spreadsheetHeader.length != whatToAppend.length+1)
+	 				throw new IllegalArgumentException("cannot append "+whatToAppend.length+" values to headers with "+spreadsheetHeader.length+" headers");
+	 			else
+	 				firstEntry = false;// we are extending an existing header
+
+	 		for(String valueForLastLine:valuesForLastLine)
+	 		{
+	 			for(int i=0;i<whatToAppend.length;++i)
+	 			{
+	 				if (!firstEntry) addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
+	 			}
+	 			if (!firstEntry) addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
+	 			firstEntry = false;
+	 		}
+	 	}
+
+	 	/** Adds text to the spreadsheet. */
+		public void add(String text)
+		{
+			csvText.append(text);addNewLine(csvText);
+		}
+
+		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		@Override
+		public void drawInteractive(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+		}
+
+		public void writeFile(Writer wr) throws IOException
+		{
+			if (spreadsheetHeader != null)
+				for(StringBuffer line:spreadsheetHeader)
+				{
+					wr.append(line.toString());wr.append('\n');
+				}
+			wr.append(csvText.toString());
+		}
+		
+		public void writeTaskOutput(Writer outputWriter, String text) throws IOException
+		{
+			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(text);
+			outputWriter.write("\n");
+		}
+		
+		@Override
+		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+			FileWriter wr = null;
+			
+			try {
+				wr = new FileWriter(file);
+				writeFile(wr);
+			} catch (IOException e) {
+				Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
+			}
+			finally
+			{
+				if (wr != null)
+					try {
+						wr.close();
+					} catch (IOException e) {
+						// ignored
+					}
+			}
+		}
+				
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		@Override
+		public String getFileName()
+		{
+			return file.getName();
+		}
+
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		@Override
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		{
+			if (line.length != 2)
+				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record just 2");
+			add(line[1]);
 		}
 	}
-	
+
 	/**
 	 * Represents a graph.
 	 * 
 	 * @param <ELEM> type of elements for the X axis, vertical is always a Double
 	 */
-	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>>
+	public static abstract class RExperimentResult<ELEM extends Comparable<? super ELEM>> implements SGEExperimentResult
 	{
-		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
-		
-		// it is added to use them for some computation such as WilcoxonTest
-		Map<ELEM,DataColumnPairValues> collectionOfResults2 = new TreeMap<ELEM,DataColumnPairValues>();
-
-		protected final String xAxis,yAxis;
 		protected final File file;
 		
 		/** Number of entries in the graph. */
@@ -614,9 +611,9 @@ public class DrawGraphs {
 			extraCommands.add(cmd);
 		}
 		
-		public RGraph(String x,String y,File name)
+		public RExperimentResult(File name)
 		{
-			xAxis=x;yAxis=y;file=name;
+			file=name;
 		}
 		
 		protected ELEM xMin = null, xMax = null;
@@ -632,7 +629,107 @@ public class DrawGraphs {
 			yMin = min;yMax = max;
 		}
 		
-		public synchronized void add(ELEM el,Double value)
+		public int size()
+		{
+			return size;
+		}
+		
+		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
+		 * column of data values.
+		 * @param el identifier for the column
+		 * @param value value to be added to it
+		 * @param colour colour with which box plot values are to be shown
+		 * @param label label to show on the horizonal axis, empty string for no label.
+		 */
+		public abstract void add(ELEM el,Double value, String colour, String label);
+		
+		public abstract void add(ELEM el,Double value);
+		
+		/** Called to provide real-time updates to the learning results. The default does nothing. */
+		@Override
+		public void drawInteractive(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+		}
+		
+
+		@Override
+		public abstract void reportResults(DrawGraphs gr);
+				
+		/** Reports the name of the file with the graph, used for identification of different graphs. */
+		@Override
+		public String getFileName()
+		{
+			return file.getName();
+		}
+
+		public <T> void writeTaskOutput(Writer outputWriter,Comparable<T> x, Double y, String colour, String label) throws IOException
+		{
+			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(x.getClass().getCanonicalName());outputWriter.write(SGE_ExperimentRunner.separator);outputWriter.write(x.toString());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(y.toString());outputWriter.write(SGE_ExperimentRunner.separator);
+			if (colour != null)
+				outputWriter.write(colour);
+			outputWriter.write(SGE_ExperimentRunner.separator);
+			if (label != null)
+				outputWriter.write(label);
+			outputWriter.write("\n");
+		}
+
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
+		@SuppressWarnings("unchecked")
+		@Override
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		{
+			if (line.length != 6)
+				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+line);
+			String argType = line[1], argStringValue = line[2], color=null, label = null;
+			if (!line[4].isEmpty())
+				color = line[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
+			if (!line[5].isEmpty())
+				label = line[5];
+			Double yValue = new Double(line[3]);
+			
+			Object argValue = null;
+			if (argType.equals("java.lang.String"))
+				argValue = argStringValue;
+			else
+				if (argType.equals("java.lang.Double"))
+					argValue = new Double(argStringValue);
+				else
+					if (argType.equals("java.lang.Float"))
+						argValue = new Float(argStringValue);
+					else
+						if (argType.equals("java.lang.Integer"))
+							argValue = new Integer(argStringValue);
+						else
+							if (argType.equals("java.lang.Long"))
+								argValue = new Long(argStringValue);
+							else
+								throw new IllegalArgumentException("cannot load a value of type "+argType);
+			add((ELEM) argValue,yValue,color,label);
+		}
+	}	
+
+	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
+	{
+		protected final String xAxis,yAxis;
+		
+		public RGraph(String x, String y, File name) 
+		{
+			super(name);xAxis = x;yAxis = y;
+		}
+
+		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
+ 
+		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
+		 * column of data values.
+		 * @param el identifier for the column
+		 * @param value value to be added to it
+		 * @param colour colour with which box plot values are to be shown
+		 * @param label label to show on the horizonal axis, empty string for no label.
+		 */
+		@Override
+		public synchronized void add(ELEM el,Double value, String colour, String label)
 		{
 			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
 			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
@@ -643,57 +740,21 @@ public class DrawGraphs {
 			DataColumn column = collectionOfResults.get(el);
 			if (column == null) { column=new DataColumn();collectionOfResults.put(el,column); }
 			column.results.add(value);
-			++size;
-		}
-		
-		public synchronized void add(ELEM el,Double value, String colour)
-		{
-			add(el,value);collectionOfResults.get(el).colour=colour;
-		}
-		
-		public int size()
-		{
-			return size;
-		}
-		
-		/** Same as {@link add} but additionally permits setting of both colour and a label for this 
-		 * column of data values.
-		 * @param el identifier for the column
-		 * @param value value to be added to it
-		 * @param colour colour with which box plot values are to be shown
-		 * @param label label to show on the horizonal axis, empty string for no label.
-		 */
-		public synchronized void add(ELEM el,Double value, String colour, String label)
-		{
-			add(el,value);
 			if (colour != null) collectionOfResults.get(el).colour=colour;
 			if (label != null) collectionOfResults.get(el).label=label;
-		}
-		
-		
-		public synchronized void addPairValues(ELEM el,Double value, String colour, String label)
-		{
-			DataColumnPairValues column = collectionOfResults2.get(el);
-			if (column == null) { column=new DataColumnPairValues();collectionOfResults2.put(el,column); }
-			column.results.add((Double) el);
-			column.results1.add(value);
 			++size;
 		}
-		
-		/** Returns a command to draw a graph in R. */
-		protected abstract List<String> getDrawingCommand();
-		
-		public void drawInteractive(DrawGraphs gr)
+
+		@Override
+		public synchronized void add(ELEM el,Double value)
 		{
-			List<String> drawingCommands = new LinkedList<String>();
-			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			gr.drawInteractivePlot(drawingCommands, file.getName());
+			add(el,value,null,null);
 		}
 		
 		protected double xSize = -1;
 		
-		/** Sets the horizonal size of the plot, vertical size is always set to 4 inches. 
-		 * If no assignemnt is made, the size is guessed from the number of points on the drawing. 
+		/** Sets the horizontal size of the plot, vertical size is always set to 4 inches. 
+		 * If no assignment is made, the size is guessed from the number of points on the drawing. 
 		 */ 
 		public void setXSize(double newSize)
 		{
@@ -702,7 +763,22 @@ public class DrawGraphs {
 		
 		double ySize = 4;
 
-		public void drawPdf(DrawGraphs gr)
+		/** Computes the horizontal size of the drawing. */
+		abstract protected double computeHorizSize();
+
+		/** Returns a command to draw a graph in R. */
+		protected abstract List<String> getDrawingCommand();
+		
+		@Override
+		public void drawInteractive(DrawGraphs gr)
+		{
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			gr.drawInteractivePlot(drawingCommands, file.getName());
+		}
+
+		@Override
+		public void reportResults(DrawGraphs gr)
 		{
 			if (collectionOfResults.size() > 0)
 			{
@@ -714,27 +790,133 @@ public class DrawGraphs {
 
 			}
 			else
-				if (collectionOfResults2.size() > 0)
-				{
-					double horizSize = xSize;
-					if (horizSize <= 0) horizSize=computeHorizSize();
-					List<String> drawingCommands = new LinkedList<String>();
-					drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-					gr.writetofile(drawingCommands,gr,file);
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
+		}
+		
+		
+	}
+	
+	
+	public static abstract class RStatisticalAnalysis extends RExperimentResult<Double>
+	{
+		protected final String testName, extraArg;
+		
+		public RStatisticalAnalysis(String name, String extra, File fileName) 
+		{
+			super(fileName);testName = name;extraArg = extra;
+		}
+
+		final List<Double> valuesA = new ArrayList<Double>(1000);
+		final List<Double> valuesB = new ArrayList<Double>(1000);
+
+		@Override
+		public synchronized void add(Double el,Double value)
+		{
+			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
+			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			
+			if (xMin != null && xMin.compareTo(el) > 0) return;
+			if (xMax != null && xMax.compareTo(el) < 0) return;
+
+			valuesA.add(el);valuesB.add(value);
+			++size;
+		}
+		
+		@SuppressWarnings("unused")
+		@Override
+		public void add(Double el,Double value, String colour, String label)
+		{
+			add(el,value);
+		}
+		
+		protected static String variableName = "m";
+		
+		@Override
+		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr)
+		{
+			if (valuesA.size() > 0)
+			{
+				StatisticalTestResult o=obtainResultFromR();
+				FileWriter writer = null;
+				try {
+					writer = new FileWriter(file);
+					writetofile(o,writer);
+				} catch (IOException e) {
+					Helper.throwUnchecked("Failed to write results into file "+file.getAbsolutePath(), e);
 				}
+				finally
+				{
+					if (writer != null)
+						try {
+							writer.close();
+						} catch (IOException e) {
+							// ignore this
+						}
+				}
+			}
 			else
 				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
 		}
 		
-		/* Computes the horizontal size of the drawing. */
-		abstract protected double computeHorizSize();
-		
-		/** Reports the name of the file with the graph, used for identification of different graphs. */
-		public String getFileName()
+		/** Requests results of statistical analysis from R. */
+		public StatisticalTestResult obtainResultFromR()
 		{
-			return file.getName();
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,getMethodName());
 		}
+
+		public List<String> getDrawingCommand()
+		{
+			if (valuesA.size() == 0 || valuesB.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
+			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
+
+			StringBuffer result = new StringBuffer();
+			result.append(variableName+"="+testName+".test(");
+			
+			result.append(vectorToR(valuesA,false));
+			result.append(",");
+			result.append(vectorToR(valuesB,false));
+
+			if (extraArg != null)
+			{
+				result.append(",");result.append(extraArg);
+			}
+			
+			result.append(")");
+			return Collections.singletonList(result.toString());
+		}
+		
+		public abstract String getMethodName();
+		
+		/**
+		 * Records the result of statistical analysis to a file.
+		 */
+		public abstract void writetofile(StatisticalTestResult result, Writer writer) throws IOException;
+	
+		public void writeSeparator(Writer writer) throws IOException { writer.append(','); }
+		public void writeEndl(Writer writer) throws IOException { writer.append('\n'); }
+		
+		public void writeHeaderToFile(Writer writer) throws IOException
+		{			
+		    writer.append("Method");
+		    writeSeparator(writer);
+		    writer.append("Statistic");
+		    writeSeparator(writer);
+		    writer.append("P-value");
+		}
+		
+		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
+		{
+			writer.append(getMethodName());
+			writeSeparator(writer);
+		    writer.append(String.valueOf(o.statistic));
+		    writeSeparator(writer);
+		    writer.append(String.valueOf(o.pvalue));
+		}
+		
 	}
 	
 	public static class RBoxPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
@@ -804,157 +986,73 @@ public class DrawGraphs {
 		}
 	}
 	
-	
-	public static class Wilcoxon<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	public static class Wilcoxon extends RStatisticalAnalysis
 	{
-		public Wilcoxon(String x, String y, File name) {
-			super(x, y, name);
+		public Wilcoxon(File name) {
+			super("wilcox","paired=TRUE", name);
 		}
 		
 		@Override
-		public List<String> getDrawingCommand()
+		public String getMethodName()
 		{
-			List<Double> data = new LinkedList<Double>();
-			List<Double> data1 = new LinkedList<Double>();
-			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
-			{
-				data.addAll(entry.getValue().results);
-				data1.addAll(entry.getValue().results1);
-
-				String label = entry.getValue().label;
-				if (label == null)
-					label = entry.getKey().toString();
-				names.add(label);
-				String colour = entry.getValue().colour;
-				if (colour == null) colour = defaultColour;
-				colours.add(colour);
-			}
-			return Collections.singletonList(WilcoxonTest(data, data1,names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+			return "Wilcoxon signed rank test";
 		}
-
+		
 		@Override
-		protected double computeHorizSize() {
-			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
-			return horizSize;
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+		    writeMainData(result, writer);
+			writeEndl(writer);
 		}
 	}
 	
-	
-	public static class RWilcoxon<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	public static class Mann_Whitney_U_Test extends RStatisticalAnalysis
 	{
-		public RWilcoxon(String x, String y, File name) {
-			super(x, y, name);
+		public Mann_Whitney_U_Test(File name) {
+			super("wilcox",null, name);
 		}
 		
 		@Override
-		public List<String> getDrawingCommand()
+		public String getMethodName()
 		{
-			List<Double> data = new LinkedList<Double>();
-			List<Double> data1 = new LinkedList<Double>();
-			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
-			{
-				data.addAll(entry.getValue().results);
-				data1.addAll(entry.getValue().results1);
-
-				String label = entry.getValue().label;
-				if (label == null)
-					label = entry.getKey().toString();
-				names.add(label);
-				String colour = entry.getValue().colour;
-				if (colour == null) colour = defaultColour;
-				colours.add(colour);
-			}
-			return Collections.singletonList(WilcoxonTest(data,data1, names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
-					:null		
-					));
+			return "Wilcoxon rank sum test";
 		}
 
 		@Override
-		protected double computeHorizSize() {
-			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
-			return horizSize;
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+		    writeMainData(result, writer);
+			writeEndl(writer);
 		}
 	}
 	
-	
-	public static class Mann_Whitney_U_Test<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
+	public static class Kruskal_Wallis extends RStatisticalAnalysis
 	{
-		public Mann_Whitney_U_Test(String x, String y, File name) {
-			super(x, y, name);
+		public Kruskal_Wallis(File name) {
+			super("kruskal",null, name);
 		}
 		
 		@Override
-		public List<String> getDrawingCommand()
+		public String getMethodName()
 		{
-			List<Double> data = new LinkedList<Double>();
-			List<Double> data1 = new LinkedList<Double>();
-
-			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
-			{
-				data.addAll(entry.getValue().results);
-				data1.addAll(entry.getValue().results1);
-
-				String label = entry.getValue().label;
-				if (label == null)
-					label = entry.getKey().toString();
-				names.add(label);
-				String colour = entry.getValue().colour;
-				if (colour == null) colour = defaultColour;
-				colours.add(colour);
-			}
-			return Collections.singletonList(Mann_Whitney_U_Test(data, data1,names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
-							:null		
-							));
-			}
+			return "Kruskal-Wallis rank sum test";
+		}
 
 		@Override
-		protected double computeHorizSize() {
-			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
-			return horizSize;
-		}
-	}
-	
-	public static class Kruskal_Wallis<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
-	{
-		public Kruskal_Wallis(String x, String y, File name) {
-			super(x, y, name);
-		}
-		
-		@Override
-		public List<String> getDrawingCommand()
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
 		{
-			List<Double> data = new LinkedList<Double>();
-			List<Double> data1 = new LinkedList<Double>();
-
-			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM, DataColumnPairValues> entry:collectionOfResults2.entrySet())
-			{
-				data.addAll(entry.getValue().results);
-				data1.addAll(entry.getValue().results1);
-
-				String label = entry.getValue().label;
-				if (label == null)
-					label = entry.getKey().toString();
-				names.add(label);
-				String colour = entry.getValue().colour;
-				if (colour == null) colour = defaultColour;
-				colours.add(colour);
-			}
-			return Collections.singletonList(Kruskal_Wallis_Test(data, data1,names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
-							:null		
-							));
-			}
-
-		@Override
-		protected double computeHorizSize() {
-			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
-			return horizSize;
+			writeHeaderToFile(writer);
+			writeSeparator(writer);
+		    writer.append("parameter");
+			writeEndl(writer);
+		    writeMainData(result, writer);
+			writeSeparator(writer);
+		    writer.append(String.valueOf(result.parameter));
+			writeEndl(writer);
 		}
 	}
 	
@@ -983,6 +1081,7 @@ public class DrawGraphs {
 			return formatApproxLimit();
 		}
 	}
+
 	public static class Graph2D extends RGraph<Double>
 	{
 		public Graph2D(String x, String y, String plotKind, File name) {
@@ -1051,13 +1150,15 @@ public class DrawGraphs {
 			while(resultIterator.hasNext())
 			{
 				Entry<Double,DataColumn> entry = resultIterator.next();
-				if (xValueMin == null) { xValueMin = entry.getKey();xValueMax = entry.getKey(); }
+				if (xValueMin == null) xValueMin = entry.getKey();
+				if (xValueMax == null) xValueMax = entry.getKey();
 				if (xValueMin.compareTo(entry.getKey()) > 0) xValueMin = entry.getKey();
 				if (xValueMax.compareTo(entry.getKey()) < 0) xValueMax = entry.getKey();
 				
 				for(Double y:entry.getValue().results)
 				{
-					if (yValueMin == null) { yValueMin = y;yValueMax = y; }
+					if (yValueMin == null) yValueMin = y;
+					if (yValueMax == null) yValueMax = y;
 					if (yValueMin.compareTo(y) > 0) yValueMin = y;
 					if (yValueMax.compareTo(y) < 0) yValueMax = y;
 				}
@@ -1103,8 +1204,8 @@ public class DrawGraphs {
 	{
 		protected final boolean diag;
 		protected final double minValue, maxValue;
+
 		/**
-		 * 
 		 * @param x name of the X axis
 		 * @param y name of the Y axis
 		 * @param name file where to store .pdf (should include the extension).
@@ -1129,101 +1230,41 @@ public class DrawGraphs {
 	}
 	
 	/**
-	 * A version DataColoumn method that allow the user to store two results in a MAP <ELEM,DataColumnPairValues>();
-	 *  where DataColumnPairValues has pair of value to add each time
+	 * Records the outcome of statistical analysis, extracted from R.
 	 */
-	public static class StatsticatTestResult
+	public static class StatisticalTestResult
 	{
 		/** Data to be displayed. */
-		double statistic;
-		double pvalue;
+		double statistic=0.;
+		double pvalue=0.;
 		String alternative; 
-		String Method;
-		double parameter;
+		double parameter=0.;
 
-		public StatsticatTestResult()
-		{
-			statistic = 0.0; 
-			pvalue = 0.0;
-		}
-		public double getStatistic()
-      {
-    	  return statistic;
-      }
-		public  double getPvalue()
-      {
-    	  return pvalue;
-      }
-		public String getAlternative()
-      {
-    	  return alternative;
-      }
-	  public String getMethod()
-	  {
-		  return Method;
-	  }
-	  public double getParameter()
-	  {
-		  return parameter;
-	  }
-	}
-
-	public void writetofile(List<String> drawingCommands, DrawGraphs gr, File file) {
 		
-		StatsticatTestResult o=CollectResultStatsticalResult(drawingCommands);
-		try
+		/** Using a supplied list of commands, obtains a result. 
+		 * 
+		 * @param drawingCommand commands to run, the outcome of the last one is reported.
+		 * @param varName the variable used to assign the outcome in the commands executed.
+		 * @param expectedMethodName When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
+		 * @return the results of the analysis, computed by running the supplied list of commands.
+		 */
+		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String expectedMethodName)
 		{
-			String Filename = file.getName();
-			FileWriter writer = new FileWriter(Filename);	    
-		    writer.append("Method");
-		    writer.append(',');
-		    writer.append("Alternative");
-		    writer.append(',');
-		    writer.append("P-value");
-		    writer.append(',');
-		    if(o.getMethod().equals("Wilcoxon signed rank test"))
-		    {
-		    	writer.append("V");
-		    }
-		    if(o.getMethod().equals("Wilcoxon rank sum test"))
-		    {
-			    writer.append("W");
-		    }
-		    if(o.getMethod().equals("Kruskal-Wallis rank sum test"))
-		    {
-			    writer.append("Kruskal-Wallis chi-squared ");
-		    	writer.append(',');
-		    	writer.append("df");
-		    }
+			if (drawingCommands.isEmpty())
+				throw new IllegalArgumentException("no command to perform statistical analysis");
+			StatisticalTestResult STR=new StatisticalTestResult();
+			for(String cmd:drawingCommands)
+				eval(cmd,"failed to run "+cmd);
 
-		    
-		    writer.append('\n');
- 
-		    writer.append(String.valueOf(o.getMethod()));
-		    writer.append(',');
-		    writer.append(String.valueOf(o.getStatistic()));
-		    writer.append(',');
-		    writer.append(String.valueOf(o.getPvalue()));
-		    writer.append(',');
-		    writer.append(String.valueOf(o.getStatistic()));
-		    if(o.getMethod().equals("Kruskal-Wallis rank sum test"))
-		    {
-		    	writer.append(',');		    
-		    	writer.append(String.valueOf(o.getParameter()));
-		    }
-	            writer.append('\n');
- 
-
- 
-		    //generate whatever data you want
-	 
-		    writer.flush();
-		    writer.close();
+			STR.statistic=engine.eval(varName+"$statistic").asDouble();
+			STR.pvalue=engine.eval(varName+"$p.value").asDouble();
+			String methodName = engine.eval(varName+"$method").asString();
+			if (!methodName.startsWith(expectedMethodName))
+				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
+			STR.alternative=engine.eval(varName+"$alternative").asString();
+			STR.parameter=engine.eval(varName+"$parameter").asDouble();
+			return STR;
 		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		} 
 	}
 }
 

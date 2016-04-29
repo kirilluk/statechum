@@ -230,9 +230,9 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	}
 	
 	
-	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold, int maxNumberOfStates) 
 	{
-		super(evalCnf, argInitialPTA, threshold);
+		super(evalCnf, argInitialPTA, threshold,maxNumberOfStates);
 	}
 
 	protected LearnerGraphND coreInverse = null;

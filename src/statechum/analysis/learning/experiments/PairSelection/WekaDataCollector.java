@@ -434,7 +434,7 @@ public class WekaDataCollector
 		{
 			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
 		}
-		PairQualityLearner.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
+		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
 		
 		for(PairScore p:pairsToConsider)
 		{
@@ -501,7 +501,7 @@ public class WekaDataCollector
 
 		@Override
 		public int compare(PairScore o1, PairScore o2) {
-			return PairQualityLearner.sgn(assessor.getValue(o1) - assessor.getValue(o2));
+			return LearningSupportRoutines.signum(assessor.getValue(o1) - assessor.getValue(o2));
 		}
 	}
 	

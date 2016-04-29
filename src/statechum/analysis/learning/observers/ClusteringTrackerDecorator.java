@@ -113,6 +113,11 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 	}
 
 	@Override
+	public LearnerGraph init(LearnerGraph initPta) {
+		return decoratedLearner.init(initPta);
+	}
+
+	@Override
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<Label> sequence, boolean accepted, JUConstants newColour) {
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
@@ -122,4 +127,5 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 	public boolean AddConstraints(LearnerGraph graph,LearnerGraph outcome,StringBuffer counterExampleHolder) {
 		return decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
 	}
+
 }

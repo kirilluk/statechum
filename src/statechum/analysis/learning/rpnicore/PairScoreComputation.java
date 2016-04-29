@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -37,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.linear.GDLearnerGraph;
@@ -195,38 +197,51 @@ public class PairScoreComputation {
 	public PairScore obtainPair(CmpVertex blue, CmpVertex red, ScoreComputationCallback scoreComputationOverride)
 	{
 		long computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.ONLYOVERRIDE)
+		switch(coregraph.config.getLearnerScoreMode())
 		{
-			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
-			return new PairScore(blue,red,computedScore, compatibilityScore);
-		}
-		else		
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
-		{
-			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
-		}
-		else		
-		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
-		{
-			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
-		}
-		else
-		if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
-		{
-			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
-			if (computedScore >= 0)
-				computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
-		}
-		else
-			if (coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS_ANY)
+			case ONLYOVERRIDE:
+				computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
+				return new PairScore(blue,red,computedScore, compatibilityScore);
+			case COMPATIBILITY:
+				computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
+				break;
+			case GENERAL:
 			{
-				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
+				break;
+			}
+			case GENERAL_PLUS_NOFULLMERGE:
+			{
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
+	
+				if (computedScore >= 0)
+				{
+					computedScore = 0;
+					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge)
+						if (eqClass.getRepresentative().isAccept())
+							computedScore += eqClass.getStates().size()-1;					
+				}
+				break;
+			}
+			case KTAILS:
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
+				if (computedScore >= 0)
+					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
+				break;
+			}
+			case KTAILS_ANY:
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,true);
+				break;
 			}
-			else
-			{
+			default:
 				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 				if (computedScore >= 0)
 				{
@@ -241,11 +256,12 @@ public class PairScoreComputation {
 					int compatScore = computePairCompatibilityScore(pairToComputeFrom);
 					assert compatScore <= computedScore;
 				}
-			}
+				break;
+		}
 
 		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
 			computedScore = -1;
-		
+
 		if (computedScore >= 0 && scoreComputationOverride != null)
 			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		return new PairScore(blue,red,computedScore, compatibilityScore);
@@ -393,15 +409,15 @@ public class PairScoreComputation {
 		return score;
 	}
 
-	static class AMEquivalenceClassMergingDetails
+	public static class AMEquivalenceClassMergingDetails
 	{
-		int nextEquivalenceClass;
+		public int nextEquivalenceClass;
 	}
 	
 	/** Merges the equivalence classes associated with the supplied pair.
 	 * It is important to point out that classes merged can be incomplete, in that they will contain  
 	 */
-	private boolean mergePair(StatePair currentPair,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass, AMEquivalenceClassMergingDetails mergingDetails) throws IncompatibleStatesException
+	public boolean mergePair(StatePair currentPair,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass, AMEquivalenceClassMergingDetails mergingDetails) throws IncompatibleStatesException
 	{
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
@@ -495,6 +511,9 @@ public class PairScoreComputation {
 		Map<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>  setOfEquivalenceClassesOnStack = 
 				new TreeMap<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
 */
+		if (pairToMerge != null && !AbstractLearnerGraph.checkCompatible(pairToMerge.getQ(),pairToMerge.getR(),coregraph.pairCompatibility))
+			return -1;// incompatible states, perform a quick bailout.
+
 		try
 		{
 			if (pairToMerge != null) 
@@ -628,7 +647,7 @@ public class PairScoreComputation {
 						mergedVertices.add(entry.getValue());
 						score+=entry.getValue().getStates().size()-1;
 					}
-			}
+			}				
 		}
 
 		return score;
@@ -712,71 +731,9 @@ public class PairScoreComputation {
 	 */
 	public long computeStateScoreKTails(StatePair pair, boolean anyPath)
 	{
-		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
-			return -1;
-
-		boolean anyMatched = false;// we need to distinguish a wave where all (or any) transitions matched from a wave where no transitions were possible. This variable is set when any match is obtained.
-		int currentExplorationDepth=1;// when we look at transitions from the initial pair of states, this is depth 1.
-		assert pair.getQ() != pair.getR();
-		
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		if (currentExplorationDepth <= coregraph.config.getKlimit())
-			currentExplorationBoundary.add(pair);
-		currentExplorationBoundary.offer(null);
-		
-		while(true) // we'll do a break at the end of the last wave
-		{
-			StatePair currentPair = currentExplorationBoundary.remove();
-			if (currentPair == null)
-			{// we got to the end of a wave
-				if (currentExplorationBoundary.isEmpty())
-					break;// we are at the end of the last wave, stop looping.
-
-				// mark the end of a wave.
-				currentExplorationBoundary.offer(null);currentExplorationDepth++;anyMatched = false;
-			}
-			else
-			{
-				Map<Label,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
-					targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
-	
-				for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
-				{
-					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
-					if (nextBlueState != null)
-					{// both states can make a transition
-						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.pairCompatibility))
-							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
-						
-						anyMatched = true;// mark that in the current wave, we've seen at least one matched pair of transitions.
-						
-						if (currentExplorationDepth < coregraph.config.getKlimit())
-						{// if our current depth is less than the one to explore, make subsequent steps.
-							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
-							currentExplorationBoundary.offer(nextStatePair);
-						}
-						// If we did not take the above condition (aka reached the maximal depth to explore), we still cannot break out of a loop even if we have anyPath
-						// set to true, because there could be transitions leading to states with different accept-conditions, hence explore all matched transitions.						
-					}
-					else
-					{
-						// if the red can make a move, but the blue one cannot, do not merge the pair unless any path is good enough
-						if (!anyPath)
-							return -1;
-					}
-				}
-				
-				for(Entry<Label,CmpVertex> blueEntry:targetBlue.entrySet())
-					if (null == targetRed.get(blueEntry.getKey()))
-					{
-						if (!anyPath)
-							return -1;// if blue can make a transition and red cannot, stop unless we are looking for any path
-					}
-			}
-		}
-		
-		return anyMatched || coregraph.config.getKlimit() == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
+		return LearningAlgorithms.computeStateScoreKTails(coregraph,pair,coregraph.config.getKlimit(), anyPath);
 	}
+	
 
 	public long computeScoreSicco(StatePair pair, boolean recursive)
 	{
@@ -811,8 +768,116 @@ public class PairScoreComputation {
 					}
 				}
 			}
-		
+
 		return pairScore;
+	}
+
+	public enum SiccoGeneralScoring { S_ONEPAIR, S_RED }
+	
+	/** This is similar in spirit to Sicco score computation but capable of handling arbitrary state mergers. 
+	 * The method does not intend to compute a positive score since it is expected to be used to reject incompatible ones and will return 0 if provided with an empty set of equivalence 
+	 * classes (which means that computation of scores returned -1 and hence did not populate equivalence classes). 
+	 * 
+	 * In a similar way to ordinary Sicco score computation, there are three modes,
+	 * <ul>
+	 * <li>Only look at the current pair to merge and the states that got merged into it.</li>
+	 * <li>Look at mergers of any state into a red state (if there are multiple red states being merged together, this will do a union of their outgoing transitions).</li>
+	 * </ul>
+	 * Unlike the score computation that relies on mergers between a branch of a tree and a graph, this scoring routine cannot tell whether any node comes from a tree or from the main graph (except where they are labelled red or blue).
+	 * This is why it cannot do an equivalent of 'recursive' computation where one follows a branch and checks states against those in the main graph. On the positive side, it can be used
+	 * for arbitrary mergers in a graph, something that typical Sicco score computation cannot handle.
+	 * 
+	 * There is no provision for 'blue' states because during score computation, it is not known which states are going to be blue or will immediately become red.
+	 * 
+	 * @param pair a pair of states to be merged, only used for where checking is limited to the first pair. In reality it matches all red states that got merged into the one provided with all blue ones that got merged with those red ones.
+	 * @param mergedVertices describes vertices that are to form clusters of new states. This does not have to be a total map: clusters of states not in the collection are ignored since they are assumed to be singletons.
+	 * @param howToScore the scoring method to use.
+	 * @return the (negative) number of transitions that will be new to the red part of the graph.
+	 */
+	public long computeSiccoRejectScoreGeneral(StatePair pair, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, SiccoGeneralScoring howToScore)
+	{
+		if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+		{
+			if (pair == null)
+				throw new IllegalArgumentException("when looking for a score from a single pair, this pair should be passed as an argument");
+		}
+		
+		long outcome = 0;
+		Set<Label> outgoingRed = new TreeSet<Label>(), outgoingNew = new TreeSet<Label>();
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
+			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
+			{
+				outgoingRed.clear();outgoingNew.clear();
+				
+				if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+				{
+					if (!eq.getStates().contains(pair.getQ())) 
+						throw new IllegalArgumentException("invalid merge: pair "+pair+ " should have been merged but states in the pair are in distinct equivalence classes");
+				}
+				boolean redFound = false;
+				for(CmpVertex v:eq.getStates())
+					if ( v.getColour() == JUConstants.RED )
+					{// collects labels of all transitions from the RED states merged together. 
+						outgoingRed.addAll(coregraph.transitionMatrix.get(v).keySet());
+						redFound = true;
+					}
+				if (redFound) // only consider mergers into a red state, otherwise we do not know which is being merged into which.
+					for(CmpVertex v:eq.getStates())
+						if (v.getColour() != JUConstants.RED)
+						{
+							for(Map.Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(v).entrySet())
+								if (entry.getValue().isAccept() && !outgoingRed.contains(entry.getKey()) && !outgoingNew.contains(entry.getKey()))
+								{// each outgoing label that is new has to be counted only once.
+									--outcome;outgoingNew.add(entry.getKey());
+								}
+						}
+			}
+		
+		return outcome;
+	}
+
+	/** Similar to {@link PairScoreComputation#computeSiccoRejectScoreGeneral(StatePair, Collection, SiccoGeneralScoring)} 
+	 * but does not count the number of unmatched transitions returning -1 when the first one is met. 
+	 */
+	public long computeSiccoRejectScoreGeneral_fastreturn(StatePair pair, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, SiccoGeneralScoring howToScore)
+	{
+		if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+		{
+			if (pair == null)
+				throw new IllegalArgumentException("when looking for a score from a single pair, this pair should be passed as an argument");
+		}
+		
+		Set<Label> outgoingRed = new TreeSet<Label>();
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
+			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
+			{
+				outgoingRed.clear();
+				
+				if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+				{
+					if (!eq.getStates().contains(pair.getQ())) 
+						throw new IllegalArgumentException("invalid merge: pair "+pair+ " should have been merged but states in the pair are in distinct equivalence classes");
+				}
+				boolean redFound = false;
+				for(CmpVertex v:eq.getStates())
+					if ( v.getColour() == JUConstants.RED )
+					{// collects labels of all transitions from the RED states merged together. 
+						outgoingRed.addAll(coregraph.transitionMatrix.get(v).keySet());
+						redFound = true;
+					}
+				if (redFound) // only consider mergers into a red state, otherwise we do not know which is being merged into which.
+					for(CmpVertex v:eq.getStates())
+						if (v.getColour() != JUConstants.RED)
+						{
+							for(Map.Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(v).entrySet())
+								if (entry.getValue().isAccept() && !outgoingRed.contains(entry.getKey()))
+								{// each outgoing label that is new has to be counted only once.
+									return -1;
+								}
+						}
+			}
+		
+		return 0;
 	}
 
 	/** Computes a stack of states with scores over a given threshold, using Linear. 

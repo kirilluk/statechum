@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,7 +49,10 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -58,8 +62,10 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
 import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
@@ -68,7 +74,10 @@ import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
+import static statechum.Helper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
 
 @RunWith(ParameterizedWithName.class)
@@ -107,7 +116,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	/** The working configuration to use when running tests. */
-	private Configuration testConfig = null;
+	Configuration testConfig = null;
 	
 	/** Each test starts with this configuration. */
 	private Configuration mainConfiguration = null;
@@ -121,7 +130,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config,getLabelConverter()));
 		for(String [] path:minus)
 			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),config,getLabelConverter()));
-		// Visualiser.getVisualiser()
+
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
@@ -257,7 +266,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
-		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).pathroutines.getGraph(learnerName));Visualiser.waitForKey();
+
 		Collection<List<Label>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
 			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
@@ -751,7 +760,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			Assert.assertNotNull("vertex "+pair.getQ()+" is missing in the graph",fsmAsLearnerGraph.findVertex(pair.getQ()));
 			Assert.assertNotNull("vertex "+pair.getR()+" is missing in the graph",fsmAsLearnerGraph.findVertex(pair.getR()));
 		}
-		//Visualiser.updateFrame(new LearnerGraph(gB,Configuration.getDefaultConfiguration()), null);Visualiser.waitForKey();
+
 		// check how the reference pair selection function performs
 		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
 		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
@@ -1320,6 +1329,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+		
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 
 	@Test
@@ -1329,6 +1347,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 	
 	@Test
@@ -1338,6 +1365,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 	
 	@Test
@@ -1347,6 +1383,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 	
 	// Same as above but states not red
@@ -1356,6 +1401,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 
 	@Test
@@ -1365,6 +1418,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		// does not report a negative because all states are red.
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 	}
 
 	// Same as above but states not red
@@ -1374,9 +1436,588 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// This test aims to check the logic of the Sicco checking, hence red-blue marking is not the one that may happen in reality
+	@Test
+	public final void testSiccoScoring5()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring5",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	@Test
+	public final void testSiccoScoring6()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testSiccoScoring6",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		// c from A and d from B.
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	@Test
+	public final void testSiccoScoring7()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring7",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("C").setColour(JUConstants.BLUE);fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
+		
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// Here J-e->K-a->L-a->Q-a->R branch will be partly merged into B-e->P-a->C branch and the two 'a' at the end are not merged but ignored because all these states are not coloured.
+	// The H-d-E-b->U-b->V branch has 'd' which should be merged into I-D->M-a->S-a->T. The d part is new to A and should be flagged for all the three merger types;
+	// the rest of it (starting from a and starting from b are not coloured and hence should be ignored.
+	// I will be merged into A and therefore f will be a new one that should be flagged as inconsistent by the S_RED policy but not by S_RED_BLUE or S_ONEPAIR because I is not labelled.
+	@Test
+	public final void testSiccoScoring8()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("P").setColour(JUConstants.BLUE);fsm.findVertex("H").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	@Test
+	public final void testSiccoScoring9()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
+		fsm.findVertex("P").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	@Test
+	public final void testSiccoScoring10()
+	{
+		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("P").setColour(JUConstants.RED);
+		fsm.findVertex("H").setColour(JUConstants.BLUE);fsm.findVertex("E").setColour(JUConstants.BLUE);
+
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+
+	@Test
+	public final void testSiccoScoring11()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			fsm.pairscores.computeSiccoRejectScoreGeneral(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+		}},IllegalArgumentException.class,"when looking for a score from a single pair");
+
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+		}},IllegalArgumentException.class,"when looking for a score from a single pair");
+	}
+	@Test
+	public final void testSiccoScoring12()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
+
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+		}},IllegalArgumentException.class,"invalid merge: pair");
+
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
+		}},IllegalArgumentException.class,"invalid merge: pair");
 	}
 	
-/*
+	// testing reject-vertex handling
+	@Test
+	public final void testSiccoScoring13()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testSiccoScoring13",testConfig,getLabelConverter());
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
+		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
+	}
+	
+	@SuppressWarnings("static-method")
+	@Test
+	public final void testcheckMatch1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.checkMatch(null, null, null, -1);
+		}},IllegalArgumentException.class,"k has to be 0 or above");
+	}
+	
+	@Test
+	public final void testcheckMatch2a()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 0));
+	}
+	
+	@Test
+	public final void testcheckMatch2b()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 0));
+	}
+	
+	@Test
+	public final void testcheckMatch2c()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("T"), fsm.findVertex("C"), 0));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 1));
+	}		
+	
+	@Test
+	public final void testcheckMatch2d()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+	}
+	
+	@Test
+	public final void testcheckMatch3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-b->C-a->C", "testcheckMatch3",testConfig,getLabelConverter());
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("A"), 1);
+		}},IllegalArgumentException.class,"the graph should have traces in it with no branches");
+	}
+	
+	@Test
+	public final void testcheckMatch4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testcheckMatch4",testConfig,getLabelConverter());
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 2));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 3));
+	}
+	
+	@Test
+	public final void testcheckMatch5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B / T-b->C-a->C", "testcheckMatch5",testConfig,getLabelConverter());
+		for(int i=0;i<100;++i)
+		{
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("C"), i));
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), i));
+			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), i));
+		}
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("T"), 1));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("T"), 1));
+	}
+	@Test
+	public final void testcheckMatch6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->T / C-a->D-a->C", "testcheckMatch6",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
+	}		
+	
+	@Test
+	public final void testcheckMatch7()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->T-b->U / C-a->D-a->C / D-b->E", "testcheckMatch7",testConfig,getLabelConverter());
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
+		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 3));
+		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 4));
+	}		
+
+	@Test
+	public final void testTraditionalKTails1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig);
+		}},IllegalArgumentException.class,"graphs with initial state reject-stat");
+	}
+
+	@Test
+	public final void testIncrementalKTails1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+			LearningAlgorithms.incrementalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig);
+		}},IllegalArgumentException.class,"graphs with initial state reject-stat");
+	}
+
+	@Test
+	public final void testTraditionalKTails2()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig);
+		Assert.assertEquals(1, actual.getStateNumber());
+		Assert.assertEquals(0, actual.pathroutines.countEdges());
+	}
+	@Test
+	public final void testIncrementalKTails2()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig);
+		Assert.assertEquals(1, actual.getStateNumber());
+		Assert.assertEquals(0, actual.pathroutines.countEdges());
+	}
+
+	@Test
+	public final void testPTAKTails2()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig);
+		Assert.assertEquals(1, actual.getStateNumber());
+		Assert.assertEquals(0, actual.pathroutines.countEdges());
+	}
+
+	/** How many threads to run in testing of concurrent implementation of ktails. */
+	protected final int threadNumber = 4;
+	
+	@Test
+	public final void testConcurrentKTails2()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1, testConfig,threadNumber,null);
+		Assert.assertEquals(1, actual.getStateNumber());
+		Assert.assertEquals(0, actual.pathroutines.countEdges());
+	}
+	
+	@Test
+	public final void testTraditionalKTails3()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testIncrementalKTails3()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testPTAKTails3()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+
+	@Test
+	public final void testConcurrentKTails3()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+
+	@Test
+	public final void testTraditionalKTails4()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testPTAKTails4()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testConcurrentKTails4()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testIncrementalKTails4()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	// Same traces as testTraditionalKTails4 but no mergers because k is too high. 
+	@Test
+	public final void testTraditionalKTails5()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testPTAKTails5()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testConcurrentKTails5()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testIncrementalKTails5()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	Collection<List<Label>> traces6 = buildList(new String[][]{
+		new String[]{"a","b"},
+		new String[]{"a","b"},
+		new String[]{"a","a","b","a","b"},
+		new String[]{"b","b","a","b"}
+	},Configuration.getDefaultConfiguration(),getLabelConverter());
+	
+	@Test
+	public final void testTraditionalKTails6()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+		
+	}
+	
+	@Test
+	public final void testPTAKTails6()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+		
+	}
+	
+	@Test
+	public final void testPTAConcurrentKTails6()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+		
+	}
+	
+	@Test
+	public final void testIncrementalKTails6()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->AP-a->AP-b->QA-a->AP / QA-b->A", "testTraditionalKTails6",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	Collection<List<Label>> traces7 = buildList(new String[][]{
+		new String[]{"a","b"},
+		new String[]{"a","b"},
+		new String[]{"a","a","b","a","b"},
+		new String[]{"b","b","a","b"}
+	},Configuration.getDefaultConfiguration(),getLabelConverter());
+	
+	@Test
+	public final void testTraditionalKTails7()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testPTAKTails7()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testConcurrentKTails7()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testIncrementalKTails7()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	Collection<List<Label>> traces8 = buildList(new String[][]{
+		new String[]{"a","b"},
+		new String[]{"a","b"},
+		new String[]{"a","a","b","a","b"},
+		new String[]{"b","b","a","b"}
+	},Configuration.getDefaultConfiguration(),getLabelConverter());
+	
+	@Test
+	public final void testTraditionalKTails8()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testPTAKTails8()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testConcurrentKTails8()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	@Test
+	public final void testIncrementalKTails8()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	
+	Collection<List<Label>> traces9 = buildList(new String[][]{
+		new String[]{"a","b"},
+		new String[]{"a","b"},
+		new String[]{"a","a","b","a","b"},
+		new String[]{"b","b","a","b"}
+	},Configuration.getDefaultConfiguration(),getLabelConverter());
+	
+	@Test
+	public final void testTraditionalKTails9()
+	{
+		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+
+	@Test
+	public final void testPTAKTails9()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+
+	@Test
+	public final void testConcurrentKTails9()
+	{
+		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig,threadNumber,null);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+
+	@Test
+	public final void testIncrementalKTails9()
+	{
+		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		DifferentFSMException ex = WMethod.checkM(fsm,actual);
+		Assert.assertNull(ex);
+	}
+	/*
 	@Test
 	public final void testPairCompatible8()
 	{
@@ -1387,6 +2028,67 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		);
 	}
 */
+	
+	@Test
+	public final void testComputeInfeasiblePairs1()
+	{
+		Assert.assertTrue(LearningSupportRoutines.computeInfeasiblePairs(new LearnerGraph(testConfig)).isEmpty());
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs2()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testComputeInfeasiblePairs2",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs3()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a-#B", "testComputeInfeasiblePairs3",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs4()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs5()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[]}",outcomeAsText);
+	}
+
+	@Test
+	public final void testComputeInfeasiblePairs6()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a], b=[a, b]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
+	}
+	
+	@Test
+	public final void testComputeInfeasiblePairs7()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C / A-b->A", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
+		String outcomeAsText = outcome.toString();
+		Assert.assertEquals("{a=[a], b=[]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	@BeforeClass

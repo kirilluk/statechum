@@ -164,7 +164,7 @@ lack of tracking dependencies between Java files.
   </target>
 	
 	 <target name="diag" depends="compileStatechum" description="run unit tests">
-	  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+	  	   <echo>This will fail on 32-bit Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
 	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
 		<assertions>
 	        	<enable/>

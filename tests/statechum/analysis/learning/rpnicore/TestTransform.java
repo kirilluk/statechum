@@ -1825,6 +1825,21 @@ public class TestTransform
 	}
 	
 	@Test
+	public final void testTrimGraphFailure()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Configuration cloneConf = config.copy();cloneConf.setLearnerCloneGraph(true);
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				graph.transform.trimGraph(2,AbstractLearnerGraph.cloneCmpVertex(graph.getInit(),cloneConf));
+			}
+			
+		}, IllegalArgumentException.class, "starting state passed as an argument");
+	}
+	
+	@Test
 	public final void testTrimGraph1()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D / A-b->C","testTrimGraph1a",config,converter);

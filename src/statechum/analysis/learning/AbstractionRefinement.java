@@ -20,7 +20,6 @@ package statechum.analysis.learning;
 
 import java.util.Stack;
 
-import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -29,7 +28,7 @@ public class AbstractionRefinement extends ASE2014.EDSM_MarkovLearner
 
 	public AbstractionRefinement(LearnerEvaluationConfiguration learnerInitConfiguration,LearnerGraph ptaToUseForInference, int i) 
 	{
-		super(learnerInitConfiguration,ptaToUseForInference,i);
+		super(learnerInitConfiguration,ptaToUseForInference,i,-1);
 	}
 
 	@Override

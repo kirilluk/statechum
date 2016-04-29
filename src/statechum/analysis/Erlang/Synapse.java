@@ -52,14 +52,14 @@ import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.AbstractionRefinement;
-import statechum.analysis.learning.experiments.PairSelection.Cav2014.KTailsReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -643,7 +643,7 @@ public class Synapse implements Runnable {
 			ConvertALabel converter = new Transform.InternStringLabel();
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
 			int states = referenceGraph.getAcceptStateNumber();
-			final Collection<List<Label>> testSet = PaperUAS.computeEvaluationSet(referenceGraph,states*3,PairQualityLearner.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*referenceGraph.pathroutines.computeAlphabet().size()));
 			
 			DifferenceToReferenceDiff differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, config, 1);
 			DifferenceToReferenceLanguageBCR differenceBCRlearnt=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, learntGraph,testSet);
@@ -928,7 +928,13 @@ public class Synapse implements Runnable {
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,0) {
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,0) {
+
+															@Override
+															protected boolean permitUnlimitedNumberOfStates()
+															{
+																return true;
+															}															
 
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -1001,7 +1007,7 @@ public class Synapse implements Runnable {
 																
 															}
 															ptaToUseForInference.clearColours();
-															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0) {
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,0) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -1150,7 +1156,7 @@ public class Synapse implements Runnable {
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
 														pta.clearColours();
-														ReferenceLearner learner = new ReferenceLearner(learnerInitConfiguration,pta,ReferenceLearner.ScoringToApply.SCORING_SICCO) {
+														ReferenceLearner learner = new LearningAlgorithms.ReferenceLearner(learnerInitConfiguration,pta,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO) {
 
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

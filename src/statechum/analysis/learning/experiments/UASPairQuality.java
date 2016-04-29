@@ -50,20 +50,19 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ReferenceLearner.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -148,7 +147,7 @@ public class UASPairQuality extends PaperUAS
     
     public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
     {
- 	   final Collection<List<Label>> evaluationTestSet = computeEvaluationSet(referenceGraph,-1,-1);
+ 	   final Collection<List<Label>> evaluationTestSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,-1,-1);
     		DrawGraphs gr = new DrawGraphs();
  		final RBoxPlot<String>
  			uas_F=new RBoxPlot<String>("Time","F-measure",new File("time_"+name+"_f.pdf")),
@@ -244,14 +243,14 @@ public class UASPairQuality extends PaperUAS
   				 */
 
    			initPTA.storage.writeGraphML("hugegraph.xml");
- 			LearnerGraph ptaSmall = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
+ 			LearnerGraph ptaSmall = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
    			//Visualiser.updateFrame(initPTA.transform.trimGraph(4, initPTA.getInit()), ptaSmall.transform.trimGraph(4, ptaSmall.getInit()));
    			//Visualiser.waitForKey();
    			{
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				PairQualityLearner.LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -259,7 +258,7 @@ public class UASPairQuality extends PaperUAS
  		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
  		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
  		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF.getValue()+" diffmeasure = "+differenceD.getValue());
- 				uas_F.add(frame+"_R",differenceF.getValue(),"red");uas_Diff.add(frame+"_R",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
+ 				uas_F.add(frame+"_R",differenceF.getValue(),"red",null);uas_Diff.add(frame+"_R",differenceD.getValue(),"red",null);gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
  				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
  				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -269,8 +268,8 @@ public class UASPairQuality extends PaperUAS
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_refM.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				LearnerGraph ptaAfterMergingBasedOnUniques = PairQualityLearner.mergeStatesForUnique(initPTA,uniqueLabel);
-   				PairQualityLearner.LearnerThatCanClassifyPairs referenceLearner = new PairQualityLearner.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,ReferenceLearner.ScoringToApply.SCORING_SICCO);
+   				LearnerGraph ptaAfterMergingBasedOnUniques = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -278,7 +277,7 @@ public class UASPairQuality extends PaperUAS
  		        DifferenceToReference differenceF = DifferenceToReferenceFMeasure.estimationOfDifference(referenceGraph, referenceOutcome, evaluationTestSet);
  		        DifferenceToReference differenceD = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, referenceOutcome, initConfiguration.config, ExperimentRunner.getCpuNumber());
  		        System.out.println(new Date().toString()+" _R: For frame : "+frame+", long traces f-measure = "+ differenceF+" diffmeasure = "+differenceD);
- 				uas_F.add(frame+"_RM",differenceF.getValue(),"red");uas_Diff.add(frame+"_RM",differenceD.getValue(),"red");gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
+ 				uas_F.add(frame+"_RM",differenceF.getValue(),"red",null);uas_Diff.add(frame+"_RM",differenceD.getValue(),"red",null);gr_diff_to_f.add(differenceF.getValue(),differenceD.getValue());
 
  				//PairQualityLearner.updateGraph(gr_PairQuality,pairQualityCounter);
  				//gr_PairQuality.drawInteractive(gr);gr_PairQuality.drawPdf(gr);
@@ -287,7 +286,7 @@ public class UASPairQuality extends PaperUAS
  			
  			uas_F.drawInteractive(gr);uas_Diff.drawInteractive(gr);gr_diff_to_f.drawInteractive(gr);
    		}
-   		uas_F.drawPdf(gr);uas_Diff.drawPdf(gr);gr_diff_to_f.drawPdf(gr);
+   		uas_F.reportResults(gr);uas_Diff.reportResults(gr);gr_diff_to_f.reportResults(gr);
  		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
    }
     	
@@ -374,13 +373,13 @@ public class UASPairQuality extends PaperUAS
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
  			ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(ifDepth,learnerInitConfiguration,referenceGraph,c,initPTA):
- 					new PairQualityLearner.ReferenceLearner(learnerInitConfiguration,initPTA,ScoringToApply.SCORING_SICCO);
+ 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
          
          // Now merge everything that we need to merge
          LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
- 		List<StatePair> pairsList = LearnerWithMandatoryMergeConstraints.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
+ 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(actualAutomaton,learner.getLabelsLeadingToStatesToBeMerged(),learner.getLabelsLeadingFromStatesToBeMerged());
  		if (!pairsList.isEmpty())
  		{
  			int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, true);
@@ -393,8 +392,7 @@ public class UASPairQuality extends PaperUAS
  		DirectedSparseGraph gr = gd.showGD(
  					learntGraph,referenceGraph,
  					ExperimentRunner.getCpuNumber());
- 			Visualiser.updateFrame(gr,null);
- 			Visualiser.waitForKey();
+ 			//Visualiser.updateFrame(gr,null);Visualiser.waitForKey();
         return DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, learnerInitConfiguration.config,1);
     }
     
@@ -577,8 +575,8 @@ public class UASPairQuality extends PaperUAS
  			if (executorService != null) executorService.shutdown();
  		}
  		
- 		uas_outcome.drawPdf(gr);uas_A.drawPdf(gr);uas_S.drawPdf(gr);uas_U.drawPdf(gr);
- 		uas_threshold.drawPdf(gr);
+ 		uas_outcome.reportResults(gr);uas_A.reportResults(gr);uas_S.reportResults(gr);uas_U.reportResults(gr);
+ 		uas_threshold.reportResults(gr);
  		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
      }
      

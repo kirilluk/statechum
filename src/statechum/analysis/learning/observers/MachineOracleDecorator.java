@@ -113,4 +113,9 @@ public class MachineOracleDecorator extends LearnerDecorator {
 		return decoratedLearner.init(engine,plusSize,minusSize);
 	}
 
+	@Override
+	public LearnerGraph init(LearnerGraph initPta) {
+		return decoratedLearner.init(initPta);
+	}
+
 }

@@ -62,6 +62,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.linear.GD.ChangesCounter;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.ForestFireLabelledNoRepeatStateMachineGenerator;
 import statechum.analysis.learning.experiments.ForestFireLabelledStateMachineGenerator;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.DOUBLE_V;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.LONG_V;
@@ -304,17 +305,17 @@ public class DiffExperiments {
 			}
 
 		}
-		gr_Diff_States.drawPdf(gr);gr_W_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
-		gr_Diff_threshold.drawPdf(gr);gr_Diff_lowtohigh.drawPdf(gr);gr_Diff_thresholdslowhigh.drawPdf(gr);gr_Diff_k.drawPdf(gr);
-		gr_Diff_MutationsToOriginal.drawPdf(gr);
-		gr_DiffGD_StatesLevel.drawPdf(gr);gr_DiffW_StatesLevel.drawPdf(gr);gr_DiffRand_StatesLevel.drawPdf(gr);
-		gr_Diff_W.drawPdf(gr);gr_Rand_W.drawPdf(gr);
-		gr_MismatchedPairs.drawPdf(gr);gr_Diff_MismatchedPairs.drawPdf(gr);
+		gr_Diff_States.reportResults(gr);gr_W_States.reportResults(gr);gr_MutationsToOriginal_StatesLevel.reportResults(gr);
+		gr_Diff_threshold.reportResults(gr);gr_Diff_lowtohigh.reportResults(gr);gr_Diff_thresholdslowhigh.reportResults(gr);gr_Diff_k.reportResults(gr);
+		gr_Diff_MutationsToOriginal.reportResults(gr);
+		gr_DiffGD_StatesLevel.reportResults(gr);gr_DiffW_StatesLevel.reportResults(gr);gr_DiffRand_StatesLevel.reportResults(gr);
+		gr_Diff_W.reportResults(gr);gr_Rand_W.reportResults(gr);
+		gr_MismatchedPairs.reportResults(gr);gr_Diff_MismatchedPairs.reportResults(gr);
 		
-		gr_TimeDiff_StatesLevel.drawPdf(gr);gr_TimeW_StatesLevel.drawPdf(gr);gr_TimeRand_StatesLevel.drawPdf(gr);
-		gr_Pairs_States.drawPdf(gr);gr_TimeDiff_States.drawPdf(gr);gr_TimeRand_States.drawPdf(gr);gr_TimeW_States.drawPdf(gr);
-		gr_F_measures.drawPdf(gr);
-		gr_FMeasure_Level.drawPdf(gr);
+		gr_TimeDiff_StatesLevel.reportResults(gr);gr_TimeW_StatesLevel.reportResults(gr);gr_TimeRand_StatesLevel.reportResults(gr);
+		gr_Pairs_States.reportResults(gr);gr_TimeDiff_States.reportResults(gr);gr_TimeRand_States.reportResults(gr);gr_TimeW_States.reportResults(gr);
+		gr_F_measures.reportResults(gr);
+		gr_FMeasure_Level.reportResults(gr);
 	}
 	
 
@@ -567,7 +568,7 @@ public class DiffExperiments {
 	}
 
 	@SuppressWarnings("unused")
-	private ExperimentResult getAverage(List<ExperimentResult> toPrint) 
+	private static ExperimentResult getAverage(List<ExperimentResult> toPrint) 
 	{
 		ExperimentResult average = new ExperimentResult();average.experimentValid = true;
 		int count=0;
@@ -596,7 +597,16 @@ public class DiffExperiments {
 			generateConnected = value;
 		}
 		
-		public MachineGenerator(int target, int phaseArg, int errorArg){
+		/** Whether to generate a machine where subsequent labels are not repeated. */
+		private boolean generateLabelsNoRepeat;
+		
+		public void setGenerateNoRepeat(boolean value)
+		{
+			generateLabelsNoRepeat = value;
+		}
+		
+		public MachineGenerator(int target, int phaseArg, int errorArg)
+		{
 			this.phaseSize = phaseArg;
 			this.actualTargetSize = target;
 			this.artificialTargetSize = target;
@@ -612,7 +622,9 @@ public class DiffExperiments {
 			Random connectTransitions = new Random(counter);
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
-					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
+					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
+							new ForestFireLabelledNoRepeatStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
 					synchronized(AbstractLearnerGraph.syncObj)
 					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
 						machine = gen.buildMachine(artificialTargetSize);

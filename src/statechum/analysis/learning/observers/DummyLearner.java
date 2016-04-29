@@ -104,6 +104,11 @@ public class DummyLearner extends LearnerDecorator
 	}
 	
 	@Override
+	public LearnerGraph init(LearnerGraph initPta) {
+		return decoratedLearner.init(initPta);
+	}
+	
+	@Override
 	public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus)
 	{
 		return decoratedLearner.learnMachine(plus,minus);

@@ -289,6 +289,23 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 		return stateToPathMap;
 	}
+	
+	/** The purpose of this routine is to check that all states in the graph are not only equal as far as their IDs go but are also referring to the same object. This is an important property that is supposed to be 
+	 * preserved by graph transformation routines, although not always.
+	 */
+	public void checkValidityOfStates()
+	{
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			CmpVertex targetA = entry.getKey();
+			assert coregraph.findVertex(targetA) == targetA : "A: was looking for vertex with name "+targetA+", got "+coregraph.findVertex(targetA);
+			for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
+			for(CmpVertex targetB:coregraph.getTargets(transition.getValue()))
+			{
+				assert coregraph.findVertex(targetB) == targetB : "B: was looking for vertex with name "+targetB+", got "+coregraph.findVertex(targetB);
+			}
+		}
+	}
 
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
 	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
@@ -311,6 +328,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public DirectedSparseGraph getGraph(String name)
 	{
+		checkValidityOfStates();
 		DirectedSparseGraph result = null;
 		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
 		synchronized (AbstractLearnerGraph.syncObj) 
@@ -347,6 +365,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 		}
 		return result;
+
 	}
 
 	/** Numerous methods using this class expect to be able to interpret the state 
@@ -671,9 +690,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public LearnerGraph buildDeterministicGraph(CmpVertex initialState) throws IncompatibleStatesException
 	{
-		
 		/** Maps sets of target states to the corresponding known states. */
-		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> equivalenceClasses = new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
+		//Pair<Integer,Integer> acceptReject = coregraph.getAcceptAndRejectStateNumber();
+		Map<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> statesToEquivalenceClass = 
+				//coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				//new ArrayMapWithSearch<Set,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(acceptReject.firstElem,acceptReject.secondElem):
+				new LinkedHashMap<Set<CmpVertex>,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(coregraph.getStateNumber());
 		
 		LearnerGraph result = new LearnerGraph(coregraph.config.copy());result.initEmpty();
 		if (coregraph.transitionMatrix.isEmpty())
@@ -690,7 +712,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Queue<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
 
 		Map<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
-		currentExplorationBoundary.add(initial);equivalenceClasses.put(initial.getStates(),initial);
+		currentExplorationBoundary.add(initial);statesToEquivalenceClass.put(initial.getStates(),initial);
 		while(!currentExplorationBoundary.isEmpty())
 		{// Unlike PairScoreComputation, here all target states are merged in one go. This is why it does not seem to
 		 // make sense expanding them into individual input-state pairs.
@@ -722,12 +744,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			// 2. append those I've not yet seen to the exploration stack.
 			for(Entry<Label,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
 			{
-				EquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = equivalenceClasses.get(transition.getValue().getStates());
+				EquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = statesToEquivalenceClass.get(transition.getValue().getStates());
 				if (realTargetState == null)
 				{// this is a new state
 					realTargetState = transition.getValue();
 					currentExplorationBoundary.offer(realTargetState);
-					equivalenceClasses.put(realTargetState.getStates(),realTargetState);
+					statesToEquivalenceClass.put(realTargetState.getStates(),realTargetState);
 					realTargetState.constructMergedVertex(result,true,false);
 					result.transitionMatrix.put(realTargetState.getMergedVertex(), result.createNewRow());
 				}
@@ -736,7 +758,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 		}
 
-		AMEquivalenceClass.populateCompatible(result, equivalenceClasses.values());
+		AMEquivalenceClass.populateCompatible(result, statesToEquivalenceClass.values());
 		result.setName("after making deterministic");
 		return result;
 	}
@@ -878,6 +900,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		return reachableStates;
 	}
 
+	/** The name of this routine is misleading - it also filters out unreachable states though the process of exploration. */ 
 	public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>> void removeReachableStatesFromWhichInitIsNotReachable(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> outcome)
 	{
 		final Set<CmpVertex> reachableStates = computeReachableStatesFromWhichInitIsNotReachable();

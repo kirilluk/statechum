@@ -33,6 +33,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.junit.Assert;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
@@ -44,7 +45,10 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.model.testset.PTASequenceEngine;
 
 /** Stores some arguments and results of calls to learner's methods 
@@ -317,6 +321,18 @@ public class RecordProgressDecorator extends ProgressDecorator
 		
 		writeElement(writeInitialData(new InitialData(plus, plus.size(), minus, minus.size(), result)));
 		return result;
+	}
+
+	@Override
+	public LearnerGraph init(LearnerGraph graph)
+	{
+		LearnerGraph result = decoratedLearner.init(graph);
+		DifferentFSMException ex= WMethod.checkM_and_colours(graph, result, VERTEX_COMPARISON_KIND.DEEP);
+		if (ex != null)
+			throw new IllegalArgumentException("initialisation was passed a graph but returned a different graph");
+		writeElement(writeInitialData(new InitialData(null, 0, null, 0, result)));
+		return result;
+		
 	}
 
 	@Override 

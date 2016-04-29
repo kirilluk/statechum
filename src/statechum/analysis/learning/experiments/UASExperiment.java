@@ -47,7 +47,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		learnerInitConfiguration = eval;
 	}
 	
-	protected String constructFileName(String experimentSuffix)
+	public String constructFileName(String experimentSuffix)
 	{
 		return inputGraphFileName+"_"+experimentSuffix+".xml";
 	}
@@ -82,7 +82,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
     	return outcome;
 	}
 	
-	protected void saveOutcomeOfLearning(String experimentSuffix, LearnerGraph outcome) throws IOException
+	public void saveGraph(String experimentSuffix, LearnerGraph outcome) throws IOException
 	{
 		outcome.storage.writeGraphML(constructFileName(experimentSuffix));	
 	}
@@ -92,7 +92,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,ScoringToApply.SCORING_EDSM_2,
 				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
 				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
-				ScoringToApply.SCORING_SICCO,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE
+				ScoringToApply.SCORING_SICCO,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
 				});
 	}
 
@@ -139,7 +139,9 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 	/** The reason behind using ptaSource is that where it is expensive to build a PTA, it will only be requested if the learner has not stored it or store the outcome of inference somewhere. */
 	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
 	{
-		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String edsmAsString = scoringForEDSM == null?"":scoringForEDSM.name;
+		String scoringAsString = scoringMethod == null?"":scoringMethod.name;
+		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringAsString+"_"+edsmAsString;
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
@@ -148,7 +150,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
  			
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+ 			saveGraph(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -181,7 +183,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
  			
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-			saveOutcomeOfLearning(experimentName,actualAutomaton);
+			saveGraph(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -237,7 +239,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			actualAutomaton.setName(experimentName+"-actual");
 			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 			//Visualiser.waitForKey();
- 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+ 			saveGraph(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -269,7 +271,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			actualAutomaton.setName(experimentName+"-actual");
-			saveOutcomeOfLearning(experimentName,actualAutomaton);
+			saveGraph(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -305,7 +307,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+ 			saveGraph(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);

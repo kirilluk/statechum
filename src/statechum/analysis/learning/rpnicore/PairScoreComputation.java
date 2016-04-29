@@ -226,15 +226,21 @@ public class PairScoreComputation {
 				break;
 			}
 			case KTAILS:
-				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
 				break;
+			}
 			case KTAILS_ANY:
-				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,true);
 				break;
+			}
 			default:
 				computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);
 				if (computedScore >= 0)

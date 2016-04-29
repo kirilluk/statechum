@@ -39,7 +39,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallvsHugeExperiment extends UASExperiment
+public class EvaluationOfLearners extends UASExperiment
 {
 	protected final int states,fsmSample;
 	protected boolean learnUsingReferenceLearner, onlyUsePositives;
@@ -59,15 +59,15 @@ public class SmallvsHugeExperiment extends UASExperiment
 	{
 		onlyUsePositives = value;
 	}
+
+	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
 	
 	private void setAlwaysRunExperiment(boolean b) 
 	{
 		alwaysRunExperiment = b;
 	}
 
-	public static final String directoryNamePrefix = "smallvshuge_Apr_2016";
-
-	public SmallvsHugeExperiment(int argStates, int argFsmSample, int argAttempt, int argSeed, int nrOfTraces, int lengthmult, LearnerEvaluationConfiguration eval)
+	public EvaluationOfLearners(int argStates, int argFsmSample, int argAttempt, int argSeed, int nrOfTraces, int lengthmult, LearnerEvaluationConfiguration eval)
 	{
 		super(eval);
 		states = argStates;fsmSample = argFsmSample;seed = argSeed;traceQuantity=nrOfTraces;lengthMultiplier = lengthmult;attempt= argAttempt;
@@ -307,8 +307,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 			{
 				// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
 				resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringForEDSM.name,scoringMethod.name},new String[]{"BCR","Diff","States"});
-				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
 			}
 		for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
 		{
@@ -322,11 +320,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutPos);
-				//LearningSupportRoutines.addSeparator(csvLine);csvLine.append(difference.fanoutNeg);
 
-				System.out.println(experimentName + "_" + scoring.name+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
-						", learning outcome has "+difference.nrOfstates.getValue()+" more states than the original");
 				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceStructural.getValue(),null,null);
 			}
@@ -343,8 +337,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 						PairQualityLearner.SampleData score = result.samples.get(i++);
 						// the order in which elements are added has to match that where the three lines are constructed. It is possible that I'll add an abstraction for this to avoid such a dependency, however this is not done for the time being.
 						recordResultsFor(csv,experimentrunner, score.experimentName+"_R_"+scoringForEDSM.name,scoringMethod,score.referenceLearner);
-						//recordResultsFor(csv,experimentrunner, score.experimentName+"_P",scoringMethod,score.premergeLearner);
-						//recordResultsFor(csv,experimentrunner, score.experimentName+"_C",scoringMethod,score.actualConstrainedLearner);
 					}
 				for(ScoringToApply scoringMethod:listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
 				{
@@ -368,45 +360,30 @@ public class SmallvsHugeExperiment extends UASExperiment
 			}
 		};
 		List<UASExperiment> listOfExperiments = new ArrayList<UASExperiment>();
-		/*
-		for(final double threshold:new double[]{1,1.2,1.5,3,10})
-		for(final int ifDepth:new int []{0,1})
-		for(final boolean onlyPositives:new boolean[]{true,false})
-			for(final boolean zeroScoringAsRed:new boolean[]{true,false})
-			for(final boolean selectingRed:new boolean[]{false})
-			for(final boolean useUnique:new boolean[]{true,false})*/
-			{/*
-				String selection = "TRUNK"+"I"+ifDepth+"_"+"T"+threshold+"_"+
-						(onlyPositives?"P_":"-")+(selectingRed?"R":"-")+(useUnique?"U":"-")+(zeroScoringAsRed?"Z":"-");
-		*/
-				int multFactor=1;
-				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
-				for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
-					for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
-				{
-					try
-					{
-						int numberOfTasks = 0;
-						for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
-							for(int sample=0;sample<samplesPerFSMSize;++sample)
-								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
-								{
-									LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-									ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-									SmallvsHugeExperiment learnerRunner = new SmallvsHugeExperiment(states,sample,attempt,1+numberOfTasks,traceQuantity*multFactor, traceLengthMultiplier*multFactor, ev);
-									//learnerRunner.setAlwaysRunExperiment(true);
-									listOfExperiments.add(learnerRunner);
-								}
-					}
-					catch(Exception ex)
-					{
-						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-						if (executorService != null) { executorService.shutdown();executorService = null; }
-						throw e;
-					}
-				}
+		for(int traceQuantity=2;traceQuantity<=64;traceQuantity*=2)
+			for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
+		{
+			try
+			{
+				int numberOfTasks = 0;
+				for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
+					for(int sample=0;sample<samplesPerFSMSize;++sample)
+						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+						{
+							LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+							ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+							EvaluationOfLearners learnerRunner = new EvaluationOfLearners(states,sample,attempt,1+numberOfTasks,traceQuantity, traceLengthMultiplier, ev);
+							//learnerRunner.setAlwaysRunExperiment(true);
+							listOfExperiments.add(learnerRunner);
+						}
 			}
-			
+			catch(Exception ex)
+			{
+				IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
+				if (executorService != null) { executorService.shutdown();executorService = null; }
+				throw e;
+			}
+		}
 			
     	for(UASExperiment e:listOfExperiments)
     		experimentRunner.submitTask(e);
@@ -416,9 +393,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		//Visualiser.waitForKey();
-		//DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
+		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
 		experimentRunner.successfulTermination();
 
 	}
-
 }

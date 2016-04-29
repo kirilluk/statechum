@@ -521,6 +521,19 @@ public class LearningSupportRoutines
 		return ptaTmp;
  	}
 
+ 	
+ 	/** Removes reject states if there are any accept-states.
+ 	 * This is used at the end of the learning process where all inputs that are not present are assumed to be rejected. 
+ 	 * If learning failed due to excessive number of red states, the outcome is a machine with a single reject-state. This is preserved by this routine.
+ 	 */
+ 	public static LearnerGraph removeRejects(LearnerGraph learningOutcome)
+ 	{
+ 		if (learningOutcome.getAcceptStateNumber() == 0)
+ 			return learningOutcome;
+ 		LearnerGraph actualAutomaton = new LearnerGraph(learningOutcome.config);
+ 		AbstractPathRoutines.removeRejectStates(learningOutcome,actualAutomaton);
+ 		return actualAutomaton;
+ 	}
 }
 
 

@@ -139,7 +139,8 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			LearnerGraph pta = ptaSource.buildPTA();
  			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
  			
- 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -171,8 +172,9 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			LearnerGraph pta = ptaSource.buildPTA();
  			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
  			
- 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
- 			saveOutcomeOfLearning(experimentName,actualAutomaton);
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
+			saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -180,8 +182,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		//Visualiser.waitForKey();
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
-		LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(learntGraph.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 		return outcome;
 	}
 
@@ -224,11 +225,12 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod,scoringForEDSM);
 					//new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
 
-			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			actualAutomaton.setName(experimentName+"-actual");
 			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 			//Visualiser.waitForKey();
- 			//saveOutcomeOfLearning(experimentName,actualAutomaton);
+ 			saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -257,8 +259,10 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
 					new LearningAlgorithms.LearnerWithUniqueFromInitial(refLearner,reducedPTA,uniqueLabel);
 
-			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			actualAutomaton.setName(experimentName+"-actual");
+			saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -292,7 +296,8 @@ public abstract class UASExperiment implements Callable<ThreadResult>
  			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 
- 			actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			saveOutcomeOfLearning(experimentName,actualAutomaton);
 		}		
 		

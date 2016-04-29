@@ -64,6 +64,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -1083,34 +1084,14 @@ public class PaperUAS
 
 			public void recordResultsFor(StringBuffer csvLine, RunSubExperiment<ThreadResult> experimentrunner, String experimentName,LearningAlgorithms.ScoringToApply scoring,ScoresForGraph difference) throws IOException
 			{
-				String scoringAsString = null;
-				switch(scoring)
-				{
-				case SCORING_EDSM:
-					scoringAsString = "E";break;
-				case SCORING_EDSM_1:
-					scoringAsString = "E1";break;
-				case SCORING_EDSM_2:
-					scoringAsString = "E2";break;
-				case SCORING_SICCO:
-					scoringAsString = "S";break;
-				case SCORING_SICCO_NIS:
-					scoringAsString = "SI";break;
-				case SCORING_SICCO_REDBLUE:
-					scoringAsString = "SRB";break;
-				case SCORING_SICCO_RED:
-					scoringAsString = "SR";break;
-				default:
-					throw new IllegalArgumentException("Unexpected scoring");
-				}
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				
-				System.out.println(experimentName + "_" + scoringAsString+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
+				System.out.println(experimentName + "_" + scoring.name+" has BCR  score of "+difference.differenceBCR.getValue() +" and diffscore " + difference.differenceStructural.getValue()+
 						", learning outcome has "+difference.nrOfstates.getValue());
-				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoringAsString ,difference.differenceStructural.getValue(),null,null);
+				experimentrunner.RecordR(BCR_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceBCR.getValue(),null,null);
+				experimentrunner.RecordR(diff_vs_experiment,experimentName + "_" + scoring.name ,difference.differenceStructural.getValue(),null,null);
 			}
 			
 			@Override
@@ -1130,7 +1111,7 @@ public class PaperUAS
 					recordResultsFor(csv,experimentrunner, score.experimentName+"_pC",scoringMethod,score.posConstrained);
 					recordResultsFor(csv,experimentrunner, score.experimentName+"_pP",scoringMethod,score.posPremergeLearner);
 				}
-				csv.append('\n');
+				resultCSV.add(csv.toString());
 				BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
 			}
 			
@@ -1141,8 +1122,8 @@ public class PaperUAS
 			}
 			
 			@Override
-			public DrawGraphs.RGraph[] getGraphs() {
-				return new DrawGraphs.RGraph[]{BCR_vs_experiment,diff_vs_experiment};
+			public SGEExperimentResult[] getGraphs() {
+				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment, resultCSV};
 			}
 		};
 

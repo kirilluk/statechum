@@ -383,6 +383,31 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
+	public void testCSVwriteFile4() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
+		w.appendToHeader(new String[]{"positive","reference2"},new String[]{"BCR","A","B"});
+		w.add("line A");w.add("line B");w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg,positive,positive,positive][reference,reference,reference,reference,reference2,reference2,reference2][BCR,Diff,States,PTA states,BCR,A,B][line A][line B]", buffer.toString());
+	}
+	
+	@Test
 	public void testCSVwriteFileFail1()
 	{
 		File output = new File(testDir,"out.csv");
@@ -390,6 +415,17 @@ public class TestDrawGraphs {
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
 			w.appendToHeader(new String[]{},new String[]{"BCR","Diff","States","PTA states"});
 		}}, IllegalArgumentException.class,"cannot handle zero");
+	}
+	
+	@Test
+	public void testCSVwriteFileFail2()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.appendToHeader(new String[]{"positive"},new String[]{"BCR","Diff","States","PTA states"});
+		}}, IllegalArgumentException.class,"cannot append 1");
 	}
 	
 	@Test

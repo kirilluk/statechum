@@ -19,7 +19,6 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
@@ -193,8 +192,6 @@ public class SmallvsHugeExperiment extends UASExperiment
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 		
 		
-		//Visualiser.updateFrame(referenceGraph, null);
-		//Visualiser.waitForKey();
 		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
 			boolean accept = path.getKey().isAccept();
@@ -287,8 +284,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 
-		final int samplesPerFSMSize = 100;
-		final int minStateNumber = 20;
+		final int samplesPerFSMSize = 10;
+		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
 
 		final DrawGraphs gr = new DrawGraphs();
@@ -296,13 +293,14 @@ public class SmallvsHugeExperiment extends UASExperiment
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
-		{
-			// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
-			resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringMethod.toString()},new String[]{"BCR","Diff","States","PTA states"});
-			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-			//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
-		}
+		for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
+			for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
+			{
+				// first column is for the experiment name hence it is appropriate for appendToLines to start by adding a separator.
+				resultCSV.appendToHeader(new String[]{"posNeg","reference",scoringForEDSM.name,scoringMethod.name},new String[]{"BCR","Diff","States","PTA states"});
+				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","constraints",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+				//LearningSupportRoutines.appendToLines(lines,new String[]{"posNeg","premerge",scoringMethod.toString()},new String[]{"BCR","Diff","States"});
+			}
 		
     	processSubExperimentResult<PairQualityLearner.ThreadResult> resultHandler = new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
@@ -326,7 +324,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			{
 				int i=0;
 				StringBuffer csv = new StringBuffer();
-				csv.append(result.samples.get(0).experimentName);
+				csv.append(result.samples.get(0).experimentName);// since the first entry is always an experiment name, all subsequent entries (experiment results) have to start with a separator.
 				for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 					for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApply())
 					{
@@ -348,7 +346,7 @@ public class SmallvsHugeExperiment extends UASExperiment
 			
 			@Override
 			public SGEExperimentResult[] getGraphs() {
-				return new DrawGraphs.RGraph[]{BCR_vs_experiment,diff_vs_experiment};
+				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
 			}
 		};
 		List<UASExperiment> listOfExperiments = new ArrayList<UASExperiment>();
@@ -365,8 +363,8 @@ public class SmallvsHugeExperiment extends UASExperiment
 		*/
 				int multFactor=1;
 				//for(int traceQuantity=15;traceQuantity<=90;traceQuantity+=25)
-				for(int traceQuantity=10;traceQuantity<=20;traceQuantity+=5)
-					for(int traceLengthMultiplier=2;traceLengthMultiplier<=4;traceLengthMultiplier+=1)
+				for(int traceQuantity=10;traceQuantity<=10;traceQuantity+=5)
+					for(int traceLengthMultiplier=2;traceLengthMultiplier<=2;traceLengthMultiplier+=1)
 				{
 					try
 					{

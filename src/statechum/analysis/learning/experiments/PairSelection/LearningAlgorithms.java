@@ -26,12 +26,15 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -317,7 +320,7 @@ public class LearningAlgorithms
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
 	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), 
-		SCORING_SICCO("SICCO"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_REDBLUE("SICRB"), SCORING_SICCO_RED("SICRED"),
+		SCORING_SICCO("SICCO"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_RED("SICRED"),
 		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4");
 		
 		public final String name;
@@ -387,8 +390,6 @@ public class LearningAlgorithms
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
 		case SCORING_SICCO_NIS:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS);break;
-		case SCORING_SICCO_REDBLUE:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_REDBLUE);break;
 		case SCORING_SICCO_RED:
 			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED);break;
 		default:
@@ -408,7 +409,7 @@ public class LearningAlgorithms
 		// Where there is a unique transition out an initial state is always the first transition in the traces, SICCO merging rule will stop any mergers into the initial state because 
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
-		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_PTA, SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_REDBLUE, SCORING_SICCO_RED }
+		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_PTA, SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_RED }
 		protected final OverrideScoringToApply scoringMethod;
 		
 		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring) 
@@ -491,6 +492,17 @@ public class LearningAlgorithms
 					switch(ReferenceLearner.this.scoringMethod)
 					{
 					case SCORING_SICCO_PTA:
+						/*
+						boolean negativeSiccoPTA = coregraph.pairscores.computeScoreSicco(p, false) < 0;
+						coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
+						boolean negativeSicco = coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0;
+						if (negativeSiccoPTA != negativeSicco)
+						{
+							Visualiser.updateFrame(coregraph.transform.trimGraph(4, coregraph.getInit()), null);
+							coregraph.pairscores.computeScoreSicco(p, false);
+							System.out.println("outgoing: "+coregraph.transitionMatrix.get(coregraph.findVertex(VertexID.parseID("P1000")))+" "+coregraph.transitionMatrix.get(coregraph.findVertex(VertexID.parseID("P1893"))));
+							coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR);
+						}*/
 						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreSicco(p, false) < 0)
 							score = -1;
 						break;
@@ -499,20 +511,28 @@ public class LearningAlgorithms
 							score = -1;
 						break;
 					case SCORING_SICCO:
-						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
-							score = -1;
+						if (p.getScore() >= 0)
+						{
+							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
+							if (coregraph.pairscores.computeSiccoRejectScoreGeneral_fastreturn(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+								score = -1;
+						}
 						break;
 					case SCORING_SICCO_NIS:
-						if (p.getScore() >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit() && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
-							score = -1;
-						break;
-					case SCORING_SICCO_REDBLUE:
-						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED_BLUE) < 0)
-							score = -1;
+						if (p.getScore() >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit())
+						{
+							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
+							if (coregraph.pairscores.computeSiccoRejectScoreGeneral_fastreturn(p, mergedVertices, SiccoGeneralScoring.S_ONEPAIR) < 0)
+								score = -1;
+						}
 						break;
 					case SCORING_SICCO_RED:
-						if (p.getScore() >= 0 && coregraph.pairscores.computeSiccoRejectScoreGeneral(p, mergedVertices, SiccoGeneralScoring.S_RED) < 0)
-							score = -1;
+						if (p.getScore() >= 0)
+						{
+							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
+							if (coregraph.pairscores.computeSiccoRejectScoreGeneral_fastreturn(p, mergedVertices, SiccoGeneralScoring.S_RED) < 0)
+								score = -1;
+						}
 						break;
 					default:// do nothing since this is the case where nothing needs to be done.
 						break;
@@ -1364,7 +1384,7 @@ public class LearningAlgorithms
 					hasNegativesTentative = true;break;
 				}
 			final boolean hasNegatives = hasNegativesTentative;// set the permanent value for the parallel computation to access via closure.
-			System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
+			//System.out.println(new Date()+"started to perform pairwise comparisons, total number of comparisons "+total+" hasNegatives is "+hasNegatives);
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			handlerList.add(new HandleRow<CmpVertex>()
@@ -1428,7 +1448,7 @@ public class LearningAlgorithms
 			};
 			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, filter,GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix,filter));
 			
-			System.out.println(new Date()+"started to make deterministic");
+			//System.out.println(new Date()+"started to make deterministic");
 			LearnerGraph outcome = null;
 			try
 			{

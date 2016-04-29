@@ -501,11 +501,17 @@ public class DrawGraphs {
 	 	{
 	 		if (whatToAppend.length == 0)
 	 			throw new IllegalArgumentException("cannot handle zero number of lines");
+	 		boolean firstEntry = true;
 	 		if (spreadsheetHeader == null)
 	 		{
 	 			spreadsheetHeader = new StringBuffer[whatToAppend.length+1];for(int i=0;i<=whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
 	 		}
-	 		boolean firstEntry = true;
+	 		else
+	 			if (spreadsheetHeader.length != whatToAppend.length+1)
+	 				throw new IllegalArgumentException("cannot append "+whatToAppend.length+" values to headers with "+spreadsheetHeader.length+" headers");
+	 			else
+	 				firstEntry = false;// we are extending an existing header
+
 	 		for(String valueForLastLine:valuesForLastLine)
 	 		{
 	 			for(int i=0;i<whatToAppend.length;++i)
@@ -516,20 +522,18 @@ public class DrawGraphs {
 	 			firstEntry = false;
 	 		}
 	 	}
-	 	
+
 	 	/** Adds text to the spreadsheet. */
 		public void add(String text)
 		{
 			csvText.append(text);addNewLine(csvText);
 		}
-		
 
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
 		@Override
 		public void drawInteractive(@SuppressWarnings("unused") DrawGraphs gr)
 		{
 		}
-		
 
 		public void writeFile(Writer wr) throws IOException
 		{

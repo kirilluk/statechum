@@ -762,11 +762,11 @@ public class PairScoreComputation {
 					}
 				}
 			}
-		
+
 		return pairScore;
 	}
 
-	public enum SiccoGeneralScoring { S_ONEPAIR, S_RED_BLUE, S_RED }
+	public enum SiccoGeneralScoring { S_ONEPAIR, S_RED }
 	
 	/** This is similar in spirit to Sicco score computation but capable of handling arbitrary state mergers. 
 	 * The method does not intend to compute a positive score since it is expected to be used to reject incompatible ones and will return 0 if provided with an empty set of equivalence 
@@ -775,12 +775,13 @@ public class PairScoreComputation {
 	 * In a similar way to ordinary Sicco score computation, there are three modes,
 	 * <ul>
 	 * <li>Only look at the current pair to merge and the states that got merged into it.</li>
-	 * <li>Only look at the red-blue mergers (multiple blue states could be merged with multiple red states). Unlike the first point, this one looks at all equivalence classes containing red-blue mergers, not just at a single one referring to the provided pair of states</li>
 	 * <li>Look at mergers of any state into a red state (if there are multiple red states being merged together, this will do a union of their outgoing transitions).</li>
 	 * </ul>
 	 * Unlike the score computation that relies on mergers between a branch of a tree and a graph, this scoring routine cannot tell whether any node comes from a tree or from the main graph (except where they are labelled red or blue).
 	 * This is why it cannot do an equivalent of 'recursive' computation where one follows a branch and checks states against those in the main graph. On the positive side, it can be used
 	 * for arbitrary mergers in a graph, something that typical Sicco score computation cannot handle.
+	 * 
+	 * There is no provision for 'blue' states because during score computation, it is not known which states are going to be blue or will immediately become red.
 	 * 
 	 * @param pair a pair of states to be merged, only used for where checking is limited to the first pair. In reality it matches all red states that got merged into the one provided with all blue ones that got merged with those red ones.
 	 * @param mergedVertices describes vertices that are to form clusters of new states. This does not have to be a total map: clusters of states not in the collection are ignored since they are assumed to be singletons.
@@ -810,7 +811,7 @@ public class PairScoreComputation {
 				boolean redFound = false;
 				for(CmpVertex v:eq.getStates())
 					if ( v.getColour() == JUConstants.RED )
-					{
+					{// collects labels of all transitions from the RED states merged together. 
 						outgoingRed.addAll(coregraph.transitionMatrix.get(v).keySet());
 						redFound = true;
 					}
@@ -818,18 +819,61 @@ public class PairScoreComputation {
 					for(CmpVertex v:eq.getStates())
 						if (v.getColour() != JUConstants.RED)
 						{
-							if (howToScore == SiccoGeneralScoring.S_RED || v.getColour() == JUConstants.BLUE)
-								for(Label l:coregraph.transitionMatrix.get(v).keySet())
-									if (!outgoingRed.contains(l) && !outgoingNew.contains(l))
-									{
-										--outcome;outgoingNew.add(l);
-									}
+							for(Map.Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(v).entrySet())
+								if (entry.getValue().isAccept() && !outgoingRed.contains(entry.getKey()) && !outgoingNew.contains(entry.getKey()))
+								{// each outgoing label that is new has to be counted only once.
+									--outcome;outgoingNew.add(entry.getKey());
+								}
 						}
 			}
 		
 		return outcome;
 	}
-	
+
+	/** Similar to {@link PairScoreComputation#computeSiccoRejectScoreGeneral(StatePair, Collection, SiccoGeneralScoring)} 
+	 * but does not count the number of unmatched transitions returning -1 when the first one is met. 
+	 */
+	public long computeSiccoRejectScoreGeneral_fastreturn(StatePair pair, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, SiccoGeneralScoring howToScore)
+	{
+		if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+		{
+			if (pair == null)
+				throw new IllegalArgumentException("when looking for a score from a single pair, this pair should be passed as an argument");
+		}
+		
+		Set<Label> outgoingRed = new TreeSet<Label>();
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
+			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
+			{
+				outgoingRed.clear();
+				
+				if (howToScore == SiccoGeneralScoring.S_ONEPAIR)
+				{
+					if (!eq.getStates().contains(pair.getQ())) 
+						throw new IllegalArgumentException("invalid merge: pair "+pair+ " should have been merged but states in the pair are in distinct equivalence classes");
+				}
+				boolean redFound = false;
+				for(CmpVertex v:eq.getStates())
+					if ( v.getColour() == JUConstants.RED )
+					{// collects labels of all transitions from the RED states merged together. 
+						outgoingRed.addAll(coregraph.transitionMatrix.get(v).keySet());
+						redFound = true;
+					}
+				if (redFound) // only consider mergers into a red state, otherwise we do not know which is being merged into which.
+					for(CmpVertex v:eq.getStates())
+						if (v.getColour() != JUConstants.RED)
+						{
+							for(Map.Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(v).entrySet())
+								if (entry.getValue().isAccept() && !outgoingRed.contains(entry.getKey()))
+								{// each outgoing label that is new has to be counted only once.
+									return -1;
+								}
+						}
+			}
+		
+		return 0;
+	}
+
 	/** Computes a stack of states with scores over a given threshold, using Linear. 
 	 * States which are filtered out by GDLearnerGraph's filter are ignored.
 	 * The outcome is not sorted - this internal routine is used by 

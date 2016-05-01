@@ -242,12 +242,10 @@ public class DrawGraphs {
 
 	protected static REXP eval(String whatToEval, String errMsg)
 	{
-		
 		callbacks.clearBuffer();
 		REXP result = engine.eval(whatToEval);
 		if (result == null)
 			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
-	
 		return result;
 	}
 	
@@ -1255,14 +1253,13 @@ public class DrawGraphs {
 			StatisticalTestResult STR=new StatisticalTestResult();
 			for(String cmd:drawingCommands)
 				eval(cmd,"failed to run "+cmd);
-
 			STR.statistic=engine.eval(varName+"$statistic").asDouble();
 			STR.pvalue=engine.eval(varName+"$p.value").asDouble();
+			STR.alternative=engine.eval(varName+"$alternative").asString();
+			STR.parameter=engine.eval(varName+"$parameter").asDouble();
 			String methodName = engine.eval(varName+"$method").asString();
 			if (!methodName.startsWith(expectedMethodName))
 				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
-			STR.alternative=engine.eval(varName+"$alternative").asString();
-			STR.parameter=engine.eval(varName+"$parameter").asDouble();
 			return STR;
 		}
 	}

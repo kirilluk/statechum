@@ -260,12 +260,13 @@ public class TestDrawGraphs {
 	@Test
 	public void testWilcoxonTest() throws IOException
 	{
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
-		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.41421617824252505\n",s.toString());
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.5000000000000001\n",s.toString());
 	}
 	
 	@Test
@@ -280,12 +281,13 @@ public class TestDrawGraphs {
 	@Test
 	public void testMann_Whitney_U_Test() throws IOException
 	{
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
-		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,3.0,0.6579050194284821\n",s.toString());
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,2.0,0.3758250874886983\n",s.toString());
 	}
 	
 	@Test
@@ -300,8 +302,9 @@ public class TestDrawGraphs {
 	@Test
 	public void testKruskal_Wallis_Test() throws IOException
 	{
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 		StringWriter s=new StringWriter();
 		
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);

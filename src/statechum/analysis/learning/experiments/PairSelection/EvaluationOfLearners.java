@@ -281,7 +281,8 @@ public class EvaluationOfLearners extends UASExperiment
 			}
 		}
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		final RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",args);
+//new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
@@ -389,12 +390,8 @@ public class EvaluationOfLearners extends UASExperiment
     		experimentRunner.submitTask(e);
     	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		
-    	if (resultCSV != null) resultCSV.reportResults(gr);
-		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
-		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
 		//Visualiser.waitForKey();
-		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
+		DrawGraphs.end();
 		experimentRunner.successfulTermination();
-
 	}
 }

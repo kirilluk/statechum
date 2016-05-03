@@ -27,9 +27,9 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Label;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
+import statechum.analysis.learning.experiments.PaperUAS.PaperUAS;
 import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RPNIBlueFringeVariability;

@@ -21,18 +21,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
+/** This is separate from AllTests because I want to be able to run just FastTests from "ant test" when testing on Iceberg.
+ * 
  * @author Kirill
- *
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    statechum.AllTests.BasicTests.class,
-    statechum.AllTests.GraphTests.class,
-    statechum.AllTests.LearnerTests.class,
-    statechum.AllTests.ObserversTests.class,
-    statechum.AllTests.LinearTests.class,
-    statechum.AllTests.SmtTests.class,
+    statechum.FastTests.BasicTests.class,
+    statechum.FastTests.GraphTests.class,
+    statechum.FastTests.LearnerTests.class,
+    statechum.FastTests.ObserversTests.class,
+    statechum.FastTests.LinearTests.class,
+    statechum.FastTests.SmtTests.class,
     statechum.analysis.Erlang.ErlangTests.class,
 })
 public class FastTests {

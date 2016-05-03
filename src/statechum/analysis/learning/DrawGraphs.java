@@ -82,6 +82,7 @@ import java.io.InputStreamReader;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -100,7 +101,9 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.StatechumXML.StringSequenceWriter;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -475,8 +478,10 @@ public class DrawGraphs {
 
 	public static class CSVExperimentResult implements SGEExperimentResult
 	{
-		StringBuffer[] spreadsheetHeader = null;
-		StringBuffer csvText = new StringBuffer();
+		final Map<String,Map<String,String>> rowColumnText = new TreeMap<String,Map<String,String>>();
+		final Map<String,String []> columnIDToHeader = new TreeMap<String,String []>();// will return column values in an increasing order
+		int headerRows = -1;
+		final Map<String,String []> columnIDToCellHeader = new TreeMap<String,String []>();
 		protected final File file;
 		
 		public CSVExperimentResult(File arg)
@@ -493,38 +498,34 @@ public class DrawGraphs {
 	 	{
 	 		buf.append('\n');
 	 	}
-	 	
-	 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */ 
-	 	public void appendToHeader(String[] whatToAppend,String [] valuesForLastLine)
-	 	{
-	 		if (whatToAppend.length == 0)
-	 			throw new IllegalArgumentException("cannot handle zero number of lines");
-	 		boolean firstEntry = true;
-	 		if (spreadsheetHeader == null)
-	 		{
-	 			spreadsheetHeader = new StringBuffer[whatToAppend.length+1];for(int i=0;i<=whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
-	 		}
-	 		else
-	 			if (spreadsheetHeader.length != whatToAppend.length+1)
-	 				throw new IllegalArgumentException("cannot append "+whatToAppend.length+" values to headers with "+spreadsheetHeader.length+" headers");
-	 			else
-	 				firstEntry = false;// we are extending an existing header
-
-	 		for(String valueForLastLine:valuesForLastLine)
-	 		{
-	 			for(int i=0;i<whatToAppend.length;++i)
-	 			{
-	 				if (!firstEntry) addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
-	 			}
-	 			if (!firstEntry) addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
-	 			firstEntry = false;
-	 		}
-	 	}
 
 	 	/** Adds text to the spreadsheet. */
-		public void add(String text)
+		public void add(ThreadResultID id, String text)
 		{
-			csvText.append(text);addNewLine(csvText);
+			Map<String,String> columnText = rowColumnText.get(id.getRowID());
+			if (columnText == null)
+			{
+				columnText = new TreeMap<String,String>();rowColumnText.put(id.getRowID(), columnText);
+			}
+			if (columnText.containsKey(id.getColumnID()))
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
+			if (text.split(",").length != id.headerValuesForEachCell().length)
+				throw new IllegalArgumentException("the number of values passed via \""+text+"\" does not match those in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			columnText.put(id.getColumnID(), text);
+
+			if (!columnIDToHeader.containsKey(id.getColumnID()))
+			{
+				if (id.getColumnText() == null || id.getColumnText().length == 0)
+					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
+				if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
+					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
+				
+				if (headerRows > 0 && headerRows != id.getColumnText().length)
+					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid number of rows in column header, expected "+headerRows+", got "+id.getColumnText().length);
+				headerRows = id.getColumnText().length;
+				columnIDToHeader.put(id.getColumnID(), id.getColumnText());
+				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
+			}
 		}
 
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
@@ -535,18 +536,42 @@ public class DrawGraphs {
 
 		public void writeFile(Writer wr) throws IOException
 		{
-			if (spreadsheetHeader != null)
-				for(StringBuffer line:spreadsheetHeader)
+			// construct the header
+			for(int headerRow=0;headerRow<headerRows;++headerRow)
+			{
+				if (headerRow==headerRows-1)
+					wr.append("experiment");
+				
+				for(Entry<String,String[]> columnHeader:columnIDToHeader.entrySet())
 				{
-					wr.append(line.toString());wr.append('\n');
+					wr.append(',');wr.append(columnHeader.getValue()[headerRow]);
 				}
-			wr.append(csvText.toString());
+			}
+			
+			for(Entry<String,Map<String,String>> rowEntry:rowColumnText.entrySet())
+			{
+				wr.append(rowEntry.getKey());
+				for(String column:columnIDToHeader.keySet())
+				{
+					wr.append(',');
+					String value = rowEntry.getValue().get(column);
+					if (value == null)
+						value = "MISSING";
+					wr.append(value);
+				}
+				wr.append('\n');
+			}
 		}
 		
-		public void writeTaskOutput(Writer outputWriter, String text) throws IOException
+		public void writeTaskOutput(Writer outputWriter, ThreadResultID id, String text) throws IOException
 		{
 			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
-			outputWriter.write(text);
+			StringSequenceWriter writer = new StringSequenceWriter(null);
+			StringBuffer w = new StringBuffer();w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
+			writer.writeInputSequence(w, Arrays.asList(id.getColumnText()));w.append(SGE_ExperimentRunner.separator);
+			writer.writeInputSequence(w, Arrays.asList(id.headerValuesForEachCell()));w.append(SGE_ExperimentRunner.separator);
+			w.append(text);
+			outputWriter.write(w.toString());
 			outputWriter.write("\n");
 		}
 		
@@ -581,11 +606,33 @@ public class DrawGraphs {
 
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages)
 		{
-			if (line.length != 2)
-				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record just 2");
-			add(line[1]);
+			final StringSequenceWriter writer = new StringSequenceWriter(null);
+			if (line.length != 6)
+				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 6");
+			
+			add(new ThreadResultID(){
+
+				@Override
+				public String getRowID() {
+					return line[1];
+				}
+
+				@Override
+				public String[] getColumnText() {
+					return writer.readInputSequence(line[3]).toArray(new String[]{});
+				}
+
+				@Override
+				public String getColumnID() {
+					return line[2];
+				}
+
+				@Override
+				public String[] headerValuesForEachCell() {
+					return writer.readInputSequence(line[4]).toArray(new String[]{});
+				}},line[5]);
 		}
 	}
 
@@ -794,7 +841,6 @@ public class DrawGraphs {
 		
 		
 	}
-	
 	
 	public static abstract class RStatisticalAnalysis extends RExperimentResult<Double>
 	{
@@ -1162,7 +1208,7 @@ public class DrawGraphs {
 				}
 			}
 			
-			if (xValueMin == null || yValueMin == null)
+			if (xValueMin == null || yValueMin == null || xValueMax == null || yValueMax == null)
 				return new Rectangle2D.Double();
 			
 			return new Rectangle2D.Double(xValueMin,yValueMin,xValueMax-xValueMin,yValueMax-yValueMin);

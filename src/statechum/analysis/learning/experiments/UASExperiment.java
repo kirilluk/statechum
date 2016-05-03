@@ -34,7 +34,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 
-public abstract class UASExperiment implements Callable<ThreadResult>
+public  abstract  class UASExperiment<TR extends ThreadResult> implements Callable<TR>
 {
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
@@ -98,12 +98,15 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring()
 	{
-		return Arrays.asList(new ScoringToApply[]{//ScoringToApply.SCORING_KT_1,ScoringToApply.SCORING_KT_2,ScoringToApply.SCORING_KT_3,ScoringToApply.SCORING_KT_4
+		return Arrays.asList(new ScoringToApply[]{
 				ScoringToApply.SCORING_PTAK_1,ScoringToApply.SCORING_PTAK_2,ScoringToApply.SCORING_PTAK_3,ScoringToApply.SCORING_PTAK_4
 				});
 	}
 
-	
+	public static List<ScoringToApply> listOfTraditionalKTailsMethods()
+	{
+		return Arrays.asList(new ScoringToApply[]{ ScoringToApply.SCORING_KT_1,ScoringToApply.SCORING_KT_2,ScoringToApply.SCORING_KT_3,ScoringToApply.SCORING_KT_4 });
+	}
 	
 	public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
 	{

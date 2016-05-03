@@ -268,7 +268,7 @@ public enum StatechumXML
 			}
 			return outcome;
 		}
-		
+
 		/** Loads a collection of sequences of the form [ [elem1,elem2, ... ], [elem11,elem12, ... ] ] */
 		@Override
 		public List<List<String>> readSequenceList(String sequence) 

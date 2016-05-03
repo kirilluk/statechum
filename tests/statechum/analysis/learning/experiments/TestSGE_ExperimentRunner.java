@@ -18,8 +18,10 @@ import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.TestDrawGraphs;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class TestSGE_ExperimentRunner {
 
@@ -107,9 +109,9 @@ public class TestSGE_ExperimentRunner {
 		private String data="";
 
 		@Override
-		public void add(String text) 
+		public void add(ThreadResultID id,String text) 
 		{
-			super.add(text);
+			super.add(id,text);
 			data=data+"["+text+"]";
 		}
 
@@ -178,8 +180,8 @@ public class TestSGE_ExperimentRunner {
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
 					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,"line A"+result);
-					experimentrunner.RecordCSV(csvB,"line B"+result);					
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("1","A",new String[]{"experiment"},new String[]{"value"}),"line A"+result);
+					experimentrunner.RecordCSV(csvB,new TestDrawGraphs.TestParameters("2","A",new String[]{"experiment"},new String[]{"value"}),"line B"+result);					
 				}
 
 				@Override
@@ -212,8 +214,8 @@ public class TestSGE_ExperimentRunner {
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
 					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,"line A1_"+result);
-					experimentrunner.RecordCSV(csvA,"line A2_"+result);					
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("1","A",new String[]{"experiment"},new String[]{"value"}),"line A1_"+result);
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("2","A",new String[]{"experiment"},new String[]{"value"}),"line A2_"+result);					
 				}
 
 				@Override

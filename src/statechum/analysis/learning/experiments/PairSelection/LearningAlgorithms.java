@@ -355,28 +355,28 @@ public class LearningAlgorithms
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,1);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),1);
 				}};
 			break;
 		case SCORING_KT_2:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,2);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),2);
 				}};
 			break;
 		case SCORING_KT_3:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,3);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),3);
 				}};
 			break;
 		case SCORING_KT_4:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,4);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),4);
 				}};
 			break;
 		case SCORING_PTAK_1:

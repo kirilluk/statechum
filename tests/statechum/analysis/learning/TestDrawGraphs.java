@@ -31,7 +31,7 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class TestDrawGraphs {
 
@@ -260,6 +260,7 @@ public class TestDrawGraphs {
 	@Test
 	public void testWilcoxonTest() throws IOException
 	{
+		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
@@ -281,6 +282,7 @@ public class TestDrawGraphs {
 	@Test
 	public void testMann_Whitney_U_Test() throws IOException
 	{
+		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
@@ -302,6 +304,7 @@ public class TestDrawGraphs {
 	@Test
 	public void testKruskal_Wallis_Test() throws IOException
 	{
+		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
@@ -315,13 +318,46 @@ public class TestDrawGraphs {
 		Assert.assertEquals("Method,Statistic,P-value,parameter\nKruskal-Wallis rank sum test,2.0,0.36787944117144233,2.0\n",s.toString());
 		//System.out.println(result.statistic+" "+result.pvalue+" "+result.alternative+" "+result.parameter+" ");
 	}
+	
+	public static class TestParameters implements ThreadResultID
+	{
+		public String rowID, columnID;
+		public String [] columnText, headerForCell;
+		
+
+		public TestParameters(String row, String column, String [] colText, String [] hForCell)
+		{
+			rowID = row;columnID = column; columnText = colText; headerForCell = hForCell;
+		}
+		
+		@Override
+		public String getRowID() {
+			return rowID;
+		}
+
+		@Override
+		public String[] getColumnText() {
+			return columnText;
+		}
+
+		@Override
+		public String getColumnID() {
+			return columnID;
+		}
+
+		@Override
+		public String[] headerValuesForEachCell() {
+			return headerForCell;
+		}
+	}
 
 	@Test
 	public void testCSVwriteFile1() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters par = new TestParameters(null,"Col",new String[]{"a"}, new String[]{"b"});
+		par.rowID = "Row1";w.add(par,"line A");par.rowID = "Row2";w.add(par,"line B");w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -362,11 +398,37 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testCSVwriteFile3() throws IOException
+	public void testCSVwriteFile3a() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
+		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States","PTA states"});
+		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");w.reportResults(null);
+		
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+	}
+	/*
+	@Test
+	public void testCSVwriteFile3b() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
+		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"Diff","States","PTA states"});
 		w.add("line A");w.add("line B");w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
@@ -384,7 +446,33 @@ public class TestDrawGraphs {
 		}
 		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
 	}
-	
+
+	@Test
+	public void testCSVwriteFile3c() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
+		w.appendToHeader(new String[]{"posNeg","reference","Diff"});
+		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"States","PTA states"});
+		w.add("line A");w.add("line B");w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+	}
+
 	@Test
 	public void testCSVwriteFile4() throws IOException
 	{
@@ -411,12 +499,22 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testCSVwriteFileFail1()
+	public void testCSVwriteFileFail1a()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
 			w.appendToHeader(new String[]{},new String[]{"BCR","Diff","States","PTA states"});
+		}}, IllegalArgumentException.class,"cannot handle zero");
+	}
+	
+	@Test
+	public void testCSVwriteFileFail1b()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.appendToHeader(new String[]{});
 		}}, IllegalArgumentException.class,"cannot handle zero");
 	}
 	
@@ -431,6 +529,28 @@ public class TestDrawGraphs {
 		}}, IllegalArgumentException.class,"cannot append 1");
 	}
 	
+	@Test
+	public void testCSVwriteFileFail3()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.appendToHeader(new String[]{"positive"},new String[]{"BCR","Diff","States","PTA states"});
+		}}, IllegalArgumentException.class,"cannot append 1");
+	}
+	
+	@Test
+	public void testCSVwriteFileFail4()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.appendToHeader(new String[]{"positive","BCR"});
+		}}, IllegalArgumentException.class,"cannot append 1");
+	}
+*/	
 	@Test
 	public void testBagPlotToString1()
 	{

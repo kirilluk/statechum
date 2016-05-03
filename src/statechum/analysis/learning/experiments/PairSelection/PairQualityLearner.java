@@ -1060,17 +1060,14 @@ public class PairQualityLearner
 	{
 		public final LearnerGraph referenceGraph, initialPTA;
 		public ScoresForGraph premergeLearner, actualLearner,actualConstrainedLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
-		public ScoresForGraph posPremergeLearner, posConstrained, posReference;
 		public Map<String,ScoresForGraph> miscGraphs;
-		
-		public String experimentName;
-		
-		public long traceNumber = 0;
 		
 		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;
 		
-		/** Number of states in the reference grahp. */
+		public long traceNumber = 0;
+		
+		/** Number of states in the reference graph. */
 		public long stateNumber = 0;
 		
 		/** %% of transitions in the reference graph that were covered by the training sample. */
@@ -1108,6 +1105,17 @@ public class PairQualityLearner
 		public List<SampleData> samples = new LinkedList<SampleData>();
 	}
 	
+	public static interface ThreadResultID
+	{
+		/** Returns an ID of a row of results in a spreadsheet. Different columns correspond to different values of parameters. */
+		public String getRowID();
+		/** Header for each column. It is frequently multi-line hence an array of strings is returned. */
+		public String []getColumnText();
+		/** Returns an ID of a column of results in a spreadsheet. Where multiple experiments populate the same row in a spreadsheet, we need to tell which entries are to be placed in a single row. This ID makes it possible to do it. */
+		public String getColumnID();
+		/** Each cell may contain results of multiple experiments, this one reports the respective headers. */
+		public String[] headerValuesForEachCell();
+	}
 
 	public abstract static class LearnerRunner implements Callable<ThreadResult>
 	{

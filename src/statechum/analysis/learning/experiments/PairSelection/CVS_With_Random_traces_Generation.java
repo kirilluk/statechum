@@ -371,8 +371,6 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				}				
 				dataSample.miscGraphs.put("K-tails2",dataSample.ktailsLearner);*/
 
-				dataSample.traceNumber = traceQuantity;
-				
 				{
 					LearnerGraph EDSMReferenceLearnerzero = new LearnerGraph(evaluationConfig);
 					try

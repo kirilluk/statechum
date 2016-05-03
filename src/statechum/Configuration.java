@@ -1445,7 +1445,13 @@ public class Configuration implements Cloneable {
 	 * typically lead to slightly different learning outcomes hence the possibility of compatibility mode. 
 	 */
 	public enum STATETREE {
-		STATETREE_SLOWTREE, STATETREE_LINKEDHASH, STATETREE_ARRAY
+		STATETREE_SLOWTREE("TREE"), STATETREE_LINKEDHASH("LNHASH"), STATETREE_ARRAY("ARRAY");
+		
+		public final String name;
+		private STATETREE(String nameText)
+		{
+			name = nameText;
+		}
 	}
 
 	protected STATETREE transitionMatrixImplType = STATETREE.STATETREE_LINKEDHASH;

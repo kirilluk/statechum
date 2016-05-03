@@ -38,6 +38,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 /**
  * @author kirill
@@ -62,10 +63,10 @@ public class SGE_ExperimentRunner
 		/** Called to plot results of the experiment, using the result <i>r</i>. The <i>experimentrunner</i> is what is to be used to perform plotting, via 
 		 * calls to {@link runSubExperiment#Record(String, Object, Double, String)}. The outcome of these calls are stored in a file and subsequently assembled and plotted.
 		 * 
-		 * @param r the outcome of running an experiment.
-		 * @param experimentrunner
+		 * @param result the outcome of running an experiment.
+		 * @param runSubExperiment
 		 */
-		public void processSubResult(RESULT r,RunSubExperiment<RESULT> experimentrunner)  throws IOException;
+		public void processSubResult(RESULT result,RunSubExperiment<RESULT> runSubExperiment)  throws IOException;
 		
 		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
 		public SGEExperimentResult[] getGraphs();
@@ -147,7 +148,8 @@ public class SGE_ExperimentRunner
 			return outcome;
 		}
 		
-		public void submitTask(Callable<RESULT> task)
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		public void submitTask(Callable<? extends RESULT> task)
 		{
 			switch(phase)
 			{
@@ -168,7 +170,7 @@ public class SGE_ExperimentRunner
 				break;
 				
 			case RUN_STANDALONE:// only submit the task of interest
-				runner.submit(task);
+				runner.submit((Callable)task);
 				break;
 			
 			case COUNT_TASKS:
@@ -338,7 +340,7 @@ public class SGE_ExperimentRunner
 			}
 		}
 		
-		public void RecordCSV(CSVExperimentResult experimentResult, String text) throws IOException
+		public void RecordCSV(CSVExperimentResult experimentResult, ThreadResultID id, String text) throws IOException
 		{
 			if (experimentResult.getFileName().split(separatorRegEx).length > 1)
 				throw new IllegalArgumentException("invalid file name "+experimentResult.getFileName()+" in spreadsheet");
@@ -349,14 +351,14 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case RUN_TASK:
-				experimentResult.writeTaskOutput(outputWriter,text);
+				experimentResult.writeTaskOutput(outputWriter,id,text);
 				break;
 			case COUNT_TASKS:
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
 			case RUN_STANDALONE:			
-				experimentResult.add(text);			
+				experimentResult.add(id,text);			
 				break;
 			}		
 		}

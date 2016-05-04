@@ -372,7 +372,7 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[line A][line B]", buffer.toString());
+		Assert.assertEquals("[,a][experiment,b][Row1,line A][Row2,line B]", buffer.toString());
 	}
 	
 	@Test
@@ -402,7 +402,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States","PTA states"});
+		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
 		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");w.reportResults(null);
 		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
@@ -419,17 +419,19 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg][,reference,reference,reference][experiment,BCR,Diff,States][Row1,A BCR,A Diff,A states][Row2,B BCR,B Diff,B PTA states]", buffer.toString());
 	}
-	/*
+	
 	@Test
 	public void testCSVwriteFile3b() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"Diff","States","PTA states"});
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");
+		par = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		par.rowID = "Row1";w.add(par,"p1,q1");par.rowID = "Row2";w.add(par,"p2,q2");
+		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -444,18 +446,22 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,p2,q2]", buffer.toString());
 	}
-
+	
+	/** Same as the test above but entries are filled in a different order. */
 	@Test
 	public void testCSVwriteFile3c() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
-		w.appendToHeader(new String[]{"posNeg","reference","Diff"});
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"States","PTA states"});
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parB.rowID = "Row2";w.add(parB,"p2,q2");
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");
+		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -470,17 +476,21 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,p2,q2]", buffer.toString());
 	}
-
+	
+	/** Same as the test above but entries are filled in a different order. */
 	@Test
-	public void testCSVwriteFile4() throws IOException
+	public void testCSVwriteFile3d() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
-		w.appendToHeader(new String[]{"positive","reference2"},new String[]{"BCR","A","B"});
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");
+		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -495,7 +505,48 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg,positive,positive,positive][reference,reference,reference,reference,reference2,reference2,reference2][BCR,Diff,States,PTA states,BCR,A,B][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,MISSING]", buffer.toString());
+	}
+	
+	@Test
+	public void testRemoveSpaces1()
+	{
+		Assert.assertEquals("", CSVExperimentResult.removeSpaces(""));
+	}
+	@Test
+	public void testRemoveSpaces2()
+	{
+		Assert.assertEquals("", CSVExperimentResult.removeSpaces("   "));
+	}
+	@Test
+	public void testRemoveSpaces3()
+	{
+		Assert.assertEquals("", CSVExperimentResult.removeSpaces("  \t   "));
+	}
+	@Test
+	public void testRemoveSpaces4()
+	{
+		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("a"));
+	}
+	@Test
+	public void testRemoveSpaces5()
+	{
+		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("  a"));
+	}
+	@Test
+	public void testRemoveSpaces6()
+	{
+		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("a  "));
+	}
+	@Test
+	public void testRemoveSpaces7()
+	{
+		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("  a  "));
+	}
+	@Test
+	public void testRemoveSpaces8()
+	{
+		Assert.assertEquals("a b", CSVExperimentResult.removeSpaces("  a b "));
 	}
 	
 	@Test
@@ -504,8 +555,8 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{},new String[]{"BCR","Diff","States","PTA states"});
-		}}, IllegalArgumentException.class,"cannot handle zero");
+			w.add(new TestParameters("row","col",new String[]{},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"invalid column header");
 	}
 	
 	@Test
@@ -514,43 +565,93 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{});
-		}}, IllegalArgumentException.class,"cannot handle zero");
+			w.add(new TestParameters("row","col",new String[]{"BCR","Diff","States","PTA states"},new String[]{}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"invalid header values for cell");
 	}
 	
+	/** Number of elements appended does not match the number of the element in supplemental headers. */
+	@Test
+	public void testCSVwriteFileFail1c()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c");
+		}}, IllegalArgumentException.class,"the number of values (");
+	}
+	
+	/** Number of elements appended is zero. */
+	@Test
+	public void testCSVwriteFileFail1d()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{})," ");
+		}}, IllegalArgumentException.class,"invalid header values");
+	}
+	
+	/** Number of elements appended is zero. */
+	@Test
+	public void testCSVwriteFileFail1e()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"a"})," ");
+		}}, IllegalArgumentException.class,"empty line added at");
+	}
+	
+	/** The number of elements in a header between two writes does not match. */
 	@Test
 	public void testCSVwriteFileFail2()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
+		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{"positive"},new String[]{"BCR","Diff","States","PTA states"});
-		}}, IllegalArgumentException.class,"cannot append 1");
+			w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c");
+		}}, IllegalArgumentException.class,"different values of cell headers");
 	}
 	
+	/** Duplicate values in cell. */
 	@Test
 	public void testCSVwriteFileFail3()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
+		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{"positive"},new String[]{"BCR","Diff","States","PTA states"});
-		}}, IllegalArgumentException.class,"cannot append 1");
+			w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"with an invalid number of rows in column header");
 	}
 	
 	@Test
-	public void testCSVwriteFileFail4()
+	public void testCSVwriteFileFail4a()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference","BCR"});
 		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{"positive","BCR"});
-		}}, IllegalArgumentException.class,"cannot append 1");
+			w.add(new TestParameters(null,"col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without row id");
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without row id");
 	}
-*/	
+	
+	@Test
+	public void testCSVwriteFileFail4b()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row",null,new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without column id");
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without column id");
+	}
+
 	@Test
 	public void testBagPlotToString1()
 	{

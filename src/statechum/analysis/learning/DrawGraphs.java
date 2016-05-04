@@ -89,6 +89,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import javax.swing.SwingUtilities;
@@ -499,9 +500,48 @@ public class DrawGraphs {
 	 		buf.append('\n');
 	 	}
 
+	 	/** Removes spaces at the beginning and end of string. */
+	 	public static String removeSpaces(String text) 
+	 	{
+	 		return text.replaceAll("^\\s*", "").replaceAll("\\s*$", "");
+	 	}
+	 	
+	 	public static String [] removeSpaces(String []text)
+	 	{
+	 		if (text.length == 0)
+	 			return text;
+	 		
+	 		String [] outcome = new String[text.length];for(int i=0;i<text.length;++i) outcome[i]=removeSpaces(text[i]);
+	 		return outcome;
+	 	}
+
+	 	public static String concatenateWithSeparator(String [] text)
+	 	{
+	 		StringBuffer outcome = new StringBuffer();
+	 		boolean firstEntry = true;
+	 		for(String str:text)
+	 		{
+	 			if (firstEntry)
+	 				firstEntry = false;
+	 			else
+	 				outcome.append(',');
+	 			outcome.append(removeSpaces(str));
+	 		}
+	 		return outcome.toString();
+	 	}
+	 	
 	 	/** Adds text to the spreadsheet. */
 		public void add(ThreadResultID id, String text)
 		{
+			if (id.getRowID() == null || removeSpaces(id.getRowID()).isEmpty())
+				throw new IllegalArgumentException("cannot add a cell without row id to spreadsheet "+getFileName());
+			if (id.getColumnID() == null || removeSpaces(id.getColumnID()).isEmpty())
+				throw new IllegalArgumentException("cannot add a cell without column id to spreadsheet "+getFileName());
+			if (id.getColumnText() == null || id.getColumnText().length == 0)
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
+			if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
+
 			Map<String,String> columnText = rowColumnText.get(id.getRowID());
 			if (columnText == null)
 			{
@@ -509,22 +549,30 @@ public class DrawGraphs {
 			}
 			if (columnText.containsKey(id.getColumnID()))
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
-			if (text.split(",").length != id.headerValuesForEachCell().length)
-				throw new IllegalArgumentException("the number of values passed via \""+text+"\" does not match those in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
-			columnText.put(id.getColumnID(), text);
+			String [] elements = text.split(",");
+			if (elements.length != id.headerValuesForEachCell().length)
+				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			String reducedLine = concatenateWithSeparator(elements);
+			if (reducedLine.isEmpty())
+				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
+			columnText.put(id.getColumnID(), reducedLine);
 
 			if (!columnIDToHeader.containsKey(id.getColumnID()))
 			{
-				if (id.getColumnText() == null || id.getColumnText().length == 0)
-					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
-				if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
-					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
-				
 				if (headerRows > 0 && headerRows != id.getColumnText().length)
-					throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid number of rows in column header, expected "+headerRows+", got "+id.getColumnText().length);
+					throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid number of rows in column header, expected "+headerRows+", got "+id.getColumnText().length);
 				headerRows = id.getColumnText().length;
 				columnIDToHeader.put(id.getColumnID(), id.getColumnText());
 				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
+			}
+			else
+			{
+				List<String> oldColumnHeaders = Arrays.asList(columnIDToHeader.get(id.getColumnID())), currColumnHeaders = Arrays.asList(id.getColumnText());
+				List<String> oldCellHeaders = Arrays.asList(columnIDToCellHeader.get(id.getColumnID())), currCellHeaders = Arrays.asList(id.headerValuesForEachCell());
+				if (!oldColumnHeaders.equals(currColumnHeaders))
+					throw new IllegalArgumentException("different values of column headers between previous ("+oldColumnHeaders+")and current ("+currColumnHeaders+") values of column ID "+id.getColumnID());
+				if (!oldCellHeaders.equals(currCellHeaders))
+					throw new IllegalArgumentException("different values of cell headers between previous ("+oldCellHeaders+")and current ("+currCellHeaders+") values of column ID "+id.getColumnID());
 			}
 		}
 
@@ -536,18 +584,35 @@ public class DrawGraphs {
 
 		public void writeFile(Writer wr) throws IOException
 		{
+			if (rowColumnText.isEmpty())
+				return;// an empty file is better than a file with a part of a header and no data. 
+			
 			// construct the header
+			Set<String> columnHeaders = columnIDToHeader.keySet();
+			
 			for(int headerRow=0;headerRow<headerRows;++headerRow)
 			{
-				if (headerRow==headerRows-1)
-					wr.append("experiment");
-				
-				for(Entry<String,String[]> columnHeader:columnIDToHeader.entrySet())
-				{
-					wr.append(',');wr.append(columnHeader.getValue()[headerRow]);
-				}
+				for(String hdr:columnHeaders)
+					for(int cnt=0;cnt<columnIDToCellHeader.get(hdr).length;++cnt)
+					{
+						wr.append(',');wr.append(removeSpaces(columnIDToHeader.get(hdr)[headerRow]));
+					}
+				wr.append('\n');
 			}
 			
+			wr.append("experiment");
+			for(String hdr:columnHeaders)
+			{
+				String []cellHeaders = columnIDToCellHeader.get(hdr);
+				for(String cellHeader:cellHeaders)
+				{
+					wr.append(',');wr.append(removeSpaces(cellHeader));
+				}
+			}
+			wr.append('\n');
+			
+			
+			// finished with the header, output data
 			for(Entry<String,Map<String,String>> rowEntry:rowColumnText.entrySet())
 			{
 				wr.append(rowEntry.getKey());
@@ -596,7 +661,7 @@ public class DrawGraphs {
 					}
 			}
 		}
-				
+
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
 		@Override
 		public String getFileName()

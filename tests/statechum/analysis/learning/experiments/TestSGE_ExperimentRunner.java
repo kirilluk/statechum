@@ -112,7 +112,7 @@ public class TestSGE_ExperimentRunner {
 		public void add(ThreadResultID id,String text) 
 		{
 			super.add(id,text);
-			data=data+"["+text+"]";
+			data=data+"[("+id.getRowID()+","+id.getColumnID()+") "+text+"]";
 		}
 
 		public MockCSV(File arg) {
@@ -180,8 +180,8 @@ public class TestSGE_ExperimentRunner {
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
 					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("1","A",new String[]{"experiment"},new String[]{"value"}),"line A"+result);
-					experimentrunner.RecordCSV(csvB,new TestDrawGraphs.TestParameters("2","A",new String[]{"experiment"},new String[]{"value"}),"line B"+result);					
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A"+result);
+					experimentrunner.RecordCSV(csvB,new TestDrawGraphs.TestParameters(result.toString()+"_2","B",new String[]{"experiment"},new String[]{"value"}),"line B"+result);					
 				}
 
 				@Override
@@ -214,8 +214,8 @@ public class TestSGE_ExperimentRunner {
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
 					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("1","A",new String[]{"experiment"},new String[]{"value"}),"line A1_"+result);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters("2","A",new String[]{"experiment"},new String[]{"value"}),"line A2_"+result);					
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A1_"+result);
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_2","A",new String[]{"experiment"},new String[]{"value"}),"line A2_"+result);					
 				}
 
 				@Override
@@ -664,8 +664,8 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertEquals(0,runcsv_A(new String[]{}));// runs standalone
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
-		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+		Assert.assertEquals("[(0_1,A) line A0][(1_1,A) line A1][(2_1,A) line A2]",csvA.getData());
+		Assert.assertEquals("[(0_2,B) line B0][(1_2,B) line B1][(2_2,B) line B2]",csvB.getData());
 	}
 
 	@Test
@@ -674,7 +674,7 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertEquals(0,runcsv_B(new String[]{}));// runs standalone
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[line A1_0][line A2_0][line A1_1][line A2_1][line A1_2][line A2_2]",csvA.getData());
+		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 	}
 
@@ -726,8 +726,8 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
 		Assert.assertEquals(0,runcsv_A(new String[]{"COLLECT_RESULTS"}));
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
-		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
-		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+		Assert.assertEquals("[(0_1,A) line A0][(1_1,A) line A1][(2_1,A) line A2]",csvA.getData());
+		Assert.assertEquals("[(0_2,B) line B0][(1_2,B) line B1][(2_2,B) line B2]",csvB.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
@@ -754,8 +754,8 @@ public class TestSGE_ExperimentRunner {
 
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[line A0][line A1][line A2]",csvA.getData());
-		Assert.assertEquals("[line B0][line B1][line B2]",csvB.getData());
+		Assert.assertEquals("[(0_1,A) line A0][(1_1,A) line A1][(2_1,A) line A2]",csvA.getData());
+		Assert.assertEquals("[(0_2,B) line B0][(1_2,B) line B1][(2_2,B) line B2]",csvB.getData());
 	}
 
 	@Test
@@ -768,7 +768,7 @@ public class TestSGE_ExperimentRunner {
 
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[line A1_0][line A2_0][line A1_1][line A2_1][line A1_2][line A2_2]",csvA.getData());
+		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 	}
 

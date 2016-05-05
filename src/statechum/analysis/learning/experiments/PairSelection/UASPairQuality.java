@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
 import java.io.FileReader;
@@ -52,12 +52,9 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
@@ -146,7 +143,7 @@ public class UASPairQuality extends PaperUAS
     }
 
     
-    public void runExperimentWithSingleAutomaton(int ifDepth, String name, String arffName, LearnerGraph referenceGraph) throws Exception
+    public void runExperimentWithSingleAutomaton(String name, String arffName, LearnerGraph referenceGraph) throws Exception
     {
  	   final Collection<List<Label>> evaluationTestSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,-1,-1);
     		DrawGraphs gr = new DrawGraphs();
@@ -373,6 +370,7 @@ public class UASPairQuality extends PaperUAS
  		} catch (AugmentFromIfThenAutomatonException e) {
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
+ 		UseWekaResultsParameters parameters = new UseWekaResultsParameters(argStates, argSample, argAttempt) 	
  			ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(ifDepth,learnerInitConfiguration,referenceGraph,c,initPTA):
  					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
@@ -606,7 +604,7 @@ public class UASPairQuality extends PaperUAS
         	String arffName = "resources/largePTA/pairsEncounteredHuge.arff";
         	final int ifDepth = 1;
         	//paper.writeArff(ifDepth, referenceGraph,arffName);// this part can be skipped if arff has already been generated.
-     	paper.runExperimentWithSingleAutomaton(ifDepth,"huge",arffName,referenceGraph);
+     	paper.runExperimentWithSingleAutomaton("huge",arffName,referenceGraph);
  		/*
      	Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", paper.learnerInitConfiguration.config,paper.learnerInitConfiguration.getLabelConverter());
  	    LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
@@ -712,7 +710,7 @@ public class UASPairQuality extends PaperUAS
          learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
          learnerConfig.setAskQuestions(false);
          
-    		final InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, learnerConfig, new Transform.InternStringLabel());
+    	final InitialConfigurationAndData initialConfigAndData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.largePTAFileName, learnerConfig, new Transform.InternStringLabel());
 
  		LearnerGraph referenceGraph = new LearnerGraph(initialConfigAndData.initial.graph.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraph, initialConfigAndData.learnerInitConfiguration.getLabelConverter());
      	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);

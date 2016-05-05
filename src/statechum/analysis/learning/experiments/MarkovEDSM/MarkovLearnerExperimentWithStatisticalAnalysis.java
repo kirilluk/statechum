@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum.analysis.learning.experiments.PairSelection;
+package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,8 +58,22 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.OverrideScoringToApply;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection.PairScoreWithDistance;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -84,115 +98,40 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 	{
 		protected final Configuration config;
 		protected final ConvertALabel converter;
-		protected final int states,sample,trainingSample;
-		protected boolean onlyUsePositives;
-		protected final int seed;
-		protected int chunkLen=3;
-		protected int traceQuantity;
-		protected String selectionID;
-		protected double alphabetMultiplier = 1;
-		protected double traceLengthMultiplier = 1;
-
-		protected double tracesAlphabetMultiplier = 0;
+		protected final MarkovLearningParameters par;
 		
-		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
-		protected boolean disableInconsistenciesInMergers = false;
-		
-		public void setDisableInconsistenciesInMergers(boolean v)
+		public LearnerRunner(MarkovLearningParameters parameters, Configuration conf, ConvertALabel conv)
 		{
-			disableInconsistenciesInMergers = v;
+			par = parameters;config = conf;converter=conv;
 		}
 		
-		public void setTracesAlphabetMultiplier(double evalAlphabetMult)
-		{
-			tracesAlphabetMultiplier = evalAlphabetMult;
-		}
 		
-		public void setSelectionID(String value)
-		{
-			selectionID = value;
-		}
-		
-		/** Whether to filter the collection of traces such that only positive traces are used. */
-		public void setOnlyUsePositives(boolean value)
-		{
-			onlyUsePositives = value;
-		}
-		
-		public void setAlphabetMultiplier(double mult)
-		{
-			alphabetMultiplier = mult;
-		}
-		
-		public void setTraceLengthMultiplier(double traceMulti) {
-			traceLengthMultiplier=traceMulti;
-		}
-		
-		public void setTraceQuantity(int traceQuantity2) {
-			traceQuantity=	traceQuantity2;		
-		}
-		
-		public void setChunkLen(int len)
-		{
-			chunkLen = len;
-		}
-		
-		public LearnerRunner(int argStates, int argSample, int argTrainingSample, int argSeed, int nrOfTraces, Configuration conf, ConvertALabel conv)
-		{
-			states = argStates;sample = argSample;trainingSample = argTrainingSample;config = conf;seed = argSeed;traceQuantity=nrOfTraces;converter=conv;
-		}
-		
-		boolean useCentreVertex = true, useDifferentScoringNearRoot = false, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
-
-		public void setlearningParameters(boolean useCentreVertexArg, boolean useDifferentScoringNearRootArg, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useClassifyToOrderPairsArg, boolean useMostConnectedVertexToStartLearningArg)
-		{
-			useCentreVertex = useCentreVertexArg;useDifferentScoringNearRoot = useDifferentScoringNearRootArg;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useClassifyToOrderPairs = useClassifyToOrderPairsArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg; 
-		}
-		
-		public void setPresetLearningParameters(int value)
-		{
-			switch(value)
-			{
-			case 0:// learning by not doing pre-merging, starting from root 
-				setlearningParameters(false, false, false, false, false);break;
-			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-				setlearningParameters(true, false, false, true, true);break;
-			case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
-				setlearningParameters(true, true, false, true, false);break;
-			case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
-				setlearningParameters(false, true, false, true, false);break;
-			case 4:// learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
-				setlearningParameters(false, false, false, false, false);break;
-			default:
-				throw new IllegalArgumentException("invalid preset number");
-			}
-		}
 		@Override
 		public ThreadResult call() throws Exception 
 		{
-			if (tracesAlphabetMultiplier <= 0)
-				tracesAlphabetMultiplier = alphabetMultiplier;
-			final int alphabet = (int)(alphabetMultiplier*states);
-			final int tracesAlphabet = (int)(tracesAlphabetMultiplier*states);
+			if (par.tracesAlphabetMultiplier <= 0)
+				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
+			final int alphabet = (int)(par.alphabetMultiplier*par.states);
+			final int tracesAlphabet = (int)(par.tracesAlphabetMultiplier*par.states);
 			
 			LearnerGraph referenceGraph = null;
 			ThreadResult outcome = new ThreadResult();
-			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			referenceGraph = mg.nextMachine(alphabet,seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
+			referenceGraph = mg.nextMachine(alphabet,par.seed, config, converter).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			
 			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,states*3,LearningSupportRoutines.makeEven(states*tracesAlphabet));
+			final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(referenceGraph,par.states*3,LearningSupportRoutines.makeEven(par.states*tracesAlphabet));
 			
 			
 			// try learning the same machine using a random generator selector passed as a parameter.
 			LearnerGraph pta = new LearnerGraph(config);
-			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(trainingSample),5,null);
-			final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
+			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.trainingSample),5,null);
+			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.traceQuantity);
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
 					public int getLength() {
-						return (int)(traceLengthMultiplier*states*tracesAlphabet);
+						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);
 					}
 	
 					@Override
@@ -202,7 +141,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				});
 
 
-			if (onlyUsePositives)
+			if (par.onlyUsePositives)
 			{
 				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 					@Override
@@ -214,13 +153,13 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			else
 				pta.paths.augmentPTA(generator.getAllSequences(0));
 	
-			final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
+			final MarkovModel m= new MarkovModel(par.chunkLen,true,true,false);
 
 			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 			
 			pta.clearColours();
 
-			if (!onlyUsePositives)
+			if (!par.onlyUsePositives)
 				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
 			else 
 				assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
@@ -238,7 +177,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			LearnerGraph ptaToUseForInference = pta;
 			Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
 							
-			if (useCentreVertex)
+			if (par.useCentreVertex)
 			{
 				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
@@ -252,7 +191,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				assert scoreInitialMerge >= 0;
 				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge,true);
 				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
-				if (useMostConnectedVertexToStartLearning)
+				if (par.useMostConnectedVertexToStartLearning)
 				{
 					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				}
@@ -261,12 +200,12 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			}
 			
 			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
-			learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
-			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
+			learnerOfPairs.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(par.useClassifyToOrderPairs);
+			learnerOfPairs.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
 			
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			
-			if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
+			if (verticesToMergeBasedOnInitialPTA != null && par.mergeIdentifiedPathsAfterInference)
 			{
 				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
@@ -795,15 +734,16 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					for(int sample=0;sample<samplesPerFSM;++sample)
 						for(int rndSelector=0;rndSelector<trainingSamplesPerFSM;++rndSelector)
 						{
-							LearnerRunner learnerRunner = new LearnerRunner(states,sample,rndSelector,experimentRunner.getTaskID(),traceQuantityToUse, config, converter);
-							learnerRunner.setOnlyUsePositives(onlyPositives);
-							learnerRunner.setAlphabetMultiplier(alphabetMultiplierMax);
-							learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-							learnerRunner.setTraceLengthMultiplier(traceLengthMultiplierMax);
-							learnerRunner.setChunkLen(chunkSize);
-							learnerRunner.setSelectionID(selection);
-							learnerRunner.setPresetLearningParameters(preset);
-							learnerRunner.setDisableInconsistenciesInMergers(false);
+							MarkovLearningParameters parameters = new MarkovLearningParameters(states, sample,rndSelector, experimentRunner.getTaskID(),traceQuantityToUse);
+							LearnerRunner learnerRunner = new LearnerRunner(parameters, config, converter);
+							parameters.setOnlyUsePositives(onlyPositives);
+							parameters.setAlphabetMultiplier(alphabetMultiplierMax);
+							parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+							parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
+							parameters.setChunkLen(chunkSize);
+							parameters.setSelectionID(selection);
+							parameters.setPresetLearningParameters(preset);
+							parameters.setDisableInconsistenciesInMergers(false);
 							experimentRunner.submitTask(learnerRunner);
 						}
 				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {

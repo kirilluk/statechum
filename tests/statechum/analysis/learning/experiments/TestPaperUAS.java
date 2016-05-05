@@ -32,6 +32,7 @@ import statechum.Helper.whatToRun;
 import statechum.StatechumXML;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.experiments.PairSelection.UASPairQuality;
 import statechum.analysis.learning.experiments.PaperUAS.PaperUAS;
 import statechum.analysis.learning.experiments.PaperUAS.PaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;

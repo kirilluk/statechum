@@ -58,6 +58,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;

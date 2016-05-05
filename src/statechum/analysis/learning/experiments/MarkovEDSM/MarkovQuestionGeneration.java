@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
-package statechum.analysis.learning.experiments.PairSelection;
+package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -472,7 +472,6 @@ public class LearningSupportRoutines
 			List<PairScore> correctPairs = new ArrayList<PairScore>(pairsToConsider.size()), wrongPairs = new ArrayList<PairScore>(pairsToConsider.size());
 			LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairsToConsider, correctPairs, wrongPairs);
 
-			
 			for(PairScore pair:pairsToConsider)
 			{
 				if (pair.getQ().isAccept() && pair.getR().isAccept() && pair.getScore() < 150)

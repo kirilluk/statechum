@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum.analysis.learning.experiments.PairSelection;
+package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +43,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;

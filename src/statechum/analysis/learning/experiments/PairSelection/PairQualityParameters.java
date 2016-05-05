@@ -1,0 +1,95 @@
+/* Copyright (c) 2016 The University of Sheffield
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * StateChum is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * StateChum. If not, see <http://www.gnu.org/licenses/>.
+ */ 
+
+package statechum.analysis.learning.experiments.PairSelection;
+
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+
+public class PairQualityParameters implements ThreadResultID  
+{
+	public final int states,sample,attempt;
+	public boolean onlyUsePositives,pickUniqueFromInitial;
+	int ifDepth;
+	boolean onlyPositives, useUnique;
+	int traceQuantity, lengthMultiplier;
+	double trainingDataMultiplier;
+	int seed;
+
+	public void setExperimentParameters(int ifDepth,boolean onlyPositives,boolean useUnique,int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
+	{
+		this.ifDepth = ifDepth;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.traceQuantity = traceQuantity;this.lengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
+	}
+	
+	public boolean selectingRed,classifierToBlockAllMergers;
+	public boolean zeroScoringAsRed = false;
+
+	public void setLengthMultiplier(int value)
+	{
+		lengthMultiplier = value;
+	}
+	
+	/** The length of compound if-then conditions over REL metrics to evaluate. */
+	public void setIfdepth(int value)
+	{
+		ifDepth = value;
+	}
+	
+	/** Whether to filter the collection of traces such that only positive traces are used. */
+	public void setOnlyUsePositives(boolean value)
+	{
+		onlyUsePositives = value;
+	}
+	
+	/** Where a transition that can be uniquely identifying an initial state be used both for mergers and for building a partly-merged PTA. */
+	public void setPickUniqueFromInitial(boolean value)
+	{
+		pickUniqueFromInitial = value;
+	}
+
+	public PairQualityParameters(int argStates,int argSample, int argAttempt, int argSeed) 
+	{
+		states = argStates;sample=argSample;attempt=argAttempt;seed = argSeed;
+	}
+	
+	public String getExperimentID()
+	{
+		return "ifDepth="+ifDepth+
+		";onlyPositives="+onlyPositives+";useUnique="+useUnique+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+	}
+	
+	@Override
+	public String getRowID()
+	{
+		return getExperimentID()+";sample="+sample+";attempt="+attempt+";seed="+seed;
+	}
+
+	@Override
+	public String[] getColumnText() 
+	{
+		return new String[]{"outcome"};
+	}
+
+	@Override
+	public String getColumnID() {
+		return null;// this instance of parameters should only be used to configure a learner rather than to record results. Returning null will force an experiment to fail if I accidentally use the wrong one.
+	}
+
+	@Override
+	public String[] headerValuesForEachCell() {
+		return new String[]{"BCR","Diff","States"};
+	}
+}

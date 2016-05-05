@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The University of Sheffield.
+/* Copyright (c) 2016 The University of Sheffield.
  * 
  * This file is part of StateChum.
  * 
@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statechum.analysis.learning.experiments.PairSelection;
+package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,6 +56,10 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
+import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;

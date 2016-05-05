@@ -31,6 +31,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovScoreComputation;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;

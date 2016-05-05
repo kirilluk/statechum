@@ -175,7 +175,7 @@ public class WekaDataCollector
 		return outcome;
 	}
 	
-	/**  Constructs a Weka {@link Instance} for a pair of interest.
+	/** Constructs a Weka {@link Instance} for a pair of interest.
 	 * 
 	 * @param comparisonResults metrics related to the considered pair.
 	 * @param classification whether this is a correct pair
@@ -466,12 +466,13 @@ public class WekaDataCollector
 			for(String v:range) vecA.addElement(v);
 			att = new Attribute(name,vecA);
 		}
-		
+
 		@Override
 		public String toString()
 		{
 			return att.name();
 		}
+
 		public PairMeasurements measurementsForCurrentStack(PairScore p)
 		{
 			return measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(p);

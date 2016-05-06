@@ -40,9 +40,9 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -478,7 +478,6 @@ public class MarkovClassifier
 			return true;
 		}
 
-		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,@SuppressWarnings("unused") CmpVertex v) {
 			return graph.getCache().getAlphabet();
@@ -504,7 +503,6 @@ public class MarkovClassifier
 			return MarkovOutcome.ensureConsistencyBetweenOpinions(actual,predicted);
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,CmpVertex v) {
 			return ((Map)graph.transitionMatrix.get(v)).keySet();
@@ -532,7 +530,6 @@ public class MarkovClassifier
 			return actual;
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,CmpVertex v) {
 			return ((Map)graph.transitionMatrix.get(v)).keySet();
@@ -557,7 +554,6 @@ public class MarkovClassifier
 
 	
 	/** This one counts all inconsistencies but does not blacklist any label. */
-	@SuppressWarnings("rawtypes")
 	public static class DifferentPredictionsInconsistencyAcrossAllElementsOfAlphabet implements ConsistencyChecker
 	{
 		@Override
@@ -573,7 +569,6 @@ public class MarkovClassifier
 			return actual;
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Collection<Label> obtainAlphabet(AbstractLearnerGraph graph,@SuppressWarnings("unused") CmpVertex v) {
 			return graph.getCache().getAlphabet();

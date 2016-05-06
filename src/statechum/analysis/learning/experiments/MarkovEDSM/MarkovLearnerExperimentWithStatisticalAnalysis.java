@@ -56,23 +56,13 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.OverrideScoringToApply;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -195,7 +185,8 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				}
 				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
-				System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+				if (par.usePrintf)
+					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 			}
 			
 			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,referenceGraph,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
@@ -281,7 +272,8 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			{
 				int len = seq.size();if (len > wSeqLen) wSeqLen=len;
 			}
-			System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ 
+			if (par.usePrintf)
+				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ 
 					" difference actual is "+dataSample.actualLearner.differenceStructural+ " difference ref is "+dataSample.referenceLearner.differenceStructural
 					+ " inconsistency learnt "+dataSample.actualLearner.inconsistency+" inconsistency reference: "+inconsistencyForTheReferenceGraph
 					+" transitions per state: "+(double)referenceGraph.pathroutines.countEdges()/referenceGraph.getStateNumber()+
@@ -290,7 +282,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					+ " and by singletons "+Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph))+" %"
 					);
 			outcome.samples.add(dataSample);
-			
 			
 			return outcome;
 		}
@@ -367,9 +358,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 		{
 			useClassifyPairs = v;
 		}
-		
+
 		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
-		
+
 		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
 		protected boolean disableInconsistenciesInMergers = false;
 		
@@ -390,7 +381,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 		}
-		
+
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
 		public long overrideScoreComputation(PairScore p) 
 		{
@@ -534,7 +525,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 					else
 						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
 				}
-				
+
 				for(PairScore p:nonNegPairs)
 				{
 					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
@@ -713,7 +704,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 				
 			final int traceQuantityToUse = traceQuantity;
 			final AtomicLong comparisonsPerformed = new AtomicLong(0);
-			String selection = "preset="+preset+";quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";statesMax="+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+";alphabetMult="+alphabetMultiplierMax+";";
+			final int statesMax = minStateNumber+rangeOfStateNumbers-stateNumberIncrement;
+			MarkovLearningParameters parExp = new MarkovLearningParameters(0,0,0,0,0);
+			parExp.setExperimentID(preset,traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 			final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+preset+"_"+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+"_trace_structuraldiff.pdf"),0,1,true);
 			final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+preset+"_"+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+"_trace_bcr.pdf"),0.5,1,true);		
 			final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(branch+"_"+preset+"_"+(minStateNumber+rangeOfStateNumbers-stateNumberIncrement)+"_trace_kt_bcr.pdf"),0.5,1,true);		
@@ -722,29 +715,29 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
 				// in order to compute the statistical test for each group of states, we generate a lot of object to add the mean of BCR and structural difference
-				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(branch+"_"+parExp.getExperimentID()+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
+				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(branch+"_"+parExp.getExperimentID()+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(branch+"_"+parExp.getExperimentID()+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(branch+"_= "+parExp.getExperimentID()+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(branch+"_"+parExp.getExperimentID()+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(branch+"_"+parExp.getExperimentID()+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
 
-
-					for(int sample=0;sample<samplesPerFSM;++sample)
-						for(int rndSelector=0;rndSelector<trainingSamplesPerFSM;++rndSelector)
-						{
-							MarkovLearningParameters parameters = new MarkovLearningParameters(states, sample,rndSelector, experimentRunner.getTaskID(),traceQuantityToUse);
-							LearnerRunner learnerRunner = new LearnerRunner(parameters, config, converter);
-							parameters.setOnlyUsePositives(onlyPositives);
-							parameters.setAlphabetMultiplier(alphabetMultiplierMax);
-							parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-							parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-							parameters.setChunkLen(chunkSize);
-							parameters.setSelectionID(selection);
-							parameters.setPresetLearningParameters(preset);
-							parameters.setDisableInconsistenciesInMergers(false);
-							experimentRunner.submitTask(learnerRunner);
-						}
+				for(int sample=0;sample<samplesPerFSM;++sample)
+					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
+					{
+						MarkovLearningParameters parameters = new MarkovLearningParameters(states, sample,trainingSample, experimentRunner.getTaskID(),traceQuantityToUse);
+						LearnerRunner learnerRunner = new LearnerRunner(parameters, config, converter);
+						parameters.setOnlyUsePositives(onlyPositives);
+						parameters.setAlphabetMultiplier(alphabetMultiplierMax);
+						parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+						parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
+						parameters.setChunkLen(chunkSize);
+						parameters.setExperimentID(preset,traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+						parameters.setPresetLearningParameters(preset);
+						parameters.setDisableInconsistenciesInMergers(false);
+						parameters.setUsePrintf(experimentRunner.isInteractive());
+						experimentRunner.submitTask(learnerRunner);
+					}
 				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
 
 					@Override
@@ -769,7 +762,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}
 
-						
 					}
 
 					@Override

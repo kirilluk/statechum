@@ -17,9 +17,7 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import statechum.Configuration;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class MarkovLearningParameters implements ThreadResultID 
 {
@@ -28,15 +26,32 @@ public class MarkovLearningParameters implements ThreadResultID
 	public boolean learnUsingReferenceLearner; 
 	public final int seed;
 	public int chunkLen=3;
-	public int traceQuantity;
-	public String selectionID;
+	public int traceQuantityToUse;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
 	public double tracesAlphabetMultiplier = 0;
-
-	public MarkovLearningParameters(int argStates, int argSample, int argTrainingSample, int argSeed, int nrOfTraces)
+	public int preset,traceQuantity,statesMax;
+	public double traceLengthMultiplierMax,alphabetMultiplierMax;
+	boolean usePrintf = false;
+	
+	public MarkovLearningParameters(int argStates, int argSample, int argTrainingSample, int argSeed, int traceQuantityToUse)
 	{
-		states = argStates;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;traceQuantity=nrOfTraces;
+		states = argStates;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;this.traceQuantityToUse=traceQuantityToUse;
+	}
+	
+	public void setExperimentID(int preset,int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
+	{
+		this.preset = preset;this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
+	}
+	
+	public String getExperimentID()
+	{
+		return "preset="+preset+";traceQuantity="+traceQuantity+";traceLengthMultiplierMax="+traceLengthMultiplierMax+";statesMax="+statesMax+";alphabetMultiplierMax="+alphabetMultiplierMax;
+	}
+	
+	public void setUsePrintf(boolean value)
+	{
+		usePrintf = value;
 	}
 	
 	/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
@@ -51,12 +66,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	{
 		tracesAlphabetMultiplier = evalAlphabetMult;
 	}
-	
-	public void setSelectionID(String value)
-	{
-		selectionID = value;
-	}
-	
+		
 	/** Whether to filter the collection of traces such that only positive traces are used. */
 	public void setOnlyUsePositives(boolean value)
 	{
@@ -70,10 +80,6 @@ public class MarkovLearningParameters implements ThreadResultID
 	
 	public void setTraceLengthMultiplier(double traceMulti) {
 		traceLengthMultiplier=traceMulti;
-	}
-	
-	public void setTraceQuantity(int traceQuantity2) {
-		traceQuantity=	traceQuantity2;		
 	}
 	
 	public void setChunkLen(int len)
@@ -108,7 +114,7 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return ";sample="+sample+";attempt="+attempt+";seed="+seed+";ifDepth="+ifDepth+";onlyPositives="+onlyPositives+";useUnique="+useUnique+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+		return getExperimentID()+";chunkLen="+chunkLen+";sample="+sample+";trainingSample="+trainingSample+";seed="+seed+";onlyPositives="+onlyUsePositives+";traceQuantityToUse="+traceQuantityToUse+";traceLengthMultiplier="+traceLengthMultiplier+";tracesAlphabetMultiplier="+tracesAlphabetMultiplier+";";
 	}
 
 	@Override

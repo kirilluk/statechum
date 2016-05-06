@@ -29,9 +29,23 @@ public class PairQualityParameters implements ThreadResultID
 	double trainingDataMultiplier;
 	int seed;
 
+	String column = null;
+	
+	public void setColumn(String text)
+	{
+		column = text;
+	}
+	
+	ThreadResultID innerLearner = null;
+	
 	public void setExperimentParameters(int ifDepth,boolean onlyPositives,boolean useUnique,int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
 	{
 		this.ifDepth = ifDepth;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.traceQuantity = traceQuantity;this.lengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
+	}
+	
+	public void setInnerParameters(ThreadResultID inner)
+	{
+		innerLearner = inner;
 	}
 	
 	public boolean selectingRed,classifierToBlockAllMergers;
@@ -67,8 +81,11 @@ public class PairQualityParameters implements ThreadResultID
 	
 	public String getExperimentID()
 	{
-		return "ifDepth="+ifDepth+
+		String exp = "ifDepth="+ifDepth+
 		";onlyPositives="+onlyPositives+";useUnique="+useUnique+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+		if (innerLearner != null)
+			exp+="-"+innerLearner.getRowID();
+		return exp;
 	}
 	
 	@Override
@@ -80,16 +97,16 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String[] getColumnText() 
 	{
-		return new String[]{"outcome"};
+		return new String[]{column};
 	}
 
 	@Override
 	public String getColumnID() {
-		return null;// this instance of parameters should only be used to configure a learner rather than to record results. Returning null will force an experiment to fail if I accidentally use the wrong one.
+		return column;
 	}
 
 	@Override
 	public String[] headerValuesForEachCell() {
-		return new String[]{"BCR","Diff","States"};
+		return new String[]{"BCR","Diff","States","PairQuality"};
 	}
 }

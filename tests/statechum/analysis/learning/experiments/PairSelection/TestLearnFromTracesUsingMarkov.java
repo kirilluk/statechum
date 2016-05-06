@@ -26,6 +26,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;

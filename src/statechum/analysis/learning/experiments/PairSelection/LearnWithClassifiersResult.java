@@ -1,6 +1,6 @@
-/* Copyright (c) 2016 The University of Sheffield
+/* Copyright (c) 2016 The University of Sheffield.
  * 
- * This file is part of StateChum.
+ * This file is part of StateChum
  * 
  * StateChum is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,20 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
+import java.util.Map;
 
-public class ExperimentResult<EXPERIMENT_PARAMETERS> extends ThreadResult {
-	public final EXPERIMENT_PARAMETERS parameters;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
+
+public class LearnWithClassifiersResult extends ExperimentResult<PairQualityParameters> {
+
+	public LearnWithClassifiersResult(PairQualityParameters p) {
+		super(p);
+	}
+
+	public Map<Long,TrueFalseCounter> pairQualityCounter = null;
 	
-	public ExperimentResult(EXPERIMENT_PARAMETERS p)
+	public void setPairQualityCounter(Map<Long,TrueFalseCounter> c)
 	{
-		parameters = p;
+		pairQualityCounter = c;
 	}
 }

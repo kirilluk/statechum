@@ -1,32 +1,45 @@
+/* Copyright (c) 2016 The University of Sheffield
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUpdatesWekaResults;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.classifiers.Classifier;
 
 public class ConstructClassifier 
@@ -34,11 +47,10 @@ public class ConstructClassifier
 	public static void main(String args[]) throws Exception
 	{
 		DrawGraphs gr = new DrawGraphs();
-		ConvertALabel converter = new Transform.InternStringLabel();
-		Configuration config = PairQualityLearner.constructConfigurationForLearningUsingClassifiers();
+	    LearnerEvaluationConfiguration learnerInitConfiguration = UASExperiment.constructLearnerInitConfiguration();
+	    PairQualityLearner.configureConfigurationForLearningUsingClassifiers(learnerInitConfiguration.config);
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 
 		String outDir = "tmp"+File.separator+PairQualityLearner.nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		if (!new java.io.File(outDir).isDirectory())
@@ -48,9 +60,12 @@ public class ConstructClassifier
 				System.out.println("failed to create a work directory");return ;
 			}
 		}
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		// Stores tasks to complete.
-		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
+
+		// This has to be run in a standalone mode in order to collect pair data across all experiments 
+		// (which hence have to be all in the same process). This should not be a slow process because
+		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
+		RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+
 		String outPathPrefix = outDir + File.separator;
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 4;
@@ -68,41 +83,47 @@ public class ConstructClassifier
 					PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 					parExperiment.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 					WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
-					List<SampleData> samples = new LinkedList<SampleData>();
-					try
-					{
-						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
-								for(int attempt=0;attempt<2;++attempt)
+					int numberOfTasks = 0;
+					for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+						for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
+							for(int attempt=0;attempt<2;++attempt)
+							{
+								PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
+								parExperiment.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+								PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 								{
-									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
-									parameters.traceQuantity = traceQuantity;
-									LearnerRunner learnerRunner = new LearnerRunner(dataCollector,parameters, config, converter)
+									@Override
+									public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 									{
-										@Override
-										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
-										{
-											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA);
-										}
-									};
-									parameters.setPickUniqueFromInitial(useUnique);parameters.setOnlyUsePositives(onlyPositives);parameters.setIfdepth(ifDepth);parameters.setLengthMultiplier(lengthMultiplier);
-									runner.submit(learnerRunner);
-									++numberOfTasks;
-								}
-						for(int count=0;count < numberOfTasks;++count)
+										return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA);
+									}
+								};
+								parameters.setPickUniqueFromInitial(useUnique);parameters.setOnlyUsePositives(onlyPositives);parameters.setIfdepth(ifDepth);parameters.setLengthMultiplier(lengthMultiplier);
+								experimentRunner.submitTask(learnerRunner);
+								++numberOfTasks;
+							}
+			    	processSubExperimentResult<ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<ExperimentResult<PairQualityParameters>>() {
+						@SuppressWarnings("unused")
+						@Override
+						public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
 						{
-							ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-							samples.addAll(result.samples);
 						}
-					}
-					catch(Exception ex)
-					{
-						IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-						if (executorService != null) { executorService.shutdown();executorService = null; }
-						throw e;
-					}
+						
+						@Override
+						public String getSubExperimentName()
+						{
+							return "Learning classifiers";
+						}
+						
+						@Override
+						public SGEExperimentResult[] getGraphs() {
+							return new SGEExperimentResult[]{};
+						}
+					};
+										
+					experimentRunner.collectOutcomeOfExperiments(resultHandler);
 
+					// we are here because the outcome of all experiments submitted so far has been obtained, it is therefore time to construct classifiers from the logged pair information.
 					int nonZeroes = 0;
 					long numberOfValues = 0;
 					System.out.println("number of instances: "+dataCollector.trainingData.numInstances());

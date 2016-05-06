@@ -75,10 +75,14 @@
 package statechum.analysis.learning;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -103,6 +107,7 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.StatechumXML.StringSequenceWriter;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
@@ -555,7 +560,7 @@ public class DrawGraphs {
 			String reducedLine = concatenateWithSeparator(elements);
 			if (reducedLine.isEmpty())
 				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
-			columnText.put(id.getColumnID(), reducedLine);
+			columnText.put(id.getColumnID(), reducedLine); 
 
 			if (!columnIDToHeader.containsKey(id.getColumnID()))
 			{
@@ -701,6 +706,187 @@ public class DrawGraphs {
 		}
 	}
 
+	public static int charToHex(int b)
+	{
+		if (b >=0 && b<10)
+			return '0'+b;
+		else
+			if (b>=10 && b < 0x10)
+				return 'A'+b;
+			else
+				throw new IllegalArgumentException("invalid byte, should be 0..0x10");
+	}
+	
+	public static String objectAsText(Object obj)
+	{
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+		try
+		{
+			ObjectOutputStream oo = new ObjectOutputStream(buffer); 
+	        oo.writeObject(obj);
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to serialise object", ex);
+		}
+        StringBuffer out = new StringBuffer();
+        for(byte b:buffer.toByteArray())
+        {
+        	out.append((char)(charToHex(b >> 4)));
+        	out.append((char)(charToHex(b & 0x10)));
+        }
+        return out.toString();
+	}
+	
+	public static int parseChar(char ch)
+	{
+		if (ch >= '0' && ch <= '9')
+			return ch-'0';
+		else
+			if (ch >= 'A' && ch <= 'F')
+				return ch-'A'+0x0a;
+			else
+				throw new IllegalArgumentException("invalid char, should be between 0..9 or A..F");
+	}
+	
+	public static Object parseObject(String str)
+	{
+		List<Byte> buffer = new ArrayList<Byte>();
+		int curByte=0;
+		if (str.length() % 2 != 0)
+			throw new IllegalArgumentException("the length of hex representation should be even");
+		for(int i=0;i<str.length();++i)
+		{
+			char ch = str.charAt(i);
+			if (i %2 == 0)
+			{// even byte, record it
+				curByte = parseChar(ch);
+			}
+			else
+			{
+				buffer.add((byte)(parseChar(ch)+(curByte << 4)));curByte=0;
+			}
+		}
+		Object outcome = null;
+		try
+		{
+			byte []buf =new byte[buffer.size()];for(int i=0;i<buffer.size();++i) buf[i]=buffer.get(i); 
+			ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(buf)); 
+			outcome = objectInputStream.readObject();
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to deserialise object", ex);
+		}
+		return outcome;
+	}
+	
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToStringGraph(RBoxPlot<String> plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				plot.add(X, Double.parseDouble(Y), colour, label);
+		}
+	}
+	
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToDoubleGraph(RBoxPlot<Double> plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				plot.add(Double.parseDouble(X), Double.parseDouble(Y), colour, label);
+		}
+	}
+	
+	public static void spreadsheetAsDouble(AggregateValues agg,CSVExperimentResult whereFrom, String columnX, String columnY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				agg.merge(Double.parseDouble(X), Double.parseDouble(Y));
+		}
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToDoubleGraph(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				plot.add(Double.parseDouble(X), Double.parseDouble(Y), colour, label);
+		}
+	}
+	
+	
+	public interface MergeObjects
+	{
+		/** Called to merge the provided object into that represented by a provider of this interface. */
+		public void merge(String key, Object obj);
+	}
+	
+	public interface AggregateValues
+	{
+		/** Called to handle values in a spreadsheet. */
+		public void merge(double A, double B);
+	}
+	
+	/** Makes it possible to take serialised data from a column of a spreadsheet and merge it into an aggregate. 
+	 * Imaging a map from pair score to true/false counters. By constructing it for each 
+	 * learner and dumping into spreadsheet cells via {@link DrawGraphs#objectAsText} and 
+	 * when all experiments are complete, load them back and combine into a single map, subsequently constructing
+	 * a graph.
+	 *  
+	 * @param m called for each deserialised object
+	 * @param whereFrom spreadsheet to process
+	 * @param columnX column for the <em>X</em> value, unused if columnX is null.
+	 * @param columnY values to deserialise, will throw IllegalArgumentException if this fails.
+	 */
+	public static void spreadsheetObjectsCollect(MergeObjects m, CSVExperimentResult whereFrom, String columnX, String columnY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = columnX == null?null:rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (Y != null && !Y.isEmpty())
+				m.merge(X,parseObject(Y));
+		}
+	}
+	
 	/**
 	 * Represents a graph.
 	 * 

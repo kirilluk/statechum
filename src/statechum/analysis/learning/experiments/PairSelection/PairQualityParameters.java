@@ -17,7 +17,10 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.util.Map;
+
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 
 public class PairQualityParameters implements ThreadResultID  
 {
@@ -74,6 +77,13 @@ public class PairQualityParameters implements ThreadResultID
 		pickUniqueFromInitial = value;
 	}
 
+	public Map<Long,TrueFalseCounter> pairQualityCounter = null;
+	
+	public void setPairQualityCounter(Map<Long,TrueFalseCounter> c)
+	{
+		pairQualityCounter = c;
+	}
+	
 	public PairQualityParameters(int argStates,int argSample, int argAttempt, int argSeed) 
 	{
 		states = argStates;sample=argSample;attempt=argAttempt;seed = argSeed;

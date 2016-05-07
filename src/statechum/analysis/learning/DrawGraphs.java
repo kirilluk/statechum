@@ -625,7 +625,7 @@ public class DrawGraphs {
 					wr.append(',');
 					String value = rowEntry.getValue().get(column);
 					if (value == null)
-						value = "MISSING";
+						value = "";// empty value indicates a missing value
 					wr.append(value);
 				}
 				wr.append('\n');
@@ -780,6 +780,14 @@ public class DrawGraphs {
 		return outcome;
 	}
 	
+	public static String obtainValueFromCell(String columnValue, int cellNumber)
+	{
+		String [] elements = columnValue.split(",");
+		if (elements.length <= cellNumber || cellNumber < 0)
+			throw new IllegalArgumentException("invalid cell number "+cellNumber+", should be 0.."+elements.length);
+		return elements[cellNumber];
+	}
+	
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
 	 * 
 	 * @param plot R graph to update
@@ -789,14 +797,14 @@ public class DrawGraphs {
 	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
 	 * @param label label to add with each value.
 	 */
-	public static void spreadsheetToStringGraph(RBoxPlot<String> plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	public static void spreadsheetToStringGraph(RBoxPlot<String> plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
 			String X = rowEntry.getValue().get(columnX);
 			String Y = rowEntry.getValue().get(columnY);
 			if (X != null && Y != null)
-				plot.add(X, Double.parseDouble(Y), colour, label);
+				plot.add(obtainValueFromCell(X,cellWithinX), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
 	}
 	
@@ -809,25 +817,25 @@ public class DrawGraphs {
 	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
 	 * @param label label to add with each value.
 	 */
-	public static void spreadsheetToDoubleGraph(RBoxPlot<Double> plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	public static void spreadsheetToDoubleGraph(RBoxPlot<Double> plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
 			String X = rowEntry.getValue().get(columnX);
 			String Y = rowEntry.getValue().get(columnY);
 			if (X != null && Y != null)
-				plot.add(Double.parseDouble(X), Double.parseDouble(Y), colour, label);
+				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
 	}
 	
-	public static void spreadsheetAsDouble(AggregateValues agg,CSVExperimentResult whereFrom, String columnX, String columnY)
+	public static void spreadsheetAsDouble(AggregateValues agg,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
 			String X = rowEntry.getValue().get(columnX);
 			String Y = rowEntry.getValue().get(columnY);
 			if (X != null && Y != null)
-				agg.merge(Double.parseDouble(X), Double.parseDouble(Y));
+				agg.merge(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
 		}
 	}
 
@@ -840,14 +848,14 @@ public class DrawGraphs {
 	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
 	 * @param label label to add with each value.
 	 */
-	public static void spreadsheetToDoubleGraph(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, String columnY, String colour, String label)
+	public static void spreadsheetToDoubleGraph(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
 			String X = rowEntry.getValue().get(columnX);
 			String Y = rowEntry.getValue().get(columnY);
 			if (X != null && Y != null)
-				plot.add(Double.parseDouble(X), Double.parseDouble(Y), colour, label);
+				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
 	}
 	
@@ -875,14 +883,14 @@ public class DrawGraphs {
 	 * @param columnX column for the <em>X</em> value, unused if columnX is null.
 	 * @param columnY values to deserialise, will throw IllegalArgumentException if this fails.
 	 */
-	public static void spreadsheetObjectsCollect(MergeObjects m, CSVExperimentResult whereFrom, String columnX, String columnY)
+	public static void spreadsheetObjectsCollect(MergeObjects m, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
 			String X = columnX == null?null:rowEntry.getValue().get(columnX);
 			String Y = rowEntry.getValue().get(columnY);
 			if (Y != null && !Y.isEmpty())
-				m.merge(X,parseObject(Y));
+				m.merge(X == null?null:obtainValueFromCell(X,cellWithinX),parseObject(obtainValueFromCell(Y,cellWithinY)));
 		}
 	}
 	

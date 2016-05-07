@@ -119,7 +119,7 @@ public class LearnUsingClassifier {
 								csvLine.append(difference.differenceBCR.getValue());
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-								CSVExperimentResult.addSeparator(csvLine);if (result.pairQualityCounter != null) csvLine.append(DrawGraphs.objectAsText(result.pairQualityCounter));
+								CSVExperimentResult.addSeparator(csvLine);if (result.parameters.pairQualityCounter != null) csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
 								experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 							}
 							
@@ -145,6 +145,7 @@ public class LearnUsingClassifier {
 										parameters.setInnerParameters(parametersInnerLearner);
 										parameters.setColumn("WithClassifier");
 										final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
+										parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
 										PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 										{
 											@Override
@@ -153,16 +154,7 @@ public class LearnUsingClassifier {
 												LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA);
 												l.setPairQualityCounter(pairQualityCounter);
 												return l;
-											}
-											
-											@Override
-											protected LearnWithClassifiersResult constructOutcome()
-											{
-												LearnWithClassifiersResult v = super.constructOutcome();
-												v.setPairQualityCounter(pairQualityCounter);
-												return v;
-											}
-											
+											}											
 										};
 										experimentRunner.submitTask(learnerRunner);
 									}
@@ -188,7 +180,7 @@ public class LearnUsingClassifier {
 				    		
 				    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 				    	// When we reach this point, the CSV is built so it is handy to process the data in it.
-				    	DrawGraphs.spreadsheetToDoubleGraph(gr_NewToOrig, resultCSV, "Reference", "WithClassifier", null, null);
+				    	DrawGraphs.spreadsheetToDoubleGraph(gr_NewToOrig, resultCSV, "Reference", 0, "WithClassifier", 0, null, null);
 				    	DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
 							
 							@Override
@@ -196,7 +188,7 @@ public class LearnUsingClassifier {
 								if (reference > 0)
 									gr_QualityForNumberOfTraces.add(traceQuantity+"",actual/reference);
 							}
-						}, resultCSV, "Reference", "WithClassifier");
+						}, resultCSV, "Reference", 0,"WithClassifier",0);
 						
 						if (gr_PairQuality != null)
 						{
@@ -215,7 +207,7 @@ public class LearnUsingClassifier {
 										}
 										c.trueCounter+=entry.getValue().trueCounter;c.falseCounter+=entry.getValue().falseCounter;
 									}
-								}},resultCSV,null,"PairQuality");
+								}},resultCSV,null,0,"PairQuality",3);
 							LearningSupportRoutines.updateGraph(gr_PairQuality,pairQualityCounter);
 								//gr_PairQuality.drawInteractive(gr);
 								//gr_NewToOrig.drawInteractive(gr);

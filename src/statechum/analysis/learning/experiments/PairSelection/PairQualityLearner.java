@@ -1055,16 +1055,11 @@ public class PairQualityLearner
 		
 		public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
 		
-		protected LearnWithClassifiersResult constructOutcome()
-		{
-			return  new LearnWithClassifiersResult(par);
-		}
-		
 		@Override
 		public LearnWithClassifiersResult call() throws Exception 
 		{
 			final int alphabet = par.states;
-			LearnWithClassifiersResult outcome = constructOutcome();
+			LearnWithClassifiersResult outcome = new LearnWithClassifiersResult(par);
 			WekaDataCollector dataCollector = createDataCollector(par.ifDepth);
 			Label uniqueFromInitial = null;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);

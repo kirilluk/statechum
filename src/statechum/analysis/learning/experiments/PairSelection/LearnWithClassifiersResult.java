@@ -18,20 +18,9 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.util.Map;
-
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-
 public class LearnWithClassifiersResult extends ExperimentResult<PairQualityParameters> {
 
 	public LearnWithClassifiersResult(PairQualityParameters p) {
 		super(p);
-	}
-
-	public Map<Long,TrueFalseCounter> pairQualityCounter = null;
-	
-	public void setPairQualityCounter(Map<Long,TrueFalseCounter> c)
-	{
-		pairQualityCounter = c;
 	}
 }

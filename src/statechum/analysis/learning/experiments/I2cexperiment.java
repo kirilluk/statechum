@@ -376,22 +376,6 @@ public class I2cexperiment extends PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				Stack<PairScore> pairsWithScoresComputedUsingGeneralMerger = outcome;
-				/*
-				new Stack<PairScore>();
-				int count=0;
-				for(PairScore p:outcome)
-				{
-					long inconsistencyScore = computeScoreBasedOnInconsistencies(p);
-					if (inconsistencyScore >= 0)
-					{
-						pairsWithScoresComputedUsingGeneralMerger.push(new PairScore(p.getQ(),p.getR(),inconsistencyScore,p.getAnotherScore()));
-						if (++count > 10)
-							break;
-					}
-				}
-
-				Collections.sort(pairsWithScoresComputedUsingGeneralMerger);
-				*/
 				PairScore chosenPair = null;
 				chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
 				outcome.clear();outcome.push(chosenPair);

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -25,6 +26,8 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
+import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
@@ -484,7 +487,7 @@ public class TestDrawGraphs {
 	public void testCSVwriteFile3d() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
-		CSVExperimentResult w = new CSVExperimentResult(output);
+		CSVExperimentResult w = new CSVExperimentResult(output);w.setMissingValue("MISSING");
 		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
 		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
 		
@@ -507,6 +510,146 @@ public class TestDrawGraphs {
 		}
 		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,MISSING]", buffer.toString());
 	}
+	
+	// Tests that a spreadsheet can be successfully iterated through.
+	@Test
+	public void testScanMatrix1()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";w.add(parB,"p2,q10");
+		
+		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
+		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
+			@Override
+			public void merge(String A, String B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
+		Assert.assertEquals("[p1, p2]", valueB.toString());
+	}
+	
+	@Test
+	public void testScanMatrix2()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";
+		
+		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
+		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
+			@Override
+			public void merge(String A, String B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
+		Assert.assertEquals("[p1, null]", valueB.toString());
+	}
+	
+	
+	@Test
+	public void testScanMatrix3()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"0.01,q1");parB.rowID = "Row2";w.add(parB,"0.21,q1");
+		
+		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
+		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+			@Override
+			public void merge(double A, double B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[1.5, 2.0]", valueA.toString());
+		Assert.assertEquals("[0.01, 0.21]", valueB.toString());
+	}
+	
+	// here one of the pairs is missing and is therefore ignored.
+	@Test
+	public void testScanMatrix4()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"0.01,q1");
+		
+		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
+		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+			@Override
+			public void merge(double A, double B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[1.5]", valueA.toString());
+		Assert.assertEquals("[0.01]", valueB.toString());
+	}
+	
+	@Test
+	public void testParseObject1()
+	{
+		Object obj = DrawGraphs.parseObject(DrawGraphs.objectAsText("a_string"));
+		Assert.assertSame(String.class,obj.getClass());
+		Assert.assertEquals("a_string", obj);
+	}
+	
+	@Test
+	public void testParseObject2()
+	{
+		Object obj = DrawGraphs.parseObject(DrawGraphs.objectAsText(new Double(4.5)));
+		Assert.assertSame(Double.class,obj.getClass());
+		Assert.assertEquals("4.5", obj.toString());
+	}
+	
+	@Test
+	public void testParseObjectFail0()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.objectAsText(new Object());
+		}},IllegalArgumentException.class,"failed to serialise");
+	}
+	
+	@Test
+	public void testParseObjectFail1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("jj");
+		}},IllegalArgumentException.class,"invalid char");
+	}
+	
+	@Test
+	public void testParseObjectFail2()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("A");
+		}},IllegalArgumentException.class,"should be even");
+	}
+	
+	@Test
+	public void testParseObjectFail3()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("A0");
+		}},IllegalArgumentException.class,"failed to deserialise");
+	}
+	
+	@Test
+	public void testParseObjectFail4()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.charToHex(400);
+		}},IllegalArgumentException.class,"invalid byte");
+	}
+	
 	
 	@Test
 	public void testRemoveSpaces1()

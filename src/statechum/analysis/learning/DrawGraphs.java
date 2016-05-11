@@ -489,6 +489,13 @@ public class DrawGraphs {
 		final Map<String,String []> columnIDToCellHeader = new TreeMap<String,String []>();
 		protected final File file;
 		
+		protected String missingValue = "";
+		
+		public void setMissingValue(String val)
+		{
+			missingValue = val;
+		}
+		
 		public CSVExperimentResult(File arg)
 		{
 			file = arg;
@@ -625,7 +632,7 @@ public class DrawGraphs {
 					wr.append(',');
 					String value = rowEntry.getValue().get(column);
 					if (value == null)
-						value = "";// empty value indicates a missing value
+						value = missingValue;// empty value indicates a missing value
 					wr.append(value);
 				}
 				wr.append('\n');
@@ -711,7 +718,7 @@ public class DrawGraphs {
 			return '0'+b;
 		else
 			if (b>=10 && b < 0x10)
-				return 'A'+b;
+				return 'A'+b-10;
 			else
 				throw new IllegalArgumentException("invalid byte, should be 0..0x10");
 	}
@@ -731,8 +738,8 @@ public class DrawGraphs {
         StringBuffer out = new StringBuffer();
         for(byte b:buffer.toByteArray())
         {
-        	out.append((char)(charToHex(b >> 4)));
-        	out.append((char)(charToHex(b & 0x10)));
+        	out.append((char)(charToHex( (b & 0xf0) >> 4)));
+        	out.append((char)(charToHex(b & 0xf)));
         }
         return out.toString();
 	}
@@ -839,6 +846,28 @@ public class DrawGraphs {
 		}
 	}
 
+	public static void spreadsheetAsDouble(RStatisticalAnalysis analysis,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				analysis.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
+		}
+	}
+
+	public static void spreadsheetAsString(AggregateStringValues agg,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			agg.merge(X == null?null:obtainValueFromCell(X,cellWithinX),Y == null?null:obtainValueFromCell(Y,cellWithinY));
+		}
+	}
+
+	
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
 	 * 
 	 * @param plot R graph to update
@@ -848,7 +877,7 @@ public class DrawGraphs {
 	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
 	 * @param label label to add with each value.
 	 */
-	public static void spreadsheetToDoubleGraph(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	public static void spreadsheetToBagPlot(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
@@ -870,6 +899,12 @@ public class DrawGraphs {
 	{
 		/** Called to handle values in a spreadsheet. */
 		public void merge(double A, double B);
+	}
+	
+	public interface AggregateStringValues
+	{
+		/** Called to handle values in a spreadsheet. */
+		public void merge(String A, String B);
 	}
 	
 	/** Makes it possible to take serialised data from a column of a spreadsheet and merge it into an aggregate. 

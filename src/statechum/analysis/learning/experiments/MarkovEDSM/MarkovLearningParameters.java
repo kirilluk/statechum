@@ -21,6 +21,16 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 
 public class MarkovLearningParameters implements ThreadResultID 
 {
+	enum LearnerToUseEnum
+	{
+		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM3("edsm_3"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_1("k=1"), LEARNER_SICCO("Sicco");
+		public final String name;
+		private LearnerToUseEnum(String nameText)
+		{
+			name = nameText;
+		}
+	}
+	public LearnerToUseEnum learnerToUse;
 	public final int states,sample,trainingSample;
 	public boolean onlyUsePositives;
 	public boolean learnUsingReferenceLearner; 
@@ -34,19 +44,22 @@ public class MarkovLearningParameters implements ThreadResultID
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
 	
-	public MarkovLearningParameters(int argStates, int argSample, int argTrainingSample, int argSeed, int traceQuantityToUse)
+	public MarkovLearningParameters(LearnerToUseEnum l,int argStates, int argSample, int argTrainingSample, int argSeed, int traceQuantityToUse)
 	{
+		learnerToUse = l;
 		states = argStates;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;this.traceQuantityToUse=traceQuantityToUse;
 	}
 	
-	public void setExperimentID(int preset,int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
+	public void setExperimentID(int chunkLen,int preset,int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
 	{
-		this.preset = preset;this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
+		this.preset = preset;setPresetLearningParameters(preset);
+		this.chunkLen = chunkLen;
+		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
 	}
 	
 	public String getExperimentID()
 	{
-		return "preset="+preset+";traceQuantity="+traceQuantity+";traceLengthMultiplierMax="+traceLengthMultiplierMax+";statesMax="+statesMax+";alphabetMultiplierMax="+alphabetMultiplierMax;
+		return "chunkLen="+chunkLen+";preset="+preset+";traceQuantity="+traceQuantity+";traceLengthMultiplierMax="+traceLengthMultiplierMax+";statesMax="+statesMax+";alphabetMultiplierMax="+alphabetMultiplierMax;
 	}
 	
 	public void setUsePrintf(boolean value)
@@ -81,11 +94,6 @@ public class MarkovLearningParameters implements ThreadResultID
 	public void setTraceLengthMultiplier(double traceMulti) {
 		traceLengthMultiplier=traceMulti;
 	}
-	
-	public void setChunkLen(int len)
-	{
-		chunkLen = len;
-	}
 
 	public void setPresetLearningParameters(int value)
 	{
@@ -114,25 +122,25 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return getExperimentID()+";chunkLen="+chunkLen+";sample="+sample+";trainingSample="+trainingSample+";seed="+seed+";onlyPositives="+onlyUsePositives+";traceQuantityToUse="+traceQuantityToUse+";traceLengthMultiplier="+traceLengthMultiplier+";tracesAlphabetMultiplier="+tracesAlphabetMultiplier+";";
+		return getExperimentID()+";sample="+sample+";trainingSample="+trainingSample+";seed="+seed+";onlyPositives="+onlyUsePositives+";traceQuantityToUse="+traceQuantityToUse+
+				";traceLengthMultiplier="+traceLengthMultiplier+";tracesAlphabetMultiplier="+tracesAlphabetMultiplier+";";
 	}
 
 	@Override
 	public String[] getColumnText() {
-		// TODO Auto-generated method stub
-		return null;
+		return new String[]{"Learner",learnerToUse.name()};
 	}
 
 	@Override
 	public String getColumnID() {
-		// TODO Auto-generated method stub
-		return null;
+		return learnerToUse.name();
 	}
 
 	@Override
 	public String[] headerValuesForEachCell() {
-		// TODO Auto-generated method stub
-		return null;
+		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+			return new String[]{"BCR","Diff","states","Comparisons"};
+		return new String[]{"BCR","Diff","states"};
 	}
 
 }

@@ -180,7 +180,7 @@ public class LearnUsingClassifier {
 				    		
 				    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 				    	// When we reach this point, the CSV is built so it is handy to process the data in it.
-				    	DrawGraphs.spreadsheetToDoubleGraph(gr_NewToOrig, resultCSV, "Reference", 0, "WithClassifier", 0, null, null);
+				    	DrawGraphs.spreadsheetToBagPlot(gr_NewToOrig, resultCSV, "Reference", 0, "WithClassifier", 0, null, null);
 				    	DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
 							
 							@Override

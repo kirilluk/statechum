@@ -256,7 +256,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
-		final int samplesPerFSMSize = 50;
+		final int samplesPerFSMSize = 30;
 		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
 
@@ -294,12 +294,12 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		};
 		int seedThatIdentifiesFSM=0;
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
-		for(int traceQuantity=2;traceQuantity<=32;traceQuantity*=2)
-			for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
+		for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
+			for(int traceLengthMultiplier=1;traceLengthMultiplier<=4;traceLengthMultiplier*=2)
 			{
 				try
 				{
-					for(int states=minStateNumber;states <= minStateNumber+40;states+=10)
+					for(int states=minStateNumber;states <= minStateNumber+0;states+=10)
 						for(boolean unique:new boolean[]{true,false})
 							for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 								for(int attempt=0;attempt<attemptsPerFSM;++attempt)

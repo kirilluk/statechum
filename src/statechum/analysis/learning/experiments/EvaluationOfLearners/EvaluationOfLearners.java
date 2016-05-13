@@ -27,11 +27,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -57,12 +56,12 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResult>
+public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResult,EvaluationOfLearnersParameters>
 {
-	protected final EvaluationOfLearnersParameters par;
-	
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
-	
+	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+
 	public void setAlwaysRunExperiment(boolean b) 
 	{
 		alwaysRunExperiment = b;
@@ -70,29 +69,19 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 
 	public EvaluationOfLearners(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(eval);
-		par = parameters;
-
-		String outDir = "tmp"+File.separator+directoryNamePrefix+"-"+par.getRowID();//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-				throw new RuntimeException("failed to create a work directory");
-		}
-		inputGraphFileName = outDir + File.separator+"rnd";
+		super(parameters,eval,directoryNamePrefix);
 	}
 	
-	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
+	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL};//, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public EvaluationOfLearnersResult call() throws Exception 
 	{
 		final int alphabet = par.states*2;
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
-		Label uniqueFromInitial = null;
-		final boolean pickUniqueFromInitial = true;
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
-
+		Label uniqueFromInitial = null;
+		boolean pickUniqueFromInitial = par.pickUniqueFromInitial;
 		do
 		{
 			referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
@@ -111,8 +100,6 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 			}
 		}
 		while(pickUniqueFromInitial && uniqueFromInitial == null);
-
-		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
@@ -218,7 +205,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		};
 
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
-		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par.scoringMethod,par.scoringForEDSM);
+		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
 		//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
 		//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
 				
@@ -262,25 +249,14 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
-		eval.config.setOverride_usePTAMerging(true);
-		//eval.config.setOverride_usePTAMerging(false);eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();
-		
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
 
-		final int samplesPerFSMSize = 20;
+		final int samplesPerFSMSize = 50;
 		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
 
@@ -300,7 +276,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
+				String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+result.parameters.uniqueAsString()+"-"+result.parameters.getColumnID();
 				experimentrunner.RecordR(BCR_vs_experiment,experimentName ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
 			}
@@ -316,48 +292,47 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
 			}
 		};
-		int seed=0;
+		int seedThatIdentifiesFSM=0;
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
-		for(int traceQuantity=2;traceQuantity<=64;traceQuantity*=2)
+		for(int traceQuantity=2;traceQuantity<=32;traceQuantity*=2)
 			for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
 			{
 				try
 				{
-					for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
-						for(int sample=0;sample<samplesPerFSMSize;++sample)
-							for(int attempt=0;attempt<attemptsPerFSM;++attempt)
-							{
-								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
-									for(boolean pta:new boolean[]{true,false})
-									{
-										for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
-											for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
-											{
-												LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-												ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-												eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
-												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,null,pta,matrix);
-												par.setParameters(states, sample, attempt, seed++, traceQuantity, traceLengthMultiplier);
-												EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
-												//learnerRunner.setAlwaysRunExperiment(true);
-												listOfExperiments.add(learnerRunner);
-											}
-									}
-							}
+					for(int states=minStateNumber;states <= minStateNumber+40;states+=10)
+						for(boolean unique:new boolean[]{true,false})
+							for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
+								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+								{
+									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
+										for(boolean pta:new boolean[]{true,false})
+										{
+											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
+												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
+												{
+													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
+													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,null,pta,matrix);
+													par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+													par.setPickUniqueFromInitial(unique);
+													EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
+													//learnerRunner.setAlwaysRunExperiment(true);
+													listOfExperiments.add(learnerRunner);
+												}
+										}
+								}
 				}
 				catch(Exception ex)
 				{
-					IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-					if (executorService != null) { executorService.shutdown();executorService = null; }
-					throw e;
+					Helper.throwUnchecked("failed to compute", ex);
 				}
 			}
 			
     	for(EvaluationOfLearners e:listOfExperiments)
     		experimentRunner.submitTask(e);
     	experimentRunner.collectOutcomeOfExperiments(resultHandler);
-		
-		//Visualiser.waitForKey();
+
 		DrawGraphs.end();
 		experimentRunner.successfulTermination();
 	}

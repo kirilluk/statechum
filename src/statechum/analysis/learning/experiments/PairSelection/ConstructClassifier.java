@@ -52,19 +52,13 @@ public class ConstructClassifier
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
-		String outDir = "tmp"+File.separator+PairQualityLearner.nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		UASExperiment.mkDir(outDir);
 
 		// This has to be run in a standalone mode in order to collect pair data across all experiments 
 		// (which hence have to be all in the same process). This should not be a slow process because
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
-		RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),"data",new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		String outPathPrefix = outDir + File.separator;
 		final int minStateNumber = 20;

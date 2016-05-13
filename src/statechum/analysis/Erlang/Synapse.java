@@ -48,11 +48,10 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearnerExperimentWithStatisticalAnalysis.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.AbstractionRefinement;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
@@ -928,7 +927,7 @@ public class Synapse implements Runnable {
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,0) {
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1) {
 
 															@Override
 															protected boolean permitUnlimitedNumberOfStates()
@@ -1007,7 +1006,7 @@ public class Synapse implements Runnable {
 																
 															}
 															ptaToUseForInference.clearColours();
-															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,0) {
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -1078,9 +1077,9 @@ public class Synapse implements Runnable {
 																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
 																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 																
-															}
+															}/*
 															ptaToUseForInference.clearColours();
-															AbstractionRefinement learner = new AbstractionRefinement(learnerInitConfiguration,ptaToUseForInference,0) {
+															AbstractionRefinement learner = new AbstractionRefinement(learnerInitConfiguration,ptaToUseForInference) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -1101,6 +1100,8 @@ public class Synapse implements Runnable {
 															}
 															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
+															*/
+															outcome = null;
 														}
 														catch(AskedToTerminateException e)
 														{

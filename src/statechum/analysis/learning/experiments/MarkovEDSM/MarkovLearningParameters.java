@@ -31,7 +31,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		}
 	}
 	public LearnerToUseEnum learnerToUse;
-	public final int states,sample,trainingSample;
+	public final int states;
+	public final int sample;
+	public final int trainingSample;
 	public boolean onlyUsePositives;
 	public boolean learnUsingReferenceLearner; 
 	public final int seed;

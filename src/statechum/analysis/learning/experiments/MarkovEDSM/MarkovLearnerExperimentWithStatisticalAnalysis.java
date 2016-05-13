@@ -63,6 +63,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
@@ -87,15 +88,13 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 {
 	
 	public static final String directoryNamePrefix = "Markov_Apr_2016";
-	
-	public static class LearnerRunner extends UASExperiment<ExperimentResult<MarkovLearningParameters>>
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+
+	public static class LearnerRunner extends UASExperiment<ExperimentResult<MarkovLearningParameters>, MarkovLearningParameters>
 	{
-		protected final MarkovLearningParameters par;
-		
 		public LearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
-			super(cnf);
-			par = parameters;
+			super(parameters,cnf,directoryNamePrefix);
 		}
 		
 		
@@ -216,7 +215,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 	 			switch(par.learnerToUse)
 	 			{
 	 			case LEARNER_EDSMMARKOV:
-	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,referenceGraph,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	 				markovLearner.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);markovLearner.setUseClassifyPairs(par.useClassifyToOrderPairs);
 	 				markovLearner.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
 	 				learnerOfPairs = markovLearner;
@@ -327,7 +326,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 	}
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends LearnerThatCanClassifyPairs implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		@SuppressWarnings("unused")
 		@Override
@@ -344,7 +343,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		}
 		
 		long inconsistencyFromAnEarlierIteration = 0;
-		LearnerGraph coregraph = null;
+		public LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
@@ -446,9 +445,9 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			checker=c;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, final LearnerGraph referenceGraph,int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
 		{
-			super(constructConfiguration(evalCnf,threshold), argInitialPTA,referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
 		}
 
 		@Override 
@@ -559,13 +558,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.GENERAL);
@@ -581,7 +574,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		final int chunkSize = 3;
 		
 		
-		RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),"data",args);
+		RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
@@ -697,6 +690,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		{
 				
 			final int traceQuantityToUse = traceQuantity;
+			int seedForFSM = 0;
 			final AtomicLong comparisonsPerformed = new AtomicLong(0);
 			final int statesMax = minStateNumber+rangeOfStateNumbers-stateNumberIncrement;
 			MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
@@ -718,11 +712,11 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 				final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
 				
-				for(int sample=0;sample<samplesPerFSM;++sample)
+				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 						for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
 						{
-							MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, experimentRunner.getTaskID(),traceQuantityToUse);
+							MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
 							parameters.setOnlyUsePositives(onlyPositives);
 							parameters.setAlphabetMultiplier(alphabetMultiplierMax);
 							parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);

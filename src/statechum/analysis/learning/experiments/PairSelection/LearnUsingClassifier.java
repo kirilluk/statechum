@@ -58,16 +58,10 @@ public class LearnUsingClassifier {
 		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
-		String outDir = "tmp"+File.separator+PairQualityLearner.nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		RunSubExperiment<LearnWithClassifiersResult> experimentRunner = new RunSubExperiment<LearnWithClassifiersResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		RunSubExperiment<LearnWithClassifiersResult> experimentRunner = new RunSubExperiment<LearnWithClassifiersResult>(ExperimentRunner.getCpuNumber(),PairQualityLearner.directoryExperimentResult,args);
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 4;
 		final int rangeOfStateNumbers = 4;

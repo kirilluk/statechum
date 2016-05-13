@@ -59,11 +59,10 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
+public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,EvaluationOfLearnersParameters>
 {
-	protected final EvaluationOfLearnersParameters par;
-	
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
 	
 	public void setAlwaysRunExperiment(boolean b) 
 	{
@@ -72,16 +71,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 
 	public SmallVsHuge(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(eval);
-		par = parameters;
-
-		String outDir = "tmp"+File.separator+directoryNamePrefix+"-"+par.getRowID();//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-				throw new RuntimeException("failed to create a work directory");
-		}
-		inputGraphFileName = outDir + File.separator+"rnd";
+		super(parameters,eval,directoryNamePrefix);
 	}
 	
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
@@ -207,19 +197,19 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 		switch(par.learningType)
 		{
 		case CONVENTIONAL:
-			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par.scoringMethod,par.scoringForEDSM);
+			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
 			break;
 		case CONVENTIONALUNIQUE:
-			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par.scoringMethod,par.scoringForEDSM, uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM, uniqueFromInitial);
 			break;
 		case CONSTRAINTS:
-			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		case PREMERGE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		case PTAPREMERGE:
-			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		}
 		
@@ -260,15 +250,9 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setOverride_usePTAMerging(true);

@@ -737,7 +737,7 @@ public class DrawGraphs {
 		}
         StringBuffer out = new StringBuffer();
         for(byte b:buffer.toByteArray())
-        {
+        {// Integer.toHexString is not useful here because it is aimed at pretty-printing, that is, byte 0 will be '0' rather that '00'.
         	out.append((char)(charToHex( (b & 0xf0) >> 4)));
         	out.append((char)(charToHex(b & 0xf)));
         }
@@ -752,7 +752,10 @@ public class DrawGraphs {
 			if (ch >= 'A' && ch <= 'F')
 				return ch-'A'+0x0a;
 			else
-				throw new IllegalArgumentException("invalid char, should be between 0..9 or A..F");
+				if (ch >= 'a' && ch <= 'f')
+					return ch-'a'+0x0a;
+				else
+					throw new IllegalArgumentException("invalid char, should be between 0..9 or A..F");
 	}
 	
 	public static Object parseObject(String str)

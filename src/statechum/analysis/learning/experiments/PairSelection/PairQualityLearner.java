@@ -76,7 +76,10 @@ public class PairQualityLearner
   	public static final String largePTAFileName = largePTALogsDir+"largePTA.zip";
   	public static final String veryLargePTAFileName = largePTALogsDir+"VeryLargePTA.zip";
 	
-	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
+	public static String directoryNamePrefix= "LearningWithClassifiers";
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+  	
+  	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
 	 * 
 	 * @param graph graph to go through
 	 * @param stateToStartFrom the state to start exploration from 
@@ -1043,14 +1046,13 @@ public class PairQualityLearner
 		public String[] headerValuesForEachCell();
 	}
 
-	public abstract static class PairQualityLearnerRunner extends UASExperiment<LearnWithClassifiersResult>
+	public abstract static class PairQualityLearnerRunner extends UASExperiment<LearnWithClassifiersResult,PairQualityParameters>
 	{
 		protected final WekaDataCollector sampleCollector;
-		protected final PairQualityParameters par;
 		
 		public PairQualityLearnerRunner(WekaDataCollector collector,PairQualityParameters parameters, LearnerEvaluationConfiguration evalCnf)
 		{
-			super(evalCnf);sampleCollector = collector;par=parameters;
+			super(parameters,evalCnf,directoryNamePrefix);sampleCollector = collector;
 		}
 		
 		public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
@@ -1209,5 +1211,4 @@ public class PairQualityLearner
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 	}
 	
-	public static String nameForExperimentRun= "LearningWithClassifiers";
 }

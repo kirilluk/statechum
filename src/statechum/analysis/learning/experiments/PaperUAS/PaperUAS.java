@@ -921,12 +921,11 @@ public class PaperUAS
 		return tmpOutput.toString();
 	}
 	
-	public final static String nameForExperimentRun = "uaspaper_May_2016";
-	 	
- 	public static class UASCaseStudy extends UASExperiment<ExperimentResult<PaperUASParameters>>
+	public final static String directoryNamePrefix = "uaspaper_May_2016";
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+
+ 	public static class UASCaseStudy extends UASExperiment<ExperimentResult<PaperUASParameters>,PaperUASParameters>
  	{
- 		final PaperUASParameters par;
- 		
  		protected LearnerGraph buildPTAWithAllNegatives() throws AugmentFromIfThenAutomatonException, IOException
  		{
  		    LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(PaperUAS.fileName(inputGraphFileName), pta, learnerInitConfiguration.getLabelConverter());
@@ -956,7 +955,7 @@ public class PaperUAS
  		
  		public UASCaseStudy(PaperUASParameters parameters, LearnerGraph reference, String graphFileName,LearnerEvaluationConfiguration eval) 
  		{
-			super(eval);par = parameters;
+			super(parameters,eval,directoryNamePrefix);
 			referenceGraph = reference;
 			inputGraphFileName = graphFileName;
 		}
@@ -995,13 +994,13 @@ public class PaperUAS
 			switch(par.learningType)
 			{
 			case CONVENTIONAL:
-				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM);
+				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM);
 				break;
 			case PREMERGE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case CONSTRAINTS:
-				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			default:
 				throw new IllegalArgumentException("invalid learning type "+par.learningType);
@@ -1011,36 +1010,14 @@ public class PaperUAS
  			return outcome;
  		}		
  	}
- 	
- 	/** Returns a string padded to the specified width with the supplied character.
- 	 * 
- 	 * @param whatToPad
- 	 * @param ch character to pad with
- 	 * @param length the length to pad to
- 	 * @return
- 	 */
- 	public static String padString(String whatToPad, char ch, int length)
- 	{
- 		StringBuffer buf = new StringBuffer();
- 		for(int i=0;i<length-whatToPad.length();++i)
- 			buf.append(ch);
- 		buf.append(whatToPad);
- 		return buf.toString();
- 	}
- 	
+ 	 	
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
  	public static void main(String args[]) throws Exception
  	{
-		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 
      	PaperUAS paper = loadTraces(args,true);
@@ -1048,7 +1025,7 @@ public class PaperUAS
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
- 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),"data",args);
+ 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
 
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
@@ -1146,7 +1123,7 @@ public class PaperUAS
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
      		{
-     			String seedPadded = padString(seed, '_', 2);
+     			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
      			String graphName = sprintf("%suas-%s-AU",outPathPrefix,seedPadded);
      			if (!new File(PaperUAS.fileName(graphName)).canRead())
      			{
@@ -1196,11 +1173,11 @@ public class PaperUAS
 	     	{
      		  TracesForSeed tracesSeed = paper.collectionOfTraces.get(seed);
      			Set<String> UAVsInSeed = tracesSeed.tracesForUAVandFrame.keySet(); 
-     			String seedPadded = padString(seed, '_', 2);
+     			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
      			for(String uav:UAVsInSeed)
      				if (uav != UAVAll && uav != UAVAllSeeds)
 	     			{
-     					String uavPadded = padString(uav, '_', 2);
+     					String uavPadded = LearningSupportRoutines.padString(uav, '_', 2);
      					String graphName = sprintf("%suas-%s-%s-U",outPathPrefix,seedPadded,uavPadded);
      					if (!new File(PaperUAS.fileName(graphName)).canRead())
 	         			{

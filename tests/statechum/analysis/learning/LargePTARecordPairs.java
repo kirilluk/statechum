@@ -29,7 +29,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
-import statechum.analysis.learning.experiments.PaperUAS.PaperUAS;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
 import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RPNIBlueFringeVariability;
@@ -43,8 +43,8 @@ public class LargePTARecordPairs
 	    */
 	   public void recordInitialConfiguration(String []args,LearnerGraph smallPTA) throws IOException
 	   {
-		   PaperUAS paper = PaperUAS.loadTraces(args, true);
-			PTASequenceEngine engine = paper.getCollectionOfTraces().get(PaperUAS.UAVAllSeeds).tracesForUAVandFrame.get(PaperUAS.UAVAllSeeds).get(paper.getMaxFrameNumber());
+		   ExperimentPaperUAS paper = ExperimentPaperUAS.loadTraces(args, true);
+			PTASequenceEngine engine = paper.getCollectionOfTraces().get(ExperimentPaperUAS.UAVAllSeeds).tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAllSeeds).get(paper.getMaxFrameNumber());
 	       
 	       FileOutputStream log = new java.io.FileOutputStream("resources/largePTA/VeryLargePTA.zip");
 	       RPNIBlueFringeVariability ourLearner = new RPNIBlueFringeVariability(paper.learnerInitConfiguration,true,null,null);

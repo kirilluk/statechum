@@ -118,10 +118,7 @@ public class TestEqualityComparisonAndHashCode {
 
 	static final protected OrigStatePair constructOrigPair(String a,String b)
 	{
-		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
-		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
-		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
-		return new OrigStatePair(aV,bV);
+		return new OrigStatePair(AbstractLearnerGraph.generateNewJungVertex(a),AbstractLearnerGraph.generateNewJungVertex(b));
 	}
 
 	/** Used to check that equality checking is implemented correctly. 
@@ -193,6 +190,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests that text IDs can be automatically converted into numeric ones. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID1()
 	{
@@ -201,6 +199,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("this is a test",id.toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID2()
 	{
@@ -209,6 +208,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("Pthis is a test",id.toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID3()
 	{
@@ -217,6 +217,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("P2this is a test",id.toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID4()
 	{
@@ -225,6 +226,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("",id.toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID5()
 	{
@@ -234,6 +236,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals(0, id.getIntegerID());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID6()
 	{
@@ -244,6 +247,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals(100789, id.toInt());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseID7()
 	{
@@ -256,7 +260,7 @@ public class TestEqualityComparisonAndHashCode {
 	
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
+	@SuppressWarnings({ "unused", "static-method" })
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID1()
 	{
@@ -264,7 +268,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
+	@SuppressWarnings({ "unused", "static-method" })
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2a()
 	{
@@ -272,7 +276,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
+	@SuppressWarnings({ "unused", "static-method" })
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2b()
 	{
@@ -280,6 +284,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests equality for VertexIDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals1a()
 	{
@@ -287,6 +292,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals1b()
 	{
@@ -294,6 +300,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals2a()
 	{
@@ -301,18 +308,21 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals2b()
 	{
 		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(new VertexID(VertKind.POSITIVE,5)), new VertexID(VertKind.NEGATIVE,9), new VertexID(new VertexID(VertKind.NEUTRAL,9)),true);
 	}
 
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseString1()
 	{
 		VertexID id = VertexID.parseID("A");Assert.assertEquals(VertKind.NEUTRAL,id.getKind());Assert.assertEquals(65,id.getIntegerID());Assert.assertEquals("A",id.getStringId());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseString2()
 	{
@@ -322,12 +332,14 @@ public class TestEqualityComparisonAndHashCode {
 		}},IllegalArgumentException.class,"ID without an integer");
 	}
 
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseString3()
 	{
 		VertexID id = VertexID.parseID("ABCD");Assert.assertEquals(VertKind.NEUTRAL,id.getKind());Assert.assertEquals(65+(66 *96)+(67*96*96)+(68 *96*96*96),id.getIntegerID());Assert.assertEquals("ABCD",id.getStringId());
 	}
 
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testParseString4()
 	{
@@ -343,6 +355,7 @@ public class TestEqualityComparisonAndHashCode {
 		idP6 = new VertexID(VertKind.POSITIVE,6).getStringId();
 	
 	/** Tests equality for VertexIDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals3()
 	{
@@ -350,6 +363,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests equality for VertexIDs with string and numerical IDs. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEquals4()
 	{
@@ -357,6 +371,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs with numerical IDs, across both Deterministic vertices and StringVertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEqualsCmpVertex1()
 	{
@@ -367,6 +382,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs with numerical IDs, across both Deterministic vertices and StringVertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEqualsCmpVertex2()
 	{
@@ -377,6 +393,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs with String IDs, across both Deterministic vertices and StringVertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEqualsCmpVertex3()
 	{
@@ -387,6 +404,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests equality for VertexIDs with String IDs, across both Deterministic vertices and StringVertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDEqualsCmpVertex4()
 	{
@@ -397,6 +415,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 
 	/** Tests VertexID toString methods. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDToString()
 	{
@@ -409,6 +428,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertEquals("V5", new VertexID(VertKind.NEUTRAL,5).toString());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDLess1()
 	{
@@ -420,6 +440,7 @@ public class TestEqualityComparisonAndHashCode {
 		checkLessHelper(pA,qA);
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDLess2()
 	{
@@ -431,6 +452,7 @@ public class TestEqualityComparisonAndHashCode {
 		checkLessHelper(pA,qA);
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexIDLess3()
 	{
@@ -449,8 +471,8 @@ public class TestEqualityComparisonAndHashCode {
 		checkLessHelper(qA,pB);
 	}
 	
-	private final DeterministicVertex DvertA = new DeterministicVertex("a"),DvertB = new DeterministicVertex("a");
-	private final DeterministicVertex DdifferentA = new DeterministicVertex("b");
+	private final DeterministicVertex DvertA = AbstractLearnerGraph.generateNewJungVertex("a"),DvertB = AbstractLearnerGraph.generateNewJungVertex("a");
+	private final DeterministicVertex DdifferentA = AbstractLearnerGraph.generateNewJungVertex("b");
 
 	private final StringVertex SvertA = new StringVertex("a"),SvertB = new StringVertex("a");
 	private final StringVertex SdifferentA = new StringVertex("b");
@@ -494,11 +516,12 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertTrue(deepEquals(DvertB,DvertB));
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	/** Checks that name is ignored by <em>nonIDAttributesEquals</em>. */
 	public final void checkDEquality_ignoresAttrs2()
 	{
-		CmpVertex A = new DeterministicVertex("a"),B = new DeterministicVertex("b");
+		CmpVertex A = AbstractLearnerGraph.generateNewJungVertex("a"),B = AbstractLearnerGraph.generateNewJungVertex("b");
 		A.setAccept(true);B.setAccept(true);
 		A.setColour(JUConstants.RED);B.setColour(JUConstants.RED);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(A, B));
@@ -558,7 +581,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void checkDComparison1()
 	{
-		checkLessHelper(DvertA, new DeterministicVertex("b"));
+		checkLessHelper(DvertA, AbstractLearnerGraph.generateNewJungVertex("b"));
 	}
 	
 	@Test
@@ -571,7 +594,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void checkComparison_differentTypes()
 	{
 		checkLessHelper(DvertA, new StringVertex("b"));
-		checkLessHelper(SvertA, new DeterministicVertex("b"));
+		checkLessHelper(SvertA, AbstractLearnerGraph.generateNewJungVertex("b"));
 	}
 
 	/** Checks that it is not possible to compare implementations of different types. 
@@ -593,10 +616,11 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	 */
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testDeterministicVertexComparison1_old()
 	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
+		DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("Q");
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -605,10 +629,11 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(0,q.compareTo(q));
 	}
 		
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testDeterministicVertexComparison2_old()
 	{
-		DeterministicVertex p = new DeterministicVertex("A"), q= new DeterministicVertex("B");
+		DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("A"), q= AbstractLearnerGraph.generateNewJungVertex("B");
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -617,10 +642,11 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(0,q.compareTo(q));
 	}
 
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testDeterministicVertexComparison3_old()
 	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
+		DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("P");
 		assertTrue(p.equals(q));
 		assertTrue(p.compareTo(q)==0);
 	}
@@ -698,7 +724,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives1()
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D");
 		B.setDepth(5);
 		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{A,B,C,D});
@@ -709,7 +735,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives2()
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D");
 		B.setDepth(5);C.setDepth(45);
 		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
 				new CmpVertex[]{A,B,C,D});
@@ -720,7 +746,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives3()
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
 		EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{A,B,C,D});
 		Assert.assertSame(D,eqClass.getRepresentative());
@@ -730,7 +756,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives4() throws IncompatibleStatesException
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
@@ -743,7 +769,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives5() throws IncompatibleStatesException
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
@@ -756,8 +782,8 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testEqClassRepresentatives6() throws IncompatibleStatesException
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C"), D=new DeterministicVertex("D"),
-			E = new DeterministicVertex("E");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C"), D=AbstractLearnerGraph.generateNewJungVertex("D"),
+			E = AbstractLearnerGraph.generateNewJungVertex("E");
 		B.setDepth(5);C.setDepth(45);D.setDepth(4);E.setDepth(4);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> 
 			eqClassA = buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),
@@ -769,10 +795,11 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Testing whether checking for incompatible vertices works correctly. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testIncompatChecking1()
 	{
-		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C");
+		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C");
 		C.setAccept(false);
 		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY/2,HashMapWithSearch.DEFAULT_INITIAL_CAPACITY/2);
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
@@ -1503,14 +1530,15 @@ public class TestEqualityComparisonAndHashCode {
 	 * (string-"a"/string "b"/det-"a"/det-"b")
 	 * each pair of above, against another pair. 
 	 */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testStatePairEquality()
 	{
 		final Object samePairs[] = new StatePair[]{
 				new StatePair(new StringVertex("a"), new StringVertex("b")),
-				new StatePair(new DeterministicVertex("a"), new StringVertex("b")),
-				new StatePair(new StringVertex("a"), new DeterministicVertex("b")),
-				new StatePair(new DeterministicVertex("a"), new DeterministicVertex("b"))				
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("a"), new StringVertex("b")),
+				new StatePair(new StringVertex("a"), AbstractLearnerGraph.generateNewJungVertex("b")),
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("a"), AbstractLearnerGraph.generateNewJungVertex("b"))				
 		},
 		differentPairs[] = new Object[] {
 				new StatePair(new StringVertex("a"), new StringVertex("c")),
@@ -1531,15 +1559,16 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that nulls are valid elements of state pairs. */
+	@SuppressWarnings("static-method")
 	public final void testStatePairEqualityWithNulls1()
 	{
 		final Object samePairs[] = new StatePair[]{
 				new StatePair(null, new StringVertex("b")),
-				new StatePair(null, new DeterministicVertex("b"))			
+				new StatePair(null, AbstractLearnerGraph.generateNewJungVertex("b"))			
 		},
 		differentPairs[] = new Object[] {
 				new StatePair(new StringVertex("b"), new StringVertex("b")),
-				new StatePair(new DeterministicVertex("b"), new StringVertex("b")),
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("b"), new StringVertex("b")),
 				new StatePair(null, null),
 				constructOrigPair("a", "b")
 		};
@@ -1551,15 +1580,16 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that nulls are valid elements of state pairs. */
+	@SuppressWarnings("static-method")
 	public final void testStatePairEqualityWithNulls2()
 	{
 		final Object samePairs[] = new StatePair[]{
 				new StatePair(new StringVertex("b"), null),
-				new StatePair(new DeterministicVertex("b"),null)
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("b"),null)
 		},
 		differentPairs[] = new Object[] {
 				new StatePair(new StringVertex("b"), new StringVertex("b")),
-				new StatePair(new DeterministicVertex("b"), new StringVertex("b")),
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("b"), new StringVertex("b")),
 				new StatePair(null, null),
 				constructOrigPair("a", "b")
 		};
@@ -1571,6 +1601,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that nulls are valid elements of state pairs. */
+	@SuppressWarnings("static-method")
 	public final void testStatePairEqualityWithNulls3()
 	{
 		final Object samePairs[] = new StatePair[]{
@@ -1578,7 +1609,7 @@ public class TestEqualityComparisonAndHashCode {
 		},
 		differentPairs[] = new Object[] {
 				new StatePair(null, new StringVertex("b")),
-				new StatePair(new DeterministicVertex("b"), null),
+				new StatePair(AbstractLearnerGraph.generateNewJungVertex("b"), null),
 				constructOrigPair("a", "b")
 		};
 		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
@@ -1591,10 +1622,11 @@ public class TestEqualityComparisonAndHashCode {
 	private final static void checkLess(String a,String b,String c,String d)
 	{
 		checkLessHelper(new StatePair(new StringVertex(a), new StringVertex(b)), new StatePair(new StringVertex(c), new StringVertex(d)));
-		checkLessHelper(new StatePair(new DeterministicVertex(a), new StringVertex(b)), new StatePair(new DeterministicVertex(c), new StringVertex(d)));
-		checkLessHelper(new StatePair(new StringVertex(a), new DeterministicVertex(b)), new StatePair(new StringVertex(c), new DeterministicVertex(d)));
+		checkLessHelper(new StatePair(AbstractLearnerGraph.generateNewJungVertex(a), new StringVertex(b)), new StatePair(AbstractLearnerGraph.generateNewJungVertex(c), new StringVertex(d)));
+		checkLessHelper(new StatePair(new StringVertex(a), AbstractLearnerGraph.generateNewJungVertex(b)), new StatePair(new StringVertex(c), AbstractLearnerGraph.generateNewJungVertex(d)));
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testStatePairComparison()
 	{
@@ -1603,6 +1635,7 @@ public class TestEqualityComparisonAndHashCode {
 		checkLess("a","b","c","b");
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testStatePairComparisonWithNull()
 	{
@@ -1616,11 +1649,12 @@ public class TestEqualityComparisonAndHashCode {
 
 	
 	/** Checking that attributes which are cleared are not added to a Jung vertex. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexConstruction()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
-		DeterministicVertex vertex = new DeterministicVertex("testVertex");
+		DeterministicVertex vertex = AbstractLearnerGraph.generateNewJungVertex("testVertex");
 		vertex.setAccept(false);vertex.setHighlight(true);vertex.setColour(JUConstants.AMBER);vertex.setOrigState(VertexID.parseID("id"));vertex.setDepth(34);
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.LABEL));
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.ACCEPTED));
@@ -1639,155 +1673,170 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_name1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		
 		// here I cannot add, only set since the ID has already been set.
 		vA.setUserDatum(JUConstants.LABEL, VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getStringId());
 		vA.setUserDatum(JUConstants.LABEL, VertexID.parseID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getStringId());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum(JUConstants.LABEL, VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getStringId());
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_name2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 
 		// here I cannot add, only set since the ID has already been set.
 		vA.setUserDatum("lAbel", VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getStringId());
 		vA.setUserDatum("labEl", VertexID.parseID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getStringId());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum("laBel", VertexID.parseID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getStringId());
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_accepted1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);Assert.assertTrue(vA.isAccept());
 		vA.setUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);Assert.assertFalse(vA.isAccept());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);Assert.assertFalse(vS.isAccept());
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_accepted2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("acCepted", "truE", UserData.SHARED);Assert.assertTrue(vA.isAccept());
 		vA.setUserDatum("accePted", "faLse", UserData.SHARED);Assert.assertFalse(vA.isAccept());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum("acceptEd", "fAlse", UserData.SHARED);Assert.assertFalse(vS.isAccept());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_accepted_fail1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("accePted", "junk", UserData.SHARED);
 	}
 
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_accepted_fail2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("accePted", new Object(), UserData.SHARED);
 	}
 
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_highlight1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		Assert.assertFalse(vA.isHighlight());
 		vA.addUserDatum(JUConstants.HIGHLIGHT, "true", UserData.SHARED);Assert.assertTrue(vA.isHighlight());
 		vA.setUserDatum(JUConstants.HIGHLIGHT, "false", UserData.SHARED);
 		Assert.assertFalse(vA.isHighlight());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum(JUConstants.HIGHLIGHT, "false", UserData.SHARED);Assert.assertFalse(vS.isHighlight());
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_highlight2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		Assert.assertFalse(vA.isHighlight());
 		vA.addUserDatum("highlIght", "tRue", UserData.SHARED);Assert.assertTrue(vA.isHighlight());
 		vA.setUserDatum("hiGhlight", "falsE", UserData.SHARED);Assert.assertFalse(vA.isHighlight());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum("higHlight", "faLse", UserData.SHARED);Assert.assertFalse(vS.isHighlight());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_highlight_fail1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("higHlight", "junk", UserData.SHARED);
 	}
 
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_highlight_fail2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("higHlight", new Object(), UserData.SHARED);
 	}
 
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_colour1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum(JUConstants.COLOUR, "rEd", UserData.SHARED);Assert.assertTrue(JUConstants.RED == vA.getColour());
 		vA.setUserDatum(JUConstants.COLOUR, "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum(JUConstants.COLOUR, "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
 	}
 	
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_colour2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("cOlour", "rEd", UserData.SHARED);Assert.assertTrue(JUConstants.RED == vA.getColour());
 		vA.setUserDatum("cOloUr", "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum("cOlouR", "blUe", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
 	}
 	
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_colour_fail1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("cOlour", "junk", UserData.SHARED);
 	}
 
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_colour_fail2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("cOlour", new Object(), UserData.SHARED);
 	}
 
 	/** Setting and resetting orig state works. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_Orig1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		VertexID vertID = VertexID.parseID("id");
 		vA.addUserDatum(JUConstants.ORIGSTATE,vertID, UserData.SHARED);Assert.assertTrue(vertID.equals(vA.getOrigState()));
 		vA.setOrigState(null);Assert.assertNull(vA.getOrigState());Assert.assertNull(vA.getUserDatum(JUConstants.ORIGSTATE));
@@ -1795,10 +1844,11 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Setting and resetting orig state using different names. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_Orig2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("oRigStatE", VertexID.parseID("id"), UserData.SHARED);Assert.assertTrue(VertexID.parseID("id").equals(vA.getOrigState()));
 		vA.setUserDatum("origstAte", VertexID.parseID("DD"), UserData.SHARED);Assert.assertTrue(VertexID.parseID("DD").equals(vA.getOrigState()));
 		vA.setUserDatum("origstAte", "PP", UserData.SHARED);Assert.assertTrue(VertexID.parseID("PP").equals(vA.getOrigState()));
@@ -1806,66 +1856,73 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Cannot set an illegal vertex ID. */
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_Orig_fail1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("oRigStatE", new Object(), UserData.SHARED);
 	}
 
 	/** Cannot set an illegal vertex ID. */
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_Orig_fail2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("oRigStatE", 23, UserData.SHARED);
 	}
 
 	/** Tests that types are correctly converted. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_anything()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		Object obj = new Object();
 		vA.addUserDatum(obj, "aa", UserData.SHARED);Assert.assertEquals("aa",vA.getUserDatum(obj));
 		vA.setUserDatum(obj, false, UserData.SHARED);Assert.assertFalse((Boolean)vA.getUserDatum(obj));
 
-		DeterministicVertex vS=new DeterministicVertex("a");
+		DeterministicVertex vS=AbstractLearnerGraph.generateNewJungVertex("a");
 		vS.setUserDatum(obj, false, UserData.SHARED);Assert.assertFalse((Boolean)vS.getUserDatum(obj));
 	}
 	
 	/** Setting and resetting depth works. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_Depth1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum(JUConstants.DEPTH,12, UserData.SHARED);Assert.assertEquals(12,vA.getDepth());
 		vA.setUserDatum(JUConstants.DEPTH, JUConstants.intUNKNOWN, UserData.SHARED);Assert.assertNull(vA.getOrigState());
 	}
 	
 	/** Setting and resetting depth works even if names of the attribute differ. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testAddUserData_Depth2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum("dEpTH",12, UserData.SHARED);Assert.assertEquals(12,vA.getDepth());
 		vA.setUserDatum("depTh",14, UserData.SHARED);Assert.assertEquals(14,vA.getDepth());
 		vA.setUserDatum("depTh","45", UserData.SHARED);Assert.assertEquals(45,vA.getDepth());
 	}
 	
 	/** Cannot set an illegal vertex ID. */
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_Depth_fail1()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum(JUConstants.DEPTH, new Object(), UserData.SHARED);
 	}
 
 	/** Cannot set an illegal vertex ID. */
+	@SuppressWarnings("static-method")
 	@Test(expected=IllegalUserDataException.class)
 	public final void testAddUserData_Depth_fail2()
 	{
-		DeterministicVertex vA=new DeterministicVertex("a");
+		DeterministicVertex vA=AbstractLearnerGraph.generateNewJungVertex("a");
 		vA.addUserDatum(JUConstants.DEPTH, "A34", UserData.SHARED);
 	}
 
@@ -1879,6 +1936,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Non graph vertex to copy. */
+	@SuppressWarnings("static-method")
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail1()
 	{
@@ -1887,6 +1945,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Non-CmpVertex copying denied. */
+	@SuppressWarnings("static-method")
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail2()
 	{
@@ -1896,6 +1955,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Unlabelled copying denied. */
+	@SuppressWarnings("static-method")
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail3()
 	{
@@ -1905,6 +1965,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Copying of a vertex with a label which is neither a string nor a VertexID is denied. */
+	@SuppressWarnings("static-method")
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail4()
 	{
@@ -1913,8 +1974,8 @@ public class TestEqualityComparisonAndHashCode {
 		AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 	}
 	
-	
 	/** Normal copying successful. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone1a()
 	{
@@ -1927,6 +1988,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Normal copying successful. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone1b()
 	{
@@ -1939,12 +2001,13 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Checking that attributes are preserved. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone2()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
-		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
-		vertex.addUserDatum(JUConstants.HIGHLIGHT, 1, UserData.SHARED);
+		DeterministicVertex vertex = AbstractLearnerGraph.generateNewJungVertex("name");
+		vertex.addUserDatum(JUConstants.HIGHLIGHT, true, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.ORIGSTATE, VertexID.parseID("test"), UserData.SHARED);
@@ -1961,22 +2024,24 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Checking that cloning can return the same vertex regardless of the value of setLearnerUseStrings. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone3()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
-		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
+		CmpVertex vA = AbstractLearnerGraph.generateNewJungVertex("test vertex");vA.setColour(JUConstants.RED);
 		Assert.assertSame(vA, AbstractLearnerGraph.cloneCmpVertex(vA, conf));
 	}
 	
 	/** Checking that cloning can return the same vertex regardless of the value of setLearnerUseStrings. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone4()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerUseStrings(true);conf.setLearnerCloneGraph(false);
-		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
+		CmpVertex vA = AbstractLearnerGraph.generateNewJungVertex("test vertex");vA.setColour(JUConstants.RED);
 		Assert.assertSame(vA, AbstractLearnerGraph.cloneCmpVertex(vA, conf));
 	}
 	
@@ -1986,7 +2051,7 @@ public class TestEqualityComparisonAndHashCode {
 		DirectedSparseGraph graphB = FsmParser.buildLearnerGraph("A-a->B-b->C","testCopyVertex",config,converter).pathroutines.getGraph();
 		Map<VertID,DeterministicVertex> vertexMap = new TreeMap<VertID,DeterministicVertex>();
 
-		DeterministicVertex vertD = new DeterministicVertex("D");
+		DeterministicVertex vertD = AbstractLearnerGraph.generateNewJungVertex("D");
 		DeterministicVertex copyOfD = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphB, vertD);
 		Assert.assertNotSame(vertD,copyOfD);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vertD, copyOfD));
 		Assert.assertEquals(1,vertexMap.size());
@@ -1994,7 +2059,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertSame(copyOfD,anotherCopyOfD);
 		
 		DirectedSparseGraph graphC = new DirectedSparseGraph();
-		DeterministicVertex initial = new DeterministicVertex("init");
+		DeterministicVertex initial = AbstractLearnerGraph.generateNewJungVertex("init");
 		initial.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 		DeterministicVertex copyOfInitial = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphC, initial);
 		Assert.assertNotSame(initial,copyOfInitial);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(initial, copyOfInitial));
@@ -2035,13 +2100,15 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that I can assign colours meaningfully on Deterministic and String vertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testColourSetting1()
 	{
-		testColourHelper(new DeterministicVertex("testA"));
+		testColourHelper(AbstractLearnerGraph.generateNewJungVertex("testA"));
 	}
 	
 	/** Tests that I can assign colours meaningfully on Deterministic and String vertices. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testColourSetting2()
 	{
@@ -2062,6 +2129,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Checking that vertex cloning is faithful. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone5()
 	{
@@ -2069,11 +2137,12 @@ public class TestEqualityComparisonAndHashCode {
 		conf.setLearnerCloneGraph(true);
 		
 		conf.setLearnerUseStrings(true);
-		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
+		CmpVertex vA = AbstractLearnerGraph.generateNewJungVertex("test vertex");vA.setColour(JUConstants.RED);
 		cloneTestHelper(vA, conf);
 	}
 	
 	/** Checking that vertex cloning is faithful. */
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testVertexClone6()
 	{
@@ -2081,7 +2150,7 @@ public class TestEqualityComparisonAndHashCode {
 		conf.setLearnerCloneGraph(true);
 		
 		conf.setLearnerUseStrings(false);
-		CmpVertex vB = new DeterministicVertex("test vertex");vB.setColour(JUConstants.RED);
+		CmpVertex vB = AbstractLearnerGraph.generateNewJungVertex("test vertex");vB.setColour(JUConstants.RED);
 		cloneTestHelper(vB, conf);
 	}
 
@@ -2358,6 +2427,7 @@ public class TestEqualityComparisonAndHashCode {
 		equalityTestingHelper(a,b,differentA,differentB, true);
 	}
 
+	@SuppressWarnings("static-method")
 	@Test
 	public final void testCopyGraph0()
 	{

@@ -64,19 +64,13 @@ public class MarkovQuestionGeneration {
 				}
 				else if (answer.firstElem == AbstractOracle.USER_ACCEPTED) 
 				{
-					synchronized (AbstractLearnerGraph.syncObj) 
-					{
-						if(graph.getVertex(question).isAccept()==false)
-							graph.getVertex(question).setAccept(true);
-					}
+					if(graph.getVertex(question).isAccept()==false)
+						graph.getVertex(question).setAccept(true);
 				} 
 				else if (answer.firstElem >= 0) 
 				{
-					synchronized (AbstractLearnerGraph.syncObj) 
-					{
-						if(graph.getVertex(question).isAccept()==true)
-							graph.getVertex(question).setAccept(false);	
-					}
+					if(graph.getVertex(question).isAccept()==true)
+						graph.getVertex(question).setAccept(false);	
 				} 
 			
 				else

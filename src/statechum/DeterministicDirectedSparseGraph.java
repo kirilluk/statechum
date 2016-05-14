@@ -441,7 +441,7 @@ final public class DeterministicDirectedSparseGraph {
 
 			public IllegalUserDataException(String name)
 			{ 
-				super("invalid colour "+name);
+				super("invalid user data value "+name);
 			}
 		}
 		
@@ -549,7 +549,10 @@ final public class DeterministicDirectedSparseGraph {
 			MiniPair p=new MiniPair(key,datum);
 			if (p.key == JUConstants.LABEL)
 			{
-				vertexID = (VertID) p.getValue();
+				if (p.getValue() instanceof String)
+					vertexID = VertexID.parseID((String)p.getValue());
+				else
+					vertexID = (VertID) p.getValue();
 				hashCode = p.getValue().hashCode();
 			}
 			
@@ -789,7 +792,7 @@ final public class DeterministicDirectedSparseGraph {
 	 */
 	public static DeterministicVertex findVertexNamed(Object name,Graph g)
 	{
-		return (DeterministicVertex)DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,name,g);
+		return DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,name,g);
 	}
 
 	/** Given a graph, this method computes an alphabet of it. */
@@ -819,14 +822,13 @@ final public class DeterministicDirectedSparseGraph {
 		VertID vertID = origVertex;
 		DeterministicVertex newVertex = newVertices.get(vertID);
 		if (newVertex == null) 
-			synchronized (AbstractLearnerGraph.syncObj)
-			{
-				newVertex = new DeterministicVertex(vertID);
-				if (DeterministicDirectedSparseGraph.isInitial(origVertex))
-					newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
-				newVertices.put(vertID,newVertex);g.addVertex(newVertex);
-			}
+		{
+			newVertex = AbstractLearnerGraph.generateNewJungVertex(vertID);
+			if (DeterministicDirectedSparseGraph.isInitial(origVertex))
+				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
+			newVertices.put(vertID,newVertex);g.addVertex(newVertex);
+		}
 		return newVertex;
 	}
 
@@ -843,7 +845,7 @@ final public class DeterministicDirectedSparseGraph {
 	/** Creates a graph with a single accept-vertex. */
 	public static DirectedSparseGraph initialise(){
 		DirectedSparseGraph pta = new DirectedSparseGraph();
-		DirectedSparseVertex init = new DirectedSparseVertex();
+		DeterministicVertex init = AbstractLearnerGraph.generateNewJungVertex("Init");
 		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		pta.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
@@ -864,17 +866,17 @@ final public class DeterministicDirectedSparseGraph {
 	@SuppressWarnings("unchecked")
 	public static boolean completeGraph(DirectedSparseGraph g, String reject)
 	{
-		DirectedSparseVertex rejectVertex = new DirectedSparseVertex();
+		DeterministicVertex rejectVertex = AbstractLearnerGraph.generateNewJungVertex(reject);
+		
 		boolean transitionsToBeAdded = false;// whether and new transitions have to be added.
 		rejectVertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
-		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
 		// first pass - computing an alphabet
 		Set<Label> alphabet = computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
 		Set<Label> outLabels = new HashSet<Label>();
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		Iterator<DeterministicVertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext() && !transitionsToBeAdded)
 		{
 			Vertex v = vertexIt.next();
@@ -894,7 +896,7 @@ final public class DeterministicDirectedSparseGraph {
 			vertexIt = g.getVertices().iterator();
 			while(vertexIt.hasNext())
 			{
-				Vertex v = vertexIt.next();
+				DeterministicVertex v = vertexIt.next();
 				if (v != rejectVertex)
 				{// no transitions should start from the reject vertex
 					Set<Label> outgoingLabels = new TreeSet<Label>();outgoingLabels.addAll(alphabet);
@@ -907,7 +909,7 @@ final public class DeterministicDirectedSparseGraph {
 					if (!outgoingLabels.isEmpty())
 					{
 						// add a transition
-						DirectedSparseEdge edge = new DirectedSparseEdge(v,rejectVertex);
+						DeterministicEdge edge = AbstractLearnerGraph.generateNewJungEdge(v,rejectVertex);
 						edge.addUserDatum(JUConstants.LABEL, outgoingLabels, UserData.CLONE);
 						g.addEdge(edge);
 					}
@@ -926,28 +928,27 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param pta the graph to operate on.
 	 */
 	public static void numberVertices(DirectedSparseGraph pta){
-		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
+		Iterator<DeterministicVertex> vertexIt = getBFSList(pta).iterator();
 		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+			DeterministicVertex v = vertexIt.next();
 			v.removeUserDatum(JUConstants.LABEL);// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
 			v.addUserDatum(JUConstants.LABEL, v.toString(), UserData.SHARED);
 		}
 	}
 
-	public static List<Vertex> getBFSList(Graph g){
-		List<Vertex> queue = new LinkedList<Vertex>();
-		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
+	public static List<DeterministicVertex> getBFSList(Graph g){
+		List<DeterministicVertex> queue = new LinkedList<DeterministicVertex>();
+		DeterministicVertex init = DeterministicDirectedSparseGraph.findInitial(g);
 		queue.add(0,init);
 		int i=0;
 		int j= queue.size();
-		Set<Vertex> done = new HashSet<Vertex>();
+		Set<DeterministicVertex> done = new HashSet<DeterministicVertex>();
 		while(i<j){
-			DirectedSparseVertex v = (DirectedSparseVertex)queue.get(i);
+			DeterministicVertex v = queue.get(i);
 			done.add(v);
-			@SuppressWarnings("unchecked")
-			Iterator<Vertex> succIt = v.getSuccessors().iterator();
+			Iterator<DeterministicVertex> succIt = v.getSuccessors().iterator();
 			while(succIt.hasNext()){
-				Vertex succ = succIt.next();
+				DeterministicVertex succ = succIt.next();
 				if(!done.contains(succ))
 					queue.add(succ);
 			}
@@ -964,14 +965,13 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param g the graph to search in
 	 * @return vertex found.
 	 */
-	public static Vertex findVertex(JUConstants property, Object value, Graph g){
+	public static DeterministicVertex findVertex(JUConstants property, Object value, Graph g){
 		if (value == null)
 			throw new IllegalArgumentException("value to search for cannot be null");
 		
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		Iterator<DeterministicVertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+			DeterministicVertex v = vertexIt.next();
 			if(v.getUserDatum(property) == null)
 				continue;
 			if(v.getUserDatum(property).equals(value))
@@ -985,23 +985,21 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param g graph to search for an initial state in.
 	 * @return initial vertex, null if not found.
 	 */
-	public static Vertex findInitial(Graph g){
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+	public static DeterministicVertex findInitial(Graph g){
+		Iterator<DeterministicVertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+			DeterministicVertex v = vertexIt.next();
 			if (isInitial(v))
 				return v;
 		}
 		return null;
 	}
 
-	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){
-		Set<Vertex> vertices = new HashSet<Vertex>();
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+	public static Set<DeterministicVertex> findVertices(JUConstants property, Object value, Graph g){
+		Set<DeterministicVertex> vertices = new HashSet<DeterministicVertex>();
+		Iterator<DeterministicVertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+			DeterministicVertex v = vertexIt.next();
 			if(v.getUserDatum(property) == null)
 				continue;
 			if(v.getUserDatum(property).equals(value))
@@ -1022,7 +1020,7 @@ final public class DeterministicDirectedSparseGraph {
 		{
 			DeterministicVertex newSrc = DeterministicDirectedSparseGraph.copyVertex(newVertices,result,e.getSource()),
 				newDst = DeterministicDirectedSparseGraph.copyVertex(newVertices, result, e.getDest());
-			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
+			DeterministicEdge newEdge = AbstractLearnerGraph.generateNewJungEdge(newSrc,newDst);
 			Set<Label> origLabels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 			TreeSet<Label> copiedLabels = new TreeSet<Label>();copiedLabels.addAll(origLabels);
 			newEdge.addUserDatum(JUConstants.LABEL, copiedLabels, UserData.SHARED);

@@ -43,6 +43,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -136,7 +137,7 @@ public class TestStateMerging
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraph(machineToMerge, graphName,config,getLabelConverter()).pathroutines.getGraph(),
 			g2=(DirectedSparseGraph)g.copy();
-		Vertex 
+		DeterministicVertex 
 			a = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateRed), g),
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateBlue), g);
 				
@@ -206,7 +207,7 @@ public class TestStateMerging
 	public final void testMerge1a()
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DeterministicVertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("U"), g);
 		OrigStatePair pair = new OrigStatePair(d,s);

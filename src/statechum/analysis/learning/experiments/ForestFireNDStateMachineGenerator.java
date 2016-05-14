@@ -101,32 +101,26 @@ public class ForestFireNDStateMachineGenerator {
 	 */
 	protected void buildGraph(int size) 
 	{
-		synchronized(AbstractLearnerGraph.syncObj)
-		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
-		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
-			
-			labelmap = new HashMap<VertID,CmpVertex>();
-			for(int i=0;i<size-1;i++)
-			{
-				CmpVertex v=new StringVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
-				annotateVertex(v);
-				machine.getTransitionMatrix().put(v, machine.createNewRow());
-				vertices.add(v);// permits v to be chosen as a target, creating self-loops
-				this.labelmap.put(v, v);
-				CmpVertex random = selectRandomVertex();
+		labelmap = new HashMap<VertID,CmpVertex>();
+		for(int i=0;i<size-1;i++)
+		{
+			CmpVertex v=new StringVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
+			annotateVertex(v);
+			machine.getTransitionMatrix().put(v, machine.createNewRow());
+			vertices.add(v);// permits v to be chosen as a target, creating self-loops
+			this.labelmap.put(v, v);
+			CmpVertex random = selectRandomVertex();
 
-				machine.addTransition(machine.getTransitionMatrix().get(random), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v);
-				//Visualiser.updateFrame(machine, null);
-				if (Distributions.nextGeometric(1-selfLoop,generator)>0)
-					machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v); 
+			machine.addTransition(machine.getTransitionMatrix().get(random), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v);
+			//Visualiser.updateFrame(machine, null);
+			if (Distributions.nextGeometric(1-selfLoop,generator)>0)
+				machine.addTransition(machine.getTransitionMatrix().get(v), AbstractLearnerGraph.generateNewLabel(randomInt(alphabet-1),machine.config,converter), v); 
 
-				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
-				// at this point it is appropriate to assume that we were successful.
-				visited.add(random);visited.add(v);
-				spread(v,random);
-				visited.clear();
-			}
-			
+			// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
+			// at this point it is appropriate to assume that we were successful.
+			visited.add(random);visited.add(v);
+			spread(v,random);
+			visited.clear();
 		}
 	}
 	

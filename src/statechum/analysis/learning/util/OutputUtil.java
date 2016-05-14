@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -81,18 +83,18 @@ public class OutputUtil {
 	protected static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
-		ArrayList<DirectedSparseVertex> vertexList = new ArrayList<DirectedSparseVertex>();
-		for(DirectedSparseVertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+		ArrayList<DeterministicVertex> vertexList = new ArrayList<DeterministicVertex>();
+		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 				vertexList.add(v);
 		}
-		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+		for(Vertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 			Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
 			if(!v.toString().equals("Init") && accepted.booleanValue())
 				graphout.write("\n"+vertexList.indexOf(v)+"[label=\"\" shape=\"circle\"]");
 		}
 		
-		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
-			Vertex dest = e.getDest();
+		for (DeterministicEdge e : (Iterable<DeterministicEdge>)g.getEdges()) {
+			DeterministicVertex dest = (DeterministicVertex) e.getDest();
 			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
 				continue;
 			String from = String.valueOf(vertexList.indexOf(e.getSource()));
@@ -115,11 +117,11 @@ public class OutputUtil {
 	protected static StringWriter pajekGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("*Network\n*Vertices "+g.numVertices());
-		ArrayList<DirectedSparseVertex> vertexList = new ArrayList<DirectedSparseVertex>();
-		for(DirectedSparseVertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+		ArrayList<DeterministicVertex> vertexList = new ArrayList<DeterministicVertex>();
+		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 				vertexList.add(v);
 		}
-		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 			//Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
 			//if(!v.toString().equals("Init") && accepted.booleanValue())
 			String labelAsString = null;	
@@ -130,7 +132,7 @@ public class OutputUtil {
 			graphout.write("\n"+(vertexList.indexOf(v)+1) + " \""+labelAsString+"\"");
 		}
 		graphout.write("\n*Arcs");
-		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
+		for (DeterministicEdge e : (Iterable<DeterministicEdge>)g.getEdges()) {
 			//Vertex dest = e.getDest();
 			//if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
 			//	continue;

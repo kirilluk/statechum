@@ -38,6 +38,7 @@ import statechum.StringLabel;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
@@ -399,13 +400,39 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public static CmpVertex generateNewCmpVertex(VertID name,Configuration conf)
 	{
 			if (conf.isLearnerUseStrings()) 
-					return  new StringVertex(name);
-			synchronized(syncObj)
-			{
-				return new DeterministicVertex(name);			
-			}		
+				return  new StringVertex(name);
+			else
+				return generateNewJungVertex(name);
 	}
+	
+	/** Constructs a new Jung vertex. */
+	public static DeterministicVertex generateNewJungVertex(VertID name)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicVertex(name);			
+		}		
 		
+	}
+	
+	/** Constructs a new Jung vertex. */
+	public static DeterministicVertex generateNewJungVertex(String name)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicVertex(name);			
+		}		
+	}
+	
+	/** Constructs a new Jung edge. */
+	public static DeterministicEdge generateNewJungEdge(DeterministicVertex v, DeterministicVertex w)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicEdge(v,w);
+		}
+	}
+	
 	/** This is not quite like a real clone - it clones depending on the 
 	 * global configuration, so it is possible to turn a DeterministicVertex 
 	 * into a StringVertex and the other way around. Moreover, cloning a 
@@ -517,7 +544,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public CmpVertex addVertex(CmpVertex prevState, boolean accepted, Label input)
 	{
-		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);

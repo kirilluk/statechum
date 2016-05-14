@@ -35,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
@@ -749,7 +748,7 @@ public class TestStateMerging
 	}
 	
 	/** Checks that revised version of the generalised merger is not affected by the true/false switch. */
-	public final void checkScoringAndMerging(List<StatePair> pairsToMerge, LearnerGraph orig, int expectedScore, LearnerGraph expected)
+	public final static void checkScoringAndMerging(List<StatePair> pairsToMerge, LearnerGraph orig, int expectedScore, LearnerGraph expected)
 	{
 		for(boolean gA:new boolean[]{true,false})
 			for(boolean gB:new boolean[]{true,false})

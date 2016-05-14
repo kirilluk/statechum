@@ -288,7 +288,7 @@ public class ForestFireNDStateMachineGenerator {
 		return preds;
 	}
 
-	private List<CmpVertex> newListWithVertex(CmpVertex cmpVertex) {
+	private static List<CmpVertex> newListWithVertex(CmpVertex cmpVertex) {
 		List<CmpVertex> verticesToReturn = new ArrayList<CmpVertex>();
 		verticesToReturn.add(cmpVertex);
 		return verticesToReturn;

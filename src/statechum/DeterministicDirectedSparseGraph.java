@@ -1102,7 +1102,6 @@ final public class DeterministicDirectedSparseGraph {
 	}
 	
 	public static Edge findEdge(Vertex from, Vertex to){
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> edgesOut = from.getOutEdges().iterator();
 		while(edgesOut.hasNext()){
 			DirectedSparseEdge current = edgesOut.next();

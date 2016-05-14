@@ -44,11 +44,13 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -81,6 +83,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 		Label uniqueFromInitial = null;
+		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		boolean pickUniqueFromInitial = par.pickUniqueFromInitial;
 		do
 		{
@@ -90,12 +93,43 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
 				if(!uniques.isEmpty())
 				{ 
-					// some uniques are loops, hence eliminate them to match our case study
+					// some uniques are loops, hence ignore them to match our case study where the unique transition enters a normal state rather than looping in the initial one. 
 					for(Entry<Label,CmpVertex> entry:uniques.entrySet())
 						if (referenceGraph.transitionMatrix.get(entry.getValue()).get(entry.getKey()) != entry.getValue())
 						{
 							referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();break;// found a unique of interest
 						}
+				}
+				if (uniqueFromInitial == null)
+				{// need to generate a unique transition that did not occur through randomness.
+					Set<Label> existingAlphabet = referenceGraph.pathroutines.computeAlphabet();
+					if (existingAlphabet.size() < alphabet)
+					{// There is scope for generation of a new (unique) label. Given how an alphabet is constructed by ForestFireLabelledStateMachineGenerator, 
+					 // it seems appropriate.  
+						Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("unique", learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
+						assert(!existingAlphabet.contains(uniqueLabel));
+						List<CmpVertex> possibleVertices = new ArrayList<CmpVertex>();
+						for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
+							if (entry.getValue().size() < alphabet)
+								possibleVertices.add(entry.getKey());
+						assert(!possibleVertices.isEmpty());
+						CmpVertex newInit = possibleVertices.get(rnd.nextInt(possibleVertices.size()));
+						referenceGraph.setInit(newInit);uniqueFromInitial = uniqueLabel;
+						int targetIdx = rnd.nextInt(referenceGraph.getStateNumber()-1);
+						CmpVertex target = null;
+						for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+							if (v != newInit)
+							{// target should not be the same as the source
+								if (targetIdx-- <= 0)
+								{
+									target = v;
+									break;
+								}
+							}
+						// Adding a new unique transition from the initial state does not affect reachability of vertices or the connectivity.
+						// In addition, given that all states were distinguishable the uniqueness of the label does not make any of them equivalent.  
+						referenceGraph.addTransition(referenceGraph.transitionMatrix.get(newInit), uniqueLabel,target);
+					}
 				}
 			}
 		}
@@ -104,7 +138,6 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 /*
 		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {

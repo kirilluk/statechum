@@ -196,7 +196,6 @@ public class ForestFireStateMachineGenerator {
 		
 	}
 	
-	@SuppressWarnings("unchecked")
 	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
 	{
 		DijkstraDistance p = new DijkstraDistance(machine);
@@ -261,7 +260,6 @@ public class ForestFireStateMachineGenerator {
 	{
 		// This one needs to choose vertices at random, not just choose first x/y vertices.
 		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>();
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> inIt = ambassador.getInEdges().iterator();
 		Set<DeterministicVertex> verticesToChooseFrom = new TreeSet<DeterministicVertex>();
 		while(inIt.hasNext()){
@@ -272,7 +270,6 @@ public class ForestFireStateMachineGenerator {
 		}
 		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, x));
 		
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> outIt = ambassador.getOutEdges().iterator();
 		verticesToChooseFrom.clear();
 		while(outIt.hasNext()){

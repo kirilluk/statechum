@@ -285,7 +285,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outDir+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outDir+directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outDir + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -362,12 +362,17 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 					Helper.throwUnchecked("failed to compute", ex);
 				}
 			}
-			
-    	for(EvaluationOfLearners e:listOfExperiments)
-    		experimentRunner.submitTask(e);
-    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 
-		DrawGraphs.end();
-		experimentRunner.successfulTermination();
+		try
+		{
+	    	for(EvaluationOfLearners e:listOfExperiments)
+	    		experimentRunner.submitTask(e);
+	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		}
+		finally
+		{
+			DrawGraphs.end();
+			experimentRunner.successfulTermination();
+		}
 	}
 }

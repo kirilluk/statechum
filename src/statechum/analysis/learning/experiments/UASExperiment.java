@@ -109,9 +109,13 @@ public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends Threa
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()
 	{
 		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,ScoringToApply.SCORING_EDSM_2,
-				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
+				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
 				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
-				ScoringToApply.SCORING_SICCO,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
+				ScoringToApply.SCORING_SICCO
+				
+				// SICCO_PTA performs the same as SICCO, RECURSIVE and RED perform very badly.
+				// EDSM does not perform as well as SICCO and in particular, its performance is dependent on the threshold whereas for SICCO it does not.
+				//,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
 				});
 	}
 

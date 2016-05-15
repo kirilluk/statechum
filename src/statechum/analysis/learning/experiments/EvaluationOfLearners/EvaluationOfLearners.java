@@ -62,7 +62,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 {
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
 	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
-	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public void setAlwaysRunExperiment(boolean b) 
 	{
@@ -284,7 +284,8 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
+		mkDir(outDir+directoryExperimentResult);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outDir+directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -332,13 +333,13 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 			{
 				try
 				{
-					for(int states=minStateNumber;states <= minStateNumber+0;states+=10)
+					for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
 						for(boolean unique:new boolean[]{true,false})
 							for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 								{
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
-										for(boolean pta:new boolean[]{true,false})
+										for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 										{
 											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())

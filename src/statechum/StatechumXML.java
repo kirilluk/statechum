@@ -255,7 +255,7 @@ public enum StatechumXML
 			return readSequenceFromErlangObject(obj);
 		}
 
-		public List<String> readSequenceFromErlangObject(OtpErlangObject obj) 
+		public static List<String> readSequenceFromErlangObject(OtpErlangObject obj) 
 		{
 			if (!(obj instanceof OtpErlangList))
 				throw new IllegalArgumentException("expected a sequence, got "+obj);

@@ -44,7 +44,6 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -285,7 +284,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outDir+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outDir + directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -371,8 +370,8 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		}
 		finally
 		{
-			DrawGraphs.end();
 			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		}
 	}
 }

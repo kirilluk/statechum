@@ -468,8 +468,11 @@ public class DrawGraphs {
 	
 	public interface SGEExperimentResult
 	{
-		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
-		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages);
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output.
+		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to record result. This is important to check whether an experiment has
+		 * abnormally terminated. 
+		 */
+		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, boolean onlyCheckItParses);
 		
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
 		public void drawInteractive(DrawGraphs gr);
@@ -682,33 +685,36 @@ public class DrawGraphs {
 
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@Override
-		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages)
+		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, boolean onlyCheckItParses)
 		{
-			final StringSequenceWriter writer = new StringSequenceWriter(null);
+			final StringSequenceWriter reader = new StringSequenceWriter(null);
 			if (line.length != 6)
 				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 6");
+			final String[] columnText = reader.readInputSequence(line[3]).toArray(new String[]{});
+			final String[] headerValuesForCells = reader.readInputSequence(line[4]).toArray(new String[]{});
 			
-			add(new ThreadResultID(){
-
-				@Override
-				public String getRowID() {
-					return line[1];
-				}
-
-				@Override
-				public String[] getColumnText() {
-					return writer.readInputSequence(line[3]).toArray(new String[]{});
-				}
-
-				@Override
-				public String getColumnID() {
-					return line[2];
-				}
-
-				@Override
-				public String[] headerValuesForEachCell() {
-					return writer.readInputSequence(line[4]).toArray(new String[]{});
-				}},line[5]);
+			if (!onlyCheckItParses)
+				add(new ThreadResultID(){
+	
+					@Override
+					public String getRowID() {
+						return line[1];
+					}
+	
+					@Override
+					public String[] getColumnText() {
+						return columnText;
+					}
+	
+					@Override
+					public String getColumnID() {
+						return line[2];
+					}
+	
+					@Override
+					public String[] headerValuesForEachCell() {
+						return headerValuesForCells;
+					}},line[5]);
 		}
 	}
 
@@ -1019,7 +1025,7 @@ public class DrawGraphs {
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@SuppressWarnings("unchecked")
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, boolean onlyCheckItParses)
 		{
 			if (line.length != 6)
 				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+line);
@@ -1047,7 +1053,8 @@ public class DrawGraphs {
 								argValue = new Long(argStringValue);
 							else
 								throw new IllegalArgumentException("cannot load a value of type "+argType);
-			add((ELEM) argValue,yValue,color,label);
+			if (!onlyCheckItParses)
+				add((ELEM) argValue,yValue,color,label);
 		}
 	}	
 

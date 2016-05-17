@@ -19,21 +19,35 @@ package statechum.analysis.learning.experiments;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.ericsson.otp.erlang.OtpErlangInt;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangRangeException;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+
 import statechum.Helper;
 import statechum.ProgressIndicator;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RExperimentResult;
@@ -84,21 +98,23 @@ public class SGE_ExperimentRunner
 	public static class RunSubExperiment<RESULT> 
 	{
 		private PhaseEnum phase;
-		// We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults.  
-		private int taskCounter=0, taskCounterFromPreviousSubExperiment, taskToRun=-1;
+		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults. */  
+		private int taskCounter=0, taskCounterFromPreviousSubExperiment;
+		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished. */
+		private int virtTask = 0, tasksToSplitInto =0;
 		private String experimentName;
 		private ExecutorService executorService;
 		
 		protected CompletionService<RESULT> runner = null; 
 		
-		protected RESULT outcomeOfExperiment = null;
+		protected Map<Integer,RESULT> outcomeOfExperiment = new TreeMap<Integer,RESULT>();
 		private DrawGraphs gr = new DrawGraphs();
 
 		private final String tmpDir;
 		
 		public RunSubExperiment(int cpuNumber,String dir, String []args)
 		{
-			tmpDir = dir+"/";
+			tmpDir = dir+File.separator;
 			if (args.length == 0)
 				// no args means standalone
 				phase = PhaseEnum.RUN_STANDALONE;
@@ -110,18 +126,37 @@ public class SGE_ExperimentRunner
 				case RUN_TASK:
 					if (args.length != 2)
 						throw new IllegalArgumentException("task number should be provided");
-					int taskValue = Integer.valueOf(args[1]);
+					int taskValue = 0;
+					try
+					{
+						taskValue = Integer.valueOf(args[1]);
+					}
+					catch(NumberFormatException e)
+					{
+						Helper.throwUnchecked("invalid number", e);
+					}
 					if (taskValue <= 0)
 						throw new IllegalArgumentException("task number should be positive");
-					taskToRun = taskValue-1;
+					virtTask = taskValue;
+					virtTaskToRealTask = loadVirtTaskToReal(tmpDir);
 					break;
 				case RUN_STANDALONE:
 					if (args.length != 1)
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
 				case COUNT_TASKS:
-					if (args.length != 1)
-						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
+					if (args.length != 2)
+						throw new IllegalArgumentException("the number of tasks per virtual task has to be provided");
+					try
+					{
+						tasksToSplitInto = Integer.valueOf(args[1]);
+					}
+					catch(NumberFormatException e)
+					{
+						Helper.throwUnchecked("invalid number", e);
+					}
+					if (tasksToSplitInto <= 0)
+						throw new IllegalArgumentException("the number of real tasks to run should be positive");
 					break;
 				case COLLECT_RESULTS:
 					if (args.length != 1)
@@ -131,33 +166,37 @@ public class SGE_ExperimentRunner
 			}
 			executorService = Executors.newFixedThreadPool(cpuNumber);runner = new ExecutorCompletionService<RESULT>(executorService);
 		}
-		
+
 		protected void shutdown()
 		{
 			if (executorService != null) { executorService.shutdownNow();executorService = null; }
+			// if I call DrawGraphs.end() here, tests will fail because I'm repeatedly start/stop R
 		}
-		
+
+		/** Has  to be called at the very end of computation. */
 		public int successfulTermination()
 		{
 			int outcome = 0;
 			if (phase == PhaseEnum.COUNT_TASKS)
 			{
-				System.out.println(taskCounter);outcome = taskCounter;
+				outcome = constructVirtToReal();				
+				System.out.println(outcome);
 			}
 			shutdown();
 			return outcome;
 		}
-		
+
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public void submitTask(Callable<? extends RESULT> task)
 		{
 			switch(phase)
 			{
 			case RUN_TASK:// when running in Grid mode, each task runs as a separate process given that we intend to run them on separate nodes.
-				if (taskToRun == taskCounter)
+				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
+				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 					try
 					{
-						outcomeOfExperiment = task.call();// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
+						outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
 					}
 					catch(Exception ex)
 					{
@@ -169,7 +208,7 @@ public class SGE_ExperimentRunner
 					}
 				break;
 				
-			case RUN_STANDALONE:// only submit the task of interest
+			case RUN_STANDALONE:
 				runner.submit((Callable)task);
 				break;
 			
@@ -177,17 +216,17 @@ public class SGE_ExperimentRunner
 				break;
 			case COLLECT_RESULTS:
 				break;
-					
+
 			}
 			++taskCounter;
 		}
-		
+
 		/** Returns the number of the current task. The returned value is only updated on a call to {@link RunSubExperiment#submitTask(Callable)}. */
 		public int getTaskID()
 		{
 			return taskCounter;
 		}
-		
+
 		protected String constructFileName(int rCounter)
 		{
 			return tmpDir+experimentName.replaceAll("[:\\// ]", "_")+"-"+rCounter;				
@@ -220,8 +259,210 @@ public class SGE_ExperimentRunner
 		}
 		
 		Map<String,SGEExperimentResult> nameToGraph = null;
-		BufferedWriter outputWriter = null;
+		StringWriter outputWriter = null;
 
+		private void loadExperimentResult(int rCounter)
+		{
+			BufferedReader reader = null;
+			try
+			{
+				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
+				String line = reader.readLine();
+				while(line != null)
+				{
+					String [] data = line.split(separatorRegEx,-2);
+					if (data.length < 1)
+						throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" did not log any result");
+					String name = data[0];
+					if (!nameToGraph.containsKey(name))
+						throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
+					
+					SGEExperimentResult thisPlot = nameToGraph.get(name);
+					
+					thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+					line = reader.readLine();
+				}
+	
+				// if we got here, handling of the output has been successful, plot graphs.
+				plotAllGraphs(nameToGraph.values(),-1);
+			}
+			catch(IOException ex)
+			{
+				Helper.throwUnchecked("failed to load results of experiment "+rCounter, ex);
+			}
+			finally
+			{
+				if (reader != null)
+					try {
+						reader.close();
+					} catch (IOException e) {
+						// ignore close failure
+					}
+			}
+		}
+		
+		private Map<Integer,Set<Integer>> virtTaskToRealTask = null;
+		
+		public static Map<Integer,Set<Integer>> loadVirtTaskToReal(String tmpDir)
+		{
+			BufferedReader reader = null;Map<Integer,Set<Integer>> virtTaskToRealTask = new TreeMap<Integer,Set<Integer>>();
+			try
+			{
+				reader = new BufferedReader(new FileReader(tmpDir+"virtToReal.map"));
+				StringBuffer text = new StringBuffer();
+				String line = reader.readLine();
+				while(line != null)
+				{
+					text.append(line);line = reader.readLine();
+				}
+				OtpErlangObject obj = ErlangLabel.parseText(text.toString());
+				if (!(obj instanceof OtpErlangList))
+					throw new IllegalArgumentException("loading virtTaskToRealTask: expected a sequence of sequences, got "+obj);
+				for(OtpErlangObject o:((OtpErlangList)obj))
+				{
+					if (!(o instanceof OtpErlangTuple))
+						throw new IllegalArgumentException("loading virtTaskToRealTask: expected a sequence of sequences, got "+o);
+					OtpErlangTuple tuple = (OtpErlangTuple)o;
+					if (!(tuple.elementAt(0) instanceof OtpErlangInt))
+						throw new IllegalArgumentException("loading virtTaskToRealTask: expected a sequence of sequences, got "+tuple.elementAt(0));
+					int virtTaskID = ((OtpErlangInt)tuple.elementAt(0)).intValue();
+					OtpErlangObject listOfTasksObj = tuple.elementAt(1);
+					if (!(listOfTasksObj instanceof OtpErlangList))
+						throw new IllegalArgumentException("loading virtTaskToRealTask: expected a sequence, got "+listOfTasksObj);
+					OtpErlangList listOfTasks = (OtpErlangList)listOfTasksObj;
+					Set<Integer> outcome = new TreeSet<Integer>();
+					for(OtpErlangObject taskNumberObj:listOfTasks)
+					{
+						if (!(taskNumberObj instanceof OtpErlangInt))
+							throw new IllegalArgumentException("loading virtTaskToRealTask: expected an int among tasks, got "+taskNumberObj);
+						outcome.add(((OtpErlangInt)taskNumberObj).intValue());
+					}
+					virtTaskToRealTask.put(virtTaskID,outcome);
+				}
+			}
+			catch(IOException ex)
+			{
+				Helper.throwUnchecked("failed to load virtToReal.map", ex);
+			}
+			catch(OtpErlangRangeException ex)
+			{
+				Helper.throwUnchecked("failed to load virtToReal.map", ex);
+			}
+			finally
+			{
+				if (reader != null)
+					try {
+						reader.close();
+					} catch (IOException e) {
+						// ignore close failure
+					}
+			}
+			
+			return virtTaskToRealTask;
+		}
+		
+		private List<Integer> availableTasks= null;
+		
+		private void updateAvailableTasks(int from, int to)
+		{
+			if (availableTasks == null)
+				availableTasks=new ArrayList<Integer>();
+			for(int task=from;task < to;++task)
+			{
+				if (!checkExperimentComplete(task))
+					availableTasks.add(task);
+			}
+		}
+		
+		private int constructVirtToReal()
+		{
+			int currentVirtualTask=0, currentTask=0;
+			int tasksPerVirtualTask = availableTasks.size()/tasksToSplitInto;if (tasksPerVirtualTask == 0) tasksPerVirtualTask=1;
+
+			BufferedWriter outWriter = null;
+			try
+			{
+				outWriter = new BufferedWriter(new FileWriter(tmpDir+"virtToReal.map"));outWriter.write("[\n");
+				boolean firstTuple = true;
+				for(int vTaskCnt=0;vTaskCnt<tasksToSplitInto && currentTask < availableTasks.size();++vTaskCnt)
+				{
+					if (firstTuple) firstTuple = false;else outWriter.write("\n,\n");
+					outWriter.write('{');outWriter.write(Integer.toString(++currentVirtualTask));outWriter.write(",\n\t[");
+					boolean first=true;
+					for(int i=0;(i<tasksPerVirtualTask || vTaskCnt == tasksToSplitInto-1) && currentTask < availableTasks.size();++i)
+					{
+						if (first) first = false;else outWriter.append(',');
+						outWriter.append(Integer.toString(availableTasks.get(currentTask++)));
+					}
+					outWriter.write("]\n}\n");
+				}
+				
+				outWriter.write("]\n");
+			}
+			catch(IOException ex)
+			{
+				Helper.throwUnchecked("failed to record virtToReal.map", ex);
+			}
+			finally
+			{
+				if (outWriter != null)
+					try {
+						outWriter.close();
+					} catch (IOException e) {
+						// ignore this one
+					}
+				outWriter = null;
+			}
+			
+			return currentVirtualTask;
+		}
+		
+		private boolean checkExperimentComplete(int rCounter)
+		{
+			boolean outcome = true;
+			BufferedReader reader = null;
+			try
+			{
+				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
+				String line = reader.readLine();
+				while(line != null)
+				{
+					String [] data = line.split(separatorRegEx,-2);
+					if (data.length < 1)
+					{
+						outcome = false;
+						break;
+					}
+					String name = data[0];
+					if (!nameToGraph.containsKey(name))
+					{
+						outcome = false;
+						break;
+					}
+					
+					SGEExperimentResult thisPlot = nameToGraph.get(name);
+					
+					thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), true);
+					line = reader.readLine();
+				}
+			}
+			catch(Exception ex)
+			{// if we are here, it means that loading failed, regardless of exception that was thrown.
+				outcome = false;
+			}
+			finally
+			{
+				if (reader != null)
+					try {
+						reader.close();
+					} catch (IOException e) {
+						// ignore close failure
+					}
+			}
+			
+			return outcome;
+		}
+		
 		public void collectOutcomeOfExperiments(processSubExperimentResult<RESULT> handlerForExperimentResults)
 		{
 			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
@@ -239,61 +480,50 @@ public class SGE_ExperimentRunner
 					{
 						RESULT result = runner.take().get();// this will throw an exception if any of the tasks failed.
 						if (result == null)
-							throw new IllegalArgumentException("experiment "+taskToRun+" did not complete or returned null");
+							throw new IllegalArgumentException("experiment "+count+" did not complete or returned null");
 						handlerForExperimentResults.processSubResult(result,this);plotAllGraphs(nameToGraph.values(),count);
 						progress.next();
 					}
 					plotAllGraphs(nameToGraph.values(),-1);
 					break;
 				case COUNT_TASKS:
+					updateAvailableTasks(taskCounterFromPreviousSubExperiment,taskCounter);
 					break;
 					
-				case RUN_TASK: // we run only one task of the many that might be submitted, here we need to do one collect of the many that might be submitted, the condition below chooses the one matching taskToRun.
-					if (taskToRun >= taskCounterFromPreviousSubExperiment && taskToRun < taskCounter) // we increment taskCounter after running each task, hence this one corresponds to a task plus one.
+				case RUN_TASK: 
+					// We run only one task of the many that might be submitted, here we need to do a single "collect" of the many that might be submitted 
+					// (which actually means 'write execution results constructed by processSubResult handler to disk'). 
+					// The condition below chooses a call to processSubResult that corresponds the executed sequence of commands (there could be many 
+					// sequences of 'submit' with each sequence followed by 'collect'). In order to choose 'collect' for the right 'submit' sequence, 
+					// we use the one matching the requested number of a taskToRun.  
+					// Since taskCounter is incremented after running each task, the value of taskCounter corresponds to a total number of executed tasks 
+					// in the earlier sequence of tasks plus one.
+					for(Entry<Integer,RESULT> resultOfRunningTasks:outcomeOfExperiment.entrySet())
 					{
-						if (outcomeOfExperiment == null)
-							throw new IllegalArgumentException("experiment "+taskToRun+" did not complete or returned null");
-						outputWriter = new BufferedWriter(new FileWriter(constructFileName(taskToRun)));
+						if (resultOfRunningTasks.getKey() < taskCounterFromPreviousSubExperiment || resultOfRunningTasks.getKey() >= taskCounter)
+							throw new IllegalArgumentException("task "+resultOfRunningTasks.getKey()+" was run when it was not expected, expected range ["+taskCounterFromPreviousSubExperiment+".."+(taskCounter-1)+"]");
+
+						outputWriter = new StringWriter();
+						handlerForExperimentResults.processSubResult(resultOfRunningTasks.getValue(),this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
+						BufferedWriter writer = null;
 						try
 						{
-							handlerForExperimentResults.processSubResult(outcomeOfExperiment,this);
+							writer = new BufferedWriter(new FileWriter(constructFileName(resultOfRunningTasks.getKey())));
+							writer.append(outputWriter.toString());
 						}
 						finally
 						{
-							outputWriter.close();outputWriter = null;
+							if (writer != null)
+							{
+								writer.close();writer = null;
+							}
 						}
 					}
+					outcomeOfExperiment.clear();
 					break;
 				case COLLECT_RESULTS:
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-					{
-						BufferedReader reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
-						try
-						{
-							String line = reader.readLine();
-							while(line != null)
-							{
-								String [] data = line.split(separatorRegEx,-2);
-								if (data.length < 1)
-									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" did not log any result");
-								String name = data[0];
-								if (!nameToGraph.containsKey(name))
-									throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
-								
-								SGEExperimentResult thisPlot = nameToGraph.get(name);
-								
-								thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter));
-								line = reader.readLine();
-							}
-							
-							// if we got here, handling of the output has been successful, plot graphs.
-							plotAllGraphs(nameToGraph.values(),-1);
-						}
-						finally
-						{
-							reader.close();
-						}
-					}
+						loadExperimentResult(rCounter);
 					break;
 				default:
 					break;

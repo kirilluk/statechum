@@ -22,6 +22,7 @@ import statechum.analysis.learning.TestDrawGraphs;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 public class TestSGE_ExperimentRunner {
 
@@ -621,7 +622,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testCount1a() throws Exception
 	{
-		Assert.assertEquals(3,runA(new String[]{"COUNT_TASKS"}));
+		Assert.assertEquals(3,runA(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());// until we actually run tasks, there should be nothing recorded.
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -629,7 +630,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testCount1b() throws Exception
 	{
-		Assert.assertEquals(3,runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS"}));
+		Assert.assertEquals(3,runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -637,14 +638,89 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testCount1c() throws Exception
 	{
-		Assert.assertEquals(3,runcsv_A(new String[]{"COUNT_TASKS"}));
+		Assert.assertEquals(3,runcsv_A(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());// until we actually run tasks, there should be nothing recorded.
 	}
 
 	@Test
-	public void testCount2() throws Exception
+	public void testCount2a() throws Exception
 	{
-		Assert.assertEquals(5,runMultiple(new String[]{"COUNT_TASKS"}));
+		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
+		Assert.assertEquals("{1=[0], 2=[1], 3=[2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount2b() throws Exception
+	{
+		Assert.assertEquals(1,runMultiple(new String[]{"COUNT_TASKS","1"}));
+		Assert.assertEquals("{1=[0, 1, 2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount2c() throws Exception
+	{
+		Assert.assertEquals(5,runMultiple(new String[]{"COUNT_TASKS","8"}));
+		Assert.assertEquals("{1=[0], 2=[1], 3=[2], 4=[3], 5=[4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount3() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runMultiple(new String[]{"COUNT_TASKS"});
+			}}, IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
+		
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount4() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runMultiple(new String[]{"COUNT_TASKS","3","4"});
+			}}, IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
+		
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount5() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runMultiple(new String[]{"COUNT_TASKS","-3"});
+			}}, IllegalArgumentException.class, "the number of real tasks to run");
+		
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testCount6() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runMultiple(new String[]{"COUNT_TASKS","a"});
+			}}, IllegalArgumentException.class, "invalid number");
+		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -699,6 +775,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun4a() throws Exception
 	{
+		Assert.assertEquals(3,runB_both_labels_and_colours(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_TASK","1"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
@@ -718,6 +795,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun4b() throws Exception
 	{
+		Assert.assertEquals(3,runB_both_labels_and_colours(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","1"}));
 		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
 		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","2"}));
@@ -734,7 +812,8 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5a() throws Exception
 	{
-		for(int i=1;i<=runMultiple(new String[]{"COUNT_TASKS"});++i)
+		int taskNumber = runMultiple(new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=taskNumber;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK",""+i}));
 		Assert.assertEquals(0,runMultiple(new String[]{"COLLECT_RESULTS"}));
 
@@ -747,7 +826,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5b() throws Exception
 	{
-		int count = runcsv_A(new String[]{"COUNT_TASKS"});
+		int count = runcsv_A(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK",""+i}));
 		Assert.assertEquals(0,runcsv_A(new String[]{"COLLECT_RESULTS"}));
@@ -761,7 +840,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5c() throws Exception
 	{
-		int count = runcsv_B(new String[]{"COUNT_TASKS"});
+		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
 		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS"}));
@@ -775,13 +854,13 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5d() throws Exception
 	{
-		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS"});
+		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter-1;++i)
 			Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"RUN_TASK",""+i}));
 
 		try
 		{
-			Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"RUN_TASK",""+counter}));
+			runD_null_for_one_of_the_samples(new String[]{"RUN_TASK",""+counter});
 			Assert.fail("exception not thrown");
 		}
 		catch(IllegalArgumentException ex)
@@ -806,7 +885,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5e() throws Exception
 	{
-		int counter = runE_invalid_data_in_output_file(new String[]{"COUNT_TASKS"});
+		int counter = runE_invalid_data_in_output_file(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter;++i)
 			Assert.assertEquals(0,runE_invalid_data_in_output_file(new String[]{"RUN_TASK",""+i}));
 
@@ -826,11 +905,11 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5f() throws Exception
 	{
-		for(int i=1;i<=runMultipleFail2(new String[]{"COUNT_TASKS"})-1;++i)
+		for(int i=1;i<=runMultipleFail2(new String[]{"COUNT_TASKS","3"})-1;++i)
 			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+i}));
 		try
 		{
-			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+runMultipleFail2(new String[]{"COUNT_TASKS"})}));// this particular task fails
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+runMultipleFail2(new String[]{"COUNT_TASKS","3"})}));// this particular task fails
 			Assert.fail("exception not thrown");
 		}
 		catch(IllegalArgumentException ex)
@@ -842,7 +921,8 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5g() throws Exception
 	{
-		for(int i=1;i<=runMultiple(new String[]{"COUNT_TASKS"})-1;++i)
+		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
+		for(int i=1;i<=taskCount-1;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK",""+i}));
 		// here we deliberately ignore one of the experiments
 		Helper.checkForCorrectException(new whatToRun() {
@@ -860,11 +940,92 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertEquals("[1.0,-1.0,NULL,NULL]",gr_b.getData());
 	}
 	
+	// Here we run an experiment, observe failure and then re-run it. This checks correct identification of successfully finished tasks.
+	@Test
+	public void testRun5h() throws Exception
+	{
+		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","5"});
+		Assert.assertEquals(5, taskCount);
+		for(int i=1;i<=taskCount-1;++i)
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+i}));
+		try
+		{
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+taskCount}));// this particular task fails
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		
+		// Now try the same - we should only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		try
+		{
+			runMultipleFail2(new String[]{"RUN_TASK","0"});// attempting the failing task again will fail.
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		// Now try the same for the second time - we should still only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK","1"}));// this one should be successful 
+	}
+	
+	
 	// if I run a task with too high an ID, it is ignored
 	@Test
-	public void testRun6() throws Exception
+	public void testRun6a() throws Exception
 	{
+		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_TASK","100"}));
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testRun6b() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runB_both_labels_and_colours(new String[]{"RUN_TASK"});
+			}
+		}, IllegalArgumentException.class, "should be");
+		
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testRun6c() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runB_both_labels_and_colours(new String[]{"RUN_TASK","-100"});
+			}
+		}, IllegalArgumentException.class, "should be positive");
+		
+		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+	}
+
+	@Test
+	public void testRun6d() throws Exception
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				runB_both_labels_and_colours(new String[]{"RUN_TASK","aa"});
+			}
+		}, IllegalArgumentException.class, "invalid number");
+		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -919,19 +1080,6 @@ public class TestSGE_ExperimentRunner {
 			@Override
 			public void run()
 			{
-				runA(new String[]{"COUNT_TASKS","21"});
-			}
-		}, IllegalArgumentException.class, "no arguments");
-	}
-	
-	@Test
-	public void testInvalidPhase3()
-	{
-		Helper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
 				runA(new String[]{"RUN_STANDALONE","21"});
 			}
 		}, IllegalArgumentException.class, "no arguments");
@@ -939,7 +1087,7 @@ public class TestSGE_ExperimentRunner {
 	
 	
 	@Test
-	public void testInvalidPhase4()
+	public void testInvalidPhase3()
 	{
 		Helper.checkForCorrectException(new whatToRun() {
 			
@@ -952,7 +1100,7 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
-	public void testInvalidPhase5()
+	public void testInvalidPhase4()
 	{
 		Helper.checkForCorrectException(new whatToRun() {
 			
@@ -965,7 +1113,7 @@ public class TestSGE_ExperimentRunner {
 	}
 	
 	@Test
-	public void testInvalidPhase6()
+	public void testInvalidPhase5()
 	{
 		Helper.checkForCorrectException(new whatToRun() {
 			

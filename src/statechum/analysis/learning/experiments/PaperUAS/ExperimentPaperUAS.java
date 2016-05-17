@@ -1025,7 +1025,7 @@ public class ExperimentPaperUAS
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
- 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
+ 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
@@ -1226,9 +1226,17 @@ public class ExperimentPaperUAS
     	System.out.println("completed constructing the source graphs");
     	paper = null;// throw the original traces away
     	System.gc();
-    	for(UASCaseStudy e:listOfExperiments)
-    		experimentRunner.submitTask(e);
-    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+    	try
+    	{
+	    	for(UASCaseStudy e:listOfExperiments)
+	    		experimentRunner.submitTask(e);
+	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		}
+		finally
+		{
+			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		}
 		
     	/*
 		//initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));
@@ -1236,12 +1244,10 @@ public class ExperimentPaperUAS
 		System.out.println(new Date().toString()+" Graph loaded: "+initialPTA.getStateNumber()+" states, adding at most "+ paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN()+" if-then states");
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		*/
-    	
+    	/*
     	if (resultCSV != null) resultCSV.reportResults(gr);
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
-		
-		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
-		experimentRunner.successfulTermination();
+		*/
 	}
 }

@@ -382,6 +382,7 @@ public class SGE_ExperimentRunner
 			BufferedWriter outWriter = null;
 			try
 			{
+				UASExperiment.mkDir(tmpDir);
 				outWriter = new BufferedWriter(new FileWriter(tmpDir+"virtToReal.map"));outWriter.write("[\n");
 				boolean firstTuple = true;
 				for(int vTaskCnt=0;vTaskCnt<tasksToSplitInto && currentTask < availableTasks.size();++vTaskCnt)

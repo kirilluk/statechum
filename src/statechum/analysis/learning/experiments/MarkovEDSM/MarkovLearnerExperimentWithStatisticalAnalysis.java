@@ -574,11 +574,14 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		final int chunkSize = 3;
 		
 		
-		RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
+		RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
 
+		try
+		{
+		
 		/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));
@@ -684,7 +687,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 						if (gr_BCR != null) gr_BCR.drawPdf(gr);
 			}
 */
-		
 		
 		for(final int preset: new int[]{0})//0,1,2})
 		{
@@ -796,8 +798,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			}
 
 		}
-
-
 		
 /*		final int traceQuantityToUse = traceQuantity;
 		final int presetForBestResults = 0;
@@ -1037,7 +1037,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		
 		}
 
-
 		// Same experiment but with different trace length but the same number of sequences
 		final RBoxPlot<Double> gr_BCRImprovementForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","improvement, BCR",new File(branch+"BCR_vs_tracelength.pdf"));
 		final RBoxPlot<Double> gr_BCRForDifferentLengthOfTraces = new RBoxPlot<Double>("trace length multiplier","BCR",new File(branch+"BCR_absolute_vs_tracelength.pdf"));
@@ -1132,9 +1131,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 				});
 				}
 			}
-		
-		
-
 
 		final RBoxPlot<Integer> gr_BCRImprovementForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","improvement, BCR",new File(branch+"BCR_vs_prefixLength.pdf"));
 		final RBoxPlot<Integer> gr_BCRForDifferentPrefixlen = new RBoxPlot<Integer>("length of prefix","BCR",new File(branch+"BCR_absolute_vs_prefixLength.pdf"));
@@ -1324,9 +1320,13 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			}
 		}
 		*/
-		
-		DrawGraphs.end();
-		experimentRunner.successfulTermination();
+
+		}
+		finally
+		{
+			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		}
 	}
 	
 	public static class AverageValue

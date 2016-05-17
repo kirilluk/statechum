@@ -75,17 +75,15 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		return (learningType == null?"":(learningType.name+"-"))+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
+		return (learningType == null?"":(learningType.name+"-"))+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name+"-"+traceQuantity+"-"+lengthmult; 
 	}
 
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
+		return new String[]{ (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}; 
 	}
-	
-	
-	
+
 	@Override
 	public String getRowID() {
 		return states+"-"+uniqueAsString()+"-"+LearningSupportRoutines.padString(Integer.toString(fsmSample),'0',4)+"-"+LearningSupportRoutines.padString(Integer.toString(seed),'0',6)+"-A"+attempt;

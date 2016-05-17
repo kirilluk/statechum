@@ -252,7 +252,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setOverride_usePTAMerging(true);
@@ -335,13 +335,17 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 					throw e;
 				}
 			}
-			
-    	for(SmallVsHuge e:listOfExperiments)
-    		experimentRunner.submitTask(e);
-    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		
-		//Visualiser.waitForKey();
-		DrawGraphs.end();
-		experimentRunner.successfulTermination();
+		try
+		{
+	    	for(SmallVsHuge e:listOfExperiments)
+	    		experimentRunner.submitTask(e);
+	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		}
+		finally
+		{
+			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		}
 	}
 }

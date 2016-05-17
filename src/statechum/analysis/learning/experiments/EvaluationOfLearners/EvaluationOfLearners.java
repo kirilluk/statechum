@@ -73,7 +73,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		super(parameters,eval,directoryNamePrefix);
 	}
 	
-	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL};//, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
+	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public EvaluationOfLearnersResult call() throws Exception 
@@ -327,19 +327,18 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		};
 		int seedThatIdentifiesFSM=0;
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
-		for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
-			for(int traceLengthMultiplier=1;traceLengthMultiplier<=4;traceLengthMultiplier*=2)
-			{
-				try
-				{
-					for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
-						for(boolean unique:new boolean[]{true,false})
-							for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
-								for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+		try
+		{
+			for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
+				for(boolean unique:new boolean[]{true,false})
+					for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
+						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+						{
+							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
+								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
-									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
-										for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
-										{
+									for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
+										for(int traceLengthMultiplier=1;traceLengthMultiplier<=4;traceLengthMultiplier*=2)
 											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 												{
@@ -353,14 +352,13 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 													//learnerRunner.setAlwaysRunExperiment(true);
 													listOfExperiments.add(learnerRunner);
 												}
-										}
 								}
-				}
-				catch(Exception ex)
-				{
-					Helper.throwUnchecked("failed to compute", ex);
-				}
-			}
+						}
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to compute", ex);
+		}
 
 		try
 		{

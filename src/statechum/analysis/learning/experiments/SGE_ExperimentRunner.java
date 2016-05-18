@@ -214,6 +214,8 @@ public class SGE_ExperimentRunner
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 					try
 					{
+						BufferedWriter writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskCounter)));// indicates tasks that have started
+						writer.close();writer = null;
 						outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
 					}
 					catch(Exception ex)
@@ -256,7 +258,10 @@ public class SGE_ExperimentRunner
 		{
 			return tmpDir+experimentName.replaceAll("[:\\// ]", "_")+"-"+rCounter;				
 		}
-
+		protected String constructTaskStartedFileName(int rCounter)
+		{
+			return tmpDir+"task-"+rCounter+".sgetaskstarted";
+		}
 		/** Plots the supplied graphs. If the task number is divisible by 10, plots them on the screen, if negative - dumps a pdf.  
 		 * It is also responsible for a progress indicator in an interactive mode.
 		 * 
@@ -272,6 +277,19 @@ public class SGE_ExperimentRunner
 			if (counter < 0)
 				for(SGEExperimentResult g:graphs)
 					g.reportResults(gr);
+		}
+		
+		public static final String CHECKSUMFIELD = "CHECKSUM";
+		
+		/** Updates the CRC with data in the provided text, ignoring end of line characters. */
+		public static void updateCRC(java.util.zip.CRC32 crc, String text)
+		{
+			for(int idx=0;idx < text.length();idx++)
+			{
+				char ch = text.charAt(idx);
+				if ( ch != '\n' && ch != '\r' && ch != '\t' )
+					crc.update(ch);
+			}
 		}
 		
 		/** Returns true if this is run all in the same jvm, permitting one to collect statistics during collection of results and output it via println. 
@@ -293,21 +311,37 @@ public class SGE_ExperimentRunner
 			{
 				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
 				String line = reader.readLine();
+				boolean foundCRC = false;
+			    java.util.zip.CRC32 crc = new java.util.zip.CRC32();
 				while(line != null)
 				{
 					String [] data = line.split(separatorRegEx,-2);
 					if (data.length < 1)
 						throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" did not log any result");
 					String name = data[0];
-					if (!nameToGraph.containsKey(name))
-						throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
-					
-					SGEExperimentResult thisPlot = nameToGraph.get(name);
-					
-					thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+					if (name.equals(CHECKSUMFIELD))
+					{// checksum field
+						if (data.length != 2)
+							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" has a truncated/too long CRC field");
+						long extractedValue = Long.parseLong(data[1],16);
+						if (crc.getValue() != extractedValue)
+							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" has an invalid CRC");
+						foundCRC = true;
+					}
+					else
+					{// normal field
+						if (!nameToGraph.containsKey(name))
+							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
+						updateCRC(crc,line);
+						SGEExperimentResult thisPlot = nameToGraph.get(name);
+						
+						thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+					}
 					line = reader.readLine();
 				}
-	
+				if (!foundCRC)
+					throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" does not have a CRC");
+				
 				// if we got here, handling of the output has been successful, plot graphs.
 				plotAllGraphs(nameToGraph.values(),-1);
 			}
@@ -326,6 +360,74 @@ public class SGE_ExperimentRunner
 			}
 		}
 		
+		private boolean checkExperimentComplete(int rCounter)
+		{
+			boolean outcome = true;
+			BufferedReader reader = null;
+			try
+			{
+				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
+				String line = reader.readLine();
+				boolean foundCRC = false;
+			    java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+				while(line != null)
+				{
+					String [] data = line.split(separatorRegEx,-2);
+					if (data.length < 1)
+					{
+						outcome = false;
+						break;
+					}
+					String name = data[0];
+					if (name.equals(CHECKSUMFIELD))
+					{// checksum field
+						if (data.length != 2)
+						{
+							outcome = false;
+							break;
+						}
+						long extractedValue = Long.parseLong(data[1],16);
+						if (crc.getValue() != extractedValue)
+						{
+							outcome = false;
+							break;
+						}
+						foundCRC = true;
+					}
+					else
+					{// normal field
+						if (!nameToGraph.containsKey(name))
+						{
+							outcome = false;
+							break;
+						}
+						updateCRC(crc,line);
+					
+						SGEExperimentResult thisPlot = nameToGraph.get(name);
+						
+						thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), true);
+					}
+					line = reader.readLine();
+				}
+				if (!foundCRC)
+					outcome = false;
+			}
+			catch(Exception ex)
+			{// if we are here, it means that loading failed, regardless of exception that was thrown.
+				outcome = false;
+			}
+			finally
+			{
+				if (reader != null)
+					try {
+						reader.close();
+					} catch (IOException e) {
+						// ignore close failure
+					}
+			}
+			
+			return outcome;
+		}
 		private Map<Integer,Set<Integer>> virtTaskToRealTask = null;
 		
 		public static Map<Integer,Set<Integer>> loadVirtTaskToReal(String tmpDir)
@@ -442,53 +544,7 @@ public class SGE_ExperimentRunner
 			
 			return currentVirtualTask;
 		}
-		
-		private boolean checkExperimentComplete(int rCounter)
-		{
-			boolean outcome = true;
-			BufferedReader reader = null;
-			try
-			{
-				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
-				String line = reader.readLine();
-				while(line != null)
-				{
-					String [] data = line.split(separatorRegEx,-2);
-					if (data.length < 1)
-					{
-						outcome = false;
-						break;
-					}
-					String name = data[0];
-					if (!nameToGraph.containsKey(name))
-					{
-						outcome = false;
-						break;
-					}
-					
-					SGEExperimentResult thisPlot = nameToGraph.get(name);
-					
-					thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), true);
-					line = reader.readLine();
-				}
-			}
-			catch(Exception ex)
-			{// if we are here, it means that loading failed, regardless of exception that was thrown.
-				outcome = false;
-			}
-			finally
-			{
-				if (reader != null)
-					try {
-						reader.close();
-					} catch (IOException e) {
-						// ignore close failure
-					}
-			}
-			
-			return outcome;
-		}
-		
+				
 		public void collectOutcomeOfExperiments(processSubExperimentResult<RESULT> handlerForExperimentResults)
 		{
 			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
@@ -536,7 +592,10 @@ public class SGE_ExperimentRunner
 						try
 						{
 							writer = new BufferedWriter(new FileWriter(constructFileName(resultOfRunningTasks.getKey())));
-							writer.append(outputWriter.toString());
+							java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+							String text = outputWriter.toString();updateCRC(crc, text);
+							writer.append(text);
+							writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
 						}
 						finally
 						{
@@ -545,6 +604,8 @@ public class SGE_ExperimentRunner
 								writer.close();writer = null;
 							}
 						}
+						new File(constructTaskStartedFileName(taskCounter)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
+						// start/stop files are not realistic on parallel executions because those are not run on a grid.
 					}
 					outcomeOfExperiment.clear();
 					break;
@@ -562,7 +623,10 @@ public class SGE_ExperimentRunner
 							try
 							{
 								writer = new BufferedWriter(new FileWriter(constructFileName(rCounter)));
-								writer.append(outputWriter.toString());
+								java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+								String text = outputWriter.toString();updateCRC(crc, text);
+								writer.append(text);
+								writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
 							}
 							finally
 							{

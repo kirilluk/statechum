@@ -852,6 +852,34 @@ public class TestSGE_ExperimentRunner {
 	}
 
 	@Test
+	public void testRun5c_parallel1() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_PARALLEL",""+i}));
+		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS"}));
+
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
+	}
+
+	@Test
+	public void testRun5c_parallel2() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS","1"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_PARALLEL",""+i}));
+		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS"}));
+
+		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
+	}
+
+	@Test
 	public void testRun5d() throws Exception
 	{
 		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"});
@@ -940,6 +968,28 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertEquals("[1.0,-1.0,NULL,NULL]",gr_b.getData());
 	}
 	
+	@Test
+	public void testRun5g_parallel() throws Exception
+	{
+		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
+		for(int i=1;i<=taskCount-1;++i)
+			Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL",""+i}));
+		// here we deliberately ignore one of the experiments
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run()
+			{
+				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+			}
+		}, IllegalArgumentException.class, "experimentrunA-4");
+
+		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
+		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
+		Assert.assertEquals("[0.0,2.0,aa1.0,bb1.0]",gr_a.getData());
+		Assert.assertEquals("[1.0,-1.0,NULL,NULL]",gr_b.getData());
+	}
+	
 	// Here we run an experiment, observe failure and then re-run it. This checks correct identification of successfully finished tasks.
 	@Test
 	public void testRun5h() throws Exception
@@ -972,6 +1022,70 @@ public class TestSGE_ExperimentRunner {
 		// Now try the same for the second time - we should still only get 1 task reported.
 		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
 		Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK","1"}));// this one should be successful 
+	}
+	
+	@Test
+	public void testRun5h_parallel1() throws Exception
+	{
+		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","5"});
+		Assert.assertEquals(5, taskCount);
+		for(int i=1;i<=taskCount-1;++i)
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_PARALLEL",""+i}));
+		try
+		{
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_PARALLEL",""+taskCount}));// this particular task fails
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		
+		// Now try the same - we should only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		try
+		{
+			runMultipleFail2(new String[]{"RUN_PARALLEL","0"});// attempting the failing task again will fail.
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		// Now try the same for the second time - we should still only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL","1"}));// this one should be successful 
+	}
+	
+	@Test
+	public void testRun5h_parallel2() throws Exception
+	{
+		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","1"});
+		Assert.assertEquals(1, taskCount);
+		try
+		{
+			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_PARALLEL","1"}));// the last task fails
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		
+		// Now try the same - we should only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		try
+		{
+			runMultipleFail2(new String[]{"RUN_PARALLEL","0"});// attempting the failing task again will fail.
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			// ignore this - this experiment should fail
+		}
+		// Now try the same for the second time - we should still only get 1 task reported.
+		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
+		Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL","1"}));// this one should be successful 
 	}
 	
 	

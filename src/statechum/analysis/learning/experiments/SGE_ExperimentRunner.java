@@ -92,7 +92,8 @@ public class SGE_ExperimentRunner
 	
 	public enum PhaseEnum
 	{
-		RUN_TASK, COLLECT_RESULTS, COUNT_TASKS, RUN_STANDALONE
+		RUN_TASK, COLLECT_RESULTS, COUNT_TASKS, RUN_STANDALONE, 
+		RUN_PARALLEL // this is similar to RUN_TASK but will run all tasks corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
 	}
 	
 	public static class RunSubExperiment<RESULT> 
@@ -124,6 +125,7 @@ public class SGE_ExperimentRunner
 				switch(phase)
 				{
 				case RUN_TASK:
+				case RUN_PARALLEL:
 					if (args.length != 2)
 						throw new IllegalArgumentException("task number should be provided");
 					int taskValue = 0;
@@ -192,6 +194,7 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case RUN_TASK:// when running in Grid mode, each task runs as a separate process given that we intend to run them on separate nodes.
+			{
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 					try
@@ -207,11 +210,17 @@ public class SGE_ExperimentRunner
 						shutdown();
 					}
 				break;
-				
+			}	
+			case RUN_PARALLEL:
+			{
+				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
+				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
+					runner.submit((Callable)task);
+				break;
+			}
 			case RUN_STANDALONE:
 				runner.submit((Callable)task);
 				break;
-			
 			case COUNT_TASKS:
 				break;
 			case COLLECT_RESULTS:
@@ -522,6 +531,32 @@ public class SGE_ExperimentRunner
 					}
 					outcomeOfExperiment.clear();
 					break;
+				case RUN_PARALLEL:
+				{
+					assert outcomeOfExperiment.isEmpty();						
+					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
+					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
+						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter))
+						{
+							outputWriter = new StringWriter();
+							RESULT result = runner.take().get();
+							handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
+							BufferedWriter writer = null;
+							try
+							{
+								writer = new BufferedWriter(new FileWriter(constructFileName(rCounter)));
+								writer.append(outputWriter.toString());
+							}
+							finally
+							{
+								if (writer != null)
+								{
+									writer.close();writer = null;
+								}
+							}
+						}
+					break;
+				}
 				case COLLECT_RESULTS:
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
 						loadExperimentResult(rCounter);
@@ -559,6 +594,7 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case RUN_TASK:
+			case RUN_PARALLEL:
 				graph.writeTaskOutput(outputWriter,x,y,colour,label);
 				break;
 			case COUNT_TASKS:
@@ -582,6 +618,7 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case RUN_TASK:
+			case RUN_PARALLEL:
 				experimentResult.writeTaskOutput(outputWriter,id,text);
 				break;
 			case COUNT_TASKS:

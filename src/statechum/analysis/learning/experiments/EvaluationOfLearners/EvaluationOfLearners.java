@@ -290,7 +290,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
 		final int samplesPerFSMSize = 30;
-		final int minStateNumber = 10;
+		final int minStateNumber = 20;
 		final int attemptsPerFSM = 2;
 
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
@@ -329,7 +329,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
 		try
 		{
-			for(int states=minStateNumber;states <= minStateNumber+10;states+=10)
+			for(int states=minStateNumber;states <= minStateNumber+0;states+=10)
 				for(boolean unique:new boolean[]{true,false})
 					for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
@@ -337,8 +337,8 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
-									for(int traceQuantity=2;traceQuantity<=16;traceQuantity*=2)
-										for(int traceLengthMultiplier=1;traceLengthMultiplier<=4;traceLengthMultiplier*=2)
+									for(int traceQuantity=4;traceQuantity<=16;traceQuantity*=2)
+										for(int traceLengthMultiplier=2;traceLengthMultiplier<=4;traceLengthMultiplier*=2)
 											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 												{

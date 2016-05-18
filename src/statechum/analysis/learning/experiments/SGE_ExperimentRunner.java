@@ -45,8 +45,10 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.ProgressIndicator;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -93,7 +95,8 @@ public class SGE_ExperimentRunner
 	public enum PhaseEnum
 	{
 		RUN_TASK, COLLECT_RESULTS, COUNT_TASKS, RUN_STANDALONE, 
-		RUN_PARALLEL // this is similar to RUN_TASK but will run all tasks corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
+		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasks corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
+		PROGRESS_INDICATOR // used to report the %% of completed tasks
 	}
 	
 	public static class RunSubExperiment<RESULT> 
@@ -160,6 +163,10 @@ public class SGE_ExperimentRunner
 					if (tasksToSplitInto <= 0)
 						throw new IllegalArgumentException("the number of real tasks to run should be positive");
 					break;
+				case PROGRESS_INDICATOR:
+					if (args.length != 1)
+						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
+					break;
 				case COLLECT_RESULTS:
 					if (args.length != 1)
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
@@ -179,10 +186,18 @@ public class SGE_ExperimentRunner
 		public int successfulTermination()
 		{
 			int outcome = 0;
-			if (phase == PhaseEnum.COUNT_TASKS)
+			switch(phase)
 			{
+			case COUNT_TASKS:
 				outcome = constructVirtToReal();				
 				System.out.println(outcome);
+				break;
+			case PROGRESS_INDICATOR:
+				outcome = taskCounter > 0?(100*(taskCounter-availableTasks.size())/taskCounter):0;
+				System.out.println("Progress: "+outcome+"%");
+				break;
+			default:
+				break;
 			}
 			shutdown();
 			return outcome;
@@ -222,6 +237,7 @@ public class SGE_ExperimentRunner
 				runner.submit((Callable)task);
 				break;
 			case COUNT_TASKS:
+			case PROGRESS_INDICATOR:
 				break;
 			case COLLECT_RESULTS:
 				break;
@@ -317,7 +333,7 @@ public class SGE_ExperimentRunner
 			BufferedReader reader = null;Map<Integer,Set<Integer>> virtTaskToRealTask = new TreeMap<Integer,Set<Integer>>();
 			try
 			{
-				reader = new BufferedReader(new FileReader(tmpDir+"virtToReal.map"));
+				reader = new BufferedReader(new FileReader(tmpDir+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));
 				StringBuffer text = new StringBuffer();
 				String line = reader.readLine();
 				while(line != null)
@@ -392,7 +408,7 @@ public class SGE_ExperimentRunner
 			try
 			{
 				UASExperiment.mkDir(tmpDir);
-				outWriter = new BufferedWriter(new FileWriter(tmpDir+"virtToReal.map"));outWriter.write("[\n");
+				outWriter = new BufferedWriter(new FileWriter(tmpDir+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));outWriter.write("[\n");
 				boolean firstTuple = true;
 				for(int vTaskCnt=0;vTaskCnt<tasksToSplitInto && currentTask < availableTasks.size();++vTaskCnt)
 				{
@@ -497,6 +513,7 @@ public class SGE_ExperimentRunner
 					plotAllGraphs(nameToGraph.values(),-1);
 					break;
 				case COUNT_TASKS:
+				case PROGRESS_INDICATOR:
 					updateAvailableTasks(taskCounterFromPreviousSubExperiment,taskCounter);
 					break;
 					
@@ -598,6 +615,7 @@ public class SGE_ExperimentRunner
 				graph.writeTaskOutput(outputWriter,x,y,colour,label);
 				break;
 			case COUNT_TASKS:
+			case PROGRESS_INDICATOR:
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
@@ -622,6 +640,7 @@ public class SGE_ExperimentRunner
 				experimentResult.writeTaskOutput(outputWriter,id,text);
 				break;
 			case COUNT_TASKS:
+			case PROGRESS_INDICATOR:
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);

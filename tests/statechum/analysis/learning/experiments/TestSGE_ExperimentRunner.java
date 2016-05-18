@@ -882,6 +882,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5d() throws Exception
 	{
+		Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter-1;++i)
 			Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"RUN_TASK",""+i}));
@@ -903,7 +904,7 @@ public class TestSGE_ExperimentRunner {
 					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
 		}, IllegalArgumentException.class, "experimentrunA-2");
-
+		Assert.assertEquals(66,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0]",gr_BCR.getData());// only partial data is available due to failure, 
 			// we cannot eliminate it completely because the failure is only detected part-way through. In reality, we'll not write .pdfs on a failure and thus no data will be available at all. 
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL]",gr_StructuralDiff.getData());
@@ -913,6 +914,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5e() throws Exception
 	{
+		Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int counter = runE_invalid_data_in_output_file(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter;++i)
 			Assert.assertEquals(0,runE_invalid_data_in_output_file(new String[]{"RUN_TASK",""+i}));
@@ -925,7 +927,7 @@ public class TestSGE_ExperimentRunner {
 					runE_invalid_data_in_output_file(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
 		}, IllegalArgumentException.class, "cannot load a value of type");// value of type File cannot be loaded.
-
+		Assert.assertEquals(66,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -994,6 +996,7 @@ public class TestSGE_ExperimentRunner {
 	@Test
 	public void testRun5h() throws Exception
 	{
+		Assert.assertEquals(0,runMultipleFail2(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","5"});
 		Assert.assertEquals(5, taskCount);
 		for(int i=1;i<=taskCount-1;++i)
@@ -1007,6 +1010,7 @@ public class TestSGE_ExperimentRunner {
 		{
 			// ignore this - this experiment should fail
 		}
+		Assert.assertEquals(80,runMultipleFail2(new String[]{"PROGRESS_INDICATOR"}));// 80% complete because one failed.
 		
 		// Now try the same - we should only get 1 task reported.
 		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
@@ -1022,6 +1026,7 @@ public class TestSGE_ExperimentRunner {
 		// Now try the same for the second time - we should still only get 1 task reported.
 		Assert.assertEquals(1,runMultipleFail2(new String[]{"COUNT_TASKS","5"}));
 		Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK","1"}));// this one should be successful 
+		Assert.assertEquals(100,runMultipleFail2(new String[]{"PROGRESS_INDICATOR"}));// all complete
 	}
 	
 	@Test

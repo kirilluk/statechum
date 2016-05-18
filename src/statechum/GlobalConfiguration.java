@@ -74,6 +74,7 @@ public class GlobalConfiguration {
 		,ESC_TERMINATE // whether ESC or the appropriate right-mouse menu selection should terminate Java runtime. Disabled when Statechum is used from within Erlang.
 		,CLOSE_TERMINATE // whether closing of the viewer window should terminate JVM, usually false but is set to true when launched via GraphMLVisualiser
 		,ERLANG_SHORTNODENAME // whether to use Erlang short node names
+		,SGE_MAP_FILENAMEPREFIX // the prefix of the name of the file containing a map from virtual task names to lists of actual tasks to run for each virtual task.
 		;
 	}
 
@@ -114,6 +115,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.FORCEFORK,"false");
 		defaultValues.put(G_PROPERTIES.ESC_TERMINATE,"true");
 		defaultValues.put(G_PROPERTIES.CLOSE_TERMINATE, "false");
+		defaultValues.put(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX,"default");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

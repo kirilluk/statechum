@@ -604,7 +604,7 @@ public class SGE_ExperimentRunner
 								writer.close();writer = null;
 							}
 						}
-						new File(constructTaskStartedFileName(taskCounter)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
+						new File(constructTaskStartedFileName(resultOfRunningTasks.getKey())).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
 						// start/stop files are not realistic on parallel executions because those are not run on a grid.
 					}
 					outcomeOfExperiment.clear();

@@ -283,7 +283,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		mkDir(outDir+directoryExperimentResult);
+		mkDir(outPathPrefix+directoryExperimentResult);
 		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();

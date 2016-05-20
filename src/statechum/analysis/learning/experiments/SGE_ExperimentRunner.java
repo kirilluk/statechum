@@ -168,8 +168,11 @@ public class SGE_ExperimentRunner
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
 				case COLLECT_RESULTS:
-					if (args.length != 1)
-						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
+					if (args.length == 2)
+						plotName = args[1];
+					else
+						if (args.length != 1)
+							throw new IllegalArgumentException("at most one argument is permitted for phase "+phase);
 					break;
 				}
 			}
@@ -303,7 +306,14 @@ public class SGE_ExperimentRunner
 		
 		Map<String,SGEExperimentResult> nameToGraph = null;
 		StringWriter outputWriter = null;
-
+		// Plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
+		String plotName;
+		
+		/** For a given task ID, loads the result and feeds them into R or spreadsheet. 
+		 * 
+		 * @param rCounter task ID
+		 * @param plotName plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
+		 */
 		private void loadExperimentResult(int rCounter)
 		{
 			BufferedReader reader = null;
@@ -333,9 +343,11 @@ public class SGE_ExperimentRunner
 						if (!nameToGraph.containsKey(name))
 							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" refers to an unknown graph "+name);
 						updateCRC(crc,line);
-						SGEExperimentResult thisPlot = nameToGraph.get(name);
-						
-						thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+						if (plotName == null || plotName.equals(name))
+						{
+							SGEExperimentResult thisPlot = nameToGraph.get(name);
+							thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+						}
 					}
 					line = reader.readLine();
 				}
@@ -343,7 +355,10 @@ public class SGE_ExperimentRunner
 					throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" does not have a CRC");
 				
 				// if we got here, handling of the output has been successful, plot graphs.
-				plotAllGraphs(nameToGraph.values(),-1);
+				if (plotName == null)
+					plotAllGraphs(nameToGraph.values(),-1);
+				else
+					nameToGraph.get(plotName).reportResults(gr);
 			}
 			catch(IOException ex)
 			{
@@ -550,6 +565,8 @@ public class SGE_ExperimentRunner
 			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
+			if (plotName != null && !nameToGraph.containsKey(plotName))
+				throw new IllegalArgumentException("invalid plot \""+plotName+"\" requested for phase "+phase+", only valid ones are "+nameToGraph.keySet());
 
 			experimentName = handlerForExperimentResults.getSubExperimentName();
 			try
@@ -639,8 +656,11 @@ public class SGE_ExperimentRunner
 					break;
 				}
 				case COLLECT_RESULTS:
+					progress = new ProgressIndicator(new Date()+" "+handlerForExperimentResults.getSubExperimentName(), taskCounter-taskCounterFromPreviousSubExperiment);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-						loadExperimentResult(rCounter);
+					{
+						loadExperimentResult(rCounter);progress.next();
+					}
 					break;
 				default:
 					break;

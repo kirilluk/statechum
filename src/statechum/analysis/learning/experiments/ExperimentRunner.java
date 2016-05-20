@@ -957,7 +957,6 @@ public class ExperimentRunner
 				if (currentTime - probeInterval > prevTime)
 				{
 					prevTime = currentTime;
-				
 					int avail = err.available();
 					while (avail>0) 
 					{// some data available
@@ -975,6 +974,8 @@ public class ExperimentRunner
 						avail = err.available();
 					}
 					
+					avail = out.available();
+					if (!processRunning && avail == 0)
 					avail = out.available();
 					while (avail>0) 
 					{ // some data available
@@ -1012,10 +1013,19 @@ public class ExperimentRunner
 					{// process not terminated yet, hence continue
 						
 					}
+
 			} while(processRunning);
 		} catch(IOException e)
 		{// assume that child process terminated.
 			
+		}
+		
+		{// this is a kludge introduced to capture the output of a terminated process on Windows 7, where output from a process that just terminated might be unavailable for a period of time.
+			try {
+				Thread.sleep(10*probeInterval);// wait for a bit.
+			} catch (InterruptedException e1) {
+				// ignore this
+			}
 		}
 		
 		try

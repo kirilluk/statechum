@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -74,7 +75,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		super(parameters,eval,directoryNamePrefix);
 	}
 	
-	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
+	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public EvaluationOfLearnersResult call() throws Exception 
@@ -257,10 +258,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setOverride_usePTAMerging(true);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-
 		final int samplesPerFSMSize = 20;
 		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
@@ -289,7 +287,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 			@Override
 			public String getSubExperimentName()
 			{
-				return "Small v.s huge experiments";
+				return "Small_vs_huge_experiments";
 			}
 			
 			@Override
@@ -299,17 +297,17 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		};
 		int seed=0;
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
-		for(int traceQuantity=2;traceQuantity<=64;traceQuantity*=2)
-			for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
-			{
-				try
-				{
-					for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
-						for(int sample=0;sample<samplesPerFSMSize;++sample)
-							for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+		try
+		{
+			for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
+				for(int sample=0;sample<samplesPerFSMSize;++sample,++seed)
+					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+					{
+						for(int traceQuantity=2;traceQuantity<=8;traceQuantity*=2)
+							for(int traceLengthMultiplier=1;traceLengthMultiplier<=16;traceLengthMultiplier*=2)
 							{
-								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
-									for(boolean pta:new boolean[]{true,false})
+								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
+									for(boolean pta:new boolean[]{false})
 									{
 										for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 											for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
@@ -320,21 +318,19 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
 													
 													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,type,pta,matrix);
-													par.setParameters(states, sample, attempt, seed++, traceQuantity, traceLengthMultiplier);
+													par.setParameters(states, sample, attempt, seed, traceQuantity, traceLengthMultiplier);
 													SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 													//learnerRunner.setAlwaysRunExperiment(true);
 													listOfExperiments.add(learnerRunner);
 												}
 									}
 							}
-				}
-				catch(Exception ex)
-				{
-					IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-					if (executorService != null) { executorService.shutdown();executorService = null; }
-					throw e;
-				}
-			}
+					}
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to compute", ex);
+		}
 		
 		try
 		{

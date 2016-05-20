@@ -185,20 +185,9 @@ public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends Threa
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
-		/*
-		if (bcrMeasure.getValue() == 1.0 && outcome.nrOfstates.getValue() == -1.0)
-		{
-			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-			DirectedSparseGraph gr = gd.showGD(
-					actualAutomaton,referenceGraph,
-					ExperimentRunner.getCpuNumber());
-			Visualiser.updateFrame(gr, referenceGraph);
-			Visualiser.waitForKey();
-		}*/
 		return outcome;
 	}
 	
@@ -218,7 +207,6 @@ public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends Threa
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		//Visualiser.waitForKey();
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());

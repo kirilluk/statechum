@@ -334,7 +334,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 					for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
-							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH}) //,Configuration.STATETREE.STATETREE_ARRAY})
+							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
 									for(int traceQuantity=8;traceQuantity<=16;traceQuantity*=2)

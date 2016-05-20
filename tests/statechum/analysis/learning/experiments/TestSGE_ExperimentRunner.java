@@ -883,6 +883,53 @@ public class TestSGE_ExperimentRunner {
 		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 	}
+	
+	/** Tests that a request to only report a specific plot is honoured: here we only request to render a plot that is non-empty. */
+	@Test
+	public void testRun5c_collect1a() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
+		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS", "runCSV_A.csv"}));
+
+		Assert.assertEquals("",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
+	}
+
+	/** Tests that a request to only report a specific plot is honoured: here we only request to render a plot that is empty. */
+	@Test
+	public void testRun5c_collect1b() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
+		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS", "runCSV_B.csv"}));
+
+		Assert.assertEquals("",gr_StructuralDiff.getData());
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("",csvA.getData());
+		Assert.assertEquals("",csvB.getData());
+	}
+
+	/** Tests that a request to only report a specific plot is honoured: here we request a plot that does not exist. */
+	@Test
+	public void testRun5c_collect2() throws Exception
+	{
+		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run()
+			{
+					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS","AA"}); // will throw because experiment 2 did not complete
+			}
+		}, IllegalArgumentException.class, "invalid plot \"AA");	}
+
 
 	@Test
 	public void testRun5d() throws Exception
@@ -1314,11 +1361,11 @@ public class TestSGE_ExperimentRunner {
 			@Override
 			public void run()
 			{
-				runA(new String[]{"COLLECT_RESULTS","21"});
+				runA(new String[]{"COLLECT_RESULTS","21","22"});
 			}
-		}, IllegalArgumentException.class, "no arguments");
+		}, IllegalArgumentException.class, "at most one argument");
 	}
-	
+		
 	@Test
 	public void testInvalidPhase4()
 	{

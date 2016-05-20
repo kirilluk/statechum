@@ -36,6 +36,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -145,9 +146,9 @@ public class TestPathTracing {
 			boolean shouldAccept = (ExpectedResult == AbstractOracle.USER_ACCEPTED);
 			Assert.assertEquals(shouldAccept,MarkovClassifier.tracePath(fsm, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv), fsm.findVertex(startingState)) );
 		}
-		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(startingState),g);
+		DeterministicVertex starting = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(VertexID.parseID(enteredName));
-		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv));
+		DeterministicVertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv));
 
 		if (expected != null)
 		{

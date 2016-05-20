@@ -78,14 +78,11 @@ public class ForestFireStateMachineGenerator {
 		vertices = new ArrayList<DeterministicVertex>();
 		generator  = new MersenneTwister(seed);
 		boolGenerator = new Random(seed);
-		synchronized(AbstractLearnerGraph.syncObj)
-		{
-			DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
-			annotateVertex(v);
-			machine.addVertex(v);
-			vertices.add(v);// permits v to be chosen as a target, creating self-loops
-			v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		}
+		DeterministicVertex v=AbstractLearnerGraph.generateNewJungVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
+		annotateVertex(v);
+		machine.addVertex(v);
+		vertices.add(v);// permits v to be chosen as a target, creating self-loops
+		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 	}
 
 	/** Annotates a vertex with various things such as accept conditions. Expected to be overridden by subclasses. */
@@ -103,55 +100,49 @@ public class ForestFireStateMachineGenerator {
 	 */
 	protected void buildGraph(int size) 
 	{
-		synchronized(AbstractLearnerGraph.syncObj)
-		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
-		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
-			
-			labelmap = new HashMap<VertID,DeterministicVertex>();
-			int i=0;
-			
-			// We start by adding the specified number of vertices, after that we reduce,
-			// the outcome is likely to shrink substantially, hence we add as many vertices 
-			// as we are short of.
-			int numberOfVerticesToAdd = size;
-			int currentSize = 0; 
-			do
+		labelmap = new HashMap<VertID,DeterministicVertex>();
+		int i=0;
+		
+		// We start by adding the specified number of vertices, after that we reduce,
+		// the outcome is likely to shrink substantially, hence we add as many vertices 
+		// as we are short of.
+		int numberOfVerticesToAdd = size;
+		int currentSize = 0; 
+		do
+		{
+			while(i < numberOfVerticesToAdd)
 			{
-				while(i < numberOfVerticesToAdd)
+				DeterministicVertex v=AbstractLearnerGraph.generateNewJungVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
+				annotateVertex(v);
+				machine.addVertex(v);
+				vertices.add(v);// permits v to be chosen as a target, creating self-loops
+				this.labelmap.put(v, v);
+				Set<DeterministicVertex> tried = new TreeSet<DeterministicVertex>();
+				tried.add(v);
+				DeterministicVertex random = null;
+				do
 				{
-					DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
-					annotateVertex(v);
-					machine.addVertex(v);
-					vertices.add(v);// permits v to be chosen as a target, creating self-loops
-					this.labelmap.put(v, v);
-					Set<DeterministicVertex> tried = new TreeSet<DeterministicVertex>();
-					tried.add(v);
-					DeterministicVertex random = null;
-					do
-					{
-						random = selectRandom(tried);
-						tried.add(random);
-					}
-					while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
-					
-					if (Distributions.nextGeometric(1-selfLoop,generator)>0)
-						addEdge(v,v); 
-	
-					// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
-					// at this point it is appropriate to assume that we were successful.
-					visited.add(random);visited.add(v);
-					spread(v,random);
-					visited.clear();
-					++i;
+					random = selectRandom(tried);
+					tried.add(random);
 				}
+				while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
 				
-				// reached our target, check the size of the graph
-				currentSize = new LearnerGraph(machine,config).paths.reduce().getStateNumber();
-				int additionalVertices = size-currentSize;
-				numberOfVerticesToAdd+=additionalVertices;
-			} while(size > currentSize+2);
+				if (Distributions.nextGeometric(1-selfLoop,generator)>0)
+					addEdge(v,v); 
 
-		}
+				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
+				// at this point it is appropriate to assume that we were successful.
+				visited.add(random);visited.add(v);
+				spread(v,random);
+				visited.clear();
+				++i;
+			}
+			
+			// reached our target, check the size of the graph
+			currentSize = new LearnerGraph(machine,config).paths.reduce().getStateNumber();
+			int additionalVertices = size-currentSize;
+			numberOfVerticesToAdd+=additionalVertices;
+		} while(size > currentSize+2);
 	}
 
 	public LearnerGraph buildMachine(int size) 
@@ -162,7 +153,7 @@ public class ForestFireStateMachineGenerator {
 	
 	/** Adds an edge between the supplied vertices and returns true/false if this was successful. */ 
 	protected boolean addEdge(DeterministicVertex v, DeterministicVertex w) {
-		machine.addEdge(new DirectedSparseEdge(v,w));return true;
+		machine.addEdge(AbstractLearnerGraph.generateNewJungEdge(v, w));return true;
 	}
 	
 	/** Randomly selects a vertex from a set of vertices in the current graph, avoiding the collection of 
@@ -205,7 +196,6 @@ public class ForestFireStateMachineGenerator {
 		
 	}
 	
-	@SuppressWarnings("unchecked")
 	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
 	{
 		DijkstraDistance p = new DijkstraDistance(machine);
@@ -270,7 +260,6 @@ public class ForestFireStateMachineGenerator {
 	{
 		// This one needs to choose vertices at random, not just choose first x/y vertices.
 		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>();
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> inIt = ambassador.getInEdges().iterator();
 		Set<DeterministicVertex> verticesToChooseFrom = new TreeSet<DeterministicVertex>();
 		while(inIt.hasNext()){
@@ -281,7 +270,6 @@ public class ForestFireStateMachineGenerator {
 		}
 		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, x));
 		
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> outIt = ambassador.getOutEdges().iterator();
 		verticesToChooseFrom.clear();
 		while(outIt.hasNext()){

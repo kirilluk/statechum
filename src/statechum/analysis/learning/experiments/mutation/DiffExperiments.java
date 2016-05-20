@@ -363,8 +363,7 @@ public class DiffExperiments {
 	 * @param sequences sequences to test with
 	 * @return a pair with the accuracy as the first element and time taken for the computation as the second one.
 	 */
-	private Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to,
-			Collection<List<Label>> sequences) 
+	private static Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to, Collection<List<Label>> sequences) 
 	{
 		
 		final long startTime = System.nanoTime();
@@ -433,7 +432,7 @@ public class DiffExperiments {
 	
 
 	@SuppressWarnings("unused")
-	private void displayDiff(LearnerGraphND from, LearnerGraphND to)
+	private static void displayDiff(LearnerGraphND from, LearnerGraphND to)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
@@ -625,10 +624,7 @@ public class DiffExperiments {
 					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
 							new ForestFireLabelledNoRepeatStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter):
 							new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
-					synchronized(AbstractLearnerGraph.syncObj)
-					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
-						machine = gen.buildMachine(artificialTargetSize);
-					}
+					machine = gen.buildMachine(artificialTargetSize);
 					if (generateConnected)
 					{
 						// First, add transitions from states that do not lead anywhere

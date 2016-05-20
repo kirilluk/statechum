@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -59,11 +60,10 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
+public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,EvaluationOfLearnersParameters>
 {
-	protected final EvaluationOfLearnersParameters par;
-	
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
 	
 	public void setAlwaysRunExperiment(boolean b) 
 	{
@@ -72,19 +72,10 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 
 	public SmallVsHuge(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(eval);
-		par = parameters;
-
-		String outDir = "tmp"+File.separator+directoryNamePrefix+"-"+par.getRowID();//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-				throw new RuntimeException("failed to create a work directory");
-		}
-		inputGraphFileName = outDir + File.separator+"rnd";
+		super(parameters,eval,directoryNamePrefix);
 	}
 	
-	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
+	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public EvaluationOfLearnersResult call() throws Exception 
@@ -207,19 +198,19 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 		switch(par.learningType)
 		{
 		case CONVENTIONAL:
-			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par.scoringMethod,par.scoringForEDSM);
+			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
 			break;
 		case CONVENTIONALUNIQUE:
-			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par.scoringMethod,par.scoringForEDSM, uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM, uniqueFromInitial);
 			break;
 		case CONSTRAINTS:
-			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		case PREMERGE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		case PTAPREMERGE:
-			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
 			break;
 		}
 		
@@ -260,23 +251,14 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setOverride_usePTAMerging(true);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();
 		
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-
 		final int samplesPerFSMSize = 20;
 		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
@@ -305,7 +287,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 			@Override
 			public String getSubExperimentName()
 			{
-				return "Small v.s huge experiments";
+				return "Small_vs_huge_experiments";
 			}
 			
 			@Override
@@ -315,17 +297,17 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 		};
 		int seed=0;
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
-		for(int traceQuantity=2;traceQuantity<=64;traceQuantity*=2)
-			for(int traceLengthMultiplier=1;traceLengthMultiplier<=8;traceLengthMultiplier*=2)
-			{
-				try
-				{
-					for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
-						for(int sample=0;sample<samplesPerFSMSize;++sample)
-							for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+		try
+		{
+			for(int states=minStateNumber;states <= minStateNumber+30;states+=10)
+				for(int sample=0;sample<samplesPerFSMSize;++sample,++seed)
+					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+					{
+						for(int traceQuantity=2;traceQuantity<=8;traceQuantity*=2)
+							for(int traceLengthMultiplier=1;traceLengthMultiplier<=16;traceLengthMultiplier*=2)
 							{
-								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH,Configuration.STATETREE.STATETREE_ARRAY})
-									for(boolean pta:new boolean[]{true,false})
+								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
+									for(boolean pta:new boolean[]{false})
 									{
 										for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 											for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
@@ -336,28 +318,30 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult>
 													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
 													
 													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,type,pta,matrix);
-													par.setParameters(states, sample, attempt, seed++, traceQuantity, traceLengthMultiplier);
+													par.setParameters(states, sample, attempt, seed, traceQuantity, traceLengthMultiplier);
 													SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 													//learnerRunner.setAlwaysRunExperiment(true);
 													listOfExperiments.add(learnerRunner);
 												}
 									}
 							}
-				}
-				catch(Exception ex)
-				{
-					IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-					if (executorService != null) { executorService.shutdown();executorService = null; }
-					throw e;
-				}
-			}
-			
-    	for(SmallVsHuge e:listOfExperiments)
-    		experimentRunner.submitTask(e);
-    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+					}
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to compute", ex);
+		}
 		
-		//Visualiser.waitForKey();
-		DrawGraphs.end();
-		experimentRunner.successfulTermination();
+		try
+		{
+	    	for(SmallVsHuge e:listOfExperiments)
+	    		experimentRunner.submitTask(e);
+	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		}
+		finally
+		{
+			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		}
 	}
 }

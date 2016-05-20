@@ -688,9 +688,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				m.createMarkovLearner(sPlus, sMinus,false);
 				
 				pta.clearColours();
-				synchronized (AbstractLearnerGraph.syncObj) {
-					//PaperUAS.computePTASize(selectionID+" attempt: "+attempt+" with unique: ", pta, referenceGraph);
-				}
 				
 				if (!onlyUsePositives)
 					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";

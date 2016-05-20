@@ -25,6 +25,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
@@ -34,17 +35,35 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 
-public  abstract  class UASExperiment<TR extends ThreadResult> implements Callable<TR>
+public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends ThreadResultID> implements Callable<TR>
 {
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
 	protected String inputGraphFileName;
+	public final PARS par;
 	
 	protected boolean alwaysRunExperiment = false;
 	
-	public UASExperiment(LearnerEvaluationConfiguration eval)
+	public UASExperiment(PARS parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
 	{
+		par = parameters;
 		learnerInitConfiguration = eval;
+		String outDir = "tmp"+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator+par.getRowID();
+		mkDir(outDir);
+		inputGraphFileName = outDir + File.separator+"rnd";
+	}
+	
+	public static void mkDir(String path)
+	{
+		if (path == null || path.isEmpty())
+			return;
+		String outDir = path;
+		mkDir(new java.io.File(outDir).getParent());// create a parent directory
+		if (!new java.io.File(outDir).isDirectory())
+		{
+			if (!new java.io.File(outDir).mkdir())
+				throw new RuntimeException("failed to create a work directory");
+		}
 	}
 	
 	public String constructFileName(String experimentSuffix)
@@ -89,10 +108,17 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()
 	{
-		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,ScoringToApply.SCORING_EDSM_2,
-				ScoringToApply.SCORING_EDSM_3,ScoringToApply.SCORING_EDSM_4,ScoringToApply.SCORING_EDSM_5,ScoringToApply.SCORING_EDSM_6,
+		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,//ScoringToApply.SCORING_EDSM_1,
+				ScoringToApply.SCORING_EDSM_2,
+				//ScoringToApply.SCORING_EDSM_3,
+				ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,
+				ScoringToApply.SCORING_EDSM_6,
 				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
-				ScoringToApply.SCORING_SICCO,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
+				ScoringToApply.SCORING_SICCO
+				
+				// SICCO_PTA performs the same as SICCO, RECURSIVE and RED perform very badly.
+				// EDSM does not perform as well as SICCO and in particular, its performance is dependent on the threshold whereas for SICCO it does not.
+				//,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
 				});
 	}
 
@@ -139,12 +165,13 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
         return learnerInitConfiguration;
 	}
 
-	/** The reason behind using ptaSource is that where it is expensive to build a PTA, it will only be requested if the learner has not stored it or store the outcome of inference somewhere. */
-	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
+	/** The reason behind using ptaSource is that where it is expensive to build a PTA, it will only be requested if the learner has not stored it or store the outcome of inference somewhere. 
+	 * The argument <em>experimentID</em> is to ensure each experiment gets a unique name. Different experiments have different parameters so it is not realistic to expect them all to include scoring methods.
+	 * For this reason, both <em>scoringMethod</em> and <em>scoringForEDSM</em> are arguments.
+	 */
+	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
 	{
-		String edsmAsString = scoringForEDSM == null?"":scoringForEDSM.name;
-		String scoringAsString = scoringMethod == null?"":scoringMethod.name;
-		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringAsString+"_"+edsmAsString;
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
@@ -175,9 +202,9 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{
-		String experimentName = "conventional-"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{
@@ -207,9 +234,9 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
 	 * @throws AugmentFromIfThenAutomatonException
 	 * @throws IOException
 	 */
-	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
-		String experimentName = "premerge_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		double fanoutPos=0, fanoutNeg = 0;
 		int ptaStateNumber=0;
@@ -256,9 +283,9 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
-		String experimentName = "ptapremerge+constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		int ptaStateNumber = 0;
 		if(actualAutomaton == null)
@@ -298,9 +325,9 @@ public  abstract  class UASExperiment<TR extends ThreadResult> implements Callab
 		return outcome;
 	}
 	
-	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// conventional learning, but check each merger against the unique-label merge
-		String experimentName = "constraints_"+ptaSource.kindOfPTA()+"_"+scoringMethod.toString();
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		if(actualAutomaton == null)
 		{

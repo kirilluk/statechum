@@ -30,9 +30,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
@@ -40,7 +43,6 @@ import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 public class TestEVGraphGeneration {
@@ -59,7 +61,7 @@ public class TestEVGraphGeneration {
 		DirectedSparseGraph g = FsmParser.buildLearnerGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration().copy(),null).pathroutines.getGraph();
 		g.getEdgeConstraints().clear();
 		List<Edge> newEdges = new LinkedList<Edge>();
-		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		for(DeterministicEdge e:(Set<DeterministicEdge>)g.getEdges())
 		{
 			Collection<Label> labels = (Collection<Label>)e.getUserDatum(JUConstants.LABEL);
 			e.removeUserDatum(JUConstants.LABEL);
@@ -67,7 +69,7 @@ public class TestEVGraphGeneration {
 			e.addUserDatum(EDGE, labelIt.next(), UserData.SHARED);
 			while(labelIt.hasNext())
 			{
-				DirectedSparseEdge newEdge = new DirectedSparseEdge(e.getSource(),e.getDest());
+				DeterministicEdge newEdge = AbstractLearnerGraph.generateNewJungEdge((DeterministicVertex)e.getSource(),(DeterministicVertex)e.getDest());
 				newEdge.setUserDatum(EDGE, labelIt.next(), UserData.SHARED);
 				newEdges.add(newEdge);
 			}
@@ -76,7 +78,7 @@ public class TestEVGraphGeneration {
 		for(Edge e:newEdges)
 			g.addEdge(e);
 		
-		for(DirectedSparseVertex v:(Set<DirectedSparseVertex>)g.getVertices())
+		for(DeterministicVertex v:(Set<DeterministicVertex>)g.getVertices())
 		{
 			 v.addUserDatum(VERTEX, v.getUserDatum(JUConstants.LABEL), UserData.SHARED);
 			 v.removeUserDatum(JUConstants.LABEL);
@@ -85,13 +87,12 @@ public class TestEVGraphGeneration {
 		return g;
 	}
 
-	@SuppressWarnings("unchecked")
 	public void checkEquivalence(DirectedSparseGraph g, String expected)
 	{
-		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		for(DeterministicEdge e:(Set<DeterministicEdge>)g.getEdges())
 			addSingletonLabel(e, (Label)e.getUserDatum(EDGE));
 		
-		for(DirectedSparseVertex v:(Set<DirectedSparseVertex>)g.getVertices())
+		for(DeterministicVertex v:(Set<DeterministicVertex>)g.getVertices())
 		{
 			 v.addUserDatum(JUConstants.LABEL, v.getUserDatum(VERTEX), UserData.SHARED);
 			 v.removeUserDatum(VERTEX);

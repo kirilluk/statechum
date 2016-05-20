@@ -331,37 +331,34 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		checkValidityOfStates();
 		DirectedSparseGraph result = null;
 		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
-		synchronized (AbstractLearnerGraph.syncObj) 
-		{
-			result = new DirectedSparseGraph();
-			if (name != null)
-				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
+		result = new DirectedSparseGraph();
+		if (name != null)
+			result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.getStateNumber());
-			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		Map<CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<CmpVertex,DeterministicVertex>(coregraph.getStateNumber());
+		// add states
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		{
+			CmpVertex source = entry.getKey();
+			DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
+			if (coregraph.getInit() == source)
+				vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			result.addVertex(vert);
+			oldToNew.put(source,vert);
+		}
+		
+		// now add transitions
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		{
+			DeterministicVertex source = oldToNew.get(entry.getKey());
+			for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
 			{
-				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
-				if (coregraph.getInit() == source)
-					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				result.addVertex(vert);
-				oldToNew.put(source,vert);
-			}
-			
-			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
-			{
-				DeterministicVertex source = oldToNew.get(entry.getKey());
-				for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
-				{
-					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld) == targetOld : "was looking for vertex with name "+targetOld+", got "+coregraph.findVertex(targetOld);
-					DeterministicVertex target = oldToNew.get(targetOld);
-					DeterministicEdge e = new DeterministicEdge(source,target);
-					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
-					result.addEdge(e);
-				}
+				CmpVertex targetOld = tgtEntry.getKey();
+				assert coregraph.findVertex(targetOld) == targetOld : "was looking for vertex with name "+targetOld+", got "+coregraph.findVertex(targetOld);
+				DeterministicVertex target = oldToNew.get(targetOld);
+				DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(source,target);
+				e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
+				result.addEdge(e);
 			}
 		}
 		return result;

@@ -7,24 +7,25 @@ import java.util.HashSet;
 import java.util.Map;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 
 	private static final long serialVersionUID = -7258812066189916399L;
-	private Map<String, DirectedSparseVertex> nodeMap;
+	private Map<String, DeterministicVertex> nodeMap;
 	private DirectedSparseGraph graph;
 
-	private DirectedSparseVertex getVertex(String node) {
-		DirectedSparseVertex v = nodeMap.get(node);
+	private DeterministicVertex getVertex(String node) {
+		DeterministicVertex v = nodeMap.get(node);
 		if (v == null) {
-			v = new DirectedSparseVertex();
+			v = AbstractLearnerGraph.generateNewJungVertex(node);
 			v.addUserDatum(JUConstants.LABEL, node, UserData.CLONE);
 			v.addUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
 			graph.addVertex(v);
@@ -37,7 +38,7 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 		int succount = 0;
 		int failcount = 0;
 		System.out.println("Opening folder " + folder.getAbsolutePath());
-		nodeMap = new HashMap<String, DirectedSparseVertex>();
+		nodeMap = new HashMap<String, DeterministicVertex>();
 		graph = new DirectedSparseGraph();
 		for (File f : folder.listFiles()) {
 			if (f.getName().endsWith(".erl")) {
@@ -46,12 +47,12 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 					System.out.println("Loading " + f.getName());
 					Configuration config = Configuration.getDefaultConfiguration().copy();ErlangModule.setupErlangConfiguration(config,f);
 					ErlangModule mod = ErlangModule.loadModule(config);
-					DirectedSparseVertex myVertex = getVertex(mod.name);
+					DeterministicVertex myVertex = getVertex(mod.name);
 					myVertex.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 
 					for (String d : mod.behaviour.getDependencies()) {
-						DirectedSparseVertex v = getVertex(d);
-						DirectedSparseEdge e = new DirectedSparseEdge(myVertex, v);
+						DeterministicVertex v = getVertex(d);
+						DirectedSparseEdge e = AbstractLearnerGraph.generateNewJungEdge(myVertex, v);
 						e.setUserDatum(JUConstants.LABEL, new HashSet<Label>(), UserData.CLONE);
 						graph.addEdge(e);
 					}
@@ -75,8 +76,8 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 		System.out.println("" + succount + " processed, " + failcount + " failed");
 		/*
 		Vertex root = null;
-		for(Object v : graph.getVertices()) {
-			if(((DirectedSparseVertex) v).getInEdges().size() == 0) {
+		for(DeterministicVertex v : graph.getVertices()) {
+			if(((DeterministicVertex) v).getInEdges().size() == 0) {
 				root = (Vertex) v;
 				break;
 			}

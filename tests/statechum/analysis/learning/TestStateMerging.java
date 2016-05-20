@@ -35,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
@@ -43,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -136,7 +136,7 @@ public class TestStateMerging
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraph(machineToMerge, graphName,config,getLabelConverter()).pathroutines.getGraph(),
 			g2=(DirectedSparseGraph)g.copy();
-		Vertex 
+		DeterministicVertex 
 			a = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateRed), g),
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateBlue), g);
 				
@@ -206,7 +206,7 @@ public class TestStateMerging
 	public final void testMerge1a()
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DeterministicVertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("U"), g);
 		OrigStatePair pair = new OrigStatePair(d,s);
@@ -748,7 +748,7 @@ public class TestStateMerging
 	}
 	
 	/** Checks that revised version of the generalised merger is not affected by the true/false switch. */
-	public final void checkScoringAndMerging(List<StatePair> pairsToMerge, LearnerGraph orig, int expectedScore, LearnerGraph expected)
+	public final static void checkScoringAndMerging(List<StatePair> pairsToMerge, LearnerGraph orig, int expectedScore, LearnerGraph expected)
 	{
 		for(boolean gA:new boolean[]{true,false})
 			for(boolean gB:new boolean[]{true,false})

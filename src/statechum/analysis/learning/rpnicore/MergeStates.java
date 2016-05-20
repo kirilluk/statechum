@@ -490,7 +490,7 @@ public class MergeStates {
 			Set<Label> usedInputs = new HashSet<Label>();
 			for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)newBlue.getInEdges())
 			{
-				Vertex source = e.getSource();
+				DeterministicVertex source = (DeterministicVertex) e.getSource();
 				Collection<Label> existingLabels = (Collection<Label>)e.getUserDatum(JUConstants.LABEL);
 				g.removeEdge(e);
 
@@ -503,7 +503,7 @@ public class MergeStates {
 				}
 				if (fromSourceToNewRed == null)
 				{
-					fromSourceToNewRed = new DirectedSparseEdge(source,newRed);
+					fromSourceToNewRed = AbstractLearnerGraph.generateNewJungEdge(source,newRed);
 					fromSourceToNewRed.setUserDatum(JUConstants.LABEL, existingLabels, UserData.CLONE);// no need to clone this one since I'll delete the edge in a bit
 					g.addEdge(fromSourceToNewRed);
 				}
@@ -514,7 +514,7 @@ public class MergeStates {
 			}
 
 			// now the elements of mergedVertices are in terms of the copied graph.
-			for(Vertex vert:(Set<Vertex>)g.getVertices())
+			for(DeterministicVertex vert:(Set<DeterministicVertex>)g.getVertices())
 				if (mergedVertices.containsKey(vert))
 				{// there are some vertices to merge with this one.
 					usedInputs.clear();usedInputs.addAll(s.transitionMatrix.get(vert).keySet());
@@ -529,7 +529,7 @@ public class MergeStates {
 								Set<Label> labels = new HashSet<Label>();
                                                                 labels.add(input);
 								DeterministicVertex targetVert = (DeterministicVertex)s.transitionMatrix.get(toMerge).get(input);
-								DirectedSparseEdge newEdge = new DirectedSparseEdge(vert,targetVert);
+								DirectedSparseEdge newEdge = AbstractLearnerGraph.generateNewJungEdge(vert,targetVert);
 								newEdge.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 								g.removeEdges(targetVert.getInEdges());g.addEdge(newEdge);
 							}

@@ -60,7 +60,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-import statechum.analysis.learning.experiments.PaperUAS.PaperUAS;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -78,7 +78,7 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 
 /** This was an experiment to see how different choices affect the outcome of learning of the UAS automaton. */
-public class UASPairQuality extends PaperUAS
+public class UASPairQuality extends ExperimentPaperUAS
 {
     public static final int pairchoiceMIN=-2, pairchoiceMAX=-1, pairchoiceORIG=-3;
 

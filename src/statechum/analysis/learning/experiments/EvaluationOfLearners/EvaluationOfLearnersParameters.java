@@ -17,6 +17,7 @@
  */
 package statechum.analysis.learning.experiments.EvaluationOfLearners;
 import statechum.Configuration;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
@@ -37,7 +38,19 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	public final ScoringToApply scoringMethod;
 	public final Configuration.ScoreMode scoringForEDSM;
 	public final Configuration.STATETREE matrixType;
-	public int states, fsmSample, attempt, seed, traceQuantity, lengthmult;
+	public int states, fsmSample, attempt, seed, traceQuantity, lengthmult;// here some of the parameters are not really used in row or column values because seed can be used to uniquely determine an FSM.
+	public boolean pickUniqueFromInitial = false;
+	
+	
+	public void setPickUniqueFromInitial(boolean value)
+	{
+		pickUniqueFromInitial = value;
+	}
+	
+	public String uniqueAsString()
+	{
+		return pickUniqueFromInitial?"UNIQ":"ANY";
+	}
 	
 	public void setOnlyUsePositives(boolean value)
 	{
@@ -62,20 +75,18 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		return (learningType == null?"":learningType.name)+"-"+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
+		return (learningType == null?"":(learningType.name+"-"))+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name+"-"+traceQuantity+"-"+lengthmult; 
 	}
 
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
+		return new String[]{ (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}; 
 	}
-	
-	
-	
+
 	@Override
 	public String getRowID() {
-		return states+"-"+fsmSample+"-"+seed+"-A"+attempt;
+		return states+"-"+uniqueAsString()+"-"+LearningSupportRoutines.padString(Integer.toString(fsmSample),'0',4)+"-"+LearningSupportRoutines.padString(Integer.toString(seed),'0',6)+"-A"+attempt;
 	}
 
 	@Override

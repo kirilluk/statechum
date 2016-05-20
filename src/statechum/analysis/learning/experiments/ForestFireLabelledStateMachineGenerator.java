@@ -25,6 +25,7 @@ import cern.jet.random.Distributions;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -121,7 +122,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			{
 				Set<Label> labelSet = new TreeSet<Label>();
 				labelSet.add(label);
-				DirectedSparseEdge e = new DirectedSparseEdge(v,random);
+				DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(v,random);
 				e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
 				machine.addEdge(e);
 			}

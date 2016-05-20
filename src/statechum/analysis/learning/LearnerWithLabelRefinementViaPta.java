@@ -36,13 +36,14 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearnerExperimentWithStatisticalAnalysis;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform;
 
-public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner 
+public class LearnerWithLabelRefinementViaPta extends MarkovLearnerExperimentWithStatisticalAnalysis.EDSM_MarkovLearner 
 {
 	
 	public static class PrevVertexAndOutgoingLabel
@@ -228,11 +229,10 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 			incompatibleLabelsForAbstractLabel.add(new IncompatiblePTALabels(label1,label2));
 		}
 	}
-	
-	
-	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold, int maxNumberOfStates) 
+
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
 	{
-		super(evalCnf, argInitialPTA, threshold,maxNumberOfStates);
+		super(evalCnf, argInitialPTA, threshold);
 	}
 
 	protected LearnerGraphND coreInverse = null;

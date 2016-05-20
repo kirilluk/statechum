@@ -217,7 +217,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		
 	}
 
-	DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
+	DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm, String name)
 	{
@@ -367,7 +367,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
 	{
-		ComputeQuestions.computeQS_orig(new StatePair(null,new DeterministicVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
+		ComputeQuestions.computeQS_orig(new StatePair(null,AbstractLearnerGraph.generateNewJungVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
 	}
 	
 	@Test
@@ -706,7 +706,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void findMergeablePair3a()
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DeterministicVertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
 		OrigStatePair expected = new OrigStatePair(d,s),
@@ -718,7 +718,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void findMergeablePair3b()
 	{
 		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DeterministicVertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g);
 		OrigStatePair expected = new OrigStatePair(b,s),

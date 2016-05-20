@@ -81,7 +81,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PaperUAS.PaperUAS.TracesForSeed.Automaton;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -94,7 +94,7 @@ import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public class PaperUAS 
+public class ExperimentPaperUAS 
 {
 	/** All traces, maps a seed to a collection of traces for the specific seed. */
 	public Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
@@ -801,7 +801,7 @@ public class PaperUAS
    }*/
    
    
-   public static LearnerGraph makeMerge(PaperUAS paper, String faileNameToWriteResultTo, String transitionNameToMerge, boolean buildAuxInfo) throws IOException
+   public static LearnerGraph makeMerge(ExperimentPaperUAS paper, String faileNameToWriteResultTo, String transitionNameToMerge, boolean buildAuxInfo) throws IOException
    {
 	   LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 	   //String fileNameToLoad = faileNameToWriteResultTo+"-before_merging.xml";
@@ -893,9 +893,9 @@ public class PaperUAS
  	 * @return constructed instance of the paper.
  	 * @throws FileNotFoundException 
  	 */
- 	public static PaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
+ 	public static ExperimentPaperUAS loadTraces(String args[], boolean concatenateTraces) throws FileNotFoundException
  	{
-		PaperUAS paper = new PaperUAS();
+		ExperimentPaperUAS paper = new ExperimentPaperUAS();
         
         String path = args[0];
         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
@@ -921,15 +921,14 @@ public class PaperUAS
 		return tmpOutput.toString();
 	}
 	
-	public final static String nameForExperimentRun = "uaspaper_May_2016";
-	 	
- 	public static class UASCaseStudy extends UASExperiment<ExperimentResult<PaperUASParameters>>
+	public final static String directoryNamePrefix = "uaspaper_May_2016";
+	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+
+ 	public static class UASCaseStudy extends UASExperiment<ExperimentResult<PaperUASParameters>,PaperUASParameters>
  	{
- 		final PaperUASParameters par;
- 		
  		protected LearnerGraph buildPTAWithAllNegatives() throws AugmentFromIfThenAutomatonException, IOException
  		{
- 		    LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(PaperUAS.fileName(inputGraphFileName), pta, learnerInitConfiguration.getLabelConverter());
+ 		    LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(ExperimentPaperUAS.fileName(inputGraphFileName), pta, learnerInitConfiguration.getLabelConverter());
  		    
  			//pta.storage.writeGraphML("resources/"+experimentName+"-initial.xml");
  		    if (par.useIfThen)
@@ -956,7 +955,7 @@ public class PaperUAS
  		
  		public UASCaseStudy(PaperUASParameters parameters, LearnerGraph reference, String graphFileName,LearnerEvaluationConfiguration eval) 
  		{
-			super(eval);par = parameters;
+			super(parameters,eval,directoryNamePrefix);
 			referenceGraph = reference;
 			inputGraphFileName = graphFileName;
 		}
@@ -995,13 +994,13 @@ public class PaperUAS
 			switch(par.learningType)
 			{
 			case CONVENTIONAL:
-				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM);
+				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM);
 				break;
 			case PREMERGE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case CONSTRAINTS:
-				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			default:
 				throw new IllegalArgumentException("invalid learning type "+par.learningType);
@@ -1011,44 +1010,22 @@ public class PaperUAS
  			return outcome;
  		}		
  	}
- 	
- 	/** Returns a string padded to the specified width with the supplied character.
- 	 * 
- 	 * @param whatToPad
- 	 * @param ch character to pad with
- 	 * @param length the length to pad to
- 	 * @return
- 	 */
- 	public static String padString(String whatToPad, char ch, int length)
- 	{
- 		StringBuffer buf = new StringBuffer();
- 		for(int i=0;i<length-whatToPad.length();++i)
- 			buf.append(ch);
- 		buf.append(whatToPad);
- 		return buf.toString();
- 	}
- 	
+ 	 	
  	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
  	// Example: 
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
  	public static void main(String args[]) throws Exception
  	{
-		String outDir = "tmp"+File.separator+nameForExperimentRun;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		if (!new java.io.File(outDir).isDirectory())
-		{
-			if (!new java.io.File(outDir).mkdir())
-			{
-				System.out.println("failed to create a work directory");return ;
-			}
-		}
+		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 
-     	PaperUAS paper = loadTraces(args,true);
+     	ExperimentPaperUAS paper = loadTraces(args,true);
     	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
- 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),"data",args);
+ 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
@@ -1124,11 +1101,11 @@ public class PaperUAS
 				
 		{// process all the traces from all UAVs and seeds in one go
 			String graphName = outPathPrefix+"uas-All";
-			if (!new File(PaperUAS.fileName(graphName)).canRead())
+			if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
 			{
 				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 				initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
-				initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+				initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
 			}
 			
  			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
@@ -1146,9 +1123,9 @@ public class PaperUAS
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
      		{
-     			String seedPadded = padString(seed, '_', 2);
+     			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
      			String graphName = sprintf("%suas-%s-AU",outPathPrefix,seedPadded);
-     			if (!new File(PaperUAS.fileName(graphName)).canRead())
+     			if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
      			{
      				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
      				framesToTraces = paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll);
@@ -1156,7 +1133,7 @@ public class PaperUAS
      				for (Label l:initialPTA.pathroutines.computeAlphabet())
      					if (l.toString().equals("Data_Deprecates_Waypoint"))
      						System.out.println("Data_Deprecates_Waypoint is in seed "+seed);
-     				initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+     				initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
      			}
      			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
      				for(LearningType type:learningTypes)
@@ -1171,12 +1148,12 @@ public class PaperUAS
      			for(int fraction:rangeOfValues)
      			{
      				graphName = sprintf("%suas-%s-AU-%02d",outPathPrefix,seedPadded,fraction);
-         			if (!new File(PaperUAS.fileName(graphName)).canRead())
+         			if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
          			{
          				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
 	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-	         			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+	         			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
          			}
          			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
          				for(LearningType type:learningTypes)
@@ -1196,13 +1173,13 @@ public class PaperUAS
 	     	{
      		  TracesForSeed tracesSeed = paper.collectionOfTraces.get(seed);
      			Set<String> UAVsInSeed = tracesSeed.tracesForUAVandFrame.keySet(); 
-     			String seedPadded = padString(seed, '_', 2);
+     			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
      			for(String uav:UAVsInSeed)
      				if (uav != UAVAll && uav != UAVAllSeeds)
 	     			{
-     					String uavPadded = padString(uav, '_', 2);
+     					String uavPadded = LearningSupportRoutines.padString(uav, '_', 2);
      					String graphName = sprintf("%suas-%s-%s-U",outPathPrefix,seedPadded,uavPadded);
-     					if (!new File(PaperUAS.fileName(graphName)).canRead())
+     					if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
 	         			{
 		         			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 		         			framesToTraces = tracesSeed.tracesForUAVandFrame.get(uav);
@@ -1210,7 +1187,7 @@ public class PaperUAS
 		       				for (Label l:initialPTA.pathroutines.computeAlphabet())
 		       					if (l.toString().equals("Data_Deprecates_Waypoint"))
 		       						System.out.println("Data_Deprecates_Waypoint is in uav " + uav +" and seed "+seed);
-		         			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+		         			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
 	         			}
             			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
              				for(LearningType type:learningTypes)
@@ -1225,12 +1202,12 @@ public class PaperUAS
 	         			for(int fraction:rangeOfValues)
 	         			{
 	         				graphName = sprintf("%suas-%s-%s-U-%02d",outPathPrefix,seedPadded,uavPadded,fraction);
-	         				if (!new File(PaperUAS.fileName(graphName)).canRead())
+	         				if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
 		             		{
 		             			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 		             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
 		             			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-		             			initialPTA.storage.writeGraphML(PaperUAS.fileName(graphName));
+		             			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
 			             	}
 
 	            			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
@@ -1249,9 +1226,17 @@ public class PaperUAS
     	System.out.println("completed constructing the source graphs");
     	paper = null;// throw the original traces away
     	System.gc();
-    	for(UASCaseStudy e:listOfExperiments)
-    		experimentRunner.submitTask(e);
-    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+    	try
+    	{
+	    	for(UASCaseStudy e:listOfExperiments)
+	    		experimentRunner.submitTask(e);
+	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+		}
+		finally
+		{
+			experimentRunner.successfulTermination();
+			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		}
 		
     	/*
 		//initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));
@@ -1259,12 +1244,10 @@ public class PaperUAS
 		System.out.println(new Date().toString()+" Graph loaded: "+initialPTA.getStateNumber()+" states, adding at most "+ paper.learnerInitConfiguration.config.getHowManyStatesToAddFromIFTHEN()+" if-then states");
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		*/
-    	
+    	/*
     	if (resultCSV != null) resultCSV.reportResults(gr);
 		if (BCR_vs_experiment != null) BCR_vs_experiment.reportResults(gr);
 		if (diff_vs_experiment != null) diff_vs_experiment.reportResults(gr);
-		
-		DrawGraphs.end();// the process will not terminate without it because R has its own internal thread
-		experimentRunner.successfulTermination();
+		*/
 	}
 }

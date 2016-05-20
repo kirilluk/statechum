@@ -533,6 +533,22 @@ public class LearningSupportRoutines
  		AbstractPathRoutines.removeRejectStates(learningOutcome,actualAutomaton);
  		return actualAutomaton;
  	}
+
+ 	/** Returns a string padded to the specified width with the supplied character.
+ 	 * 
+ 	 * @param whatToPad
+ 	 * @param ch character to pad with
+ 	 * @param length the length to pad to
+ 	 * @return
+ 	 */
+ 	public static String padString(String whatToPad, char ch, int length)
+ 	{
+ 		StringBuffer buf = new StringBuffer();
+ 		for(int i=0;i<length-whatToPad.length();++i)
+ 			buf.append(ch);
+ 		buf.append(whatToPad);
+ 		return buf.toString();
+ 	}
 }
 
 

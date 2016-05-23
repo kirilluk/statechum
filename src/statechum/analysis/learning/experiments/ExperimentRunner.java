@@ -1082,7 +1082,7 @@ public class ExperimentRunner
 			{
 				if (f.isDirectory())
 				{
-					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(TestSGE_ExperimentRunner.testDir.getName()))
+					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.testDir.getName()))
 						zapDir(f);
 					else
 						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B or temporary directory, got "+f.getAbsolutePath());

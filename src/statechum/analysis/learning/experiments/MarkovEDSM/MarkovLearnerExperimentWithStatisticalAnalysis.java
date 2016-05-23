@@ -90,7 +90,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 	public static final String directoryNamePrefix = "Markov_Apr_2016";
 	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
 
-	public static class LearnerRunner extends UASExperiment<ExperimentResult<MarkovLearningParameters>, MarkovLearningParameters>
+	public static class LearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
 		public LearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
@@ -574,7 +574,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		final int chunkSize = 3;
 		
 		
-		RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
@@ -729,10 +729,10 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 							LearnerRunner learnerRunner = new LearnerRunner(parameters, eval);
 							experimentRunner.submitTask(learnerRunner);
 						}
-				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<ExperimentResult<MarkovLearningParameters>>() {
+				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
 
 					@Override
-					public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
+					public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
 					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
 						ScoresForGraph data=result.samples.get(0).actualLearner;
 						
@@ -746,12 +746,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 						}
 						experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 					}
-
-					@Override
-					public String getSubExperimentName()
-					{
-						return "running tasks for learning whole graphs, preset "+preset;
-					}
 					
 					@SuppressWarnings("rawtypes")
 					@Override
@@ -761,8 +755,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 					}
 					
 				});
-				
-				
 				
 				{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
 					DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);

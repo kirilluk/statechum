@@ -924,7 +924,7 @@ public class ExperimentPaperUAS
 	public final static String directoryNamePrefix = "uaspaper_May_2016";
 	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
 
- 	public static class UASCaseStudy extends UASExperiment<ExperimentResult<PaperUASParameters>,PaperUASParameters>
+ 	public static class UASCaseStudy extends UASExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>
  	{
  		protected LearnerGraph buildPTAWithAllNegatives() throws AugmentFromIfThenAutomatonException, IOException
  		{
@@ -1025,7 +1025,7 @@ public class ExperimentPaperUAS
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
- 		RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+ 		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
@@ -1040,15 +1040,14 @@ public class ExperimentPaperUAS
     	// positive only or pos-neg (no point, except for ktails where we learn from positives only)
     	// EDSM/check constraints but merge EDSM-way/premerge on the transition of interest.
     	
-		final DrawGraphs gr = new DrawGraphs();
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 
-    	processSubExperimentResult<ExperimentResult<PaperUASParameters>> resultHandler = new processSubExperimentResult<ExperimentResult<PaperUASParameters>>() {
+    	processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>> resultHandler = new processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>>() {
 			@Override
-			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
+			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
 				StringBuffer csvLine = new StringBuffer();
@@ -1064,13 +1063,7 @@ public class ExperimentPaperUAS
 				
 				//BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
 			}
-			
-			@Override
-			public String getSubExperimentName()
-			{
-				return "UAV experiments";
-			}
-			
+						
 			@Override
 			public SGEExperimentResult[] getGraphs() {
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment, resultCSV};

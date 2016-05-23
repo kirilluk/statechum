@@ -352,6 +352,11 @@ public class TestDrawGraphs {
 		public String[] headerValuesForEachCell() {
 			return headerForCell;
 		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "experiment";
+		}
 	}
 
 	@Test

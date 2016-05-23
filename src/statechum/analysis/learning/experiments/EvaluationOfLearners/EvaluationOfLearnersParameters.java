@@ -94,4 +94,10 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	{
 		return new String[]{"BCR","Diff","States"};
 	}
+
+	@Override
+	public String getSubExperimentName()
+	{
+		return "Evaluation of learners";
+	}
 }

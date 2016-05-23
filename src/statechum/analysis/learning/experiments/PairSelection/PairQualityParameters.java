@@ -31,7 +31,8 @@ public class PairQualityParameters implements ThreadResultID
 	int traceQuantity, lengthMultiplier;
 	double trainingDataMultiplier;
 	int seed;
-
+	/** True means using classifier, false means learning classifier. */
+	boolean usingClassifierRatherThanLearningClassifier = true;
 	String column = null;
 	
 	public void setColumn(String text)
@@ -41,9 +42,9 @@ public class PairQualityParameters implements ThreadResultID
 	
 	ThreadResultID innerLearner = null;
 	
-	public void setExperimentParameters(int ifDepth,boolean onlyPositives,boolean useUnique,int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
+	public void setExperimentParameters(boolean whetherUseClassifierOrLearnClassifier, int ifDepth,boolean onlyPositives,boolean useUnique,int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
 	{
-		this.ifDepth = ifDepth;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.traceQuantity = traceQuantity;this.lengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
+		this.ifDepth = ifDepth;this.usingClassifierRatherThanLearningClassifier = whetherUseClassifierOrLearnClassifier;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.traceQuantity = traceQuantity;this.lengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
 	}
 	
 	public void setInnerParameters(ThreadResultID inner)
@@ -118,5 +119,14 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() {
 		return new String[]{"BCR","Diff","States","PairQuality"};
+	}
+
+	@Override
+	public String getSubExperimentName()
+	{
+		if (usingClassifierRatherThanLearningClassifier)
+			return "Learning using classifier";
+		else
+			return "Learning classifiers";
 	}
 }

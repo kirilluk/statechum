@@ -1044,9 +1044,11 @@ public class PairQualityLearner
 		public String getColumnID();
 		/** Each cell may contain results of multiple experiments, this one reports the respective headers. */
 		public String[] headerValuesForEachCell();
+		/** Returns the name of the current experiment. */
+		public String getSubExperimentName();
 	}
 
-	public abstract static class PairQualityLearnerRunner extends UASExperiment<LearnWithClassifiersResult,PairQualityParameters>
+	public abstract static class PairQualityLearnerRunner extends UASExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>
 	{
 		protected final WekaDataCollector sampleCollector;
 		
@@ -1058,10 +1060,10 @@ public class PairQualityLearner
 		public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
 		
 		@Override
-		public LearnWithClassifiersResult call() throws Exception 
+		public ExperimentResult<PairQualityParameters> call() throws Exception 
 		{
 			final int alphabet = par.states;
-			LearnWithClassifiersResult outcome = new LearnWithClassifiersResult(par);
+			ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
 			WekaDataCollector dataCollector = createDataCollector(par.ifDepth);
 			Label uniqueFromInitial = null;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);

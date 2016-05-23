@@ -646,7 +646,8 @@ public class DrawGraphs {
 		{
 			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
 			StringSequenceWriter writer = new StringSequenceWriter(null);
-			StringBuffer w = new StringBuffer();w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
+			StringBuffer w = new StringBuffer();
+			w.append(id.getSubExperimentName());w.append(SGE_ExperimentRunner.separator);w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
 			writer.writeInputSequence(w, Arrays.asList(id.getColumnText()));w.append(SGE_ExperimentRunner.separator);
 			writer.writeInputSequence(w, Arrays.asList(id.headerValuesForEachCell()));w.append(SGE_ExperimentRunner.separator);
 			w.append(text);
@@ -688,17 +689,17 @@ public class DrawGraphs {
 		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, boolean onlyCheckItParses)
 		{
 			final StringSequenceWriter reader = new StringSequenceWriter(null);
-			if (line.length != 6)
-				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 6");
-			final String[] columnText = reader.readInputSequence(line[3]).toArray(new String[]{});
-			final String[] headerValuesForCells = reader.readInputSequence(line[4]).toArray(new String[]{});
+			if (line.length != 7)
+				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 7");
+			final String[] columnText = reader.readInputSequence(line[4]).toArray(new String[]{});
+			final String[] headerValuesForCells = reader.readInputSequence(line[5]).toArray(new String[]{});
 			
 			if (!onlyCheckItParses)
 				add(new ThreadResultID(){
 	
 					@Override
 					public String getRowID() {
-						return line[1];
+						return line[2];
 					}
 	
 					@Override
@@ -708,13 +709,18 @@ public class DrawGraphs {
 	
 					@Override
 					public String getColumnID() {
-						return line[2];
+						return line[3];
 					}
 	
 					@Override
 					public String[] headerValuesForEachCell() {
 						return headerValuesForCells;
-					}},line[5]);
+					}
+
+					@Override
+					public String getSubExperimentName() {
+						return line[1];
+					}},line[6]);
 		}
 	}
 

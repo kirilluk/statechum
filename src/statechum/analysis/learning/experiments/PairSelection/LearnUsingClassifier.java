@@ -61,7 +61,7 @@ public class LearnUsingClassifier {
 		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		RunSubExperiment<LearnWithClassifiersResult> experimentRunner = new RunSubExperiment<LearnWithClassifiersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,args);
+		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,args);
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 4;
 		final int rangeOfStateNumbers = 4;
@@ -78,7 +78,7 @@ public class LearnUsingClassifier {
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
@@ -106,9 +106,9 @@ public class LearnUsingClassifier {
 							
 							final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results"+selection+".csv"));
 							
-							processSubExperimentResult<LearnWithClassifiersResult> resultHandler = new processSubExperimentResult<LearnWithClassifiersResult>() {
+							processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {
 								@Override
-								public void processSubResult(LearnWithClassifiersResult result, RunSubExperiment<LearnWithClassifiersResult> experimentrunner) throws IOException 
+								public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
 								{
 									ScoresForGraph difference = result.samples.get(0).actualLearner;
 									StringBuffer csvLine = new StringBuffer();
@@ -117,12 +117,6 @@ public class LearnUsingClassifier {
 									CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 									CSVExperimentResult.addSeparator(csvLine);if (result.parameters.pairQualityCounter != null) csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
 									experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-								}
-								
-								@Override
-								public String getSubExperimentName()
-								{
-									return "Learning using classifier";
 								}
 								
 								@Override
@@ -137,7 +131,7 @@ public class LearnUsingClassifier {
 									{
 										{// first, use the learner with a classifier 
 											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("WithClassifier");
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
@@ -156,7 +150,7 @@ public class LearnUsingClassifier {
 										}
 										{// second, use a traditional learner 
 											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("Reference");
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)

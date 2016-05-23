@@ -34,7 +34,6 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
-import java.util.concurrent.Callable;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -56,26 +55,19 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection.PairScoreWithDistance;
+import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.LearnerToUseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.EDSMReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearnerUsingSiccoScoring;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -84,8 +76,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.collections.ArrayMapWithSearchPos;
@@ -93,66 +83,14 @@ import statechum.collections.ArrayMapWithSearchPos;
 
 public class CVS_With_Random_traces_Generation extends PairQualityLearner
 {
-	public static class LearnerRunner implements Callable<ThreadResult>
+	public static class LearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
-		protected final Configuration config;
-		protected final ConvertALabel converter;
-		protected final int sample=0;
-		protected boolean onlyUsePositives;
-		protected final int seed;
-		protected int chunkLen=3;
-		protected int traceQuantity;
-		protected String selectionID;
-		protected double alphabetMultiplier = 1;
-		protected double traceLengthMultiplier = 1;
+		public static final String directoryNamePrefix = "CVS_Markov_Apr_2016";
+		public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
 
-		protected double tracesAlphabetMultiplier = 0;
-		
-		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
-		protected boolean disableInconsistenciesInMergers = false;
-		
-		public void setDisableInconsistenciesInMergers(boolean v)
+		public LearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
-			disableInconsistenciesInMergers = v;
-		}
-		
-		public void setTracesAlphabetMultiplier(double evalAlphabetMult)
-		{
-			tracesAlphabetMultiplier = evalAlphabetMult;
-		}
-		
-		public void setSelectionID(String value)
-		{
-			selectionID = value;
-		}
-		
-		/** Whether to filter the collection of traces such that only positive traces are used. */
-		public void setOnlyUsePositives(boolean value)
-		{
-			onlyUsePositives = value;
-		}
-		
-		public void setAlphabetMultiplier(double mult)
-		{
-			alphabetMultiplier = mult;
-		}
-		
-		public void setTraceLengthMultiplier(double traceMulti) {
-			traceLengthMultiplier=traceMulti;
-		}
-		
-		public void setTraceQuantity(int traceQuantity2) {
-			traceQuantity=	traceQuantity2;		
-		}
-		
-		public void setChunkLen(int len)
-		{
-			chunkLen = len;
-		}
-		
-		public LearnerRunner(int argSeed, Configuration conf, ConvertALabel conv)
-		{
-			config = conf;seed = argSeed;converter=conv;
+			super(parameters,cnf,directoryNamePrefix);
 		}
 		
 		boolean useCentreVertex = true, useDifferentScoringNearRoot = false, mergeIdentifiedPathsAfterInference = true, useClassifyToOrderPairs = true,useMostConnectedVertexToStartLearning = false;
@@ -181,16 +119,16 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			}
 		}
 		@Override
-		public ThreadResult call() throws Exception 
+		public ExperimentResult<MarkovLearningParameters> call() throws Exception 
 		{
-			if (tracesAlphabetMultiplier <= 0)
-				tracesAlphabetMultiplier = alphabetMultiplier;
+			if (par.tracesAlphabetMultiplier <= 0)
+				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
 
-			ThreadResult outcome = new ThreadResult();
+			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<MarkovLearningParameters>(par);
 
-			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(config);learnerEval.setLabelConverter(converter);
-			LearnerGraph referenceGraphAsText = FsmParser.buildLearnerGraph("q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
-			LearnerGraph referenceGraph = new LearnerGraph(config);AbstractPathRoutines.convertToNumerical(referenceGraphAsText,referenceGraph);
+			LearnerEvaluationConfiguration learnerEval = new LearnerEvaluationConfiguration(learnerInitConfiguration.config);learnerEval.setLabelConverter(learnerInitConfiguration.getLabelConverter());
+			LearnerGraph referenceGraphAsText = FsmParser.buildLearnerGraph("q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
+			//LearnerGraph referenceGraph = new LearnerGraph(learnerInitConfiguration.config);AbstractPathRoutines.convertToNumerical(referenceGraphAsText,referenceGraph);
 			//Visualiser.updateFrame(referenceGraph, null);
 //			Visualiser.waitForKey();
 			final int states = referenceGraph.getStateNumber(), alphabet = referenceGraph.pathroutines.computeAlphabet().size();
@@ -198,15 +136,15 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 			for(int attempt=0;attempt<10;++attempt)
 			{// try learning the same machine a few times
 
- 				LearnerGraph pta = new LearnerGraph(config);
+ 				LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt),5,null);
-				final int tracesToGenerate = LearningSupportRoutines.makeEven(traceQuantity);
+				final int tracesToGenerate = LearningSupportRoutines.makeEven(par.traceQuantity);
 
 				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 										
 						@Override
 						public int getLength() {
-							return (int) traceLengthMultiplier*alphabet*states;
+							return (int) par.traceLengthMultiplier*alphabet*states;
 						}
 		
 						@Override
@@ -216,7 +154,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 					});
 
 
-				if (onlyUsePositives)
+				if (par.onlyUsePositives)
 				{
 					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 						@Override
@@ -228,13 +166,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				else
 					pta.paths.augmentPTA(generator.getAllSequences(0));
 
-				final MarkovModel m= new MarkovModel(chunkLen,true,true, disableInconsistenciesInMergers);
+				final MarkovModel m= new MarkovModel(par.chunkLen,true,true, par.disableInconsistenciesInMergers);
 
 				new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 				
 				pta.clearColours();
 
-				if (!onlyUsePositives)
+				if (!par.onlyUsePositives)
 					assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
 				else 
 					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
@@ -246,7 +184,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				LearnerGraph trimmedReference = referenceGraph;//MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
-				final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(trimmedReference,alphabet*traceQuantity,LearningSupportRoutines.makeEven(alphabet*traceQuantity));
+				final Collection<List<Label>> testSet = LearningAlgorithms.computeEvaluationSet(trimmedReference,alphabet*par.traceQuantity,LearningSupportRoutines.makeEven(alphabet*par.traceQuantity));
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 				long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
@@ -278,7 +216,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 
 				learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
-				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
+				learnerOfPairs.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
 
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				actualAutomaton.setName("CVS");
@@ -327,7 +265,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 //				dataSample.miscGraphs.put("EDSM-Markov",dataSample.actualLearner);
 				// This is to ensure that scoring is computed in the usual way rather than with override.
 				ScoreMode scoringModeToUse = ScoreMode.COMPATIBILITY;
-				Configuration evaluationConfig = config.copy();evaluationConfig.setLearnerScoreMode(scoringModeToUse);
+				Configuration evaluationConfig = learnerInitConfiguration.config.copy();evaluationConfig.setLearnerScoreMode(scoringModeToUse);
 				
 				LearnerGraph outcomeOfReferenceLearner = new LearnerGraph(evaluationConfig);
 				{
@@ -477,7 +415,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
 		{
 			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
+			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, learnerInitConfiguration.config, 1);
 			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
 			System.out.println("Structure= "+outcome.differenceStructural.getValue());
 			System.out.println("BCR= "+outcome.differenceBCR.getValue());
@@ -778,15 +716,13 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 	
 	public static void runExperiment(String args[]) throws Exception
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setGdFailOnDuplicateNames(false);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.GENERAL);
-		ConvertALabel converter = new Transform.InternStringLabel();
+		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
+		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.GENERAL);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		final int chunkSize = 3;
 	
 		// Inference from a few traces
-		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),"data",args);
 
 		final boolean onlyPositives=true;
 		
@@ -830,28 +766,24 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 //						tool.loadConfig("CVS.txt");
 //						LearnerGraph pta = tool.getPTA();
 //						System.out.println(pta.learnerCache.getAlphabet());
-						int numberOfTasks = 0;
-						numberOfTasks++;
-						LearnerRunner learnerRunner = new LearnerRunner(numberOfTasks, config, converter);
-						learnerRunner.setOnlyUsePositives(onlyPositives);
-//						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-//						learnerRunner.setAlphabetMultiplier(alphabetMultiplierActual);
-						learnerRunner.setTraceLengthMultiplier(8);
-						learnerRunner.setChunkLen(chunkSize);
-						learnerRunner.setPresetLearningParameters(preset);
-						learnerRunner.setOnlyUsePositives(onlyPositives);
-						learnerRunner.setChunkLen(chunkSize);
-//						learnerRunner.setpta(pta);
-						learnerRunner.setTraceQuantity(traceQuantity);
+						
+			// most of the parameters are zeroes because we are not generating random machines but instead using the specific graph.
+						MarkovLearningParameters parameters = new MarkovLearningParameters(LearnerToUseEnum.LEARNER_EDSMMARKOV,0, 0,0, 0,0);
+						parameters.setOnlyUsePositives(onlyPositives);
+						parameters.setExperimentID(chunkSize,preset,traceQuantity,0,0,0);
+						parameters.setTraceLengthMultiplier(8);
+						parameters.setDisableInconsistenciesInMergers(false);
+						parameters.setUsePrintf(experimentRunner.isInteractive());
+						LearnerRunner learnerRunner = new LearnerRunner(parameters, eval);
 						experimentRunner.submitTask(learnerRunner);
 		}
 					
 		for(@SuppressWarnings("unused") final int traceQuantity:traceQuantityValues)
 		{
-			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
 	
 				@Override
-				public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
 				{
 						
 					for(SampleData sample:result.samples)
@@ -876,13 +808,7 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 							}
 						}
 					}
-					
-					@Override
-					public String getSubExperimentName()
-					{
-						return "running tasks for learning whole graphs, preset "+preset;
-					}
-							
+												
 					@SuppressWarnings("rawtypes")
 					@Override
 					public RGraph[] getGraphs() {

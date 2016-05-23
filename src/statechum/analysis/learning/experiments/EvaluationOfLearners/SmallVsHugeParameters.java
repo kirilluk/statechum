@@ -1,6 +1,6 @@
 /* Copyright (c) 2016 The University of Sheffield.
  * 
- * This file is part of StateChum
+ * This file is part of StateChum.
  * 
  * StateChum is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
+package statechum.analysis.learning.experiments.EvaluationOfLearners;
 
-package statechum.analysis.learning.experiments.PairSelection;
+import statechum.Configuration.STATETREE;
+import statechum.Configuration.ScoreMode;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 
-public class LearnWithClassifiersResult extends ExperimentResult<PairQualityParameters> {
-
-	public LearnWithClassifiersResult(PairQualityParameters p) {
-		super(p);
+public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
+{
+	public SmallVsHugeParameters(ScoreMode scEDSM, ScoringToApply scoring, LearningType type, boolean pta, STATETREE matrix) 
+	{
+		super(scEDSM, scoring, type, pta, matrix);
 	}
+
+	@Override
+	public String getSubExperimentName()
+	{
+		return "Small_vs_huge_experiments";
+	}
+	
 }

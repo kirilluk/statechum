@@ -58,7 +58,7 @@ public class ConstructClassifier
 		// This has to be run in a standalone mode in order to collect pair data across all experiments 
 		// (which hence have to be all in the same process). This should not be a slow process because
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
-		RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		final int minStateNumber = 20;
 		final int samplesPerFSM = 4;
@@ -76,7 +76,7 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
 						int numberOfTasks = 0;
 						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
@@ -84,7 +84,7 @@ public class ConstructClassifier
 								for(int attempt=0;attempt<2;++attempt)
 								{
 									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
-									parExperiment.setExperimentParameters(ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override
@@ -97,17 +97,11 @@ public class ConstructClassifier
 									experimentRunner.submitTask(learnerRunner);
 									++numberOfTasks;
 								}
-				    	processSubExperimentResult<ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<ExperimentResult<PairQualityParameters>>() {
+				    	processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {
 							@SuppressWarnings("unused")
 							@Override
-							public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
+							public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
 							{
-							}
-							
-							@Override
-							public String getSubExperimentName()
-							{
-								return "Learning classifiers";
 							}
 							
 							@Override

@@ -145,4 +145,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		return new String[]{"BCR","Diff","states"};
 	}
 
+	@Override
+	public String getSubExperimentName()
+	{
+		return "running tasks for learning whole graphs, preset "+preset;
+	}
 }

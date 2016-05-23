@@ -79,4 +79,9 @@ public class PaperUASParameters implements ThreadResultID
 		return new String[]{"BCR","Diff","States"};
 	}
 
+	@Override
+	public String getSubExperimentName()
+	{
+		return "UAV experiments";
+	}
 }

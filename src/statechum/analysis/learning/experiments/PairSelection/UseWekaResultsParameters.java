@@ -74,17 +74,26 @@ public class UseWekaResultsParameters implements ThreadResultID
 	}
 
 	@Override
-	public String[] getColumnText() {
+	public String[] getColumnText() 
+	{
 		return new String[]{"Learner"};
 	}
 
 	@Override
-	public String getColumnID() {
+	public String getColumnID() 
+	{
 		return "WithClassifier";
 	}
 
 	@Override
-	public String[] headerValuesForEachCell() {
+	public String[] headerValuesForEachCell() 
+	{
 		return new String[]{"BCR","Diff","States"};
+	}
+
+	@Override
+	public String getSubExperimentName() 
+	{
+		throw new UnsupportedOperationException("this method should not be called");
 	}
 }

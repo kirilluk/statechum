@@ -11,9 +11,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
@@ -35,7 +37,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 
-public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends ThreadResultID> implements Callable<TR>
+public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends ThreadResult> implements Callable<TR>
 {
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
@@ -48,7 +50,7 @@ public  abstract  class UASExperiment<TR extends ThreadResult,PARS extends Threa
 	{
 		par = parameters;
 		learnerInitConfiguration = eval;
-		String outDir = "tmp"+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator+par.getRowID();
+		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator+par.getRowID();
 		mkDir(outDir);
 		inputGraphFileName = outDir + File.separator+"rnd";
 	}

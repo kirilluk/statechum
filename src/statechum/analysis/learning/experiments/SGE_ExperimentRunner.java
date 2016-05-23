@@ -54,6 +54,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 /**
@@ -74,7 +75,7 @@ public class SGE_ExperimentRunner
 	
 	public static final String passCollectTasks="collectTasks", passRunTask="passRunTask", passCollateResults="passCollate", passStandalone = "passStandalone";
 	
-	public interface processSubExperimentResult<RESULT> 
+	public interface processSubExperimentResult<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
 	{
 		/** Called to plot results of the experiment, using the result <i>r</i>. The <i>experimentrunner</i> is what is to be used to perform plotting, via 
 		 * calls to {@link runSubExperiment#Record(String, Object, Double, String)}. The outcome of these calls are stored in a file and subsequently assembled and plotted.
@@ -82,13 +83,10 @@ public class SGE_ExperimentRunner
 		 * @param result the outcome of running an experiment.
 		 * @param runSubExperiment
 		 */
-		public void processSubResult(RESULT result,RunSubExperiment<RESULT> runSubExperiment)  throws IOException;
+		public void processSubResult(RESULT result,RunSubExperiment<EXPERIMENT_PARAMETERS,RESULT> runSubExperiment)  throws IOException;
 		
 		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
 		public SGEExperimentResult[] getGraphs();
-		
-		/** Returns the name of the current experiment. */
-		public String getSubExperimentName();
 	}
 	
 	
@@ -99,15 +97,15 @@ public class SGE_ExperimentRunner
 		PROGRESS_INDICATOR // used to report the %% of completed tasks
 	}
 	
-	public static class RunSubExperiment<RESULT> 
+	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
 	{
 		private PhaseEnum phase;
 		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults. */  
 		private int taskCounter=0, taskCounterFromPreviousSubExperiment;
 		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished. */
 		private int virtTask = 0, tasksToSplitInto =0;
-		private String experimentName;
 		private ExecutorService executorService;
+		private Map<Integer,EXPERIMENT_PARAMETERS> taskIDToParameters = new TreeMap<Integer,EXPERIMENT_PARAMETERS>();
 		
 		protected CompletionService<RESULT> runner = null; 
 		
@@ -206,9 +204,22 @@ public class SGE_ExperimentRunner
 			return outcome;
 		}
 
-		@SuppressWarnings({ "unchecked", "rawtypes" })
-		public void submitTask(Callable<? extends RESULT> task)
+		public void submitTask(UASExperiment<EXPERIMENT_PARAMETERS,RESULT> task)
 		{
+			if (task.par.getSubExperimentName().contains(SGE_ExperimentRunner.separator))
+				throw new IllegalArgumentException("experiment name for "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
+			if (task.par.getRowID().contains(SGE_ExperimentRunner.separator))
+				throw new IllegalArgumentException("row ID for "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
+			if (task.par.getColumnID().contains(SGE_ExperimentRunner.separator))
+				throw new IllegalArgumentException("column ID for "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
+			for(String t:task.par.getColumnText())
+				if (t.contains(SGE_ExperimentRunner.separator))
+					throw new IllegalArgumentException("column data text for experiment "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
+			for(String t:task.par.headerValuesForEachCell())
+				if (t.contains(SGE_ExperimentRunner.separator))
+					throw new IllegalArgumentException("cell text for experiment "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
+
+			taskIDToParameters.put(taskCounter, task.par);
 			switch(phase)
 			{
 			case RUN_TASK:// when running in Grid mode, each task runs as a separate process given that we intend to run them on separate nodes.
@@ -235,11 +246,11 @@ public class SGE_ExperimentRunner
 			{
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
-					runner.submit((Callable)task);
+					runner.submit(task);
 				break;
 			}
 			case RUN_STANDALONE:
-				runner.submit((Callable)task);
+				runner.submit(task);
 				break;
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
@@ -256,15 +267,36 @@ public class SGE_ExperimentRunner
 		{
 			return taskCounter;
 		}
-
+		
+		public static String sanitiseFileName(String name)
+		{
+			return name.replaceAll("[:\\// ]", "_");
+		}
+		
 		protected String constructFileName(int rCounter)
 		{
-			return tmpDir+experimentName.replaceAll("[:\\// ]", "_")+"-"+rCounter;				
+			if (!taskIDToParameters.containsKey(rCounter))
+				throw new IllegalArgumentException("task ID "+rCounter+" does not have associated parameters recorded anywhere, has it been added via submitTask?");
+
+			String pathName = 
+			 tmpDir+sanitiseFileName(taskIDToParameters.get(rCounter).getSubExperimentName())+"-"+
+					sanitiseFileName(taskIDToParameters.get(rCounter).getRowID());
+			statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
+			return pathName+File.separator+sanitiseFileName(taskIDToParameters.get(rCounter).getColumnID());
 		}
+		
 		protected String constructTaskStartedFileName(int rCounter)
 		{
-			return tmpDir+"task-"+rCounter+".sgetaskstarted";
+			if (!taskIDToParameters.containsKey(rCounter))
+				throw new IllegalArgumentException("task ID "+rCounter+" does not have associated parameters recorded anywhere, has it been added via submitTask?");
+			
+			String pathName = 
+					 tmpDir+sanitiseFileName(taskIDToParameters.get(rCounter).getSubExperimentName())+"-"+
+							sanitiseFileName(taskIDToParameters.get(rCounter).getRowID());
+					statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
+			return pathName+File.separator+sanitiseFileName(taskIDToParameters.get(rCounter).getColumnID())+".sgetaskstarted";
 		}
+		
 		/** Plots the supplied graphs. If the task number is divisible by 10, plots them on the screen, if negative - dumps a pdf.  
 		 * It is also responsible for a progress indicator in an interactive mode.
 		 * 
@@ -362,7 +394,7 @@ public class SGE_ExperimentRunner
 			}
 			catch(IOException ex)
 			{
-				Helper.throwUnchecked("failed to load results of experiment "+rCounter, ex);
+				Helper.throwUnchecked("failed to load results of experiment number ["+rCounter+"]", ex);
 			}
 			finally
 			{
@@ -560,7 +592,7 @@ public class SGE_ExperimentRunner
 			return currentVirtualTask;
 		}
 				
-		public void collectOutcomeOfExperiments(processSubExperimentResult<RESULT> handlerForExperimentResults)
+		public void collectOutcomeOfExperiments(processSubExperimentResult<EXPERIMENT_PARAMETERS,RESULT> handlerForExperimentResults)
 		{
 			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
@@ -568,13 +600,12 @@ public class SGE_ExperimentRunner
 			if (plotName != null && !nameToGraph.containsKey(plotName))
 				throw new IllegalArgumentException("invalid plot \""+plotName+"\" requested for phase "+phase+", only valid ones are "+nameToGraph.keySet());
 
-			experimentName = handlerForExperimentResults.getSubExperimentName();
 			try
 			{
 				switch(phase)
 				{
 				case RUN_STANDALONE:
-					ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+(taskCounter-taskCounterFromPreviousSubExperiment)+" tasks for "+experimentName, taskCounter-taskCounterFromPreviousSubExperiment);
+					ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+(taskCounter-taskCounterFromPreviousSubExperiment)+" tasks", taskCounter-taskCounterFromPreviousSubExperiment);
 					for(int count=taskCounterFromPreviousSubExperiment;count < taskCounter;++count)
 					{
 						RESULT result = runner.take().get();// this will throw an exception if any of the tasks failed.
@@ -656,7 +687,7 @@ public class SGE_ExperimentRunner
 					break;
 				}
 				case COLLECT_RESULTS:
-					progress = new ProgressIndicator(new Date()+" "+handlerForExperimentResults.getSubExperimentName(), taskCounter-taskCounterFromPreviousSubExperiment);
+					progress = new ProgressIndicator(new Date()+" collecting results", taskCounter-taskCounterFromPreviousSubExperiment);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
 					{
 						loadExperimentResult(rCounter);progress.next();

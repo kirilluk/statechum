@@ -6,7 +6,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -23,12 +22,15 @@ import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.TestDrawGraphs;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
-public class TestSGE_ExperimentRunner {
-
-	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__Test_SGE__");
+public class TestSGE_ExperimentRunner
+{
+	public static final String testSGEDirectory = "__Test_SGE__";
+	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
 
 	public TestSGE_ExperimentRunner() {
 	}
@@ -54,19 +56,17 @@ public class TestSGE_ExperimentRunner {
 		ExperimentRunner.zapDir(testDir);
 	}
 
-	public static class DummyExperiment implements Callable<Integer>
+	public static class DummyExperiment extends UASExperiment<TestParameters,ExperimentResult<TestParameters>>
 	{
-		protected final int value;
-		
-		public DummyExperiment(int a)
+		public DummyExperiment(TestParameters parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix) 
 		{
-			value = a;
+			super(parameters, eval, directoryNamePrefix);
 		}
 		
 		@Override
-		public Integer call() throws Exception 
+		public ExperimentResult<TestParameters> call() throws Exception 
 		{
-			return value;
+			return new ExperimentResult<TestParameters>(par);
 		}
 		
 	}
@@ -138,25 +138,19 @@ public class TestSGE_ExperimentRunner {
 			
 	public int runA(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "experiment runA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -171,26 +165,20 @@ public class TestSGE_ExperimentRunner {
 
 	public int runcsv_A(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A"+result);
-					experimentrunner.RecordCSV(csvB,new TestDrawGraphs.TestParameters(result.toString()+"_2","B",new String[]{"experiment"},new String[]{"value"}),"line B"+result);					
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experiment_runcsv_A";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.parameters.value+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A"+result.parameters.value);
+					experimentrunner.RecordCSV(csvB,new TestDrawGraphs.TestParameters(result.parameters.value+"_2","B",new String[]{"experiment"},new String[]{"value"}),"line B"+result.parameters.value);					
 				}
 				
 				@Override
@@ -205,26 +193,20 @@ public class TestSGE_ExperimentRunner {
 	/** Same as runcsv_A but only csvA is populated with data. */
 	public int runcsv_B(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A1_"+result);
-					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.toString()+"_2","A",new String[]{"experiment"},new String[]{"value"}),"line A2_"+result);					
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experiment_runcsv_B";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.parameters.value+"_1","A",new String[]{"experiment"},new String[]{"value"}),"line A1_"+result.parameters.value);
+					experimentrunner.RecordCSV(csvA,new TestDrawGraphs.TestParameters(result.parameters.value+"_2","A",new String[]{"experiment"},new String[]{"value"}),"line A2_"+result.parameters.value);					
 				}
 				
 				@Override
@@ -239,25 +221,19 @@ public class TestSGE_ExperimentRunner {
 	// same as runA but with both labels and colours (as strings since this is what is expected by R)
 	public int runB_both_labels_and_colours(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -273,34 +249,28 @@ public class TestSGE_ExperimentRunner {
 	// same as runA but experiment fails for one of the samples
 	public int runC_fails_in_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory){
 				@Override
-				public Integer call() throws Exception 
+				public ExperimentResult<TestParameters> call() throws Exception 
 				{
-					if (value != 2)
-						return value;
+					if (par.value != 2)
+						return new ExperimentResult<TestParameters>(par);
 					
 					throw new IllegalArgumentException("task failed");
 				}
 			};
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -316,34 +286,28 @@ public class TestSGE_ExperimentRunner {
 	// same as runA but experiment returns null for one of the samples
 	public int runD_null_for_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory){
 				@Override
-				public Integer call() throws Exception 
+				public ExperimentResult<TestParameters> call() throws Exception 
 				{
-					if (value != 2)
-						return value;
+					if (par.value != 2)
+						return new ExperimentResult<TestParameters>(par);
 					
 					return null;
 				}
 			};
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -356,31 +320,62 @@ public class TestSGE_ExperimentRunner {
 		return experimentRunner.successfulTermination();
 	}
 	
+	public static class TestParameters implements ThreadResultID
+	{
+		final int value;
+		final String rowID;
+		public TestParameters(String r,int v)
+		{
+			value = v;rowID=r;
+		}
+		
+		@Override
+		public String getRowID() 
+		{
+			return rowID;
+		}
+
+		@Override
+		public String[] getColumnText() {
+			return new String[]{"column_text"};
+		}
+
+		@Override
+		public String getColumnID() {
+			return Integer.toString(value);
+		}
+
+		@Override
+		public String[] headerValuesForEachCell() {
+			return new String[]{"cell_header"};
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "experiment_name";
+		}
+		
+	}
+	
 	// same as runA but experiment places invalid data in the output file.
 	public int runE_invalid_data_in_output_file(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					if (result >= 1)
-						experimentrunner.RecordR(gr_StructuralDiff,new Double(result+1),new Double(result+1),"dd"+new Double(result+1),null);// invalid data is an instance of class file rather than an instance of
+					if (result.parameters.value >= 1)
+						experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value+1),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);// invalid data is an instance of class file rather than an instance of
 					else
-						experimentrunner.RecordR(gr_StructuralDiff,new java.io.File("gg"+result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+						experimentrunner.RecordR(gr_StructuralDiff,new java.io.File("gg"+result),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -396,27 +391,21 @@ public class TestSGE_ExperimentRunner {
 	// Multiple experiments in a single method
 	public int runMultiple(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
-				}
-				
+			
 				@SuppressWarnings("rawtypes")
 				@Override
 				public RGraph[] getGraphs() {
@@ -426,22 +415,16 @@ public class TestSGE_ExperimentRunner {
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_a,new Double(result.parameters.value),new Double(result.parameters.value+2),"aa"+new Double(result.parameters.value+1),"bb"+new Double(result.parameters.value+1));
+					experimentrunner.RecordR(gr_b,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -457,25 +440,19 @@ public class TestSGE_ExperimentRunner {
 	// Multiple experiments in a single method, the second phase contains a failing experiment
 	public int runMultipleFail2(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),"dd"+new Double(result.parameters.value+1),null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,"tt"+new Double(result.parameters.value+1));
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -487,31 +464,25 @@ public class TestSGE_ExperimentRunner {
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory){
 				@Override
-				public Integer call() throws Exception 
+				public ExperimentResult<TestParameters> call() throws Exception 
 				{
-					if (value != 1)
-						return value;
+					if (par.value != 1)
+						return new ExperimentResult<TestParameters>(par);
 					
 					return null;
 				}
 			};
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "tmp/experimentrunA";
+					experimentrunner.RecordR(gr_a,new Double(result.parameters.value),new Double(result.parameters.value+2),"aa"+new Double(result.parameters.value+1),"bb"+new Double(result.parameters.value+1));
+					experimentrunner.RecordR(gr_b,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -526,25 +497,19 @@ public class TestSGE_ExperimentRunner {
 	
 	public int runDuplicateFilenames(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "experiment runA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -559,25 +524,19 @@ public class TestSGE_ExperimentRunner {
 	
 	public int runUnknownGraphs(String []args)
 	{
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
-				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "experiment runA";
+					experimentrunner.RecordR(gr_StructuralDiff,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
 				
 				@SuppressWarnings("rawtypes")
@@ -593,27 +552,21 @@ public class TestSGE_ExperimentRunner {
 	public int runInvalidFileName(String []args)
 	{
 		final MockPlot<String> gr = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/|runA_struct.pdf"));
-		RunSubExperiment<Integer> experimentRunner = new RunSubExperiment<Integer>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(sample);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
-		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<Integer>() {
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
 
 				@Override
-				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
+				public void processSubResult(ExperimentResult<TestParameters> result, RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr,new Double(result.parameters.value),new Double(result.parameters.value+1),null,null);
+					experimentrunner.RecordR(gr_BCR,new Double(result.parameters.value+1),new Double(result.parameters.value-1),null,null);
 				}
-
-				@Override
-				public String getSubExperimentName()
-				{
-					return "experiment runA";
-				}
-				
+			
 				@SuppressWarnings("rawtypes")
 				@Override
 				public RGraph[] getGraphs() {
@@ -955,7 +908,7 @@ public class TestSGE_ExperimentRunner {
 			{
 					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experimentrunA-2");
+		}, IllegalArgumentException.class, "experiment_name-row/2");
 		Assert.assertEquals(66,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0]",gr_BCR.getData());// only partial data is available due to failure, 
 			// we cannot eliminate it completely because the failure is only detected part-way through. In reality, we'll not write .pdfs on a failure and thus no data will be available at all. 
@@ -1014,7 +967,7 @@ public class TestSGE_ExperimentRunner {
 			{
 				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experimentrunA-4");
+		}, IllegalArgumentException.class, "experiment_name-row_second/1");
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -1036,7 +989,7 @@ public class TestSGE_ExperimentRunner {
 			{
 				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experimentrunA-4");
+		}, IllegalArgumentException.class, "experiment_name-row_second/1");
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -1300,7 +1253,7 @@ public class TestSGE_ExperimentRunner {
 		BufferedWriter writer = null;
 		try
 		{
-			writer = new BufferedWriter(new FileWriter(testDir.getAbsolutePath()+File.separator+"tmp_experimentrunA-3"));
+			writer = new BufferedWriter(new FileWriter(testDir.getAbsolutePath()+File.separator+"experiment_name-row_second/0"));
 			writer.append("junk");
 		}
 		finally
@@ -1318,7 +1271,7 @@ public class TestSGE_ExperimentRunner {
 			{
 				runMultiple(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experimentrunA-3");
+		}, IllegalArgumentException.class, "experiment_name-row_second/0");
 
 		Assert.assertEquals(80,runMultiple(new String[]{"PROGRESS_INDICATOR"}));// 80% complete because one failed.
 		runMultiple(new String[]{"RUN_TASK","4"});// physical task 3 corresponds to a virtual task 4

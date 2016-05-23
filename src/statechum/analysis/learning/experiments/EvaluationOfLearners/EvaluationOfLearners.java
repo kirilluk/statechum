@@ -57,7 +57,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResult,EvaluationOfLearnersParameters>
+public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
 	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
@@ -285,7 +285,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -298,10 +298,10 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 
-    	processSubExperimentResult<EvaluationOfLearnersResult> resultHandler = new processSubExperimentResult<EvaluationOfLearnersResult>() {
+    	processSubExperimentResult<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> resultHandler = new processSubExperimentResult<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>() {
 
 			@Override
-			public void processSubResult(EvaluationOfLearnersResult result, RunSubExperiment<EvaluationOfLearnersResult> experimentrunner) throws IOException 
+			public void processSubResult(EvaluationOfLearnersResult result, RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentrunner) throws IOException 
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
 				StringBuffer csvLine = new StringBuffer();
@@ -312,12 +312,6 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 				String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+result.parameters.uniqueAsString()+"-"+result.parameters.getColumnID();
 				experimentrunner.RecordR(BCR_vs_experiment,experimentName ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
-			}
-
-			@Override
-			public String getSubExperimentName()
-			{
-				return "Evaluation of learners";
 			}
 			
 			@Override
@@ -337,8 +331,9 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersResu
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
-									for(int traceQuantity=8;traceQuantity<=16;traceQuantity*=2)
-										for(int traceLengthMultiplier=2;traceLengthMultiplier<=16;traceLengthMultiplier*=2)
+									for(int traceQuantity=1;traceQuantity<=16;traceQuantity*=4)
+										for(int traceLengthMultiplier=1;traceLengthMultiplier<=16;traceLengthMultiplier*=4)
+											if (traceQuantity*traceLengthMultiplier <= 64)
 											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
 												{

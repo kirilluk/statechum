@@ -55,7 +55,6 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -71,15 +70,9 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.*;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResult;
 
 public class CVS extends PairQualityLearner
 {

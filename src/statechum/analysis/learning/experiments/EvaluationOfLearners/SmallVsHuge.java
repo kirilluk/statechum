@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
@@ -44,6 +42,7 @@ import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.EvaluationOfLearnersParameters.LearningType;
+import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -60,7 +59,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,EvaluationOfLearnersParameters>
+public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
 	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
@@ -70,7 +69,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		alwaysRunExperiment = b;
 	}
 
-	public SmallVsHuge(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
+	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
 	{
 		super(parameters,eval,directoryNamePrefix);
 	}
@@ -78,10 +77,10 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
-	public EvaluationOfLearnersResult call() throws Exception 
+	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
 	{
 		final int alphabet = par.states*2;
-		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
+		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		Label uniqueFromInitial = null;
 		final boolean pickUniqueFromInitial = true;
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
@@ -253,14 +252,13 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		final RunSubExperiment<EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setOverride_usePTAMerging(true);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		
 		final int samplesPerFSMSize = 20;
-		final int minStateNumber = 10;
 		final int attemptsPerFSM = 2;
 
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
@@ -268,10 +266,10 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 
-    	processSubExperimentResult<EvaluationOfLearnersResult> resultHandler = new processSubExperimentResult<EvaluationOfLearnersResult>() {
+    	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
 
 			@Override
-			public void processSubResult(EvaluationOfLearnersResult result, RunSubExperiment<EvaluationOfLearnersResult> experimentrunner) throws IOException 
+			public void processSubResult(ExperimentResult<SmallVsHugeParameters> result, RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentrunner) throws IOException 
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
 				StringBuffer csvLine = new StringBuffer();
@@ -284,12 +282,6 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
 			}
 
-			@Override
-			public String getSubExperimentName()
-			{
-				return "Small_vs_huge_experiments";
-			}
-			
 			@Override
 			public SGEExperimentResult[] getGraphs() {
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
@@ -317,7 +309,7 @@ public class SmallVsHuge extends UASExperiment<EvaluationOfLearnersResult,Evalua
 													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
 													
-													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,type,pta,matrix);
+													SmallVsHugeParameters par = new SmallVsHugeParameters(scoringForEDSM,scoringMethod,type,pta,matrix);
 													par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 													SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 													//learnerRunner.setAlwaysRunExperiment(true);

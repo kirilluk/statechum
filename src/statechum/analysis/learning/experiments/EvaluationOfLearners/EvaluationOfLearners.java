@@ -331,8 +331,8 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
-									for(int traceQuantity=1;traceQuantity<=16;traceQuantity*=4)
-										for(int traceLengthMultiplier=1;traceLengthMultiplier<=16;traceLengthMultiplier*=4)
+									for(int traceQuantity:new int[]{1,8,16})
+										for(int traceLengthMultiplier:new int[]{1,8,16})
 											if (traceQuantity*traceLengthMultiplier <= 64)
 											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
 												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())

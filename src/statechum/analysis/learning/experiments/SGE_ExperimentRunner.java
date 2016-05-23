@@ -273,16 +273,20 @@ public class SGE_ExperimentRunner
 			return name.replaceAll("[:\\// ]", "_");
 		}
 		
+		protected String constructFileName(EXPERIMENT_PARAMETERS par)
+		{
+			String pathName = 
+			 tmpDir+sanitiseFileName(par.getSubExperimentName())+"-"+
+					sanitiseFileName(par.getRowID());
+			statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
+			return pathName+File.separator+sanitiseFileName(par.getColumnID());
+		}
+
 		protected String constructFileName(int rCounter)
 		{
 			if (!taskIDToParameters.containsKey(rCounter))
 				throw new IllegalArgumentException("task ID "+rCounter+" does not have associated parameters recorded anywhere, has it been added via submitTask?");
-
-			String pathName = 
-			 tmpDir+sanitiseFileName(taskIDToParameters.get(rCounter).getSubExperimentName())+"-"+
-					sanitiseFileName(taskIDToParameters.get(rCounter).getRowID());
-			statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName(taskIDToParameters.get(rCounter).getColumnID());
+			return constructFileName(taskIDToParameters.get(rCounter));
 		}
 		
 		protected String constructTaskStartedFileName(int rCounter)
@@ -666,11 +670,12 @@ public class SGE_ExperimentRunner
 						{
 							outputWriter = new StringWriter();
 							RESULT result = runner.take().get();
+
 							handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 							BufferedWriter writer = null;
 							try
 							{
-								writer = new BufferedWriter(new FileWriter(constructFileName(rCounter)));
+								writer = new BufferedWriter(new FileWriter(constructFileName(result.parameters)));
 								java.util.zip.CRC32 crc = new java.util.zip.CRC32();
 								String text = outputWriter.toString();updateCRC(crc, text);
 								writer.append(text);

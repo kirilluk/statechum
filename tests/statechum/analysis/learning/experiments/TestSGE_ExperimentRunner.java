@@ -29,9 +29,6 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 
 public class TestSGE_ExperimentRunner
 {
-	public static final String testSGEDirectory = "__Test_SGE__";
-	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
-
 	public TestSGE_ExperimentRunner() {
 	}
 
@@ -44,16 +41,16 @@ public class TestSGE_ExperimentRunner
 			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
 		}
 		
-		if (!testDir.isDirectory())
+		if (!ExperimentRunner.testDir.isDirectory())
 		{
-			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+			Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
 		}
 	}
 
 	@After
 	public void after()
 	{
-		ExperimentRunner.zapDir(testDir);
+		ExperimentRunner.zapDir(ExperimentRunner.testDir);
 	}
 
 	public static class DummyExperiment extends UASExperiment<TestParameters,ExperimentResult<TestParameters>>
@@ -138,10 +135,10 @@ public class TestSGE_ExperimentRunner
 			
 	public int runA(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -165,10 +162,10 @@ public class TestSGE_ExperimentRunner
 
 	public int runcsv_A(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -193,10 +190,10 @@ public class TestSGE_ExperimentRunner
 	/** Same as runcsv_A but only csvA is populated with data. */
 	public int runcsv_B(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -221,10 +218,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but with both labels and colours (as strings since this is what is expected by R)
 	public int runB_both_labels_and_colours(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -249,10 +246,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment fails for one of the samples
 	public int runC_fails_in_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -286,10 +283,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment returns null for one of the samples
 	public int runD_null_for_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -360,10 +357,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment places invalid data in the output file.
 	public int runE_invalid_data_in_output_file(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -391,10 +388,10 @@ public class TestSGE_ExperimentRunner
 	// Multiple experiments in a single method
 	public int runMultiple(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -415,7 +412,7 @@ public class TestSGE_ExperimentRunner
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -440,10 +437,10 @@ public class TestSGE_ExperimentRunner
 	// Multiple experiments in a single method, the second phase contains a failing experiment
 	public int runMultipleFail2(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -464,7 +461,7 @@ public class TestSGE_ExperimentRunner
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,testSGEDirectory){
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -497,10 +494,10 @@ public class TestSGE_ExperimentRunner
 	
 	public int runDuplicateFilenames(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -524,10 +521,10 @@ public class TestSGE_ExperimentRunner
 	
 	public int runUnknownGraphs(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -552,10 +549,10 @@ public class TestSGE_ExperimentRunner
 	public int runInvalidFileName(String []args)
 	{
 		final MockPlot<String> gr = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/|runA_struct.pdf"));
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,testSGEDirectory);
+			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -604,7 +601,7 @@ public class TestSGE_ExperimentRunner
 	public void testCount2a() throws Exception
 	{
 		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
-		Assert.assertEquals("{1=[0], 2=[1], 3=[2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0], 2=[1], 3=[2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -613,7 +610,7 @@ public class TestSGE_ExperimentRunner
 	public void testCount2b() throws Exception
 	{
 		Assert.assertEquals(1,runMultiple(new String[]{"COUNT_TASKS","1"}));
-		Assert.assertEquals("{1=[0, 1, 2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0, 1, 2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -622,7 +619,7 @@ public class TestSGE_ExperimentRunner
 	public void testCount2c() throws Exception
 	{
 		Assert.assertEquals(5,runMultiple(new String[]{"COUNT_TASKS","8"}));
-		Assert.assertEquals("{1=[0], 2=[1], 3=[2], 4=[3], 5=[4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0], 2=[1], 3=[2], 4=[3], 5=[4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
@@ -1253,7 +1250,7 @@ public class TestSGE_ExperimentRunner
 		BufferedWriter writer = null;
 		try
 		{
-			writer = new BufferedWriter(new FileWriter(testDir.getAbsolutePath()+File.separator+"experiment_name-row_second/0"));
+			writer = new BufferedWriter(new FileWriter(ExperimentRunner.testDir.getAbsolutePath()+File.separator+"experiment_name-row_second/0"));
 			writer.append("junk");
 		}
 		finally

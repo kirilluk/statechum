@@ -52,6 +52,10 @@ public class ExperimentRunner
 {
 	/** Field separator in CSV. */
 	protected static final String FS = ",";
+
+	public static final String testSGEDirectory = "__Test_SGE__";
+	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
+
 	
 	public enum FileType { 
 		LEARNT {@Override String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
@@ -1082,7 +1086,7 @@ public class ExperimentRunner
 			{
 				if (f.isDirectory())
 				{
-					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.testDir.getName()))
+					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(ExperimentRunner.testDir.getName()))
 						zapDir(f);
 					else
 						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B or temporary directory, got "+f.getAbsolutePath());

@@ -114,7 +114,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 				ScoringToApply.SCORING_EDSM_2,
 				//ScoringToApply.SCORING_EDSM_3,
 				ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,
-				ScoringToApply.SCORING_EDSM_6,
+				//ScoringToApply.SCORING_EDSM_6,
 				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
 				ScoringToApply.SCORING_SICCO
 				

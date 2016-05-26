@@ -1,11 +1,9 @@
 #!/bin/sh
 
-WHATTORUN=worker-runlearnercomparison.sh
+WHATTORUN=runfase2015.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
 [ -r data ] || mkdir data
- /data/acp95keb/local/soft/apache-ant-1.9.4/bin/ant compileStatechum
-
 TASKNUMBER=`STATECHUM_COUNT=count sh ${WHATTORUN}`
 if [ -z ${TASKNUMBER+x} ];then
 # thanks to http://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash

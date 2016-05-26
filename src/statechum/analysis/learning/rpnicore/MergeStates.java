@@ -97,7 +97,8 @@ public class MergeStates {
 	private static void processVertex(Map<Label,CmpVertex> row,CmpVertex current,LearnerGraph original,LearnerGraph result,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew,
 			Map<CmpVertex,CmpVertex> visitedTargetStates,Queue<CmpVertex> currentExplorationBoundary,Map<VertID,Collection<VertID>> mergedToHard)
 	{
-		for(Entry<Label,CmpVertex> entry:original.transitionMatrix.get(current).entrySet())
+		Map<Label,CmpVertex> transitionsOutOfState = original.transitionMatrix.get(current);
+		for(Entry<Label,CmpVertex> entry:transitionsOutOfState.entrySet())
 		{
 			CmpVertex targetState = entry.getValue();
 			EquivalenceClass<CmpVertex, LearnerGraphCachedData> nextClass = origToNew.get(targetState);

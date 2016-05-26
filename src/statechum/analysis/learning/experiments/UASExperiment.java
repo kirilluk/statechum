@@ -153,6 +153,17 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException;
 	}
 
+	public static class ScoringModeScore
+	{
+		public final Configuration.ScoreMode scoringForEDSM;
+		public final ScoringToApply scoringMethod;
+		
+		public ScoringModeScore(Configuration.ScoreMode a,ScoringToApply b)
+		{
+			scoringForEDSM = a;scoringMethod = b;
+		}
+	}
+	
 	public static LearnerEvaluationConfiguration constructLearnerInitConfiguration()
 	{
 		LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
@@ -160,6 +171,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
         final Configuration learnerConfig = learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
         learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+        learnerConfig.setAlwaysUseTheSameMatrixType(false);// permits computations to switch transition matrix type depending on matrix size.
         //learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
         learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);

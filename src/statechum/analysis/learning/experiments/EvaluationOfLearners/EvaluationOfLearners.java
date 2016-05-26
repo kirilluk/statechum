@@ -74,7 +74,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 	}
 	
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{//Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, 
-			Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
+			Configuration.ScoreMode.GENERAL_NOFULLMERGE, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public EvaluationOfLearnersResult call() throws Exception 
@@ -321,6 +321,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		};
 		int seedThatIdentifiesFSM=0;
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
+		
 		try
 		{
 			for(int states:new int[]{5,10,20,40})
@@ -329,24 +330,30 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
+									//Configuration.STATETREE.STATETREE_LINKEDHASH})//
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
 									for(int traceQuantity:new int[]{1,8})
 										for(int traceLengthMultiplier:new int[]{1,8})
 											if (traceQuantity*traceLengthMultiplier <= 64)
-											for(Configuration.ScoreMode scoringForEDSM:conventionalScoringToUse)
-												for(ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
-												{
-													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
-													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringForEDSM,scoringMethod,null,pta,matrix);
-													par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
-													par.setPickUniqueFromInitial(unique);
-													EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
-													//learnerRunner.setAlwaysRunExperiment(true);
-													listOfExperiments.add(learnerRunner);
-												}
+											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
+											})
+											{
+												LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+												ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+												eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
+												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
+												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+												par.setPickUniqueFromInitial(unique);
+												EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
+												//learnerRunner.setAlwaysRunExperiment(true);
+												listOfExperiments.add(learnerRunner);
+											}
 								}
 						}
 		}

@@ -94,7 +94,8 @@ public class SGE_ExperimentRunner
 	{
 		RUN_TASK, COLLECT_RESULTS, COUNT_TASKS, RUN_STANDALONE, 
 		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasks corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
-		PROGRESS_INDICATOR // used to report the %% of completed tasks
+		PROGRESS_INDICATOR, // used to report the %% of completed tasks
+		REPORT_TASKPARAMETERS // used to report which parameters are associated with which tasks.
 	}
 	
 	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
@@ -165,6 +166,11 @@ public class SGE_ExperimentRunner
 					if (args.length != 1)
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
+				case REPORT_TASKPARAMETERS:
+					if (args.length != 1)
+						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
+					virtTaskToRealTask = loadVirtTaskToReal(tmpDir);
+					break;
 				case COLLECT_RESULTS:
 					if (args.length == 2)
 						plotName = args[1];
@@ -196,6 +202,13 @@ public class SGE_ExperimentRunner
 			case PROGRESS_INDICATOR:
 				outcome = taskCounter > 0?(100*(taskCounter-availableTasks.size())/taskCounter):0;
 				System.out.println("Progress: "+outcome+"%");
+				break;
+			case REPORT_TASKPARAMETERS:
+				for(Entry<Integer,Set<Integer>> entry:virtTaskToRealTask.entrySet())
+				{
+					for(int task:entry.getValue())
+						System.out.println("{"+entry.getKey()+","+task+"} - "+taskIDToParameters.get(task).getSubExperimentName()+" [ "+taskIDToParameters.get(task).getRowID()+" , "+taskIDToParameters.get(task).getColumnID()+" ]");
+				}
 				break;
 			default:
 				break;
@@ -254,6 +267,7 @@ public class SGE_ExperimentRunner
 				break;
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
+			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 				break;
@@ -622,6 +636,7 @@ public class SGE_ExperimentRunner
 					break;
 				case COUNT_TASKS:
 				case PROGRESS_INDICATOR:
+				case REPORT_TASKPARAMETERS:
 					updateAvailableTasks(taskCounterFromPreviousSubExperiment,taskCounter);
 					break;
 					
@@ -736,6 +751,7 @@ public class SGE_ExperimentRunner
 				break;
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
+			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
@@ -761,6 +777,7 @@ public class SGE_ExperimentRunner
 				break;
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
+			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);

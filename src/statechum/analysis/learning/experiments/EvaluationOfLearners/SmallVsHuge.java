@@ -258,7 +258,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		eval.config.setOverride_usePTAMerging(true);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		
-		final int samplesPerFSMSize = 20;
+		final int samplesPerFSMSize = 30;
 		final int attemptsPerFSM = 2;
 
 		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
@@ -295,29 +295,35 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity=2;traceQuantity<=8;traceQuantity*=2)
-							for(int traceLengthMultiplier=1;traceLengthMultiplier<=32;traceLengthMultiplier*=2)
-							{
-								for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_LINKEDHASH})
-									for(boolean pta:new boolean[]{false})
-									{
-										for(Configuration.ScoreMode scoringForEDSM:new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE})
-											for(ScoringToApply scoringMethod:new ScoringToApply[]{ScoringToApply.SCORING_EDSM_4, ScoringToApply.SCORING_SICCO})
-												for(LearningType type:LearningType.values())
-												{
-													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-													eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
-													
-													SmallVsHugeParameters par = new SmallVsHugeParameters(scoringForEDSM,scoringMethod,type,pta,matrix);
-													par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
-													SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
-													//learnerRunner.setAlwaysRunExperiment(true);
-													listOfExperiments.add(learnerRunner);
-												}
-									}
-							}
-					}
+						for(int traceQuantity:new int[]{1,8})
+							for(int traceLengthMultiplier:new int[]{1,8})
+								if (traceQuantity*traceLengthMultiplier <= 64)
+									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
+										for(boolean pta:new boolean[]{false})
+										{
+											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
+													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
+													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
+													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
+											})
+											{
+													for(LearningType type:LearningType.values())
+													{
+														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+														eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
+														
+														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
+														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
+														//learnerRunner.setAlwaysRunExperiment(true);
+														listOfExperiments.add(learnerRunner);
+													}
+											}
+										}
+						}
 		}
 		catch(Exception ex)
 		{

@@ -287,11 +287,12 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
 			}
 		};
-		int seedThatIdentifiesFSM=0;
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
 		try
 		{
 			for(int states:new int[]{5,10,20,40})
+			{
+				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
@@ -324,6 +325,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 											}
 										}
 						}
+			}
 		}
 		catch(Exception ex)
 		{

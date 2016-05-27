@@ -319,13 +319,15 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
 			}
 		};
-		int seedThatIdentifiesFSM=0;
+		
 		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
 		
 		try
 		{
 			for(int states:new int[]{5,10,20,40})
 				for(boolean unique:new boolean[]{true,false})
+				{
+					int seedThatIdentifiesFSM=0;
 					for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
@@ -360,6 +362,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 											}
 								}
 						}
+				}
 		}
 		catch(Exception ex)
 		{

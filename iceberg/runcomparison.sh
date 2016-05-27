@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WHATTORUN=worker-runlearnercomparison.sh
+WHATTORUN=w-runlearnercomparison.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
 [ -r data ] || mkdir data

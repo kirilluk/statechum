@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WHATTORUN=worker-runsmallvshuge.sh
+WHATTORUN=w-runsmallvshuge.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
 [ -r data ] || mkdir data

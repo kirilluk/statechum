@@ -604,6 +604,7 @@ public class LearningAlgorithms
 	{
 		final Learner learner;
 		final Label uniqueLabel;
+		final Configuration config;
 		
 		@Override
 		public LearnerGraph learnMachine() 
@@ -620,7 +621,7 @@ public class LearningAlgorithms
 		
 		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
-			uniqueLabel = uniqueFromInitial;
+			uniqueLabel = uniqueFromInitial;config = argInitialPTA.config;
 			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(new Label[]{uniqueFromInitial}));
 			learner = learnerToUse;learner.init(initPTA);
 		}
@@ -641,33 +642,45 @@ public class LearningAlgorithms
 		@Override
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
-			LearnerGraph outcome = learner.learnMachine(plus, minus);
-			if (outcome.getInit().getColour() == null)
-			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
-				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
-				CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
-				Map<Label,CmpVertex> outOfDummy = tmp.createNewRow();
-				tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
-				Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
-				PairScore initialToMergeWith = null;
-				for(PairScore p:pairs)
-					if (p.getQ() == tmp.getInit() && p.getR() != dummyVertex)
-					{
-						initialToMergeWith = p;break;
+			LearnerGraph outcome = null;
+			try
+			{
+				outcome = learner.learnMachine(plus, minus);
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+
+				if (outcome.getInit().getColour() == null)
+				{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
+					LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
+					CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
+					Map<Label,CmpVertex> outOfDummy = tmp.createNewRow();
+					tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
+					Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
+					PairScore initialToMergeWith = null;
+					for(PairScore p:pairs)
+						if (p.getQ() == tmp.getInit() && p.getR() != dummyVertex)
+						{
+							initialToMergeWith = p;break;
+						}
+					if (initialToMergeWith != null)
+					{// merge the initial vertex with one of the existing ones
+						//tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
+						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
+							throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
+						tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
+						tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
 					}
-				if (initialToMergeWith != null)
-				{// merge the initial vertex with one of the existing ones
-					//tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
-					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
-						throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
-					tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
-					tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
+					tmp.transitionMatrix.remove(dummyVertex);
+					//
+					outcome = tmp;
 				}
-				tmp.transitionMatrix.remove(dummyVertex);
-				//
-				outcome = tmp;
 			}
+			catch(LearnerAbortedException ex)
+			{
+				outcome = new LearnerGraph(config);
+				outcome.getInit().setAccept(false);
+			}
+			
 			//Visualiser.updateFrame(outcome, null);
 			return outcome;
 		}

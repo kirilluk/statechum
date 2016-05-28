@@ -61,8 +61,9 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
-	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
-	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+	public static final String directoryNamePrefix = "small_vs_huge";
+	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
+	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public void setAlwaysRunExperiment(boolean b) 
 	{
@@ -252,6 +253,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
+		mkDir(outPathPrefix+directoryExperimentResult);
 		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();

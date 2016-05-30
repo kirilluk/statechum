@@ -164,6 +164,11 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		}
 	}
 	
+	public static long getThreadTime()
+	{
+		// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
+		return java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
+	}
 	public static LearnerEvaluationConfiguration constructLearnerInitConfiguration()
 	{
 		LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
@@ -187,13 +192,16 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		long runTime = 0;
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
  			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
- 			
+ 			long startTime = getThreadTime();
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
+ 			runTime = getThreadTime()-startTime;
+ 			
  			saveGraph(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -202,6 +210,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.executionTime = runTime;
 		return outcome;
 	}
 	
@@ -209,14 +218,18 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		long runTime = 0;
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
- 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
- 			
+			long startTime = getThreadTime();
+			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
+		
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-			saveGraph(experimentName,actualAutomaton);
+ 			runTime = getThreadTime()-startTime;
+
+ 			saveGraph(experimentName,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -224,6 +237,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.executionTime = runTime;
 		return outcome;
 	}
 
@@ -242,9 +256,12 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		double fanoutPos=0, fanoutNeg = 0;
 		int ptaStateNumber=0;
+		long runTime = 0;
 		if(actualAutomaton == null)
 		{
-			LearnerGraph smallPta = UASExperiment.mergePTA(ptaSource.buildPTA(),uniqueLabel,false);
+			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
+			long startTime = getThreadTime();
+			LearnerGraph smallPta = UASExperiment.mergePTA(ptaToLearnFrom,uniqueLabel,false);
 			ptaStateNumber=smallPta.getAcceptStateNumber();
 			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:smallPta.transitionMatrix.entrySet())
 			{
@@ -268,9 +285,9 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-			actualAutomaton.setName(experimentName+"-actual");
-			//Visualiser.updateFrame(actualAutomaton,referenceGraph);
-			//Visualiser.waitForKey();
+ 			runTime = getThreadTime()-startTime;
+
+ 			actualAutomaton.setName(experimentName+"-actual");
  			saveGraph(experimentName,actualAutomaton);
 		}		
 		
@@ -282,18 +299,22 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 		outcome.fanoutPos = fanoutPos;outcome.fanoutNeg = fanoutNeg;outcome.ptaStateNumber=ptaStateNumber;
+		outcome.executionTime = runTime;
 		return outcome;
 	}
 	
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
-	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
+	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results. The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new state in order to persuade the learner to merge the right states.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 		int ptaStateNumber = 0;
+		long runTime = 0;
 		if(actualAutomaton == null)
 		{
 			// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
-			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(ptaSource.buildPTA(),uniqueLabel);
+			LearnerGraph pta = ptaSource.buildPTA();
+			long startTime = getThreadTime();
+			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueLabel);
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
 			ReferenceLearner refLearner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, reducedPTA,scoringMethod, scoringForEDSM);
 			refLearner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
@@ -302,6 +323,8 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
+			runTime = getThreadTime()-startTime;
+
 			actualAutomaton.setName(experimentName+"-actual");
 			saveGraph(experimentName,actualAutomaton);
 		}		
@@ -324,6 +347,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 		outcome.ptaStateNumber=ptaStateNumber;
+		outcome.executionTime = runTime;
 		return outcome;
 	}
 	
@@ -331,15 +355,19 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		long runTime = 0;
 		if(actualAutomaton == null)
 		{
-			LearnerGraph pta = ptaSource.buildPTA();
- 			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
+			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
+			long startTime = getThreadTime();
+ 			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaToLearnFrom,scoringMethod, scoringForEDSM);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 
- 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			saveGraph(experimentName,actualAutomaton);
+			runTime = getThreadTime()-startTime;
+
+			saveGraph(experimentName,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -349,6 +377,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		ScoresForGraph outcome =  new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.executionTime = runTime;
 		return outcome;
 	}
 

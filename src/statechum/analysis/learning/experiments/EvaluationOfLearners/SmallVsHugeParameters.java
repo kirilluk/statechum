@@ -29,6 +29,12 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 	}
 
 	@Override
+	public String[] headerValuesForEachCell() 
+	{
+		return new String[]{"BCR","Diff","States","Time"};
+	}
+
+	@Override
 	public String getSubExperimentName()
 	{
 		return "Small_vs_huge_experiments";

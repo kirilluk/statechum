@@ -955,6 +955,7 @@ public class PairQualityLearner
 		public long inconsistency;
 		public double fanoutPos,fanoutNeg;
 		public int ptaStateNumber;
+		public long executionTime;
 		
 		@Override
 		public double getValue()

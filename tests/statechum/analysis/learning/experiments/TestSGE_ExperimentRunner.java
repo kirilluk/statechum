@@ -601,7 +601,7 @@ public class TestSGE_ExperimentRunner
 	public void testCount2a() throws Exception
 	{
 		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
-		Assert.assertEquals("{1=[0], 2=[1], 3=[2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0], 2=[1, 2], 3=[3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}

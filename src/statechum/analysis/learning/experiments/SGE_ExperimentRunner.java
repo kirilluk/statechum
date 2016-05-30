@@ -582,7 +582,10 @@ public class SGE_ExperimentRunner
 					if (firstTuple) firstTuple = false;else outWriter.write("\n,\n");
 					outWriter.write('{');outWriter.write(Integer.toString(++currentVirtualTask));outWriter.write(",\n\t[");
 					boolean first=true;
-					for(int i=0;(i<tasksPerVirtualTask || vTaskCnt == tasksToSplitInto-1) && currentTask < availableTasks.size();++i)
+					int howManyForThisVTask = Math.max(tasksPerVirtualTask, // max takes into account the case where availableTasks.size() is smaller than tasksToSplitInto
+							(int)( (1+vTaskCnt)*(long)availableTasks.size()/tasksToSplitInto-currentTask)// this takes into account the rounding error from computing tasksPerVirtualTask
+					);
+					for(int i=0;(i<howManyForThisVTask || vTaskCnt == tasksToSplitInto-1) && currentTask < availableTasks.size();++i)
 					{
 						if (first) first = false;else outWriter.append(',');
 						outWriter.append(Integer.toString(availableTasks.get(currentTask++)));

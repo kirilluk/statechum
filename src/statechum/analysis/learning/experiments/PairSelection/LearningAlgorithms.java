@@ -649,12 +649,12 @@ public class LearningAlgorithms
 				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
 
 				if (outcome.getInit().getColour() == null)
-				{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
+				{// since the initial state only has one transition to the state reached by the uniqueFromInitial, it will not receive a colour and hence will not participate in state merging.
 					LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
 					CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
 					Map<Label,CmpVertex> outOfDummy = tmp.createNewRow();
-					tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
-					Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
+					tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());// this is quite an elaborate way to force the learner make the initial state BLUE (as it is reached by a transition from the RED state)
+					Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);// now our initial state is considered for mergers for all the red state (and we exclude the dummy from consideration later).
 					PairScore initialToMergeWith = null;
 					for(PairScore p:pairs)
 						if (p.getQ() == tmp.getInit() && p.getR() != dummyVertex)
@@ -667,8 +667,7 @@ public class LearningAlgorithms
 						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 						if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
 							throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
-						tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
-						tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
+						tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);// this performs the merge and updates the initial state to reflect it.
 					}
 					tmp.transitionMatrix.remove(dummyVertex);
 					//

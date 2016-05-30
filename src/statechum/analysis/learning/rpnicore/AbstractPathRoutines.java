@@ -441,7 +441,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		void removeRejectStates(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> what,
 					AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
-		if (!what.getInit().isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
+		if (what.getInit() == null)
+			throw new IllegalArgumentException("missing initial state");
+		if (!what.getInit().isAccept()) 
+			throw new IllegalArgumentException("initial state cannot be a reject-state");
 		AbstractLearnerGraph.copyGraphs(what, result);
 		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
 		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:what.transitionMatrix.entrySet())

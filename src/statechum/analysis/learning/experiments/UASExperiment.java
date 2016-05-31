@@ -139,8 +139,8 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
 	{
 	   LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-	   List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),
-				Arrays.asList(new Label[]{labelToMerge}));
+	   List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMergeForPathsFrom(initialPTA,labelToMerge); 
+			   //LearningSupportRoutines.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),Arrays.asList(new Label[]{labelToMerge}));
 		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("inconsistent initial PTA: vertices that are associated with the unique state cannot be merged in the PTA");
 		return MergeStates.mergeCollectionOfVertices(initialPTA, null, verticesToMerge, buildAuxInfo);

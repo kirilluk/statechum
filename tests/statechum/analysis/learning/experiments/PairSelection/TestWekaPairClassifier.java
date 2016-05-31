@@ -1568,7 +1568,7 @@ public class TestWekaPairClassifier {
 	}
 		
 	@Test
-	public void TestMergeBasedOnUniques()
+	public void TestMergeBasedOnUniques1()
 	{
 		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -1580,6 +1580,47 @@ public class TestWekaPairClassifier {
 		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) >= 0);
 	}
 	
+
+	@Test
+	public void TestMergeBasedOnUniques2()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C", "TestMergeBasedOnUniques2", mainConfiguration,converter);
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
+		Assert.assertTrue(pairsList.isEmpty());
+		pairsList =  LearningSupportRoutines.buildVerticesToMergeForPathsFrom(graph, AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter));
+		Assert.assertTrue(pairsList.isEmpty());
+	}
+
+	@Test
+	public void TestMergeBasedOnUniques3()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F", "TestMergeBasedOnUniques3", mainConfiguration,converter);
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
+		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		Assert.assertEquals(1, pairsList.size());
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
+
+		pairsList =  LearningSupportRoutines.buildVerticesToMergeForPathsFrom(graph, AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter));
+		Assert.assertEquals(1, pairsList.size());
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
+	}
+
+	@Test
+	public void TestMergeBasedOnUniques4()
+	{
+		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F-a->F", "TestMergeBasedOnUniques4", mainConfiguration,converter);
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
+		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		Assert.assertEquals(2, pairsList.size());
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("F"), mainConfiguration))));
+
+		pairsList =  LearningSupportRoutines.buildVerticesToMergeForPathsFrom(graph, AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter));
+		Assert.assertEquals(2, pairsList.size());
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
+		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("F"), mainConfiguration))));
+	}
+
 	@Test
 	public void TestMergeBasedOnUniquesFail()
 	{
@@ -1588,7 +1629,7 @@ public class TestWekaPairClassifier {
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
 		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) < 0);
 	}
-	
+	// buildVerticesToMergeForPathsFrom
 	@Test
 	public void TestConstructIfThenForUniques1()
 	{

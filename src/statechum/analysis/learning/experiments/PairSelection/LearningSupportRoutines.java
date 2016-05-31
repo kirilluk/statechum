@@ -300,7 +300,11 @@ public class LearningSupportRoutines
 	public static long computeScoreBasedOnMandatoryMerge(PairScore pair,LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
 	{
 		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+		List<StatePair> pairsList = null;
+		if (labelsLeadingToStatesToBeMerged.isEmpty() && labelsLeadingFromStatesToBeMerged.size() == 1)
+			pairsList = buildVerticesToMergeForPathsFrom(tentativeGraph, labelsLeadingFromStatesToBeMerged.iterator().next());// this is the special case where labels to is empty and labels from is a singleton, as is the case for the small_vs_huge experiment.
+		else
+			pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 		if (pairsList.isEmpty())
 			return pair.getScore();
 		
@@ -423,6 +427,35 @@ public class LearningSupportRoutines
 		return pairsList;
 	}
 
+	/** A specialised version of {@link LearningSupportRoutines#buildVerticesToMerge(LearnerGraph, Collection, Collection)} 
+	 * that only supports constructing pairs of states where one has a transition with a specific outgoing label. 
+	 */
+	public static List<StatePair> buildVerticesToMergeForPathsFrom(LearnerGraph tentativeGraph, Label transitionFromTheSameState)
+	{
+		List<StatePair> pairsList = new ArrayList<StatePair>();
+		
+		List<CmpVertex> statesToMerge = new ArrayList<CmpVertex>();
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+			{
+				CmpVertex targetState = entry.getValue().get(transitionFromTheSameState);
+				if (targetState != null && targetState.isAccept())
+					statesToMerge.add(entry.getKey());
+			}
+		CmpVertex prevVertex = null;
+		for(CmpVertex v:statesToMerge)
+		{
+			if (prevVertex != null)
+				pairsList.add(new StatePair(prevVertex,v));
+			prevVertex = v;
+		}
+		
+		return pairsList;
+	}
+
+	
+	
+	
 	/** Given a graph and a collection of pairs, this one uses the correct graph to split the collection into "correct" pairs that correspond to the same state in the correct graph and "wrong" pairs which states
 	 * are not merged in the correct graph.
 	 *  

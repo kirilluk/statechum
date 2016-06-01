@@ -562,6 +562,7 @@ public class Configuration implements Cloneable {
 	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
+	@SuppressWarnings("null")
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -1674,6 +1675,19 @@ public class Configuration implements Cloneable {
 	{
 		erlangDisplayStatistics = newValue;
 	}
+
+	/** How long to run learner (in ms), negative means it will not time out. */
+	protected long timeOut = -1;
+	
+	public long getTimeOut()
+	{
+		return timeOut;
+	}
+	
+	public void setTimeOut(long v)
+	{
+		timeOut = v;
+	}
 	
 	/** Writes modified fields of this configuration into a text file.
 	 * A field is considered modified if its value is different from the
@@ -1825,6 +1839,9 @@ public class Configuration implements Cloneable {
 			} else if (var.getType().equals(Integer.class)
 					|| var.getType().equals(int.class)) {
 				value = Integer.valueOf(valueAsText);
+			} else if (var.getType().equals(Long.class)
+					|| var.getType().equals(long.class)) {
+				value = Long.valueOf(valueAsText);
 			} else if (var.getType().equals(File.class)) {
 				value = new File(valueAsText);
 			} else

@@ -3,7 +3,6 @@ package statechum.analysis.learning.experiments;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -164,11 +163,6 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		}
 	}
 	
-	public static long getThreadTime()
-	{
-		// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
-		return java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
-	}
 	public static LearnerEvaluationConfiguration constructLearnerInitConfiguration()
 	{
 		LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
@@ -197,10 +191,10 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
  			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
- 			long startTime = getThreadTime();
+ 			long startTime = LearningSupportRoutines.getThreadTime();
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			runTime = getThreadTime()-startTime;
+ 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
  			
  			saveGraph(experimentName,actualAutomaton);
 		}
@@ -222,12 +216,12 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
-			long startTime = getThreadTime();
+			long startTime = LearningSupportRoutines.getThreadTime();
 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
 		
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			runTime = getThreadTime()-startTime;
+ 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
  			saveGraph(experimentName,actualAutomaton);
 		}
@@ -260,7 +254,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		if(actualAutomaton == null)
 		{
 			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
-			long startTime = getThreadTime();
+			long startTime = LearningSupportRoutines.getThreadTime();
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaToLearnFrom,uniqueLabel,false);
 			ptaStateNumber=smallPta.getAcceptStateNumber();
 			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:smallPta.transitionMatrix.entrySet())
@@ -285,7 +279,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
- 			runTime = getThreadTime()-startTime;
+ 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
  			actualAutomaton.setName(experimentName+"-actual");
  			saveGraph(experimentName,actualAutomaton);
@@ -313,7 +307,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		{
 			// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 			LearnerGraph pta = ptaSource.buildPTA();
-			long startTime = getThreadTime();
+			long startTime = LearningSupportRoutines.getThreadTime();
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueLabel);
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
 			ReferenceLearner refLearner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, reducedPTA,scoringMethod, scoringForEDSM);
@@ -323,7 +317,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-			runTime = getThreadTime()-startTime;
+			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
 			actualAutomaton.setName(experimentName+"-actual");
 			saveGraph(experimentName,actualAutomaton);
@@ -359,13 +353,13 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		if(actualAutomaton == null)
 		{
 			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
-			long startTime = getThreadTime();
+			long startTime = LearningSupportRoutines.getThreadTime();
  			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaToLearnFrom,scoringMethod, scoringForEDSM);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 
 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-			runTime = getThreadTime()-startTime;
+			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
 			saveGraph(experimentName,actualAutomaton);
 		}		

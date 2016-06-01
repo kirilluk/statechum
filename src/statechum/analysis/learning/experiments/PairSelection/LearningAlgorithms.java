@@ -33,6 +33,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Timer;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -118,7 +119,13 @@ public class LearningAlgorithms
 	
 	public static class LearnerAbortedException extends RuntimeException
 	{
-
+		public final boolean timedOut;
+		
+		public LearnerAbortedException(boolean value)
+		{
+			timedOut = value;
+		}
+		
 		/**
 		 * ID for serialisation
 		 */
@@ -132,7 +139,7 @@ public class LearningAlgorithms
 				for(CmpVertex v:graph.transitionMatrix.keySet())
 					if (v.getColour() == JUConstants.RED)
 						if (countOfRed++ > maxNumberOfReds)
-							throw new LearnerAbortedException();
+							throw new LearnerAbortedException(false);
 			}
 		}
 	}
@@ -141,6 +148,31 @@ public class LearningAlgorithms
 	public static abstract class LearnerWithMandatoryMergeConstraints extends RPNIUniversalLearner
 	{
 		protected LearnerGraph initialPTA;
+		
+		protected boolean taskTimedOut = false;
+		/** Negative means the timer was cancelled. */
+		protected long startTime = -1;
+		
+		public class CancelOnTimeout extends java.util.TimerTask
+		{
+			protected final Timer tmr;
+			protected final long threadID;
+			
+			public CancelOnTimeout(Timer tm, long id)
+			{
+				tmr = tm;threadID = id;
+			}
+			@SuppressWarnings("synthetic-access")
+			@Override
+			public void run() {
+				// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
+				long currTime = java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(threadID);
+				if (startTime >= 0 && config.getTimeOut() >= 0 && currTime >= config.getTimeOut()*1000000L+startTime)
+				{
+					taskTimedOut = true;startTime = -2;tmr.cancel();
+				}
+			}
+		}
 		
 		public LearnerWithMandatoryMergeConstraints(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA) 
 		{
@@ -193,10 +225,20 @@ public class LearningAlgorithms
 		{
 			throw new UnsupportedOperationException();
 		}			
+		
+		public void checkTimeout()
+		{
+			if (taskTimedOut) // will be set by the timer thread when the task eats its quota of CPU time.
+				throw new LearnerAbortedException(true);
+		}
+
 		@Override 
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 		{
+			
 			LearnerGraph outcome = null;
+			checkTimeout();
+			
 			if (config.getOverride_usePTAMerging())
 			{
 				outcome = MergeStates.mergeAndDeterminize(original, pair);
@@ -210,6 +252,17 @@ public class LearningAlgorithms
 			}
 			outcome.pathroutines.updateDepthLabelling();// this is important for the choice of representative vertices in merging of states, this in turn affects IDs of merged states which affects selection of pairs for merging.
 			return outcome;
+		}
+		
+		@Override
+		public LearnerGraph learnMachine()
+		{
+			if (config.getTimeOut() >= 0)
+			{
+				startTime = LearningSupportRoutines.getThreadTime();
+				Timer tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId()),1000,1000);
+			}
+			return super.learnMachine();
 		}
 	}
 	
@@ -478,6 +531,8 @@ public class LearningAlgorithms
 			{
 				outcome = new LearnerGraph(config);
 				outcome.getInit().setAccept(false);
+				if (ex.timedOut)
+					outcome.getInit().setHighlight(true);// abuse highlight to mean 'task timed out'
 			}
 			return outcome;
 		}
@@ -575,6 +630,7 @@ public class LearningAlgorithms
 					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
 						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, coregraph, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
 							score = -1;
+					checkTimeout();
 
 					return score;
 				}

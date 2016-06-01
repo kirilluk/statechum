@@ -368,6 +368,12 @@ public class LearningSupportRoutines
 		return pairsSorted.get(pairsSorted.size()-1);
 	}
 
+	public static long getThreadTime()
+	{
+		// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
+		return java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
+	}
+
 	/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, 
 	 * there will be a set of states that is supposed to be merged. 
 	 * It is important to point out that only positive states are taken into account, there are frequent 

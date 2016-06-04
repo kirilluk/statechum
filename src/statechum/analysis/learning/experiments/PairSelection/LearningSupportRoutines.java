@@ -1,5 +1,7 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -587,6 +589,21 @@ public class LearningSupportRoutines
  			buf.append(ch);
  		buf.append(whatToPad);
  		return buf.toString();
+ 	}
+
+ 	/** Removes spaces at the beginning and end of string. */
+ 	public static String removeSpaces(String text) 
+ 	{
+ 		return text.replaceAll("^\\s*", "").replaceAll("\\s*$", "");
+ 	}
+ 	
+ 	public static String [] removeSpaces(String []text)
+ 	{
+ 		if (text.length == 0)
+ 			return text;
+ 		
+ 		String [] outcome = new String[text.length];for(int i=0;i<text.length;++i) outcome[i]=removeSpaces(text[i]);
+ 		return outcome;
  	}
 }
 

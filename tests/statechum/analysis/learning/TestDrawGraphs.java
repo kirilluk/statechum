@@ -34,6 +34,7 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class TestDrawGraphs {
@@ -659,42 +660,42 @@ public class TestDrawGraphs {
 	@Test
 	public void testRemoveSpaces1()
 	{
-		Assert.assertEquals("", CSVExperimentResult.removeSpaces(""));
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces(""));
 	}
 	@Test
 	public void testRemoveSpaces2()
 	{
-		Assert.assertEquals("", CSVExperimentResult.removeSpaces("   "));
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces("   "));
 	}
 	@Test
 	public void testRemoveSpaces3()
 	{
-		Assert.assertEquals("", CSVExperimentResult.removeSpaces("  \t   "));
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces("  \t   "));
 	}
 	@Test
 	public void testRemoveSpaces4()
 	{
-		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("a"));
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("a"));
 	}
 	@Test
 	public void testRemoveSpaces5()
 	{
-		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("  a"));
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("  a"));
 	}
 	@Test
 	public void testRemoveSpaces6()
 	{
-		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("a  "));
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("a  "));
 	}
 	@Test
 	public void testRemoveSpaces7()
 	{
-		Assert.assertEquals("a", CSVExperimentResult.removeSpaces("  a  "));
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("  a  "));
 	}
 	@Test
 	public void testRemoveSpaces8()
 	{
-		Assert.assertEquals("a b", CSVExperimentResult.removeSpaces("  a b "));
+		Assert.assertEquals("a b", LearningSupportRoutines.removeSpaces("  a b "));
 	}
 	
 	@Test

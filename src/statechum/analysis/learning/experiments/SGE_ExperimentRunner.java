@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,6 +56,7 @@ import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 /**
@@ -239,27 +241,33 @@ public class SGE_ExperimentRunner
 			{
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
-					try
-					{
-						BufferedWriter writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskCounter)));// indicates tasks that have started
-						writer.close();writer = null;
-						outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
-					}
-					catch(Exception ex)
-					{
-						Helper.throwUnchecked("running task failed: "+ex.getMessage(), ex);
-					}
-					finally
-					{
-						shutdown();
-					}
+				{
+					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						try
+						{
+							BufferedWriter writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskCounter)));// indicates tasks that have started
+							writer.close();writer = null;
+							outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
+						}
+						catch(Exception ex)
+						{
+							Helper.throwUnchecked("running task failed: "+ex.getMessage(), ex);
+						}
+						finally
+						{
+							shutdown();
+						}
+				}
 				break;
 			}	
 			case RUN_PARALLEL:
 			{
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
-					runner.submit(task);
+				{
+					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						runner.submit(task);
+				}
 				break;
 			}
 			case RUN_STANDALONE:
@@ -652,7 +660,7 @@ public class SGE_ExperimentRunner
 					// Since taskCounter is incremented after running each task, the value of taskCounter corresponds to a total number of executed tasks 
 					// in the earlier sequence of tasks plus one.
 					for(Entry<Integer,RESULT> resultOfRunningTasks:outcomeOfExperiment.entrySet())
-					{
+					{// we only go through the tasks that we have actually started - those where results are already recorded will not be started and hence we do not run them.
 						if (resultOfRunningTasks.getKey() < taskCounterFromPreviousSubExperiment || resultOfRunningTasks.getKey() >= taskCounter)
 							throw new IllegalArgumentException("task "+resultOfRunningTasks.getKey()+" was run when it was not expected, expected range ["+taskCounterFromPreviousSubExperiment+".."+(taskCounter-1)+"]");
 
@@ -684,8 +692,8 @@ public class SGE_ExperimentRunner
 					assert outcomeOfExperiment.isEmpty();						
 					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter))
-						{
+						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && !checkExperimentComplete(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
 							outputWriter = new StringWriter();
 							RESULT result = runner.take().get();
 
@@ -789,6 +797,35 @@ public class SGE_ExperimentRunner
 				break;
 			}		
 		}
-	}
+		
+	} // class RunSubExperiment
 
+	/** Given a reader for a file with corrections and the text of the CPU ID, loads the file and returns the global time correction. 
+	 * @throws IOException throw if something went wrong. 
+	 */  
+	public static String getCorrection(BufferedReader reader,String cpuStringArg) throws IOException
+	{
+		String cpuString = LearningSupportRoutines.removeSpaces(cpuStringArg);
+		String line = null;
+		while((line=reader.readLine()) != null)
+		{
+			String elems[]=line.split(separatorRegEx);
+			if (elems.length != 2)
+				throw new IllegalArgumentException("invalid file format, line \""+line+"\"should have two components");
+			if (cpuString.equals(LearningSupportRoutines.removeSpaces(elems[0])))
+				return LearningSupportRoutines.removeSpaces(elems[1]);
+		}
+		return null;
+	}
+	static final String cpuName = "model name";
+	public static String getCpuFreqValue(BufferedReader cpuinfoReader) throws IOException
+	{
+		String line = null;
+		while((line=cpuinfoReader.readLine()) != null)
+		{
+			if (line.startsWith(cpuName))
+				return LearningSupportRoutines.removeSpaces(line.substring(cpuName.length()));
+		}
+		return null;
+	}
 }

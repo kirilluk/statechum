@@ -1,9 +1,11 @@
 package statechum.analysis.learning.experiments;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Collections;
 import java.util.List;
 
@@ -1382,6 +1384,41 @@ public class TestSGE_ExperimentRunner
 		}, IllegalArgumentException.class, "invalid file name");
 	}
 
+	@Test
+	public void testGetCPUName1() throws IOException
+	{
+		Assert.assertNull(SGE_ExperimentRunner.getCpuFreqValue(new BufferedReader(new StringReader(""))));
+	}
 	
+	@Test
+	public void testGetCPUName2() throws IOException
+	{
+		Assert.assertEquals("AA",SGE_ExperimentRunner.getCpuFreqValue(new BufferedReader(new StringReader("text\n"+SGE_ExperimentRunner.cpuName+"\t AA\naa"))));
+	}
 	
+	@Test
+	public void testGetCorrection1() throws IOException
+	{
+		Assert.assertNull(SGE_ExperimentRunner.getCorrection(new BufferedReader(new StringReader("")),"AA"));
+	}
+	
+	@Test
+	public void testGetCorrection2() throws IOException
+	{
+		Assert.assertEquals("z",SGE_ExperimentRunner.getCorrection(new BufferedReader(new StringReader("text | t \n AA | z \n aa |n")),"AA"));
+	}
+	
+	@Test
+	public void testGetCorrection3()
+	{
+		Helper.checkForCorrectException(new whatToRun() {
+			
+			@Override
+			public void run() throws IOException
+			{
+				SGE_ExperimentRunner.getCorrection(new BufferedReader(new StringReader("text | t | \n AA | z \n aa |n")),"AA");
+			}
+		}, IllegalArgumentException.class, "invalid file format");
+		
+	}
 }

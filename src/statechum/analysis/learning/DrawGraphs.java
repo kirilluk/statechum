@@ -108,6 +108,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.StatechumXML.StringSequenceWriter;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class DrawGraphs {
@@ -514,21 +515,6 @@ public class DrawGraphs {
 	 		buf.append('\n');
 	 	}
 
-	 	/** Removes spaces at the beginning and end of string. */
-	 	public static String removeSpaces(String text) 
-	 	{
-	 		return text.replaceAll("^\\s*", "").replaceAll("\\s*$", "");
-	 	}
-	 	
-	 	public static String [] removeSpaces(String []text)
-	 	{
-	 		if (text.length == 0)
-	 			return text;
-	 		
-	 		String [] outcome = new String[text.length];for(int i=0;i<text.length;++i) outcome[i]=removeSpaces(text[i]);
-	 		return outcome;
-	 	}
-
 	 	public static String concatenateWithSeparator(String [] text)
 	 	{
 	 		StringBuffer outcome = new StringBuffer();
@@ -539,7 +525,7 @@ public class DrawGraphs {
 	 				firstEntry = false;
 	 			else
 	 				outcome.append(',');
-	 			outcome.append(removeSpaces(str));
+	 			outcome.append(LearningSupportRoutines.removeSpaces(str));
 	 		}
 	 		return outcome.toString();
 	 	}
@@ -547,9 +533,9 @@ public class DrawGraphs {
 	 	/** Adds text to the spreadsheet. */
 		public void add(ThreadResultID id, String text)
 		{
-			if (id.getRowID() == null || removeSpaces(id.getRowID()).isEmpty())
+			if (id.getRowID() == null || LearningSupportRoutines.removeSpaces(id.getRowID()).isEmpty())
 				throw new IllegalArgumentException("cannot add a cell without row id to spreadsheet "+getFileName());
-			if (id.getColumnID() == null || removeSpaces(id.getColumnID()).isEmpty())
+			if (id.getColumnID() == null || LearningSupportRoutines.removeSpaces(id.getColumnID()).isEmpty())
 				throw new IllegalArgumentException("cannot add a cell without column id to spreadsheet "+getFileName());
 			if (id.getColumnText() == null || id.getColumnText().length == 0)
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
@@ -609,7 +595,7 @@ public class DrawGraphs {
 				for(String hdr:columnHeaders)
 					for(int cnt=0;cnt<columnIDToCellHeader.get(hdr).length;++cnt)
 					{
-						wr.append(',');wr.append(removeSpaces(columnIDToHeader.get(hdr)[headerRow]));
+						wr.append(',');wr.append(LearningSupportRoutines.removeSpaces(columnIDToHeader.get(hdr)[headerRow]));
 					}
 				wr.append('\n');
 			}
@@ -620,7 +606,7 @@ public class DrawGraphs {
 				String []cellHeaders = columnIDToCellHeader.get(hdr);
 				for(String cellHeader:cellHeaders)
 				{
-					wr.append(',');wr.append(removeSpaces(cellHeader));
+					wr.append(',');wr.append(LearningSupportRoutines.removeSpaces(cellHeader));
 				}
 			}
 			wr.append('\n');

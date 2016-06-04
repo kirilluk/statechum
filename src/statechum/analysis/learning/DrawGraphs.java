@@ -931,8 +931,8 @@ public class DrawGraphs {
 		}
 	}
 	
-	/** Matches cell values between graphs and computes the correction for the timing values. All values other than time should match exactly, time values could differ. */
-	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par)
+	/** Matches cell values between graphs and computes the correction for the timing values. All values other than time should match exactly, time values could differ. All pairs where at least one experiment timed out are ignored. Negative timeout means do not use timeouts. */
+	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, int timeout)
 	{
 		int timeCell = par.executionTimeInCell();
 		if (timeCell < 0)
@@ -957,10 +957,14 @@ public class DrawGraphs {
 							if (!obtainValueFromCell(text,i).equals(obtainValueFromCell(otherText,i)))
 								throw new IllegalArgumentException("Cell ["+rowEntry.getKey()+","+pair.getKey()+"] is different between spreadsheets, \""+obtainValueFromCell(text,i)+"\" != \""+obtainValueFromCell(otherText,i)+"\"");
 					double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
-					if (Math.abs(denominator) > 1e-13) // for really small values, things are not going to go well
+					if (Math.abs(denominator) > 1e-13 && (timeout < 0 || denominator < timeout)) // for really small values, things are not going to go well
 					{
-						double ratio = Double.parseDouble(obtainValueFromCell(otherText,timeCell))/denominator;
-						++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+						double value = Double.parseDouble(obtainValueFromCell(otherText,timeCell));
+						if (timeout < 0 || value < timeout)
+						{
+							double ratio = value/denominator;
+							++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+						}
 					}
 				}
 			}

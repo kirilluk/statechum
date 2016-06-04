@@ -15,7 +15,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -53,7 +52,17 @@ public class TestSGE_ExperimentRunner
 		
 		if (!ExperimentRunner.testDir.isDirectory())
 		{
-			Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
+			for(int t=0;t< 5;++t)
+				if (!ExperimentRunner.testDir.mkdir())
+				{
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						break;// assume we need to proceed
+					}
+				}
+			if (!ExperimentRunner.testDir.isDirectory())
+				Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
 		}
 	}
 
@@ -1067,7 +1076,7 @@ public class TestSGE_ExperimentRunner
 			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
 		
-		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0));
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1);
 		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
 		Assert.assertEquals(6, tc.count);
 	}	
@@ -1097,7 +1106,7 @@ public class TestSGE_ExperimentRunner
 			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
 		
-		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0));
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1);
 		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.2);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
 		Assert.assertEquals(3, tc.count);
 	}
@@ -1118,7 +1127,7 @@ public class TestSGE_ExperimentRunner
 			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
 		
-		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0));
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1);
 		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
 		Assert.assertEquals(6, tc.count);
 	}	
@@ -1139,9 +1148,51 @@ public class TestSGE_ExperimentRunner
 			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
 		
-		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0));
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1);
 		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
 		Assert.assertEquals(6, tc.count);
+	}
+	
+	@Test
+	public void testRun5c_checkMatching3_timeouts1() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), 30);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(3, tc.count);
+	}	
+
+	/** here timeouts filter all the values. */
+	@Test
+	public void testRun5c_checkMatching3_timeouts2() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), 0);
+		Assert.assertEquals(0, tc.count);
 	}	
 
 	@Test
@@ -1165,7 +1216,7 @@ public class TestSGE_ExperimentRunner
 							return -1;
 						}
 					}
-				);
+				, -1);
 		}}, IllegalArgumentException.class, "no time is present");
 		
 	}	
@@ -1191,7 +1242,7 @@ public class TestSGE_ExperimentRunner
 							return 10;
 						}
 					}
-				);
+				, -1);
 		}}, IllegalArgumentException.class, "value is too high");
 		
 	}	
@@ -1217,7 +1268,7 @@ public class TestSGE_ExperimentRunner
 
 			@Override
 			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0));
+				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1);
 		}}, IllegalArgumentException.class, "Cell [row2,1] is different");
 		
 	}	

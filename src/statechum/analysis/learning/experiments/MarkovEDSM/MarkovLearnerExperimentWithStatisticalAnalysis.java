@@ -740,6 +740,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 						csvLine.append(data.differenceBCR.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 						if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 						{
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(result.samples.get(0).comparisonsPerformed);

@@ -100,4 +100,10 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	{
 		return "Evaluation of learners";
 	}
+
+	@Override
+	public int executionTimeInCell() 
+	{
+		return -1;
+	}
 }

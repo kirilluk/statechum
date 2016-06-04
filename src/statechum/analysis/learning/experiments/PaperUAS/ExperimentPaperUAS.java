@@ -1054,6 +1054,7 @@ public class ExperimentPaperUAS
 				csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 				String experimentName = result.parameters.ptaName+"_"+result.parameters.learningType+result.parameters.scoringMethod.name;
 						//EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;

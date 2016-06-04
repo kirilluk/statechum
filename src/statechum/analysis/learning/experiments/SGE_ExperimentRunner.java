@@ -92,10 +92,16 @@ public class SGE_ExperimentRunner
 	
 	public enum PhaseEnum
 	{
-		RUN_TASK, COLLECT_RESULTS, COUNT_TASKS, RUN_STANDALONE, 
-		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasks corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
-		PROGRESS_INDICATOR, // used to report the %% of completed tasks
-		REPORT_TASKPARAMETERS // used to report which parameters are associated with which tasks.
+		RUN_TASK, // takes task ID as an argument and runs tasklets of the specific task in sequence. Intended to run on Iceberg.
+		COLLECT_RESULTS, // takes results from tasks and builds a spreadsheet or graphs with results. Throws an exception if any task did not complete.
+		COLLECT_AVAILABLE, // similar to COLLECT_RESULTS but only collates results from experiments that have completed. Missing cells are replaced with blanks and rows with no data are omitted completely.
+		COUNT_TASKS, // performs workload partitioning and constructs a map from tasks to tasklets. The parameter is the number of tasks to split the work into.
+		RUN_STANDALONE,  // runs all tasks in one go. This does not create progress files and therefore only useful when everything is likely to complete fast. 
+		// A much better choice is to run "COUNT_TASKS 1" followed by "RUN_PARALLEL 1" which constructs progress files. 
+		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasklets corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
+		 // It is important to point out that learnt graphs are recorded and evaluation can be repeated, except that run time will be reset to 0 because it is not recorded in graphs.
+		PROGRESS_INDICATOR, // used to report the %% of completed tasklets.
+		REPORT_TASKPARAMETERS // used to report which task IDs are associated with which tasklets. This is necessary to be able to debug specific tasklets.
 	}
 	
 	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
@@ -114,6 +120,12 @@ public class SGE_ExperimentRunner
 		private DrawGraphs gr = new DrawGraphs();
 
 		private final String tmpDir;
+		
+		/** Makes it possible to obtain the current phase in order to run phase-specific tasks such as result analysis for the COLLECT_RESULTS phase. */
+		public PhaseEnum getPhase()
+		{
+			return phase;
+		}
 		
 		public RunSubExperiment(int cpuNumber,String dir, String []args)
 		{
@@ -172,6 +184,7 @@ public class SGE_ExperimentRunner
 					virtTaskToRealTask = loadVirtTaskToReal(tmpDir);
 					break;
 				case COLLECT_RESULTS:
+				case COLLECT_AVAILABLE:
 					if (args.length == 2)
 						plotName = args[1];
 					else
@@ -270,8 +283,8 @@ public class SGE_ExperimentRunner
 			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
+			case COLLECT_AVAILABLE:
 				break;
-
 			}
 			++taskCounter;
 		}
@@ -396,19 +409,13 @@ public class SGE_ExperimentRunner
 						if (plotName == null || plotName.equals(name))
 						{
 							SGEExperimentResult thisPlot = nameToGraph.get(name);
-							thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), false);
+							thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), taskIDToParameters.get(rCounter),false);
 						}
 					}
 					line = reader.readLine();
 				}
 				if (!foundCRC)
 					throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" does not have a CRC");
-				
-				// if we got here, handling of the output has been successful, plot graphs.
-				if (plotName == null)
-					plotAllGraphs(nameToGraph.values(),-1);
-				else
-					nameToGraph.get(plotName).reportResults(gr);
 			}
 			catch(IOException ex)
 			{
@@ -470,7 +477,7 @@ public class SGE_ExperimentRunner
 					
 						SGEExperimentResult thisPlot = nameToGraph.get(name);
 						
-						thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), true);
+						thisPlot.parseTextLoadedFromExperimentResult(data, constructFileName(rCounter), taskIDToParameters.get(rCounter), true);
 					}
 					line = reader.readLine();
 				}
@@ -689,10 +696,10 @@ public class SGE_ExperimentRunner
 							outputWriter = new StringWriter();
 							RESULT result = runner.take().get();
 
-							handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 							BufferedWriter writer = null;
 							try
 							{
+								handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 								writer = new BufferedWriter(new FileWriter(constructFileName(result.parameters)));
 								java.util.zip.CRC32 crc = new java.util.zip.CRC32();
 								String text = outputWriter.toString();updateCRC(crc, text);
@@ -710,11 +717,20 @@ public class SGE_ExperimentRunner
 					break;
 				}
 				case COLLECT_RESULTS:
+				case COLLECT_AVAILABLE:
 					progress = new ProgressIndicator(new Date()+" collecting results", taskCounter-taskCounterFromPreviousSubExperiment);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
 					{
-						loadExperimentResult(rCounter);progress.next();
+						if (phase == PhaseEnum.COLLECT_RESULTS || checkExperimentComplete(rCounter)) // tasks are loaded if either we request all of them to be loaded or they are complete for COLLECT_AVAILABLE
+							loadExperimentResult(rCounter);
+						
+						progress.next();
 					}
+					// if we got here without bailing out due to an exception, handling of the output has been successful, plot graphs.
+					if (plotName == null)
+						plotAllGraphs(nameToGraph.values(),-1);
+					else
+						nameToGraph.get(plotName).reportResults(gr);
 					break;
 				default:
 					break;
@@ -757,6 +773,7 @@ public class SGE_ExperimentRunner
 			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
+			case COLLECT_AVAILABLE:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
 			case RUN_STANDALONE:			
 				graph.add(x,y,colour,label);			
@@ -783,6 +800,7 @@ public class SGE_ExperimentRunner
 			case REPORT_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
+			case COLLECT_AVAILABLE:
 				throw new IllegalArgumentException("this should not be called during phase "+phase);
 			case RUN_STANDALONE:			
 				experimentResult.add(id,text);			

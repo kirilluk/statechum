@@ -472,7 +472,7 @@ public class DrawGraphs {
 		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to record result. This is important to check whether an experiment has
 		 * abnormally terminated. 
 		 */
-		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, boolean onlyCheckItParses);
+		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
 		
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
 		public void drawInteractive(DrawGraphs gr);
@@ -486,7 +486,7 @@ public class DrawGraphs {
 
 	public static class CSVExperimentResult implements SGEExperimentResult
 	{
-		final Map<String,Map<String,String>> rowColumnText = new TreeMap<String,Map<String,String>>();
+		protected final Map<String,Map<String,String>> rowColumnText = new TreeMap<String,Map<String,String>>();
 		final Map<String,String []> columnIDToHeader = new TreeMap<String,String []>();// will return column values in an increasing order
 		int headerRows = -1;
 		final Map<String,String []> columnIDToCellHeader = new TreeMap<String,String []>();
@@ -566,6 +566,13 @@ public class DrawGraphs {
 			String [] elements = text.split(",");
 			if (elements.length != id.headerValuesForEachCell().length)
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			if (id.executionTimeInCell() >= 0)
+			{
+				String globalScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
+				if (globalScaling.isEmpty())
+					throw new IllegalArgumentException("Cell ["+id.getRowID()+","+id.getColumnID()+"] contains execution time but -DSGE_EXECUTIONTIME_SCALING scaling is not set");
+				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])*Double.parseDouble(globalScaling)));// a rather long-winded way to scale execution time.
+			}
 			String reducedLine = concatenateWithSeparator(elements);
 			if (reducedLine.isEmpty())
 				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
@@ -630,13 +637,22 @@ public class DrawGraphs {
 			for(Entry<String,Map<String,String>> rowEntry:rowColumnText.entrySet())
 			{
 				wr.append(rowEntry.getKey());
-				for(String column:columnIDToHeader.keySet())
+				
+				for(Entry<String, String[]> columnAndCellHeaders:columnIDToCellHeader.entrySet())
 				{
 					wr.append(',');
-					String value = rowEntry.getValue().get(column);
+					String value = rowEntry.getValue().get(columnAndCellHeaders.getKey());
 					if (value == null)
-						value = missingValue;// empty value indicates a missing value
-					wr.append(value);
+					{
+						wr.append(missingValue);// empty value indicates a missing value
+						for(int i=0;i<columnAndCellHeaders.getValue().length-1;++i)
+						{
+							wr.append(',');
+							wr.append(missingValue);// empty value indicates a missing value
+						}
+					}
+					else
+						wr.append(value);
 				}
 				wr.append('\n');
 			}
@@ -684,13 +700,21 @@ public class DrawGraphs {
 			return file.getName();
 		}
 
+		public String getAbsoluteFileName()
+		{
+			return file.getAbsolutePath();
+		}
+
+
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@Override
-		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, boolean onlyCheckItParses)
+		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, final ThreadResultID parameters, boolean onlyCheckItParses)
 		{
 			final StringSequenceWriter reader = new StringSequenceWriter(null);
 			if (line.length != 7)
 				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 7");
+			//List<String> colText = new ArrayList<String>();colText.add(line[3].split("\\-")[0]);colText.addAll(reader.readInputSequence(line[4]));
+			//final String[] columnText =  colText.toArray(new String[]{});
 			final String[] columnText = reader.readInputSequence(line[4]).toArray(new String[]{});
 			final String[] headerValuesForCells = reader.readInputSequence(line[5]).toArray(new String[]{});
 			
@@ -720,7 +744,13 @@ public class DrawGraphs {
 					@Override
 					public String getSubExperimentName() {
 						return line[1];
-					}},line[6]);
+					}
+
+					@Override
+					public int executionTimeInCell() {
+						return parameters.executionTimeInCell();
+					}
+				},line[6]);
 		}
 	}
 
@@ -830,6 +860,14 @@ public class DrawGraphs {
 		}
 	}
 	
+	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
+	{
+		for(Entry<String,String> entry:map.entrySet())
+			if (entry.getKey().matches(regexp))
+				return entry.getValue();
+		return null;
+	}
+	
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
 	 * 
 	 * @param plot R graph to update
@@ -843,8 +881,8 @@ public class DrawGraphs {
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			String X = rowEntry.getValue().get(columnX);
-			String Y = rowEntry.getValue().get(columnY);
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
 			if (X != null && Y != null)
 				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
@@ -854,8 +892,8 @@ public class DrawGraphs {
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			String X = rowEntry.getValue().get(columnX);
-			String Y = rowEntry.getValue().get(columnY);
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
 			if (X != null && Y != null)
 				agg.merge(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
 		}
@@ -865,8 +903,8 @@ public class DrawGraphs {
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			String X = rowEntry.getValue().get(columnX);
-			String Y = rowEntry.getValue().get(columnY);
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
 			if (X != null && Y != null)
 				analysis.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
 		}
@@ -876,13 +914,69 @@ public class DrawGraphs {
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			String X = rowEntry.getValue().get(columnX);
-			String Y = rowEntry.getValue().get(columnY);
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
 			agg.merge(X == null?null:obtainValueFromCell(X,cellWithinX),Y == null?null:obtainValueFromCell(Y,cellWithinY));
 		}
 	}
 
+	public static class TimeAndCorrection
+	{
+		public final double average,stdev;
+		public final int count;
+		
+		public TimeAndCorrection(double av, double st, int cnt)
+		{
+			average = av;stdev = st;count = cnt;
+		}
+	}
 	
+	/** Matches cell values between graphs and computes the correction for the timing values. All values other than time should match exactly, time values could differ. */
+	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par)
+	{
+		int timeCell = par.executionTimeInCell();
+		if (timeCell < 0)
+			throw new IllegalArgumentException("cannot match time where no time is present");
+		int cellsCnt = par.headerValuesForEachCell().length;
+		if (timeCell >= cellsCnt)
+			throw new IllegalArgumentException("time cell value is too high, should be 0.."+(cellsCnt-1));
+		double sum=0,sumOfSquares = 0;
+		int count=0;
+		
+		for(Entry<String,Map<String,String>> rowEntry:reference.rowColumnText.entrySet())
+		{
+			Map<String,String> otherValue = other.rowColumnText.get(rowEntry.getKey());
+			if (otherValue != null)
+			{
+				for(Entry<String,String> pair:rowEntry.getValue().entrySet())
+				{
+					String text = pair.getValue();
+					String otherText = otherValue.get(pair.getKey());
+					for(int i=0;i<cellsCnt;++i)
+						if (i != timeCell)
+							if (!obtainValueFromCell(text,i).equals(obtainValueFromCell(otherText,i)))
+								throw new IllegalArgumentException("Cell ["+rowEntry.getKey()+","+pair.getKey()+"] is different between spreadsheets, \""+obtainValueFromCell(text,i)+"\" != \""+obtainValueFromCell(otherText,i)+"\"");
+					double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
+					if (Math.abs(denominator) > 1e-13) // for really small values, things are not going to go well
+					{
+						double ratio = Double.parseDouble(obtainValueFromCell(otherText,timeCell))/denominator;
+						++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+					}
+				}
+			}
+		}
+		
+		if (count > 0)
+		{
+			double average = sum/count, averageSquare = sumOfSquares/count;
+			double stdev = Math.sqrt(averageSquare-average*average);
+			
+			return new TimeAndCorrection(average,stdev,count);
+		}
+		
+		return new TimeAndCorrection(0,0,0);// no values, hence return the default.
+	}
+
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
 	 * 
 	 * @param plot R graph to update
@@ -896,8 +990,8 @@ public class DrawGraphs {
 	{
 		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			String X = rowEntry.getValue().get(columnX);
-			String Y = rowEntry.getValue().get(columnY);
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
 			if (X != null && Y != null)
 				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
@@ -1031,7 +1125,7 @@ public class DrawGraphs {
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@SuppressWarnings("unchecked")
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, boolean onlyCheckItParses)
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, @SuppressWarnings("unused") ThreadResultID ignoredParameters, boolean onlyCheckItParses)
 		{
 			if (line.length != 6)
 				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+line);

@@ -43,17 +43,17 @@ public class PaperUASParameters implements ThreadResultID
 	{
 		onlyUsePositives = usePositive;useIfThen=ifthen;ptaName = experimentName;ptaID = argPtaID;
 	}
-	
+
 	public PaperUASParameters(Configuration.ScoreMode scEDSM,ScoringToApply scoring, LearningType type,boolean pta, Configuration.STATETREE matrix)
 	{
 		ptaMergers = pta;matrixType = matrix;scoringMethod = scoring;scoringForEDSM = scEDSM;learningType = type;
 	}
-	
+
 	public static String ptaMergersToString(boolean ptaMergers)
 	{
 		return (ptaMergers?"PTA":"GEN");
 	}
-	
+
 	@Override
 	public String getColumnID()
 	{
@@ -65,9 +65,7 @@ public class PaperUASParameters implements ThreadResultID
 	{
 		return new String[]{ (onlyUsePositives?"Pos":"posNeg"), (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
 	}
-	
-	
-	
+
 	@Override
 	public String getRowID() {
 		return ptaName+"-"+ptaID;
@@ -76,12 +74,18 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		return new String[]{"BCR","Diff","States"};
+		return new String[]{"BCR","Diff","States","Time"};
 	}
 
 	@Override
 	public String getSubExperimentName()
 	{
 		return "UAV experiments";
+	}
+
+	@Override
+	public int executionTimeInCell() 
+	{
+		return 3;
 	}
 }

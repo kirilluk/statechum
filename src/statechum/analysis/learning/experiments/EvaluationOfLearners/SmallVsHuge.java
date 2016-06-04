@@ -48,6 +48,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningSupportRout
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
@@ -279,6 +280,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		return outcome;
 	}
 	
+	public static final String unknownValue = "UNKNOWN";
+	
 	public static void main(String []args)
 	{
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -299,7 +302,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-
+		resultCSV.setMissingValue(unknownValue);
+		
     	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
 
 			@Override
@@ -372,6 +376,20 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	for(SmallVsHuge e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+	    	
+	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
+	    	{// process the results.
+	    		/*
+	    		final String 
+	    		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+					
+					@Override
+					public void merge(double A, double B) {
+						// TODO Auto-generated method stub
+						
+					}
+				},resultCSV,)*/
+	    	}
 		}
 		finally
 		{

@@ -354,7 +354,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
 														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
-														//learnerRunner.setAlwaysRunExperiment(true);
+														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 														listOfExperiments.add(learnerRunner);
 													}
 											}

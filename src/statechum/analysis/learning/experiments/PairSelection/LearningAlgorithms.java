@@ -257,12 +257,24 @@ public class LearningAlgorithms
 		@Override
 		public LearnerGraph learnMachine()
 		{
+			Timer tmTimer =  null;
+			LearnerGraph outcome = null;
+			
 			if (config.getTimeOut() >= 0)
 			{
 				startTime = LearningSupportRoutines.getThreadTime();
-				Timer tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId()),1000,1000);
+				tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId()),1000,1000);
 			}
-			return super.learnMachine();
+			try
+			{
+				outcome = super.learnMachine();
+			}
+			finally
+			{
+				if (tmTimer != null)
+					tmTimer.cancel();
+			}
+			return outcome;
 		}
 	}
 	

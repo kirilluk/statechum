@@ -1,7 +1,5 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;

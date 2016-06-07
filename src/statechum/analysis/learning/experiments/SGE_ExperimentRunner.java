@@ -113,6 +113,7 @@ public class SGE_ExperimentRunner
 		protected CompletionService<RESULT> runner = null; 
 		
 		protected Map<Integer,RESULT> outcomeOfExperiment = new TreeMap<Integer,RESULT>();
+		protected Set<Integer> taskletWasRun = new TreeSet<Integer>();
 		private DrawGraphs gr = new DrawGraphs();
 
 		private final String tmpDir;
@@ -245,6 +246,7 @@ public class SGE_ExperimentRunner
 					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
 						try
 						{
+							taskletWasRun.add(taskCounter);// mark the task as started.
 							BufferedWriter writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskCounter)));// indicates tasks that have started
 							writer.close();writer = null;
 							outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
@@ -266,7 +268,10 @@ public class SGE_ExperimentRunner
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 				{
 					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+					{
+						taskletWasRun.add(taskCounter);// mark the task as added to the queue.
 						runner.submit(task);
+					}
 				}
 				break;
 			}
@@ -692,7 +697,7 @@ public class SGE_ExperimentRunner
 					assert outcomeOfExperiment.isEmpty();						
 					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && !checkExperimentComplete(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
 						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
 							outputWriter = new StringWriter();
 							RESULT result = runner.take().get();

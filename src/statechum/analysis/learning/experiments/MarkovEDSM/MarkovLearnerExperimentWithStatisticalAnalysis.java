@@ -44,7 +44,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.DrawGraphs.Wilcoxon;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
-import statechum.analysis.learning.DrawGraphs.RExperimentResult;
+import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
@@ -54,8 +54,10 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.LearnerToUseEnum;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
@@ -87,17 +89,17 @@ import statechum.collections.ArrayMapWithSearchPos;
 public class MarkovLearnerExperimentWithStatisticalAnalysis
 {
 	
-	public static final String directoryNamePrefix = "Markov_Apr_2016";
-	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
-
+	public static final String directoryNamePrefix = "markov_june_2016";
+	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
+	public static final String directoryExperimentResult = "experimentresult"+File.separator;
+	
 	public static class LearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
 		public LearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
 			super(parameters,cnf,directoryNamePrefix);
 		}
-		
-		
+
 		@Override
 		public ExperimentResult<MarkovLearningParameters> call() throws Exception 
 		{
@@ -222,9 +224,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 	 				break;
 	 			case LEARNER_EDSM2:
 	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,ScoreMode.COMPATIBILITY);
-	 				break;
-	 			case LEARNER_EDSM3:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_3,ScoreMode.COMPATIBILITY);
 	 				break;
 	 			case LEARNER_EDSM4:
 	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,ScoreMode.COMPATIBILITY);
@@ -561,20 +560,23 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
-		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.GENERAL);
+		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
 		DrawGraphs gr = new DrawGraphs();
 		
 		final int minStateNumber = 10;
-		final int samplesPerFSM = 15;
+		final int samplesPerFSM = 5;
 		final int stateNumberIncrement = 5;
-		final int rangeOfStateNumbers = 30+stateNumberIncrement;
+		final int rangeOfStateNumbers = minStateNumber+stateNumberIncrement;
 		final int trainingSamplesPerFSM = 10;
 		final int traceQuantity = 10;
 		final double traceLengthMultiplierMax = 1;
 		final int chunkSize = 3;
 		
+		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
+
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
@@ -690,7 +692,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		
 		for(final int preset: new int[]{0})//0,1,2})
 		{
-				
 			final int traceQuantityToUse = traceQuantity;
 			int seedForFSM = 0;
 			final AtomicLong comparisonsPerformed = new AtomicLong(0);
@@ -718,6 +719,10 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 						for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
 						{
+							LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+							ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+							eval.config.setOverride_usePTAMerging(false);
+
 							MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
 							parameters.setOnlyUsePositives(onlyPositives);
 							parameters.setAlphabetMultiplier(alphabetMultiplierMax);
@@ -726,7 +731,8 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 							parameters.setExperimentID(chunkSize,preset,traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 							parameters.setDisableInconsistenciesInMergers(false);
 							parameters.setUsePrintf(experimentRunner.isInteractive());
-							LearnerRunner learnerRunner = new LearnerRunner(parameters, eval);
+							LearnerRunner learnerRunner = new LearnerRunner(parameters, ev);
+							learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 							experimentRunner.submitTask(learnerRunner);
 						}
 				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
@@ -740,23 +746,23 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 						csvLine.append(data.differenceBCR.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 						if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 						{
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(result.samples.get(0).comparisonsPerformed);
 						}
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 						experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 					}
 					
-					@SuppressWarnings("rawtypes")
 					@Override
-					public RExperimentResult[] getGraphs() {
+					public SGEExperimentResult[] getGraphs() {
 						
-						return new RExperimentResult[]{};
+						return new SGEExperimentResult[]{resultCSV};
 					}
 					
 				});
 				
+				if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 				{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
 					DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
 					DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
@@ -785,10 +791,11 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 					System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed.doubleValue())+"\n");
 			}
 			
-			for(SquareBagPlot result:new SquareBagPlot[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov})
-			{
-				result.reportResults(gr);
-			}
+			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
+				for(SquareBagPlot result:new SquareBagPlot[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov})
+				{
+					result.reportResults(gr);
+				}
 
 		}
 		

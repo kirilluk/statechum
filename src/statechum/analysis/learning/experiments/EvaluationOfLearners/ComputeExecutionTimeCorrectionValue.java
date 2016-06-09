@@ -51,7 +51,6 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.TestParametersMultiCell;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -65,11 +64,6 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 public class ComputeExecutionTimeCorrectionValue extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
 	
-	public void setAlwaysRunExperiment(boolean b) 
-	{
-		alwaysRunExperiment = b;
-	}
-
 	public ComputeExecutionTimeCorrectionValue(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
 	{
 		super(parameters,eval,directoryNamePrefix);
@@ -358,7 +352,7 @@ public class ComputeExecutionTimeCorrectionValue extends UASExperiment<SmallVsHu
 															SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
 															par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 															ComputeExecutionTimeCorrectionValue learnerRunner = new ComputeExecutionTimeCorrectionValue(par, ev,directoryNamePrefix);
-															//learnerRunner.setAlwaysRunExperiment(true);
+															learnerRunner.setAlwaysRunExperiment(true);
 															listOfExperiments.add(learnerRunner);
 														}
 												}

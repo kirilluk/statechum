@@ -23,7 +23,7 @@ public class MarkovLearningParameters implements ThreadResultID
 {
 	enum LearnerToUseEnum
 	{
-		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM3("edsm_3"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_1("k=1"), LEARNER_SICCO("Sicco");
+		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_1("k=1"), LEARNER_SICCO("Sicco");
 		public final String name;
 		private LearnerToUseEnum(String nameText)
 		{
@@ -61,7 +61,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	
 	public String getExperimentID()
 	{
-		return "chunkLen="+chunkLen+";preset="+preset+";traceQuantity="+traceQuantity+";traceLengthMultiplierMax="+traceLengthMultiplierMax+";statesMax="+statesMax+";alphabetMultiplierMax="+alphabetMultiplierMax;
+		return "ch="+chunkLen+"_tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
 	}
 	
 	public void setUsePrintf(boolean value)
@@ -124,13 +124,13 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return getExperimentID()+";sample="+sample+";trainingSample="+trainingSample+";seed="+seed+";onlyPositives="+onlyUsePositives+";traceQuantityToUse="+traceQuantityToUse+
-				";traceLengthMultiplier="+traceLengthMultiplier+";tracesAlphabetMultiplier="+tracesAlphabetMultiplier+";";
+		return getExperimentID()+"_s="+sample+"_tS="+trainingSample+"_s="+seed+(onlyUsePositives?"_POS_":"_PN_")+"_tQU="+traceQuantityToUse+
+				"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier;
 	}
 
 	@Override
 	public String[] getColumnText() {
-		return new String[]{"Learner",learnerToUse.name()};
+		return new String[]{learnerToUse.name()};
 	}
 
 	@Override
@@ -148,7 +148,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String getSubExperimentName()
 	{
-		return "running tasks for learning whole graphs, preset "+preset;
+		return "edsm_markov"+preset;
 	}
 
 	@Override

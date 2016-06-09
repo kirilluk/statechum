@@ -37,7 +37,6 @@ import java.util.Timer;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
-import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
@@ -45,7 +44,6 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;

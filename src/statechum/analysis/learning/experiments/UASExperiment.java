@@ -45,6 +45,11 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	
 	protected boolean alwaysRunExperiment = false;
 	
+	public void setAlwaysRunExperiment(boolean b) 
+	{
+		alwaysRunExperiment = b;
+	}
+
 	public UASExperiment(PARS parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
 	{
 		par = parameters;

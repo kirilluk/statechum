@@ -68,11 +68,6 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
-	public void setAlwaysRunExperiment(boolean b) 
-	{
-		alwaysRunExperiment = b;
-	}
-
 	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
 	{
 		super(parameters,eval,directoryNamePrefix);

@@ -932,7 +932,7 @@ public class DrawGraphs {
 	}
 	
 	/** Matches cell values between graphs and computes the correction for the timing values. All values other than time should match exactly, time values could differ. All pairs where at least one experiment timed out are ignored. Negative timeout means do not use timeouts. */
-	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, int timeout)
+	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, long timeout, long minValue)
 	{
 		int timeCell = par.executionTimeInCell();
 		if (timeCell < 0)
@@ -952,18 +952,21 @@ public class DrawGraphs {
 				{
 					String text = pair.getValue();
 					String otherText = otherValue.get(pair.getKey());
-					for(int i=0;i<cellsCnt;++i)
-						if (i != timeCell)
-							if (!obtainValueFromCell(text,i).equals(obtainValueFromCell(otherText,i)))
-								throw new IllegalArgumentException("Cell ["+rowEntry.getKey()+","+pair.getKey()+"] is different between spreadsheets, \""+obtainValueFromCell(text,i)+"\" != \""+obtainValueFromCell(otherText,i)+"\"");
-					double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
-					if (Math.abs(denominator) > 1e-13 && (timeout < 0 || denominator < timeout)) // for really small values, things are not going to go well
+					if (otherText != null)
 					{
+						double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
 						double value = Double.parseDouble(obtainValueFromCell(otherText,timeCell));
-						if (timeout < 0 || value < timeout)
-						{
-							double ratio = value/denominator;
-							++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+						if (timeout < 0 || (denominator < timeout && value < timeout))
+						{// only consider pairs where none of the values is a timeout
+							for(int i=0;i<cellsCnt;++i)
+								if (i != timeCell)
+									if (!obtainValueFromCell(text,i).equals(obtainValueFromCell(otherText,i)))
+										throw new IllegalArgumentException("Cell ["+rowEntry.getKey()+","+pair.getKey()+"] is different between spreadsheets, \""+obtainValueFromCell(text,i)+"\" != \""+obtainValueFromCell(otherText,i)+"\"");
+							if (denominator > minValue && value > minValue) // for really small values, we are not likely to obtain accurate values.
+							{
+								double ratio = value/denominator;
+								++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+							}
 						}
 					}
 				}

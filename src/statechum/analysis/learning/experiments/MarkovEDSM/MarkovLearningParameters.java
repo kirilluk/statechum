@@ -141,13 +141,22 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() {
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return new String[]{"BCR","Diff","states","Comparisons"};
-		return new String[]{"BCR","Diff","states"};
+			return new String[]{"BCR","Diff","states","Comparisons","Time"};
+		return new String[]{"BCR","Diff","States","Time"};
 	}
 
 	@Override
 	public String getSubExperimentName()
 	{
 		return "running tasks for learning whole graphs, preset "+preset;
+	}
+
+	@Override
+	public int executionTimeInCell() 
+	{
+		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+			return 4;
+		else
+			return 3;
 	}
 }

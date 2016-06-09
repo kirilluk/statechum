@@ -1047,6 +1047,8 @@ public class PairQualityLearner
 		public String[] headerValuesForEachCell();
 		/** Returns the name of the current experiment. */
 		public String getSubExperimentName();
+		/** Returns the position of the "execution time element", starting from zero. Negatives mean no execution time. This element will be scaled based on the factor in the global configuration. */
+		public int executionTimeInCell();
 	}
 
 	public abstract static class PairQualityLearnerRunner extends UASExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>

@@ -358,6 +358,11 @@ public class TestDrawGraphs {
 		public String getSubExperimentName() {
 			return "experiment";
 		}
+
+		@Override
+		public int executionTimeInCell() {
+			return -1;
+		}
 	}
 
 	@Test

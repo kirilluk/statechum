@@ -29,6 +29,12 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 	}
 
 	@Override
+	public String []getColumnText()
+	{
+		return new String[]{ learningType.name, (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}; 
+	}
+
+	@Override
 	public String[] headerValuesForEachCell() 
 	{
 		return new String[]{"BCR","Diff","States","Time"};
@@ -40,4 +46,8 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 		return "Small_vs_huge_experiments";
 	}
 	
+	@Override
+	public int executionTimeInCell() {
+		return 3;
+	}
 }

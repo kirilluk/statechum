@@ -96,4 +96,9 @@ public class UseWekaResultsParameters implements ThreadResultID
 	{
 		throw new UnsupportedOperationException("this method should not be called");
 	}
+
+	@Override
+	public int executionTimeInCell() {
+		return -1;
+	}
 }

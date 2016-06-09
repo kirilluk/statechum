@@ -39,6 +39,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.DrawGraphs.TimeAndCorrection;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.EvaluationOfLearnersParameters.LearningType;
@@ -48,9 +49,9 @@ import statechum.analysis.learning.experiments.PairSelection.LearningSupportRout
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.TestParametersMultiCell;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -61,18 +62,15 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
+public class ComputeExecutionTimeCorrectionValue extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
-	public static final String directoryNamePrefix = "small_vs_huge";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
-	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public void setAlwaysRunExperiment(boolean b) 
 	{
 		alwaysRunExperiment = b;
 	}
 
-	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
+	public ComputeExecutionTimeCorrectionValue(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
 	{
 		super(parameters,eval,directoryNamePrefix);
 	}
@@ -284,117 +282,109 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	
 	public static void main(String []args)
 	{
-		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-		mkDir(outDir);
-		String outPathPrefix = outDir + File.separator;
-		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
-
-		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
-		eval.config.setOverride_usePTAMerging(true);
-		eval.config.setTimeOut(3600000L*4L);// timeout for tasks, in milliseconds, equivalent to 4hrs runtime.
-		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		
-		final int samplesPerFSMSize = 30;
-		final int attemptsPerFSM = 2;
-
-		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
-
-		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		resultCSV.setMissingValue(unknownValue);
-		
-    	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
-
-			@Override
-			public void processSubResult(ExperimentResult<SmallVsHugeParameters> result, RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentrunner) throws IOException 
-			{
-				ScoresForGraph difference = result.samples.get(0).actualLearner;
-				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(difference.differenceBCR.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
-				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
-				experimentrunner.RecordR(BCR_vs_experiment,experimentName ,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
-			}
-
-			@Override
-			public SGEExperimentResult[] getGraphs() {
-				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
-			}
-		};
-		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
-		try
+		String directoryToUse[] = new String[]{"s5520sc-small_vs_huge","iceberg-small_vs_huge","m6e-small_vs_huge"};
+		List<CSVExperimentResult> csvOfExperiment = new ArrayList<CSVExperimentResult>();
+		for(final String directoryNamePrefix:directoryToUse)
 		{
-			for(int states:new int[]{5,10,20,40})
+			final String directoryExperimentResult = "experimentresult"+File.separator;
+			
+			String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+			mkDir(outDir);
+			String outPathPrefix = outDir + File.separator;
+			mkDir(outPathPrefix+directoryExperimentResult);
+			final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+	
+			LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
+			eval.config.setOverride_usePTAMerging(true);
+			eval.config.setTimeOut(3600000L*4L);// timeout for tasks, in milliseconds, equivalent to 4hrs runtime.
+			GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
+			
+			final int samplesPerFSMSize = 30;
+			final int attemptsPerFSM = 2;
+	
+			final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+			final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+	
+			final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));csvOfExperiment.add(resultCSV);
+			resultCSV.setMissingValue(unknownValue);
+			
+	    	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
+	
+				@Override
+				public void processSubResult(ExperimentResult<SmallVsHugeParameters> result, RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentrunner) throws IOException 
+				{
+					ScoresForGraph difference = result.samples.get(0).actualLearner;
+					StringBuffer csvLine = new StringBuffer();
+					csvLine.append(difference.differenceBCR.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
+					experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+					String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
+					experimentrunner.RecordR(BCR_vs_experiment,experimentName ,difference.differenceBCR.getValue(),null,null);
+					experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
+				}
+	
+				@Override
+				public SGEExperimentResult[] getGraphs() {
+					return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
+				}
+			};
+			List<ComputeExecutionTimeCorrectionValue> listOfExperiments = new ArrayList<ComputeExecutionTimeCorrectionValue>();
+			try
 			{
-				int seedThatIdentifiesFSM=0;
-				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
-					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
-					{
-						for(int traceQuantity:new int[]{1,8})
-							for(int traceLengthMultiplier:new int[]{1,8})
-								if (traceQuantity*traceLengthMultiplier <= 64)
-									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
-										for(boolean pta:new boolean[]{false})
-										{
-											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
-											})
+				for(int states:new int[]{5,10,20,40})
+				{
+					int seedThatIdentifiesFSM=0;
+					for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
+						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
+						{
+							for(int traceQuantity:new int[]{1,8})
+								for(int traceLengthMultiplier:new int[]{1,8})
+									if (traceQuantity*traceLengthMultiplier <= 64)
+										for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
+											for(boolean pta:new boolean[]{false})
 											{
-													for(LearningType type:new LearningType[]{LearningType.CONVENTIONAL,LearningType.CONVENTIONALUNIQUE, LearningType.PREMERGE, LearningType.CONSTRAINTS})
-													{
-														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-														eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
-														
-														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
-														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
-														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
-														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-														listOfExperiments.add(learnerRunner);
-													}
+												for(ScoringModeScore scoringPair:new ScoringModeScore[]{
+														new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
+												})
+												{
+														for(LearningType type:new LearningType[]{LearningType.CONVENTIONAL,LearningType.CONVENTIONALUNIQUE, LearningType.PREMERGE, LearningType.CONSTRAINTS})
+														{
+															LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+															ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+															eval.config.setOverride_usePTAMerging(pta);eval.config.setTransitionMatrixImplType(matrix);
+															
+															SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
+															par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+															ComputeExecutionTimeCorrectionValue learnerRunner = new ComputeExecutionTimeCorrectionValue(par, ev,directoryNamePrefix);
+															//learnerRunner.setAlwaysRunExperiment(true);
+															listOfExperiments.add(learnerRunner);
+														}
+												}
 											}
-										}
-						}
+							}
+				}
 			}
-		}
-		catch(Exception ex)
-		{
-			Helper.throwUnchecked("failed to compute", ex);
-		}
-		
-		try
-		{
-	    	for(SmallVsHuge e:listOfExperiments)
+			catch(Exception ex)
+			{
+				Helper.throwUnchecked("failed to compute", ex);
+			}
+			
+	    	for(ComputeExecutionTimeCorrectionValue e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
-	    	
-	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
-	    	{// process the results.
-	    		/*
-	    		final String 
-	    		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
-					
-					@Override
-					public void merge(double A, double B) {
-						// TODO Auto-generated method stub
-						
-					}
-				},resultCSV,)*/
-	    	}
-		}
-		finally
-		{
 			experimentRunner.successfulTermination();
-			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		}
+		
+		// Now we have all the spreadsheets, use them to compute correction.
+		SmallVsHugeParameters par = new SmallVsHugeParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);// parameters here are dummy - they are needed
+			// to construct an instance but only values hardwired into SmallVsHugeParameters are used.
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,5);
+		System.out.println("iceberg v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
+		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(2), par, 3600L*4L,50);
+		System.out.println("m6e v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
+		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
+		
 	}
 }

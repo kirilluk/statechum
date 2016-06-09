@@ -3,11 +3,13 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -18,12 +20,15 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
+import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.DrawGraphs.TimeAndCorrection;
 import statechum.analysis.learning.TestDrawGraphs;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -34,10 +39,13 @@ public class TestSGE_ExperimentRunner
 	public TestSGE_ExperimentRunner() {
 	}
 
+	String globalTimeScaling;
+	
 	@Before
 	public void before()
 	{
 		File tmpDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP));
+		globalTimeScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
 		if (!tmpDir.isDirectory())
 		{
 			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
@@ -45,27 +53,38 @@ public class TestSGE_ExperimentRunner
 		
 		if (!ExperimentRunner.testDir.isDirectory())
 		{
-			Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
+			for(int t=0;t< 5;++t)
+				if (!ExperimentRunner.testDir.mkdir())
+				{
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						break;// assume we need to proceed
+					}
+				}
+			if (!ExperimentRunner.testDir.isDirectory())
+				Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
 		}
 	}
 
 	@After
 	public void after()
 	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, globalTimeScaling);
 		ExperimentRunner.zapDir(ExperimentRunner.testDir);
 	}
 
-	public static class DummyExperiment extends UASExperiment<TestParameters,ExperimentResult<TestParameters>>
+	public static  class DummyExperiment<PAR extends ThreadResultID> extends UASExperiment<PAR,ExperimentResult<PAR>>
 	{
-		public DummyExperiment(TestParameters parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix) 
+		public DummyExperiment(PAR parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix) 
 		{
 			super(parameters, eval, directoryNamePrefix);
 		}
 		
 		@Override
-		public ExperimentResult<TestParameters> call() throws Exception 
+		public ExperimentResult<PAR> call() throws Exception 
 		{
-			return new ExperimentResult<TestParameters>(par);
+			return new ExperimentResult<PAR>(par);
 		}
 		
 	}
@@ -126,21 +145,28 @@ public class TestSGE_ExperimentRunner
 			return data;
 		}
 		
+		/** Unlike the {@link MockCSV#getData()} method returning exactly the data that was added to it, this method returns 
+		 * the data stored by the {@link CSVExperimentResult} and includes transformations of time related to scaling. 
+		 */
+		public String getAllData()
+		{
+			return rowColumnText.toString();
+		}
 	}
 	
 	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
 	final MockPlot<String> gr_BCR = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_BCR.pdf"));		
 	final MockPlot<String> gr_a = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_a.pdf"));
 	final MockPlot<String> gr_b = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_b.pdf"));		
-	final MockCSV csvA = new MockCSV(new File("tmp/runCSV_A.csv"));
-	final MockCSV csvB = new MockCSV(new File("tmp/runCSV_B.csv"));
+	final MockCSV csvA = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_A.csv"));
+	final MockCSV csvB = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_B.csv"));
 			
 	public int runA(String []args)
 	{
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -167,7 +193,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -195,7 +221,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -223,7 +249,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -251,7 +277,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -288,7 +314,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -319,6 +345,86 @@ public class TestSGE_ExperimentRunner
 		return experimentRunner.successfulTermination();
 	}
 	
+	public int runE(final int timeMult,final MockCSV csvSpreadsheet, String []args)
+	{
+		final Random rnd = new Random(timeMult);
+		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		for(int sample=0;sample<6;++sample)
+		{
+			DummyExperiment<TestParametersMultiCell> learnerRunner = new DummyExperiment<TestParametersMultiCell>(new TestParametersMultiCell("row",sample),null,ExperimentRunner.testSGEDirectory){
+				@Override
+				public ExperimentResult<TestParametersMultiCell> call() throws Exception 
+				{
+					return new ExperimentResult<TestParametersMultiCell>(par);
+				}
+			};
+			experimentRunner.submitTask(learnerRunner);
+		}
+		csvSpreadsheet.setMissingValue(SmallVsHuge.unknownValue);
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>() {
+
+			@Override
+			public void processSubResult(ExperimentResult<TestParametersMultiCell> result, RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentrunner) throws IOException 
+			{
+				StringBuffer csvLine = new StringBuffer();
+				csvLine.append(result.parameters.value);
+				CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(result.parameters.value*timeMult+rnd.nextInt(4));// this value pretends to be the time
+				CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(result.parameters.value+20);
+				experimentrunner.RecordCSV(csvSpreadsheet, result.parameters, csvLine.toString());
+			}
+			
+			@Override
+			public SGEExperimentResult[] getGraphs() {
+				return new SGEExperimentResult[]{csvSpreadsheet};
+			}
+		});
+		return experimentRunner.successfulTermination();
+	}
+	
+	/** Almost the same as runE but computes different values for one of the cells. */
+	public int runF(final int timeMult,final MockCSV csvSpreadsheet, String []args)
+	{
+		final Random rnd = new Random(timeMult);
+		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		for(int sample=0;sample<6;++sample)
+		{
+			DummyExperiment<TestParametersMultiCell> learnerRunner = new DummyExperiment<TestParametersMultiCell>(new TestParametersMultiCell("row",sample),null,ExperimentRunner.testSGEDirectory){
+				@Override
+				public ExperimentResult<TestParametersMultiCell> call() throws Exception 
+				{
+					return new ExperimentResult<TestParametersMultiCell>(par);
+				}
+			};
+			experimentRunner.submitTask(learnerRunner);
+		}
+		csvSpreadsheet.setMissingValue(SmallVsHuge.unknownValue);
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>() {
+
+			@Override
+			public void processSubResult(ExperimentResult<TestParametersMultiCell> result, RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentrunner) throws IOException 
+			{
+				StringBuffer csvLine = new StringBuffer();
+				csvLine.append(result.parameters.value);
+				CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(result.parameters.value*timeMult+rnd.nextInt(4));// this value pretends to be the time
+				CSVExperimentResult.addSeparator(csvLine);
+				if (result.parameters.value == 5)
+					csvLine.append(result.parameters.value+221);
+				else
+					csvLine.append(result.parameters.value+20);
+				experimentrunner.RecordCSV(csvSpreadsheet, result.parameters, csvLine.toString());
+			}
+			
+			@Override
+			public SGEExperimentResult[] getGraphs() {
+				return new SGEExperimentResult[]{csvSpreadsheet};
+			}
+		});
+		return experimentRunner.successfulTermination();
+	}
+		
 	public static class TestParameters implements ThreadResultID
 	{
 		final int value;
@@ -353,6 +459,53 @@ public class TestSGE_ExperimentRunner
 		public String getSubExperimentName() {
 			return "experiment_name";
 		}
+
+		@Override
+		public int executionTimeInCell() {
+			return -1;
+		}
+		
+	}
+
+	public static class TestParametersMultiCell implements ThreadResultID
+	{
+		final int value;
+		final String rowID;
+		public TestParametersMultiCell(String r,int v)
+		{
+			value = v;rowID=r+(v/2);
+		}
+		
+		@Override
+		public String getRowID() 
+		{
+			return rowID;
+		}
+
+		@Override
+		public String[] getColumnText() {
+			return new String[]{"column_text"};
+		}
+
+		@Override
+		public String getColumnID() {
+			return Integer.toString(value % 2);
+		}
+
+		@Override
+		public String[] headerValuesForEachCell() {
+			return new String[]{"cell_header1","cell_time","cell_header2"};
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "experiment_name";
+		}
+
+		@Override
+		public int executionTimeInCell() {
+			return 1;
+		}
 		
 	}
 	
@@ -362,7 +515,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -393,7 +546,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -414,7 +567,7 @@ public class TestSGE_ExperimentRunner
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -442,7 +595,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -463,7 +616,7 @@ public class TestSGE_ExperimentRunner
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory){
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
 				public ExperimentResult<TestParameters> call() throws Exception 
 				{
@@ -499,7 +652,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -526,7 +679,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -554,7 +707,7 @@ public class TestSGE_ExperimentRunner
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment learnerRunner = new DummyExperiment(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -822,19 +975,305 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals("",csvB.getData());
 	}
 
+	public static String readResultFile(CSVExperimentResult result)
+	{
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			BufferedReader reader = new BufferedReader(new FileReader(result.getAbsoluteFileName()));
+			String line = null;
+			try
+			{
+				while((line=reader.readLine()) != null)
+				{
+					buffer.append('[');buffer.append(line);buffer.append(']');
+				}
+			}
+			finally
+			{
+				reader.close();
+			}
+		}
+		catch(IOException ex)
+		{
+			Helper.throwUnchecked("failed to read result file "+result.getAbsoluteFileName(), ex);
+		}
+		return buffer.toString();
+	}
+	
+	/** Tests handling of missing rows. */
 	@Test
 	public void testRun5c_parallel2() throws Exception
 	{
-		int count = runcsv_B(new String[]{"COUNT_TASKS","1"});
+		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
-			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_PARALLEL",""+i}));
-		Assert.assertEquals(0,runcsv_B(new String[]{"COLLECT_RESULTS"}));
+			runE(10,csvA, new String[]{"RUN_PARALLEL",""+i});
+		
+		for(int i=2;i<4;++i)
+		{
+			TestParametersMultiCell p=new TestParametersMultiCell("row",2);
+			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			Assert.assertTrue(experimentResultFile.canRead());
+			experimentResultFile.delete();
+		}
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
+		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
 
-		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[(0_1,A) line A1_0][(0_2,A) line A2_0][(1_1,A) line A1_1][(1_2,A) line A2_1][(2_1,A) line A1_2][(2_2,A) line A2_2]",csvA.getData());
+		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,11,21][(row2,0) 4,42,24][(row2,1) 5,51,25]",csvA.getData());// check the data we have added
+		Assert.assertEquals("{row0={0=0,3,20, 1=1,15,21}, row2={0=4,55,24, 1=5,67,25}}",csvA.getAllData());// check the data after scaling.
 		Assert.assertEquals("",csvB.getData());
+
+		String dataInResultFile = readResultFile(csvA);
+		Assert.assertEquals(
+				"[,column_text,column_text,column_text,column_text,column_text,column_text]"+
+				"[experiment,cell_header1,cell_time,cell_header2,cell_header1,cell_time,cell_header2]"+
+				"[row0,0,3,20,1,15,21][row2,4,55,24,5,67,25]",
+		dataInResultFile);
 	}
+	
+	/** Tests handling of missing cells. */
+	@Test
+	public void testRun5c_parallel3() throws Exception
+	{
+		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(10,csvA, new String[]{"RUN_PARALLEL",""+i});
+		for(int i=2;i<3;++i)
+		{
+			TestParametersMultiCell p=new TestParametersMultiCell("row",2);
+			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			Assert.assertTrue(experimentResultFile.canRead());
+			experimentResultFile.delete();
+		}
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
+		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
+
+		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
+		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,11,21][(row1,1) 3,31,23][(row2,0) 4,42,24][(row2,1) 5,51,25]",csvA.getData());// check the data we have added
+		Assert.assertEquals("{row0={0=0,3,20, 1=1,15,21}, row1={1=3,41,23}, row2={0=4,55,24, 1=5,67,25}}",csvA.getAllData());// check the data after scaling.
+		Assert.assertEquals("",csvB.getData());
+		String dataInResultFile = readResultFile(csvA);
+		Assert.assertEquals(
+				"[,column_text,column_text,column_text,column_text,column_text,column_text]"+
+				"[experiment,cell_header1,cell_time,cell_header2,cell_header1,cell_time,cell_header2]"+
+				"[row0,0,3,20,1,15,21][row1,UNKNOWN,UNKNOWN,UNKNOWN,3,41,23][row2,4,55,24,5,67,25]",
+		dataInResultFile);
+	}
+	
+	@Test
+	public void testRun5c_checkMatching1a() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","6"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 15;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(6, tc.count);
+	}	
+	
+	/** Almost the same as testRun5c_checkMatching1a but has missing values. */
+	@Test
+	public void testRun5c_checkMatching1b() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","6"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		
+		for(int i=3;i<6;++i)
+		{
+			TestParametersMultiCell p=new TestParametersMultiCell("row",i/2);
+			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			Assert.assertTrue("missing file for cell "+i,experimentResultFile.canRead());
+			experimentResultFile.delete();
+		}
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_AVAILABLE"}));
+
+		int mult1 = 15;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.2);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(3, tc.count);
+	}
+	
+	@Test
+	public void testRun5c_checkMatching2() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 15;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(6, tc.count);
+	}	
+	
+	@Test
+	public void testRun5c_checkMatching3() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(6, tc.count);
+	}
+	
+	@Test
+	public void testRun5c_checkMatching3_timeouts1() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), 30,0);
+		Assert.assertEquals((double)mult1/(double)mult0, tc.average, 0.1);// the big discrepancy is due to randomness introduced in the runE method. Hence not using Configuration.fpAccuracy
+		Assert.assertEquals(3, tc.count);
+	}	
+
+	/** here timeouts filter all the values. */
+	@Test
+	public void testRun5c_checkMatching3_timeouts2() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runE(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runE(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), 0,0);
+		Assert.assertEquals(0, tc.count);
+	}	
+
+	@Test
+	public void testRun5c_checkMatching4() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0)
+					{
+						@Override
+						public int executionTimeInCell() {
+							return -1;
+						}
+					}
+				, -1,0);
+		}}, IllegalArgumentException.class, "no time is present");
+		
+	}	
+
+	@Test
+	public void testRun5c_checkMatching5() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0)
+					{
+						@Override
+						public int executionTimeInCell() {
+							return 10;
+						}
+					}
+				, -1,0);
+		}}, IllegalArgumentException.class, "value is too high");
+		
+	}	
+
+	@Test
+	public void testRun5c_checkMatching6() throws Exception
+	{
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
+		int mult0 = 10;
+		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
+		for(int i=1;i<=count;++i)
+			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
+		
+		int mult1 = 10;
+		count = runF(mult1,csvB, new String[]{"COUNT_TASKS","3"});// although it may seem that we are re-running an experiment here, the spreadsheet csvB is different to the one above (csvA) which makes experimentRunner aware that it is an altogether different experiment and results are therefore replaced with new ones.
+		for(int i=1;i<=count;++i)
+			runF(mult1,csvB, new String[]{"RUN_PARALLEL",""+i});
+		Assert.assertEquals(0,runF(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
+		
+		
+		Helper.checkForCorrectException(new whatToRun() {
+
+			@Override
+			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
+				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0);
+		}}, IllegalArgumentException.class, "Cell [row2,1] is different");
+		
+	}	
+	
 	
 	/** Tests that a request to only report a specific plot is honoured: here we only request to render a plot that is non-empty. */
 	@Test
@@ -907,7 +1346,7 @@ public class TestSGE_ExperimentRunner
 			{
 					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experiment_name-row/2");
+		}, IllegalArgumentException.class, "experiment_name-row"+File.separator+"2");
 		Assert.assertEquals(66,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0]",gr_BCR.getData());// only partial data is available due to failure, 
 			// we cannot eliminate it completely because the failure is only detected part-way through. In reality, we'll not write .pdfs on a failure and thus no data will be available at all. 
@@ -966,7 +1405,7 @@ public class TestSGE_ExperimentRunner
 			{
 				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experiment_name-row_second/1");
+		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -975,7 +1414,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5g_parallel() throws Exception
+	public void testRun5g_parallel1() throws Exception
 	{
 		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
 		for(int i=1;i<=taskCount-1;++i)
@@ -988,7 +1427,22 @@ public class TestSGE_ExperimentRunner
 			{
 				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experiment_name-row_second/1");
+		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
+
+		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
+		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
+		Assert.assertEquals("[0.0,2.0,aa1.0,bb1.0]",gr_a.getData());
+		Assert.assertEquals("[1.0,-1.0,NULL,NULL]",gr_b.getData());
+	}
+	
+	@Test
+	public void testRun5g_parallel2() throws Exception
+	{
+		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
+		for(int i=1;i<=taskCount-1;++i)
+			Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL",""+i}));
+		// here we deliberately ignore one of the experiments
+		runMultipleFail2(new String[]{"COLLECT_AVAILABLE"}); // will use undefined values for missing cells.
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -1270,7 +1724,7 @@ public class TestSGE_ExperimentRunner
 			{
 				runMultiple(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
 			}
-		}, IllegalArgumentException.class, "experiment_name-row_second/0");
+		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"0");
 
 		Assert.assertEquals(80,runMultiple(new String[]{"PROGRESS_INDICATOR"}));// 80% complete because one failed.
 		runMultiple(new String[]{"RUN_TASK","4"});// physical task 3 corresponds to a virtual task 4

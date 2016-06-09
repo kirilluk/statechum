@@ -112,13 +112,18 @@ public class PairQualityParameters implements ThreadResultID
 	}
 
 	@Override
-	public String getColumnID() {
+	public String getColumnID() 
+	{
 		return column;
 	}
 
 	@Override
-	public String[] headerValuesForEachCell() {
-		return new String[]{"BCR","Diff","States","PairQuality"};
+	public String[] headerValuesForEachCell() 
+	{
+		if (pairQualityCounter != null)
+			return new String[]{"BCR","Diff","States","PairQuality","Time"};
+		else
+			return new String[]{"BCR","Diff","States","Time"};
 	}
 
 	@Override
@@ -128,5 +133,14 @@ public class PairQualityParameters implements ThreadResultID
 			return "Learning using classifier";
 		else
 			return "Learning classifiers";
+	}
+
+	@Override
+	public int executionTimeInCell() 
+	{
+		if (pairQualityCounter != null)
+			return 4;
+		else
+			return 3;
 	}
 }

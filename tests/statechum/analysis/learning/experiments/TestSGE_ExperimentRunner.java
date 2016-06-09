@@ -144,14 +144,6 @@ public class TestSGE_ExperimentRunner
 		{
 			return data;
 		}
-		
-		/** Unlike the {@link MockCSV#getData()} method returning exactly the data that was added to it, this method returns 
-		 * the data stored by the {@link CSVExperimentResult} and includes transformations of time related to scaling. 
-		 */
-		public String getAllData()
-		{
-			return rowColumnText.toString();
-		}
 	}
 	
 	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
@@ -1006,6 +998,8 @@ public class TestSGE_ExperimentRunner
 	public void testRun5c_parallel2() throws Exception
 	{
 		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
+
 		for(int i=1;i<=count;++i)
 			runE(10,csvA, new String[]{"RUN_PARALLEL",""+i});
 		
@@ -1016,12 +1010,10 @@ public class TestSGE_ExperimentRunner
 			Assert.assertTrue(experimentResultFile.canRead());
 			experimentResultFile.delete();
 		}
-		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
 		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
 
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,11,21][(row2,0) 4,42,24][(row2,1) 5,51,25]",csvA.getData());// check the data we have added
-		Assert.assertEquals("{row0={0=0,3,20, 1=1,15,21}, row2={0=4,55,24, 1=5,67,25}}",csvA.getAllData());// check the data after scaling.
+		Assert.assertEquals("[(row0,0) 0,3,20][(row0,1) 1,15,21][(row2,0) 4,55,24][(row2,1) 5,67,25]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 
 		String dataInResultFile = readResultFile(csvA);
@@ -1037,6 +1029,8 @@ public class TestSGE_ExperimentRunner
 	public void testRun5c_parallel3() throws Exception
 	{
 		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
+		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
+
 		for(int i=1;i<=count;++i)
 			runE(10,csvA, new String[]{"RUN_PARALLEL",""+i});
 		for(int i=2;i<3;++i)
@@ -1046,12 +1040,10 @@ public class TestSGE_ExperimentRunner
 			Assert.assertTrue(experimentResultFile.canRead());
 			experimentResultFile.delete();
 		}
-		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
 		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
 
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,11,21][(row1,1) 3,31,23][(row2,0) 4,42,24][(row2,1) 5,51,25]",csvA.getData());// check the data we have added
-		Assert.assertEquals("{row0={0=0,3,20, 1=1,15,21}, row1={1=3,41,23}, row2={0=4,55,24, 1=5,67,25}}",csvA.getAllData());// check the data after scaling.
+		Assert.assertEquals("[(row0,0) 0,3,20][(row0,1) 1,15,21][(row1,1) 3,41,23][(row2,0) 4,55,24][(row2,1) 5,67,25]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 		String dataInResultFile = readResultFile(csvA);
 		Assert.assertEquals(

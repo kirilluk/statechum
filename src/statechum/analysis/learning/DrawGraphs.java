@@ -552,13 +552,6 @@ public class DrawGraphs {
 			String [] elements = text.split(",");
 			if (elements.length != id.headerValuesForEachCell().length)
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
-			if (id.executionTimeInCell() >= 0)
-			{
-				String globalScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
-				if (globalScaling.isEmpty())
-					throw new IllegalArgumentException("Cell ["+id.getRowID()+","+id.getColumnID()+"] contains execution time but -DSGE_EXECUTIONTIME_SCALING scaling is not set");
-				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])*Double.parseDouble(globalScaling)));// a rather long-winded way to scale execution time.
-			}
 			String reducedLine = concatenateWithSeparator(elements);
 			if (reducedLine.isEmpty())
 				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
@@ -644,6 +637,14 @@ public class DrawGraphs {
 			}
 		}
 		
+		/** This is the only part of the CSV table class that is permitted to perform transformations of data depending on the host that has run the experiment, in order to 
+		 * perform the cpu frequency correction. COLLECT_TASKS could be run on a completely different host and different experiments easily run on different hosts as well. 
+		 *  
+		 * @param outputWriter where to write data. 
+		 * @param id parameters of the experiment.
+		 * @param text what to write.
+		 * @throws IOException if something goes wrong.
+		 */
 		public void writeTaskOutput(Writer outputWriter, ThreadResultID id, String text) throws IOException
 		{
 			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
@@ -652,7 +653,18 @@ public class DrawGraphs {
 			w.append(id.getSubExperimentName());w.append(SGE_ExperimentRunner.separator);w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
 			writer.writeInputSequence(w, Arrays.asList(id.getColumnText()));w.append(SGE_ExperimentRunner.separator);
 			writer.writeInputSequence(w, Arrays.asList(id.headerValuesForEachCell()));w.append(SGE_ExperimentRunner.separator);
-			w.append(text);
+			
+			String [] elements = text.split(",");
+			if (elements.length != id.headerValuesForEachCell().length)
+				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			if (id.executionTimeInCell() >= 0)
+			{
+				String globalScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
+				if (globalScaling.isEmpty())
+					throw new IllegalArgumentException("Cell ["+id.getRowID()+","+id.getColumnID()+"] contains execution time but SGE_EXECUTIONTIME_SCALING scaling is not set. Use SGE_ExperimentRunner.configureCPUFreqNormalisation()");
+				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])*Double.parseDouble(globalScaling)));// a rather long-winded way to scale execution time.
+			}
+			w.append(concatenateWithSeparator(elements));
 			outputWriter.write(w.toString());
 			outputWriter.write("\n");
 		}

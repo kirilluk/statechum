@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -824,6 +823,8 @@ public class SGE_ExperimentRunner
 	} // class RunSubExperiment
 
 	/** Given a reader for a file with corrections and the text of the CPU ID, loads the file and returns the global time correction. 
+	 * This is not using .properties file format to ensure we can handle unusual characters.
+	 *  
 	 * @throws IOException throw if something went wrong. 
 	 */  
 	public static String getCorrection(BufferedReader reader,String cpuStringArg) throws IOException
@@ -841,6 +842,7 @@ public class SGE_ExperimentRunner
 		return null;
 	}
 	static final String cpuName = "model name";
+	
 	public static String getCpuFreqValue(BufferedReader cpuinfoReader) throws IOException
 	{
 		String line = null;
@@ -851,4 +853,100 @@ public class SGE_ExperimentRunner
 		}
 		return null;
 	}
+	
+	public static String getCpuFreqValue()
+	{
+		String result = null;
+		BufferedReader rd = null;
+		try
+		{
+			rd = new BufferedReader(new FileReader("/proc/cpuinfo"));// BufferedReader will accept null and will close its parent reader when closed.
+			result = getCpuFreqValue(rd);
+		}
+		catch(IOException ex)
+		{// ignore this - null will be returned.			
+		}
+		finally
+		{
+			if (rd != null)
+			{
+				try {
+					rd.close();
+				} catch (IOException e) {
+					// ignore this
+				}rd = null;
+			}
+		}
+		return result;
+	}
+	
+	public static final String executionTimeProperties1 = "executionTimeScale.map",executionTimeProperties2 = "iceberg"+File.separator+"executionTimeScale.map";
+	
+	/** Extracts the CPU speed correction value and assigns the SGE_EXECUTIONTIME_SCALE value. This is determined in two different ways,
+	 * <ul>
+	 * <li>By reading values from /proc/cpuinfo and looking up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file.
+	 * This will work well on Linux boxes including Iceberg or any other grid engine.
+	 * </li>
+	 * <li>If the above fails, it obtain host name and looks up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file. Intended for Windows PCs or Macs.</li>
+	 * </ul> 
+	 */
+	public static void configureCPUFreqNormalisation()
+	{
+		String argToLookUp = getCpuFreqValue();
+		if (argToLookUp == null)
+		{
+			try
+			{
+				argToLookUp = java.net.InetAddress.getLocalHost().getHostName();
+			}
+			catch(Exception ex)
+			{// ignore this, arg will remain null.
+			}
+		}
+		if (argToLookUp == null)
+		{// This part is based on http://stackoverflow.com/questions/7348711/recommended-way-to-get-hostname-in-java thread, answer by Malt
+	        String OS = System.getProperty("os.name").toLowerCase();
+
+	        if (OS.indexOf("win") >= 0)
+	        	argToLookUp = System.getenv("COMPUTERNAME");
+	        else
+	            if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0)
+	            	argToLookUp = System.getenv("HOSTNAME");
+		}		
+		if (argToLookUp == null)
+			throw new IllegalArgumentException("failure to obtain a value of argument to look up CPU speed normalisation value");
+		
+		BufferedReader propertiesFile = null;
+				
+		try
+		{
+			if (new File(executionTimeProperties1).canRead())
+				propertiesFile = new BufferedReader(new FileReader(executionTimeProperties1));
+			else
+				if (new File(executionTimeProperties2).canRead())
+					propertiesFile = new BufferedReader(new FileReader(executionTimeProperties2));
+				else
+					throw new IllegalArgumentException("Unable to read CPU freq normalisation properties");
+			String outcome = getCorrection(propertiesFile,argToLookUp);
+			if (outcome != null)
+				GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, outcome);
+		}
+		catch(IOException ex)
+		{
+			Helper.throwUnchecked("Failed to load scaling value", ex);
+		}
+		finally
+		{
+			if (propertiesFile != null)
+			{
+				try {
+					propertiesFile.close();
+				} catch (IOException e) {
+					// ignored - we can do little if close fails.
+				}
+				propertiesFile = null;
+			}
+		}
+	}
+	
 }

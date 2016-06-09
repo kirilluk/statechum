@@ -37,6 +37,7 @@ import java.util.Timer;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
@@ -44,6 +45,7 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
@@ -157,17 +159,18 @@ public class LearningAlgorithms
 		{
 			protected final Timer tmr;
 			protected final long threadID;
+			protected final double scale;
 			
-			public CancelOnTimeout(Timer tm, long id)
+			public CancelOnTimeout(Timer tm, long id, double s)
 			{
-				tmr = tm;threadID = id;
+				tmr = tm;threadID = id;scale = s;
 			}
 			@SuppressWarnings("synthetic-access")
 			@Override
 			public void run() {
 				// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
 				long currTime = java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(threadID);
-				if (startTime >= 0 && config.getTimeOut() >= 0 && currTime >= config.getTimeOut()*1000000L+startTime)
+				if (startTime >= 0 && config.getTimeOut() >= 0 && currTime >= config.getTimeOut()*1000000L*scale+startTime)
 				{
 					taskTimedOut = true;startTime = -2;tmr.cancel();
 				}
@@ -263,7 +266,7 @@ public class LearningAlgorithms
 			if (config.getTimeOut() >= 0)
 			{
 				startTime = LearningSupportRoutines.getThreadTime();
-				tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId()),1000,1000);
+				tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId(),LearningSupportRoutines.getFreqCorrectionValue()),1000,1000);
 			}
 			try
 			{

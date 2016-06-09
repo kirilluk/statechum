@@ -519,7 +519,7 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,MISSING]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,MISSING,MISSING]", buffer.toString());
 	}
 	
 	// Tests that a spreadsheet can be successfully iterated through.

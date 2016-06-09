@@ -13,11 +13,13 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -603,6 +605,13 @@ public class LearningSupportRoutines
  		String [] outcome = new String[text.length];for(int i=0;i<text.length;++i) outcome[i]=removeSpaces(text[i]);
  		return outcome;
  	}
+ 	
+ 	public static double getFreqCorrectionValue()
+ 	{
+		String globalScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
+		if (globalScaling.isEmpty())
+			throw new IllegalArgumentException("Experiment is using timeouts but SGE_EXECUTIONTIME_SCALING scaling is not set. Use SGE_ExperimentRunner.configureCPUFreqNormalisation()");
+
+		return Double.parseDouble(globalScaling);
+ 	}
 }
-
-

@@ -1676,7 +1676,7 @@ public class Configuration implements Cloneable {
 		erlangDisplayStatistics = newValue;
 	}
 
-	/** How long to run learner (in ms), negative means it will not time out. */
+	/** How long to run learner (in ms), negative means it will not time out. Important: this value will be scaled based on the CPU frequency correction value, in order to time out at the same time on different platforms. */
 	protected long timeOut = -1;
 	
 	public long getTimeOut()

@@ -169,7 +169,6 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			if (par.useCentreVertex)
 			{
 				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
 				// These vertices are merged first and then the learning start from the root as normal.
 				// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
@@ -208,6 +207,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			SampleData dataSample = new SampleData(null,null);
 			EDSM_MarkovLearner markovLearner = null;
 			String experimentName = par.learnerToUse.name()+"-"+ptaConstructor.kindOfPTA();
+			long runTime = 0;
 			LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
 			if(actualAutomaton == null)
 			{
@@ -241,23 +241,25 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 					throw new IllegalArgumentException("unexpected learner "+par.learnerToUse.name()+" requested");
 	 			}
 	 			
+	 			long startTime = LearningSupportRoutines.getThreadTime();
 	 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				if (verticesToMergeBasedOnInitialPTA != null && par.mergeIdentifiedPathsAfterInference)
+				{
+					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					assert genScore >= 0;
+					learntGraph = MergeStates.mergeCollectionOfVertices(learntGraph, null, verticesToMerge,false);
+				}			
+	 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 	 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 	 			saveGraph(experimentName,actualAutomaton);
 			}
-			
-			if (verticesToMergeBasedOnInitialPTA != null && par.mergeIdentifiedPathsAfterInference)
-			{
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
-				assert genScore >= 0;
-				actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge,false);
-			}			
-			
 
 			dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker);
+			dataSample.actualLearner.executionTime = runTime;
+			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
-
+			
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
@@ -561,17 +563,16 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 		String outPathPrefix = outDir + File.separator;
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
+		eval.config.setTimeOut(3600000L*4L);// timeout for tasks, in milliseconds, equivalent to 4hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.
+		
 		DrawGraphs gr = new DrawGraphs();
 		
-		final int minStateNumber = 10;
-		final int samplesPerFSM = 5;
-		final int stateNumberIncrement = 5;
-		final int rangeOfStateNumbers = minStateNumber+stateNumberIncrement;
-		final int trainingSamplesPerFSM = 10;
-		final int traceQuantity = 10;
-		final double traceLengthMultiplierMax = 1;
+		final int samplesPerFSM = 30;
+		final int trainingSamplesPerFSM = 5;
+		final int traceQuantity = 1;
+		final double traceLengthMultiplierMax = 10;
 		final int chunkSize = 3;
-		
+		final int statesToUse[] = new int[]{5,10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
@@ -695,24 +696,13 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			final int traceQuantityToUse = traceQuantity;
 			int seedForFSM = 0;
 			final AtomicLong comparisonsPerformed = new AtomicLong(0);
-			final int statesMax = minStateNumber+rangeOfStateNumbers-stateNumberIncrement;
+			final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 			MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
 			parExp.setExperimentID(chunkSize,preset,traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-			final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
-			final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
-			final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
-			final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
 
-			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+			for(int states:statesToUse)
 			{
-				// in order to compute the statistical test for each group of states, we generate a lot of object to add the mean of BCR and structural difference
 				final String experimentName = outPathPrefix+parExp.getExperimentID()+"_states="+ states+"_";
-				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
-				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 				final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
 				
 				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
@@ -721,7 +711,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 						{
 							LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 							ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-							eval.config.setOverride_usePTAMerging(false);
+							ev.config.setOverride_usePTAMerging(false);
 
 							MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
 							parameters.setOnlyUsePositives(onlyPositives);
@@ -740,15 +730,22 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 					@Override
 					public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
 					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
-						ScoresForGraph data=result.samples.get(0).actualLearner;
+						SampleData sm = result.samples.get(0);
+						ScoresForGraph data=sm.actualLearner;
 						
 						StringBuffer csvLine = new StringBuffer();
 						csvLine.append(data.differenceBCR.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+
 						if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 						{
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(result.samples.get(0).comparisonsPerformed);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 						}
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 						experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
@@ -764,6 +761,18 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 				
 				if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 				{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
+					final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
+					final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
+					final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
+					final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
+
+					final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
+					final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
+					final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
+					final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
+					final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
+					final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
+
 					DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
 					DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
 					DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
@@ -782,7 +791,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 							comparisonsPerformed.addAndGet(Long.parseLong(A));
 						}},resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3);
 						
-					for(DrawGraphs.RStatisticalAnalysis result:new DrawGraphs.RStatisticalAnalysis[]{Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
+					for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 					{
 						result.reportResults(gr);
 					}
@@ -792,7 +801,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis
 			}
 			
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
-				for(SquareBagPlot result:new SquareBagPlot[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov})
+				for(SquareBagPlot result:new SquareBagPlot[]{})
 				{
 					result.reportResults(gr);
 				}

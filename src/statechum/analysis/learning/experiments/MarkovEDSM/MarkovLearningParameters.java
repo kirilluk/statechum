@@ -59,6 +59,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
 	}
 	
+	/**
+	 * Reflects the name of the experiment attempting inference from a range of FSMs.
+	 */
 	public String getExperimentID()
 	{
 		return "ch="+chunkLen+"_tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
@@ -124,7 +127,7 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return getExperimentID()+"_s="+sample+"_tS="+trainingSample+"_s="+seed+(onlyUsePositives?"_POS_":"_PN_")+"_tQU="+traceQuantityToUse+
+		return getExperimentID()+"_S"+states+"_sa="+sample+"_tS="+trainingSample+"_se="+seed+(onlyUsePositives?"_POS":"_PN")+"_tQU="+traceQuantityToUse+
 				"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier;
 	}
 
@@ -138,11 +141,16 @@ public class MarkovLearningParameters implements ThreadResultID
 		return learnerToUse.name();
 	}
 
+	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","states","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","Time"},
+			cellheaderConventional = new String[]{"BCR","Diff","States","Time"};
+	
 	@Override
-	public String[] headerValuesForEachCell() {
+	public String[] headerValuesForEachCell() 
+	{
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return new String[]{"BCR","Diff","states","Comparisons","Time"};
-		return new String[]{"BCR","Diff","States","Time"};
+			return cellheaderMarkov;
+		
+		return cellheaderConventional;
 	}
 
 	@Override
@@ -153,10 +161,10 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public int executionTimeInCell() 
-	{
+	{// here time is always the last value.
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return 4;
+			return cellheaderMarkov.length-1;
 		else
-			return 3;
+			return cellheaderConventional.length-1;
 	}
 }

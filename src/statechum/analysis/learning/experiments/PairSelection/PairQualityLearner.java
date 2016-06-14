@@ -811,7 +811,7 @@ public class PairQualityLearner
 
 	} // uses a classifier in order to rank pairs.
 
-	/** Used to encapulate computation of a typical difference using different methods. */
+	/** Used to encapsulate computation of a typical difference using different methods. */
 	public static interface DifferenceToReference
 	{
 		public double getValue();
@@ -999,6 +999,9 @@ public class PairQualityLearner
 		
 		/** Number of states in the reference graph. */
 		public long stateNumber = 0;
+		
+		/** Inconsistency of the reference graph. Important to ensure that the input sample is not excessively biased. */
+		public long inconsistencyReference;
 		
 		/** %% of transitions in the reference graph that were covered by the training sample. */
 		public long transitionsSampled;

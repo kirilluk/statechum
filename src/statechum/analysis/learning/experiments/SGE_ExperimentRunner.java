@@ -849,7 +849,7 @@ public class SGE_ExperimentRunner
 		while((line=cpuinfoReader.readLine()) != null)
 		{
 			if (line.startsWith(cpuName))
-				return LearningSupportRoutines.removeSpaces(line.substring(cpuName.length()));
+				return LearningSupportRoutines.removeColonsAndSpaces(line.substring(cpuName.length()));
 		}
 		return null;
 	}

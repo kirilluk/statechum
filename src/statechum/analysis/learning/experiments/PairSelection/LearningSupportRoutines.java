@@ -597,6 +597,23 @@ public class LearningSupportRoutines
  		return text.replaceAll("^\\s*", "").replaceAll("\\s*$", "");
  	}
  	
+ 	/** The purpose of the routine below is to change
+ 	 * "     : Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz"
+ 	 * into 
+ 	 * "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz"
+ 	 * 
+ 	 * @param text text to process
+ 	 * @return shortened version
+ 	 */
+ 	public static String removeColonsAndSpaces(String text)
+ 	{
+ 		String withoutSpacesAtTheFrontAndEnd =  removeSpaces(text);
+ 		
+ 		if (withoutSpacesAtTheFrontAndEnd.startsWith(":"))
+ 			withoutSpacesAtTheFrontAndEnd = removeSpaces(withoutSpacesAtTheFrontAndEnd.substring(1));
+ 		return withoutSpacesAtTheFrontAndEnd.replaceAll("\\s+", " ");
+ 	}
+ 	
  	public static String [] removeSpaces(String []text)
  	{
  		if (text.length == 0)

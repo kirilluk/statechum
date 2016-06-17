@@ -249,7 +249,7 @@ public class LearningAlgorithms
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, false) < 0)
 					throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
-				outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices,false);
+				outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null,false);
 			}
 			outcome.pathroutines.updateDepthLabelling();// this is important for the choice of representative vertices in merging of states, this in turn affects IDs of merged states which affects selection of pairs for merging.
 			return outcome;
@@ -590,6 +590,8 @@ public class LearningAlgorithms
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long score = p.getScore();
+					if (ReferenceLearner.this.scoringMethod == null)
+						throw new IllegalArgumentException("scoring method should be set");
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
@@ -736,7 +738,7 @@ public class LearningAlgorithms
 						Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 						if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
 							throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
-						tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);// this performs the merge and updates the initial state to reflect it.
+						tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices, null,false);// this performs the merge and updates the initial state to reflect it.
 					}
 					tmp.transitionMatrix.remove(dummyVertex);
 					//

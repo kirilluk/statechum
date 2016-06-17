@@ -36,14 +36,14 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearnerExperimentWithStatisticalAnalysis;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform;
 
-public class LearnerWithLabelRefinementViaPta extends MarkovLearnerExperimentWithStatisticalAnalysis.EDSM_MarkovLearner 
+public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_MarkovLearner 
 {
 	
 	public static class PrevVertexAndOutgoingLabel

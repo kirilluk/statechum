@@ -284,22 +284,32 @@ public class MarkovClassifier
 	 * The merged graph should be constructed by merging vertices in verticesToMerge, otherwise merged vertices would not be available as part of elements of {@link AMEquivalenceClass} and we'll crash.
 	 *
 	 * @param coregraph the original graph
+	 * @param inverseGraph the inverse of the original graph
 	 * @param verticesToMerge vertices to merge in the original graph, computed by the generalised scoring routine.
-	 * @param merged the outcome of merging, has to be passed as an argument because we'd like this graph to be used both here and by the caller of this.
 	 * @param m Markov model used to compute inconsistencies.
 	 * @param origClassifier the classifier used on the original graph. 
 	 */
-	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, LearnerGraph merged, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
+	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, LearnerGraphND inverseGraph,  List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
 	{
-		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
+		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>(),influentialVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
 		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
 			if (eqClass.getStates().size() > 1)
-			{
-				affectedVerticesInOrigGraph.addAll(eqClass.getStates());affectedVerticesInMergedGraph.add(eqClass.getMergedVertex());
-			}
-		computeClosure(coregraph,affectedVerticesInOrigGraph,m.getPredictionLen());
+				// only look at vertices affected by mergers, it is this property that permits a call to computePairCompatibilityScore_general with the last argument (fullMergedVertices) set to false.
+				affectedVerticesInOrigGraph.addAll(eqClass.getStates());
+			
+		computeClosure(coregraph,affectedVerticesInOrigGraph,m.getPredictionLen());// here we expect predictions to be based on a few past vertices, hence computing closure in the forward direction.
+		influentialVerticesInOrigGraph.addAll(affectedVerticesInOrigGraph);
+		computeClosure(inverseGraph,influentialVerticesInOrigGraph,m.getPredictionLen());
+		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, influentialVerticesInOrigGraph,false);// by the virtue of using a small set of
+		// vertices influentialVerticesInOrigGraph to build a graph, both construction of a merged graph and construction of the inverse of this merged graph should be fast 
+		// they are currently contributing a lot of time to the runtime cost of running the learner).
+		
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
+			if (eqClass.getStates().size() > 1)
+				affectedVerticesInMergedGraph.add(eqClass.getMergedVertex());// we have to do this separately to the computation of affected vertices in the original graph because merged vertices are not constructed (that is, getMergedVertex() returns null) until the merged graph is built.
+		
 		computeClosure(merged,affectedVerticesInMergedGraph,m.getPredictionLen());
-
+//System.out.println("coregraph: "+coregraph.getStateNumber()+" states, merged graph: "+merged.getStateNumber()+" states, affected: "+affectedVerticesInOrigGraph.size()+" affected in merged: "+affectedVerticesInMergedGraph.size());
 		long origInconsistencyRelativeToChanges = 0;
 		for(CmpVertex v:affectedVerticesInOrigGraph)
 			if (v.isAccept()) // we only consider prefix-closed languages where there are never any outgoing transitions from reject-states and hence no potential for inconsistencies.
@@ -324,7 +334,8 @@ public class MarkovClassifier
 	 * @param affectedVerticesInGraph where to accumulate encountered vertices
 	 * @param distance how far to explore
 	 */
-	public static void computeClosure(LearnerGraph coregraph, Set<CmpVertex> affectedVerticesInGraph, int distance)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	 void computeClosure(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, Set<CmpVertex> affectedVerticesInGraph, int distance)
 	{
 		if (distance <= 0)
 			return;// nothing to do.
@@ -341,20 +352,20 @@ public class MarkovClassifier
 		{
 			explorationElement = currentExplorationBoundary.remove();
 			int exploredDistance = visited.get(explorationElement)+1;
-			
-			for(Entry<Label,CmpVertex> transition:coregraph.transitionMatrix.get(explorationElement).entrySet())
-			{
-				Integer distanceSeen = visited.get(transition.getValue());
-				
-				if (distanceSeen == null || distanceSeen > exploredDistance)
+			for(Entry<Label,TARGET_TYPE> transitionND:coregraph.transitionMatrix.get(explorationElement).entrySet())
+				for(CmpVertex targetState:coregraph.getTargets(transitionND.getValue()))
 				{
-					visited.put(transition.getValue(),exploredDistance);// record the new or revised distance
-					affectedVerticesInGraph.add(transition.getValue());// ensure we record that this vertex has to be explored as part of computation.
+					Integer distanceSeen = visited.get(targetState);
 					
-					if (exploredDistance < distance) // only explore from the found element if we did not reach the limit.
-						currentExplorationBoundary.offer(transition.getValue());// ensure we explore this element later in our breadth-first search.
+					if (distanceSeen == null || distanceSeen > exploredDistance)
+					{
+						visited.put(targetState,exploredDistance);// record the new or revised distance
+						affectedVerticesInGraph.add(targetState);// ensure we record that this vertex has to be explored as part of computation.
+						
+						if (exploredDistance < distance) // only explore from the found element if we did not reach the limit.
+							currentExplorationBoundary.offer(targetState);// ensure we explore this element later in our breadth-first search.
+					}
 				}
-			}
 		}
 	}
 	
@@ -393,7 +404,7 @@ public class MarkovClassifier
 				outcome = dREJECT;
 			else
 			{
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, false);
+				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
 				outcome = computeInconsistency(merged,model,checker,false);
 			}
 		}
@@ -439,8 +450,8 @@ public class MarkovClassifier
 		/**
 		 * Given two outcomes, returns a new value of the prediction to be associated with the label. 
 		 * Can return {@link MarkovOutcome#failure} if the label is to be labelled as inconsistent and excluded from any other comparisons. 
-		 * With this returning {@link MarkovOutcome#failure}, we can have multiple inconsistencies per label, associated to 
-		 * different paths leading to a state of interest (or different paths leading from it) and hence different Markov predictions. 
+		 * With this returning {@link MarkovOutcome#failure}, we can have multiple inconsistencies per label, associated with 
+		 * different paths leading to a state of interest (or different paths leading from it for predictions backwards) and hence different Markov predictions. 
 		 */
 		public MarkovOutcome labelConsistent(MarkovOutcome actual,MarkovOutcome predicted);
 		
@@ -1256,8 +1267,8 @@ public class MarkovClassifier
 		
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
-		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell what whether paths of this length are going to separate states or not.
-		List<List<Label>> whatToMerge = null;
+		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
+		List<List<Label>> whatToMerge = Collections.emptyList();
 
 		final AtomicLong maxCount = new AtomicLong(0);
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(model.markovMatrix) {
@@ -1339,6 +1350,7 @@ public class MarkovClassifier
 		};
 		exploration.walkThroughAllPaths();
 		
+		if (!thresholdToInconsistency.isEmpty())
 		{// Now evaluate the most consistent element in the map and merge all paths associated with it. 
 		 // In reality, there would be many other elements that might be feasible, however we'd like 
 		 // not to get this one wrong and the way to do it is to be cautious. 
@@ -1356,7 +1368,7 @@ public class MarkovClassifier
 					scoreAfterBigMerge = dREJECT;
 				else
 				{
-					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, false);
+					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
 					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
 				}
 			}

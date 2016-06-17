@@ -249,7 +249,7 @@ public class LearningSupportRoutines
 		
 		if (sourcePta.pairscores.computePairCompatibilityScore_general(null, pairs, verticesToMerge,buildAuxInfo) < 0)
 			throw new IllegalArgumentException("failed to merge states corresponding to a unique outgoing transition "+unique);
-		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge, buildAuxInfo);
+		LearnerGraph outcome = MergeStates.mergeCollectionOfVertices(sourcePta, null, verticesToMerge, null, buildAuxInfo);
 		outcome.pathroutines.updateDepthLabelling();
 		return outcome;
 	}

@@ -1178,7 +1178,7 @@ public class PairQualityLearner
 						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
 						throw new RuntimeException("last merge in the learning process was not possible");
 					}
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
+					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, null, false);
 				}
 			}
 			else

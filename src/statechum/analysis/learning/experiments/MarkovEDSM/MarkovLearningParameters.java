@@ -52,19 +52,18 @@ public class MarkovLearningParameters implements ThreadResultID
 		states = argStates;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;this.traceQuantityToUse=traceQuantityToUse;
 	}
 	
-	public void setExperimentID(int chunkLen,int preset,int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
+	public void setExperimentID(int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
 	{
-		this.preset = preset;setPresetLearningParameters(preset);
-		this.chunkLen = chunkLen;
+		setPresetLearningParameters(preset);
 		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
 	}
-	
+
 	/**
 	 * Reflects the name of the experiment attempting inference from a range of FSMs.
 	 */
 	public String getExperimentID()
 	{
-		return "ch="+chunkLen+"_tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
+		return "_tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
 	}
 	
 	public void setUsePrintf(boolean value)
@@ -91,6 +90,11 @@ public class MarkovLearningParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
+	public void setMarkovParameters(int pr, int chunkLength)
+	{
+		chunkLen=chunkLength;preset = pr;
+	}
+	
 	public void setAlphabetMultiplier(double mult)
 	{
 		alphabetMultiplier = mult;
@@ -107,7 +111,7 @@ public class MarkovLearningParameters implements ThreadResultID
 		case 0:// learning by not doing pre-merging, starting from root 
 			setlearningParameters(false, false, false, false, false);break;
 		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-			setlearningParameters(true, false, false, true, true);break;
+			setlearningParameters(true, false, false, false, true);break;
 		case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
 			setlearningParameters(true, true, false, true, false);break;
 		case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
@@ -133,12 +137,18 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String[] getColumnText() {
-		return new String[]{learnerToUse.name()};
+		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+			return new String[]{learnerToUse.name(),Integer.toString(preset),Integer.toString(chunkLen)};
+		return new String[]{learnerToUse.name(),"",""};
 	}
 
 	@Override
-	public String getColumnID() {
-		return learnerToUse.name();
+	public String getColumnID() 
+	{
+		String outcome = learnerToUse.name();
+		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+			outcome+="_"+preset+"-"+chunkLen;
+		return outcome;
 	}
 
 	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","states","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","Time"},
@@ -156,7 +166,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String getSubExperimentName()
 	{
-		return "edsm_markov"+preset;
+		return "edsm_markov";
 	}
 
 	@Override

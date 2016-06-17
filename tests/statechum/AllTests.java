@@ -95,6 +95,7 @@ public class AllTests {
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
     	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
         statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
+        statechum.analysis.learning.experiments.PairSelection.TestMarkov_i2c.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
         statechum.analysis.learning.TestLearnerFromLargePTA.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,

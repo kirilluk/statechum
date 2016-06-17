@@ -47,6 +47,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -110,9 +111,9 @@ public class I2cexperiment extends PairQualityLearner
 			"=S","@","=R","=TA","[*9]","-Ta","~SnA","~SnB","~R","#S","#W","#Ta","#s","#RA","[+1]","^Ra","~r",
 			"~SwA","~swA","^E","#L","~Xr","?"					
 	};
-	protected static String alphabetElementToConsiderErr = "?";
+	public static String alphabetElementToConsiderErr = "?";
 	protected static String errElement = "Err";
-	private static List<Label> loadTrace(String inputFileName,ConvertALabel converter)
+	public static List<Label> loadTrace(String inputFileName,ConvertALabel converter, String valueForErrElement)
 	{
 		List<Label> returnValue = new LinkedList<Label>();
 		
@@ -137,7 +138,7 @@ public class I2cexperiment extends PairQualityLearner
 	            		throw new IllegalArgumentException("failed to match the beginning of line "+lineOfLog);
 	            	lineOfLog = lineOfLog.substring(aFound.length());
 	            	if (aFound.equals(alphabetElementToConsiderErr))
-	            		aFound =errElement;
+	            		aFound =valueForErrElement;
 	            	returnValue.add(converter.convertLabelToLabel(new StringLabel(aFound)));
             	}
             }
@@ -173,13 +174,14 @@ public class I2cexperiment extends PairQualityLearner
 	{
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);eval.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
-		eval.config.setTimeOut(3600000L*4L);// timeout for tasks, in milliseconds, equivalent to 4hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.
+		eval.config.setOverride_maximalNumberOfStates(50*LearningAlgorithms.maxStateNumberMultiplier);
+		eval.config.setOverride_usePTAMerging(false);
 
 		final int chunkSize = 7;
 
 		LearnerGraph initialPTA = new LearnerGraph(eval.config);
-		initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",eval.getLabelConverter()), true, false,null);
-		// The purpose of if-then below is to make it clear that an error transition will not be repeated. 
+		initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",eval.getLabelConverter(),errElement), true, false,null);
+		// The purpose of if-then below is to make it clear that an error transition will not be repeated - this was the only problem in the inferred model. 
 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), eval.config, eval.getLabelConverter()).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, 1);// we only need  to augment our PTA once.
 		final MarkovModel m= new MarkovModel(chunkSize,true,true,false);
@@ -189,7 +191,7 @@ public class I2cexperiment extends PairQualityLearner
 		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 
 		System.out.println("started: "+new Date());
-		LearnerGraph graph = markovLearner.learnMachine();
+		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		System.out.println("finished: "+new Date());
 		graph.storage.writeGraphML("outcome_i2c.xml");
 	}

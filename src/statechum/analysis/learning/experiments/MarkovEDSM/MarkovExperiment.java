@@ -427,6 +427,7 @@ public class MarkovExperiment
 					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
 				
 				score=genScore-currentInconsistency;
+				
 				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 				{
 					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
@@ -588,7 +589,7 @@ public class MarkovExperiment
 		DrawGraphs gr = new DrawGraphs();
 		
 		final int samplesPerFSM = 30;
-		final int trainingSamplesPerFSM = 5;
+		final int trainingSamplesPerFSM = 2;
 		final int traceQuantity = 1;
 		final double traceLengthMultiplierMax = 10;
 		final int chunkSize = 3;

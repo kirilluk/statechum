@@ -42,7 +42,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperi
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -88,6 +87,7 @@ public class CVS_With_Random_traces_Generation
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
@@ -109,26 +109,29 @@ public class CVS_With_Random_traces_Generation
 					final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
 					
 						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
-							for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-							{
-								LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-								ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-								ev.config.setOverride_usePTAMerging(false);
-	
-								MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0,trainingSample, seedForFSM,traceQuantityToUse);
-								parameters.setOnlyUsePositives(onlyPositives);
-								parameters.setAlphabetMultiplier(alphabetMultiplierMax);
-								parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-								parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-								parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
-								parameters.setMarkovParameters(preset, chunkSize);
-								parameters.setDisableInconsistenciesInMergers(false);
-								parameters.setUsePrintf(experimentRunner.isInteractive());
-								MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);
-								learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-								
-								experimentRunner.submitTask(learnerRunner);
-							}
+							for(boolean aveOrMax:new boolean[]{true,false})
+								for(int divisorForPathCount:new int[]{1,2,4})
+									for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
+										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0}:new double[]{1.0})
+										{
+											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+											ev.config.setOverride_usePTAMerging(false);
+				
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0,trainingSample, seedForFSM,traceQuantityToUse);
+											parameters.setOnlyUsePositives(onlyPositives);
+											parameters.setAlphabetMultiplier(alphabetMultiplierMax);
+											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
+											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
+											parameters.setMarkovParameters(preset, chunkSize, weightOfInconsistencies,aveOrMax, divisorForPathCount);
+											parameters.setDisableInconsistenciesInMergers(false);
+											parameters.setUsePrintf(experimentRunner.isInteractive());
+											MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);
+											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+											
+											experimentRunner.submitTask(learnerRunner);
+										}
 					experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
 	
 						@Override

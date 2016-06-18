@@ -38,6 +38,9 @@ public class MarkovLearningParameters implements ThreadResultID
 	public boolean learnUsingReferenceLearner; 
 	public final int seed;
 	public int chunkLen=3;
+	public boolean useAverageOrMax = true;
+	public double weightOfInconsistencies = 1.0;
+	public int divisorForPathCount=1;
 	public int traceQuantityToUse;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
@@ -54,7 +57,6 @@ public class MarkovLearningParameters implements ThreadResultID
 	
 	public void setExperimentID(int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
 	{
-		setPresetLearningParameters(preset);
 		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
 	}
 
@@ -63,7 +65,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	 */
 	public String getExperimentID()
 	{
-		return "_tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
+		return "tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
 	}
 	
 	public void setUsePrintf(boolean value)
@@ -90,9 +92,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
-	public void setMarkovParameters(int pr, int chunkLength)
+	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor)
 	{
-		chunkLen=chunkLength;preset = pr;
+		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;setPresetLearningParameters(preset);
 	}
 	
 	public void setAlphabetMultiplier(double mult)
@@ -113,7 +115,7 @@ public class MarkovLearningParameters implements ThreadResultID
 		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
 			setlearningParameters(true, false, false, false, true);break;
 		case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
-			setlearningParameters(true, true, false, true, false);break;
+			setlearningParameters(true, false, false, false, false);break;
 		case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
 			setlearningParameters(false, true, false, true, false);break;
 		case 4:// learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
@@ -138,21 +140,23 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String[] getColumnText() {
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return new String[]{learnerToUse.name(),Integer.toString(preset),Integer.toString(chunkLen)};
-		return new String[]{learnerToUse.name(),"",""};
+			return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)};
+		return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),"",""};
 	}
 
 	@Override
 	public String getColumnID() 
 	{
-		String outcome = learnerToUse.name();
+		String outcome = learnerToUse.name()+"-"+preset;// after identification of a centre vertex many learners can be attempted, Markov is not the only one.
+		if (useCentreVertex)
+			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount;
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			outcome+="_"+preset+"-"+chunkLen;
+			outcome+="_w"+weightOfInconsistencies+"_cl="+chunkLen;
 		return outcome;
 	}
 
-	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","states","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","Time"},
-			cellheaderConventional = new String[]{"BCR","Diff","States","Time"};
+	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","Time"},
+			cellheaderConventional = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","centreCorrect","Time"};
 	
 	@Override
 	public String[] headerValuesForEachCell() 

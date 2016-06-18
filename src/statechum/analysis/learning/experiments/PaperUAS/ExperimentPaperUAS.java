@@ -926,6 +926,8 @@ public class ExperimentPaperUAS
 
  	public static class UASCaseStudy extends UASExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>
  	{
+ 		private final String inputGraphFileName;
+ 		
  		protected LearnerGraph buildPTAWithAllNegatives() throws AugmentFromIfThenAutomatonException, IOException
  		{
  		    LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);AbstractPersistence.loadGraph(ExperimentPaperUAS.fileName(inputGraphFileName), pta, learnerInitConfiguration.getLabelConverter());

@@ -685,6 +685,8 @@ public class Synapse implements Runnable {
 				Helper.throwUnchecked("decode exception", e);
 			}			
 		}
+		static final int divisorForPathCount = 2;
+		static final boolean useAveOrMax = false;
 		
 		@Override
 		public void run() 
@@ -991,7 +993,7 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount);
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
@@ -1051,7 +1053,6 @@ public class Synapse implements Runnable {
 														OtpErlangObject outcome = null;
 														try
 														{
-															final AtomicLong counter = new AtomicLong();
 															learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
 															LearnerGraph ptaInitial=new LearnerGraph(learnerInitConfiguration.config);
 															for(List<Label> seq:sPlus)
@@ -1064,7 +1065,7 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount);
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);

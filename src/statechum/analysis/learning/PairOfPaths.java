@@ -142,8 +142,11 @@ public class PairOfPaths
 		R=stateToPath.get(pair.getR());
 	}
 
-	/** Given a collection of states, computes paths in the automaton from the initial state to states in the set.
-	 * Does not use state cover computation for memory efficiency.
+	/** Given a collection of states, computes paths in the automaton from the initial state to states in the set. 
+	 * Returns a map from all visited states (not just those passed as an argument) to paths that lead to those states.
+	 * Important: the returned map will contain all states of interest with associated paths as well as all other states that were encountered during graph exploration.
+	 * <p>
+	 * Does not use state cover computation for memory efficiency since we only need a subset of all the states.
 	 */
 	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Set<CmpVertex> statesOfInterestArg)
 	{

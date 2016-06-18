@@ -1209,6 +1209,9 @@ public class MarkovClassifier
 					{
 						pathsForVertex = new TreeSet<Integer>();vertToPaths.put(v,pathsForVertex);
 					}
+					// now we record which paths leave each vertex and separately which vertices are at root of which paths. If there are A-a-> , A-b-> , B-a-> , C-b->, 
+					// vertToPaths will have IDs of a and b from A, just a from B and b from C;
+					// idToVerticesToMerge will map A,B to a and C,A to B. We then need to ensure that A,B are merged together and since both A,C have b in common, C is also merged into A,B.
 					vertToPaths.get(v).add(path.getKey());idToVerticesToMerge.get(path.getKey()).add(v);
 				}
 		}
@@ -1233,19 +1236,20 @@ public class MarkovClassifier
 					{
 						Set<Integer> pathsForVert = vertToPaths.get(v);
 						if (pathsForVert != entry.getValue())
-						{// this state is different from our collection, perform the merge. Comparison by reference is possible due to 'put(v,pathsFromAnyOfVerts)' below that makes sure that states with identical sets of paths are not merged.
+						{// this state v is different from the currently considered state entry.getKey(), perform the merge. Comparison by reference is possible due to 'put(v,pathsFromAnyOfVerts)' below that makes sure that states with identical sets of paths are not merged.
 							if (pathsFromAnyOfVerts == null)
 								pathsFromAnyOfVerts = new TreeSet<Integer>(entry.getValue());
 							pathsFromAnyOfVerts.addAll(pathsForVert);
 						}
 					}
+					// pathsFromAnyOfVerts now contains all paths from all the vertices in the collection verts.
 					if (pathsFromAnyOfVerts != null)
-						break;
+						break;// new paths have been found, in the loop below we use pathsFromAnyOfVerts as the collection of paths from any state in verts.
 					
 					vertsConsidered.addAll(verts);setsConsidered.add(verts);// here we update the return value, if we get to the end with pathsFromAnyOfVerts remaining null, we are done and setsConsidered can be returned
 				}
 			if (pathsFromAnyOfVerts != null)
-			{// had to compute a merge
+			{// had to compute a merge of outgoing transitions for all the states in verts.
 				for(CmpVertex v:verts)
 					vertToPaths.put(v,pathsFromAnyOfVerts);
 			}
@@ -1258,9 +1262,11 @@ public class MarkovClassifier
 	/**
 	 * Uses a supplied consistency checker to find paths that uniquely identify states. The supplied consistency checker is used to verify consistency after states deemed identical are merged.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
+	 * @param useAverageOfMax if true, takes an average, divides by divisor and uses this value; for false, uses a maximal value and divides that.
+	 * @param divisor permits one to select a subset of paths that are not often used.
 	 * @return paths to uniquely identify states.
 	 */
-	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker)
+	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor)
 	{
 		if (model.getChunkLen() < 2)
 			throw new IllegalArgumentException("not enough data for a first-order Markov model");
@@ -1270,7 +1276,7 @@ public class MarkovClassifier
 		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
 		List<List<Label>> whatToMerge = Collections.emptyList();
 
-		final AtomicLong maxCount = new AtomicLong(0);
+		final AtomicLong maxCount = new AtomicLong(0), sumInPta = new AtomicLong(0), pathsExplored = new AtomicLong(0);
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(model.markovMatrix) {
 			@Override
 			public Boolean newUserObject() {
@@ -1286,6 +1292,7 @@ public class MarkovClassifier
 					long countInPTA=prediction.occurrence.firstElem;
 					if (countInPTA > maxCount.longValue())
 						maxCount.set(countInPTA);
+					sumInPta.addAndGet(countInPTA);pathsExplored.incrementAndGet();
 				}
 			}
 
@@ -1303,7 +1310,9 @@ public class MarkovClassifier
 
 		};
 		exploration.walkThroughAllPaths();
-
+		// paths that are common are likely to be present from a number of different states and as such not very good for discriminating between them.
+		final long valueAverage = pathsExplored.get() > 0?sumInPta.get()/pathsExplored.get():0;
+		final long countForInfrequentPaths = useAverageOfMax?valueAverage/divisor:maxCount.get()/divisor;
 		final Map<Long,List<List<Label>>> thresholdToInconsistency = new TreeMap<Long,List<List<Label>>>();
 		exploration = new PTAExploration<Boolean>(model.markovMatrix) {
 			@Override
@@ -1318,7 +1327,7 @@ public class MarkovClassifier
 				if (pathToInit.size() == WLength && prediction.prediction == MarkovOutcome.positive)
 				{
 					long countInPTA=prediction.occurrence.firstElem;
-					if (countInPTA < maxCount.longValue()/2) // paths that are very common are likely to be present from a number of different states and as such not very good for discriminating between them.
+					if (countInPTA < countForInfrequentPaths) 
 					{
 						LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
 						long value = computeInconsistencyForMergingPath(path, checker);

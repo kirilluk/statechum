@@ -52,6 +52,7 @@ import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -186,14 +187,38 @@ public class MarkovExperiment
 
 			LearnerGraph ptaToUseForInference = pta;
 			Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
-							
+
+			boolean correctCentre = true;
 			if (par.useCentreVertex)
 			{
 				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount);
+				
 				// These vertices are merged first and then the learning start from the root as normal.
 				// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
 				verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
+				
+				// now check if we got the 'verticesToMergeBasedOnInitialPTA' correct using the reference graph.
+				for(Set<CmpVertex> collection:verticesToMergeBasedOnInitialPTA)
+				{// we need to check that all states in the collection are associated with the same state in the reference graph.
+					Map<CmpVertex,LinkedList<Label>> vertToPaths =  PairOfPaths.convertSetOfStatesToPaths(pta,collection);// this obtains all the paths to reach states of interest, we then trace them in the reference graph. 
+					CmpVertex expectedState = null;
+					for(CmpVertex vertFromCollection:collection)
+					{
+						List<Label> path = vertToPaths.get(vertFromCollection);
+						CmpVertex obtainedVertex = referenceGraph.getVertex(path);
+						if (expectedState == null)
+							expectedState = obtainedVertex;
+						else
+							if (expectedState != obtainedVertex)
+							{
+								correctCentre = false;break;// our paths do not correctly identify states of the expected graph
+							}
+					}
+					
+					if (!correctCentre)
+						break;
+				}
 				
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
 				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -220,6 +245,7 @@ public class MarkovExperiment
 				@Override
 				public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
 				{
+					//if (Fil)
 					//saveGraph(kindOfPTA(),ptaToUseForInferenceFinal);
 					return ptaToUseForInferenceFinal;
 				}
@@ -227,9 +253,9 @@ public class MarkovExperiment
 			
 			SampleData dataSample = new SampleData(null,null);
 			EDSM_MarkovLearner markovLearner = null;
-			String experimentName = par.learnerToUse.name()+"-"+ptaConstructor.kindOfPTA();
 			long runTime = 0;
-			LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+			LearnerGraph actualAutomaton = loadOutcomeOfLearning("outcome-");
+			saveGraph("pta-", ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
 			if(actualAutomaton == null)
 			{
 				LearnerGraph ptaBuilt = ptaConstructor.buildPTA();
@@ -271,16 +297,24 @@ public class MarkovExperiment
 					assert genScore >= 0;
 					learntGraph = MergeStates.mergeCollectionOfVertices(learntGraph, null, verticesToMerge, null, false);
 				}			
+				
+				if (par.useCentreVertex)
+				{// select the initial state
+					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(learntGraph,pta);// will only return null if the learner failed (and returned an single-state reject graph)
+					if (newInit != null)
+						learntGraph.setInit(newInit);
+				}
+				
 	 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 	 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-	 			saveGraph(experimentName,actualAutomaton);
+	 			saveGraph("outcome-",actualAutomaton);
 			}
 
 			dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker);
 			dataSample.actualLearner.executionTime = runTime;
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
-			
+			dataSample.centreCorrect = correctCentre;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
@@ -289,6 +323,16 @@ public class MarkovExperiment
  			if (markovLearner != null)
  				dataSample.comparisonsPerformed = markovLearner.comparisonsPerformed;
  			
+ 			if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
+ 			{
+ 				System.out.println("Graph with perfect DIFF but wrong initial state: "+SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+"outcome-",par));
+ 				/*
+				CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(actualAutomaton,pta);// this cannot return null since the outcome of learning will have at least one state
+				DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
+ 				Visualiser.updateFrame(actualAutomaton, referenceGraph);
+ 				System.out.println();
+ 				*/
+ 			}
 			Collection<List<Label>> wset=WMethod.computeWSet_reducedw(referenceGraph);
 			int wSeqLen=0;
 			for(List<Label> seq:wset)
@@ -593,10 +637,11 @@ public class MarkovExperiment
 		final int traceQuantity = 1;
 		final double traceLengthMultiplierMax = 10;
 		final int chunkSize = 3;
-		final int statesToUse[] = new int[]{5,10,20,40};
+		final int statesToUse[] = new int[]{10,20};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
@@ -712,123 +757,129 @@ public class MarkovExperiment
 			}
 */
 		
-		for(final int preset: new int[]{1})//0,1,2})
+		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+		int invocationCount=0;
+		for(final int preset: new int[]{0,1,2})//0,1,2})
 		{
 			final int traceQuantityToUse = traceQuantity;
 			int seedForFSM = 0;
-			final AtomicLong comparisonsPerformed = new AtomicLong(0);
-			final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 			MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
 			parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 
 			for(int states:statesToUse)
 			{
-				final String experimentName = outPathPrefix+parExp.getExperimentID()+"_states="+ states+"_";
-				final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
-				
 				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
-						for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-						{
-							LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-							ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-							ev.config.setOverride_usePTAMerging(false);
+						for(boolean aveOrMax:new boolean[]{true,false})
+							for(int divisor:new int[]{1,2,4})
+								for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
+									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0}:new double[]{1.0})
+									{
+										LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+										ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+										ev.config.setOverride_usePTAMerging(false);
+			
+										MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
+										parameters.setOnlyUsePositives(onlyPositives);
+										parameters.setAlphabetMultiplier(alphabetMultiplierMax);
+										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
+										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor);
+										parameters.setDisableInconsistenciesInMergers(false);
+										parameters.setUsePrintf(experimentRunner.isInteractive());
+										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
+										learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+										experimentRunner.submitTask(learnerRunner);
+										++invocationCount;
+									}
+			}
+		}
+		
+		for(int cnt=0;cnt<invocationCount;++cnt)
+		{
 
-							MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
-							parameters.setOnlyUsePositives(onlyPositives);
-							parameters.setAlphabetMultiplier(alphabetMultiplierMax);
-							parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-							parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-							parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-							parameters.setMarkovParameters(preset, chunkSize);
-							parameters.setDisableInconsistenciesInMergers(false);
-							parameters.setUsePrintf(experimentRunner.isInteractive());
-							MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
-							learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-							experimentRunner.submitTask(learnerRunner);
-						}
-				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
+			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
 
-					@Override
-					public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
-					{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
-						SampleData sm = result.samples.get(0);
-						ScoresForGraph data=sm.actualLearner;
-						
-						StringBuffer csvLine = new StringBuffer();
-						csvLine.append(data.differenceBCR.getValue());
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
-
-						if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-						{
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
-						}
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
-						experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-					}
+				@Override
+				public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
+				{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
+					SampleData sm = result.samples.get(0);
+					ScoresForGraph data=sm.actualLearner;
 					
-					@Override
-					public SGEExperimentResult[] getGraphs() {
-						
-						return new SGEExperimentResult[]{resultCSV};
-					}
-					
-				});
-				
-				if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
-				{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-					final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
-					final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
-					final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
-					final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
+					StringBuffer csvLine = new StringBuffer();
+					csvLine.append(data.differenceBCR.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
 
-					final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
-					final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
-					final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
-					final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
-					final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
-					final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
-
-					DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
-					DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-					DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-					DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-					
-					DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-					DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-					DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-					DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-					DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-					DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-					
-					DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
-						@Override
-						public void merge(String A, @SuppressWarnings("unused") String B) {
-							comparisonsPerformed.addAndGet(Long.parseLong(A));
-						}},resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3);
-						
-					for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
+					if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 					{
-						result.reportResults(gr);
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 					}
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
+					experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+				}
+				
+				@Override
+				public SGEExperimentResult[] getGraphs() {
+					
+					return new SGEExperimentResult[]{resultCSV};
+				}
+				
+			});
+		}
+		for(final int preset: new int[]{0,1,2})//0,1,2})
+		{
+			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
+			{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
+				String experimentName = outPathPrefix+"preset"+preset+"_";
+				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
+				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
+				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
+				final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
+
+				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
+				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
+				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
+				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
+
+				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
+				
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
+				
+				final AtomicLong comparisonsPerformed = new AtomicLong(0);
+				DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
+					@Override
+					public void merge(String A, @SuppressWarnings("unused") String B) {
+						comparisonsPerformed.addAndGet(Long.parseLong(A));
+					}},resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3);
+					
+				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
+				{
+					result.reportResults(gr);
 				}
 				if (experimentRunner.isInteractive())
 					System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed.doubleValue())+"\n");
 			}
-			
-			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
-				for(SquareBagPlot result:new SquareBagPlot[]{})
-				{
-					result.reportResults(gr);
-				}
-
 		}
+		
 		
 /*		final int traceQuantityToUse = traceQuantity;
 		final int presetForBestResults = 0;

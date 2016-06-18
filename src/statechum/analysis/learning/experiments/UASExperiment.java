@@ -40,7 +40,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 {
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
-	protected String inputGraphFileName;
+	protected String graphFileNameDir;
 	public final PARS par;
 	
 	protected boolean alwaysRunExperiment = false;
@@ -56,7 +56,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		learnerInitConfiguration = eval;
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator+par.getRowID();
 		mkDir(outDir);
-		inputGraphFileName = outDir + File.separator+"rnd";
+		graphFileNameDir = outDir + File.separator;
 	}
 	
 	public static void mkDir(String path)
@@ -67,25 +67,19 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		mkDir(new java.io.File(outDir).getParent());// create a parent directory
 		if (!new java.io.File(outDir).isDirectory())
 		{
-			if (!new java.io.File(outDir).mkdir())
-				throw new RuntimeException("failed to create a work directory");
+			new java.io.File(outDir).mkdir();// we do not check whether creation of a directory was successful because it seems that where multiple threads are creating the same directory, at least one attempt fails. 
 		}
-	}
-	
-	public String constructFileName(String experimentSuffix)
-	{
-		return inputGraphFileName+"_"+experimentSuffix+".xml";
 	}
 	
 	/** The outcome of learning might have been stored in a file from the previous run. For this reason, it makes sense to try to load it. 
 	 * @throws IOException if the outcome of learning exists but cannot be loaded
 	 */
-	protected LearnerGraph loadOutcomeOfLearning(String experimentSuffix)
+	protected LearnerGraph loadOutcomeOfLearning(String graphPrefix)
 	{
 		LearnerGraph outcome = null;
 		if (!alwaysRunExperiment)
 		{
-			String graphFileName = constructFileName(experimentSuffix);
+			String graphFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+graphPrefix,par);
 			
 	    	if (new File(graphFileName).canRead())
 	    	{
@@ -96,20 +90,20 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 				} 
 	    		catch (IOException e)
 				{
-					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+graphFileName+"\", exception text: "+e.getMessage());return null;
 				}
 	    		catch (IllegalArgumentException e)
 				{
-					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+experimentSuffix+"\", exception text: "+e.getMessage());return null;
+					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+graphFileName+"\", exception text: "+e.getMessage());return null;
 				}
 	    	}
 		}    	
     	return outcome;
 	}
 	
-	public void saveGraph(String experimentSuffix, LearnerGraph outcome) throws IOException
+	public void saveGraph(String graphPrefix, LearnerGraph outcome) throws IOException
 	{
-		outcome.storage.writeGraphML(constructFileName(experimentSuffix));	
+		outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+graphPrefix,par));	
 	}
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()

@@ -631,4 +631,31 @@ public class LearningSupportRoutines
 
 		return Double.parseDouble(globalScaling);
  	}
+ 	
+ 	/** In some cases, learning does not start from an initial vertex, therefore it is possible for an initial vertex in an outcome of inference to be incorrectly labelled.
+ 	 * A good example is where the initial vertex has an outgoing transition and some other vertex has a transition with the same label to the same state. In this case, it is not possible
+ 	 * to tell from the outcome of inference which of the two should be labelled initial so we match the whole of the initial PTA to all states in the inferred model in order to check which 
+ 	 * of the states looks like an initial one. EDSM-PTA scoring is used because a significant amount of matches are expected and the initial PTA is a tree. 
+ 	 * 
+ 	 * @param graph
+ 	 * @param whichInitialVertex
+ 	 * @return
+ 	 */
+ 	public static CmpVertex findBestMatchForInitialVertexInGraph(LearnerGraph graph, LearnerGraph ptaWithInitialState)
+ 	{
+ 		LearnerGraph grCombined = new LearnerGraph(graph,graph.config);
+ 		Collection<CmpVertex> verts = new LinkedList<CmpVertex>();verts.addAll(grCombined.transitionMatrix.keySet());
+ 		CmpVertex otherRoot = AbstractPathRoutines.addToGraph(grCombined, ptaWithInitialState, null);
+ 		CmpVertex currBest = null;
+ 		long bestScore = -1;
+ 		for(CmpVertex v:verts)
+ 		{
+ 			long score = grCombined.pairscores.computeStateScore(new StatePair(otherRoot, v));
+ 			if (score > bestScore)
+ 			{
+ 				bestScore = score;currBest = v;
+ 			}
+ 		}
+ 		return currBest;
+ 	}
 }

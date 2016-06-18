@@ -709,8 +709,9 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 				//if (inconsistencyForTheReferenceGraph != 53)
 				//	break;// ignore automata where we get good results.
 					
+				final int divisorForPathCount = 2;
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker);
+				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,true,divisorForPathCount);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
 				/*

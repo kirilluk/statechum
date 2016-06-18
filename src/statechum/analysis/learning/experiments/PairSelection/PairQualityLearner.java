@@ -995,6 +995,9 @@ public class PairQualityLearner
 		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;
 		
+		/** Whether our selection of a centre vertex was correct. */
+		public boolean centreCorrect;
+		
 		public long traceNumber = 0;
 		
 		/** Number of states in the reference graph. */

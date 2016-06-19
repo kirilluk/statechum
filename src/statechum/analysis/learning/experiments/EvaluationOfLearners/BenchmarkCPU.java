@@ -58,13 +58,13 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
+public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
-	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
+	public static final String directoryNamePrefix = "benchmark_learners_Apr_2016";
 	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
-	public EvaluationOfLearners(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
+	public BenchmarkCPU(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
 		super(parameters,eval,directoryNamePrefix);
 	}

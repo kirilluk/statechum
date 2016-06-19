@@ -92,7 +92,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		return new String[]{"BCR","Diff","States"};
+		return new String[]{"BCR","Diff","States","Time"};
 	}
 
 	@Override

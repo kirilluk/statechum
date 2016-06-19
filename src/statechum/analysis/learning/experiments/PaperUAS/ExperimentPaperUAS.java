@@ -85,6 +85,7 @@ import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.Trace
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.EvaluationOfLearnersParameters.LearningType;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -957,7 +958,7 @@ public class ExperimentPaperUAS
  		
  		public UASCaseStudy(PaperUASParameters parameters, LearnerGraph reference, String graphFileName,LearnerEvaluationConfiguration eval) 
  		{
-			super(parameters,eval,directoryNamePrefix);
+			super(parameters,new LearnerEvaluationConfiguration(eval),directoryNamePrefix);
 			referenceGraph = reference;
 			inputGraphFileName = graphFileName;
 		}
@@ -1022,12 +1023,17 @@ public class ExperimentPaperUAS
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 
-     	ExperimentPaperUAS paper = loadTraces(args,true);
+		String argsForLoading [] = {"/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces", 
+				"parameters.txt", 
+				"seed1_d.txt", "seed2_d.txt", "seed3_d.txt", "seed4_d.txt", "seed5_d.txt", "seed6_d.txt", "seed7_d.txt", "seed8_d.txt", "seed9_d.txt", "seed10_d.txt", 
+				"seed11_d.txt", "seed12_d.txt", "seed13_d.txt", "seed14_d.txt", "seed15_d.txt", "seed16_d.txt", "seed17_d.txt", "seed18_d.txt", "seed19_d.txt"};
+     	ExperimentPaperUAS paper = loadTraces(argsForLoading,true);
     	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
  		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
@@ -1075,7 +1081,7 @@ public class ExperimentPaperUAS
 
 		
 		int []rangeOfValues = new int[]{8,4,2};
-		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE;
+		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_NOFULLMERGE;
 		
 		boolean mergePTA = false;
 		Configuration.STATETREE matrix = Configuration.STATETREE.STATETREE_ARRAY;
@@ -1224,9 +1230,11 @@ public class ExperimentPaperUAS
     	System.gc();
     	try
     	{
+    		int nrOfExperiments = listOfExperiments.size();
 	    	for(UASCaseStudy e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
-	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+	    	for(int i=0;i<nrOfExperiments;++i)
+	    		experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		}
 		finally
 		{

@@ -31,7 +31,7 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ //learningType.name, 
+		return new String[]{ learningType.name, 
 				(scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}; 
 	}
 

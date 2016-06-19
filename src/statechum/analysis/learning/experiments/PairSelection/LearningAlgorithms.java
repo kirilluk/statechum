@@ -525,7 +525,7 @@ public class LearningAlgorithms
 		/** Override in child classes to permit learning FSM without a limit on state number. Useful in production use but not for research experiments where evaluation explores learnt automata up to a specfic limit. */
 		protected boolean permitUnlimitedNumberOfStates()
 		{
-			return false;
+			return true;
 		}
 		
 		@Override

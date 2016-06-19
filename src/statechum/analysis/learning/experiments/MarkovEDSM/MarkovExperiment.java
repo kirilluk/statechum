@@ -781,7 +781,7 @@ public class MarkovExperiment
 						for(boolean aveOrMax:new boolean[]{true,false})
 							for(int divisor:new int[]{1,2,4})
 								for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
+									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0,6.0}:new double[]{1.0})
 									{
 										LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 										ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

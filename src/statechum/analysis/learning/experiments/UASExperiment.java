@@ -13,6 +13,7 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
@@ -168,11 +169,10 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		learnerInitConfiguration.setLabelConverter(new Transform.InternStringLabel());
         final Configuration learnerConfig = learnerInitConfiguration.config;learnerConfig.setGeneralisationThreshold(0);learnerConfig.setGdFailOnDuplicateNames(false);
         learnerConfig.setGdLowToHighRatio(0.75);learnerConfig.setGdKeyPairThreshold(0.5);
-        learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
+        learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
         learnerConfig.setAlwaysUseTheSameMatrixType(false);// permits computations to switch transition matrix type depending on matrix size.
-        //learnerConfig.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
         learnerConfig.setAskQuestions(false);learnerConfig.setDebugMode(false);
-        learnerConfig.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
+        learnerConfig.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
        	learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (enough to augment once)
         return learnerInitConfiguration;
 	}

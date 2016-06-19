@@ -357,7 +357,7 @@ public class SGE_ExperimentRunner
 					g.reportResults(gr);
 		}
 		
-		public static final String CHECKSUMFIELD = "CHECKSUM";
+		public static final String CHECKSUMFIELD = "CHECKSUM", CPUSPEEDFIELD = "CPUSPEED";
 		
 		/** Updates the CRC with data in the provided text, ignoring end of line characters. */
 		public static void updateCRC(java.util.zip.CRC32 crc, String text)
@@ -412,6 +412,10 @@ public class SGE_ExperimentRunner
 						if (crc.getValue() != extractedValue)
 							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" has an invalid CRC");
 						foundCRC = true;
+					}
+					else
+					if (name.equals(CPUSPEEDFIELD))
+					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type. 
 					}
 					else
 					{// normal field
@@ -477,6 +481,10 @@ public class SGE_ExperimentRunner
 							break;
 						}
 						foundCRC = true;
+					}
+					else
+					if (name.equals(CPUSPEEDFIELD))
+					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type. 
 					}
 					else
 					{// normal field
@@ -682,6 +690,7 @@ public class SGE_ExperimentRunner
 						{
 							writer = new BufferedWriter(new FileWriter(constructFileName(resultOfRunningTasks.getKey())));
 							java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+							outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
 							String text = outputWriter.toString();updateCRC(crc, text);
 							writer.append(text);
 							writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
@@ -714,6 +723,7 @@ public class SGE_ExperimentRunner
 								handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 								writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
 								java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+								outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
 								String text = outputWriter.toString();updateCRC(crc, text);
 								writer.append(text);
 								writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
@@ -882,6 +892,34 @@ public class SGE_ExperimentRunner
 	
 	public static final String executionTimeProperties1 = "executionTimeScale.map",executionTimeProperties2 = "iceberg"+File.separator+"executionTimeScale.map";
 	
+	public static String getCpuFreq()
+	{
+		String outcome = getCpuFreqValue();
+		if (outcome == null)
+		{
+			try
+			{
+				outcome = java.net.InetAddress.getLocalHost().getHostName();
+			}
+			catch(Exception ex)
+			{// ignore this, arg will remain null.
+			}
+		}
+		if (outcome == null)
+		{// This part is based on http://stackoverflow.com/questions/7348711/recommended-way-to-get-hostname-in-java thread, answer by Malt
+	        String OS = System.getProperty("os.name").toLowerCase();
+
+	        if (OS.indexOf("win") >= 0)
+	        	outcome = System.getenv("COMPUTERNAME");
+	        else
+	            if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0)
+	            	outcome = System.getenv("HOSTNAME");
+		}		
+		if (outcome == null)
+			throw new IllegalArgumentException("failure to obtain a value of argument to look up CPU speed normalisation value");
+		return outcome;
+	}
+	
 	/** Extracts the CPU speed correction value and assigns the SGE_EXECUTIONTIME_SCALE value. This is determined in two different ways,
 	 * <ul>
 	 * <li>By reading values from /proc/cpuinfo and looking up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file.
@@ -892,29 +930,7 @@ public class SGE_ExperimentRunner
 	 */
 	public static void configureCPUFreqNormalisation()
 	{
-		String argToLookUp = getCpuFreqValue();
-		if (argToLookUp == null)
-		{
-			try
-			{
-				argToLookUp = java.net.InetAddress.getLocalHost().getHostName();
-			}
-			catch(Exception ex)
-			{// ignore this, arg will remain null.
-			}
-		}
-		if (argToLookUp == null)
-		{// This part is based on http://stackoverflow.com/questions/7348711/recommended-way-to-get-hostname-in-java thread, answer by Malt
-	        String OS = System.getProperty("os.name").toLowerCase();
-
-	        if (OS.indexOf("win") >= 0)
-	        	argToLookUp = System.getenv("COMPUTERNAME");
-	        else
-	            if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0)
-	            	argToLookUp = System.getenv("HOSTNAME");
-		}		
-		if (argToLookUp == null)
-			throw new IllegalArgumentException("failure to obtain a value of argument to look up CPU speed normalisation value");
+		String argToLookUp = getCpuFreq();
 		
 		BufferedReader propertiesFile = null;
 				

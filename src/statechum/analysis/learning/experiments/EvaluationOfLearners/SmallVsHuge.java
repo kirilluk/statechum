@@ -216,7 +216,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			@Override
 			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
 			{
-				saveGraph(kindOfPTA(),pta);
+				saveGraph(namePTA,pta);
 				return pta;
 			}
 		};

@@ -190,6 +190,7 @@ public class MarkovExperiment
 			boolean correctCentre = true;
 			if (par.useCentreVertex)
 			{
+				saveGraph(namePTABEFORECENTRE,pta);
 				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount);
 				
@@ -244,8 +245,6 @@ public class MarkovExperiment
 				@Override
 				public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
 				{
-					//if (Fil)
-					//saveGraph(kindOfPTA(),ptaToUseForInferenceFinal);
 					return ptaToUseForInferenceFinal;
 				}
 			};
@@ -253,8 +252,8 @@ public class MarkovExperiment
 			SampleData dataSample = new SampleData(null,null);
 			EDSM_MarkovLearner markovLearner = null;
 			long runTime = 0;
-			LearnerGraph actualAutomaton = loadOutcomeOfLearning("outcome-");
-			saveGraph("pta-", ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
+			LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
+			saveGraph(namePTA, ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
 			if(actualAutomaton == null)
 			{
 				LearnerGraph ptaBuilt = ptaConstructor.buildPTA();
@@ -307,7 +306,7 @@ public class MarkovExperiment
 				
 	 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 	 			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-	 			saveGraph("outcome-",actualAutomaton);
+	 			saveGraph(nameOUTCOME,actualAutomaton);
 			}
 
 			dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker);

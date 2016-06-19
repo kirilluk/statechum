@@ -55,7 +55,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	{
 		par = parameters;
 		learnerInitConfiguration = eval;
-		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator+par.getRowID();
+		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 		mkDir(outDir);
 		graphFileNameDir = outDir + File.separator;
 	}
@@ -80,7 +80,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		LearnerGraph outcome = null;
 		if (!alwaysRunExperiment)
 		{
-			String graphFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+graphPrefix,par);
+			String graphFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par);
 			
 	    	if (new File(graphFileName).canRead())
 	    	{
@@ -104,7 +104,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	
 	public void saveGraph(String graphPrefix, LearnerGraph outcome) throws IOException
 	{
-		outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+graphPrefix,par));	
+		outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par));	
 	}
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()
@@ -152,6 +152,8 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 		LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException;
 	}
 
+	public static String namePTA="pta", namePTABEFORECENTRE="pbc",nameOUTCOME="outcome";
+	
 	public static class ScoringModeScore
 	{
 		public final Configuration.ScoreMode scoringForEDSM;
@@ -184,7 +186,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public ScoresForGraph runExperimentUsingConventional(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
-		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -195,7 +197,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
  			
- 			saveGraph(experimentName,actualAutomaton);
+ 			saveGraph(nameOUTCOME,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -210,7 +212,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
-		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -222,7 +224,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
- 			saveGraph(experimentName,actualAutomaton);
+ 			saveGraph(nameOUTCOME,actualAutomaton);
 		}
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
@@ -246,7 +248,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
-		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		double fanoutPos=0, fanoutNeg = 0;
 		int ptaStateNumber=0;
 		long runTime = 0;
@@ -281,7 +283,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
  			actualAutomaton.setName(experimentName+"-actual");
- 			saveGraph(experimentName,actualAutomaton);
+ 			saveGraph(nameOUTCOME,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -299,7 +301,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results. The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new state in order to persuade the learner to merge the right states.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
-		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		int ptaStateNumber = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
@@ -319,7 +321,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
 			actualAutomaton.setName(experimentName+"-actual");
-			saveGraph(experimentName,actualAutomaton);
+			saveGraph(nameOUTCOME,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -347,7 +349,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	public ScoresForGraph runExperimentUsingConstraints(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
-		LearnerGraph actualAutomaton = loadOutcomeOfLearning(experimentName);
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -360,7 +362,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
-			saveGraph(experimentName,actualAutomaton);
+			saveGraph(nameOUTCOME,actualAutomaton);
 		}		
 		
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);

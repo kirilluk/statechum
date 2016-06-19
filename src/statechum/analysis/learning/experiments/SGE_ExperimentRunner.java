@@ -312,15 +312,20 @@ public class SGE_ExperimentRunner
 			return name.replaceAll("[:\\// ]", "_");
 		}
 		
-		public static String constructFileName(String dirToUse, ThreadResultID par)
+		public static String constructFileName(String dirToUse, String prefix, ThreadResultID par)
 		{
 			String pathName = 
 			 dirToUse+sanitiseFileName(par.getSubExperimentName())+"-"+
 					sanitiseFileName(par.getRowID());
 			statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName(par.getColumnID());
+			return pathName+File.separator+sanitiseFileName((prefix == null?"":prefix+"-")+par.getColumnID());
 		}
 
+		public static String constructFileName(String dirToUse, ThreadResultID par)
+		{
+			return constructFileName(dirToUse,null,par);
+		}
+		
 		protected String constructFileName(int rCounter)
 		{
 			if (!taskIDToParameters.containsKey(rCounter))

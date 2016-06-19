@@ -227,7 +227,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 			@Override
 			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
 			{
-				saveGraph(kindOfPTA(),pta);
+				saveGraph(namePTA,pta);
 				return pta;
 			}
 		};

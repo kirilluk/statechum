@@ -51,7 +51,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 public class CVS_With_Random_traces_Generation
 {
 	public static final String directoryNamePrefix = "cvs_june_2016";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public static class MarkovLearnerUsingReference extends MarkovLearnerRunner

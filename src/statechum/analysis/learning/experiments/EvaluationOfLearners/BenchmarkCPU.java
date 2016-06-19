@@ -61,7 +61,6 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
 	public static final String directoryNamePrefix = "benchmark_learners_Apr_2016";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public BenchmarkCPU(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
@@ -317,7 +316,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 			}
 		};
 		
-		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
+		List<BenchmarkCPU> listOfExperiments = new ArrayList<BenchmarkCPU>();
 		
 		try
 		{
@@ -355,7 +354,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
 												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
-												EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
+												BenchmarkCPU learnerRunner = new BenchmarkCPU(par, ev);
 												//learnerRunner.setAlwaysRunExperiment(true);
 												listOfExperiments.add(learnerRunner);
 											}
@@ -370,7 +369,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 
 		try
 		{
-	    	for(EvaluationOfLearners e:listOfExperiments)
+	    	for(BenchmarkCPU e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		}

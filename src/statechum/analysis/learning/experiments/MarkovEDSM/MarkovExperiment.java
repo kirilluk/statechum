@@ -93,7 +93,6 @@ public class MarkovExperiment
 {
 	
 	public static final String directoryNamePrefix = "markov_june_2016";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>

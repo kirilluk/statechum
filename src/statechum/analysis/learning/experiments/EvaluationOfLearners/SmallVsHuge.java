@@ -65,7 +65,6 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
 	public static final String directoryNamePrefix = "small_vs_huge";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)

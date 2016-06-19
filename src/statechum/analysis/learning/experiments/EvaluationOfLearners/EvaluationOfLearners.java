@@ -61,7 +61,6 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
 	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public EvaluationOfLearners(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)

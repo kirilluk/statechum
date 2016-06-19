@@ -54,7 +54,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubEx
 public class CVS
 {
 	public static final String directoryNamePrefix = "cvs_from_existing_trace_june_2016";
-	public static final String directoryExperimentData = directoryNamePrefix+File.separator+"experimentdata"+File.separator;
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public static class MarkovLearnerFromPTAUsingReference extends MarkovLearnerRunner

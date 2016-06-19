@@ -267,6 +267,7 @@ public class MarkovExperiment
 	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	 				markovLearner.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);markovLearner.setUseClassifyPairs(par.useClassifyToOrderPairs);
 	 				markovLearner.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
+	 				markovLearner.setWeightOfInconsistencies(par.weightOfInconsistencies);
 	 				learnerOfPairs = markovLearner;
 	 				break;
 	 			case LEARNER_EDSM2:
@@ -414,6 +415,7 @@ public class MarkovExperiment
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
 		long comparisonsPerformed = 0;
+		double weightOfInconsistencies = 1.0;
 		
 		boolean useNewScoreNearRoot = false, useClassifyPairs = false;
 
@@ -426,7 +428,12 @@ public class MarkovExperiment
 		{
 			useClassifyPairs = v;
 		}
-
+		
+		public void setWeightOfInconsistencies(double value)
+		{
+			weightOfInconsistencies = value;
+		}
+		
 		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 
 		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
@@ -470,7 +477,7 @@ public class MarkovExperiment
 				if (!disableInconsistenciesInMergers)
 					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
 				
-				score=genScore-currentInconsistency;
+				score=Math.round(genScore-weightOfInconsistencies*currentInconsistency);
 				
 				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 				{
@@ -774,7 +781,7 @@ public class MarkovExperiment
 						for(boolean aveOrMax:new boolean[]{true,false})
 							for(int divisor:new int[]{1,2,4})
 								for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0}:new double[]{1.0})
+									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
 									{
 										LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 										ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -823,6 +830,7 @@ public class MarkovExperiment
 						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 					}
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 					experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 				}

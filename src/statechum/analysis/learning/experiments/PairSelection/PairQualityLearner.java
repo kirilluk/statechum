@@ -940,8 +940,9 @@ public class PairQualityLearner
 			
 			int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
 			//return (((double)referenceEdges-changesCounter.getRemoved())/referenceEdges+((double)actualEdges-changesCounter.getAdded())/actualEdges)/2;
-			return new DifferenceToReferenceDiff(((double)referenceEdges-changesCounter.getRemoved())/referenceEdges,
-					(((double)actualEdges-changesCounter.getAdded())/actualEdges));
+			return new DifferenceToReferenceDiff(
+					referenceEdges == 0?0:((double)referenceEdges-changesCounter.getRemoved())/referenceEdges,
+					actualEdges == 0?0:(((double)actualEdges-changesCounter.getAdded())/actualEdges));
 		}
 	}
 	

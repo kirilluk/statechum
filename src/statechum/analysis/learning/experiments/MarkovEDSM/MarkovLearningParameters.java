@@ -155,8 +155,8 @@ public class MarkovLearningParameters implements ThreadResultID
 		return outcome;
 	}
 
-	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","Time"},
-			cellheaderConventional = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","centreCorrect","Time"};
+	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","%transitions","Time"},
+			cellheaderConventional = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","centreCorrect","%transitions","Time"};
 	
 	@Override
 	public String[] headerValuesForEachCell() 

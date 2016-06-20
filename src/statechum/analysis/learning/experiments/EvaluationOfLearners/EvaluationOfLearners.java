@@ -320,7 +320,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		
 		try
 		{
-			for(int states:new int[]{35})
+			for(int states:new int[]{5,10,20,40})
 				for(boolean unique:new boolean[]{true,false})
 				{
 					int seedThatIdentifiesFSM=0;
@@ -328,19 +328,19 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY,// this one will switch to LINKEDHASH when the amount of data is small.
-									//Configuration.STATETREE.STATETREE_LINKEDHASH
+									Configuration.STATETREE.STATETREE_LINKEDHASH
 									})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
 									for(int traceQuantity:new int[]{1,8})
 										for(int traceLengthMultiplier:new int[]{1,8})
-											if (traceQuantity*traceLengthMultiplier == 64) // <= 64)
+											if (traceQuantity*traceLengthMultiplier <= 64)
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),/*
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_10),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_12),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_12),/*
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),*/
@@ -355,7 +355,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
 												EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
-												//learnerRunner.setAlwaysRunExperiment(true);
+												learnerRunner.setAlwaysRunExperiment(true);
 												listOfExperiments.add(learnerRunner);
 											}
 								}

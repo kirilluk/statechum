@@ -764,7 +764,6 @@ public class MarkovExperiment
 		
 		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		int invocationCount=0;
 		for(final int preset: new int[]{0,1,2})//0,1,2})
 		{
 			final int traceQuantityToUse = traceQuantity;
@@ -797,50 +796,46 @@ public class MarkovExperiment
 										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
 										learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 										experimentRunner.submitTask(learnerRunner);
-										++invocationCount;
 									}
 			}
 		}
 		
-		for(int cnt=0;cnt<invocationCount;++cnt)
-		{
+		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
 
-			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
-
-				@Override
-				public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
-				{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
-					SampleData sm = result.samples.get(0);
-					ScoresForGraph data=sm.actualLearner;
-					
-					StringBuffer csvLine = new StringBuffer();
-					csvLine.append(data.differenceBCR.getValue());
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
-
-					if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-					{
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
-						CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
-					}
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
-					experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				}
+			@Override
+			public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException 
+			{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
+				SampleData sm = result.samples.get(0);
+				ScoresForGraph data=sm.actualLearner;
 				
-				@Override
-				public SGEExperimentResult[] getGraphs() {
-					
-					return new SGEExperimentResult[]{resultCSV};
+				StringBuffer csvLine = new StringBuffer();
+				csvLine.append(data.differenceBCR.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
+
+				if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+				{
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 				}
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
+				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+			}
+			
+			@Override
+			public SGEExperimentResult[] getGraphs() {
 				
-			});
-		}
+				return new SGEExperimentResult[]{resultCSV};
+			}
+			
+		});
+		
 		for(final int preset: new int[]{0,1,2})//0,1,2})
 		{
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)

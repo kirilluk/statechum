@@ -1230,11 +1230,9 @@ public class ExperimentPaperUAS
     	System.gc();
     	try
     	{
-    		int nrOfExperiments = listOfExperiments.size();
 	    	for(UASCaseStudy e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
-	    	for(int i=0;i<nrOfExperiments;++i)
-	    		experimentRunner.collectOutcomeOfExperiments(resultHandler);
+    		experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		}
 		finally
 		{

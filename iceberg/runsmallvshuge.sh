@@ -14,6 +14,6 @@ if [ -z ${TASKNUMBER+x} ];then
 fi
 
 # thanks to http://collaborate.bu.edu/linga/SGE/JobArray
-JID=`qsub -terse -cwd -o /dev/null -e /dev/null -t 1-$TASKNUMBER ${WHATTORUN} | sed -r "s/\.(.*)//"`
+JID=`qsub -terse -cwd -o /dev/null -e /dev/null -l h_rt=576000 -t 1-$TASKNUMBER ${WHATTORUN} | sed -r "s/\.(.*)//"`
 qsub -cwd -terse -cwd -o data/collate.o -e data/collate.e -hold_jid $JID -m e  -M ${EMAIL} ${WHATTORUN}
 

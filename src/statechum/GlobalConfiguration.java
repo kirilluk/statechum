@@ -75,7 +75,8 @@ public class GlobalConfiguration {
 		,CLOSE_TERMINATE // whether closing of the viewer window should terminate JVM, usually false but is set to true when launched via GraphMLVisualiser
 		,ERLANG_SHORTNODENAME // whether to use Erlang short node names
 		,SGE_MAP_FILENAMEPREFIX // the prefix of the name of the file containing a map from virtual task names to lists of actual tasks to run for each virtual task.
-		,SGE_EXECUTIONTIME_SCALING // the scale factor to apply to execution time, in order to normalise it to iceberg-level CPUs, while running an experiment on a range of different computers. 
+		,SGE_EXECUTIONTIME_SCALING // the scale factor to apply to execution time, in order to normalise it to iceberg-level CPUs, while running an experiment on a range of different computers.
+		,SGE_DISABLEGRAPHSAVE // to avoid filling the filesystem, we do not save PTAs or final graphs.
 		;
 	}
 
@@ -118,6 +119,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.CLOSE_TERMINATE, "false");
 		defaultValues.put(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX,"default");
 		defaultValues.put(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, "");		
+		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "false");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

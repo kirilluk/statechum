@@ -104,6 +104,6 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public int executionTimeInCell() 
 	{
-		return -1;
+		return 3;
 	}
 }

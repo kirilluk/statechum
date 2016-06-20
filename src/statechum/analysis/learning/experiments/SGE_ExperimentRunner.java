@@ -420,7 +420,8 @@ public class SGE_ExperimentRunner
 					}
 					else
 					if (name.equals(CPUSPEEDFIELD))
-					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type. 
+					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type.
+						updateCRC(crc,line);
 					}
 					else
 					{// normal field
@@ -489,7 +490,8 @@ public class SGE_ExperimentRunner
 					}
 					else
 					if (name.equals(CPUSPEEDFIELD))
-					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type. 
+					{// cpu field, ignored because its purpose is to ensure we can split tasks into those run on different CPU types on Iceberg, therefore permitting adjustment of the time correction value for each cpu type.
+						updateCRC(crc,line);
 					}
 					else
 					{// normal field

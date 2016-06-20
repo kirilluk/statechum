@@ -104,7 +104,7 @@ public  abstract  class UASExperiment<PARS extends ThreadResultID,TR extends Thr
 	
 	public void saveGraph(String graphPrefix, LearnerGraph outcome) throws IOException
 	{
-		if (!Boolean.getBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_DISABLEGRAPHSAVE)))
+		if (!Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_DISABLEGRAPHSAVE)))
 			outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par));	
 	}
 	

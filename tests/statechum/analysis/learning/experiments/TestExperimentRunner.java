@@ -758,7 +758,7 @@ public class TestExperimentRunner {
 				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"100"});
 			}
 			
-		}, IllegalArgumentException.class,"Array task number ");		
+		}, IllegalArgumentException.class,"Array task number ");
 	}
 	
 	/** An unrecognised command provided to the Grid mode. */ 

@@ -815,13 +815,27 @@ public class TestDrawGraphs {
 				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
 	}
 
+	public static void mkDirRetryOnFail(File dir)
+	{
+		if (!dir.isDirectory()) 
+		{
+			if (!dir.mkdir())
+			{
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					// can be safely ignored
+				}
+				Assert.assertTrue("could not create "+dir.getAbsolutePath(),dir.mkdir());
+			}
+		}
+		
+	}
 	@Before
 	public void before()
 	{
-		if (!tmpDir.isDirectory()) 
-			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
-		if (!testDir.isDirectory()) 
-			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+		mkDirRetryOnFail(tmpDir);
+		mkDirRetryOnFail(testDir);
 	}
 
 	@After

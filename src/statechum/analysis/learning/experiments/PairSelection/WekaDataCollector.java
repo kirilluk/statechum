@@ -35,7 +35,8 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
-import weka.core.FastVector;
+import weka.core.BinarySparseInstance;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -65,8 +66,7 @@ public class WekaDataCollector
 	 */
 	public WekaDataCollector()
 	{
-		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
-		classAttribute = new Attribute("class",vecBool);
+		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
 	protected int n,L;
@@ -110,10 +110,10 @@ public class WekaDataCollector
 		instanceLength = (int)instanceLen;
 
 		
-		FastVector attributes = new FastVector(instanceLength+1);
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>(instanceLength+1);
 		attributesOfAnInstance = new Attribute[instanceLength];
-		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.addElement(attributesOfAnInstance[i]);
-		attributes.addElement(classAttribute);
+		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.add(attributesOfAnInstance[i]);
+		attributes.add(classAttribute);
 		trainingData = new Instances(trainingSetName,attributes,capacity);
 		trainingData.setClass(classAttribute);
 	}
@@ -175,6 +175,13 @@ public class WekaDataCollector
 		return outcome;
 	}
 	
+	protected boolean useDenseInstance = false;
+	
+	public void setUseDenseInstance(boolean value)
+	{
+		useDenseInstance = value;
+	}
+	
 	/** Constructs a Weka {@link Instance} for a pair of interest.
 	 * 
 	 * @param comparisonResults metrics related to the considered pair.
@@ -191,7 +198,8 @@ public class WekaDataCollector
 			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
 		
 		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
-		Instance outcome = new Instance(1,instanceValues);outcome.setDataset(trainingData);
+		Instance outcome = useDenseInstance?new DenseInstance(1,instanceValues):new BinarySparseInstance(1,instanceValues);
+		outcome.setDataset(trainingData);
 		return outcome;
 	}
 	
@@ -462,9 +470,7 @@ public class WekaDataCollector
 		
 		protected PairRankingSupport(String name, String [] range)
 		{
-			FastVector vecA = new FastVector(3);
-			for(String v:range) vecA.addElement(v);
-			att = new Attribute(name,vecA);
+			att = new Attribute(name,Arrays.asList(range));
 		}
 
 		@Override

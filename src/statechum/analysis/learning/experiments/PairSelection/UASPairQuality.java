@@ -318,9 +318,8 @@ public class UASPairQuality extends ExperimentPaperUAS
     		// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
    		// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
  		weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
- 		weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
  		weka.classifiers.functions.MultilayerPerceptron perceptron = new weka.classifiers.functions.MultilayerPerceptron();
- 		Classifier []outcome = new Classifier[]{ib1};//tree};//,tree48,ibk};//,perceptron};
+ 		Classifier []outcome = new Classifier[]{tree48};//tree};//,tree48,ibk};//,perceptron};
  		for(Classifier c:outcome) trainClassifierFromArff(c,arffWithTrainingData);
  		return outcome;
     }

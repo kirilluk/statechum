@@ -44,7 +44,7 @@ import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.core.Attribute;
-import weka.core.FastVector;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -331,14 +331,14 @@ public class TestWekaPairClassifier {
 	public void TestCreateInstances1()
 	{
 		int attributeNumber = 4;
-		FastVector vecA = new FastVector(3);vecA.addElement(WekaDataCollector.MINUSONE);vecA.addElement(WekaDataCollector.ZERO);vecA.addElement(WekaDataCollector.ONE);
-		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
+		List<String> vecA = new ArrayList<String>(3);vecA.add(WekaDataCollector.MINUSONE);vecA.add(WekaDataCollector.ZERO);vecA.add(WekaDataCollector.ONE);
+		List<String> vecBool = new ArrayList<String>(2);vecBool.add(Boolean.TRUE.toString());vecBool.add(Boolean.FALSE.toString());
 		Attribute attrA = new Attribute("a", vecA), attrB= new Attribute("b",vecA), attrC=new Attribute("c",vecA),attrClass=new Attribute("class",vecBool);
 		
-		FastVector attributes = new FastVector(attributeNumber);attributes.addElement(attrA);attributes.addElement(attrB);attributes.addElement(attrC);attributes.addElement(attrClass);
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>(attributeNumber);attributes.add(attrA);attributes.add(attrB);attributes.add(attrC);attributes.add(attrClass);
 		Instances trainingData = new Instances("trainingdata",attributes,10);// this assigns indices to attributes, without these indices I cannot create instances.
 		trainingData.setClassIndex(attrClass.index());
-		Instance inst = new Instance(attributeNumber);
+		Instance inst = new DenseInstance(attributeNumber);
 		inst.setValue(attrA,0);inst.setValue(attrB, 1);inst.setValue(attrC, 1);inst.setValue(attrClass, 0);
 		Assert.assertEquals(4,trainingData.numAttributes());
 		Assert.assertEquals(0,trainingData.numInstances());
@@ -484,9 +484,9 @@ public class TestWekaPairClassifier {
 	
 	/** Construction of instances. */
 	@Test
-	public void TestCreateInstances2()
+	public void TestCreateInstances2a()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector();classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -511,12 +511,35 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(WekaDataCollector.ONE,instance.stringValue(classifier.attributesOfAnInstance[0]));
 		Assert.assertEquals(WekaDataCollector.ZERO,instance.stringValue(classifier.attributesOfAnInstance[1]));
 	}
+	/** Construction of instances. */
+	@Test
+	public void TestCreateInstances2b()
+	{
+		WekaDataCollector classifier = new WekaDataCollector();classifier.setUseDenseInstance(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
 
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		classifier.initialise("TestCreateInstances2", 0, assessors,0);
+		
+		Instance instance = classifier.constructInstance(new int []{1,0},true);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
+	}
+	
 	/** Construction of instances. Same as TestCreateInstances2 but initialises with zero max number of values in the training set. */
 	@Test
 	public void TestCreateInstances3()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector();classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{
@@ -594,7 +617,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances5()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector();classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
@@ -793,7 +816,7 @@ public class TestWekaPairClassifier {
 	@Before
 	public void beforeTest()
 	{
-		testClassifier = new WekaDataCollector();
+		testClassifier = new WekaDataCollector();testClassifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(testClassifier.new PairRank("statechum score")
 		{// 1

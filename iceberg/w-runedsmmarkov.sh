@@ -1,5 +1,5 @@
 #!/bin/sh
-#$ -l mem=20G -l rmem=14g
+#$ -l mem=20G -l rmem=14g -l 'arch=intel*'
 
 EXPERIMENT=statechum.analysis.learning.experiments.PairSelection.MarkovLearnerExperimentWithStatisticalAnalysis
 

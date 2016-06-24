@@ -119,7 +119,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.CLOSE_TERMINATE, "false");
 		defaultValues.put(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX,"default");
 		defaultValues.put(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, "");		
-		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "false");
+		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "true");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

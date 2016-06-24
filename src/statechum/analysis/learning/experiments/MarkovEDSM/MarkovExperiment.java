@@ -188,12 +188,13 @@ public class MarkovExperiment
 			Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
 
 			boolean correctCentre = true;
+			int centrePathNumber = 0;
 			if (par.useCentreVertex)
 			{
 				saveGraph(namePTABEFORECENTRE,pta);
 				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount);
-				
+				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount,par.expectedWLen);
+				centrePathNumber = pathsToMerge.size();
 				// These vertices are merged first and then the learning start from the root as normal.
 				// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
 				verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
@@ -314,6 +315,7 @@ public class MarkovExperiment
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
 			dataSample.centreCorrect = correctCentre;
+			dataSample.centrePathNumber = centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
@@ -775,7 +777,7 @@ public class MarkovExperiment
 			{
 				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
-						for(boolean aveOrMax:new boolean[]{true})
+						for(boolean aveOrMax:new boolean[]{false})
 							for(int divisor:new int[]{2})
 								for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
 									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0,6.0}:new double[]{1.0})
@@ -790,7 +792,7 @@ public class MarkovExperiment
 										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,0);
+										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										parameters.setDisableInconsistenciesInMergers(false);
 										parameters.setUsePrintf(experimentRunner.isInteractive());
 										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

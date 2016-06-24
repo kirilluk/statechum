@@ -1264,16 +1264,16 @@ public class MarkovClassifier
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @param useAverageOfMax if true, takes an average, divides by divisor and uses this value; for false, uses a maximal value and divides that.
 	 * @param divisor permits one to select a subset of paths that are not often used.
+	 * @param WLength The length of sequences to check from every state. The usual starting value is 1 which is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
 	 * @return paths to uniquely identify states.
 	 */
-	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor)
+	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor, final int WLength)
 	{
 		if (model.getChunkLen() < 2)
 			throw new IllegalArgumentException("not enough data for a first-order Markov model");
 		
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
-		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
 		List<List<Label>> whatToMerge = Collections.emptyList();
 
 		final AtomicLong maxCount = new AtomicLong(0), sumInPta = new AtomicLong(0), pathsExplored = new AtomicLong(0);

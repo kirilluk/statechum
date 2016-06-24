@@ -999,6 +999,9 @@ public class PairQualityLearner
 		/** Whether our selection of a centre vertex was correct. */
 		public boolean centreCorrect;
 		
+		/** The number of paths that were merged before identification of a centre vertex. */
+		public int centrePathNumber = 0;
+		
 		public long traceNumber = 0;
 		
 		/** Number of states in the reference graph. */

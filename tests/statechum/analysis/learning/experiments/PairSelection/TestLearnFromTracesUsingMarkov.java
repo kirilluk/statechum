@@ -208,7 +208,7 @@ public class TestLearnFromTracesUsingMarkov {
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		//long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 		MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-		final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, false,2);
+		final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, false,2,1);
 		
 		// These vertices are merged first and then the learning start from the root as normal.
 		// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results

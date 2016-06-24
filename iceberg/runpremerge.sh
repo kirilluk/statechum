@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WHATTORUN=w-runedsmmarkov.sh
+WHATTORUN=w-runpremerge.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
 [ -r data ] || mkdir data

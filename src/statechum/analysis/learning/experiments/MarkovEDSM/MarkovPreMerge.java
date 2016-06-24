@@ -247,7 +247,7 @@ public class MarkovPreMerge
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 						for(boolean aveOrMax:new boolean[]{false})
 							for(int divisor:new int[]{1})
-								for(int positionOfMostConnectedVertex:new int []{0,1,2,3,4})
+								for(int positionOfMostConnectedVertex:(preset == 0?new int[]{0}:new int []{0,1,2,3}))
 									for(LearnerToUseEnum learnerKind:new LearnerToUseEnum[]{LearnerToUseEnum.LEARNER_EDSMMARKOV,LearnerToUseEnum.LEARNER_SICCO,LearnerToUseEnum.LEARNER_KTAILS_1})
 										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{1.0,2.0,4.0}:new double[]{1.0})
 										{

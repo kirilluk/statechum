@@ -50,7 +50,7 @@ public class ComputeExecutionTimeCorrectionValue
 	public static void main(String []ignored)
 	{
 		String[] args={"COLLECT_RESULTS"};
-		String directoryToUse[] = new String[]{"evaluation_of_learners_Apr_2016","E5_2650-benchmark_learners_Apr_2016","m6e_benchmark_learners_Apr_2016"};
+		String directoryToUse[] = new String[]{"evaluation_of_learners_Apr_2016","E5_2650-benchmark_learners_Apr_2016","m6e_benchmark_learners_Apr_2016","regi_benchmark_learners_Apr_2016"};
 		List<CSVExperimentResult> csvOfExperiment = new ArrayList<CSVExperimentResult>();
 		for(final String directoryNamePrefix:directoryToUse)
 		{
@@ -164,6 +164,8 @@ public class ComputeExecutionTimeCorrectionValue
 		System.out.println("iceberg v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(2), par, 3600L*4L,50);
 		System.out.println("m6e v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
+		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(3), par, 3600L*4L,20);
+		System.out.println("regi v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		
 	}

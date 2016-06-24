@@ -42,7 +42,7 @@ import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -1431,7 +1431,7 @@ public class MarkovClassifier
 		
 		for(Label l:referenceGraph.getCache().getAlphabet())
 		{
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
+			CmpVertex vertexIdentified = LearningSupportRoutines.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
 			if(vertexIdentified != null)
 				uniquelyIdentifiableVertices.add(vertexIdentified);
 		}
@@ -1455,7 +1455,7 @@ public class MarkovClassifier
 		
 		for(List<Label> l:whatToMerge)
 		{
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,l);
+			CmpVertex vertexIdentified = LearningSupportRoutines.checkSeqUniqueOutgoing(referenceGraph,l);
 			if (vertexIdentified != null)
 				identifiedVertices.add(vertexIdentified);
 		}

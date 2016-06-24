@@ -26,7 +26,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
@@ -127,7 +127,7 @@ public class TestLearnFromTracesUsingMarkov {
 		@Override
 		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 		{
-			return	MarkovPassivePairSelection.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 		}
 	}
 	
@@ -220,7 +220,7 @@ public class TestLearnFromTracesUsingMarkov {
 		int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 		assert scoreInitialMerge >= 0;
 		final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null,false);
-		final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
+		final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta),0);
 		ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 		ptaAfterInitialMerge.pathroutines.updateDepthLabelling();// this is needed in order for the .toString() to give the correct depth values in vertex details.
 		ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
@@ -230,7 +230,7 @@ public class TestLearnFromTracesUsingMarkov {
 		// These have been recorded, there is no specific reason for the numbers to be as they are. We need them for regression testing.
 		Assert.assertEquals(6438,vertexWithMostTransitions.getIntegerID());
 		Assert.assertTrue(vertexWithMostTransitions.isAccept());
-		Assert.assertEquals(26, MarkovPassivePairSelection.countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+		Assert.assertEquals(26, WaveBlueFringe.countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 		
 		// Check that Markov matrix is the right one
 		Map<String,MarkovOutcome> map = new TreeMap<String,MarkovOutcome>();for(Entry<List<Label>, MarkovOutcome> entry:m.computePredictionMatrix().entrySet()) map.put(entry.getKey().toString(), entry.getValue()); 

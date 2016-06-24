@@ -18,10 +18,10 @@
 
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,32 +30,18 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import statechum.Configuration;
-import statechum.Configuration.STATETREE;
-import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
-import statechum.ProgressIndicator;
-import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RBoxPlot;
-import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -73,81 +59,373 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class WaveBlueFringe extends PairQualityLearner
 {
-
-	
-	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifier ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
+	/** Given a graph, computes transitions exiting a supplied state that lead to non-red states.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param currentRed the state of interest
+	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param whereToAddTransitions collection of transitions to populate, not a map to permit non-deterministic choice.
+	 */
+	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
+		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean ignoreSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
 	{
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
-		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);
-		
-		Set<CmpVertex> tr=graph.transform.trimGraph(10, graph.getInit()).transitionMatrix.keySet();
-		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
+		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
+			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
+				if (v.getColour() != JUConstants.RED && (ignoreSelf || v != currentRed))
+					whereToAddTransitions.add(new Map.Entry<Label,CmpVertex>(){
+						final Label key = incoming.getKey();
+						final CmpVertex target = v;
+						@Override
+						public Label getKey() {
+							return key;
+						}
 
-		constructPairsToMergeBasedOnSetsToMerge(graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA);		
-		for(CmpVertex v0:tr)
-			for(CmpVertex v1:tr)
-				if (v0 != v1)
-				{
-					PairScore p = new PairScore(v0,v1,0,0);
-					ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
-					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
-					
-					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
-					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
-					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker, false);
-					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
-					{
-						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
-						System.out.println( "R: " + graph.transitionMatrix.get(p.getR())+" B: "+graph.transitionMatrix.get(p.getQ()));
-					}
-				}
-		
-		System.out.println("finished dumping inconsistencies");
-	}
+						@Override
+						public CmpVertex getValue() {
+							return target;
+						}
 
-	/** Given a collection of collections of paths, such that target state of each sequence in the inner collection is to be merged, computes a collection of pairs of states that are to be merged. */ 
-	public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
-	{
-		List<StatePair> listOfPairs = new LinkedList<StatePair>();
-		for(List<List<Label>> lotOfPaths:pathsToMerge)
-		{
-			CmpVertex firstVertex = graph.getVertex(lotOfPaths.get(0));
-			for(List<Label> seq:lotOfPaths)
-				listOfPairs.add(new StatePair(firstVertex,graph.getVertex(seq)));
-		}
-		return listOfPairs;
+						@Override
+						public CmpVertex setValue(@SuppressWarnings("unused") CmpVertex value) 
+						{
+							throw new UnsupportedOperationException("changing values of this map entry is not permitted");
+						}});
 	}
 	
-	/** Given a collection of vertices to merge, constructs a collection of pairs to merge. */
-	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
+	/** Given a graph and its inverse, computes transitions exiting a supplied state.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param current the state of interest
+	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param number of outgoing transitions.
+	 */
+	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
+		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean ignoreSelf)
 	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
-		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
+		long outcome = 0;
+		
+		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(current).entrySet())
+			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
+				if ( (ignoreSelf || v != current) )
+					++outcome;
+
+		return outcome;
+	}
+	
+	/** Given a graph and its inverse, computes transitions entering/exiting a supplied state that lead to non-red states.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @param currentRed the state of interest
+	 * @return collection of transitions, not a map to permit non-deterministic choice. 
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		Collection<Map.Entry<Label,CmpVertex>> obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
+	{
+		Collection<Entry<Label,CmpVertex>> surroundingTransitions = new ArrayList<Entry<Label,CmpVertex>>();
+		addTransitionsFrom(coregraph, currentRed,true, surroundingTransitions);addTransitionsFrom(inverseGraph, currentRed,false, surroundingTransitions);
+		return surroundingTransitions;
+	}
+
+	/** Given a graph and its inverse, counts transitions entering/exiting a supplied state.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @param current the state of interest
+	 * @return number of transitions 
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		long countTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex current)
+	{
+		return countTransitionsFrom(coregraph, current,true)+countTransitionsFrom(inverseGraph, current,false);
+	}
+
+	/** Identifies a vertex with the maximal number of incoming and outgoing transitions.
+	 * 
+	 * @param coregraph graph to consider
+	 * @param inverseGraph the inverse of the graph to consider
+	 * @param whichMostConnectedVertex if we order vertices starting with the most connected one, this one selects which of those vertices to report, starting from 0.
+	 * @return vertex with the maximal number of incoming and outgoing transitions.
+	 */
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		CmpVertex findVertexWithMostTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, int whichMostConnectedVertex)
 		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
-			if (validStatesInGroup.size() > 1)
+			if (whichMostConnectedVertex < 0)
+				throw new IllegalArgumentException("whichMostConnectedVertex should be non-negative");
+			if (coregraph.transitionMatrix.isEmpty())
+				return null;// with no transitions, nothing to report.
+			// by abuse of PairScore, we record vertex-connectivity association. The last element is where the new elements appear before they are sorted in.
+			PairScore mostConnected[] = new PairScore[whichMostConnectedVertex+2];
+			PairScore dummyPair = new PairScore(null,null,-1,0);
+			Arrays.fill(mostConnected, dummyPair);
+			for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			{
-				CmpVertex v0=validStatesInGroup.iterator().next();
-				for(CmpVertex v:validStatesInGroup)
+				long size = obtainSurroundingTransitions(coregraph,inverseGraph,v).size();
+				if (size > mostConnected[whichMostConnectedVertex].getScore())
 				{
-					if (v != v0)
-						pairsList.add(new StatePair(v0,v));
-					v0=v;
+					mostConnected[whichMostConnectedVertex+1]=new PairScore(v,v,size,0);
+					// now sort the buffer. This is not the most efficient way to add elements to a sorted array, but Java implementation claims to be reasonably efficient, we do not have many elements in the array and not having to implement the insertion routine cuts down on the amount of unit testing for this routine.
+					Arrays.sort(mostConnected, new Comparator<PairScore>(){
+
+						@Override
+						public int compare(PairScore o1, PairScore o2) {
+							long diff = o2.getScore()-o1.getScore();
+							if (diff > 0)
+								return 1;
+							if (diff < 0)
+								return -1;
+							return 0;
+						}});
 				}
 			}
+			int stateNumber = coregraph.transitionMatrix.size();
+			PairScore whatToReturn = null;
+			if (whichMostConnectedVertex >= stateNumber)
+				whatToReturn = mostConnected[stateNumber-1];// return the last valid element
+			else
+				whatToReturn = mostConnected[whichMostConnectedVertex];
+			assert whatToReturn.getScore() >= 0;
+			return whatToReturn.firstElem;
 		}
-		return pairsList;
-	}
+		
+		
+	/** An extension of {@Link PairScore} with Markov distance. */
+	public static class PairScoreWithDistance extends PairScore
+	{
+		private double distance;
 
+		public PairScoreWithDistance(PairScore p, double d) {
+			super(p.getQ(), p.getR(), p.getScore(), p.getAnotherScore());distance = d;
+		}
+
+		double getDistanceScore()
+		{
+			return distance;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = super.hashCode();
+			long temp;
+			temp = Double.doubleToLongBits(distance);
+			result = prime * result + (int) (temp ^ (temp >>> 32));
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (!super.equals(obj))
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			PairScoreWithDistance other = (PairScoreWithDistance) obj;
+			if (Double.doubleToLongBits(distance) != Double
+					.doubleToLongBits(other.distance))
+				return false;
+			return true;
+		}
+
+		@Override
+		public String toString()
+		{
+			return "[ "+getQ().getStringId()+"("+getQ().isAccept()+","+getQ().getDepth()+"), "+getR().getStringId()+"("+getR().isAccept()+","+getR().getDepth()+") : "+getScore()+","+getAnotherScore()+","+distance+" ]";
+		}
+	}
+	
+	/** Uses the supplied classifier to rank pairs. */
+	public static class LearnerMarkovPassive extends LearnerThatCanClassifyPairs
+	{
+		private int num_states;
+		private int numtraceQuantity;
+		private int num_seed;
+		private int lengthMultiplier;
+		public MarkovModel Markov;
+		RedNodeSelectionProcedure computationOverride = null;
+	
+		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
+		{
+			pairQuality = argCounter;
+		}
+	
+		List<List<List<Label>>> pairsToMerge = null;
+	
+		public void setPairsToMerge(List<List<List<Label>>> pairs)
+		{
+			pairsToMerge = pairs;
+		}
+	
+		public List<List<List<Label>>> getPairsToMerge()
+		{
+			return pairsToMerge;
+		}
+	
+		public void  setlengthMultiplier(int setlengthMultiplier)
+		{
+			lengthMultiplier = setlengthMultiplier;
+		}
+	
+		public int  getlengthMultiplier()
+		{
+			return lengthMultiplier;
+		}
+	
+		public void set_States(int states) 
+		{
+			num_states=	states;		
+		}
+	
+		public MarkovModel Markov() 
+		{
+			return Markov;			
+		}
+	
+		public void setMarkovModel(MarkovModel m) 
+		{
+			Markov=m;
+		}
+	
+		public void set_traceQuantity(int traceQuantity) 
+		{
+			numtraceQuantity=traceQuantity;			
+		}
+	
+		public int get_States() 
+		{
+			return num_states;		
+		}
+	
+		public int get_traceQuantity() 
+		{
+			return numtraceQuantity;			
+		}
+	
+		public void set_seed(int i) 
+		{
+			num_seed=i;
+		}
+	
+		public int get_seed() 
+		{
+			return num_seed;
+		}
+	
+		public void setScoreComputationOverride(RedNodeSelectionProcedure c)
+		{
+			computationOverride = c;
+		}
+	
+	
+		/** During the evaluation of the red-blue pairs, where all pairs are predicted to be unmergeable, one of the blue states will be returned as red. */
+		protected boolean classifierToChooseWhereNoMergeIsAppropriate = false;
+	
+		/** Used to select next red state based on the subjective quality of the subsequent set of red-blue pairs, as determined by the classifier. */
+		protected boolean useClassifierToChooseNextRed = false;
+	
+		public void setUseClassifierForRed(boolean classifierForRed)
+		{
+			useClassifierToChooseNextRed = classifierForRed;
+		}
+	
+		public void setUseClassifierToChooseNextRed(boolean classifierToBlockAllMergers)
+		{
+			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
+		}
+	
+		/** Where a pair has a zero score but Weka is not confident that this pair should not be merged, where this flag, such a pair will be assumed to be unmergeable. Where there is a clearly wrong pair
+		 * detected by Weka, its blue state will be marked red, where no pairs are clearly appropriate for a merger and all of them have zero scores, this flag will cause a blue state in one of them to be marked red.  
+		 */
+		protected boolean blacklistZeroScoringPairs = false;
+	
+	
+		public void setBlacklistZeroScoringPairs(boolean value)
+		{
+			blacklistZeroScoringPairs = value;
+		}
+	
+		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		{
+			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
+		}
+	
+		public static String refToString(Object obj)
+		{
+			return obj == null?"null":obj.toString();
+		}
+	
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
+		{
+			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerMarkovPassive.this.computationOverride);
+	
+			if (!outcome.isEmpty())
+			{
+				PairScore result = null;
+				result=LearningSupportRoutines.pickPairQSMLike(outcome);
+				assert result!=null;
+				assert result.getScore()>=0;
+				outcome.clear();outcome.push(result);
+			}	
+			return outcome;
+	
+		}
+	
+		public static PairScore pickPairDISLike(Collection<PairScoreWithDistance> pairs)
+		{
+			assert pairs != null;
+			PairScoreWithDistance bestPair=null;
+			for(PairScoreWithDistance P:pairs)
+			{
+				if(bestPair == null || P.getAnotherScore() > bestPair.getAnotherScore())
+					bestPair=P;
+				else if(P.getAnotherScore() == bestPair.getAnotherScore())
+				{
+					if(P.getDistanceScore() > bestPair.getDistanceScore())
+						bestPair=P;	
+	
+					else if(Math.abs(P.getQ().getDepth()-P.getR().getDepth()) < Math.abs(bestPair.getQ().getDepth()-bestPair.getR().getDepth()))
+						bestPair=P;	
+				}
+			}
+			return bestPair;
+		}
+	
+		public List<PairScore> pickPairToRed(Collection<PairScore> pairs)
+		{
+			assert pairs != null;
+			List<PairScore> bad =new ArrayList<PairScore>();
+			PairScore badPair=null;
+			for(PairScore P:pairs)
+			{
+				if(badPair == null)
+					badPair=P;
+				else if(P.getScore() < badPair.getScore())
+					badPair=P;
+			}
+			bad.add(badPair);
+	
+			for(PairScore P:pairs)
+			{
+				if(badPair.getScore()==P.getScore() && !bad.contains(P))
+					bad.add(P);
+			}
+			return bad;
+		}
+	}
+	
 	public static class LearnerRunner implements Callable<ThreadResult>
 	{
 		protected final Configuration config;
@@ -323,7 +601,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 				// now use pathsToMerge to compute which states can/cannot be merged together.
-				LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
+				LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 				final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
 				//long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 				//System.out.println("Inconsistency of trimmed reference : "+inconsistencyForTheReferenceGraph);
@@ -340,11 +618,11 @@ public class WaveBlueFringe extends PairQualityLearner
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
 				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null, false);
-				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta));
+				final CmpVertex vertexWithMostTransitions = findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta),0);
 				ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
 				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaAfterInitialMerge);
-				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+MarkovPassivePairSelection.countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				
 				//learnerEval.config.setGeneralisationThreshold(1);
 				learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge);learnerOfPairs.setMarkovModel(m);
@@ -443,7 +721,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					@Override
 					public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 					{
-						return MarkovPassivePairSelection.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+						return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 					}
 
 				});
@@ -452,7 +730,7 @@ public class WaveBlueFringe extends PairQualityLearner
 
 				{
 					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, LearningSupportRoutines.constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, null, false);
 				}
@@ -493,369 +771,7 @@ public class WaveBlueFringe extends PairQualityLearner
 	}
 
 	
-	/** Given a graph, computes transitions exiting a supplied state that lead to non-red states.
-	 * 
-	 * @param coregraph graph to consider
-	 * @param currentRed the state of interest
-	 * @param ignoreSelf whether to include single-state loops. 
-	 * @param whereToAddTransitions collection of transitions to populate, not a map to permit non-deterministic choice.
-	 */
-	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean ignoreSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
-	{
-		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
-			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
-				if (v.getColour() != JUConstants.RED && (ignoreSelf || v != currentRed))
-					whereToAddTransitions.add(new Map.Entry<Label,CmpVertex>(){
-						final Label key = incoming.getKey();
-						final CmpVertex target = v;
-						@Override
-						public Label getKey() {
-							return key;
-						}
 
-						@Override
-						public CmpVertex getValue() {
-							return target;
-						}
 
-						@Override
-						public CmpVertex setValue(@SuppressWarnings("unused") CmpVertex value) 
-						{
-							throw new UnsupportedOperationException("changing values of this map entry is not permitted");
-						}});
-	}
-			
-	/** An extension of {@Link PairScore} with Markov distance. */
-	public static class PairScoreWithDistance extends PairScore
-	{
-		private double distance;
-		
-		public PairScoreWithDistance(PairScore p, double d) {
-			super(p.getQ(), p.getR(), p.getScore(), p.getAnotherScore());distance = d;
-		}
-		
-		double getDistanceScore()
-		{
-			return distance;
-		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = super.hashCode();
-			long temp;
-			temp = Double.doubleToLongBits(distance);
-			result = prime * result + (int) (temp ^ (temp >>> 32));
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (!super.equals(obj))
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			PairScoreWithDistance other = (PairScoreWithDistance) obj;
-			if (Double.doubleToLongBits(distance) != Double
-					.doubleToLongBits(other.distance))
-				return false;
-			return true;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return "[ "+getQ().getStringId()+"("+getQ().isAccept()+","+getQ().getDepth()+"), "+getR().getStringId()+"("+getR().isAccept()+","+getR().getDepth()+") : "+getScore()+","+getAnotherScore()+","+distance+" ]";
-		}
-	}
 	
-	/** Uses the supplied classifier to rank pairs. */
-	public static class LearnerMarkovPassive extends LearnerThatCanClassifyPairs
-	{
-		private int num_states;
-		private int numtraceQuantity;
-		private int num_seed;
-		private int lengthMultiplier;
-		public MarkovModel Markov;
-		RedNodeSelectionProcedure computationOverride = null;
-		
-		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
-		{
-			pairQuality = argCounter;
-		}
-		
-		List<List<List<Label>>> pairsToMerge = null;
-		
-		public void setPairsToMerge(List<List<List<Label>>> pairs)
-		{
-			pairsToMerge = pairs;
-		}
-		
-		public List<List<List<Label>>> getPairsToMerge()
-		{
-			return pairsToMerge;
-		}
-		
-		public void  setlengthMultiplier(int setlengthMultiplier)
-		{
-			lengthMultiplier = setlengthMultiplier;
-		}
-		
-		public int  getlengthMultiplier()
-		{
-			return lengthMultiplier;
-		}
-
-		public void set_States(int states) 
-		{
-			num_states=	states;		
-		}
-		
-		public MarkovModel Markov() 
-		{
-			return Markov;			
-		}
-			
-		public void setMarkovModel(MarkovModel m) 
-		{
-			Markov=m;
-		}
-
-		public void set_traceQuantity(int traceQuantity) 
-		{
-			numtraceQuantity=traceQuantity;			
-		}
-		
-		public int get_States() 
-		{
-			return num_states;		
-		}
-	
-		public int get_traceQuantity() 
-		{
-			return numtraceQuantity;			
-		}
-		
-		public void set_seed(int i) 
-		{
-			num_seed=i;
-		}
-		
-		public int get_seed() 
-		{
-			return num_seed;
-		}
-
-		public void setScoreComputationOverride(RedNodeSelectionProcedure c)
-		{
-			computationOverride = c;
-		}
-		
-		
-		/** During the evaluation of the red-blue pairs, where all pairs are predicted to be unmergeable, one of the blue states will be returned as red. */
-		protected boolean classifierToChooseWhereNoMergeIsAppropriate = false;
-		
-		/** Used to select next red state based on the subjective quality of the subsequent set of red-blue pairs, as determined by the classifier. */
-		protected boolean useClassifierToChooseNextRed = false;
-		
-		public void setUseClassifierForRed(boolean classifierForRed)
-		{
-			useClassifierToChooseNextRed = classifierForRed;
-		}
-		
-		public void setUseClassifierToChooseNextRed(boolean classifierToBlockAllMergers)
-		{
-			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
-		}
-
-		/** Where a pair has a zero score but Weka is not confident that this pair should not be merged, where this flag, such a pair will be assumed to be unmergeable. Where there is a clearly wrong pair
-		 * detected by Weka, its blue state will be marked red, where no pairs are clearly appropriate for a merger and all of them have zero scores, this flag will cause a blue state in one of them to be marked red.  
-		 */
-		protected boolean blacklistZeroScoringPairs = false;
-		
-		
-		public void setBlacklistZeroScoringPairs(boolean value)
-		{
-			blacklistZeroScoringPairs = value;
-		}
-		
-		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
-		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
-		}
-		
-		public static String refToString(Object obj)
-		{
-			return obj == null?"null":obj.toString();
-		}
-		
-		@Override 
-		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerMarkovPassive.this.computationOverride);
-			
-			if (!outcome.isEmpty())
-			{
-				PairScore result = null;
-				result=LearningSupportRoutines.pickPairQSMLike(outcome);
-				assert result!=null;
-				assert result.getScore()>=0;
-				outcome.clear();outcome.push(result);
-			}	
-			return outcome;
-
-		}
-		
-		public static PairScore pickPairDISLike(Collection<PairScoreWithDistance> pairs)
-		{
-			assert pairs != null;
-			PairScoreWithDistance bestPair=null;
-			for(PairScoreWithDistance P:pairs)
-			{
-				if(bestPair == null || P.getAnotherScore() > bestPair.getAnotherScore())
-					bestPair=P;
-				else if(P.getAnotherScore() == bestPair.getAnotherScore())
-				{
-					if(P.getDistanceScore() > bestPair.getDistanceScore())
-						bestPair=P;	
-                    
-					else if(Math.abs(P.getQ().getDepth()-P.getR().getDepth()) < Math.abs(bestPair.getQ().getDepth()-bestPair.getR().getDepth()))
-							bestPair=P;	
-				}
-			}
-			return bestPair;
-		}
-		
-		public List<PairScore> pickPairToRed(Collection<PairScore> pairs)
-		{
-			assert pairs != null;
-			List<PairScore> bad =new ArrayList<PairScore>();
-			PairScore badPair=null;
-			for(PairScore P:pairs)
-			{
-				if(badPair == null)
-					badPair=P;
-				else if(P.getScore() < badPair.getScore())
-					badPair=P;
-			}
-			bad.add(badPair);
-
-			for(PairScore P:pairs)
-			{
-				if(badPair.getScore()==P.getScore() && !bad.contains(P))
-				bad.add(P);
-			}
-			return bad;
-		}
-	}
-	
-	public static void main(String args[]) throws Exception
-	{
-		try
-		{
-			runExperiment();
-		}
-		catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-		finally
-		{
-			DrawGraphs.end();
-		}
-	}
-	
-	
-	@SuppressWarnings("null")
-	public static void runExperiment() throws Exception
-	{
-		DrawGraphs gr = new DrawGraphs();
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
-		ConvertALabel converter = new Transform.InternStringLabel();
-		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
-		final int ThreadNumber = ExperimentRunner.getCpuNumber();	
-		ExecutorService executorService = Executors.newFixedThreadPool(ThreadNumber);
-		final int minStateNumber = 20;
-		final int samplesPerFSM = 10;
-		final int rangeOfStateNumbers = 4;
-		final int stateNumberIncrement = 4;
-		final int traceQuantity=5;
-		
-		// Stores tasks to complete.
-		CompletionService<ThreadResult> runner = new ExecutorCompletionService<ThreadResult>(executorService);
-		for(final int lengthMultiplier:new int[]{150})
-		for(final boolean onlyPositives:new boolean[]{true})
-			{
-					String selection;
-					for(final boolean selectingRed:new boolean[]{false})
-					for(final boolean classifierToBlockAllMergers:new boolean[]{false})
-					for(final double threshold:new double[]{1.0})
-					{
-						final boolean zeroScoringAsRed = false;
-						selection = "TRUNK;EVALUATION;"+";threshold="+threshold+
-								";onlyPositives="+onlyPositives+";selectingRed="+selectingRed+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed+";lengthMultiplier="+lengthMultiplier+";";
-
-						final int totalTaskNumber = traceQuantity;
-						final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score"+selection.substring(0, 80)+".pdf"));
-						final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File("quality_traces"+selection.substring(0, 80)+".pdf"));
-						SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File("new_to_orig"+selection.substring(0, 80)+".pdf"),0,1,true);
-						final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
-						try
-						{
-							int numberOfTasks = 0;
-							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-								for(int sample=0;sample<samplesPerFSM;++sample)
-								{
-									LearnerRunner learnerRunner = new LearnerRunner(states,sample,totalTaskNumber+numberOfTasks,traceQuantity, config, converter);
-									learnerRunner.setOnlyUsePositives(onlyPositives);learnerRunner.setLengthMultiplier(lengthMultiplier);
-									learnerRunner.setSelectionID(selection+"_states"+states+"_sample"+sample);
-									runner.submit(learnerRunner);
-									++numberOfTasks;
-								}
-							ProgressIndicator progress = new ProgressIndicator(new Date()+" evaluating "+numberOfTasks+" tasks for "+selection, numberOfTasks);
-							for(int count=0;count < numberOfTasks;++count)
-							{
-								ThreadResult result = runner.take().get();// this will throw an exception if any of the tasks failed.
-								if (gr_NewToOrig != null)
-								{
-									for(SampleData sample:result.samples)
-										gr_NewToOrig.add(sample.referenceLearner.getValue(),sample.actualLearner.getValue());
-								}
-								
-								for(SampleData sample:result.samples)
-									if (sample.referenceLearner.getValue() > 0)
-										gr_QualityForNumberOfTraces.add(traceQuantity+"",sample.actualLearner.getValue()/sample.referenceLearner.getValue());
-								progress.next();
-							}
-							if (gr_PairQuality != null)
-							{
-								synchronized(pairQualityCounter)
-								{
-									LearningSupportRoutines.updateGraph(gr_PairQuality,pairQualityCounter);
-									//gr_PairQuality.drawInteractive(gr);
-									//gr_NewToOrig.drawInteractive(gr);
-									//if (gr_QualityForNumberOfTraces.size() > 0)
-									//	gr_QualityForNumberOfTraces.drawInteractive(gr);
-								}
-							}
-							if (gr_PairQuality != null) gr_PairQuality.reportResults(gr);
-						}
-						catch(Exception ex)
-						{
-							IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);
-							if (executorService != null) { executorService.shutdownNow();executorService = null; }
-							throw e;
-						}
-						if (gr_NewToOrig != null) gr_NewToOrig.reportResults(gr);
-						if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.reportResults(gr);
-					}
-			}
-		if (executorService != null) { executorService.shutdown();executorService = null; }
-	
-
-	}
 }

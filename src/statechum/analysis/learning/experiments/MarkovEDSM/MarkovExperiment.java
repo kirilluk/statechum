@@ -180,7 +180,7 @@ public class MarkovExperiment
 			final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
 			LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
-			LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(pta,referenceGraph);
+			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
@@ -225,14 +225,14 @@ public class MarkovExperiment
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
 				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null,true);
-				final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta));
+				final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta),par.whichMostConnectedVertex);
 				if (par.useMostConnectedVertexToStartLearning)
 				{
 					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 				}
 				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
 				if (par.usePrintf)
-					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 			}
 			final LearnerGraph ptaToUseForInferenceFinal = ptaToUseForInference;
 			
@@ -492,7 +492,7 @@ public class MarkovExperiment
 		@Override
 		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 		{
-			return	MarkovPassivePairSelection.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 		}
 
 		protected MarkovModel Markov;
@@ -594,7 +594,7 @@ public class MarkovExperiment
 				{
 					assert p.getScore() >= 0;
 					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new MarkovPassivePairSelection.PairScoreWithDistance(p,0));
+						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p,0));
 					else
 						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
 				}
@@ -603,14 +603,14 @@ public class MarkovExperiment
 				{
 					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
 					if(d >= 0.0)
-						possibleResults.add(new MarkovPassivePairSelection.PairScoreWithDistance(p, d));
+						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p, d));
 				}
 					
 				Collections.sort(possibleResults, new Comparator<PairScore>(){
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						int outcome = (int) Math.signum( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
+						int outcome = (int) Math.signum( ((WaveBlueFringe.PairScoreWithDistance)o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance)o1).getDistanceScore());  
 						if (outcome != 0)
 							return outcome;
 						return o2.compareTo(o1);
@@ -790,7 +790,7 @@ public class MarkovExperiment
 										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor);
+										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,0);
 										parameters.setDisableInconsistenciesInMergers(false);
 										parameters.setUsePrintf(experimentRunner.isInteractive());
 										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

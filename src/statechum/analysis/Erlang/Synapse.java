@@ -54,7 +54,7 @@ import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
@@ -1001,10 +1001,10 @@ public class Synapse implements Runnable {
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
 																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, null, false);
-																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
+																final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial),0);
 																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
-																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 																
 															}
 															ptaToUseForInference.clearColours();
@@ -1073,10 +1073,10 @@ public class Synapse implements Runnable {
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
 																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, null, false);
-																final CmpVertex vertexWithMostTransitions = MarkovPassivePairSelection.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial));
+																final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(ptaInitial),0);
 																ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 																LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
-																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+MarkovPassivePairSelection.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+																System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 																
 															}/*
 															ptaToUseForInference.clearColours();

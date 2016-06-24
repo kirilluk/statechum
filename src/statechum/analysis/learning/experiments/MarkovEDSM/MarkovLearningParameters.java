@@ -48,6 +48,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int preset,traceQuantity,statesMax;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
+	public int whichMostConnectedVertex = 0;
 	
 	public MarkovLearningParameters(LearnerToUseEnum l,int argStates, int argSample, int argTrainingSample, int argSeed, int traceQuantityToUse)
 	{
@@ -92,9 +93,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
-	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor)
+	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex)
 	{
-		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;setPresetLearningParameters(preset);
+		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;whichMostConnectedVertex = mostConnectedVertex;setPresetLearningParameters(preset);
 	}
 	
 	public void setAlphabetMultiplier(double mult)
@@ -114,7 +115,7 @@ public class MarkovLearningParameters implements ThreadResultID
 			setlearningParameters(false, false, false, false, false);break;
 		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
 			setlearningParameters(true, false, false, false, true);break;
-		case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
+		case 2:// learning by doing pre-merging but starting from root. 
 			setlearningParameters(true, false, false, false, false);break;
 		case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
 			setlearningParameters(false, true, false, true, false);break;
@@ -140,8 +141,8 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String[] getColumnText() {
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)};
-		return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),"",""};
+			return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)};
+		return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),"",""};
 	}
 
 	@Override

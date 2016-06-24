@@ -150,7 +150,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	{
 		String outcome = learnerToUse.name()+"-"+preset;// after identification of a centre vertex many learners can be attempted, Markov is not the only one.
 		if (useCentreVertex)
-			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount;
+			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount+"_v"+whichMostConnectedVertex;
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 			outcome+="_w"+weightOfInconsistencies+"_cl="+chunkLen;
 		return outcome;

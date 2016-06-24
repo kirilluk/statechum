@@ -20,41 +20,17 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Stack;
 import java.util.concurrent.atomic.AtomicLong;
 
-import statechum.Configuration;
-import statechum.Helper;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.JUConstants;
-import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.DrawGraphs.Wilcoxon;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
-import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairOfPaths;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -65,30 +41,10 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperi
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.collections.ArrayMapWithSearchPos;
-
 
 public class MarkovPreMerge
 {
@@ -234,7 +190,7 @@ public class MarkovPreMerge
 		
 		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(final int preset: new int[]{0,1})
+		for(final int preset: new int[]{1,0})
 		{
 			final int traceQuantityToUse = traceQuantity;
 			int seedForFSM = 0;

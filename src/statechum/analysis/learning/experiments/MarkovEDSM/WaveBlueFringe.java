@@ -610,7 +610,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				//	break;// ignore automata where we get good results.
 				final int divisorForPathCount = 2;
 				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,true,divisorForPathCount);
+				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,true,divisorForPathCount,1);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);

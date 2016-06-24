@@ -202,28 +202,29 @@ public class MarkovPreMerge
 				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 						for(boolean aveOrMax:new boolean[]{false})
-							for(int divisor:new int[]{1})
-								for(int positionOfMostConnectedVertex:(preset == 0?new int[]{0}:new int []{0,1,2,3}))
-									for(LearnerToUseEnum learnerKind:new LearnerToUseEnum[]{LearnerToUseEnum.LEARNER_EDSMMARKOV,LearnerToUseEnum.LEARNER_SICCO,LearnerToUseEnum.LEARNER_KTAILS_1})
-										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{1.0,2.0,4.0}:new double[]{1.0})
-										{
-											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-											ev.config.setOverride_usePTAMerging(false);
-				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
-											parameters.setOnlyUsePositives(onlyPositives);
-											parameters.setAlphabetMultiplier(alphabetMultiplierMax);
-											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-											parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex);
-											parameters.setDisableInconsistenciesInMergers(false);
-											parameters.setUsePrintf(experimentRunner.isInteractive());
-											MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
-											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-											experimentRunner.submitTask(learnerRunner);
-										}
+							for(int wlen:new int[]{1,2})
+								for(int divisor:new int[]{2,4})
+									for(int positionOfMostConnectedVertex:(preset == 0?new int[]{0}:new int []{0,1,2}))
+										for(LearnerToUseEnum learnerKind:new LearnerToUseEnum[]{LearnerToUseEnum.LEARNER_EDSMMARKOV,LearnerToUseEnum.LEARNER_SICCO,LearnerToUseEnum.LEARNER_KTAILS_1})
+											for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{1.0,2.0,4.0}:new double[]{1.0})
+											{
+												LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+												ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+												ev.config.setOverride_usePTAMerging(false);
+					
+												MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
+												parameters.setOnlyUsePositives(onlyPositives);
+												parameters.setAlphabetMultiplier(alphabetMultiplierMax);
+												parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+												parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
+												parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+												parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
+												parameters.setDisableInconsistenciesInMergers(false);
+												parameters.setUsePrintf(experimentRunner.isInteractive());
+												MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
+												learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+												experimentRunner.submitTask(learnerRunner);
+											}
 			}
 		}
 		
@@ -250,6 +251,7 @@ public class MarkovPreMerge
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 				}
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());

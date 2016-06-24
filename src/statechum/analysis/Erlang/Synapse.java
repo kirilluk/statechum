@@ -686,6 +686,7 @@ public class Synapse implements Runnable {
 			}			
 		}
 		static final int divisorForPathCount = 2;
+		static final int wlen = 1;
 		static final boolean useAveOrMax = false;
 		
 		@Override
@@ -993,7 +994,7 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount);
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount,wlen);
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
@@ -1065,7 +1066,7 @@ public class Synapse implements Runnable {
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
-																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount);
+																final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, useAveOrMax, divisorForPathCount,wlen);
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);

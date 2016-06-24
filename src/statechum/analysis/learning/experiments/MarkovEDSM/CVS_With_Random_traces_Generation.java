@@ -123,7 +123,7 @@ public class CVS_With_Random_traces_Generation
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
-											parameters.setMarkovParameters(preset, chunkSize, weightOfInconsistencies,aveOrMax, divisorForPathCount,0);
+											parameters.setMarkovParameters(preset, chunkSize, weightOfInconsistencies,aveOrMax, divisorForPathCount,0,1);
 											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);

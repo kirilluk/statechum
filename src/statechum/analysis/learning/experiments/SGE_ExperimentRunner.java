@@ -117,7 +117,6 @@ public class SGE_ExperimentRunner
 		
 		protected CompletionService<RESULT> runner = null; 
 		
-		protected Map<Integer,RESULT> outcomeOfExperiment = new TreeMap<Integer,RESULT>();
 		protected Set<Integer> taskletWasRun = new TreeSet<Integer>();
 		private DrawGraphs gr = new DrawGraphs();
 
@@ -195,7 +194,8 @@ public class SGE_ExperimentRunner
 					break;
 				}
 			}
-			executorService = Executors.newFixedThreadPool(cpuNumber);runner = new ExecutorCompletionService<RESULT>(executorService);
+			executorService = Executors.newFixedThreadPool(phase == PhaseEnum.RUN_TASK?1:cpuNumber);// only create one thread if running on Iceberg on in uni-processor mode.
+			runner = new ExecutorCompletionService<RESULT>(executorService);
 		}
 
 		protected void shutdown()
@@ -256,21 +256,28 @@ public class SGE_ExperimentRunner
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 				{
 					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
-						try
-						{
+					{
 							taskletWasRun.add(taskCounter);// mark the task as started.
-							BufferedWriter writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskCounter)));// indicates tasks that have started
-							writer.close();writer = null;
-							outcomeOfExperiment.put(taskCounter,task.call());// this one asks the handler to record the results of the experiment in a form that can subsequently be passed to R.
-						}
-						catch(Exception ex)
-						{
-							Helper.throwUnchecked("running task failed: "+ex.getMessage(), ex);
-						}
-						finally
-						{
-							shutdown();
-						}
+							BufferedWriter writer = null;
+							try
+							{
+								writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskIDToParameters.get(taskCounter))));// indicates tasks that have started
+							}
+							catch(IOException ex)
+							{// ignore an error if a 'taskstarted' file cannot be created.							
+							}
+							finally
+							{
+								if (writer != null)
+									try {
+										writer.close();
+									} catch (IOException e) {
+										// cannot do much about it here, ignore it.
+									}
+								writer = null;
+							}
+							runner.submit(task);
+					}
 				}
 				break;
 			}	
@@ -333,16 +340,13 @@ public class SGE_ExperimentRunner
 			return constructFileName(tmpDir,taskIDToParameters.get(rCounter));
 		}
 		
-		protected String constructTaskStartedFileName(int rCounter)
+		protected String constructTaskStartedFileName(EXPERIMENT_PARAMETERS pars)
 		{
-			if (!taskIDToParameters.containsKey(rCounter))
-				throw new IllegalArgumentException("task ID "+rCounter+" does not have associated parameters recorded anywhere, has it been added via submitTask?");
-			
 			String pathName = 
-					 tmpDir+sanitiseFileName(taskIDToParameters.get(rCounter).getSubExperimentName())+"-"+
-							sanitiseFileName(taskIDToParameters.get(rCounter).getRowID());
+					 tmpDir+sanitiseFileName(pars.getSubExperimentName())+"-"+
+							sanitiseFileName(pars.getRowID());
 					statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName(taskIDToParameters.get(rCounter).getColumnID())+".sgetaskstarted";
+			return pathName+File.separator+sanitiseFileName(pars.getColumnID())+".sgetaskstarted";
 		}
 		
 		/** Plots the supplied graphs. If the task number is divisible by 10, plots them on the screen, if negative - dumps a pdf.  
@@ -678,45 +682,8 @@ public class SGE_ExperimentRunner
 					break;
 					
 				case RUN_TASK: 
-					// We run only one task of the many that might be submitted, here we need to do a single "collect" of the many that might be submitted 
-					// (which actually means 'write execution results constructed by processSubResult handler to disk'). 
-					// The condition below chooses a call to processSubResult that corresponds the executed sequence of commands (there could be many 
-					// sequences of 'submit' with each sequence followed by 'collect'). In order to choose 'collect' for the right 'submit' sequence, 
-					// we use the one matching the requested number of a taskToRun.  
-					// Since taskCounter is incremented after running each task, the value of taskCounter corresponds to a total number of executed tasks 
-					// in the earlier sequence of tasks plus one.
-					for(Entry<Integer,RESULT> resultOfRunningTasks:outcomeOfExperiment.entrySet())
-					{// we only go through the tasks that we have actually started - those where results are already recorded will not be started and hence we do not run them.
-						if (resultOfRunningTasks.getKey() < taskCounterFromPreviousSubExperiment || resultOfRunningTasks.getKey() >= taskCounter)
-							throw new IllegalArgumentException("task "+resultOfRunningTasks.getKey()+" was run when it was not expected, expected range ["+taskCounterFromPreviousSubExperiment+".."+(taskCounter-1)+"]");
-
-						outputWriter = new StringWriter();
-						handlerForExperimentResults.processSubResult(resultOfRunningTasks.getValue(),this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
-						BufferedWriter writer = null;
-						try
-						{
-							writer = new BufferedWriter(new FileWriter(constructFileName(resultOfRunningTasks.getKey())));
-							java.util.zip.CRC32 crc = new java.util.zip.CRC32();
-							outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
-							String text = outputWriter.toString();updateCRC(crc, text);
-							writer.append(text);
-							writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
-						}
-						finally
-						{
-							if (writer != null)
-							{
-								writer.close();writer = null;
-							}
-						}
-						new File(constructTaskStartedFileName(resultOfRunningTasks.getKey())).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
-						// start/stop files are not realistic on parallel executions because those are not run on a grid.
-					}
-					outcomeOfExperiment.clear();
-					break;
 				case RUN_PARALLEL:
 				{
-					assert outcomeOfExperiment.isEmpty();						
 					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
 						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
@@ -742,6 +709,8 @@ public class SGE_ExperimentRunner
 									writer.close();writer = null;
 								}
 							}
+							new File(constructTaskStartedFileName(result.parameters)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
+							// start/stop files are not realistic on parallel executions because those are not run on a grid.
 						}
 					break;
 				}

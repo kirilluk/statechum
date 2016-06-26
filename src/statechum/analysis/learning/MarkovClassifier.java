@@ -196,15 +196,16 @@ public class MarkovClassifier
 	
 	public static class FrontLineElem
 	{
-		public final List<Label> pathToFrontLine;
+		public final Label pathToFrontLine[];
 		public final CmpVertex currentState;
 		
-		public FrontLineElem(List<Label> path, CmpVertex vert) {
+		public FrontLineElem(Label path[], CmpVertex vert) {
 			pathToFrontLine=path;
 			currentState=vert;
 		}
 		
 	}
+
 
 	/** Explores all positive states up to the specified length, calling the supplied callback for each of them. Can be used on both deterministic and non-deterministic graphs. 
 	 * In the non-deterministic case, could report the same path multiple times.
@@ -216,61 +217,68 @@ public class MarkovClassifier
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
 	{
+		if (pathLength == 0)
+		{
+			callback.handlePath(new LinkedList<Label>());
+			return;
+		}
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-        Set<List<Label>> pathsEncountered = new HashSet<List<Label>>();
-	    if (vert.isAccept()) frontline.add(e);
+        FrontLineElem e=new FrontLineElem(new Label[]{},vert);
+        Set<Label[]> pathsEncountered = new HashSet<Label[]>();
+	    if (vert.isAccept()) frontline.add(e);// push empty path
 	    while(!frontline.isEmpty())
 	    {
 	    	e=frontline.pop();
-	    	
-			if(e.pathToFrontLine.size()==pathLength)
-			{
-				if (!pathsEncountered.contains(e.pathToFrontLine))
-				{
-					pathsEncountered.add(e.pathToFrontLine);
-					callback.handlePath(e.pathToFrontLine);
-				}
-			}
-			else
-			{// not reached the maximal length of paths to explore
-				Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
-				for(Label lbl:transitions.keySet())					
-				{
-					for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
-		    			if (target.isAccept())
-			    		{
-			    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
-			    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-	    					frontline.add(new FrontLineElem(pathToNewState,target));
-			    		}
-			    }
-	    	}
-	    }
-	}
-	
-	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
-	{
-		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-	    if (vert.isAccept()) frontline.add(e);
-	    while(!frontline.isEmpty())
-	    {
-	    	e=frontline.pop();
-	    	
-			if(e.pathToFrontLine.size()==pathLength)
-				return true;
-			// not reached the maximal length of paths to explore
 			Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
 			for(Label lbl:transitions.keySet())					
 			{
 				for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
 	    			if (target.isAccept())
 		    		{
-		    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
-		    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-    					frontline.add(new FrontLineElem(pathToNewState,target));
+		    			Label pathToNewState[]=new Label[e.pathToFrontLine.length+1];System.arraycopy(e.pathToFrontLine, 0, pathToNewState, 0, e.pathToFrontLine.length);
+		    			pathToNewState[e.pathToFrontLine.length]=lbl;
+		    			
+		    			if(e.pathToFrontLine.length+1==pathLength)
+		    			{
+		    				if (!pathsEncountered.contains(pathToNewState))
+		    				{
+		    					pathsEncountered.add(pathToNewState);
+		    					callback.handlePath(Arrays.asList(pathToNewState));
+		    				}
+		    			}
+		    			else
+		    				// not reached the maximal length of paths to explore
+		    				frontline.add(new FrontLineElem(pathToNewState,target));
+		    		}
+		    }
+	    }
+	}
+	
+	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
+	{
+		if (pathLength == 0)
+			return true;
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new Label[]{},vert);
+	    if (vert.isAccept()) frontline.add(e);// push empty path
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();
+			Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
+			for(Label lbl:transitions.keySet())					
+			{
+				for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
+	    			if (target.isAccept())
+		    		{
+		    			Label pathToNewState[]=new Label[e.pathToFrontLine.length+1];System.arraycopy(e.pathToFrontLine, 0, pathToNewState, 0, e.pathToFrontLine.length);
+		    			pathToNewState[e.pathToFrontLine.length]=lbl;
+		    			
+		    			if(e.pathToFrontLine.length+1==pathLength)
+		    				return true;
+		    			else
+		    				// not reached the maximal length of paths to explore
+		    				frontline.add(new FrontLineElem(pathToNewState,target));
 		    		}
 		    }
 	    }

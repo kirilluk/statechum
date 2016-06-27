@@ -71,6 +71,14 @@ public class WekaDataCollector
 
 	protected int n,attrMult=2;
 	
+	public void setEnableSD(boolean value)
+	{
+		if (value)
+			attrMult = 2;
+		else
+			attrMult = 1;
+	}
+	
 	/** Number of values for attributes to consider. This means where a pair scores at the top or at the bottom of a list of pairs according to each attribute from comparators.size(); pairs with values outside SD are recorded but not used for splitting to reduce the amount of data thrown at the machine learner. */
 	protected final static int V=2;
 	/**

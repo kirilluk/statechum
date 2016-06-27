@@ -1048,8 +1048,9 @@ public class TestWekaPairClassifier {
 /*
 		for(int i=0;i<comparisonResults.length;++i)
 			if (comparisonResults[i] != 0)
-				System.out.println(i+" -" + comparisonResults[i]);
-		*/
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
+		
 		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
 		//comparing A with others, 	  (1,1,-1)
 
@@ -1074,6 +1075,94 @@ public class TestWekaPairClassifier {
 				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
 	}
 	
+	/** Similar to TestCreateComparePairs8 but without SD. */
+	@Test
+	public void TestCreateComparePairs8()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		final PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector();
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("1 for B or C, 0 otherwise")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return (pair == pairB || pair == pairC)?1:0;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // a
+		Assert.assertEquals(1,comparisonResults[1]);// b
+		Assert.assertEquals(-1,comparisonResults[2]);// c
+/*
+		for(int i=0;i<comparisonResults.length;++i)
+			if (comparisonResults[i] != 0)
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
+		
+		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
+		//comparing A with others, 	  (1,1,-1)
+
+		// a is at 1, A is being compared to B and D
+		Assert.assertEquals(1, comparisonResults[5]);// if a=1 then b=1
+		Assert.assertEquals(-1,comparisonResults[6]);// if a=1 then c=-1
+
+
+		// b is at 1, A is being compared to B
+		Assert.assertEquals(-1,comparisonResults[10]);// if b=1 then c=-1
+
+		// c is at -1, A is being compared to D
+		Assert.assertEquals(1, comparisonResults[12]);// if c=-1 then b=1
+		
+		// if a=1 then b=1, then comparing A and B
+		Assert.assertEquals(-1,comparisonResults[20]);// c=-1
+		
+		// if a=1 then c=-1, then comparing A and D
+		Assert.assertEquals(1, comparisonResults[21]);// c=-1
+		for(int i=0;i<comparisonResults.length;++i)
+			if (!Arrays.asList(new Integer[]{0,1,2,5,6,10,12,20,21}).contains(i))
+				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
+	}
+
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
 	@Test
 	public void TestCreateComparePairs6_arrayTooSmall()

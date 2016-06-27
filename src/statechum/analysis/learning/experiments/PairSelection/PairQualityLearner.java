@@ -405,8 +405,6 @@ public class PairQualityLearner
 					dataCollector.updateDatasetWithPairs(pairs, coregraph, referenceGraph);
 					CmpVertex red = LearnerThatUpdatesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
 					return red;
-					
-					//return null;// for no resolution
 				}
 				
 				LearnerGraph g=null;
@@ -437,7 +435,8 @@ public class PairQualityLearner
 				PairScore chosenPair = pickCorrectPair(outcome, graph);
 				outcome.clear();outcome.push(chosenPair);
 			}
-			
+			if (!checkAllMergersCorrect())
+				throw new IllegalArgumentException("learner could not make a right choice even where correct graph was known in advance");
 			return outcome;
 		}		
 	} // class that builds a classifier tree.
@@ -658,10 +657,13 @@ public class PairQualityLearner
 		{
 			CmpVertex redVertex = null;double bestScore=-1;
 			
-			// It is not hard to calculate what blue states will directly surround a specific state chosen to become red, however those blue states may in turn immediately become red after evaluation and the same would apply
-			// to the newly-discovered red states, so we effectively have to re-implement blue state calculation here. For this reason, it was decided not to do this but instead clone the state machine (possibly in a trimmed form)
+			// It is not hard to calculate what blue states will directly surround a specific state chosen to become red, 
+			// however those blue states may in turn immediately become red after evaluation and the same would apply
+			// to the newly-discovered red states, so we effectively have to re-implement blue state calculation here. 
+			// For this reason, it was decided not to do this but instead clone the state machine (possibly in a trimmed form)
 			// and ask it for a list of pairs. 
-			// In practice, this algorithm turned out to be rather slow because there could be many red states to choose from and among those, many would lead to many pairs, all of which have to be scored.
+			// In practice, this algorithm turned out to be rather slow because there could be many red states to choose 
+			// from and among those, many would lead to many pairs, all of which have to be scored.
 			Configuration configCloneAll = coregraph.config.copy();configCloneAll.setLearnerCloneGraph(true);// we need to clone vertices because chooseStatePairs would colour some of the vertices red or blue.
 			for(CmpVertex tentativeRed:tentativeRedNodes)
 			{
@@ -683,10 +685,13 @@ public class PairQualityLearner
 		{
 			CmpVertex redVertex = null;double bestScore=-1;
 			
-			// It is not hard to calculate what blue states will directly surround a specific state chosen to become red, however those blue states may in turn immediately become red after evaluation and the same would apply
-			// to the newly-discovered red states, so we effectively have to re-implement blue state calculation here. For this reason, it was decided not to do this but instead clone the state machine (possibly in a trimmed form)
+			// It is not hard to calculate what blue states will directly surround a specific state chosen to become red, 
+			// however those blue states may in turn immediately become red after evaluation and the same would apply
+			// to the newly-discovered red states, so we effectively have to re-implement blue state calculation here. 
+			// For this reason, it was decided not to do this but instead clone the state machine (possibly in a trimmed form)
 			// and ask it for a list of pairs. 
-			// Assuming that we received red states in the same order as they are encountered by Statechum, it is appropriate to return the first state that has the highest number of reds after mergers,
+			// Assuming that we received red states in the same order as they are encountered by Statechum, 
+			// it is appropriate to return the first state that has the highest number of reds after mergers,
 			// because where it is actually 
 			Configuration configCloneAll = coregraph.config.copy();configCloneAll.setLearnerCloneGraph(true);// we need to clone vertices because chooseStatePairs would colour some of the vertices red or blue.
 			for(CmpVertex tentativeRed:tentativeRedNodes)
@@ -714,7 +719,6 @@ public class PairQualityLearner
 			}
 			
 		}
-		
 
 		CollectionOfPairsEstimator redStateEstimator = new QualityEstimatorUsingWeka();
 		

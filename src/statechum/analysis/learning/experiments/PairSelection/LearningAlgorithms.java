@@ -362,7 +362,6 @@ public class LearningAlgorithms
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 		}
 	}
-	
 
 	public static class DefaultRedNodeSelectionProcedure implements PairScoreComputation.RedNodeSelectionProcedure
 	{

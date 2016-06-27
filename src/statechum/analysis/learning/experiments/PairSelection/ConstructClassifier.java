@@ -60,15 +60,12 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int minStateNumber = 20;
-		final int samplesPerFSM = 4;
-		final int rangeOfStateNumbers = 4;
-		final int stateNumberIncrement = 4;
+		final int samplesPerFSM = 2;
 		final double trainingDataMultiplier = 2;
 
 		try
 		{
-			for(final int lengthMultiplier:new int[]{50})
+			for(final int lengthMultiplier:new int[]{10})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
@@ -79,7 +76,7 @@ public class ConstructClassifier
 						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+						for(int states:new int[]{20})
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 								for(int attempt=0;attempt<2;++attempt)
 								{

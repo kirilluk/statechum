@@ -58,12 +58,12 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
+public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
-	public static final String directoryNamePrefix = "evaluation_of_learners_Apr_2016";
+	public static final String directoryNamePrefix = "evaluation_of_learners_matrices_2016";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
-	public EvaluationOfLearners(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
+	public EvaluationOfLearnersAndMatrixTypes(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
 		super(parameters,eval,directoryNamePrefix);
 	}
@@ -316,7 +316,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 			}
 		};
 		
-		List<EvaluationOfLearners> listOfExperiments = new ArrayList<EvaluationOfLearners>();
+		List<EvaluationOfLearnersAndMatrixTypes> listOfExperiments = new ArrayList<EvaluationOfLearnersAndMatrixTypes>();
 		
 		try
 		{
@@ -328,6 +328,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY,// this one will switch to LINKEDHASH when the amount of data is small.
+									Configuration.STATETREE.STATETREE_LINKEDHASH
 									})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{
@@ -353,7 +354,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
 												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
-												EvaluationOfLearners learnerRunner = new EvaluationOfLearners(par, ev);
+												EvaluationOfLearnersAndMatrixTypes learnerRunner = new EvaluationOfLearnersAndMatrixTypes(par, ev);
 												learnerRunner.setAlwaysRunExperiment(true);
 												listOfExperiments.add(learnerRunner);
 											}
@@ -368,7 +369,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 
 		try
 		{
-	    	for(EvaluationOfLearners e:listOfExperiments)
+	    	for(EvaluationOfLearnersAndMatrixTypes e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 		}

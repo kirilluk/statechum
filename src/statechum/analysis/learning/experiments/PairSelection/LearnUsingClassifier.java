@@ -53,9 +53,6 @@ public class LearnUsingClassifier {
 	{
 		DrawGraphs gr = new DrawGraphs();
 	    LearnerEvaluationConfiguration learnerInitConfiguration = UASExperiment.constructLearnerInitConfiguration();
-	    PairQualityLearner.configureConfigurationForLearningUsingClassifiers(learnerInitConfiguration.config);
-	    
-		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
 		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');

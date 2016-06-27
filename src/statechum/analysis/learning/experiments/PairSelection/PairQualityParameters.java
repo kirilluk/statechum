@@ -30,6 +30,7 @@ public class PairQualityParameters implements ThreadResultID
 	boolean onlyPositives, useUnique;
 	int traceQuantity, lengthMultiplier;
 	double trainingDataMultiplier;
+	int tracesAlphabetMultiplier;
 	int seed;
 	/** True means using classifier, false means learning classifier. */
 	boolean usingClassifierRatherThanLearningClassifier = true;
@@ -92,8 +93,8 @@ public class PairQualityParameters implements ThreadResultID
 	
 	public String getExperimentID()
 	{
-		String exp = "ifDepth="+ifDepth+
-		";onlyPositives="+onlyPositives+";useUnique="+useUnique+";traceQuantity="+traceQuantity+";lengthMultiplier="+lengthMultiplier+";trainingDataMultiplier="+trainingDataMultiplier+";";
+		String exp = "ifD="+ifDepth+
+		(onlyUsePositives?"_POS":"_PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+lengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
 		if (innerLearner != null)
 			exp+="-"+innerLearner.getRowID();
 		return exp;

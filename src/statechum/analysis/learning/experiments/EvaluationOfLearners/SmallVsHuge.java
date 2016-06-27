@@ -52,9 +52,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -79,65 +77,17 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	{
 		final int alphabet = par.states*2;
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
-		Label uniqueFromInitial = null;
-		final boolean pickUniqueFromInitial = true;
+		
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
-		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
-		do
-		{
-			referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-			if (pickUniqueFromInitial)
-			{
-				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
-				if(!uniques.isEmpty())
-				{ 
-					// some uniques are loops, hence eliminate them to match our case study
-					for(Entry<Label,CmpVertex> entry:uniques.entrySet())
-						if (referenceGraph.transitionMatrix.get(entry.getValue()).get(entry.getKey()) != entry.getValue())
-						{
-							referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();break;// found a unique of interest
-						}
-				}
-				if (uniqueFromInitial == null)
-				{// need to generate a unique transition that did not occur through randomness.
-					Set<Label> existingAlphabet = referenceGraph.pathroutines.computeAlphabet();
-					if (existingAlphabet.size() < alphabet)
-					{// There is scope for generation of a new (unique) label. Given how an alphabet is constructed by ForestFireLabelledStateMachineGenerator, 
-					 // it seems appropriate.  
-						Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("unique", learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
-						assert(!existingAlphabet.contains(uniqueLabel));
-						List<CmpVertex> possibleVertices = new ArrayList<CmpVertex>();
-						for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
-							if (entry.getValue().size() < alphabet)
-								possibleVertices.add(entry.getKey());
-						assert(!possibleVertices.isEmpty());
-						CmpVertex newInit = possibleVertices.get(rnd.nextInt(possibleVertices.size()));
-						referenceGraph.setInit(newInit);uniqueFromInitial = uniqueLabel;
-						int targetIdx = rnd.nextInt(referenceGraph.getStateNumber()-1);
-						CmpVertex target = null;
-						for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-							if (v != newInit)
-							{// target should not be the same as the source
-								if (targetIdx-- <= 0)
-								{
-									target = v;
-									break;
-								}
-							}
-						// Adding a new unique transition from the initial state does not affect reachability of vertices or the connectivity.
-						// In addition, given that all states were distinguishable the uniqueness of the label does not make any of them equivalent.  
-						referenceGraph.addTransition(referenceGraph.transitionMatrix.get(newInit), uniqueLabel,target);
-					}
-				}
-			}
-		}
-		while(pickUniqueFromInitial && uniqueFromInitial == null);
-
+		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
+		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		referenceGraph = fsmConstruction.referenceGraph;
+		
 		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
+		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
 				@Override
@@ -149,7 +99,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				public int getPrefixLength(int len) {
 					return len;
 				}
-			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
+			},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
 
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (par.onlyUsePositives)
@@ -228,16 +178,16 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
 			break;
 		case CONVENTIONALUNIQUE:
-			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM, uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM, fsmConstruction.uniqueFromInitial);
 			break;
 		case CONSTRAINTS:
-			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PREMERGE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PTAPREMERGE:
-			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		}
 		

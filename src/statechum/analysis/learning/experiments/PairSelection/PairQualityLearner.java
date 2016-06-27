@@ -35,7 +35,6 @@ import java.util.Map.Entry;
 import java.util.Stack;
 
 import statechum.Configuration;
-import statechum.Configuration.STATETREE;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
@@ -44,11 +43,11 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -56,7 +55,6 @@ import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
@@ -1075,50 +1073,33 @@ public class PairQualityLearner
 		@Override
 		public ExperimentResult<PairQualityParameters> call() throws Exception 
 		{
-			final int alphabet = par.states;
+			final int alphabet = par.tracesAlphabetMultiplier*par.states;
 			ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
 			WekaDataCollector dataCollector = createDataCollector(par.ifDepth);
-			Label uniqueFromInitial = null;
-			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
-			do
-			{
-				referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				if (par.pickUniqueFromInitial)
-				{
-					Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
-					if(!uniques.isEmpty())
-					{
-						Entry<Label,CmpVertex> entry = uniques.entrySet().iterator().next();
-						referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();
-					}
-				}
-			}
-			while(par.pickUniqueFromInitial && uniqueFromInitial == null);
+			final Random rnd = new Random(par.seed*31+par.attempt*par.states);
+			ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
+			fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+			referenceGraph = fsmConstruction.referenceGraph;
 			
 			final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
-			
-			// try learning the same machine a few times
 			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt),5,null);
-			// test sequences will be distributed around 
-			final int pathLength = generator.getPathLength();
-			// The total number of elements in test sequences (alphabet*states*traceQuantity) will be distributed around (random(pathLength)+1). The total size of PTA is a product of these two.
-			// For the purpose of generating long traces, we construct as many traces as there are states but these traces have to be rather long,
-			// that is, length of traces will be (random(pathLength)+1)*sequencesPerChunk/states and the number of traces generated will be the same as the number of states.
+			//generator.setWalksShouldLeadToInitialState();
 			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-			final Random rnd = new Random(par.seed*31+par.attempt);
+			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
 					public int getLength() {
-						return (rnd.nextInt(pathLength)+1)*par.lengthMultiplier;
+						return  par.lengthMultiplier*par.states;
 					}
-	
+
 					@Override
 					public int getPrefixLength(int len) {
 						return len;
 					}
-				});
+				},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
+
+			//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 			if (par.onlyUsePositives)
 				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
 					@Override
@@ -1129,70 +1110,19 @@ public class PairQualityLearner
 			else
 				pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
 				// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-				
-			//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));
-			
+				// This is done below if onlyUsePositives is not set. 
+
 			pta.clearColours();
 			if (!par.onlyUsePositives)
-			{
 				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-				/*
-				Map<Label,Set<Label>> infeasiblePairs = computeInfeasiblePairs(referenceGraph);
-				Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
-				for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
-				{
-					Set<Label> value = new TreeSet<Label>();
-					if (!entry.getValue().isEmpty()) 
-					{
-						Label possibleLabels[]=entry.getValue().toArray(new Label[]{});
-						if (possibleLabels.length == 1)
-							value.add(possibleLabels[0]);
-						else
-							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
-					}
-					subsetOfPairs.put(entry.getKey(),value);
-				}
-				addIfThenForPairwiseConstraints(learnerEval,subsetOfPairs);
-				LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerEval.ifthenSequences, null, referenceGraph, learnerEval.config, learnerEval.getLabelConverter()).toArray(new LearnerGraph[0]);
-				learnerEval.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
-				int statesToAdd = 1;// we are adding pairwise constraints hence only one has to be added.
-				Transform.augmentFromIfThenAutomaton(pta, null, ifthenAutomata, statesToAdd);// we only need  to augment our PTA once (refer to the explanation above).
-				*/
-			}
-			else assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+			else 
+				assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 			
 			LearnerWithMandatoryMergeConstraints learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
-			
-			if (par.pickUniqueFromInitial)
-			{
-				pta = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
-				learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,pta);
-				learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(actualAutomaton,learnerOfPairs.getLabelsLeadingToStatesToBeMerged(),learnerOfPairs.getLabelsLeadingFromStatesToBeMerged());
-				if (!pairsList.isEmpty())
-				{
-					int score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-					if (score < 0)
-					{
-						learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,pta);
-						learnerOfPairs.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueFromInitial}));
-						actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-						score = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-						throw new RuntimeException("last merge in the learning process was not possible");
-					}
-					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, null, false);
-				}
-			}
-			else
-			{// not merging based on a unique transition from an initial state
-				learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,pta);
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-			}
+			// not merging based on a unique transition from an initial state
+			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,pta);
+			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			
 			SampleData dataSample = new SampleData(null,null);
 			dataSample.actualLearner = estimateDifference(referenceGraph, actualAutomaton, testSet);
@@ -1218,12 +1148,4 @@ public class PairQualityLearner
 			return outcome;
 		}
 	}
-	
-	
-	public static void configureConfigurationForLearningUsingClassifiers(Configuration config)
-	{
-		config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
-		config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
-	}
-	
 }

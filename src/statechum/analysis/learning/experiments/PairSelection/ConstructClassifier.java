@@ -48,8 +48,6 @@ public class ConstructClassifier
 	{
 		DrawGraphs gr = new DrawGraphs();
 	    LearnerEvaluationConfiguration learnerInitConfiguration = UASExperiment.constructLearnerInitConfiguration();
-	    PairQualityLearner.configureConfigurationForLearningUsingClassifiers(learnerInitConfiguration.config);
-		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
 		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -68,7 +66,7 @@ public class ConstructClassifier
 
 		try
 		{
-			for(final int lengthMultiplier:new int[]{50})
+			for(final int lengthMultiplier:new int[]{10})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
@@ -84,7 +82,8 @@ public class ConstructClassifier
 								for(int attempt=0;attempt<2;++attempt)
 								{
 									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
-									parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parameters.setColumn("LearnClassifier");
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override

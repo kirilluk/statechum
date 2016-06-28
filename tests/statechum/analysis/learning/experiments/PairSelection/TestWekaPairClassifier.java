@@ -452,12 +452,40 @@ public class TestWekaPairClassifier {
 	}
 	
 	@Test
-	public void testConstructEmptyInstance1()
+	public void testConstructEmptyInstanceFail()
+	{
+		final WekaDataCollector classifier = new WekaDataCollector();
+		final ArrayList<PairRank> assessors = new ArrayList<PairRank>();
+		Helper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				classifier.initialise("testConstructEmptyInstanceFail", 10, assessors,0);
+			}
+		}, IllegalArgumentException.class, "too many levels");
+
+	}
+	
+	@Test
+	public void testConstructMostlyEmptyInstance1()
 	{
 		WekaDataCollector classifier = new WekaDataCollector();
-		classifier.initialise("TestCreateInstances2", 10, new ArrayList<PairRank>(),0);
-		Instance instance = classifier.constructInstance(new int []{},false);
-		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
+		ArrayList<PairRank> assessors = new ArrayList<PairRank>();
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
+		Instance instance = classifier.constructInstance(new int []{1,2},false);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
 		Assert.assertFalse(instance.hasMissingValue());
 		Assert.assertTrue(instance.classAttribute().isNominal());
 		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
@@ -467,10 +495,23 @@ public class TestWekaPairClassifier {
 	
 	/** Construction of instances. */
 	@Test
-	public void testConstructEmptyInstance2a()
+	public void testConstructMostlyEmptyInstance2a()
 	{
 		final WekaDataCollector classifier = new WekaDataCollector();
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+
 		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override

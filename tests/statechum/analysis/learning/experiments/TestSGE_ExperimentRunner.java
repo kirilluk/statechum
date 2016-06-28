@@ -1013,7 +1013,7 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
 
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[(row0,0) 0,3,20][(row0,1) 1,15,21][(row2,0) 4,55,24][(row2,1) 5,67,25]",csvA.getData());
+		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,8,21][(row2,0) 4,32,24][(row2,1) 5,39,25]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 
 		String dataInResultFile = readResultFile(csvA);
@@ -1043,7 +1043,7 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals(0,runE(10,csvA, new String[]{"COLLECT_AVAILABLE"}));
 
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
-		Assert.assertEquals("[(row0,0) 0,3,20][(row0,1) 1,15,21][(row1,1) 3,41,23][(row2,0) 4,55,24][(row2,1) 5,67,25]",csvA.getData());
+		Assert.assertEquals("[(row0,0) 0,2,20][(row0,1) 1,8,21][(row1,1) 3,23,23][(row2,0) 4,32,24][(row2,1) 5,39,25]",csvA.getData());
 		Assert.assertEquals("",csvB.getData());
 		String dataInResultFile = readResultFile(csvA);
 		Assert.assertEquals(

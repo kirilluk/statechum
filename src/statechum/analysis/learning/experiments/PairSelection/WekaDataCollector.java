@@ -119,7 +119,7 @@ public class WekaDataCollector
 		n = comparators.size();// the number of indices we go through
 		long instanceLen = 0;
 		int prev_section_size=1;
-		if (n<maxLevel)
+		if (n<=maxLevel)
 			throw new IllegalArgumentException("too many levels for the considered number of attributes");
 			
 		for(int currentLevel=0;currentLevel<=maxLevel;++currentLevel)

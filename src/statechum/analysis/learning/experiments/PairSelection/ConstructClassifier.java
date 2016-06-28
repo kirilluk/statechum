@@ -72,24 +72,24 @@ public class ConstructClassifier
 		public static int valueToBits(String value)
 		{
 			if (value == WekaDataCollector.ZERO)
-				return 0;
+				return 0x1;
 			else // this ordering of values makes it possible to predict 
 				if (value == WekaDataCollector.MINUSONE)
-					return 0x1;
+					return 0x2;
 				else
 					if (value == WekaDataCollector.ONE)
-						return 0x2;
+						return 0x4;
 					else
 						if (value == WekaDataCollector.MINUSTWO)
-							return 0x4;
+							return 0x8;
 						else
 							if (value == WekaDataCollector.TWO)
-								return 0x8;
+								return 0x10;
 							else
 								throw new IllegalArgumentException("invalid attribute value "+value);
 		}
 		
-		final static int bitsPerAttribute = 4;
+		final static int bitsPerAttribute = 5;
 		final static int bitMask = (1 << bitsPerAttribute)-1;
 		final static int attributesPerLong = 64/bitsPerAttribute;
 		
@@ -107,6 +107,10 @@ public class ConstructClassifier
 			array[offset+(attrPos/16)] |= (Boolean.parseBoolean(instance.stringValue(classIndex))?1:0) << (4* (attrPos & 0xf) );
 		}
 		
+		public static boolean isInstanceAccept(Instance instance) 
+		{
+			return Boolean.parseBoolean(instance.stringValue(instance.classIndex()));
+		}
 		/** Turns instance into a bitstring. */
 		protected void fillInArray(long []array, int offset, Instance instance)
 		{
@@ -118,13 +122,13 @@ public class ConstructClassifier
 					array[offset+(attrPos/attributesPerLong)] |= valueToBits(instance.stringValue(attr)) << (bitsPerAttribute* (attrPos & bitMask) );
 					++attrPos;
 				}
-			array[offset+(attrPos/attributesPerLong)] |= (Boolean.parseBoolean(instance.stringValue(classIndex))?1:0) << (bitsPerAttribute* (attrPos & bitMask) );
+			array[offset+(classAttrInTrainingDataArray/attributesPerLong)] |= (instance.classValue()>0?1:0) << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) );
 		}
 		
 		@Override
 		public void buildClassifier(Instances data) throws Exception 
 		{
-			instanceSize = (data.numAttributes() + 15)/16;
+			instanceSize = (data.numAttributes() + attributesPerLong-1)/attributesPerLong;
 			instanceNumber = data.numInstances();
 			if (instanceNumber*(long)instanceSize > Integer.MAX_VALUE)
 				throw new IllegalArgumentException("training data will not fit in the array");
@@ -184,6 +188,13 @@ public class ConstructClassifier
 		}
 		System.out.println("training data: "+ninetyPercent.numInstances()+", evaluation data: "+evaluation.numInstances());
 		classifier.buildClassifier(ninetyPercent);
+		/*
+		for(int i=0;i<ninetyPercent.numInstances();++i)
+		{
+			Instance instance = ninetyPercent.instance(i);
+			assert Math.abs(instance.classValue()-classifier.classifyInstance(instance)) < Configuration.fpAccuracy : "invalid classification of instance "+i;
+		}
+		*/
 		long correctPrediction = 0;
 		for(int i=0;i<evaluation.numInstances();++i)
 		{
@@ -213,7 +224,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 2;
+		final int samplesPerFSM = 8;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
@@ -223,7 +234,7 @@ public class ConstructClassifier
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
-					final int traceQuantity=1;
+					final int traceQuantity=10;
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
@@ -344,7 +355,7 @@ public class ConstructClassifier
 						final Classifier classifier = new NearestClassifier();
 						classifier.buildClassifier(dataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
-						
+						/*
 						int itersCount = 0;
 						long endTime = System.nanoTime()+1000000000*10L;// 10 sec
 						while(System.nanoTime() < endTime)
@@ -354,16 +365,17 @@ public class ConstructClassifier
 							
 						}
 						System.out.println("time per iteration: "+((double)10000/itersCount)+" ms");
+						*/
 						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,dataCollector));
 						//System.out.println(classifier);
 						dataCollector=null;// throw all the training data away.
-						
+						/*
 						{// serialise the classifier, this is the only way to store it.
 							OutputStream os = new FileOutputStream(outDir+File.separator+parExperiment.getExperimentID()+".ser");
 							ObjectOutputStream oo = new ObjectOutputStream(os); 
 		                    oo.writeObject(classifier);
 		                    os.close();
-						}
+						}*/
 					}
 				}
 		}

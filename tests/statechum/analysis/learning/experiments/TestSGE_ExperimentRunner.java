@@ -1020,7 +1020,7 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals(
 				"[,column_text,column_text,column_text,column_text,column_text,column_text]"+
 				"[experiment,cell_header1,cell_time,cell_header2,cell_header1,cell_time,cell_header2]"+
-				"[row0,0,3,20,1,15,21][row2,4,55,24,5,67,25]",
+				"[row0,0,2,20,1,8,21][row2,4,32,24,5,39,25]",
 		dataInResultFile);
 	}
 	
@@ -1049,7 +1049,7 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals(
 				"[,column_text,column_text,column_text,column_text,column_text,column_text]"+
 				"[experiment,cell_header1,cell_time,cell_header2,cell_header1,cell_time,cell_header2]"+
-				"[row0,0,3,20,1,15,21][row1,UNKNOWN,UNKNOWN,UNKNOWN,3,41,23][row2,4,55,24,5,67,25]",
+				"[row0,0,2,20,1,8,21][row1,UNKNOWN,UNKNOWN,UNKNOWN,3,23,23][row2,4,32,24,5,39,25]]",
 		dataInResultFile);
 	}
 	

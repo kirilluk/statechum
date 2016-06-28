@@ -1588,6 +1588,8 @@ public class TestWekaPairClassifier {
 		classifier.buildClassifier(dataCollector.trainingData);
 		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,1,1},false)));
 		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,1,0},false)));
+		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,0,0},false)));
+		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,0,1},false)));
 	}
 }
 

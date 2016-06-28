@@ -23,7 +23,7 @@ public class MarkovLearningParameters implements ThreadResultID
 {
 	enum LearnerToUseEnum
 	{
-		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_1("k=1"), LEARNER_SICCO("Sicco");
+		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("Sicco");
 		public final String name;
 		private LearnerToUseEnum(String nameText)
 		{

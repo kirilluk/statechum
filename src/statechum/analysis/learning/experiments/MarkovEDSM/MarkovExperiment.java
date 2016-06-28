@@ -281,8 +281,14 @@ public class MarkovExperiment
 	 			case LEARNER_KTAILS_PTA1:
 	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1,ScoreMode.GENERAL_NOFULLMERGE);
 	 				break;
+	 			case LEARNER_KTAILS_PTA2:
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,ScoreMode.GENERAL_NOFULLMERGE);
+	 				break;
 	 			case LEARNER_KTAILS_1:
 	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_1,ScoreMode.GENERAL_NOFULLMERGE);
+	 				break;
+	 			case LEARNER_KTAILS_2:
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_2,ScoreMode.GENERAL_NOFULLMERGE);
 	 				break;
 				default:
 					throw new IllegalArgumentException("unexpected learner "+par.learnerToUse.name()+" requested");
@@ -825,6 +831,7 @@ public class MarkovExperiment
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 				}
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());

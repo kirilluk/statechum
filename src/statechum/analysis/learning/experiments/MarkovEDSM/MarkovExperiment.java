@@ -129,7 +129,7 @@ public class MarkovExperiment
 									
 					@Override
 					public int getLength() {
-						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);
+						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);// not the same as for SmallVsHuge or LearnerEvaluation
 					}
 	
 					@Override

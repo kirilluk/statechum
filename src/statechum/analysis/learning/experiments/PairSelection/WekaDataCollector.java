@@ -47,6 +47,11 @@ public class WekaDataCollector
 	 */
 	int maxLevel;
 	
+	public int getLevel()
+	{
+		return maxLevel;
+	}
+	
 	/**
 	 * The length of an instance, taking {@link WekaDataCollector#maxLevel} into account.
 	 */
@@ -81,6 +86,15 @@ public class WekaDataCollector
 	
 	/** Number of values for attributes to consider. This means where a pair scores at the top or at the bottom of a list of pairs according to each attribute from comparators.size(); pairs with values outside SD are recorded but not used for splitting to reduce the amount of data thrown at the machine learner. */
 	protected final static int V=2;
+	
+	/** Attributes of this collection. Constructed by the {@link WekaDataCollector#initialise(String, int, List, int)} call. */
+	FastVector attributes = null;
+	
+	public FastVector getAttributes()
+	{
+		return attributes;
+	}
+	
 	/**
 	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
@@ -107,7 +121,7 @@ public class WekaDataCollector
 		int prev_section_size=1;
 		if (n<maxLevel)
 			throw new IllegalArgumentException("too many levels for the considered number of attributes");
-		
+			
 		for(int currentLevel=0;currentLevel<=maxLevel;++currentLevel)
 		{
 			final int attrCountAtThisLevel = (n-currentLevel);// at the top level, we consider min/max of n attributes, at level 1 it is n-1 attribute. This shows that at each level, we have one less attribute to consider. Hence at level i, we split into (n-i) values.
@@ -121,7 +135,7 @@ public class WekaDataCollector
 		instanceLength = (int)instanceLen;
 
 		boolean uniqueArray[] = new boolean[instanceLength];Arrays.fill(uniqueArray, false);
-		FastVector attributes = new FastVector(instanceLength+1);
+		attributes = new FastVector(instanceLength+1);
 		attributesOfAnInstance = new Attribute[instanceLength];
 		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0,uniqueArray);
 		for(int i=0;i<instanceLength;++i)
@@ -152,7 +166,7 @@ public class WekaDataCollector
 		final int attrCountAtThisLevel = (n-currentLevel);
 		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
 		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
-		
+
 		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
 
 		int i=0;
@@ -404,14 +418,14 @@ public class WekaDataCollector
 		int i=0;
 		for(int attr=0;attr<n;++attr)
 			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
-			{
+		{
 				PairComparator cmp = comparators.get(attr);
 				int value = comparePairWithOthers(cmp, pair, others);
 				if (value == comparison_inconclusive)
 					value = 0;
 				whatToFillIn[i+offset] = value;
-				++i;
-			}
+			++i;
+		}
 	}
 
 	/** Assesses a supplied pair based on the values.
@@ -433,7 +447,7 @@ public class WekaDataCollector
 				whatToFillIn[i+offset]=value;
 				assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
 				++i;
-			}
+	}
 	}
 
 	/** Fills in the values of attributes for the current level and position in the level, recursing across all the positions in the next level.
@@ -490,7 +504,7 @@ public class WekaDataCollector
 							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
 							fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
 						}
-					}
+					}				
 					++i;
 				}
 			}

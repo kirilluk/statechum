@@ -149,7 +149,7 @@ public class CVS
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-											parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies,aveOrMax,divisorForPathCount);
+											parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
 											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));

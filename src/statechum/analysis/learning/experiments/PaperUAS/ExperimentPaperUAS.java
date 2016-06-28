@@ -900,7 +900,8 @@ public class ExperimentPaperUAS
         
         String path = args[0];
         paper.loadReducedConfigurationFile(path+File.separator+args[1]);
-         
+        // the call above enable the use of constraints that should be disabled when we run an experiment rather than standalone QSMTool. Disable them here.
+        paper.learnerInitConfiguration.config.setUseConstraints(false);
  		final int offset=2;
      	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]); 
      	int maxFrame = paper.getMaxFrame(inputFiles);
@@ -923,7 +924,7 @@ public class ExperimentPaperUAS
 	}
 	
 	public final static String directoryNamePrefix = "uaspaper_May_2016";
-	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
+	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
  	public static class UASCaseStudy extends UASExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>
  	{
@@ -1019,6 +1020,7 @@ public class ExperimentPaperUAS
  	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
  	public static void main(String args[]) throws Exception
  	{
+ 		System.out.println("Started "+new Date());
 		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
@@ -1225,7 +1227,7 @@ public class ExperimentPaperUAS
 	     			}
  	     	}
 
-    	System.out.println("completed constructing the source graphs");
+    	System.out.println("completed constructing the source graphs "+new Date());
     	paper = null;// throw the original traces away
     	System.gc();
     	try

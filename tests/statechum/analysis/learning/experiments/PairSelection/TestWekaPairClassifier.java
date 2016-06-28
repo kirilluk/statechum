@@ -409,7 +409,7 @@ public class TestWekaPairClassifier {
 			{
 				classifier.initialise("TestCreateInstances2", 10, assessors,15);
 			}
-		}, IllegalArgumentException.class, "too many attributes per instance");
+		}, IllegalArgumentException.class, "too many levels for the");
 	}
 	
 	@Test
@@ -858,7 +858,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
 	
@@ -875,7 +875,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{1,0},buffer);
 	}	
 	
@@ -892,7 +892,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{1,-1},buffer);
 	}	
 	
@@ -909,7 +909,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[]{9,8,7,6};
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,1);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,1,0);
 		Assert.assertArrayEquals(new int[]{9,1,-1,6},buffer);
 	}	
 	
@@ -926,7 +926,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{0,-1},buffer);
 	}
 	
@@ -943,7 +943,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairB, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairB, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{-1,1},buffer);
 	}
 	
@@ -993,28 +993,22 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(1,comparisonResults[0]); // a
 		Assert.assertEquals(-1,comparisonResults[1]);// b
 
-		// a=-1 4+4*0 0, 0,0,0
-		// a=1  4+4*1 0,-1,@,@
-		// b=-1 4+4*2 0, 0,0,0
-		// b=1  4+4*3 0, 0,0,0
+		Assert.assertEquals(0,comparisonResults[2]); // SD for a
+		Assert.assertEquals(-1,comparisonResults[3]);// SD for b
+		
+		// 4+4*0 0, 0,0,0
+		// 4+4*1 0,-1, -1 // for top value of attribute a => lowest in b; the next one is SD for for top value of attribute a => lowest in b
 		
 		Assert.assertEquals(0,comparisonResults[4]);
 		Assert.assertEquals(0,comparisonResults[5]);
-		Assert.assertEquals(0,comparisonResults[6]);
-		Assert.assertEquals(0,comparisonResults[7]);
+		Assert.assertEquals(-1,comparisonResults[6]);
+		Assert.assertEquals(-1,comparisonResults[7]);
 
 		Assert.assertEquals(0,comparisonResults[8]);
-		Assert.assertEquals(-1,comparisonResults[9]);
+		Assert.assertEquals(0,comparisonResults[9]);
 
-		Assert.assertEquals(0,comparisonResults[12]);
-		Assert.assertEquals(0,comparisonResults[13]);
-		Assert.assertEquals(0,comparisonResults[14]);
-		Assert.assertEquals(0,comparisonResults[15]);
-
-		Assert.assertEquals(0,comparisonResults[16]);
-		Assert.assertEquals(0,comparisonResults[17]);
-		Assert.assertEquals(0,comparisonResults[18]);
-		Assert.assertEquals(0,comparisonResults[19]);
+		Assert.assertEquals(0,comparisonResults[10]);
+		Assert.assertEquals(0,comparisonResults[11]);
 	}
 	
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
@@ -1074,80 +1068,124 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(1,comparisonResults[0]); // a
 		Assert.assertEquals(1,comparisonResults[1]);// b
 		Assert.assertEquals(-1,comparisonResults[2]);// c
-
-		// a=-1 6+6*0 0, 0,0
-		// a=1  6+6*1 0,-1,@
-		// b=-1 6+6*2 0, 0,0
-		// b=1  6+6*3 0, 0,0
-		// c=-1 6+6*4 0, 0,0
-		// c=1  6+6*5 0, 0,0
+/*
+		for(int i=0;i<comparisonResults.length;++i)
+			if (comparisonResults[i] != 0)
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
 		
 		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
 		//comparing A with others, 	  (1,1,-1)
-		Assert.assertEquals(0,comparisonResults[6+0]); // a
-		Assert.assertEquals(0,comparisonResults[6+1]);// b
-		Assert.assertEquals(0,comparisonResults[6+2]);// c
 
 		// a is at 1, A is being compared to B and D
-		Assert.assertEquals(0, comparisonResults[6+6*1+0]); // a
-		Assert.assertEquals(1, comparisonResults[6+6*1+1]);// if a=1 then b=1
-		Assert.assertEquals(-1,comparisonResults[6+6*1+2]);// if a=1 then c=-1
+		Assert.assertEquals(1, comparisonResults[10]);// if a=1 then b=1
+		Assert.assertEquals(-1,comparisonResults[11]);// if a=1 then c=-1
 
-		Assert.assertEquals(0, comparisonResults[6+6*2+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*2+1]);// b
-		Assert.assertEquals(0, comparisonResults[6+6*2+2]);// c
 
 		// b is at 1, A is being compared to B
-		Assert.assertEquals(0, comparisonResults[6+6*3+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*3+1]);// b
-		Assert.assertEquals(-1,comparisonResults[6+6*3+2]);// if b=1 then c=-1
+		Assert.assertEquals(-1,comparisonResults[19]);// if b=1 then c=-1
 
 		// c is at -1, A is being compared to D
-		Assert.assertEquals(0, comparisonResults[6+6*4+0]); // a
-		Assert.assertEquals(1, comparisonResults[6+6*4+1]);// if c=-1 then b=1
-		Assert.assertEquals(0, comparisonResults[6+6*4+2]);// c
-
-		Assert.assertEquals(0, comparisonResults[6+6*5+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*5+1]);// b
-		Assert.assertEquals(0, comparisonResults[6+6*5+2]);// c
-		
-		//      a=-1 	a=1 	b=-1 	b=1		c=-1	c=1 (the "if" component above)
-		// a=-1  				8		12		16		20
-		// a=1   				9		13		17		21
-		// b=-1  0		4						18		22
-		// b=1   1		[5]						[19]	23
-		// c=-1  2		[6]		10		[14]	
-		// c=1   3		7		11		15
-		// ^
-		// |
-		// the "then" component above
-		
-		// if a=1 then b=1 hence we are comparing A with B at this stage
-		// if a=1 then c=-1 hence we are comparing A with D at this stage
-		// if b=1 then c=-1, then no pair other than A with b at 1 and c at -1
-		// if a=1 then b=1, then no pair other than A with b at 1 and c at -1
-		final int s=6+6*6;
-		for(int i=0;i<16;++i)
-			if (i != 5 && i != 6)
-			{
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+0]); // a
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+1]);// b
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+2]);// c
-			}
+		Assert.assertEquals(1, comparisonResults[23]);// if c=-1 then b=1
 		
 		// if a=1 then b=1, then comparing A and B
-		Assert.assertEquals(0, comparisonResults[s+6*5+0]); // a
-		Assert.assertEquals(0, comparisonResults[s+6*5+1]);// b
-		Assert.assertEquals(-1,comparisonResults[s+6*5+2]);// c=-1
+		Assert.assertEquals(-1,comparisonResults[40]);// c=-1
 		
 		// if a=1 then c=-1, then comparing A and D
-		Assert.assertEquals(0, comparisonResults[s+6*6+0]); // a
-		Assert.assertEquals(1, comparisonResults[s+6*6+1]);// b = 1
-		Assert.assertEquals(0, comparisonResults[s+6*6+2]);// c=-1
-		
-		
+		Assert.assertEquals(1, comparisonResults[42]);// c=-1
+		for(int i=0;i<comparisonResults.length;++i)
+			if (!Arrays.asList(new Integer[]{0,1,2,10,11,19,23,40,42}).contains(i))
+				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
 	}
 	
+	/** Similar to TestCreateComparePairs8 but without SD. */
+	@Test
+	public void TestCreateComparePairs8()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		final PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector();
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("1 for B or C, 0 otherwise")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return (pair == pairB || pair == pairC)?1:0;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // a
+		Assert.assertEquals(1,comparisonResults[1]);// b
+		Assert.assertEquals(-1,comparisonResults[2]);// c
+/*
+		for(int i=0;i<comparisonResults.length;++i)
+			if (comparisonResults[i] != 0)
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
+		
+		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
+		//comparing A with others, 	  (1,1,-1)
+
+		// a is at 1, A is being compared to B and D
+		Assert.assertEquals(1, comparisonResults[5]);// if a=1 then b=1
+		Assert.assertEquals(-1,comparisonResults[6]);// if a=1 then c=-1
+
+
+		// b is at 1, A is being compared to B
+		Assert.assertEquals(-1,comparisonResults[10]);// if b=1 then c=-1
+
+		// c is at -1, A is being compared to D
+		Assert.assertEquals(1, comparisonResults[12]);// if c=-1 then b=1
+		
+		// if a=1 then b=1, then comparing A and B
+		Assert.assertEquals(-1,comparisonResults[20]);// c=-1
+		
+		// if a=1 then c=-1, then comparing A and D
+		Assert.assertEquals(1, comparisonResults[21]);// c=-1
+		for(int i=0;i<comparisonResults.length;++i)
+			if (!Arrays.asList(new Integer[]{0,1,2,5,6,10,12,20,21}).contains(i))
+				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
+	}
+
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
 	@Test
 	public void TestCreateComparePairs6_arrayTooSmall()
@@ -1207,7 +1245,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. */
@@ -1223,8 +1261,8 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. Takes an offset into account. */
@@ -1240,8 +1278,8 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[]{9,8,7,6};
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
 	}	
 	
 	/** Construction of instances. */

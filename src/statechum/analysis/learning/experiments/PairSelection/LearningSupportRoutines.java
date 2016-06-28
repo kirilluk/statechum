@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Label;
@@ -20,10 +21,13 @@ import statechum.Pair;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -658,4 +662,335 @@ public class LearningSupportRoutines
  		}
  		return currBest;
  	}
+	/** PTA is supposed to be built using walks over a reference graph. If these are random walks, it is possible that some transitions will not be covered. 
+	 * For the learning purposes, this is significant because this could make some states more easily identifiable.
+	 *  
+	 * @param pta walks through the reference graph
+	 * @param reference graph to trim 
+	 * @return trimmed copy of the reference graph.
+	 */
+	public static Map<CmpVertex,Set<Label>> identifyUncoveredTransitions(LearnerGraph pta,LearnerGraph reference)
+	{
+		Map<CmpVertex,Set<Label>> outcome = new TreeMap<CmpVertex,Set<Label>>();
+		StatePair reference_pta = new StatePair(reference.getInit(),pta.getInit());
+		LinkedList<StatePair> pairsToExplore = new LinkedList<StatePair>();pairsToExplore.add(reference_pta);
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:reference.transitionMatrix.entrySet())
+			outcome.put(entry.getKey(), new TreeSet<Label>(entry.getValue().keySet()));
+		Set<CmpVertex> visitedInTree = new HashSet<CmpVertex>();
+		while(!pairsToExplore.isEmpty())
+		{
+			reference_pta = pairsToExplore.pop();
+			Map<Label,CmpVertex> transitions=pta.transitionMatrix.get(reference_pta.secondElem);
+			outcome.get(reference_pta.firstElem).removeAll(transitions.keySet());
+			for(Entry<Label,CmpVertex> target:transitions.entrySet())
+				if (target.getValue().isAccept())
+				{
+					if (visitedInTree.contains(target.getValue()))
+						throw new IllegalArgumentException("PTA is not a tree");
+					visitedInTree.add(target.getValue());
+					CmpVertex nextGraphState = reference.transitionMatrix.get(reference_pta.firstElem).get(target.getKey());
+					if (nextGraphState == null)
+						throw new IllegalArgumentException("coverage has more transitions than the original graph");
+					pairsToExplore.add(new StatePair(nextGraphState, target.getValue()));
+				}
+		}
+		
+		return outcome;
+	}
+	
+	/** Takes a supplied automaton and removes all transitions that have not been covered by a supplied PTA.
+	 * 
+	 * @param pta contains covered transitions
+	 * @param reference all of the transitions.
+	 * @return trimmed reference graph
+	 */
+	public static LearnerGraph trimUncoveredTransitions(LearnerGraph pta,LearnerGraph reference)
+	{
+		Configuration shallowCopy = reference.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph outcome = new LearnerGraph(shallowCopy);AbstractLearnerGraph.copyGraphs(reference, outcome);
+
+		for(Entry<CmpVertex,Set<Label>> entry:identifyUncoveredTransitions(pta, reference).entrySet())
+		{
+			Map<Label,CmpVertex> map = outcome.transitionMatrix.get(entry.getKey());
+			for(Label lbl:entry.getValue()) map.remove(lbl);
+		}
+		
+		return outcome;
+	}
+
+	/** Uses sideways predictions in order to identify more states to be merged. */
+	public static Collection<Set<CmpVertex>> mergeBasedOnInversePredictions(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
+	{/*
+		Map<CmpVertex,LearnerGraph> pathsFromEachStateInGraph = PairQualityLearner.constructPathsFromEachState(pta,directionForwardOrInverse);
+		ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency();
+		List<StatePair> pairsList = PairQualityLearner.buildVerticesToMergeForPath(pathsFromEachStateInGraph,directionForwardOrInverse,pathsOfInterest);
+		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		int score = pta.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge);
+		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMerge);// after merging all paths of interest, we get this graph.
+		final Collection<List<Label>> pathsToMerge2=identifyPathsToMerge(merged,referenceGraph,m,!directionForwardOrInverse);
+		/*
+		m.updateMarkov(merged,predictForwardOrSideways,false);// now we construct sideways learner ...
+		m.constructMarkovTentative(graph,predictForwardOrSideways);// ... and use it to add more transitions.
+		*/
+		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),true,!ptaClassifier.model.directionForwardOrInverse,false);
+		MarkovClassifier cl = new MarkovClassifier(inverseModel,ptaClassifier.graph);cl.updateMarkov(false);
+		Collection<Set<CmpVertex>> verticesToMergeUsingSideways=cl.buildVerticesToMergeForPaths(pathsOfInterest);
+		return verticesToMergeUsingSideways;
+	}
+	
+	public static LearnerGraph checkIfSingleStateLoopsCanBeFormed(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
+	{
+		List<StatePair> pairsList = ptaClassifier.buildVerticesToMergeForPath(pathsOfInterest);
+		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
+		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);// after merging all paths of interest, we get this graph.
+		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
+		final long genScoreThreshold = 1;
+		int nrOfMergers=0;
+		List<StatePair> pairsToMerge = new LinkedList<StatePair>();
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:merged.transitionMatrix.entrySet())
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				if (merged.transitionMatrix.get(transition.getValue()).containsKey(transition.getKey()))
+				{// we have a potential loop
+					PairScore p = new PairScore(entry.getKey(),transition.getValue(),0,0);
+					ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
+					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(ptaClassifier.graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+					
+					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					long genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);
+					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker, false);
+					
+					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
+					if (decidedToMerge)
+					{
+						pairsToMerge.add(p);
+						++nrOfMergers;
+					}
+					
+					if ( !wrongPairs.isEmpty() && decidedToMerge)
+							//(wrongPairs.isEmpty() && value > 0 || genScore < genScoreThreshold) ||  (!wrongPairs.isEmpty() && value == 0 && genScore >= genScoreThreshold))
+					{
+						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
+						System.out.println( "R: " + ptaClassifier.graph.transitionMatrix.get(p.getR())+" B: "+ptaClassifier.graph.transitionMatrix.get(p.getQ()));
+					}
+				}
+		System.out.println("mergers identified: "+nrOfMergers);
+		/*
+		long genScore = graph.pairscores.computePairCompatibilityScore_general(null, pairsToMerge, verticesToMerge);
+		LearnerGraph mergedForAllPairs = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge);*/
+		return merged;
+	}
+	
+	public void constructMapFromLabelsToStateGroups(LearnerGraph tentativeGraph, Collection<Label> transitionsFromTheSameState)
+	{
+		Map<Label,Collection<CmpVertex>> labelToStates = 
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+		Map<Label,Collection<CmpVertex>> labelFromStates = 
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+					
+		for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				{
+					Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
+					if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
+
+					Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
+					if (sourceStatesToMerge != null && transition.getValue().isAccept()) sourceStatesToMerge.add(entry.getKey());
+				}
+		
+	}
+		
+	protected static boolean checkSeqIsUnique(LearnerGraph referenceGraph, List<Label> seq)
+	{
+		boolean outcome = false;
+		int count=0;
+		for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+		{
+			if (referenceGraph.getVertex(v,seq) != null)
+			{
+				++count;
+				if (count > 1)
+					break;
+			}
+		}
+		if (count == 1)
+			outcome = true;
+		
+		return outcome;
+	}
+	
+	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state is uniquely identified by one of the sequences
+	 * 
+	 * @param referenceGraph graph of interest
+	 * @param collectionOfUniqueSeq sequences to check from all states of this graph
+	 * @param correctlyIdentified collection of the vertices of the graph that are uniquely identified using the supplied sequences.
+	 * @param incorrectSequences a subset of sequences passed in <i>collectionOfUniqueSeq</i> that do not identify states uniquely.
+	 */
+	public static void statesIdentifiedUsingUniques(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfUniqueSeq, Set<CmpVertex> correctlyIdentified,Collection<List<Label>> incorrectSequences)
+	{
+		for(List<Label> seq:collectionOfUniqueSeq)
+		{
+			int count=0;CmpVertex unique = null;
+			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+			{
+				if (referenceGraph.getVertex(v,seq) != null)
+				{
+					++count;unique=v;
+					if (count > 1)
+						break;
+				}
+			}
+			if (count == 1)
+			{
+				if (correctlyIdentified != null) correctlyIdentified.add(unique);
+			}
+			else if (count > 1)
+			{
+				if (incorrectSequences != null) incorrectSequences.add(seq);
+			}
+		}
+	}
+	
+	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state accepts one of the supplied sequences. Where multiple states accept one of the sequences,
+	 * all of those states are returned. <b>There is no expectation of uniqueness</b>.
+	 * 
+	 * @param referenceGraph graph of interest
+	 * @param collectionOfSeq sequences to check from all states of this graph
+	 * @return collection of the vertices of the graph that are uniquely identified using the supplied sequences.
+	 */
+	public static Collection<CmpVertex> statesIdentifiedUsingSequences(LearnerGraph referenceGraph, Collection<List<Label>> collectionOfSeq)
+	{
+		Set<CmpVertex> statesUniquelyIdentified = new TreeSet<CmpVertex>();
+		for(List<Label> seq:collectionOfSeq)
+		{
+			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+				if (referenceGraph.getVertex(v,seq) != null)
+					statesUniquelyIdentified.add(v);
+		}
+		return statesUniquelyIdentified;
+	}
+	
+	public static CmpVertex checkSeqUniqueOutgoing(LearnerGraph referenceGraph, List<Label> seq)
+	{
+		CmpVertex vertexOfInterest = null;
+		for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
+		{
+			CmpVertex currTarget = referenceGraph.getVertex(v,seq);
+			if (currTarget != null)
+			{
+				if (vertexOfInterest != null)
+					return null;
+
+				vertexOfInterest = v;
+			}
+		}
+		
+		return vertexOfInterest;
+	}
+	
+	
+	/** Identifies states <i>steps</i> away from the root state and labels the first of them red and others blue. The colour of all other states is removed. When the learner
+	 * starts, the exploration begins not from the root state as per blue fringe but from the marked red state. 
+	 * The aim is to permit Markov predictive power to be used on arbitrary states, 
+	 * without this we cannot predict anything in the vicinity of the root state which has no incoming transitions unless pre-merge is used. 
+	 */ 
+	public static void labelStatesAwayFromRoot(LearnerGraph graph, int steps)
+	{
+		graph.clearColours();graph.getInit().setColour(null);
+		
+		Set<CmpVertex> visited = new HashSet<CmpVertex>();
+		Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>(), previousFrontLine = null;
+		
+		frontLine.add(graph.getInit());visited.add(graph.getInit());
+		for(int line=0;line < steps;++line)
+		{
+			for(CmpVertex vert:frontLine)
+				for(CmpVertex next:graph.transitionMatrix.get(vert).values())
+					if (!visited.contains(next))
+					{
+						nextLine.add(next);visited.add(next);
+					}
+			
+			previousFrontLine = frontLine;frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
+		}
+		for(CmpVertex blue:frontLine) blue.setColour(JUConstants.BLUE);
+		if (frontLine.isEmpty())
+			throw new IllegalArgumentException("no states beyond the steps");
+		graph.additionalExplorationRoot = previousFrontLine;
+		frontLine.iterator().next().setColour(JUConstants.RED);
+	}
+
+
+	
+	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifier ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
+	{
+		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);
+		
+		Set<CmpVertex> tr=graph.transform.trimGraph(10, graph.getInit()).transitionMatrix.keySet();
+		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
+
+		//WaveBlueFringe.constructPairsToMergeBasedOnSetsToMerge(graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA);		
+		for(CmpVertex v0:tr)
+			for(CmpVertex v1:tr)
+				if (v0 != v1)
+				{
+					PairScore p = new PairScore(v0,v1,0,0);
+					ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
+					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+					
+					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
+					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker, false);
+					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
+					{
+						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
+						System.out.println( "R: " + graph.transitionMatrix.get(p.getR())+" B: "+graph.transitionMatrix.get(p.getQ()));
+					}
+				}
+		
+		System.out.println("finished dumping inconsistencies");
+	}
+
+
+	/** Given a collection of collections of paths, such that target state of each sequence in the inner collection is to be merged, computes a collection of pairs of states that are to be merged. */ 
+	public static List<StatePair> getVerticesToMergeFor(LearnerGraph graph,List<List<List<Label>>> pathsToMerge)
+	{
+		List<StatePair> listOfPairs = new LinkedList<StatePair>();
+		for(List<List<Label>> lotOfPaths:pathsToMerge)
+		{
+			CmpVertex firstVertex = graph.getVertex(lotOfPaths.get(0));
+			for(List<Label> seq:lotOfPaths)
+				listOfPairs.add(new StatePair(firstVertex,graph.getVertex(seq)));
+		}
+		return listOfPairs;
+	}
+	
+	/** Given a collection of vertices to merge, constructs a collection of pairs to merge. */
+	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
+	{
+		List<StatePair> pairsList = new LinkedList<StatePair>();
+		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
+		{
+			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
+			if (validStatesInGroup.size() > 1)
+			{
+				CmpVertex v0=validStatesInGroup.iterator().next();
+				for(CmpVertex v:validStatesInGroup)
+				{
+					if (v != v0)
+						pairsList.add(new StatePair(v0,v));
+					v0=v;
+				}
+			}
+		}
+		return pairsList;
+	}
 }

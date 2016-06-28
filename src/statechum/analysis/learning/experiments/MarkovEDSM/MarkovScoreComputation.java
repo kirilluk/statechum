@@ -43,7 +43,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection.PairScoreWithDistance;
+import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;

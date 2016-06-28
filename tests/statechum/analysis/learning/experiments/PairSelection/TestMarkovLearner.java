@@ -29,11 +29,12 @@ import statechum.Label;
 import statechum.StringLabel;
 import statechum.Trace;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -509,7 +510,6 @@ public class TestMarkovLearner
 			/**
 			 * @see statechum.analysis.learning.MarkovClassifier.DifferentPredictionsInconsistency#obtainAlphabet(statechum.analysis.learning.rpnicore.AbstractLearnerGraph, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 			 */
-			@SuppressWarnings({ "unchecked", "rawtypes" })
 			@Override
 			public Collection<Label> obtainAlphabet(AbstractLearnerGraph gr,@SuppressWarnings("unused") CmpVertex v) 
 			{
@@ -1115,7 +1115,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph2.pathroutines.computeAlphabet();
@@ -1156,7 +1155,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph2.pathroutines.computeAlphabet();
@@ -1197,7 +1195,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph2.pathroutines.computeAlphabet();
@@ -1239,7 +1236,6 @@ public class TestMarkovLearner
 			}
 			
 
-			@SuppressWarnings({ "rawtypes", "unchecked" })
 			@Override
 			public Collection<Label> obtainAlphabet(AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graphToConsider.getCache().getAlphabet();
@@ -1278,7 +1274,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
@@ -1320,7 +1315,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
@@ -1362,7 +1356,6 @@ public class TestMarkovLearner
 				return actual;
 			}
 
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
@@ -1405,7 +1398,6 @@ public class TestMarkovLearner
 			}
 
 			
-			@SuppressWarnings("rawtypes")
 			@Override
 			public Collection<Label> obtainAlphabet(@SuppressWarnings("unused") AbstractLearnerGraph graphToConsider, @SuppressWarnings("unused") CmpVertex v) {
 				return graph.pathroutines.computeAlphabet();// returns the alphabet of the Markov matrix
@@ -1424,7 +1416,7 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,0);
+		LearningSupportRoutines.labelStatesAwayFromRoot(graph,0);
 		Assert.assertSame(JUConstants.RED, graph.findVertex("A").getColour());
 		Assert.assertNull(graph.findVertex("B").getColour());
 		
@@ -1438,7 +1430,7 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,1);
+		LearningSupportRoutines.labelStatesAwayFromRoot(graph,1);
 		Assert.assertSame(JUConstants.RED, graph.findVertex("C").getColour());
 		Assert.assertSame(JUConstants.BLUE, graph.findVertex("B").getColour());
 		
@@ -1452,7 +1444,7 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,2);
+		LearningSupportRoutines.labelStatesAwayFromRoot(graph,2);
 		
 		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("B").getColour());Assert.assertNull(graph.findVertex("C").getColour());
 		Assert.assertSame(JUConstants.RED, graph.findVertex("D").getColour());
@@ -1470,7 +1462,7 @@ public class TestMarkovLearner
 			@Override
 			public void run() throws NumberFormatException
 			{
-				MarkovPassivePairSelection.labelStatesAwayFromRoot(graph,3);
+				LearningSupportRoutines.labelStatesAwayFromRoot(graph,3);
 			}
 		}, IllegalArgumentException.class, "no states");
 	}
@@ -1484,7 +1476,7 @@ public class TestMarkovLearner
 			@Override
 			public void run() throws NumberFormatException
 			{
-				MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+				LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 			}
 		}, IllegalArgumentException.class, "PTA is not");		
 	}
@@ -1494,7 +1486,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
 		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
-		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Map<CmpVertex,Set<Label>> uncovered = LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
 		for(CmpVertex v:reference.transitionMatrix.keySet())
 			if (v.toString().equals("B"))
@@ -1520,7 +1512,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B / B-u->E","testIdentifyUncoveredTransitions3a",config, converter);
 		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
-		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Map<CmpVertex,Set<Label>> uncovered = LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
 		for(CmpVertex v:reference.transitionMatrix.keySet())
 			if (v.toString().equals("B"))
@@ -1547,7 +1539,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C","testIdentifyUncoveredTransitions4a",config, converter);
 		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
-		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Map<CmpVertex,Set<Label>> uncovered = LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
 		for(CmpVertex v:reference.transitionMatrix.keySet())
 			if (v.toString().equals("A"))
@@ -1581,7 +1573,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C","testIdentifyUncoveredTransitions4a",config, converter);
 		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / E-z->F / T-b->T-u->T","testIdentifyUncoveredTransitions5b",config, converter);
-		Map<CmpVertex,Set<Label>> uncovered = MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+		Map<CmpVertex,Set<Label>> uncovered = LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 		Assert.assertEquals(reference.transitionMatrix.size(),uncovered.size());
 		for(CmpVertex v:reference.transitionMatrix.keySet())
 			if (v.toString().equals("A"))
@@ -1626,7 +1618,7 @@ public class TestMarkovLearner
 			@Override
 			public void run() throws NumberFormatException
 			{
-				MarkovPassivePairSelection.identifyUncoveredTransitions(graph,reference);
+				LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
 			}
 		}, IllegalArgumentException.class, "coverage has more transitions");		
 	}
@@ -1636,7 +1628,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->D-b->C","testIdentifyUncoveredTransitions4a",config, converter);
 		final LearnerGraph reference = FsmParser.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / E-z->F / T-b->T-u->T","testIdentifyUncoveredTransitions5b",config, converter);
-		LearnerGraph trimmedReference = MarkovPassivePairSelection.trimUncoveredTransitions(graph,reference);
+		LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(graph,reference);
 		WMethod.checkM(FsmParser.buildLearnerGraph("A-a->D-b->C","testTrimUncoveredTransitions1",config, converter), trimmedReference);
 	}
 	
@@ -1649,7 +1641,7 @@ public class TestMarkovLearner
 			@Override
 			public void run() throws NumberFormatException
 			{
-				MarkovPassivePairSelection.trimUncoveredTransitions(graph,reference);
+				LearningSupportRoutines.trimUncoveredTransitions(graph,reference);
 			}
 		}, IllegalArgumentException.class, "coverage has more transitions");		
 	}
@@ -1659,7 +1651,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertEquals(uniques,invalidSequences);Assert.assertNotSame(uniques, invalidSequences);
 	}
 	
@@ -1667,7 +1659,7 @@ public class TestMarkovLearner
 	public void testStatesIdentifiedUsingUniques1b()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
 		Assert.assertEquals(2,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
@@ -1679,7 +1671,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertTrue(invalidSequences.isEmpty());
 	}
 	
@@ -1687,7 +1679,7 @@ public class TestMarkovLearner
 	public void testStatesIdentifiedUsingUniques1d()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions2a",config, converter), uniques);
 		Assert.assertTrue(uniqueStates.isEmpty());
 	}
 
@@ -1696,7 +1688,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(1,uniqueStates.size());
 		Assert.assertEquals("A",uniqueStates.iterator().next().getStringId());Assert.assertTrue(invalidSequences.isEmpty());
 	}
@@ -1705,7 +1697,7 @@ public class TestMarkovLearner
 	public void testStatesIdentifiedUsingUniques2b()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2b",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2b",config, converter), uniques);
 		Assert.assertEquals(1,uniqueStates.size());
 		Assert.assertEquals("A",uniqueStates.iterator().next().getStringId());
 	}
@@ -1715,7 +1707,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(1,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());Assert.assertTrue(invalidSequences.isEmpty());
@@ -1725,7 +1717,7 @@ public class TestMarkovLearner
 	public void testStatesIdentifiedUsingUniques3b()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C","testIdentifyUncoveredTransitions3a",config, converter), uniques);
 		Assert.assertEquals(1,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
@@ -1736,7 +1728,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertTrue(uniqueStates.isEmpty());Assert.assertEquals(uniques,invalidSequences);Assert.assertNotSame(uniques, invalidSequences);
 	}
 	
@@ -1744,7 +1736,7 @@ public class TestMarkovLearner
 	public void testStatesIdentifiedUsingUniques3d()
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter),AbstractLearnerGraph.generateNewLabel("a", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testIdentifyUncoveredTransitions3b",config, converter), uniques);
 		Assert.assertEquals(2,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
@@ -1757,7 +1749,7 @@ public class TestMarkovLearner
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();
 		uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
 		Set<CmpVertex> uniqueStates=new TreeSet<CmpVertex>();Collection<List<Label>> invalidSequences =new LinkedList<List<Label>>();
-		MarkovPassivePairSelection.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
+		LearningSupportRoutines.statesIdentifiedUsingUniques(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2a",config, converter), uniques,uniqueStates,invalidSequences);
 		Assert.assertEquals(2,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
@@ -1770,7 +1762,7 @@ public class TestMarkovLearner
 	{
 		Collection<List<Label>> uniques = new LinkedList<List<Label>>();
 		uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", config, converter)}));uniques.add(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter)}));
-		Collection<CmpVertex> uniqueStates=MarkovPassivePairSelection.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2b",config, converter), uniques);
+		Collection<CmpVertex> uniqueStates=LearningSupportRoutines.statesIdentifiedUsingSequences(FsmParser.buildLearnerGraph("A-a->B-b->C","testIdentifyUncoveredTransitions2b",config, converter), uniques);
 		Assert.assertEquals(2,uniqueStates.size());
 		Iterator<CmpVertex> uniqueVertices = uniqueStates.iterator(); 
 		Assert.assertEquals("A",uniqueVertices.next().getStringId());
@@ -2097,22 +2089,46 @@ public class TestMarkovLearner
 	}
 	
 	@Test
-	public void testConstructSurroundingTransitions1()
+	public void testConstructSurroundingTransitions1a()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
 		Assert.assertEquals("{t,B}",collectionOfTransitionsToString(surroundingTransitions));
-		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
-		Assert.assertEquals(2,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
-		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
-		Assert.assertEquals(fsm.findVertex("B"),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(2,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+		Assert.assertEquals(fsm.findVertex("B"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
+	}
+	
+	/** Tests that the second best can be returned. */
+	@Test
+	public void testConstructSurroundingTransitions1b()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
+		Assert.assertEquals(fsm.getInit(),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),1));
+	}
+
+	/** Tests that the third best can be returned. */
+	@Test
+	public void testConstructSurroundingTransitions1c()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-t->B-b->C-b->C", "testTracePath1",config,converter);
+		Assert.assertEquals(fsm.findVertex(VertexID.parseID("C")),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),2));
+	}
+
+	/** Tests that fourth best is the same as third best. */
+	@Test
+	public void testConstructSurroundingTransitions1d()
+	{
+		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-t->B-b->C", "testTracePath1",config,converter);
+		Assert.assertEquals(fsm.findVertex(VertexID.parseID("C")),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),3));
 	}
 
 	@Test
 	public void testConstructSurroundingTransitions2()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
 		Assert.assertEquals("{b,C}{t,A}",collectionOfTransitionsToString(surroundingTransitions));
 	}
 	
@@ -2120,7 +2136,7 @@ public class TestMarkovLearner
 	public void testConstructSurroundingTransitions3()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
 		Assert.assertEquals("{b,B}",collectionOfTransitionsToString(surroundingTransitions));
 	}
 	
@@ -2130,7 +2146,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
 		Assert.assertEquals("",collectionOfTransitionsToString(surroundingTransitions));
 	}
 
@@ -2139,13 +2155,13 @@ public class TestMarkovLearner
 	public void testConstructSurroundingTransitions5()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B-q->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
 		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{p,B}{q,B}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
 
-		Assert.assertEquals(6,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
-		Assert.assertEquals(11,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
-		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
-		Assert.assertEquals(fsm.findVertex("B"),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+		Assert.assertEquals(6,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(11,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+		Assert.assertEquals(fsm.findVertex("B"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 	}
 	
 	
@@ -2155,12 +2171,12 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
 		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
 
-		Assert.assertEquals(6,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
-		Assert.assertEquals(10,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
-		Assert.assertEquals(1,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
+		Assert.assertEquals(6,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(10,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
+		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
 	}
 	
 	/** Similar to above, but with RED states. */
@@ -2169,7 +2185,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
 		Assert.assertEquals("{b,C}{c,Z}{g,T}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
 	}
 	
@@ -2179,7 +2195,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
 		fsm.findVertex("A").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
 		Assert.assertEquals("{b,C}{c,Z}{g,T}{p,B}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
 	}
 	
@@ -2187,7 +2203,7 @@ public class TestMarkovLearner
 	public void testConstructSurroundingTransitions9()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		final Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = MarkovPassivePairSelection.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		final Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
@@ -2201,17 +2217,16 @@ public class TestMarkovLearner
 	public void testConstructSurroundingTransitions10()
 	{
 		final LearnerGraph fsm = new LearnerGraph(config);
-		Assert.assertEquals(0,MarkovPassivePairSelection.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.getInit()));
-		Assert.assertEquals(fsm.getInit(),MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+		Assert.assertEquals(0,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.getInit()));
+		Assert.assertEquals(fsm.getInit(),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 	}	
 	@Test
 	public void testConstructSurroundingTransitions11()
 	{
 		final LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
-		Assert.assertNull(MarkovPassivePairSelection.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm)));
+		Assert.assertNull(WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 	}
-	
-	
+		
 	@Test
 	public void testUniquePaths1()
 	{

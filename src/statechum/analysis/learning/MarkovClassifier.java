@@ -42,7 +42,7 @@ import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovPassivePairSelection;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -196,15 +196,16 @@ public class MarkovClassifier
 	
 	public static class FrontLineElem
 	{
-		public final List<Label> pathToFrontLine;
+		public final Label pathToFrontLine[];
 		public final CmpVertex currentState;
 		
-		public FrontLineElem(List<Label> path, CmpVertex vert) {
+		public FrontLineElem(Label path[], CmpVertex vert) {
 			pathToFrontLine=path;
 			currentState=vert;
 		}
 		
 	}
+
 
 	/** Explores all positive states up to the specified length, calling the supplied callback for each of them. Can be used on both deterministic and non-deterministic graphs. 
 	 * In the non-deterministic case, could report the same path multiple times.
@@ -216,61 +217,68 @@ public class MarkovClassifier
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
 	{
+		if (pathLength == 0)
+		{
+			callback.handlePath(new LinkedList<Label>());
+			return;
+		}
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-        Set<List<Label>> pathsEncountered = new HashSet<List<Label>>();
-	    if (vert.isAccept()) frontline.add(e);
+        FrontLineElem e=new FrontLineElem(new Label[]{},vert);
+        Set<Label[]> pathsEncountered = new HashSet<Label[]>();
+	    if (vert.isAccept()) frontline.add(e);// push empty path
 	    while(!frontline.isEmpty())
 	    {
 	    	e=frontline.pop();
-	    	
-			if(e.pathToFrontLine.size()==pathLength)
-			{
-				if (!pathsEncountered.contains(e.pathToFrontLine))
-				{
-					pathsEncountered.add(e.pathToFrontLine);
-					callback.handlePath(e.pathToFrontLine);
-				}
-			}
-			else
-			{// not reached the maximal length of paths to explore
-				Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
-				for(Label lbl:transitions.keySet())					
-				{
-					for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
-		    			if (target.isAccept())
-			    		{
-			    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
-			    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-	    					frontline.add(new FrontLineElem(pathToNewState,target));
-			    		}
-			    }
-	    	}
-	    }
-	}
-	
-	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
-	{
-		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
-        FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
-	    if (vert.isAccept()) frontline.add(e);
-	    while(!frontline.isEmpty())
-	    {
-	    	e=frontline.pop();
-	    	
-			if(e.pathToFrontLine.size()==pathLength)
-				return true;
-			// not reached the maximal length of paths to explore
 			Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
 			for(Label lbl:transitions.keySet())					
 			{
 				for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
 	    			if (target.isAccept())
 		    		{
-		    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
-		    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-    					frontline.add(new FrontLineElem(pathToNewState,target));
+		    			Label pathToNewState[]=new Label[e.pathToFrontLine.length+1];System.arraycopy(e.pathToFrontLine, 0, pathToNewState, 0, e.pathToFrontLine.length);
+		    			pathToNewState[e.pathToFrontLine.length]=lbl;
+		    			
+		    			if(e.pathToFrontLine.length+1==pathLength)
+		    			{
+		    				if (!pathsEncountered.contains(pathToNewState))
+		    				{
+		    					pathsEncountered.add(pathToNewState);
+		    					callback.handlePath(Arrays.asList(pathToNewState));
+		    				}
+		    			}
+		    			else
+		    				// not reached the maximal length of paths to explore
+		    				frontline.add(new FrontLineElem(pathToNewState,target));
+		    		}
+		    }
+	    }
+	}
+	
+	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
+	{
+		if (pathLength == 0)
+			return true;
+		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
+        FrontLineElem e=new FrontLineElem(new Label[]{},vert);
+	    if (vert.isAccept()) frontline.add(e);// push empty path
+	    while(!frontline.isEmpty())
+	    {
+	    	e=frontline.pop();
+			Map<Label,TARGET_TYPE> transitions = graph.transitionMatrix.get(e.currentState);
+			for(Label lbl:transitions.keySet())					
+			{
+				for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
+	    			if (target.isAccept())
+		    		{
+		    			Label pathToNewState[]=new Label[e.pathToFrontLine.length+1];System.arraycopy(e.pathToFrontLine, 0, pathToNewState, 0, e.pathToFrontLine.length);
+		    			pathToNewState[e.pathToFrontLine.length]=lbl;
+		    			
+		    			if(e.pathToFrontLine.length+1==pathLength)
+		    				return true;
+		    			else
+		    				// not reached the maximal length of paths to explore
+		    				frontline.add(new FrontLineElem(pathToNewState,target));
 		    		}
 		    }
 	    }
@@ -1264,16 +1272,16 @@ public class MarkovClassifier
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @param useAverageOfMax if true, takes an average, divides by divisor and uses this value; for false, uses a maximal value and divides that.
 	 * @param divisor permits one to select a subset of paths that are not often used.
+	 * @param WLength The length of sequences to check from every state. The usual starting value is 1 which is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
 	 * @return paths to uniquely identify states.
 	 */
-	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor)
+	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor, final int WLength)
 	{
 		if (model.getChunkLen() < 2)
 			throw new IllegalArgumentException("not enough data for a first-order Markov model");
 		
 		updateMarkov(false);
 		long scoreAfterBigMerge=-1;
-		final int WLength = 1;// this is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
 		List<List<Label>> whatToMerge = Collections.emptyList();
 
 		final AtomicLong maxCount = new AtomicLong(0), sumInPta = new AtomicLong(0), pathsExplored = new AtomicLong(0);
@@ -1431,7 +1439,7 @@ public class MarkovClassifier
 		
 		for(Label l:referenceGraph.getCache().getAlphabet())
 		{
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
+			CmpVertex vertexIdentified = LearningSupportRoutines.checkSeqUniqueOutgoing(referenceGraph,Arrays.asList(new Label[]{l}));
 			if(vertexIdentified != null)
 				uniquelyIdentifiableVertices.add(vertexIdentified);
 		}
@@ -1455,7 +1463,7 @@ public class MarkovClassifier
 		
 		for(List<Label> l:whatToMerge)
 		{
-			CmpVertex vertexIdentified = MarkovPassivePairSelection.checkSeqUniqueOutgoing(referenceGraph,l);
+			CmpVertex vertexIdentified = LearningSupportRoutines.checkSeqUniqueOutgoing(referenceGraph,l);
 			if (vertexIdentified != null)
 				identifiedVertices.add(vertexIdentified);
 		}

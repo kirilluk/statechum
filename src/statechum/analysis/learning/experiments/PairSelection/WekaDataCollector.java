@@ -48,6 +48,11 @@ public class WekaDataCollector
 	 */
 	int maxLevel;
 	
+	public int getLevel()
+	{
+		return maxLevel;
+	}
+	
 	/**
 	 * The length of an instance, taking {@link WekaDataCollector#maxLevel} into account.
 	 */
@@ -69,10 +74,27 @@ public class WekaDataCollector
 		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
-	protected int n,L;
+	protected int n,attrMult=2;
 	
-	/** Number of values for attributes to consider. */
+	public void setEnableSD(boolean value)
+	{
+		if (value)
+			attrMult = 2;
+		else
+			attrMult = 1;
+	}
+	
+	/** Number of values for attributes to consider. This means where a pair scores at the top or at the bottom of a list of pairs according to each attribute from comparators.size(); pairs with values outside SD are recorded but not used for splitting to reduce the amount of data thrown at the machine learner. */
 	protected final static int V=2;
+	
+	/** Attributes of this collection. Constructed by the {@link WekaDataCollector#initialise(String, int, List, int)} call. */
+	ArrayList<Attribute> attributes = null;
+	
+	public ArrayList<Attribute> getAttributes()
+	{
+		return attributes;
+	}
+	
 	/**
 	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
@@ -95,56 +117,105 @@ public class WekaDataCollector
 		maxLevel = level;
 
 		n = comparators.size();// the number of indices we go through
-		L = comparators.size()*2;// the length of the attributes accumulated for each pair.
-		long instanceLen = L, sectionLen=1;
-		if (V*n<maxLevel)
+		long instanceLen = 0;
+		int prev_section_size=1;
+		if (n<maxLevel)
 			throw new IllegalArgumentException("too many levels for the considered number of attributes");
 			
-		for(int i=0;i<maxLevel;++i)
+		for(int currentLevel=0;currentLevel<=maxLevel;++currentLevel)
 		{
-			sectionLen*=V*(n-i);
-			instanceLen+=L*sectionLen;
-			if (sectionLen > Integer.MAX_VALUE)
+			final int attrCountAtThisLevel = (n-currentLevel);// at the top level, we consider min/max of n attributes, at level 1 it is n-1 attribute. This shows that at each level, we have one less attribute to consider. Hence at level i, we split into (n-i) values.
+			final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);// at each level, we have V*attrCountAtThisLevel parts for each element of the previous level, except for the first level.
+
+			instanceLen+=currentSectionSize*attrMult;
+			if (instanceLen > Integer.MAX_VALUE)
 				throw new IllegalArgumentException("too many attributes per instance");
+			prev_section_size = currentSectionSize;
 		}
 		instanceLength = (int)instanceLen;
 
-		
-		ArrayList<Attribute> attributes = new ArrayList<Attribute>(instanceLength+1);
+		boolean [] uniqueArray = new boolean[instanceLength];
+		attributes = new ArrayList<Attribute>(instanceLength+1);
 		attributesOfAnInstance = new Attribute[instanceLength];
-		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.add(attributesOfAnInstance[i]);
+		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0,uniqueArray);
+		for(int i=0;i<instanceLength;++i)
+			if (!uniqueArray[i])
+				throw new IllegalArgumentException("entry "+i+" was not filled in");
+		for(int i=0;i<instanceLength;++i) attributes.add(attributesOfAnInstance[i]);
 		attributes.add(classAttribute);
 		trainingData = new Instances(trainingSetName,attributes,capacity);
 		trainingData.setClass(classAttribute);
 	}
 
-	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int section_size, long xyz, String pathToThisLevel, int currentLevel)
+	/** Fills in the names attributes for the current level and position in the level, recursing across all the positions in the next level.
+	 * 
+	 * @param whatToFillIn array where data is to be stored.
+	 * @param section_start the buffer for the current level will start at this offset, in units of int (or whatever the type of buffer is).
+	 * @param idx_in_section we iterate over attributes, then recurse, then again and so on. This reflects an offset from section_start we are at, in units of attrMult.
+	 * The reason to have both section_start and idx_in_section rather than a combined offset is that we need to know where the next section should start and for this we need the 
+	 * start of the current section (or we'll have to compute it based on currentLevel).
+	 * @param prev_section_size the size of the previous level in terms of attrMult. Current level is all that multiplied by prev_section_size*V*(n-currentLevel) 
+	 * because for each entry at the previous level we need to have +1 and -1 entries of (n-currentLevel) attributes at the current level. Hence multiplying by V*(n-currentLevel). 
+	 * @param xyz bitmask of the attributes used in the previous levels.
+	 * @param pathToThisLevel the string reflecting the condition for the position at this level to be active.
+	 * @param currentLevel current level in construction of the attributes.
+	 * @param checkUniqueness only used for testing, an array to verify that computation of indices is hitting unique cells.
+	 */
+	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int prev_section_size, long xyz, String pathToThisLevel, int currentLevel, boolean checkUniqueness[])
 	{
-		final int sectionPlusOffset = section_start + L*idx_in_section;
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
 
 		int i=0;
+		for(int attr=0;attr<n;++attr)
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			{
+				//System.out.println("level "+currentLevel+" start="+section_start+" offset="+idx_in_section+" filling cmp attribute "+attr+" final offset is "+(sectionPlusOffset+i));
+				PairComparator cmp = comparators.get(attr);
+				final int offsetOfCmp = sectionPlusOffset+i;
+				whatToFillIn[offsetOfCmp]=cmp.getAttribute().copy(pathToThisLevel+cmp.getAttribute().name());
 
-		for(PairComparator cmp:comparators)
-			whatToFillIn[sectionPlusOffset+i++]=cmp.getAttribute().copy(pathToThisLevel+cmp.getAttribute().name());
-		for(PairRank pr:assessors)
-			whatToFillIn[sectionPlusOffset+i++]=pr.getAttribute().copy(pathToThisLevel+pr.getAttribute().name());
+				if (checkUniqueness != null)
+				{
+					if (checkUniqueness[offsetOfCmp])
+						throw new IllegalArgumentException("duplicate assignment to cell "+(offsetOfCmp));
+					checkUniqueness[offsetOfCmp]=true;
+				}
 
+				if (attrMult > 1)
+				{
+					PairRank pr = assessors.get(attr);
+					//System.out.println("level "+currentLevel+" start="+section_start+" offset="+idx_in_section+" filling SD  attribute "+attr+" final offset is "+(sectionPlusOffset+attrCountAtThisLevel+i));
+					final int offsetOfSD = sectionPlusOffset+attrCountAtThisLevel+i;
+					whatToFillIn[sectionPlusOffset+attrCountAtThisLevel+i]=pr.getAttribute().copy(pathToThisLevel+pr.getAttribute().name());
+
+					if (checkUniqueness != null)
+					{
+						if (checkUniqueness[offsetOfSD])
+							throw new IllegalArgumentException("duplicate assignment to cell "+(offsetOfSD));
+						checkUniqueness[offsetOfSD]=true;
+					}
+				}
+				++i;
+			}
 		if (currentLevel < maxLevel)
 		{
-			final int rowNumber = V*(n-currentLevel);
-			final int nextSectionStart = section_start+L*section_size;
-			int z=0;
+			i=0;
 			for(int attr=0;attr<n;++attr)
 			{
 				long positionalBit = 1 << attr;
 				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
 				{
-
-					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+0,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==-1 then ",currentLevel+1);
-					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+1,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==1 then ",currentLevel+1);
-					z+=V;
+					int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+					fillInAttributeNames(whatToFillIn,section_start+currentSectionSize,newOffset,currentSectionSize, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==-1 then ",currentLevel+1,checkUniqueness);
+					fillInAttributeNames(whatToFillIn,section_start+currentSectionSize,newOffset+(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==1 then ",currentLevel+1,checkUniqueness);
+					++i;
 				}
 			}
+			assert i == attrCountAtThisLevel;
 		}
 	}
 
@@ -346,20 +417,23 @@ public class WekaDataCollector
 	 * @param others other pairs (possibly, both valid and invalid mergers).
 	 * @param whatToFillIn array to populate with results
 	 * @param offset the starting position to fill in.
+	 * @param xyz bitmask indicating attributes to be ignored.
 	 */
-	void comparePairWithOthers(PairScore pair, Collection<PairScore> others, int []whatToFillIn, int offset)
+	void comparePairWithOthers(PairScore pair, Collection<PairScore> others, int []whatToFillIn, int offset, long xyz)
 	{
 		assert !comparators.isEmpty();
 		
 		int i=0;
-		for(PairComparator cmp:comparators)
+		for(int attr=0;attr<n;++attr)
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
 		{
-			whatToFillIn[i+offset] = comparePairWithOthers(cmp, pair, others);
+				PairComparator cmp = comparators.get(attr);
+				int value = comparePairWithOthers(cmp, pair, others);
+				if (value == comparison_inconclusive)
+					value = 0;
+				whatToFillIn[i+offset] = value;
 			++i;
 		}
-		
-		for(int cnt=0;cnt<comparators.size();++cnt)
-			if (whatToFillIn[cnt+offset] == comparison_inconclusive) whatToFillIn[cnt+offset]=0;
 	}
 
 	/** Assesses a supplied pair based on the values.
@@ -368,52 +442,81 @@ public class WekaDataCollector
 	 * @param measurements set of measurements to use for assessment
 	 * @param whatToFillIn array to populate with results
 	 * @param offset the starting position to fill in.
+	 * @param xyz bitmask indicating attributes to be ignored.
 	 */
-	void assessPair(PairScore pair, MeasurementsForCollectionOfPairs measurements, int []whatToFillIn, int offset)
+	void assessPair(PairScore pair, MeasurementsForCollectionOfPairs measurements, int []whatToFillIn, int offset, long xyz)
 	{
 		assert !assessors.isEmpty();
-		//Arrays.fill(whatToFillIn, offset, comparators.size(), 0);
-		for(int i=0;i<assessors.size();++i)
-			whatToFillIn[i+offset]=assessors.get(i).getRanking(pair, measurements.valueAverage[i], measurements.valueSD[i]);
+		int i=0;
+		for(int attr=0;attr<n;++attr)
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			{
+				final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
+				whatToFillIn[i+offset]=value;
+				assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
+				++i;
+	}
 	}
 
-	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, long xyz, PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
+	/** Fills in the values of attributes for the current level and position in the level, recursing across all the positions in the next level.
+	 * 
+	 * @param whatToFillIn array where data is to be stored.
+	 * @param section_start the buffer for the current level will start at this offset, in units of int (or whatever the type of buffer is).
+	 * @param idx_in_section we iterate over attributes, then recurse, then again and so on. This reflects an offset from section_start we are at, in units of attrMult.
+	 * The reason to have both section_start and idx_in_section rather than a combined offset is that we need to know where the next section should start and for this we need the 
+	 * start of the current section (or we'll have to compute it based on currentLevel).
+	 * @param prev_section_size the size of the previous level in terms of attrMult. Current level is all that multiplied by prev_section_size*V*(n-currentLevel) 
+	 * because for each entry at the previous level we need to have +1 and -1 entries of (n-currentLevel) attributes at the current level. Hence multiplying by V*(n-currentLevel). 
+	 * @param xyz bitmask of the attributes used in the previous levels.
+	 * @param pairOfInterest pair being evaluated.
+	 * @param pairs other pairs it is to be compared with.
+	 * @param measurements long-to-compute parameters of the pairs, used by assessors to evaluate the pairOfInterest
+	 * @param currentLevel current level in construction of the attributes.
+	 */
+	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int prev_section_size, long xyz, 
+			PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
 	{
-		final int sectionPlusOffset = section_start + L*idx_in_section;
-		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
-		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+		
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
+		
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset,xyz);
+		if (attrMult>1)
+			assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+attrCountAtThisLevel,xyz);
 		if (currentLevel < maxLevel)
 		{
-			final int rowNumber = V*(n-currentLevel);
-			final int nextSectionStart = section_start+L*section_size;
-			int z=0;
+			int i=0;
 			for(int attr=0;attr<n;++attr)
 			{
 				long positionalBit = 1 << attr;
 				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
 				{
-					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
+					int attributeREL = whatToFillIn[sectionPlusOffset+i];
 					if (attributeREL != 0)
 					{
 						assert attributeREL == 1 || attributeREL == -1;
 						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
-						for(PairScore other:pairs) 
+						for(PairScore currentPair:pairs) 
 						{
-							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
-							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
-								others.add(other);
+							int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
+							if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+								others.add(currentPair);
 						}
 						if (others.size()>1)
 						{
 							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
 							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,pairs);
+							int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
 							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
-							fillInEntry(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+(attributeREL>0?1:0),section_size*rowNumber, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
+							fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
 						}
 					}				
-					z+=V;
+					++i;
 				}
 			}
+			assert i == attrCountAtThisLevel;
 		}
 	}
 

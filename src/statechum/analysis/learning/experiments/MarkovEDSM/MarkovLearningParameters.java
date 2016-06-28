@@ -23,7 +23,7 @@ public class MarkovLearningParameters implements ThreadResultID
 {
 	enum LearnerToUseEnum
 	{
-		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_1("k=1"), LEARNER_SICCO("Sicco");
+		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("Sicco");
 		public final String name;
 		private LearnerToUseEnum(String nameText)
 		{
@@ -40,7 +40,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int chunkLen=3;
 	public boolean useAverageOrMax = true;
 	public double weightOfInconsistencies = 1.0;
-	public int divisorForPathCount=1;
+	public int divisorForPathCount=1,expectedWLen=1;
 	public int traceQuantityToUse;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
@@ -48,6 +48,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int preset,traceQuantity,statesMax;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
+	public int whichMostConnectedVertex = 0;
 	
 	public MarkovLearningParameters(LearnerToUseEnum l,int argStates, int argSample, int argTrainingSample, int argSeed, int traceQuantityToUse)
 	{
@@ -92,9 +93,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
-	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor)
+	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;setPresetLearningParameters(preset);
+		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;setPresetLearningParameters(preset);
 	}
 	
 	public void setAlphabetMultiplier(double mult)
@@ -114,7 +115,7 @@ public class MarkovLearningParameters implements ThreadResultID
 			setlearningParameters(false, false, false, false, false);break;
 		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
 			setlearningParameters(true, false, false, false, true);break;
-		case 2:// learning by doing pre-merging but starting from root. This seems similar to preset 1 on 20 states.
+		case 2:// learning by doing pre-merging but starting from root. 
 			setlearningParameters(true, false, false, false, false);break;
 		case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
 			setlearningParameters(false, true, false, true, false);break;
@@ -140,8 +141,8 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String[] getColumnText() {
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
-			return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)};
-		return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),"",""};
+			return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),Integer.toString(expectedWLen),Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)};
+		return new String[]{learnerToUse.name(),Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),Integer.toString(expectedWLen),"",""};
 	}
 
 	@Override
@@ -149,14 +150,14 @@ public class MarkovLearningParameters implements ThreadResultID
 	{
 		String outcome = learnerToUse.name()+"-"+preset;// after identification of a centre vertex many learners can be attempted, Markov is not the only one.
 		if (useCentreVertex)
-			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount;
+			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount+"_v"+whichMostConnectedVertex+"_wl"+expectedWLen;
 		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
 			outcome+="_w"+weightOfInconsistencies+"_cl="+chunkLen;
 		return outcome;
 	}
 
-	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","%transitions","Time"},
-			cellheaderConventional = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","centreCorrect","%transitions","Time"};
+	public static final String [] cellheaderMarkov = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","centerpaths","%transitions","Time"},
+			cellheaderConventional = new String[]{"BCR","Diff","States","I_Ref", "I_Lnt","centreCorrect","centerpaths","%transitions","Time"};
 	
 	@Override
 	public String[] headerValuesForEachCell() 

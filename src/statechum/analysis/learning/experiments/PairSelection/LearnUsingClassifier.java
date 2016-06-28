@@ -53,9 +53,6 @@ public class LearnUsingClassifier {
 	{
 		DrawGraphs gr = new DrawGraphs();
 	    LearnerEvaluationConfiguration learnerInitConfiguration = UASExperiment.constructLearnerInitConfiguration();
-	    PairQualityLearner.configureConfigurationForLearningUsingClassifiers(learnerInitConfiguration.config);
-	    
-		//gr_NewToOrig.setLimit(7000);
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 
 		String outDir = "tmp"+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -66,6 +63,7 @@ public class LearnUsingClassifier {
 		final int samplesPerFSM = 4;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
+		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
 		try
@@ -78,7 +76,7 @@ public class LearnUsingClassifier {
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
@@ -131,7 +129,7 @@ public class LearnUsingClassifier {
 									{
 										{// first, use the learner with a classifier 
 											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("WithClassifier");
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
@@ -150,7 +148,7 @@ public class LearnUsingClassifier {
 										}
 										{// second, use a traditional learner 
 											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("Reference");
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)

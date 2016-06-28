@@ -47,6 +47,11 @@ public class WekaDataCollector
 	 */
 	int maxLevel;
 	
+	public int getLevel()
+	{
+		return maxLevel;
+	}
+	
 	/**
 	 * The length of an instance, taking {@link WekaDataCollector#maxLevel} into account.
 	 */
@@ -73,6 +78,15 @@ public class WekaDataCollector
 	
 	/** Number of values for attributes to consider. */
 	protected final static int V=2;
+	
+	/** Attributes of this collection. Constructed by the {@link WekaDataCollector#initialise(String, int, List, int)} call. */
+	FastVector attributes = null;
+	
+	public FastVector getAttributes()
+	{
+		return attributes;
+	}
+	
 	/**
 	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
@@ -110,7 +124,7 @@ public class WekaDataCollector
 		instanceLength = (int)instanceLen;
 
 		
-		FastVector attributes = new FastVector(instanceLength+1);
+		attributes = new FastVector(instanceLength+1);
 		attributesOfAnInstance = new Attribute[instanceLength];
 		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.addElement(attributesOfAnInstance[i]);
 		attributes.addElement(classAttribute);

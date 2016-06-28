@@ -20,13 +20,17 @@ package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Random;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Helper;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
@@ -41,9 +45,152 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubEx
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import weka.classifiers.Classifier;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.Utils;
 
 public class ConstructClassifier 
 {
+	public static class NearestClassifier extends Classifier
+	{
+		/**
+		 * Value for serialisation.
+		 */
+		private static final long serialVersionUID = -3248779287355047358L;
+		
+		/** Bit-string representation of data. In order to accelerate computations, we denote individual values by separate bits, so -1/1 is 01 v.s. 10 and -2/+2 are 1000 and 0001.
+		 * This permits bitwise AND operations to compare values and hence countBits can be used to find the number of matches. 
+		 * Given that sizeof(long)==64, one long represents 16 attributes. 21000 attributes would be represented with around 1300 values.
+		 * 21000 attributes and 0.25 mil data points is 2.6GB of data. This can scale to 1 million entries with 21000 attributes (10.5GB allocated by JVM) 
+		 * before turning array size negative and failing allocation.
+		 */
+		long trainingData[];
+		int instanceSize;
+		int instanceNumber;
+		int classAttrInTrainingDataArray;
+		public static int valueToBits(String value)
+		{
+			if (value == WekaDataCollector.ZERO)
+				return 0;
+			else
+				if (value == WekaDataCollector.MINUSTWO)
+					return 0x1;
+				else
+					if (value == WekaDataCollector.MINUSONE)
+						return 0x2;
+					else
+						if (value == WekaDataCollector.ONE)
+							return 0x4;
+						else
+							if (value == WekaDataCollector.TWO)
+								return 0x8;
+							else
+								throw new IllegalArgumentException("invalid attribute value "+value);
+		}
+		
+		final static int bitsPerAttribute = 4;
+		final static int bitMask = (1 << bitsPerAttribute)-1;
+		final static int attributesPerLong = 64/bitsPerAttribute;
+		
+		/** Turns instance into a bitstring. */
+		protected void fillInArrayConst(long []array, int offset, Instance instance)
+		{
+			int classIndex = instance.classIndex();
+			int attrPos = 0;
+			for(int attr=0;attr<instance.numAttributes();++attr)
+				if (attr != classIndex)
+				{
+					array[offset+(attrPos/16)] |= valueToBits(instance.stringValue(attr)) << (4* (attrPos & 0xf) );
+					++attrPos;
+				}
+			array[offset+(attrPos/16)] |= (Boolean.parseBoolean(instance.stringValue(classIndex))?1:0) << (4* (attrPos & 0xf) );
+		}
+		
+		/** Turns instance into a bitstring. */
+		protected void fillInArray(long []array, int offset, Instance instance)
+		{
+			int classIndex = instance.classIndex();
+			int attrPos = 0;
+			for(int attr=0;attr<instance.numAttributes();++attr)
+				if (attr != classIndex)
+				{
+					array[offset+(attrPos/attributesPerLong)] |= valueToBits(instance.stringValue(attr)) << (bitsPerAttribute* (attrPos & bitMask) );
+					++attrPos;
+				}
+			array[offset+(attrPos/attributesPerLong)] |= (Boolean.parseBoolean(instance.stringValue(classIndex))?1:0) << (bitsPerAttribute* (attrPos & bitMask) );
+		}
+		@Override
+		public void buildClassifier(Instances data) throws Exception 
+		{
+			instanceSize = (data.numAttributes() + 15)/16;
+			instanceNumber = data.numInstances();
+			if (instanceNumber*(long)instanceSize > Integer.MAX_VALUE)
+				throw new IllegalArgumentException("training data will not fit in the array");
+			trainingData = new long[instanceNumber*instanceSize];
+			classAttrInTrainingDataArray = data.numAttributes()-1;
+			for(int i=0;i<instanceNumber;++i)
+			{
+				Instance instance = data.instance(i);
+				fillInArray(trainingData, i*instanceSize, instance);
+			}
+		}
+
+		@Override
+		public double classifyInstance(Instance instance) throws Exception 
+		{
+			long instanceAsBitString[] = new long[instanceSize];
+			fillInArray(instanceAsBitString, 0, instance);
+			int currentBestInstanceIdx = -1, currentBestCount=-1;
+			for(int i=0;i<instanceNumber;++i)
+			{
+				int cnt=0;
+				for(int a=0;a<instanceSize;++a)
+					cnt+=Long.bitCount(instanceAsBitString[a] & trainingData[i*instanceSize+a]);
+				if (cnt > currentBestCount)
+				{
+					currentBestCount = cnt;currentBestInstanceIdx = i;
+				}
+			}
+			
+			if (currentBestInstanceIdx < 0)
+				return 0;
+			return trainingData[currentBestInstanceIdx*instanceSize+(classAttrInTrainingDataArray/attributesPerLong)] & (1 << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) ));
+		}
+	}
+	
+	public static double evaluateClassifier(Classifier classifier, WekaDataCollector data) throws Exception
+	{
+		Instances ninetyPercent = new Instances(data.trainingData), evaluation = new Instances("ninety percent",data.getAttributes(),data.trainingData.numInstances());
+		evaluation.setClass(ninetyPercent.classAttribute());
+		int nrToRemove = data.trainingData.numInstances()/10;
+		Random rnd = new Random(1);
+		for(int i=0;i<nrToRemove;++i)
+		{
+			int elemToRemove = rnd.nextInt(data.trainingData.numInstances());
+			Instance instanceToRemove = ninetyPercent.instance(elemToRemove);
+			if (instanceToRemove != null)
+			{
+				evaluation.add(instanceToRemove);
+				ninetyPercent.delete(elemToRemove);
+			}
+		}
+		System.out.println("training data: "+ninetyPercent.numInstances()+", evaluation data: "+evaluation.numInstances());
+		classifier.buildClassifier(ninetyPercent);
+		long correctPrediction = 0;
+		for(int i=0;i<evaluation.numInstances();++i)
+		{
+			Instance instance = evaluation.instance(i);
+			double classification = classifier.classifyInstance(instance);
+			double value = instance.classValue();
+			if (Math.abs(classification-value) < Configuration.fpAccuracy)
+				++correctPrediction;
+		}
+		if (evaluation.numInstances() == 0)
+			return 0;
+		else
+			return correctPrediction/(double)evaluation.numInstances();
+	}
+	
 	public static void main(String args[]) throws Exception
 	{
 		DrawGraphs gr = new DrawGraphs();
@@ -59,22 +206,23 @@ public class ConstructClassifier
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		final int minStateNumber = 20;
-		final int samplesPerFSM = 4;
+		final int samplesPerFSM = 8;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
+		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
 		try
 		{
 			for(final int lengthMultiplier:new int[]{10})
-			for(final int ifDepth:new int []{1})
+			for(final int ifDepth:new int []{2})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
 					final int traceQuantity=1;
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
 						int numberOfTasks = 0;
 						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
@@ -82,7 +230,7 @@ public class ConstructClassifier
 								for(int attempt=0;attempt<2;++attempt)
 								{
 									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
-									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									parameters.setColumn("LearnClassifier");
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
@@ -146,10 +294,10 @@ public class ConstructClassifier
 						}
 						//gr_HistogramOfAttributeValues.drawInteractive(gr);
 						gr_HistogramOfAttributeValues.reportResults(gr);
-						/*
+						
 						// write arff
 						FileWriter wekaInstances = null;
-						String whereToWrite = "qualityLearner_"+selection+".arff";
+						String whereToWrite = outDir+File.separator+parExperiment.getExperimentID()+".arff";
 						try
 						{
 							wekaInstances = new FileWriter(whereToWrite);
@@ -179,18 +327,28 @@ public class ConstructClassifier
 									// ignore this, we are not proceeding anyway due to an earlier exception so whether the file was actually written does not matter
 								}
 						}
-						*/
+						
 						// Run the evaluation
 						final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
 						//repTree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
 						// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 						// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
 						//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
-						//final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();
-						final Classifier classifier = repTree;
+						final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
+						final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
+						final Classifier classifier = new NearestClassifier();
 						classifier.buildClassifier(dataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
-						System.out.println(classifier);
+						
+						int itersCount = 0;
+						long endTime = System.nanoTime()+1000000000*10L;// 10 sec
+						while(System.nanoTime() < endTime)
+						{
+							classifier.classifyInstance(dataCollector.trainingData.instance(itersCount));++itersCount;
+						}
+						System.out.println("time per iteration: "+((double)10000/itersCount)+" ms");
+						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,dataCollector));
+						//System.out.println(classifier);
 						dataCollector=null;// throw all the training data away.
 						
 						{// serialise the classifier, this is the only way to store it.

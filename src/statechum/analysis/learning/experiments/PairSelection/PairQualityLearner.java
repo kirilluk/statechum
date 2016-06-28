@@ -1073,45 +1073,75 @@ public class PairQualityLearner
 		@Override
 		public ExperimentResult<PairQualityParameters> call() throws Exception 
 		{
-			final int alphabet = par.tracesAlphabetMultiplier*par.states;
+			final int tracesAlphabet = par.tracesAlphabetMultiplier*par.states;
 			ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
 			WekaDataCollector dataCollector = createDataCollector(par.ifDepth);
 			final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 			ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-			fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+			fsmConstruction.generateFSM(rnd, tracesAlphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 			referenceGraph = fsmConstruction.referenceGraph;
 			
 			final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-			//generator.setWalksShouldLeadToInitialState();
-			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
-			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-									
-					@Override
-					public int getLength() {
-						return  par.lengthMultiplier*par.states;
-					}
-
-					@Override
-					public int getPrefixLength(int len) {
-						return len;
-					}
-				},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
-
-			//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
-			if (par.onlyUsePositives)
-				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-					}
-				}));
+			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.traceQuantity);
+			
+			if (par.pickUniqueFromInitial)
+			{
+				final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
+				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+										
+						@Override
+						public int getLength() {
+							return  par.traceLengthMultiplier*par.states*tracesAlphabet;// same as for Markov learner
+						}
+	
+						@Override
+						public int getPrefixLength(int len) {
+							return len;
+						}
+					},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
+	
+				if (par.onlyUsePositives)
+					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
+						@Override
+						public boolean shouldBeReturned(Object name) {
+							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+						}
+					}));
+				else
+					pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
+					// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
+					// This is done below if onlyUsePositives is not set. 
+			}
 			else
-				pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
-				// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-				// This is done below if onlyUsePositives is not set. 
-
+			{// not using unique from initial
+				final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,null);
+				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+						
+						@Override
+						public int getLength() {
+							return par.traceLengthMultiplier*par.states*tracesAlphabet;// not the same as for SmallVsHuge or LearnerEvaluation
+						}
+		
+						@Override
+						public int getPrefixLength(int len) {
+							return len;
+						}
+					});
+	
+	
+				if (par.onlyUsePositives)
+				{
+					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
+						@Override
+						public boolean shouldBeReturned(Object name) {
+							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
+						}
+					}));
+				}
+				else
+					pta.paths.augmentPTA(generator.getAllSequences(0));
+			}
 			pta.clearColours();
 			if (!par.onlyUsePositives)
 				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";

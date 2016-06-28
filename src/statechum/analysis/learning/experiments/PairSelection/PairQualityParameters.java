@@ -28,7 +28,7 @@ public class PairQualityParameters implements ThreadResultID
 	public boolean onlyUsePositives,pickUniqueFromInitial;
 	int ifDepth;
 	boolean onlyPositives, useUnique;
-	int traceQuantity, lengthMultiplier;
+	int traceQuantity, traceLengthMultiplier;
 	double trainingDataMultiplier;
 	int tracesAlphabetMultiplier;
 	int seed;
@@ -43,9 +43,9 @@ public class PairQualityParameters implements ThreadResultID
 	
 	ThreadResultID innerLearner = null;
 	
-	public void setExperimentParameters(boolean whetherUseClassifierOrLearnClassifier, int ifDepth,boolean onlyPositives,boolean useUnique,int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
+	public void setExperimentParameters(boolean whetherUseClassifierOrLearnClassifier, int ifDepth,boolean onlyPositives,boolean useUnique,int alphabetMult, int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
 	{
-		this.ifDepth = ifDepth;this.usingClassifierRatherThanLearningClassifier = whetherUseClassifierOrLearnClassifier;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.traceQuantity = traceQuantity;this.lengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
+		this.ifDepth = ifDepth;this.usingClassifierRatherThanLearningClassifier = whetherUseClassifierOrLearnClassifier;this.onlyPositives = onlyPositives;this.useUnique = useUnique;this.tracesAlphabetMultiplier = alphabetMult; this.traceQuantity = traceQuantity;this.traceLengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
 	}
 	
 	public void setInnerParameters(ThreadResultID inner)
@@ -58,7 +58,7 @@ public class PairQualityParameters implements ThreadResultID
 
 	public void setLengthMultiplier(int value)
 	{
-		lengthMultiplier = value;
+		traceLengthMultiplier = value;
 	}
 	
 	/** The length of compound if-then conditions over REL metrics to evaluate. */
@@ -94,7 +94,7 @@ public class PairQualityParameters implements ThreadResultID
 	public String getExperimentID()
 	{
 		String exp = "ifD="+ifDepth+
-		(onlyUsePositives?"_POS":"_PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+lengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
+		(onlyUsePositives?"_POS":"_PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
 		if (innerLearner != null)
 			exp+="-"+innerLearner.getRowID();
 		return exp;

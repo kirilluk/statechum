@@ -225,7 +225,7 @@ public class ConstructClassifier
 						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
 						int numberOfTasks = 0;
-						for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
+						for(int states:new int[]{20})
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 								for(int attempt=0;attempt<2;++attempt)
 								{

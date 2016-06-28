@@ -280,7 +280,6 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 						for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 						{
 							for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY,// this one will switch to LINKEDHASH when the amount of data is small.
-									Configuration.STATETREE.STATETREE_LINKEDHASH
 									})
 								for(boolean pta:new boolean[]{false}) // the choice of using PTA or not does not make a significant impact.
 								{

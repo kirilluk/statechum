@@ -659,10 +659,7 @@ public class DrawGraphs {
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
 			if (id.executionTimeInCell() >= 0)
 			{
-				String globalScaling = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING);
-				if (globalScaling.isEmpty())
-					throw new IllegalArgumentException("Cell ["+id.getRowID()+","+id.getColumnID()+"] contains execution time but SGE_EXECUTIONTIME_SCALING scaling is not set. Use SGE_ExperimentRunner.configureCPUFreqNormalisation()");
-				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])*Double.parseDouble(globalScaling)));// a rather long-winded way to scale execution time.
+				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])/LearningSupportRoutines.getFreqCorrectionValue()));// a rather long-winded way to scale execution time.
 			}
 			w.append(concatenateWithSeparator(elements));
 			outputWriter.write(w.toString());

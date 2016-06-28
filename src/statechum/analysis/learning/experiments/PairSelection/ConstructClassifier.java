@@ -137,7 +137,7 @@ public class ConstructClassifier
 			}
 		}
 		
-		public boolean classifyInstanceInternal(Instance instance) throws Exception 
+		public boolean classifyInstanceBoolean(Instance instance) throws Exception 
 		{
 			long instanceAsBitString[] = new long[instanceSize];
 			fillInArray(instanceAsBitString, 0, instance);
@@ -162,7 +162,7 @@ public class ConstructClassifier
 		@Override
 		public double classifyInstance(Instance instance) throws Exception 
 		{
-			return classifyInstanceInternal(instance)?1.0:0.0;
+			return classifyInstanceBoolean(instance)?1.0:0.0;
 		}
 	}
 	

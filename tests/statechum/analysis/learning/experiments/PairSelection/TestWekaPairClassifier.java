@@ -38,6 +38,7 @@ import statechum.Helper.whatToRun;
 import statechum.JUConstants;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.PairSelection.ConstructClassifier.NearestClassifier;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -1511,8 +1512,9 @@ public class TestWekaPairClassifier {
 		Assert.assertFalse(instEnum.hasMoreElements());
 	}
 	
-	/** Classification of instances. 
-	 * @throws Exception if classification fails which signifies a test failure 
+	/** Classification of instances.
+	 *  
+	 * @throws Exception if classification fails which signifies a test failure. 
 	 */
 	@Test
 	public void TestClassification() throws Exception
@@ -1533,6 +1535,59 @@ public class TestWekaPairClassifier {
 		
 		instance = testClassifier.constructInstance(new int []{0,0,1,0},true);
 		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
+	}
+
+	
+	@Test
+	public void TestNearestNeighbourClassifier1() throws Exception
+	{
+		WekaDataCollector dataCollector = new WekaDataCollector();
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score 2")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		NearestClassifier classifier = new NearestClassifier();
+		classifier.buildClassifier(dataCollector.trainingData);
+		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,1,1},false)));
+		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,1,0},false)));
 	}
 }
 

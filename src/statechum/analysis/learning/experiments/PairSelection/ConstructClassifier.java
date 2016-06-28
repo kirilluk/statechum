@@ -72,14 +72,14 @@ public class ConstructClassifier
 		{
 			if (value == WekaDataCollector.ZERO)
 				return 0;
-			else
-				if (value == WekaDataCollector.MINUSTWO)
+			else // this ordering of values makes it possible to predict 
+				if (value == WekaDataCollector.MINUSONE)
 					return 0x1;
 				else
-					if (value == WekaDataCollector.MINUSONE)
+					if (value == WekaDataCollector.ONE)
 						return 0x2;
 					else
-						if (value == WekaDataCollector.ONE)
+						if (value == WekaDataCollector.MINUSTWO)
 							return 0x4;
 						else
 							if (value == WekaDataCollector.TWO)
@@ -206,7 +206,7 @@ public class ConstructClassifier
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		final int minStateNumber = 20;
-		final int samplesPerFSM = 8;
+		final int samplesPerFSM = 2;
 		final int rangeOfStateNumbers = 4;
 		final int stateNumberIncrement = 4;
 		final int alphabetMultiplier = 2;
@@ -215,7 +215,7 @@ public class ConstructClassifier
 		try
 		{
 			for(final int lengthMultiplier:new int[]{10})
-			for(final int ifDepth:new int []{2})
+			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
 					final int traceQuantity=1;

@@ -1591,6 +1591,66 @@ public class TestWekaPairClassifier {
 		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,0,0},false)));
 		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,0,1},false)));
 	}
+	
+	@Test
+	public void TestNearestNeighbourClassifier2() throws Exception
+	{
+		WekaDataCollector dataCollector = new WekaDataCollector();
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score 2")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		
+		NearestClassifier classifier = new NearestClassifier();
+		classifier.buildClassifier(dataCollector.trainingData);
+		Assert.assertEquals(2, classifier.getTrainingSize());
+		double first []= classifier.distributionForInstance(dataCollector.constructInstance(new int []{1,1,0},false));
+		Assert.assertEquals(1.0,first[classifier.posForTrue()],Configuration.fpAccuracy);Assert.assertEquals(0.0,first[classifier.posForFalse()],Configuration.fpAccuracy);
+
+		double second []= classifier.distributionForInstance(dataCollector.constructInstance(new int []{0,1,1},false));
+		Assert.assertEquals(0.25,second[classifier.posForTrue()],Configuration.fpAccuracy);Assert.assertEquals(0.75,second[classifier.posForFalse()],Configuration.fpAccuracy);
+	}
 }
 
 

@@ -19,12 +19,14 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import statechum.Configuration;
@@ -46,6 +48,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
+import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
@@ -66,6 +69,8 @@ public class ConstructClassifier
 		 * before turning array size negative and failing allocation.
 		 */
 		long trainingData[];
+		
+		PosNeg trainingDistribution[];
 		int instanceSize;
 		int instanceNumber;
 		int classAttrInTrainingDataArray;
@@ -88,29 +93,16 @@ public class ConstructClassifier
 							else
 								throw new IllegalArgumentException("invalid attribute value "+value);
 		}
-		
+
 		final static int bitsPerAttribute = 5;
 		final static int bitMask = (1 << bitsPerAttribute)-1;
 		final static int attributesPerLong = 64/bitsPerAttribute;
-		
-		/** Turns instance into a bitstring. */
-		protected void fillInArrayConst(long []array, int offset, Instance instance)
-		{
-			int classIndex = instance.classIndex();
-			int attrPos = 0;
-			for(int attr=0;attr<instance.numAttributes();++attr)
-				if (attr != classIndex)
-				{
-					array[offset+(attrPos/16)] |= valueToBits(instance.stringValue(attr)) << (4* (attrPos & 0xf) );
-					++attrPos;
-				}
-			array[offset+(attrPos/16)] |= (Boolean.parseBoolean(instance.stringValue(classIndex))?1:0) << (4* (attrPos & 0xf) );
-		}
-		
+
 		public static boolean isInstanceAccept(Instance instance) 
 		{
 			return Boolean.parseBoolean(instance.stringValue(instance.classIndex()));
 		}
+
 		/** Turns instance into a bitstring. */
 		protected void fillInArray(long []array, int offset, Instance instance)
 		{
@@ -122,26 +114,139 @@ public class ConstructClassifier
 					array[offset+(attrPos/attributesPerLong)] |= valueToBits(instance.stringValue(attr)) << (bitsPerAttribute* (attrPos & bitMask) );
 					++attrPos;
 				}
-			array[offset+(classAttrInTrainingDataArray/attributesPerLong)] |= (instance.classValue()>0?1:0) << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) );
+			//if (fillInClassification)
+			//	array[offset+(classAttrInTrainingDataArray/attributesPerLong)] |= (instance.classValue()>0?1:0) << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) );
+		}
+		
+		public static class PosNeg
+		{
+			double aboveZero=0,zero=0;
+
+			public PosNeg(double a,double b)
+			{
+				aboveZero = a;zero = b;
+			}
+			
+			@Override
+			public String toString()
+			{
+				return "PosNeg("+aboveZero+","+zero+")";
+			}
+			
+			@Override
+			public int hashCode() {
+				final int prime = 31;
+				int result = 1;
+				long temp;
+				temp = Double.doubleToLongBits(aboveZero);
+				result = prime * result + (int) (temp ^ (temp >>> 32));
+				temp = Double.doubleToLongBits(zero);
+				result = prime * result + (int) (temp ^ (temp >>> 32));
+				return result;
+			}
+
+			@Override
+			public boolean equals(Object obj) {
+				if (this == obj)
+					return true;
+				if (obj == null)
+					return false;
+				if (getClass() != obj.getClass())
+					return false;
+				PosNeg other = (PosNeg) obj;
+				//if (Double.doubleToLongBits(aboveZero) != Double.doubleToLongBits(other.aboveZero))
+				if (Math.abs(aboveZero-other.aboveZero) < Configuration.fpAccuracy)
+					return false;
+				if (Math.abs(zero-other.zero) < Configuration.fpAccuracy)
+					return false;
+				return true;
+			}
+		}
+		
+		public int getTrainingSize()
+		{
+			return instanceNumber;
+		}
+		
+		protected int attrValueForTrue,attrValueForFalse;
+		
+		/** Returns the position of the 'true' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
+		 */
+		public int posForTrue()
+		{
+			return attrValueForTrue;
+		}
+		
+		/** Returns the position of the 'false' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
+		 */
+		public int posForFalse()
+		{
+			return attrValueForFalse;
+		}
+		
+		private static int getIndexFor(Attribute classAttr, String forWhat)
+		{
+			for(int i=0;i<classAttr.numValues();++i)
+				if (classAttr.value(i).equalsIgnoreCase(forWhat))
+					return i;
+			
+			throw new IllegalArgumentException("failed to fine value for \""+forWhat+"\"");
 		}
 		
 		@Override
 		public void buildClassifier(Instances data) throws Exception 
 		{
 			instanceSize = (data.numAttributes() + attributesPerLong-1)/attributesPerLong;
-			instanceNumber = data.numInstances();
-			if (instanceNumber*(long)instanceSize > Integer.MAX_VALUE)
-				throw new IllegalArgumentException("training data will not fit in the array");
-			trainingData = new long[instanceNumber*instanceSize];
 			classAttrInTrainingDataArray = data.numAttributes()-1;
-			for(int i=0;i<instanceNumber;++i)
+			
+			
+			Attribute classAttr = data.attribute(data.classIndex());
+			if (classAttr.numValues() != 2)
+				throw new IllegalArgumentException("class should have exactly two values, {true,false}");
+			attrValueForTrue = getIndexFor(classAttr,"true");attrValueForFalse = getIndexFor(classAttr,"false");
+			
+			Map<List<Long>,PosNeg> instanceToInteger = new HashMap<List<Long>,PosNeg>();
+			
+			for(int i=0;i<data.numInstances();++i)
 			{
 				Instance instance = data.instance(i);
-				fillInArray(trainingData, i*instanceSize, instance);
+				long [] instanceData=new long[instanceSize];fillInArray(instanceData, 0, instance);
+				List<Long> instanceDataAsList=new ArrayList<Long>(instanceSize);for(long iv:instanceData) instanceDataAsList.add(iv);
+				PosNeg value = instanceToInteger.get(instanceDataAsList);
+				if (value == null)
+				{
+					value = new PosNeg(0,0);instanceToInteger.put(instanceDataAsList,value);
+				}
+				if (instance.classValue() > 0)
+					value.aboveZero++;
+				else
+					value.zero++;
+			}
+			
+			if (!instanceToInteger.isEmpty())
+			{
+				instanceNumber = instanceToInteger.size();
+				if (instanceNumber*(long)instanceSize > Integer.MAX_VALUE)
+					throw new IllegalArgumentException("training data will not fit in the array");
+				trainingData = new long[instanceSize*instanceNumber];trainingDistribution=new PosNeg[instanceNumber];
+				int instanceCnt=0;
+				for(Entry<List<Long>,PosNeg> v:instanceToInteger.entrySet())
+				{
+					for(int i=0;i<instanceSize;++i)
+						trainingData[instanceCnt*instanceSize+i]=v.getKey().get(i);
+					PosNeg value = v.getValue();
+					double sum=value.aboveZero+value.zero;
+					if (sum>0)
+					{
+						value.aboveZero/=sum;value.zero/=sum;
+					}
+					trainingDistribution[instanceCnt]=value;
+
+					++instanceCnt;
+				}
 			}
 		}
-		
-		public boolean classifyInstanceBoolean(Instance instance) throws Exception 
+		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
 		{
 			long instanceAsBitString[] = new long[instanceSize];
 			fillInArray(instanceAsBitString, 0, instance);
@@ -159,14 +264,35 @@ public class ConstructClassifier
 			
 			if (currentBestInstanceIdx < 0)
 				throw new IllegalArgumentException("missing data");
-			long value = trainingData[currentBestInstanceIdx*instanceSize+(classAttrInTrainingDataArray/attributesPerLong)] & (1 << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) ));
-			return value != 0;
+			return trainingDistribution[currentBestInstanceIdx];
 		}
 
 		@Override
 		public double classifyInstance(Instance instance) throws Exception 
 		{
-			return classifyInstanceBoolean(instance)?1.0:0.0;
+			PosNeg values = classifyInstanceAsPosNeg(instance);
+			if (values.aboveZero> values.zero)
+				return 1.0;
+			else
+				return 0.0;
+		}
+		
+		public String classifyInstanceString(Instance instance) throws Exception
+		{
+			return instance.classAttribute().value((int)classifyInstance(instance));
+		}
+		
+		public boolean classifyInstanceBoolean(Instance instance) throws Exception
+		{
+			return Boolean.parseBoolean(classifyInstanceString(instance));
+		}
+		
+		@Override
+		public double[] distributionForInstance(Instance instance) throws Exception 
+		{
+			PosNeg values = classifyInstanceAsPosNeg(instance);
+			double[] outcome = new double[]{values.zero,values.aboveZero};
+			return outcome;			
 		}
 	}
 	
@@ -355,6 +481,8 @@ public class ConstructClassifier
 						final Classifier classifier = new NearestClassifier();
 						classifier.buildClassifier(dataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
+						if (classifier instanceof NearestClassifier)
+							System.out.println("Reduced entries in the classifier: "+((NearestClassifier)classifier).getTrainingSize());
 						/*
 						int itersCount = 0;
 						long endTime = System.nanoTime()+1000000000*10L;// 10 sec

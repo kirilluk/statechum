@@ -82,7 +82,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
-		
+		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
 		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//generator.setWalksShouldLeadToInitialState();
@@ -302,6 +302,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 														
 														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
 														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+														par.setPickUniqueFromInitial(true);
 														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 														listOfExperiments.add(learnerRunner);

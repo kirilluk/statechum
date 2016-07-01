@@ -78,6 +78,8 @@ public abstract class PTAExploration<USEROBJECT>
 		@Override
 		public String toString()
 		{
+			if (getInput() == null)
+				return "NULL";
 			return getInput().toString();
 		}
 		

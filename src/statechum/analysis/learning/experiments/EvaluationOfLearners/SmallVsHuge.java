@@ -80,7 +80,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, true, learnerInitConfiguration);
+		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
 		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
@@ -302,8 +302,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 														
 														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
 														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
-// here we pretend to generate normal state machines (without unique transitions), however in reality we request unique transitions. 
-// There is therefore a discrepancy between names used for experiment results ('ANY') v.s. what they really mean ('UNIQ').
+														par.setPickUniqueFromInitial(true);
 														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 														listOfExperiments.add(learnerRunner);

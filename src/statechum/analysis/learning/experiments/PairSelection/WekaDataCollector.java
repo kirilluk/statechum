@@ -552,7 +552,6 @@ public class WekaDataCollector
 			int []comparisonResults = new int[instanceLength];
 			fillInPairDetails(comparisonResults,p, pairsToConsider);// only compare with other non-negatives
 			boolean correctPair = correctPairs.contains(p);
-			//boolean correctPair = p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
 	}

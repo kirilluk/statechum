@@ -655,13 +655,7 @@ public class LearningAlgorithms
 					return null;// dummy, ignored if null.
 				}
 			});
-			if (!outcome.isEmpty())
-			{
-					PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
-					updatePairQualityStatistics(graph,outcome);
-					outcome.clear();outcome.push(chosenPair);
-			}
-			
+			updatePairQualityStatistics(graph,outcome);
 			return outcome;
 		}		
 	}
@@ -988,28 +982,15 @@ public class LearningAlgorithms
 		}
 		
 		@Override 
-		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerThatDelegatesToTheSuppliedClassifier.this.computationOverride);
-			
-			if (!outcome.isEmpty())
-			{
-				PairScore result = null;
-				
-				result=LearningSupportRoutines.pickPairQSMLike(outcome);
-				assert result!=null;
-				assert result.getScore()>=0;
-
-				outcome.clear();outcome.push(result);
-			}	
-			return outcome;
-
-		}
-
-		@Override 
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 		{
 			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
+		{
+			return graph.pairscores.chooseStatePairs(LearnerThatDelegatesToTheSuppliedClassifier.this.computationOverride);
 		}
 	}
 	

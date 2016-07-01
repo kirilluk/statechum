@@ -369,18 +369,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
 		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerMarkovPassive.this.computationOverride);
-	
-			if (!outcome.isEmpty())
-			{
-				PairScore result = null;
-				result=LearningSupportRoutines.pickPairQSMLike(outcome);
-				assert result!=null;
-				assert result.getScore()>=0;
-				outcome.clear();outcome.push(result);
-			}	
-			return outcome;
-	
+			return graph.pairscores.chooseStatePairs(LearnerMarkovPassive.this.computationOverride);
 		}
 	
 		public static PairScore pickPairDISLike(Collection<PairScoreWithDistance> pairs)

@@ -528,49 +528,12 @@ public class MarkovExperiment
 		{
 			super(constructConfiguration(evalCnf,threshold), argInitialPTA,null);// null means that we expect our ChooseStatePairs to completely replace the one in the parent class.
 		}
-
+		
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(this);
-			if (!outcome.isEmpty())
-			{
-				Stack<PairScore> pairsWithScoresComputedUsingGeneralMerger = outcome;
-				/*
-				new Stack<PairScore>();
-				int count=0;
-				for(PairScore p:outcome)
-				{
-					long inconsistencyScore = computeScoreBasedOnInconsistencies(p);
-					if (inconsistencyScore >= 0)
-					{
-						pairsWithScoresComputedUsingGeneralMerger.push(new PairScore(p.getQ(),p.getR(),inconsistencyScore,p.getAnotherScore()));
-						if (++count > 10)
-							break;
-					}
-				}
-
-				Collections.sort(pairsWithScoresComputedUsingGeneralMerger);
-				*/
-				PairScore chosenPair = null;
-				if (useClassifyPairs)
-				{// This part is to prioritise pairs based on the classify Pairs method.
-					Stack<PairScore> NEwresult = MarkovScoreComputation.possibleAtTop(pairsWithScoresComputedUsingGeneralMerger);
-					List<PairScore> filter = this.classifyPairs(NEwresult, graph, extendedGraph);
-
-					if(filter.size() >= 1)
-						chosenPair = LearningSupportRoutines.pickPairQSMLike(filter);
-					else
-						chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
-				}
-				else
-					chosenPair = LearningSupportRoutines.pickPairQSMLike(pairsWithScoresComputedUsingGeneralMerger);
-
-				outcome.clear();outcome.push(chosenPair);
-			}
-			
-			return outcome;
-		}		
+			return graph.pairscores.chooseStatePairs(this);
+		}
 		
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.

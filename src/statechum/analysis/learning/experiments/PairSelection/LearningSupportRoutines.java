@@ -365,7 +365,7 @@ public class LearningSupportRoutines
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {
-				long scoreDiff = o1.getAnotherScore() - o2.getAnotherScore();// using QSM rather than Statechum scoring system
+				long scoreDiff = o1.getScore() - o2.getScore();
 				if (scoreDiff != 0)
 					return signum(scoreDiff);
 				

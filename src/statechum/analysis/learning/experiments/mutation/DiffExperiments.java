@@ -612,7 +612,6 @@ public class DiffExperiments {
 			this.error = errorArg;
 		}
 		
-		//0.31,0.385
 		public LearnerGraphND nextMachine(int alphabet, int counter, Configuration config,ConvertALabel converter){
 			LearnerGraph machine = null;
 			LearnerGraph bestMachine = null;int bestMachineStateNumber = Integer.MAX_VALUE;
@@ -622,8 +621,9 @@ public class DiffExperiments {
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
 					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
-							new ForestFireLabelledNoRepeatStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter):
-							new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
+							// a number of experiments were conducted with these set for 0.365,0.3
+							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter);
 					machine = gen.buildMachine(artificialTargetSize);
 					if (generateConnected)
 					{

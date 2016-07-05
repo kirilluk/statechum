@@ -415,7 +415,6 @@ public class MarkovExperiment
 			return null;												
 		}
 		
-		long inconsistencyFromAnEarlierIteration = 0;
 		public LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
 		MarkovClassifier cl=null;
@@ -455,10 +454,8 @@ public class MarkovExperiment
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
-			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
-		    extendedGraph = cl.constructMarkovTentative();
+		    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 		}
@@ -489,8 +486,12 @@ public class MarkovExperiment
 				{
 					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
 							!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),Markov.getPredictionLen()))
+					{
+						if (extendedGraph == null)
+							extendedGraph = cl.constructMarkovTentative();
 						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
 							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
+					}
 				}
 			}
 			return score;

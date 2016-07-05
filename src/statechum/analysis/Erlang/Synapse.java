@@ -947,8 +947,8 @@ public class Synapse implements Runnable {
 															}
 														};
 														learner.setMarkov(m);learner.setChecker(checker);
-														learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
-														learner.setDisableInconsistenciesInMergers(false);
+														learner.getHelper().setUseNewScoreNearRoot(false);learner.getHelper().setUseClassifyPairs(false);
+														learner.getHelper().setDisableInconsistenciesInMergers(false);
 														
 														if (learnerInitConfiguration.graph != null)
 														{
@@ -1020,8 +1020,8 @@ public class Synapse implements Runnable {
 																}
 															};
 															learner.setMarkov(m);learner.setChecker(checker);
-															learner.setUseNewScoreNearRoot(false);learner.setUseClassifyPairs(false);
-															learner.setDisableInconsistenciesInMergers(false);
+															learner.getHelper().setUseNewScoreNearRoot(false);learner.getHelper().setUseClassifyPairs(false);
+															learner.getHelper().setDisableInconsistenciesInMergers(false);
 															
 															if (learnerInitConfiguration.graph != null)
 															{

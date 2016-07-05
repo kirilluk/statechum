@@ -264,9 +264,9 @@ public class MarkovExperiment
 	 			{
 	 			case LEARNER_EDSMMARKOV:
 	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
-	 				markovLearner.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);markovLearner.setUseClassifyPairs(par.useClassifyToOrderPairs);
-	 				markovLearner.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
-	 				markovLearner.setWeightOfInconsistencies(par.weightOfInconsistencies);
+	 				markovLearner.helper.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);markovLearner.helper.setUseClassifyPairs(par.useClassifyToOrderPairs);
+	 				markovLearner.helper.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
+	 				markovLearner.helper.setWeightOfInconsistencies(par.weightOfInconsistencies);
 	 				learnerOfPairs = markovLearner;
 	 				break;
 	 			case LEARNER_EDSM2:
@@ -328,7 +328,7 @@ public class MarkovExperiment
 			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
  			if (markovLearner != null)
- 				dataSample.comparisonsPerformed = markovLearner.comparisonsPerformed;
+ 				dataSample.comparisonsPerformed = markovLearner.helper.comparisonsPerformed;
  			
  			if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
  			{
@@ -398,25 +398,10 @@ public class MarkovExperiment
 		zeroScore = new ScoresForGraph();zeroScore.differenceBCR=new DifferenceToReferenceLanguageBCR(0, 0, 0, 0);zeroScore.differenceStructural=new DifferenceToReferenceDiff(0, 0);
 	}
 
-	/** Uses the supplied classifier to rank pairs. */
-	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	
+	/** This class makes it possible to integrate Markov computations into any desired learner. In this way, it is used for both Markov experiment and Weka experiment. */
+	public static class MarkovHelper
 	{
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex selectRedNode(LearnerGraph gr,Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-		{
-			return tentativeRedNodes.iterator().next();
-		}
-		
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
-		{
-			return null;												
-		}
-		
-		long inconsistencyFromAnEarlierIteration = 0;
-		public LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
 		MarkovClassifier cl=null;
 		LearnerGraphND inverseGraph = null;
@@ -449,26 +434,87 @@ public class MarkovExperiment
 		{
 			disableInconsistenciesInMergers = v;
 		}
+		
+		public LearnerGraph coregraph = null;
 
-		@Override
+		protected MarkovModel Markov;
+		protected ConsistencyChecker checker;
+		
+		public void setMarkov(MarkovModel m) {
+			Markov=m;
+		}
+
+		public void setChecker(ConsistencyChecker c) {
+			checker=c;
+		}
+
+		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
+		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
+		 * <p/> 
+		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
+		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
+		 * @param extension_graph 
+		 * @param learnerGraph 
+		 * @param pairs 
+		 */
+		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
+		{
+			boolean allPairsNegative = true;
+			for(PairScore p:pairs)
+			{
+				assert p.getScore() >= 0;
+				
+				if (p.getQ().isAccept() || p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
+				{
+					allPairsNegative = false;break;
+				}
+			}
+			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
+			if (allPairsNegative)
+				possibleResults.addAll(pairs);
+			else
+			{
+				for(PairScore p:pairs)
+				{
+					assert p.getScore() >= 0;
+					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
+						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p,0));
+					else
+						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
+				}
+
+				for(PairScore p:nonNegPairs)
+				{
+					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
+					if(d >= 0.0)
+						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p, d));
+				}
+					
+				Collections.sort(possibleResults, new Comparator<PairScore>(){
+	
+					@Override
+					public int compare(PairScore o1, PairScore o2) {
+						int outcome = (int) Math.signum( ((WaveBlueFringe.PairScoreWithDistance)o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance)o1).getDistanceScore());  
+						if (outcome != 0)
+							return outcome;
+						return o2.compareTo(o1);
+					}}); 
+			}				
+			return possibleResults;
+		}
+
+		// The following routines are the ones to be called by a user integrating (mixing) this class into a learner. 
+		
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
-			inconsistencyFromAnEarlierIteration=value;
 			cl = new MarkovClassifier(Markov, coregraph);
-		    extendedGraph = cl.constructMarkovTentative();
+		    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 		}
-
-		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
-		public long overrideScoreComputation(PairScore p) 
-		{
-			return computeScoreBasedOnInconsistencies(p);
-		}		
-
+		
 		public long computeScoreBasedOnInconsistencies(PairScore p) 
 		{
 			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
@@ -489,23 +535,79 @@ public class MarkovExperiment
 				{
 					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
 							!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),Markov.getPredictionLen()))
+					{
+						if (extendedGraph == null)
+							extendedGraph = cl.constructMarkovTentative();
 						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
 							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
+					}
 				}
 			}
 			return score;
 		}
 
-		/** This one returns a set of transitions in all directions. */
-		@Override
 		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 		{
 			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 		}
-
-		protected MarkovModel Markov;
-		protected ConsistencyChecker checker;
+	}
+	
+	/** Uses the supplied classifier to rank pairs. */
+	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
+	{
+		@SuppressWarnings("unused")
+		@Override
+		public CmpVertex selectRedNode(LearnerGraph gr,Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+		{
+			return tentativeRedNodes.iterator().next();
+		}
 		
+		@SuppressWarnings("unused")
+		@Override
+		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
+		{
+			return null;												
+		}
+		
+		protected final MarkovHelper helper = new MarkovHelper();
+		
+		public MarkovHelper getHelper()
+		{
+			return helper;
+		}
+		
+		public void setMarkov(MarkovModel m) {
+			helper.setMarkov(m);
+		}
+
+		public void setChecker(ConsistencyChecker c) {
+			helper.setChecker(c);
+		}
+
+		protected LearnerGraph coregraph;
+		
+		@Override
+		public void initComputation(LearnerGraph graph) 
+		{
+			coregraph = graph;
+			helper.initComputation(graph);
+		}
+
+		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
+		public long overrideScoreComputation(PairScore p) 
+		{
+			return helper.computeScoreBasedOnInconsistencies(p);
+		}		
+
+
+
+		/** This one returns a set of transitions in all directions. */
+		@Override
+		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+		{
+			return	helper.getSurroundingTransitions(currentRed);
+		}
+
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
 		{
 			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
@@ -514,14 +616,6 @@ public class MarkovExperiment
 			copy.setLabelConverter(evalCnf.getLabelConverter());
 			copy.ifthenSequences = evalCnf.ifthenSequences;copy.labelDetails=evalCnf.labelDetails;
 			return copy;
-		}
-		
-		public void setMarkov(MarkovModel m) {
-			Markov=m;
-		}
-
-		public void setChecker(ConsistencyChecker c) {
-			checker=c;
 		}
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 

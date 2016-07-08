@@ -54,6 +54,7 @@ import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -924,13 +925,14 @@ public class Synapse implements Runnable {
 															pta.paths.augmentPTA(seq,true,false,null);
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
-														final MarkovModel m= new MarkovModel(3,true,true,false);
+														MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
+														final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
 
 														new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1) {
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,markovParameters) {
 
 															@Override
 															protected boolean permitUnlimitedNumberOfStates()
@@ -947,8 +949,6 @@ public class Synapse implements Runnable {
 															}
 														};
 														learner.setMarkov(m);learner.setChecker(checker);
-														learner.getHelper().setUseNewScoreNearRoot(false);learner.getHelper().setUseClassifyPairs(false);
-														learner.getHelper().setDisableInconsistenciesInMergers(false);
 														
 														if (learnerInitConfiguration.graph != null)
 														{
@@ -988,7 +988,8 @@ public class Synapse implements Runnable {
 																ptaInitial.paths.augmentPTA(seq,true,false,null);
 															//for(List<Label> seq:sMinus)
 															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
-															final MarkovModel m= new MarkovModel(3,true,true,false);
+															MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
+															final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
 
 															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
 															LearnerGraph ptaToUseForInference = ptaInitial;
@@ -1009,7 +1010,7 @@ public class Synapse implements Runnable {
 																
 															}
 															ptaToUseForInference.clearColours();
-															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1) {
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,markovParameters) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -1020,8 +1021,6 @@ public class Synapse implements Runnable {
 																}
 															};
 															learner.setMarkov(m);learner.setChecker(checker);
-															learner.getHelper().setUseNewScoreNearRoot(false);learner.getHelper().setUseClassifyPairs(false);
-															learner.getHelper().setDisableInconsistenciesInMergers(false);
 															
 															if (learnerInitConfiguration.graph != null)
 															{

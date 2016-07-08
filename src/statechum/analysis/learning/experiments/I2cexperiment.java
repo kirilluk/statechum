@@ -46,6 +46,7 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -188,7 +189,8 @@ public class I2cexperiment extends PairQualityLearner
 		new MarkovClassifier(m, initialPTA).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,1, true,1,0,1);
+		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 
 		System.out.println("started: "+new Date());
 		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

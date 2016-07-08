@@ -37,6 +37,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -230,9 +231,9 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		}
 	}
 
-	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,MarkovParameters markovParameters) 
 	{
-		super(evalCnf, argInitialPTA, threshold);
+		super(evalCnf, argInitialPTA, threshold,markovParameters);
 	}
 
 	protected LearnerGraphND coreInverse = null;

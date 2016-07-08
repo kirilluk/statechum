@@ -20,6 +20,7 @@ package statechum.analysis.learning.experiments.PairSelection;
 import java.util.Map;
 
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 
 public class PairQualityParameters implements ThreadResultID  
@@ -35,6 +36,8 @@ public class PairQualityParameters implements ThreadResultID
 	/** True means using classifier, false means learning classifier. */
 	boolean usingClassifierRatherThanLearningClassifier = true;
 	String column = null;
+	
+	public MarkovParameters markovParameters = new MarkovParameters();
 	
 	public void setColumn(String text)
 	{

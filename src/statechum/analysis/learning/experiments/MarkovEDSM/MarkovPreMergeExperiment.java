@@ -46,7 +46,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
-public class MarkovPreMerge
+public class MarkovPreMergeExperiment
 {
 	
 	public static final String directoryNamePrefix = "premerge_june_2016";
@@ -218,7 +218,7 @@ public class MarkovPreMerge
 												parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 												parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 												parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-												parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
+												parameters.markovParameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
 												parameters.setDisableInconsistenciesInMergers(false);
 												parameters.setUsePrintf(experimentRunner.isInteractive());
 												MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

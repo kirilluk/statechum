@@ -1,7 +1,7 @@
 #!/bin/sh
 #$ -l mem=25G -l rmem=22g -l 'arch=intel*'
 
-EXPERIMENT=statechum.analysis.learning.experiments.MarkovEDSM.MarkovPreMerge
+EXPERIMENT=statechum.analysis.learning.experiments.MarkovEDSM.MarkovPreMergeExperiment
 
 if [ -z ${SGE_TASK_ID+x} ] || [ "${SGE_TASK_ID}" == "undefined" ];then
 	if [ -z ${STATECHUM_COUNT+x} ];then

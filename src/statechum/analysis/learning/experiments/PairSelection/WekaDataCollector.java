@@ -31,6 +31,7 @@ import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import weka.classifiers.Classifier;
@@ -68,9 +69,12 @@ public class WekaDataCollector
 	
 	/**
 	 * Begins construction of an instance of pair classifier.
+	 * @param markovHelper helper used to construct inconsistencies for the use with Markov experiments. The associated ranking routines are not used if this is null.
+	 * @param graphPTA true if the graph rooted at the blue state is expected to be a PTA rather than a directed graph. 
 	 */
-	public WekaDataCollector()
+	public WekaDataCollector(MarkovHelper helper, boolean graphPTA)
 	{
+		markovHelper = helper;graphIsPTA = graphPTA;
 		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
@@ -301,6 +305,9 @@ public class WekaDataCollector
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
 	
+	protected final boolean graphIsPTA;
+	protected final MarkovHelper markovHelper;
+	
 	class MeasurementsForCollectionOfPairs
 	{
 		Map<StatePair,PairMeasurements> measurementsForComparators=new HashMap<StatePair,PairMeasurements>();
@@ -328,8 +335,8 @@ public class WekaDataCollector
 	
 	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
 	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
-	 * @param pairs pairs to build sets for
 	 * @param measurements where to store the result of measurement.
+	 * @param pairs pairs to build sets for.
 	 */
 	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
 	{
@@ -354,7 +361,10 @@ public class WekaDataCollector
 			Collection<CmpVertex> adjacentOutgoingBlue = tentativeGraph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = tentativeGraph.transitionMatrix.get(pair.getR()).values(); 
 			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
 			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			
 			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
+			if (markovHelper!= null)
+				m.inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(pair);
 			tentativeGraph.config.setLearnerScoreMode(origScore);
 			measurements.measurementsForComparators.put(pair,m);
 		}
@@ -425,7 +435,7 @@ public class WekaDataCollector
 		
 		int i=0;
 		for(int attr=0;attr<n;++attr)
-			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 		{
 				PairComparator cmp = comparators.get(attr);
 				int value = comparePairWithOthers(cmp, pair, others);
@@ -449,7 +459,7 @@ public class WekaDataCollector
 		assert !assessors.isEmpty();
 		int i=0;
 		for(int attr=0;attr<n;++attr)
-			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 			{
 				final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
 				whatToFillIn[i+offset]=value;

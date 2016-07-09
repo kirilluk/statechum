@@ -20,12 +20,14 @@ package statechum.model.testset;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -798,7 +800,7 @@ public class PTASequenceEngine
 		PTASequenceEngine result = new PTASequenceEngine();
 		result.init = init;result.rejectNode = rejectNode;result.fsm=fsm;
 		result.negativeNodeID = negativeNodeID;result.positiveNodeID=positiveNodeID;
-		final List<Node> nodesToTrash = new LinkedList<Node>();
+		final Set<Node> nodesToTrash = new HashSet<Node>();
 			// all paths from these nodes are to be removed. The idea is to scan the PTA
 			// looking for the lowest nodes (aka closest to the root) such that 
 			// all paths from them lead to tail nodes which are reject-nodes.

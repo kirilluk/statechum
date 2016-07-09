@@ -24,9 +24,11 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
@@ -133,7 +135,10 @@ public class MarkovHelper
 		cl = new MarkovClassifier(Markov, coregraph);
 	    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
 		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-		inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+		inconsistenciesPerVertex =
+				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
+						new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber()):
+						new TreeMap<CmpVertex,Long>();
 	}
 	
 	public long computeScoreBasedOnInconsistencies(PairScore p) 

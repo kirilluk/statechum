@@ -115,12 +115,19 @@ public class PairQualityLearner
 		return counter;
 	}
 	
+	/** Describes the data that is gathered for every filtered pair in order to make meaningful comparisons between this pair and others.
+	 * Filtered implies that results depend on comparison between this pair and other pairs in a set. 
+	 */   
+	public static class FilteredPairMeasurements
+	{
+		public int nrOfAlternatives;
+		public boolean adjacent;
+	}
+	
 	/** Describes the data that is gathered for every pair in order to make meaningful comparisons between this pair and others. */   
 	public static class PairMeasurements
 	{
-		public int nrOfAlternatives;
-		public long compatibilityScore, inconsistencyScore;
-		public boolean adjacent;
+ 		public long compatibilityScore, inconsistencyScore;
 	}
 	
 	/** Constructs instance generator by making it possible to collect results of measurements. 
@@ -132,7 +139,7 @@ public class PairQualityLearner
 	 */
 	public static WekaDataCollector createDataCollector(final int ifDepth, MarkovHelper markovHelper, boolean graphIsPTA)
 	{
-		WekaDataCollector classifier = new WekaDataCollector(markovHelper,graphIsPTA);
+		final WekaDataCollector classifier = new WekaDataCollector(markovHelper,graphIsPTA);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		
 		if (graphIsPTA)
@@ -140,7 +147,7 @@ public class PairQualityLearner
 			{// 1
 				@Override
 				public long getValue(PairScore p) {
-					return measurementsForCurrentStack(p).compatibilityScore;
+					return classifier.measurementsObtainedFromPairs.get(p).compatibilityScore;
 				}
 	
 				@Override
@@ -179,7 +186,7 @@ public class PairQualityLearner
 		{// 4
 			@Override
 			public long getValue(PairScore p) {
-				return  measurementsForCurrentStack(p).nrOfAlternatives;
+				return  classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).nrOfAlternatives;
 			}
 
 			@Override
@@ -270,7 +277,7 @@ public class PairQualityLearner
 		{// 11
 			@Override
 			public long getValue(PairScore p) {
-				return measurementsForCurrentStack(p).adjacent? 1:0;
+				return classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).adjacent? 1:0;
 			}
 
 			@Override
@@ -321,7 +328,7 @@ public class PairQualityLearner
 		{// 14
 			@Override
 			public long getValue(PairScore p) {
-				return p.getScore()-measurementsForCurrentStack(p).inconsistencyScore;
+				return p.getScore()-classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
 			}
 
 			@Override
@@ -334,7 +341,7 @@ public class PairQualityLearner
 		{// 15
 			@Override
 			public long getValue(PairScore p) {
-				return p.getScore()-2*measurementsForCurrentStack(p).inconsistencyScore;
+				return p.getScore()-2*classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
 			}
 
 			@Override
@@ -1211,6 +1218,7 @@ public class PairQualityLearner
 						
 			// not merging based on a unique transition from an initial state
 			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,fmg.ptaToUseForInference);
+			dataCollector.markovHelper.setMarkov(m);dataCollector.markovHelper.setChecker(checker);
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			
 			SampleData dataSample = new SampleData(null,null);

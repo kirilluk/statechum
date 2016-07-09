@@ -39,7 +39,7 @@ import statechum.JUConstants;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.ConstructClassifier.NearestClassifier;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -184,8 +184,9 @@ public class TestWekaPairClassifier {
 		WekaDataCollector classifier = new WekaDataCollector(null,true);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
-		Assert.assertTrue(classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.isEmpty());
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertTrue(classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.isEmpty());
+		Assert.assertTrue(classifier.measurementsObtainedFromPairs.isEmpty());
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
@@ -198,11 +199,11 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(pairA,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
@@ -216,11 +217,11 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(pairA,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
@@ -235,14 +236,14 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(2,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
@@ -258,17 +259,17 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(3,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
 		
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairC);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairC);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
@@ -284,17 +285,17 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(3,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
 
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairC);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairC);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(3,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	/** Adjacency in Blue rather than in Red should not be considered */
@@ -309,13 +310,13 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Iterator<StatePair> iter = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator();Assert.assertEquals(pairA,iter.next());Assert.assertEquals(pairB,iter.next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(2,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Iterator<StatePair> iter = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator();Assert.assertEquals(pairA,iter.next());Assert.assertEquals(pairB,iter.next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 		
 	@Test
@@ -775,10 +776,10 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 1;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( 0.,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( 0.,classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 	}
 	
 	@Test
@@ -809,10 +810,10 @@ public class TestWekaPairClassifier {
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 	}
 
 	@Test
@@ -842,10 +843,10 @@ public class TestWekaPairClassifier {
 				pairA,pairB,pairC
 		});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 		
 		Assert.assertEquals(1, assessors.get(0).getValue(pairA) );
 		Assert.assertEquals(1, assessors.get(0).getValue(pairB) );
@@ -1287,7 +1288,7 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. */
@@ -1303,8 +1304,8 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. Takes an offset into account. */
@@ -1320,8 +1321,8 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
 		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
 		int [] buffer= new int[]{9,8,7,6};
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
 	}	
 	
 	/** Construction of instances. */

@@ -19,8 +19,12 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -120,8 +124,12 @@ public class ConstructClassifier
 			//	array[offset+(classAttrInTrainingDataArray/attributesPerLong)] |= (instance.classValue()>0?1:0) << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) );
 		}
 		
-		public static class PosNeg
+		public static class PosNeg implements Serializable
 		{
+			/**
+			 * ID for serialisation
+			 */
+			private static final long serialVersionUID = -5672965229484999993L;
 			double aboveZero=0,zero=0;
 
 			public PosNeg(double a,double b)
@@ -352,7 +360,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 8;
+		final int samplesPerFSM = 16;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
@@ -362,8 +370,8 @@ public class ConstructClassifier
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
-					final int traceQuantity=10;
-					for(final boolean useUnique:new boolean[]{false})
+					final int traceQuantity=1;
+					for(final boolean useUnique:new boolean[]{true})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
@@ -377,6 +385,7 @@ public class ConstructClassifier
 									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
 									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									parameters.setColumn("LearnClassifier");
+									parameters.markovParameters = markovParameters;
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override
@@ -385,7 +394,6 @@ public class ConstructClassifier
 											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper);
 										}
 									};
-									parameters.setPickUniqueFromInitial(useUnique);parameters.setOnlyUsePositives(onlyPositives);parameters.setIfdepth(ifDepth);parameters.setLengthMultiplier(lengthMultiplier);
 									experimentRunner.submitTask(learnerRunner);
 									++numberOfTasks;
 								}
@@ -500,13 +508,13 @@ public class ConstructClassifier
 						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,dataCollector));
 						//System.out.println(classifier);
 						dataCollector=null;// throw all the training data away.
-						/*
+
 						{// serialise the classifier, this is the only way to store it.
 							OutputStream os = new FileOutputStream(outDir+File.separator+parExperiment.getExperimentID()+".ser");
 							ObjectOutputStream oo = new ObjectOutputStream(os); 
 		                    oo.writeObject(classifier);
 		                    os.close();
-						}*/
+						}
 					}
 				}
 		}

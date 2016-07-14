@@ -160,11 +160,11 @@ public class ComputeExecutionTimeCorrectionValue
 		// Now we have all the spreadsheets, use them to compute correction.
 		EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);
 		// parameters above are dummy - they are needed to construct an instance but only values hardwired into EvaluationOfLearnersParameters are used.
-		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,10);
+		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,10,1);
 		System.out.println("iceberg v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
-		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(2), par, 3600L*4L,50);
+		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(2), par, 3600L*4L,50,1);
 		System.out.println("m6e v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
-		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(3), par, 3600L*4L,20);
+		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(3), par, 3600L*4L,20,0.4);
 		System.out.println("regi v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		

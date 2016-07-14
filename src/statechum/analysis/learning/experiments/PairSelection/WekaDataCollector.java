@@ -335,7 +335,8 @@ public class WekaDataCollector
 
 			PairMeasurements m = new PairMeasurements();
 			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
+			if (graphIsPTA)
+				m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
 			if (markovHelper!= null)
 				m.inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(pair);
 			tentativeGraph.config.setLearnerScoreMode(origScore);

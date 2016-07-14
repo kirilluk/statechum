@@ -29,19 +29,24 @@ import java.util.TreeMap;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.MergeObjects;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -59,24 +64,21 @@ public class LearnUsingClassifier {
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,args);
-		final int minStateNumber = 20;
 		final int samplesPerFSM = 4;
-		final int rangeOfStateNumbers = 4;
-		final int stateNumberIncrement = 4;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
 		try
 		{
-			for(final int lengthMultiplier:new int[]{50})
+			for(final int traceLengthMultiplier:new int[]{10})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 				{
-					final int traceQuantity=1;
+					final int traceQuantityToUse=1;
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
@@ -97,7 +99,6 @@ public class LearnUsingClassifier {
 	
 							String selection = parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
 	
-							final int totalTaskNumber = traceQuantity;
 							final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File(outPathPrefix+"percentage_score"+selection+".pdf"));
 							final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File(outPathPrefix+"quality_traces"+selection+".pdf"));
 							SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File(outPathPrefix+"new_to_orig"+selection+".pdf"),0,1,true);
@@ -122,16 +123,21 @@ public class LearnUsingClassifier {
 									return new SGEExperimentResult[]{resultCSV};
 								}
 							};
-							int numberOfTasks = 0;
-							for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
-								for(int sample=0;sample<samplesPerFSM;++sample)
+							int chunkLen = 3;
+							int seedForFSM = 0;
+							double weightOfInconsistencies = 1.0;
+							boolean aveOrMax=false;
+							int divisor=2;
+							for(int states:new int[]{20})
+								for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 									for(int attempt=0;attempt<2;++attempt)
 									{
 										{// first, use the learner with a classifier 
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("WithClassifier");
+											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 											parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
@@ -147,10 +153,11 @@ public class LearnUsingClassifier {
 											experimentRunner.submitTask(learnerRunner);
 										}
 										{// second, use a traditional learner 
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,totalTaskNumber+numberOfTasks);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 											parameters.setInnerParameters(parametersInnerLearner);
 											parameters.setColumn("Reference");
+											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
@@ -161,50 +168,110 @@ public class LearnUsingClassifier {
 												}
 												
 											};
+											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 											experimentRunner.submitTask(learnerRunner);
 										}
-										++numberOfTasks;
+										/*
+										{// third, use EDSM-Markov learner, no premerge
+											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+											parameters.setInnerParameters(parametersInnerLearner);
+											parameters.setColumn("EDSM-Markov");
+											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
+											{
+												@SuppressWarnings("unused")
+												@Override
+												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+												{
+													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.markovParameters);
+													final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
+
+													new MarkovClassifier(m, argInitialPTA).updateMarkov(false);// construct Markov chain if asked for.
+													
+													argInitialPTA.clearColours();
+													final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+													markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+													return markovLearner;
+												}
+												
+											};
+											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+											experimentRunner.submitTask(learnerRunner);
+										}
+										{// fourth, use EDSM-Markov learner, premerge
+											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
+											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+											parameters.setInnerParameters(parametersInnerLearner);
+											parameters.setColumn("EDSM-Markov,P");
+											parameters.markovParameters.setMarkovParameters(1,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
+											{
+												@SuppressWarnings("unused")
+												@Override
+												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
+												{
+													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.markovParameters);
+													final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
+
+													new MarkovClassifier(m, argInitialPTA).updateMarkov(false);// construct Markov chain if asked for.
+													
+													argInitialPTA.clearColours();
+													final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+													markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+													return markovLearner;
+												}
+												
+											};
+											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+											experimentRunner.submitTask(learnerRunner);
+										}*/
+										++seedForFSM;
 									}
 					    	
 					    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
-					    	// When we reach this point, the CSV is built so it is handy to process the data in it.
-					    	DrawGraphs.spreadsheetToBagPlot(gr_NewToOrig, resultCSV, "Reference", 0, "WithClassifier", 0, null, null);
-					    	DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
-								
-								@Override
-								public void merge(double reference, double actual) {
-									if (reference > 0)
-										gr_QualityForNumberOfTraces.add(traceQuantity+"",actual/reference);
-								}
-							}, resultCSV, "Reference", 0,"WithClassifier",0);
-							
-							if (gr_PairQuality != null)
-							{
-								final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
-								DrawGraphs.spreadsheetObjectsCollect(new MergeObjects() {
+					    	
+					    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS || experimentRunner.getPhase() == PhaseEnum.COLLECT_AVAILABLE)
+					    	{
+						    	// When we reach this point, the CSV is built so it is handy to process the data in it.
+						    	DrawGraphs.spreadsheetToBagPlot(gr_NewToOrig, resultCSV, "Reference", 0, "WithClassifier", 0, null, null);
+						    	DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+									
 									@Override
-									public void merge(@SuppressWarnings("unused") String key, Object obj) {
-										@SuppressWarnings("unchecked")
-										Map<Long,TrueFalseCounter> cnt = (Map<Long,TrueFalseCounter>)obj;
-										for(Map.Entry<Long,TrueFalseCounter> entry:cnt.entrySet())
-										{
-											TrueFalseCounter c = pairQualityCounter.get(entry.getKey());
-											if (c == null)
+									public void merge(double reference, double actual) {
+										if (reference > 0)
+											gr_QualityForNumberOfTraces.add(traceQuantityToUse+"",actual/reference);
+									}
+								}, resultCSV, "Reference", 0,"WithClassifier",0);
+								
+								if (gr_PairQuality != null)
+								{
+									final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
+									DrawGraphs.spreadsheetObjectsCollect(new MergeObjects() {
+										@Override
+										public void merge(@SuppressWarnings("unused") String key, Object obj) {
+											@SuppressWarnings("unchecked")
+											Map<Long,TrueFalseCounter> cnt = (Map<Long,TrueFalseCounter>)obj;
+											for(Map.Entry<Long,TrueFalseCounter> entry:cnt.entrySet())
 											{
-												c= new TrueFalseCounter();pairQualityCounter.put(entry.getKey(), c);
+												TrueFalseCounter c = pairQualityCounter.get(entry.getKey());
+												if (c == null)
+												{
+													c= new TrueFalseCounter();pairQualityCounter.put(entry.getKey(), c);
+												}
+												c.trueCounter+=entry.getValue().trueCounter;c.falseCounter+=entry.getValue().falseCounter;
 											}
-											c.trueCounter+=entry.getValue().trueCounter;c.falseCounter+=entry.getValue().falseCounter;
-										}
-									}},resultCSV,null,0,"PairQuality",3);
-								LearningSupportRoutines.updateGraph(gr_PairQuality,pairQualityCounter);
-									//gr_PairQuality.drawInteractive(gr);
-									//gr_NewToOrig.drawInteractive(gr);
-									//if (gr_QualityForNumberOfTraces.size() > 0)
-									//	gr_QualityForNumberOfTraces.drawInteractive(gr);
-							}
-							if (gr_PairQuality != null) gr_PairQuality.reportResults(gr);
-							if (gr_NewToOrig != null) gr_NewToOrig.reportResults(gr);
-							if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.reportResults(gr);
+										}},resultCSV,null,0,"PairQuality",3);
+									LearningSupportRoutines.updateGraph(gr_PairQuality,pairQualityCounter);
+										//gr_PairQuality.drawInteractive(gr);
+										//gr_NewToOrig.drawInteractive(gr);
+										//if (gr_QualityForNumberOfTraces.size() > 0)
+										//	gr_QualityForNumberOfTraces.drawInteractive(gr);
+								}
+								if (gr_PairQuality != null) gr_PairQuality.reportResults(gr);
+								if (gr_NewToOrig != null) gr_NewToOrig.reportResults(gr);
+								if (gr_QualityForNumberOfTraces != null) gr_QualityForNumberOfTraces.reportResults(gr);
+					    	}
 						}
 					}
 				}

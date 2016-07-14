@@ -927,7 +927,7 @@ public class DrawGraphs {
 	}
 	
 	/** Matches cell values between graphs and computes the correction for the timing values. All values other than time should match exactly, time values could differ. All pairs where at least one experiment timed out are ignored. Negative timeout means do not use timeouts. */
-	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, long timeout, long minValue)
+	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, long timeout, long minValue, double scaleOtherValuesBy)
 	{
 		int timeCell = par.executionTimeInCell();
 		if (timeCell < 0)
@@ -950,7 +950,7 @@ public class DrawGraphs {
 					if (otherText != null)
 					{
 						double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
-						double value = Double.parseDouble(obtainValueFromCell(otherText,timeCell));
+						double value = Double.parseDouble(obtainValueFromCell(otherText,timeCell))*scaleOtherValuesBy;
 						if (timeout < 0 || (denominator < timeout && value < timeout))
 						{// only consider pairs where none of the values is a timeout
 							for(int i=0;i<cellsCnt;++i)

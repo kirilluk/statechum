@@ -64,24 +64,6 @@ public class PairQualityParameters implements ThreadResultID
 		traceLengthMultiplier = value;
 	}
 	
-	/** The length of compound if-then conditions over REL metrics to evaluate. */
-	public void setIfdepth(int value)
-	{
-		ifDepth = value;
-	}
-	
-	/** Whether to filter the collection of traces such that only positive traces are used. */
-	public void setOnlyUsePositives(boolean value)
-	{
-		onlyUsePositives = value;
-	}
-	
-	/** Where a transition that can be uniquely identifying an initial state be used both for mergers and for building a partly-merged PTA. */
-	public void setPickUniqueFromInitial(boolean value)
-	{
-		pickUniqueFromInitial = value;
-	}
-
 	public Map<Long,TrueFalseCounter> pairQualityCounter = null;
 	
 	public void setPairQualityCounter(Map<Long,TrueFalseCounter> c)
@@ -106,7 +88,7 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String getRowID()
 	{
-		return getExperimentID()+";sample="+sample+";attempt="+attempt+";seed="+seed;
+		return getExperimentID()+"_S"+states+"_sa="+sample+"_se="+seed;
 	}
 
 	@Override

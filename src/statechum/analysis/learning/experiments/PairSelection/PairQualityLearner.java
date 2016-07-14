@@ -39,11 +39,16 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.PerformFirstMerge;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
@@ -110,33 +115,48 @@ public class PairQualityLearner
 		return counter;
 	}
 	
-	/** Describes the data that is gathered for every pair in order to make meaningful comparisons between this pair and others. */   
-	public static class PairMeasurements
+	/** Describes the data that is gathered for every filtered pair in order to make meaningful comparisons between this pair and others.
+	 * Filtered implies that results depend on comparison between this pair and other pairs in a set. 
+	 */   
+	public static class FilteredPairMeasurements
 	{
 		public int nrOfAlternatives;
-		public long compatibilityScore;
 		public boolean adjacent;
 	}
 	
-	public static WekaDataCollector createDataCollector(final int ifDepth)
+	/** Describes the data that is gathered for every pair in order to make meaningful comparisons between this pair and others. */   
+	public static class PairMeasurements
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+ 		public long compatibilityScore, inconsistencyScore;
+	}
+	
+	/** Constructs instance generator by making it possible to collect results of measurements. 
+	 * 
+	 * @param ifDepth how deep max-then-... nesting is to be considered. 
+	 * @param markovHelper markov helper to use for computation of scores. Needed to create the data collector which uses scores as part of data stored in instances.
+	 * @param graphIsPTA whether to utilise measures relying on a graph rooted at the blue state being a PTA as opposed a directed graph with loop (as is the case with premerge). Needed to create the data collector which uses scores as part of data stored in instances.
+	 * @return instance-constructing instance.
+	 */
+	public static WekaDataCollector createDataCollector(final int ifDepth, MarkovHelper markovHelper, boolean graphIsPTA)
+	{
+		final WekaDataCollector classifier = new WekaDataCollector(markovHelper,graphIsPTA);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
-			
-		assessors.add(classifier.new PairRank("conventional score")
-		{// 1
-			@Override
-			public long getValue(PairScore p) {
-				return measurementsForCurrentStack(p).compatibilityScore;
-			}
+		
+		if (graphIsPTA)
+			assessors.add(classifier.new PairRank("conventional score")
+			{// 1
+				@Override
+				public long getValue(PairScore p) {
+					return classifier.measurementsObtainedFromPairs.get(p).compatibilityScore;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
 
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-
-		assessors.add(classifier.new PairRank("statechum score")
+		assessors.add(classifier.new PairRank("score (which could be Statechum or any other)")
 		{// 2
 			@Override
 			public long getValue(PairScore p) {
@@ -166,7 +186,7 @@ public class PairQualityLearner
 		{// 4
 			@Override
 			public long getValue(PairScore p) {
-				return  measurementsForCurrentStack(p).nrOfAlternatives;
+				return  classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).nrOfAlternatives;
 			}
 
 			@Override
@@ -253,24 +273,11 @@ public class PairQualityLearner
 			}
 		});
 		
-		assessors.add(classifier.new PairRank("difference between conventional scores divided by 3")
+		assessors.add(classifier.new PairRank("whether red and blue are adjacent")
 		{// 11
 			@Override
 			public long getValue(PairScore p) {
-				return  measurementsForCurrentStack(p).compatibilityScore/3;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("whether red and blue are adjacent")
-		{// 12
-			@Override
-			public long getValue(PairScore p) {
-				return measurementsForCurrentStack(p).adjacent? 1:0;
+				return classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).adjacent? 1:0;
 			}
 
 			@Override
@@ -280,7 +287,7 @@ public class PairQualityLearner
 		});
 		
 		assessors.add(classifier.new PairRank("number of new outgoing transitions from blue")
-		{// 13
+		{// 12
 			@Override
 			public long getValue(PairScore p) {
 				Map<Label,CmpVertex> redTransitions = tentativeGraph().transitionMatrix.get(p.getR());
@@ -299,7 +306,7 @@ public class PairQualityLearner
 		});
 		
 		assessors.add(classifier.new PairRank("number of new outgoing transitions from red")
-		{// 14
+		{// 13
 			@Override
 			public long getValue(PairScore p) {
 				Map<Label,CmpVertex> redTransitions = tentativeGraph().transitionMatrix.get(p.getQ());
@@ -316,7 +323,33 @@ public class PairQualityLearner
 				return false;
 			}
 		});
+
+		assessors.add(classifier.new PairRank("score minus inconsistency")
+		{// 14
+			@Override
+			public long getValue(PairScore p) {
+				return p.getScore()-classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
 		
+		assessors.add(classifier.new PairRank("score minus 2*inconsistency")
+		{// 15
+			@Override
+			public long getValue(PairScore p) {
+				return p.getScore()-2*classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+
 		classifier.initialise("HindsightExperiment",100000,assessors,ifDepth);
 		return classifier;
 	}
@@ -360,23 +393,42 @@ public class PairQualityLearner
 		return outcome;
 	}		
 	
+	public static class LearnerThatUsesClassifiers extends LearningAlgorithms.LearnerThatCanClassifyPairs
+	{
+		public LearnerThatUsesClassifiers(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA, OverrideScoringToApply scoring,MarkovHelper helper) 
+		{
+			super(evalCnf, reference, argInitialPTA, scoring);markovHelper = helper;
+		}
+
+		/** Permits us to compute Markov scores. */
+		final MarkovHelper markovHelper;
+		protected MarkovModel Markov;
+		protected ConsistencyChecker checker;
+		
+		public void setMarkov(MarkovModel m) {
+			Markov=m;
+		}
+
+		public void setChecker(ConsistencyChecker c) {
+			checker=c;
+		}
+
+		public MarkovHelper getHelper()
+		{
+			return markovHelper;
+		}
+	}
+
 	/** This one uses Weka to learn how to make correct classification of pairs into right and wrong. As such, it is an inherently cheating learner: 
 	 * resolvePotentialDeadEnd uses a reference graph to make sure that were no valid mergers have been selected as a set of pairs, report one of them to be marked as red. 
 	 */
-	public static class LearnerThatUpdatesWekaResults extends LearningAlgorithms.LearnerThatCanClassifyPairs
+	public static class LearnerThatUpdatesWekaResults extends LearnerThatUsesClassifiers
 	{
 		final WekaDataCollector dataCollector;
 		
-		/** Builds a decision tree and returns it. Throws an exception if something goes wrong. */
-		public Classifier getClassifier() throws Exception
+		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper helper) 
 		{
-			weka.classifiers.trees.J48 cl = new weka.classifiers.trees.J48();
-			cl.buildClassifier(dataCollector.trainingData);return cl;
-		}
-				
-		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA) 
-		{
-			super(evalCnf,argReferenceGraph, argInitialPTA,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
+			super(evalCnf,argReferenceGraph, argInitialPTA,null,helper);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
 			dataCollector = argDataCollector;
 		}
 		
@@ -410,6 +462,7 @@ public class PairQualityLearner
 				@Override
 				public void initComputation(LearnerGraph gr) {
 					g=gr;
+					markovHelper.initComputation(gr);
 				}
 
 				@Override
@@ -422,9 +475,9 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 				{
-					return null;// dummy, ignored if null.
+					return markovHelper.getSurroundingTransitions(currentRed);
 				}
 			});
 			if (!outcome.isEmpty())
@@ -434,13 +487,13 @@ public class PairQualityLearner
 				outcome.clear();outcome.push(chosenPair);
 			}
 			if (!checkAllMergersCorrect())
-				throw new IllegalArgumentException("learner could not make a right choice even where correct graph was known in advance");
+				throw new IllegalArgumentException("learner could not make the right choice even where correct graph was known in advance");
 			return outcome;
 		}		
 	} // class that builds a classifier tree.
 
 	/** Uses the supplied classifier to rank pairs. */
-	public static class LearnerThatUsesWekaResults extends LearningAlgorithms.LearnerThatCanClassifyPairs
+	public static class LearnerThatUsesWekaResults extends LearnerThatUsesClassifiers
 	{
 		final Classifier classifier;
 		
@@ -454,11 +507,11 @@ public class PairQualityLearner
 			pairQuality = argCounter;
 		}
 
-		public LearnerThatUsesWekaResults(UseWekaResultsParameters parameters,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA) 
+		public LearnerThatUsesWekaResults(UseWekaResultsParameters parameters,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA,MarkovHelper helper) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
+			super(evalCnf,argReferenceGraph,argInitialPTA,null,helper);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
 			par=parameters;
-			dataCollector = createDataCollector(parameters.ifDepth);
+			dataCollector = createDataCollector(parameters.ifDepth,markovHelper,!parameters.markovParameters.useCentreVertex);
 			classifier=wekaClassifier;
 			classTrue=dataCollector.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=dataCollector.classAttribute.indexOfValue(Boolean.FALSE.toString());
 		}
@@ -517,7 +570,7 @@ public class PairQualityLearner
 		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those contradicting mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
 		 */
-		protected ArrayList<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
+		protected Stack<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
 			boolean allPairsNegative = true;
 			for(PairScore p:pairs)
@@ -529,7 +582,8 @@ public class PairQualityLearner
 					allPairsNegative = false;break;
 				}
 			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
+			Stack<PairScore> possibleResults = new Stack<PairScore>();
+			ArrayList<PairScore> nonNegPairs = new ArrayList<PairScore>(pairs.size());
 			if (allPairsNegative)
 				possibleResults.addAll(pairs);
 			else
@@ -771,8 +825,8 @@ public class PairQualityLearner
 				}
 				
 				@Override
-				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
+				public void initComputation(LearnerGraph gr) {
+					markovHelper.initComputation(gr);
 				}
 
 				@Override
@@ -781,24 +835,21 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 				{
-					return null;// dummy, ignored if null.
+					return markovHelper.getSurroundingTransitions(currentRed);
 				}
 			});
 			if (!outcome.isEmpty())
 			{
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
-				ArrayList<PairScore> possibleResults = classifyPairs(outcome,graph);
+				Stack<PairScore> possibleResults = classifyPairs(outcome,graph);
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 
-				if (possibleResults.isEmpty())
+				if (!possibleResults.isEmpty())
 				{
-					possibleResults.add(LearningSupportRoutines.pickPairQSMLike(outcome));// no pairs have been provided by the modified algorithm, hence using the default one.
-					//System.out.println("no suitable pair was found");
+					outcome = possibleResults;// no pairs have been provided by the modified algorithm, hence using the default one.
 				}
-				PairScore result = possibleResults.iterator().next();
-				outcome.clear();outcome.push(result);
 /*
 				{
 					List<PairScore> correctPairs = new ArrayList<PairScore>(outcome.size()), wrongPairs = new ArrayList<PairScore>(outcome.size());
@@ -1079,7 +1130,7 @@ public class PairQualityLearner
 		{
 			final int tracesAlphabet = par.tracesAlphabetMultiplier*par.states;
 			ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
-			WekaDataCollector dataCollector = createDataCollector(par.ifDepth);
+			WekaDataCollector dataCollector = createDataCollector(par.ifDepth,new MarkovHelper(par.markovParameters),!par.markovParameters.useCentreVertex);
 			final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 			ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 			fsmConstruction.generateFSM(rnd, tracesAlphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
@@ -1154,8 +1205,20 @@ public class PairQualityLearner
 			
 			LearnerWithMandatoryMergeConstraints learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
+			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
+			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+			
+			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
+			if (par.markovParameters.useCentreVertex)
+			{
+				saveGraph(namePTABEFORECENTRE,pta);
+				fmg.buildFirstGraph(pta, null, par.markovParameters, m, checker);
+			}
+						
 			// not merging based on a unique transition from an initial state
-			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,pta);
+			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,fmg.ptaToUseForInference);
+			dataCollector.markovHelper.setMarkov(m);dataCollector.markovHelper.setChecker(checker);
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 			
 			SampleData dataSample = new SampleData(null,null);

@@ -279,7 +279,9 @@ public class LearningAlgorithms
 		}
 	}
 	
-	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
+	/** This class knows what the reference automaton is and is potentially able to pick correct pairs out of a set to merge. 
+	 * It is important to note that this learner does not actually pick such pairs itself, this is expected to be done by derived classes.
+	 */
 	public static class LearnerThatCanClassifyPairs extends ReferenceLearner
 	{
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int maxNumberOfStates)
@@ -332,8 +334,7 @@ public class LearningAlgorithms
 			return correctPairs.iterator().next();
 		}
 		
-		
-		/** There are cases when no selected pair is actually valid. The method below chooses a state to be marked as red because it is the only choice that we can make. */
+		/** There are cases when no selected pair is actually valid. The method below chooses a state to be marked as red if it is the only choice that we can make. */
 		public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<PairScore> pairs) 
 		{
 			
@@ -360,41 +361,6 @@ public class LearningAlgorithms
 		{
 			if (pairQuality != null && referenceGraph != null)
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
-		}
-	}
-
-	public static class DefaultRedNodeSelectionProcedure implements PairScoreComputation.RedNodeSelectionProcedure
-	{
-		@Override
-		public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-		{
-			CmpVertex redVertex = tentativeRedNodes.iterator().next();
-			return redVertex;
-		}
-
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
-		{
-			return null;
-		}
-
-		LearnerGraph coregraph = null;
-		
-		@Override
-		public void initComputation(LearnerGraph gr) {
-			coregraph = gr;
-		}
-
-		@Override
-		public long overrideScoreComputation(PairScore p) {
-			return p.getScore();
-		}
-
-		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
-		{
-			return null;// dummy, ignored if null.
 		}
 	}
 

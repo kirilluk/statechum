@@ -17,6 +17,7 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class UseWekaResultsParameters implements ThreadResultID
@@ -34,6 +35,8 @@ public class UseWekaResultsParameters implements ThreadResultID
 	public boolean selectingRed,classifierToBlockAllMergers;
 	public boolean zeroScoringAsRed = false;
 
+	public final MarkovParameters markovParameters = new MarkovParameters();
+	
 	double threshold = 1.5;
 	
 	public void setThreshold(double value)

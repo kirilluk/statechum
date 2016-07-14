@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
@@ -39,7 +38,6 @@ import statechum.Helper;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
@@ -52,7 +50,6 @@ import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -86,7 +83,6 @@ import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomaton
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.collections.ArrayMapWithSearchPos;
 
 
 public class MarkovExperiment
@@ -166,7 +162,7 @@ public class MarkovExperiment
 			
 			LearnerGraph pta = constructPTA();
 	
-			final MarkovModel m= new MarkovModel(par.chunkLen,true,true,false);
+			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
 
 			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 			
@@ -184,58 +180,16 @@ public class MarkovExperiment
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
 
-			LearnerGraph ptaToUseForInference = pta;
-			Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=null;
-
-			boolean correctCentre = true;
-			int centrePathNumber = 0;
-			if (par.useCentreVertex)
+			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
+			if (par.markovParameters.useCentreVertex)
 			{
 				saveGraph(namePTABEFORECENTRE,pta);
-				final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
-				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount,par.expectedWLen);
-				centrePathNumber = pathsToMerge.size();
-				// These vertices are merged first and then the learning start from the root as normal.
-				// The reason to learn from the root is a memory cost. if we learn from the middle, we can get a better results
-				verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
-				
-				// now check if we got the 'verticesToMergeBasedOnInitialPTA' correct using the reference graph.
-				for(Set<CmpVertex> collection:verticesToMergeBasedOnInitialPTA)
-				{// we need to check that all states in the collection are associated with the same state in the reference graph.
-					Map<CmpVertex,LinkedList<Label>> vertToPaths =  PairOfPaths.convertSetOfStatesToPaths(pta,collection);// this obtains all the paths to reach states of interest, we then trace them in the reference graph. 
-					CmpVertex expectedState = null;
-					for(CmpVertex vertFromCollection:collection)
-					{
-						List<Label> path = vertToPaths.get(vertFromCollection);
-						CmpVertex obtainedVertex = referenceGraph.getVertex(path);
-						if (expectedState == null)
-							expectedState = obtainedVertex;
-						else
-							if (expectedState != obtainedVertex)
-							{
-								correctCentre = false;break;// our paths do not correctly identify states of the expected graph
-							}
-					}
-					
-					if (!correctCentre)
-						break;
-				}
-				
-				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
-				assert scoreInitialMerge >= 0;
-				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null,true);
-				final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaToUseForInference,MarkovClassifier.computeInverseGraph(pta),par.whichMostConnectedVertex);
-				if (par.useMostConnectedVertexToStartLearning)
-				{
-					ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
-				}
-				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaToUseForInference);
+				fmg.buildFirstGraph(pta, trimmedReference, par.markovParameters, m, checker);
+				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(fmg.ptaToUseForInference);
 				if (par.usePrintf)
-					System.out.println("Centre vertex: "+vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(ptaToUseForInference, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
+					System.out.println("Centre vertex: "+fmg.vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(fmg.ptaToUseForInference, inverseOfPtaAfterInitialMerge, fmg.vertexWithMostTransitions));
 			}
-			final LearnerGraph ptaToUseForInferenceFinal = ptaToUseForInference;
+			final LearnerGraph ptaToUseForInferenceFinal = fmg.ptaToUseForInference;
 			
 			UASExperiment.BuildPTAInterface ptaConstructor = new BuildPTAInterface() {
 				@Override
@@ -254,7 +208,7 @@ public class MarkovExperiment
 			EDSM_MarkovLearner markovLearner = null;
 			long runTime = 0;
 			LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
-			saveGraph(namePTA, ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
+			saveGraph(namePTA, fmg.ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
 			if(actualAutomaton == null)
 			{
 				LearnerGraph ptaBuilt = ptaConstructor.buildPTA();
@@ -263,10 +217,7 @@ public class MarkovExperiment
 	 			switch(par.learnerToUse)
 	 			{
 	 			case LEARNER_EDSMMARKOV:
-	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,0);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
-	 				markovLearner.helper.setUseNewScoreNearRoot(par.useDifferentScoringNearRoot);markovLearner.helper.setUseClassifyPairs(par.useClassifyToOrderPairs);
-	 				markovLearner.helper.setDisableInconsistenciesInMergers(par.disableInconsistenciesInMergers);
-	 				markovLearner.helper.setWeightOfInconsistencies(par.weightOfInconsistencies);
+	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,fmg.ptaToUseForInference,0,par.markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	 				learnerOfPairs = markovLearner;
 	 				break;
 	 			case LEARNER_EDSM2:
@@ -296,15 +247,15 @@ public class MarkovExperiment
 	 			
 	 			long startTime = LearningSupportRoutines.getThreadTime();
 	 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				if (verticesToMergeBasedOnInitialPTA != null && par.mergeIdentifiedPathsAfterInference)
+				if (fmg.verticesToMergeBasedOnInitialPTA != null && par.markovParameters.mergeIdentifiedPathsAfterInference)
 				{
 					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),fmg.verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					learntGraph = MergeStates.mergeCollectionOfVertices(learntGraph, null, verticesToMerge, null, false);
 				}			
 				
-				if (par.useCentreVertex)
+				if (par.markovParameters.useCentreVertex)
 				{// select the initial state
 					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(learntGraph,pta);// will only return null if the learner failed (and returned an single-state reject graph)
 					if (newInit != null)
@@ -320,15 +271,15 @@ public class MarkovExperiment
 			dataSample.actualLearner.executionTime = runTime;
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
-			dataSample.centreCorrect = correctCentre;
-			dataSample.centrePathNumber = centrePathNumber;
+			dataSample.centreCorrect = fmg.correctCentre;
+			dataSample.centrePathNumber = fmg.centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
  			if (markovLearner != null)
- 				dataSample.comparisonsPerformed = markovLearner.helper.comparisonsPerformed;
+ 				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;
  			
  			if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
  			{
@@ -399,159 +350,6 @@ public class MarkovExperiment
 	}
 
 	
-	/** This class makes it possible to integrate Markov computations into any desired learner. In this way, it is used for both Markov experiment and Weka experiment. */
-	public static class MarkovHelper
-	{
-		LearnerGraph extendedGraph = null;
-		MarkovClassifier cl=null;
-		LearnerGraphND inverseGraph = null;
-		long comparisonsPerformed = 0;
-		double weightOfInconsistencies = 1.0;
-		
-		boolean useNewScoreNearRoot = false, useClassifyPairs = false;
-
-		public void setUseNewScoreNearRoot(boolean v)
-		{
-			useNewScoreNearRoot = v;
-		}
-		
-		public void setUseClassifyPairs(boolean v)
-		{
-			useClassifyPairs = v;
-		}
-		
-		public void setWeightOfInconsistencies(double value)
-		{
-			weightOfInconsistencies = value;
-		}
-		
-		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
-
-		/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
-		protected boolean disableInconsistenciesInMergers = false;
-		
-		public void setDisableInconsistenciesInMergers(boolean v)
-		{
-			disableInconsistenciesInMergers = v;
-		}
-		
-		public LearnerGraph coregraph = null;
-
-		protected MarkovModel Markov;
-		protected ConsistencyChecker checker;
-		
-		public void setMarkov(MarkovModel m) {
-			Markov=m;
-		}
-
-		public void setChecker(ConsistencyChecker c) {
-			checker=c;
-		}
-
-		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
-		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
-		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
-		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param extension_graph 
-		 * @param learnerGraph 
-		 * @param pairs 
-		 */
-		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
-		{
-			boolean allPairsNegative = true;
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (p.getQ().isAccept() || p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-				{
-					allPairsNegative = false;break;
-				}
-			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
-			if (allPairsNegative)
-				possibleResults.addAll(pairs);
-			else
-			{
-				for(PairScore p:pairs)
-				{
-					assert p.getScore() >= 0;
-					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p,0));
-					else
-						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
-				}
-
-				for(PairScore p:nonNegPairs)
-				{
-					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
-					if(d >= 0.0)
-						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p, d));
-				}
-					
-				Collections.sort(possibleResults, new Comparator<PairScore>(){
-	
-					@Override
-					public int compare(PairScore o1, PairScore o2) {
-						int outcome = (int) Math.signum( ((WaveBlueFringe.PairScoreWithDistance)o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance)o1).getDistanceScore());  
-						if (outcome != 0)
-							return outcome;
-						return o2.compareTo(o1);
-					}}); 
-			}				
-			return possibleResults;
-		}
-
-		// The following routines are the ones to be called by a user integrating (mixing) this class into a learner. 
-		
-		public void initComputation(LearnerGraph graph) 
-		{
-			coregraph = graph;
-					 				
-			cl = new MarkovClassifier(Markov, coregraph);
-		    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
-			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
-		}
-		
-		public long computeScoreBasedOnInconsistencies(PairScore p) 
-		{
-			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
-				return 0;
-			++comparisonsPerformed;
-			long currentInconsistency = 0;
-			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
-			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
-			long score= genScore;
-			if (genScore >= 0)
-			{			
-				if (!disableInconsistenciesInMergers)
-					currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
-				
-				score=Math.round(genScore-weightOfInconsistencies*currentInconsistency);
-				
-				if (useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
-				{
-					if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
-							!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),Markov.getPredictionLen()))
-					{
-						if (extendedGraph == null)
-							extendedGraph = cl.constructMarkovTentative();
-						score = //(long)MarkovScoreComputation.computeMMScoreImproved(p,coregraph, extendedGraph);
-							MarkovScoreComputation.computenewscore(p, extendedGraph);// use a different score computation in this case
-					}
-				}
-			}
-			return score;
-		}
-
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
-		{
-			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
-		}
-	}
-	
 	/** Uses the supplied classifier to rank pairs. */
 	public static class EDSM_MarkovLearner extends ReferenceLearner implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
@@ -569,19 +367,19 @@ public class MarkovExperiment
 			return null;												
 		}
 		
-		protected final MarkovHelper helper = new MarkovHelper();
+		protected final MarkovHelper markovHelper;
 		
 		public MarkovHelper getHelper()
 		{
-			return helper;
+			return markovHelper;
 		}
 		
 		public void setMarkov(MarkovModel m) {
-			helper.setMarkov(m);
+			markovHelper.setMarkov(m);
 		}
 
 		public void setChecker(ConsistencyChecker c) {
-			helper.setChecker(c);
+			markovHelper.setChecker(c);
 		}
 
 		protected LearnerGraph coregraph;
@@ -590,22 +388,20 @@ public class MarkovExperiment
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
-			helper.initComputation(graph);
+			markovHelper.initComputation(graph);
 		}
 
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
 		public long overrideScoreComputation(PairScore p) 
 		{
-			return helper.computeScoreBasedOnInconsistencies(p);
+			return markovHelper.computeScoreBasedOnInconsistencies(p);
 		}		
-
-
 
 		/** This one returns a set of transitions in all directions. */
 		@Override
 		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 		{
-			return	helper.getSurroundingTransitions(currentRed);
+			return	markovHelper.getSurroundingTransitions(currentRed);
 		}
 
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int threshold)
@@ -618,9 +414,10 @@ public class MarkovExperiment
 			return copy;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold) 
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold, MarkovParameters markovPars) 
 		{
 			super(constructConfiguration(evalCnf,threshold), argInitialPTA,null);// null means that we expect our ChooseStatePairs to completely replace the one in the parent class.
+			markovHelper = new MarkovHelper(markovPars);
 		}
 		
 		@Override 
@@ -855,7 +652,7 @@ public class MarkovExperiment
 										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-										parameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,0,1);
+										parameters.markovParameters.setMarkovParameters(preset,chunkSize,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										parameters.setDisableInconsistenciesInMergers(false);
 										parameters.setUsePrintf(experimentRunner.isInteractive());
 										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

@@ -31,6 +31,8 @@ import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import weka.classifiers.Classifier;
@@ -68,9 +70,12 @@ public class WekaDataCollector
 	
 	/**
 	 * Begins construction of an instance of pair classifier.
+	 * @param markovHelper helper used to construct inconsistencies for the use with Markov experiments. The associated ranking routines are not used if this is null.
+	 * @param graphPTA true if the graph rooted at the blue state is expected to be a PTA rather than a directed graph. 
 	 */
-	public WekaDataCollector()
+	public WekaDataCollector(MarkovHelper helper, boolean graphPTA)
 	{
+		markovHelper = helper;graphIsPTA = graphPTA;
 		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
@@ -107,7 +112,7 @@ public class WekaDataCollector
 	{
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
-		assessors = argAssessor;measurementsForUnfilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForUnfilteredCollectionOfPairs.valueSD=new double[assessors.size()];
+		assessors = argAssessor;measurementsForFilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForFilteredCollectionOfPairs.valueSD=new double[assessors.size()];
 		comparators = new ArrayList<PairComparator>(assessors.size());
 		for(PairRank pr:assessors)
 			comparators.add(new PairComparator(pr));
@@ -301,35 +306,50 @@ public class WekaDataCollector
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
 	
+	protected final boolean graphIsPTA;
+	protected final MarkovHelper markovHelper;
+	
 	class MeasurementsForCollectionOfPairs
 	{
-		Map<StatePair,PairMeasurements> measurementsForComparators=new HashMap<StatePair,PairMeasurements>();
+		Map<StatePair,FilteredPairMeasurements> measurementsForComparators=new HashMap<StatePair,FilteredPairMeasurements>();
 		double valueAverage[]=new double[0], valueSD[]=new double[0];
 	}
+	Map<StatePair,PairMeasurements> measurementsObtainedFromPairs = new HashMap<StatePair,PairMeasurements>();
 	
 	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
-	MeasurementsForCollectionOfPairs measurementsForUnfilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
+	
+	MeasurementsForCollectionOfPairs measurementsForFilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
 	
 	LearnerGraph tentativeGraph = null;
-	
 	
 	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
 	{
 		treeForComparators.clear();
 		tentativeGraph = graph;
 		
+		// First, we obtain measurements that only depend on a specific pair of states, regardless of other pairs in a collection of pairs. 
 		for(PairScore pair:pairs)
 		{
 			if (!treeForComparators.containsKey(pair.getQ()))
 				treeForComparators.put(pair.getQ(),PairQualityLearner.computeTreeSize(graph, pair.getQ()));
+
+			PairMeasurements m = new PairMeasurements();
+			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
+			if (markovHelper!= null)
+				m.inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(pair);
+			tentativeGraph.config.setLearnerScoreMode(origScore);
+			measurementsObtainedFromPairs.put(pair,m);
 		}
-		buildSetsForComparatorsDependingOnFiltering(measurementsForUnfilteredCollectionOfPairs,pairs);
+
+		// Second, obtain measurements that depend on other pairs in a collection of pairs.  
+		buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredCollectionOfPairs,pairs);
 	}
 	
 	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
 	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
-	 * @param pairs pairs to build sets for
 	 * @param measurements where to store the result of measurement.
+	 * @param pairs pairs to build sets for.
 	 */
 	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
 	{
@@ -344,7 +364,7 @@ public class WekaDataCollector
 		// prepare auxiliary information that is supposed to be cached rather than recomputed by individual instances of comparators in measurementsForComparators 
 		for(PairScore pair:pairs)
 		{
-			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
+			FilteredPairMeasurements m = new FilteredPairMeasurements();m.nrOfAlternatives=-1;
 			for(PairScore p:pairs)
 			{
 				if (p.getR() == pair.getR())
@@ -353,13 +373,10 @@ public class WekaDataCollector
 			
 			Collection<CmpVertex> adjacentOutgoingBlue = tentativeGraph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = tentativeGraph.transitionMatrix.get(pair.getR()).values(); 
 			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
-			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
-			tentativeGraph.config.setLearnerScoreMode(origScore);
-			measurements.measurementsForComparators.put(pair,m);
-		}
+			measurementsForFilteredCollectionOfPairs.measurementsForComparators.put(pair, m);
+		}			
 
-		// now run comparators
+		// now run comparators. These obtain values based both on filtered an unfiltered values.
 		if (assessors != null)
 			for(PairScore pair:pairs)
 				for(int i=0;i<assessors.size();++i)
@@ -425,7 +442,7 @@ public class WekaDataCollector
 		
 		int i=0;
 		for(int attr=0;attr<n;++attr)
-			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 		{
 				PairComparator cmp = comparators.get(attr);
 				int value = comparePairWithOthers(cmp, pair, others);
@@ -449,7 +466,7 @@ public class WekaDataCollector
 		assert !assessors.isEmpty();
 		int i=0;
 		for(int attr=0;attr<n;++attr)
-			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 			{
 				final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
 				whatToFillIn[i+offset]=value;
@@ -525,7 +542,7 @@ public class WekaDataCollector
 	{
 		if (whatToFillIn.length < getInstanceLength())
 			throw new IllegalArgumentException("array is too short");
-		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForUnfilteredCollectionOfPairs,0);
+		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForFilteredCollectionOfPairs,0);
 	}
 
 	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
@@ -580,12 +597,7 @@ public class WekaDataCollector
 		{
 			return att.name();
 		}
-
-		public PairMeasurements measurementsForCurrentStack(PairScore p)
-		{
-			return measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(p);
-		}
-	
+			
 		public int treeRootedAt(CmpVertex p)
 		{
 			return treeForComparators.get(p);

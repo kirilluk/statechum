@@ -38,6 +38,8 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUpdatesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
@@ -365,7 +367,8 @@ public class ConstructClassifier
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth);
+						MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
+						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth, new MarkovHelper(markovParameters),!markovParameters.useCentreVertex);
 						int numberOfTasks = 0;
 						for(int states:new int[]{20})
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
@@ -379,7 +382,7 @@ public class ConstructClassifier
 										@Override
 										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 										{
-											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA);
+											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper);
 										}
 									};
 									parameters.setPickUniqueFromInitial(useUnique);parameters.setOnlyUsePositives(onlyPositives);parameters.setIfdepth(ifDepth);parameters.setLengthMultiplier(lengthMultiplier);

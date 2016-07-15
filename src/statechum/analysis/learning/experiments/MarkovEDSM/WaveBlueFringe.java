@@ -738,29 +738,29 @@ public class WaveBlueFringe extends PairQualityLearner
 				if (rejectVertexID == null)
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
-				dataSample.actualLearner = estimateDifference(referenceGraph,actualAutomaton,testSet);
+				dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker,referenceGraph,testSet);
 
 				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,Configuration.ScoreMode.COMPATIBILITY).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
+				dataSample.referenceLearner = estimateDifference(outcomeOfReferenceLearner,null,null,referenceGraph,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);
 			}
 			
 			return outcome;
 		}
-
-		// Delegates to a specific estimator
-		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
-		{
-			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, config, 1);
-			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
-			return outcome;
-		}
+		
 	}
 
-	
+	// Delegates to a specific estimator
+	public static ScoresForGraph estimateDifference(LearnerGraph actual,final MarkovModel m, ConsistencyChecker checker,LearnerGraph referenceGraph, Collection<List<Label>> testSet)
+	{
+		ScoresForGraph outcome = new ScoresForGraph();
+		outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actual, referenceGraph.config, 1);
+		outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actual,testSet);
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actual.getStateNumber() - referenceGraph.getStateNumber());
+		if (m != null && checker != null)
+			outcome.inconsistency = MarkovClassifier.computeInconsistency(actual, m, checker,false);
+		return outcome;
+	}		
 
-
-	
 }

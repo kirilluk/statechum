@@ -31,6 +31,64 @@ public class MarkovParameters
 	public MarkovParameters()
 	{}
 	
+	public MarkovParameters(MarkovParameters a)
+	{
+		chunkLen = a.chunkLen;preset = a.preset;
+		useAverageOrMax = a.useAverageOrMax;weightOfInconsistencies = a.weightOfInconsistencies;
+		divisorForPathCount = a.divisorForPathCount;expectedWLen = a.expectedWLen;
+		whichMostConnectedVertex = a.whichMostConnectedVertex;
+		
+		setPresetLearningParameters(preset);
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + chunkLen;
+		result = prime * result + divisorForPathCount;
+		result = prime * result + expectedWLen;
+		result = prime * result + preset;
+		result = prime * result + (useAverageOrMax ? 1231 : 1237);
+		long temp;
+		temp = Double.doubleToLongBits(weightOfInconsistencies);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + whichMostConnectedVertex;
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof MarkovParameters))
+			return false;
+		MarkovParameters other = (MarkovParameters) obj;
+		if (chunkLen != other.chunkLen)
+			return false;
+		if (divisorForPathCount != other.divisorForPathCount)
+			return false;
+		if (expectedWLen != other.expectedWLen)
+			return false;
+		if (preset != other.preset)
+			return false;
+		if (useAverageOrMax != other.useAverageOrMax)
+			return false;
+		if (Double.doubleToLongBits(weightOfInconsistencies) != Double.doubleToLongBits(other.weightOfInconsistencies))
+			return false;
+		if (whichMostConnectedVertex != other.whichMostConnectedVertex)
+			return false;
+		return true;
+	}
+
 	public MarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
 		setMarkovParameters(pr,chunkLength,weight,aveOrMax,divisor,mostConnectedVertex,wlen);
@@ -60,6 +118,8 @@ public class MarkovParameters
 		}
 	}
 
+	// Values below are assigned by setting a preset.
+	
 	public boolean useCentreVertex = false;
 	public boolean useDifferentScoringNearRoot = false;
 	public boolean mergeIdentifiedPathsAfterInference = true;

@@ -29,23 +29,20 @@ import java.util.TreeMap;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.MergeObjects;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -80,7 +77,7 @@ public class LearnUsingClassifier {
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
-						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
+						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getIfDepthAsString()+"_"+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
 						final Classifier classifier = (Classifier)objectInputStream.readObject();
 	                    inputStream.close();
@@ -97,7 +94,7 @@ public class LearnUsingClassifier {
 							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);
 							parametersInnerLearner.setThreshold(threshold);
 	
-							String selection = parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
+							String selection = parExperiment.getIfDepthAsString()+"_"+parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
 	
 							final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File(outPathPrefix+"percentage_score"+selection+".pdf"));
 							final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File(outPathPrefix+"quality_traces"+selection+".pdf"));
@@ -109,12 +106,26 @@ public class LearnUsingClassifier {
 								@Override
 								public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
 								{
-									ScoresForGraph difference = result.samples.get(0).actualLearner;
+									SampleData sm = result.samples.get(0);
+									ScoresForGraph data=sm.actualLearner;
 									StringBuffer csvLine = new StringBuffer();
-									csvLine.append(difference.differenceBCR.getValue());
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-									CSVExperimentResult.addSeparator(csvLine);if (result.parameters.pairQualityCounter != null) csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
+									csvLine.append(data.differenceBCR.getValue());
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+																
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
+
+									if (result.parameters.pairQualityCounter != null)
+									{
+										CSVExperimentResult.addSeparator(csvLine); csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
+									}
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 									experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 								}
 								
@@ -132,12 +143,14 @@ public class LearnUsingClassifier {
 								for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 									for(int attempt=0;attempt<2;++attempt)
 									{
+										final PairQualityParameters pars = new PairQualityParameters(states, sample, attempt,seedForFSM);
+										pars.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+										pars.setInnerParameters(parametersInnerLearner);
+										pars.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+										
 										{// first, use the learner with a classifier 
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-											parameters.setInnerParameters(parametersInnerLearner);
+											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("WithClassifier");
-											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 											parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
@@ -153,11 +166,8 @@ public class LearnUsingClassifier {
 											experimentRunner.submitTask(learnerRunner);
 										}
 										{// second, use a traditional learner 
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-											parameters.setInnerParameters(parametersInnerLearner);
+											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("Reference");
-											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
@@ -173,11 +183,9 @@ public class LearnUsingClassifier {
 										}
 										/*
 										{// third, use EDSM-Markov learner, no premerge
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-											parameters.setInnerParameters(parametersInnerLearner);
+											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("EDSM-Markov");
-											parameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+											parameters.markovParameters.setPresetLearningParameters(0);
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
@@ -200,11 +208,9 @@ public class LearnUsingClassifier {
 											experimentRunner.submitTask(learnerRunner);
 										}
 										{// fourth, use EDSM-Markov learner, premerge
-											final PairQualityParameters parameters = new PairQualityParameters(states, sample, attempt,seedForFSM);
-											parameters.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-											parameters.setInnerParameters(parametersInnerLearner);
-											parameters.setColumn("EDSM-Markov,P");
-											parameters.markovParameters.setMarkovParameters(1,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+											PairQualityParameters parameters = new PairQualityParameters(pars);
+											parameters.setColumn("EDSM-Markov");
+											parameters.markovParameters.setPresetLearningParameters(0);
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")

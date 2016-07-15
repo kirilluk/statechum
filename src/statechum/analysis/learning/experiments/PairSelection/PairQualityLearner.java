@@ -47,6 +47,7 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.PerformFirstMerge;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
@@ -80,8 +81,8 @@ public class PairQualityLearner
   	public static final String veryLargePTAFileName = largePTALogsDir+"VeryLargePTA.zip";
 	
 	public static String directoryNamePrefix= "LearningWithClassifiers";
-	public static final String directoryExperimentResult = directoryNamePrefix+File.separator+"experimentresult"+File.separator;
-  	
+	public static final String directoryExperimentResult = "experimentresult"+File.separator;
+	
   	/** Given a graph and a vertex, this method computes the number of states in the tree rooted at the supplied state.
 	 * 
 	 * @param graph graph to go through
@@ -1205,6 +1206,8 @@ public class PairQualityLearner
 			
 			LearnerWithMandatoryMergeConstraints learnerOfPairs = null;
 			LearnerGraph actualAutomaton = null;
+			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
+
 			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
 			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
@@ -1219,11 +1222,23 @@ public class PairQualityLearner
 			// not merging based on a unique transition from an initial state
 			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,fmg.ptaToUseForInference);
 			dataCollector.markovHelper.setMarkov(m);dataCollector.markovHelper.setChecker(checker);
+ 			long startTime = LearningSupportRoutines.getThreadTime();
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			long runTime = LearningSupportRoutines.getThreadTime()-startTime;
 			
 			SampleData dataSample = new SampleData(null,null);
 			dataSample.actualLearner = estimateDifference(referenceGraph, actualAutomaton, testSet);
-			outcome.samples.add(dataSample);
+			dataSample.actualLearner.executionTime = runTime;
+			dataSample.referenceLearner = MarkovExperiment.zeroScore;
+			dataSample.centreCorrect = fmg.correctCentre;
+			dataSample.centrePathNumber = fmg.centrePathNumber;
+			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
+			dataSample.stateNumber = referenceGraph.getStateNumber();
+			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
+			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
+			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
+
+ 			outcome.samples.add(dataSample);
 			if (sampleCollector != null)
 				synchronized(sampleCollector.trainingData)
 				{
@@ -1242,6 +1257,7 @@ public class PairQualityLearner
 			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, learnerInitConfiguration.config, 1);
 			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
 			outcome.differenceFMeasure=DifferenceToReferenceFMeasure.estimationOfDifference(reference, actual,testSet);
+			outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actual.getStateNumber() - referenceGraph.getStateNumber());
 			return outcome;
 		}
 	}

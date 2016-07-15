@@ -62,7 +62,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubEx
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
@@ -267,7 +266,7 @@ public class MarkovExperiment
 	 			saveGraph(nameOUTCOME,actualAutomaton);
 			}
 
-			dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker);
+			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
 			dataSample.actualLearner.executionTime = runTime;
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
@@ -310,16 +309,6 @@ public class MarkovExperiment
 			return outcome;
 		}
 
-		// Delegates to a specific estimator
-		protected ScoresForGraph estimateDifference(LearnerGraph actual,final MarkovModel m, ConsistencyChecker checker)
-		{
-			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actual, learnerInitConfiguration.config, 1);
-			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actual,learnerInitConfiguration.testSet);
-			outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actual.getStateNumber() - referenceGraph.getStateNumber());
-			outcome.inconsistency = MarkovClassifier.computeInconsistency(actual, m, checker,false);
-			return outcome;
-		}		
 	}
 	
 		

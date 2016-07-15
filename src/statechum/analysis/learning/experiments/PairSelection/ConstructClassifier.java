@@ -19,9 +19,12 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -371,7 +374,7 @@ public class ConstructClassifier
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
 					final int traceQuantity=1;
-					for(final boolean useUnique:new boolean[]{true})
+					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
@@ -515,6 +518,15 @@ public class ConstructClassifier
 		                    oo.writeObject(classifier);
 		                    os.close();
 						}
+/*						
+						{
+							InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
+							ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
+							final Classifier classifierLoaded = (Classifier)objectInputStream.readObject();
+		                    inputStream.close();
+		                    System.out.println(classifierLoaded.equals(classifier));
+						}
+*/
 					}
 				}
 		}

@@ -17,6 +17,7 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -134,9 +135,9 @@ public class MarkovParameters
 
 	private List<String> getColumnTextForAnyLearner(int spacesAtTheEnd)
 	{
-		List<String> whatToReturn = Arrays.asList(
+		List<String> whatToReturn = new ArrayList<String>();whatToReturn.addAll(Arrays.asList(
 				Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),
-				Integer.toString(expectedWLen));
+				Integer.toString(expectedWLen)));
 		for(int i=0;i<spacesAtTheEnd;++i)
 			whatToReturn.add("");
 		return whatToReturn;
@@ -144,7 +145,8 @@ public class MarkovParameters
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-		return Arrays.asList(new String[]{Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)});
+		List<String> whatToReturn = new ArrayList<String>();whatToReturn.addAll(Arrays.asList(new String[]{Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)}));
+		return whatToReturn;
 	}
 	
 	public List<String> getColumnListForMarkovLearner()

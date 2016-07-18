@@ -96,14 +96,14 @@ public class PairQualityParameters implements ThreadResultID
 		states = argStates;sample=argSample;attempt=argAttempt;seed = argSeed;
 	}
 	
-	public String getIfDepthAsString()
+	protected String getIfDepthAsString()
 	{
 		return "ifD="+ifDepth;
 	}
 	
 	public String getExperimentID()
 	{
-		String exp = 
+		String exp = getIfDepthAsString()+"_"+
 		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
 		if (innerLearner != null)
 			exp+="-"+innerLearner.getRowID();
@@ -129,12 +129,12 @@ public class PairQualityParameters implements ThreadResultID
 		return column+getIfDepthAsString()+"_"+markovParameters.getColumnID(true);
 	}
 
-	public static final String [] cellheaderStd = new String[]{"BCR","Diff","States","fracS","marPre","marRec","Comparisons","centreCorrect","centerpaths","%transitions"};
+	public static final String [] cellheaderStd = new String[]{"BCR","Diff","States","fracS","marPre","marRec","centreCorrect","centerpaths","%transitions"};
 	
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		List<String> cellHeader = Arrays.asList(cellheaderStd);
+		List<String> cellHeader = new ArrayList<String>();cellHeader.addAll(Arrays.asList(cellheaderStd));
 		
 		if (pairQualityCounter != null)
 			cellHeader.add("PairQuality");

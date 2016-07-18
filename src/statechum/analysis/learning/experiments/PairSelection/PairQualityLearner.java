@@ -19,6 +19,7 @@ package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -695,8 +696,13 @@ public class PairQualityLearner
 			return pairBestToReturnAsRed;
 		}
 		
-		public static class TrueFalseCounter
+		public static class TrueFalseCounter implements Serializable
 		{
+			/**
+			 * ID for serialization.
+			 */
+			private static final long serialVersionUID = 2593806559873226339L;
+			
 			public int trueCounter = 0, falseCounter = 0;
 		}
 
@@ -916,7 +922,10 @@ public class PairQualityLearner
 		 */
 		public static DifferenceToReferenceFMeasure estimationOfDifference(LearnerGraph referenceGraph, LearnerGraph actualAutomaton, Collection<List<Label>> testSet)
 		{
-	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
+			if (actualAutomaton.getAcceptStateNumber() == 0)
+				return new DifferenceToReferenceFMeasure(new DifferenceToReferenceFMeasure(0,0,0,0));// a graph with all reject states is used to indicate that the learnt graph contains too many states.
+
+			LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
 	       	ConfusionMatrix mat = DiffExperiments.classify(testSet, referenceGraph, learntGraph);
 			return new DifferenceToReferenceFMeasure(mat);
 		}

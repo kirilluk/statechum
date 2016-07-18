@@ -77,7 +77,7 @@ public class LearnUsingClassifier {
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
-						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getIfDepthAsString()+"_"+parExperiment.getExperimentID()+".ser");
+						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
 						final Classifier classifier = (Classifier)objectInputStream.readObject();
 	                    inputStream.close();
@@ -94,7 +94,7 @@ public class LearnUsingClassifier {
 							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);
 							parametersInnerLearner.setThreshold(threshold);
 	
-							String selection = parExperiment.getIfDepthAsString()+"_"+parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
+							String selection =parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
 	
 							final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File(outPathPrefix+"percentage_score"+selection+".pdf"));
 							final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File(outPathPrefix+"quality_traces"+selection+".pdf"));

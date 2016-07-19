@@ -105,8 +105,6 @@ public class PairQualityParameters implements ThreadResultID
 	{
 		String exp = getIfDepthAsString()+"_"+
 		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
-		if (innerLearner != null)
-			exp+="-"+innerLearner.getRowID();
 		return exp;
 	}
 	

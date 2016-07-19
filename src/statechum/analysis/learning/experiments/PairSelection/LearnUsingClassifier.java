@@ -35,8 +35,13 @@ import statechum.analysis.learning.DrawGraphs.MergeObjects;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -61,6 +66,8 @@ public class LearnUsingClassifier {
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,args);
+		SGE_ExperimentRunner.configureCPUFreqNormalisation();
+
 		final int samplesPerFSM = 4;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
@@ -85,7 +92,7 @@ public class LearnUsingClassifier {
 						for(final boolean selectingRed:new boolean[]{false})
 						for(final boolean classifierToBlockAllMergers:new boolean[]{true})
 						//for(final boolean zeroScoringAsRed:(classifierToBlockAllMergers?new boolean[]{true,false}:new boolean[]{false}))// where we are not using classifier to rule out all mergers proposed by pair selection, it does not make sense to use two values configuring this classifier.
-						for(final double threshold:new double[]{1})
+						for(final double threshold:new double[]{3})
 						{
 							final boolean zeroScoringAsRed = false;
 	
@@ -99,7 +106,7 @@ public class LearnUsingClassifier {
 							final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File(outPathPrefix+"percentage_score"+selection+".pdf"));
 							final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File(outPathPrefix+"quality_traces"+selection+".pdf"));
 							SquareBagPlot gr_NewToOrig = new SquareBagPlot("orig score","score with learnt selection",new File(outPathPrefix+"new_to_orig"+selection+".pdf"),0,1,true);
-							
+
 							final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results"+selection+".csv"));
 							
 							processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {
@@ -165,6 +172,7 @@ public class LearnUsingClassifier {
 											};
 											experimentRunner.submitTask(learnerRunner);
 										}
+										
 										{// second, use a traditional learner 
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("Reference");
@@ -181,7 +189,7 @@ public class LearnUsingClassifier {
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 											experimentRunner.submitTask(learnerRunner);
 										}
-										/*
+										
 										{// third, use EDSM-Markov learner, no premerge
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("EDSM-Markov");
@@ -207,6 +215,7 @@ public class LearnUsingClassifier {
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 											experimentRunner.submitTask(learnerRunner);
 										}
+										/*
 										{// fourth, use EDSM-Markov learner, premerge
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("EDSM-Markov");

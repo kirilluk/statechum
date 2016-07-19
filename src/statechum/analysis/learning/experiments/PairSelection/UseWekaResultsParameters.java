@@ -26,12 +26,15 @@ public class UseWekaResultsParameters implements ThreadResultID
 		this.ifDepth = ifDepth;
 	}
 	
+	// This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
 	int ifDepth;
+	
 	/** The length of compound if-then conditions over REL metrics to evaluate. */
 	public void setIfdepth(int value)
 	{
 		ifDepth = value;
 	}
+	
 	public boolean selectingRed,classifierToBlockAllMergers;
 	public boolean zeroScoringAsRed = false;
 
@@ -73,7 +76,7 @@ public class UseWekaResultsParameters implements ThreadResultID
 	@Override
 	public String getRowID()
 	{
-		return "ifDepth="+ifDepth+";threshold="+threshold+";selectingRed="+selectingRed+";classifierToBlockAllMergers="+classifierToBlockAllMergers+";zeroScoringAsRed="+zeroScoringAsRed;
+		return "IFD="+ifDepth+"_TH="+threshold+(selectingRed?"_RED":"")+(classifierToBlockAllMergers?"_BL":"")+(zeroScoringAsRed?"_ZR":"");
 	}
 
 	@Override

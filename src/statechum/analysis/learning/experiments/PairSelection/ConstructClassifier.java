@@ -363,7 +363,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 16;
+		final int samplesPerFSM = 64;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 

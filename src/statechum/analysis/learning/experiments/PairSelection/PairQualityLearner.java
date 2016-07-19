@@ -820,11 +820,14 @@ public class PairQualityLearner
 							{
 								List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
 								List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
-								SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
-								// this one is checking that wrong pairs because we aim to check that the pair chosen is not the right one to merge
-								System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
+								LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+								if (!correctPairs.isEmpty())
+								{// this one is checking the list of wrong pairs because we aim to check that the pair chosen is not the right one to merge
+									System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
+									getPairToBeLabelledRed(pairs,coregraph);
+								}
 							}
-							*/
+*/
 						}
 						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
@@ -850,7 +853,8 @@ public class PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
-				Stack<PairScore> possibleResults = classifyPairs(outcome,graph);
+				
+				Stack<PairScore> possibleResults = classifyPairs(outcome,graph), origPairs = outcome;
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 
 				if (!possibleResults.isEmpty())
@@ -859,12 +863,18 @@ public class PairQualityLearner
 				}
 /*
 				{
-					List<PairScore> correctPairs = new ArrayList<PairScore>(outcome.size()), wrongPairs = new ArrayList<PairScore>(outcome.size());
-					SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, outcome, correctPairs, wrongPairs);
+					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+					List<PairScore> pairs = new ArrayList<PairScore>(1);pairs.add(outcome.firstElement());
+					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 					if (correctPairs.isEmpty())
-						System.out.println("wrong merge at "+result);
-				}
-				*/
+					{
+						System.out.println("wrong merge at "+outcome.firstElement()+" entire list of pairs is "+outcome);
+						List<PairScore> correctPairsFromAllPairs = new ArrayList<PairScore>(outcome.size()), wrongPairsFromAllPairs = new ArrayList<PairScore>(outcome.size());
+						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, origPairs, correctPairsFromAllPairs, wrongPairsFromAllPairs);
+						System.out.println();
+						classifyPairs(origPairs,graph);
+					}
+				}*/
 			}
 			return outcome;
 		}

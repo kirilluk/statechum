@@ -17,6 +17,8 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -24,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,7 +34,11 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import java.util.Stack;
+import java.util.TreeSet;
 
 import statechum.Configuration;
 import statechum.JUConstants;
@@ -44,8 +49,10 @@ import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
@@ -55,6 +62,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -62,6 +70,8 @@ import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
@@ -326,32 +336,34 @@ public class PairQualityLearner
 			}
 		});
 
-		assessors.add(classifier.new PairRank("score minus inconsistency")
-		{// 14
-			@Override
-			public long getValue(PairScore p) {
-				return p.getScore()-classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("score minus 2*inconsistency")
-		{// 15
-			@Override
-			public long getValue(PairScore p) {
-				return p.getScore()-2*classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-
+		if (markovHelper != null)
+		{
+			assessors.add(classifier.new PairRank("score minus inconsistency")
+			{// 14
+				@Override
+				public long getValue(PairScore p) {
+					return p.getScore()-classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+			
+			assessors.add(classifier.new PairRank("score minus 2*inconsistency")
+			{// 15
+				@Override
+				public long getValue(PairScore p) {
+					return p.getScore()-2*classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
 		classifier.initialise("HindsightExperiment",100000,assessors,ifDepth);
 		return classifier;
 	}
@@ -427,11 +439,12 @@ public class PairQualityLearner
 	public static class LearnerThatUpdatesWekaResults extends LearnerThatUsesClassifiers
 	{
 		final WekaDataCollector dataCollector;
+		final boolean scoringUsesInconsistency;
 		
-		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper helper) 
+		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper helper, boolean useInconsistencyScoring) 
 		{
 			super(evalCnf,argReferenceGraph, argInitialPTA,null,helper);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
-			dataCollector = argDataCollector;
+			dataCollector = argDataCollector;scoringUsesInconsistency = useInconsistencyScoring;
 		}
 		
 		@Override 
@@ -462,18 +475,19 @@ public class PairQualityLearner
 				LearnerGraph g=null;
 				
 				@Override
-				public void initComputation(LearnerGraph gr) {
+				public void initComputation(LearnerGraph gr) 
+				{
 					g=gr;
 					markovHelper.initComputation(gr);
 				}
 
 				@Override
-				public long overrideScoreComputation(PairScore p) {
+				public long overrideScoreComputation(PairScore p) 
+				{
 					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
 						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, g, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
 							return -1;
-					
-					return p.getScore();// dummy
+					return p.getScore();// here we always have to return a conventional score because if any other one is used, a negative will mean that a pair will not even be considered for mergers and passed to the outcome.
 				}
 
 				@Override
@@ -483,9 +497,17 @@ public class PairQualityLearner
 				}
 			});
 			if (!outcome.isEmpty())
-			{
-				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
-				PairScore chosenPair = pickCorrectPair(outcome, graph);
+			{/*
+				if (scoringUsesInconsistency)
+				{
+					ArrayList<PairScore> pairsWithScoresUsingInconsistency = new ArrayList<PairScore>(outcome.size());
+					for(PairScore p:outcome)
+						pairsWithScoresUsingInconsistency.add(new PairScore(p.getQ(),p.getR(),markovHelper.computeScoreBasedOnInconsistencies(p),0));
+					dataCollector.updateDatasetWithPairs(pairsWithScoresUsingInconsistency, graph, referenceGraph);
+				}
+				else*/
+					dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
+				PairScore chosenPair = pickCorrectPair(outcome, graph);// selects any of the correct pairs, using a reference graph. This is why this learner is called 
 				outcome.clear();outcome.push(chosenPair);
 			}
 			if (!checkAllMergersCorrect())
@@ -503,7 +525,7 @@ public class PairQualityLearner
 		final WekaDataCollector dataCollector;
 		final int classTrue,classFalse;
 		final UseWekaResultsParameters par;
-		
+	
 		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter)
 		{
 			pairQuality = argCounter;
@@ -566,13 +588,34 @@ public class PairQualityLearner
 			//return Math.min(maxQuality, (long)(maxQuality*ratio/2));
 		}
 		
+		
+		// values for pairs cannot be cached because they depend on other pairs in consideration. Hence the same pair as part of a larger collection of pairs may be deemed either good or not so good, it all depends on other pairs.
+		
+		protected long classifyPair(PairScore p,Collection<PairScore> allPairs, int classToUse)
+		{
+			int []comparisonResults = new int[dataCollector.getInstanceLength()];
+			dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
+			Instance instance = dataCollector.constructInstance(comparisonResults, true);
+			double distribution[]=null;
+			try
+			{
+				distribution=classifier.distributionForInstance(instance);
+			}
+			catch(Exception ex)
+			{
+				ex.printStackTrace();
+				throw new IllegalArgumentException("failed to classify pair "+p, ex);
+			}
+			return obtainMeasureOfQualityFromDistribution(distribution,classToUse);
+		}
+		
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 		 * <p/> 
 		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those contradicting mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
 		 */
-		protected Stack<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
+		protected Stack<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph, PairScore pairToDebug)
 		{
 			boolean allPairsNegative = true;
 			for(PairScore p:pairs)
@@ -605,38 +648,106 @@ public class PairQualityLearner
 				
 				for(PairScore p:nonNegPairs)
 				{
-					try
+					if (pairToDebug != null && (p.getQ() == pairToDebug.getQ() && p.getR() == pairToDebug.getR()))
+						System.out.println();
+					long inconsistencyScore = p.getScore();
+					if (par.scoresIncludeInconsistencies)
+						inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);
+					long quality = 0;
+					
+					if (inconsistencyScore >= 0)
+						quality = 0;//classifyPair(p,nonNegPairs,classTrue);
+					else
+						quality = -1;// no merge if inconsistency prevents us from merging.
+					
+					if ( quality >= 0 )// && p.getScore() > 0)
 					{
-						int []comparisonResults = new int[dataCollector.getInstanceLength()];
-						dataCollector.fillInPairDetails(comparisonResults,p, nonNegPairs);
-						Instance instance = dataCollector.constructInstance(comparisonResults, true);
-						double distribution[]=classifier.distributionForInstance(instance);
-						long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
-						if ( quality >= 0 )// && p.getScore() > 0)
-						{
-							possibleResults.add(new PairScore(p.getQ(), p.getR(), p.getScore(), quality));
-						}
-					}
-					catch(Exception ex)
-					{
-						ex.printStackTrace();
-						throw new IllegalArgumentException("failed to classify pair "+p, ex);
+						possibleResults.add(new PairScore(p.getQ(), p.getR(), inconsistencyScore, p.getScore() )); // we need to re-create pair if sorting uses anything other than the original score
 					}
 				}
-					
+				Collections.sort(possibleResults);
+				/*
 				Collections.sort(possibleResults, new Comparator<PairScore>(){
 	
 					@Override
 					public int compare(PairScore o1, PairScore o2) {
-						int outcome = LearningSupportRoutines.signum( o2.getAnotherScore() - o1.getAnotherScore() );// scores are between 100 and 0, hence it is appropriate to cast to int without a risk of overflow.
+						int outcome = LearningSupportRoutines.signum( o1.getScore() - o2.getScore() );// scores are between 100 and 0, hence it is appropriate to cast to int without a risk of overflow.
 						if (outcome != 0)
 							return outcome;
-						return o2.compareTo(o1);
+						return o1.compareTo(o2);
 					}}); 
-				
-			}				
+				*/
+			}
 			return possibleResults;
 		}
+		
+		/** If there is a state to be labelled red, returns it. This permits one to enlarge a set of possible pairs, merging only best ones compared to choosing from a list of mediocre pairs. */
+		protected CmpVertex selectRedStateIfAnySeemsRedEnough(Collection<PairScore> pairs, LearnerGraph tentativeGraph,PairScore pairToDebug)
+		{
+			Set<CmpVertex> possiblyRedVertices = new TreeSet<CmpVertex>();
+			for(PairScore p:pairs)
+				possiblyRedVertices.add(p.getQ());
+
+			dataCollector.buildSetsForComparators(pairs,tentativeGraph);
+			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
+			CmpVertex stateToDebug = null;
+			if (pairToDebug != null)
+				stateToDebug = pairToDebug.getQ();
+
+			for(PairScore p:pairs)
+			{
+				if (p.getQ() == stateToDebug)	
+					System.out.println();
+				
+				if (possiblyRedVertices.contains(p.getQ())) // once a vertex is no longer a plausible red, no point considering pairs it is part of.
+				{
+					if (!p.getQ().isAccept() || !p.getR().isAccept())
+						possiblyRedVertices.remove(p.getQ());// if both are rejects, a merge is always possible, hence disqualify the vertex from being possibly red.
+					else
+						if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge, false) < 0)
+						{
+							// This pair cannot be merged, keep the corresponding blue state marked as a potentially red state. Note that this computation is deferred to this stage from computePairScores in order to consider 
+							// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory merge conditions are taken into account.
+						}
+						else
+							try
+							{
+								long inconsistencyScore = 0;
+								if (par.scoresIncludeInconsistencies)
+									inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);
+								long quality = 0;
+								
+								if (inconsistencyScore >= 0)
+									quality = classifyPair(p,pairs,classFalse);
+								else
+									quality = 200;
+									
+								if ( quality > 0 )
+								{// seems like a bad pair to merge, hence keep the corresponding blue state marked as a possible red.
+									if (pairToDebug != null)
+										System.out.println("vertex "+p.getQ()+" quality: "+quality);
+								}
+								else // we are here because Weka was not confident that this pair should not be merged, hence check the score and if zero, consider blocking the merge. 
+								if (par.blacklistZeroScoringPairs && p.getScore() == 0)
+								{// blacklisting pairs with zero score - keep the corresponding blue state marked as a possible red.
+								}
+								else // quality is <= 0 (which means that pair is probably good) and we do not blacklist zeroes
+									possiblyRedVertices.remove(p.getQ());// this pair seems a plausible merge candidate.
+							}
+							catch(Exception ex)
+							{
+								ex.printStackTrace();
+								throw new IllegalArgumentException("failed to classify pair "+p, ex);
+							}
+				}
+			}
+			if (possiblyRedVertices.isEmpty())
+				return null;
+			
+			return possiblyRedVertices.iterator().next();
+		}
+		
 		
 		/** This function aims to identify a pair that clearly should not be merged. */
 		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
@@ -667,11 +778,16 @@ public class PairQualityLearner
 				// potentially meaningful pair, check with the classifier
 				try
 				{
-					int []comparisonResults = new int[dataCollector.getInstanceLength()];
-					dataCollector.fillInPairDetails(comparisonResults,p, pairs);
-					Instance instance = dataCollector.constructInstance(comparisonResults, true);
-					double distribution[]=classifier.distributionForInstance(instance);
-					long quality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
+					long inconsistencyScore = 0;
+					if (par.scoresIncludeInconsistencies)
+						inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);
+					long quality = 0;
+					
+					if (inconsistencyScore >= 0)
+						quality = classifyPair(p,pairs,classFalse);
+					else
+						quality = 200;
+						
 					if ( quality > 0 )
 					{// seems like a bad pair
 						if (pairBestToReturnAsRed == null || quality >pairBestToReturnAsRed.getAnotherScore())
@@ -807,13 +923,14 @@ public class PairQualityLearner
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					CmpVertex stateToLabelRed = null;
+
 					if (par.classifierToChooseWhereNoMergeIsAppropriate)
-					{
+					{/*
 						PairScore worstPair = getPairToBeLabelledRed(pairs,coregraph);
 						if (worstPair != null)
 						{
 							stateToLabelRed = worstPair.getQ();
-/*
+
 							long highestScore=-1;
 							for(PairScore p:pairs)
 								if (p.getScore() > highestScore) highestScore = p.getScore();
@@ -827,8 +944,50 @@ public class PairQualityLearner
 									getPairToBeLabelledRed(pairs,coregraph);
 								}
 							}
-*/
+
 						}
+						else
+						{// worstpair == null, implying that there is at least one ok pair to merge.
+							List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+							LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
+							if (correctPairs.isEmpty())
+							{
+								System.out.println("neither pair is correct in "+pairs);
+								getPairToBeLabelledRed(pairs,coregraph);
+							}
+						}*/
+						
+
+						stateToLabelRed = selectRedStateIfAnySeemsRedEnough(pairs,coregraph,null);
+						long highestScore=-1;
+						for(PairScore p:pairs)
+							if (p.getScore() > highestScore) highestScore = p.getScore();
+						if (stateToLabelRed != null)
+						{
+							List<PairScore> pairsOfInterest = new ArrayList<PairScore>();
+							for(PairScore p:pairs)
+								if (p.getQ() == stateToLabelRed)
+									pairsOfInterest.add(p);
+							List<PairScore> correctPairs = new ArrayList<PairScore>(pairsOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairsOfInterest.size());
+							LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairsOfInterest, correctPairs, wrongPairs);
+							if (!correctPairs.isEmpty())
+							{// this one is checking the list of wrong pairs because we aim to check that the pair chosen is not the right one to merge
+								System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pairs: "+correctPairs+" are incorrectly labelled as unmergeable. max score: "+highestScore);
+								selectRedStateIfAnySeemsRedEnough(pairs,coregraph,correctPairs.get(0));
+							}
+								
+						}
+						else
+						{
+							List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+							LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
+							if (correctPairs.isEmpty())
+							{
+								System.out.println("no red vertex returned, however neither pair is correct in "+pairs);
+								selectRedStateIfAnySeemsRedEnough(pairs,coregraph,wrongPairs.get(0));
+							}
+						}		
+	
 						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
@@ -841,7 +1000,14 @@ public class PairQualityLearner
 
 				@Override
 				public long overrideScoreComputation(PairScore p) {
-					return p.getScore();// dummy
+					long score = -1;
+					/*
+					if (par.scoresIncludeInconsistencies)
+						score = markovHelper.computeScoreBasedOnInconsistencies(p);
+					else
+					*/
+						score = p.getScore();// dummy
+					return score;
 				}
 
 				@Override
@@ -854,27 +1020,28 @@ public class PairQualityLearner
 			{
 				//System.out.println("classifyPairs: number of states considered = "+filteredPairs.size()+" number of reds: "+graph.getRedStateNumber()+" ( before filtering "+outcome.size()+")");
 				
-				Stack<PairScore> possibleResults = classifyPairs(outcome,graph), origPairs = outcome;
+				Stack<PairScore> possibleResults = classifyPairs(outcome,graph,null), origPairs = outcome;
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 
 				if (!possibleResults.isEmpty())
 				{
 					outcome = possibleResults;// no pairs have been provided by the modified algorithm, hence using the default one.
 				}
-/*
+
 				{
 					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					List<PairScore> pairs = new ArrayList<PairScore>(1);pairs.add(outcome.firstElement());
+					List<PairScore> pairs = new ArrayList<PairScore>(1);pairs.add(outcome.peek());
 					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 					if (correctPairs.isEmpty())
 					{
-						System.out.println("wrong merge at "+outcome.firstElement()+" entire list of pairs is "+outcome);
-						List<PairScore> correctPairsFromAllPairs = new ArrayList<PairScore>(outcome.size()), wrongPairsFromAllPairs = new ArrayList<PairScore>(outcome.size());
+						System.out.println("wrong merge at "+outcome.peek()+" entire list of pairs is "+origPairs);
+						List<PairScore> correctPairsFromAllPairs = new ArrayList<PairScore>(origPairs.size()), wrongPairsFromAllPairs = new ArrayList<PairScore>(origPairs.size());
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, origPairs, correctPairsFromAllPairs, wrongPairsFromAllPairs);
-						System.out.println();
-						classifyPairs(origPairs,graph);
+						System.out.println("correct pairs are: "+correctPairsFromAllPairs);
+						classifyPairs(origPairs,graph,outcome.peek());
+						classifyPairs(origPairs,graph,correctPairsFromAllPairs.get(0));
 					}
-				}*/
+				}
 			}
 			return outcome;
 		}
@@ -1242,7 +1409,9 @@ public class PairQualityLearner
 			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,fmg.ptaToUseForInference);
 			dataCollector.markovHelper.setMarkov(m);dataCollector.markovHelper.setChecker(checker);
  			long startTime = LearningSupportRoutines.getThreadTime();
+ 			System.out.println("learning started");
 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			System.out.println("learning finished");
  			long runTime = LearningSupportRoutines.getThreadTime()-startTime;
 			
 			SampleData dataSample = new SampleData(null,null);
@@ -1256,7 +1425,15 @@ public class PairQualityLearner
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
+			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
+					new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 
+				LearnerGraphND grA=new LearnerGraphND(referenceGraph,referenceGraph.config),
+						grB=new LearnerGraphND(actualAutomaton,actualAutomaton.config);
+				DirectedSparseGraph gr = gd.showGD(
+						grA,grB,
+						ExperimentRunner.getCpuNumber());
+				Visualiser.updateFrame(gr, null);
  			outcome.samples.add(dataSample);
 			if (sampleCollector != null)
 				synchronized(sampleCollector.trainingData)

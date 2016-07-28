@@ -25,7 +25,17 @@ public class UseWekaResultsParameters implements ThreadResultID
 	public UseWekaResultsParameters(int ifDepth) {
 		this.ifDepth = ifDepth;
 	}
-	
+
+	/** Whether to use scores that include inconsistencies instead of normal scores.
+	 * This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
+	 */
+	boolean scoresIncludeInconsistencies;
+
+	public void setScoresUseInconsistencies(boolean value)
+	{
+		scoresIncludeInconsistencies = value;
+	}
+
 	// This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
 	int ifDepth;
 	
@@ -37,7 +47,7 @@ public class UseWekaResultsParameters implements ThreadResultID
 	
 	public boolean selectingRed,classifierToBlockAllMergers;
 	public boolean zeroScoringAsRed = false;
-
+		
 	public final MarkovParameters markovParameters = new MarkovParameters();
 	
 	double threshold = 1.5;
@@ -103,6 +113,7 @@ public class UseWekaResultsParameters implements ThreadResultID
 		throw new UnsupportedOperationException("this method should not be called");
 	}
 
+	// This one is not used because these parameters are embedded in pair quality learner parameters.
 	@Override
 	public int executionTimeInCell() {
 		return -1;

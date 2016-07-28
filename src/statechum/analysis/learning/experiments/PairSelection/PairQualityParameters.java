@@ -39,9 +39,10 @@ public class PairQualityParameters implements ThreadResultID
 	/** True means using classifier, false means learning classifier. */
 	boolean usingClassifierRatherThanLearningClassifier = true;
 	String column = null;
+	/** Whether to use scores that include inconsistencies instead of normal scores. */
+	boolean scoresIncludeInconsistencies;
 	
 	public MarkovParameters markovParameters = new MarkovParameters();
-	
 	
 	public PairQualityParameters(PairQualityParameters a)
 	{
@@ -62,6 +63,11 @@ public class PairQualityParameters implements ThreadResultID
 	public void setColumn(String text)
 	{
 		column = text;
+	}
+	
+	public void setScoresUseInconsistencies(boolean value)
+	{
+		scoresIncludeInconsistencies = value;
 	}
 	
 	ThreadResultID innerLearner = null;
@@ -103,7 +109,7 @@ public class PairQualityParameters implements ThreadResultID
 	
 	public String getExperimentID()
 	{
-		String exp = getIfDepthAsString()+"_"+
+		String exp = getIfDepthAsString()+"_"+(scoresIncludeInconsistencies?"_SI":"")+
 		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
 		return exp;
 	}

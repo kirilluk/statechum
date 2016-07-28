@@ -74,11 +74,12 @@ public class LearnUsingClassifier {
 
 		try
 		{
-			for(final int traceLengthMultiplier:new int[]{10})
+			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
+			for(final int traceLengthMultiplier:new int[]{5})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 				{
-					final int traceQuantityToUse=1;
+					final int traceQuantityToUse=10;
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
@@ -98,7 +99,7 @@ public class LearnUsingClassifier {
 	
 							final UseWekaResultsParameters parametersInnerLearner = new UseWekaResultsParameters(ifDepth);
 							parametersInnerLearner.setUseClassifierForRed(selectingRed);parametersInnerLearner.setUseClassifierToChooseNextRed(classifierToBlockAllMergers);
-							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);
+							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);parametersInnerLearner.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 							parametersInnerLearner.setThreshold(threshold);
 	
 							String selection =parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
@@ -152,6 +153,7 @@ public class LearnUsingClassifier {
 									{
 										final PairQualityParameters pars = new PairQualityParameters(states, sample, attempt,seedForFSM);
 										pars.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+										pars.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 										pars.setInnerParameters(parametersInnerLearner);
 										pars.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										

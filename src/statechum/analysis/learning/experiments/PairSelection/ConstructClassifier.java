@@ -19,12 +19,9 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -40,9 +37,11 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
@@ -309,7 +308,7 @@ public class ConstructClassifier
 		}
 	}
 	
-	public static double evaluateClassifier(Classifier classifier, WekaDataCollector data) throws Exception
+	public static Pair<Double,Double> evaluateClassifier(Classifier classifier, WekaDataCollector data) throws Exception
 	{
 		Instances ninetyPercent = new Instances(data.trainingData), evaluation = new Instances("ninety percent",data.getAttributes(),data.trainingData.numInstances());
 		evaluation.setClass(ninetyPercent.classAttribute());
@@ -334,19 +333,33 @@ public class ConstructClassifier
 			assert Math.abs(instance.classValue()-classifier.classifyInstance(instance)) < Configuration.fpAccuracy : "invalid classification of instance "+i;
 		}
 		*/
-		long correctPrediction = 0;
+		long correctPredictionPos = 0, correctPredictionNeg = 0, totalPos = 0, totalNeg = 0;
 		for(int i=0;i<evaluation.numInstances();++i)
 		{
 			Instance instance = evaluation.instance(i);
-			double classification = classifier.classifyInstance(instance);
-			double value = instance.classValue();
-			if (Math.abs(classification-value) < Configuration.fpAccuracy)
-				++correctPrediction;
+			int classification = (int)classifier.classifyInstance(instance);
+			int value = (int)instance.classValue();
+			int indexOfTrue = instance.classAttribute().indexOfValue(Boolean.TRUE.toString());
+			//classTrue=dataCollector.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=dataCollector.classAttribute.indexOfValue(Boolean.FALSE.toString());
+			if (value == indexOfTrue)
+			{// positive
+				++totalPos;
+				if (classification == value)
+					++correctPredictionPos;
+			}
+			else
+			{// negative
+				++totalNeg;
+				if (classification == value)
+					++correctPredictionNeg;
+			}
 		}
 		if (evaluation.numInstances() == 0)
-			return 0;
+			return new Pair<Double,Double>(0.,0.);
 		else
-			return correctPrediction/(double)evaluation.numInstances();
+			return new Pair<Double,Double>(ConfusionMatrix.divide(correctPredictionPos, totalPos),ConfusionMatrix.divide(correctPredictionNeg, totalNeg));
+					
+					//correctPrediction/(double)evaluation.numInstances();
 	}
 	
 	public static void main(String args[]) throws Exception
@@ -363,17 +376,18 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 64;
+		final int samplesPerFSM = 16;
 		final int alphabetMultiplier = 2;
 		final double trainingDataMultiplier = 2;
 
 		try
 		{
-			for(final int lengthMultiplier:new int[]{10})
+			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
+			for(final int lengthMultiplier:new int[]{5})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
-					final int traceQuantity=1;
+					final int traceQuantity=10;
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
@@ -385,8 +399,9 @@ public class ConstructClassifier
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 								for(int attempt=0;attempt<2;++attempt)
 								{
-									PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
+									final PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
 									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parameters.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 									parameters.setColumn("LearnClassifier");
 									parameters.markovParameters = markovParameters;
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
@@ -394,7 +409,7 @@ public class ConstructClassifier
 										@Override
 										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 										{
-											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper);
+											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper,parameters.scoresIncludeInconsistencies);
 										}
 									};
 									experimentRunner.submitTask(learnerRunner);
@@ -490,8 +505,8 @@ public class ConstructClassifier
 						// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 						// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
 						//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
-						final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
-						final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
+						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
+						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
 						final Classifier classifier = new NearestClassifier();
 						classifier.buildClassifier(dataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());

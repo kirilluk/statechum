@@ -37,7 +37,6 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
-import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
@@ -134,9 +133,9 @@ public class ConstructClassifier
 			private static final long serialVersionUID = -5672965229484999993L;
 			double aboveZero=0,zero=0;
 
-			public PosNeg(double a,double b)
+			public PosNeg(double aZ,double z)
 			{
-				aboveZero = a;zero = b;
+				aboveZero = aZ;zero = z;
 			}
 			
 			@Override
@@ -258,7 +257,23 @@ public class ConstructClassifier
 				}
 			}
 		}
-		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
+		
+		public class PosNegAndInstanceId extends PosNeg
+		{
+			/**
+			 * ID for serialisation
+			 */
+			private static final long serialVersionUID = -3991150475258972694L;
+
+			public PosNegAndInstanceId(PosNeg p, int idx, int cnt, int cntInstance) {
+				super(p.aboveZero, p.zero);
+				bestInstanceIdx = idx;bestCount = cnt;cntForInstance = cntInstance;
+			}
+			
+			public int bestInstanceIdx, bestCount, cntForInstance;
+		}
+		
+		public PosNegAndInstanceId classifyInstanceAsPosNegAndInstance(Instance instance) throws Exception 
 		{
 			long instanceAsBitString[] = new long[instanceSize];
 			fillInArray(instanceAsBitString, 0, instance);
@@ -273,10 +288,34 @@ public class ConstructClassifier
 					currentBestCount = cnt;currentBestInstanceIdx = i;
 				}
 			}
-			
+			int cntForInstance=0;
+			for(int a=0;a<instanceSize;++a)
+				cntForInstance+=Long.bitCount(instanceAsBitString[a]);
+				
 			if (currentBestInstanceIdx < 0)
 				throw new IllegalArgumentException("missing data");
-			return trainingDistribution[currentBestInstanceIdx];
+			return new PosNegAndInstanceId(trainingDistribution[currentBestInstanceIdx],currentBestInstanceIdx,currentBestCount,cntForInstance);
+		}
+
+		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
+		{
+			return classifyInstanceAsPosNegInexact(instance);
+					//classifyInstanceAsPosNegExact(instance);
+		}
+		
+		/** Permits matches where an instance of training data could have had more or less bits set compared to the instance being classified. */
+		public PosNeg classifyInstanceAsPosNegInexact(Instance instance) throws Exception 
+		{
+			return  classifyInstanceAsPosNegAndInstance(instance);			
+		}
+
+		/** Permits matches where an instance of training data could have had more bits set compared to the instance being classified. */
+		public PosNeg classifyInstanceAsPosNegExact(Instance instance) throws Exception 
+		{
+			PosNegAndInstanceId pnid = classifyInstanceAsPosNegAndInstance(instance);
+			if (pnid.cntForInstance == pnid.bestCount)
+				return pnid;
+			return new PosNeg(0.5,0.5);
 		}
 
 		@Override
@@ -308,7 +347,27 @@ public class ConstructClassifier
 		}
 	}
 	
-	public static Pair<Double,Double> evaluateClassifier(Classifier classifier, WekaDataCollector data) throws Exception
+	public static class EvaluationOfClassifierOutcome
+	{
+		public final double positive, negative,unknown;
+		
+		public EvaluationOfClassifierOutcome()
+		{
+			positive = 0;negative=0;unknown=0;
+		}
+		public EvaluationOfClassifierOutcome(double pos,double neg, double unk)
+		{
+			positive = pos;negative=neg;unknown=unk;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "Positive: "+positive+" Negative: "+negative+" Unknown:"+unknown;
+		}
+	}
+	
+	public static EvaluationOfClassifierOutcome evaluateClassifier(Classifier classifier, WekaDataCollector data) throws Exception
 	{
 		Instances ninetyPercent = new Instances(data.trainingData), evaluation = new Instances("ninety percent",data.getAttributes(),data.trainingData.numInstances());
 		evaluation.setClass(ninetyPercent.classAttribute());
@@ -333,31 +392,46 @@ public class ConstructClassifier
 			assert Math.abs(instance.classValue()-classifier.classifyInstance(instance)) < Configuration.fpAccuracy : "invalid classification of instance "+i;
 		}
 		*/
-		long correctPredictionPos = 0, correctPredictionNeg = 0, totalPos = 0, totalNeg = 0;
+		long correctPredictionPos = 0, correctPredictionNeg = 0, totalPos = 0, totalNeg = 0, unknownValues = 0;
 		for(int i=0;i<evaluation.numInstances();++i)
 		{
 			Instance instance = evaluation.instance(i);
-			int classification = (int)classifier.classifyInstance(instance);
+			
+			double [] distribution = classifier.distributionForInstance(instance);
+			assert distribution.length == 2;
+			//int classification = (int)classifier.classifyInstance(instance);
 			int value = (int)instance.classValue();
-			int indexOfTrue = instance.classAttribute().indexOfValue(Boolean.TRUE.toString());
+			int indexOfTrue = instance.classAttribute().indexOfValue(Boolean.TRUE.toString()), indexOfFalse=1-indexOfTrue;
 			//classTrue=dataCollector.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=dataCollector.classAttribute.indexOfValue(Boolean.FALSE.toString());
 			if (value == indexOfTrue)
 			{// positive
-				++totalPos;
-				if (classification == value)
-					++correctPredictionPos;
+				
+				if (Math.abs(distribution[indexOfTrue] - distribution[indexOfFalse]) < Configuration.fpAccuracy)
+					++unknownValues;
+				else
+				{
+					++totalPos;
+					if (distribution[indexOfTrue] > distribution[indexOfFalse])
+						++correctPredictionPos;
+				}
 			}
 			else
 			{// negative
-				++totalNeg;
-				if (classification == value)
-					++correctPredictionNeg;
+				
+				if (Math.abs(distribution[indexOfTrue] - distribution[indexOfFalse]) < Configuration.fpAccuracy)
+					++unknownValues;
+				else
+				{
+					++totalNeg;
+					if (distribution[indexOfFalse] > distribution[indexOfTrue])
+						++correctPredictionNeg;
+				}
 			}
 		}
 		if (evaluation.numInstances() == 0)
-			return new Pair<Double,Double>(0.,0.);
+			return new EvaluationOfClassifierOutcome();
 		else
-			return new Pair<Double,Double>(ConfusionMatrix.divide(correctPredictionPos, totalPos),ConfusionMatrix.divide(correctPredictionNeg, totalNeg));
+			return new EvaluationOfClassifierOutcome(ConfusionMatrix.divide(correctPredictionPos, totalPos),ConfusionMatrix.divide(correctPredictionNeg, totalNeg),ConfusionMatrix.divide(unknownValues,evaluation.numInstances()));
 					
 					//correctPrediction/(double)evaluation.numInstances();
 	}
@@ -377,13 +451,13 @@ public class ConstructClassifier
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		final int samplesPerFSM = 16;
-		final int alphabetMultiplier = 2;
+		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 
 		try
 		{
 			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
-			for(final int lengthMultiplier:new int[]{5})
+			for(final int lengthMultiplier:new int[]{1})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{

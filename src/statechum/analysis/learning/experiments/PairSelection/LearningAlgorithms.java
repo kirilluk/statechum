@@ -54,6 +54,7 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovScoreComputation
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.PredictionEvaluation;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
@@ -348,11 +349,12 @@ public class LearningAlgorithms
 		}
 
 		protected Map<Long,TrueFalseCounter> pairQuality;
+		protected PredictionEvaluation predictionQuality;
 		protected LearnerGraph referenceGraph;
 
-		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter, LearnerGraph referenceGraph)
+		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter, LearnerGraph referenceGraph, PredictionEvaluation qualityCounter)
 		{
-			pairQuality = argCounter;this.referenceGraph = referenceGraph;
+			pairQuality = argCounter;this.referenceGraph = referenceGraph;predictionQuality = qualityCounter;
 		}
 
 		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */

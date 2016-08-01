@@ -251,7 +251,7 @@ public class UASPairQuality extends ExperimentPaperUAS
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
    				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
-   				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
+   				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph,null);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
  		        
@@ -270,7 +270,7 @@ public class UASPairQuality extends ExperimentPaperUAS
 
    				LearnerGraph ptaAfterMergingBasedOnUniques = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
    				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
-   				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph);
+   				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph,null);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
  		        

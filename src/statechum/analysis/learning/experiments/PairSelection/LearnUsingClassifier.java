@@ -45,6 +45,7 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.PredictionEvaluation;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
@@ -69,19 +70,20 @@ public class LearnUsingClassifier {
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
 		final int samplesPerFSM = 4;
-		final int alphabetMultiplier = 2;
+		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
-
+		final int trainingSamplesPerFSM = 2;
 		try
 		{
 			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
-			for(final int traceLengthMultiplier:new int[]{5})
+			for(final int traceLengthMultiplier:new int[]{1})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
 				{
 					final int traceQuantityToUse=10;
 					for(final boolean useUnique:new boolean[]{false})
 					{
+						final PredictionEvaluation predictionQuality=new PredictionEvaluation();
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classified from serialised representation
@@ -110,48 +112,16 @@ public class LearnUsingClassifier {
 
 							final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results"+selection+".csv"));
 							
-							processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {
-								@Override
-								public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
-								{
-									SampleData sm = result.samples.get(0);
-									ScoresForGraph data=sm.actualLearner;
-									StringBuffer csvLine = new StringBuffer();
-									csvLine.append(data.differenceBCR.getValue());
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
-
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
-																
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
-
-									if (result.parameters.pairQualityCounter != null)
-									{
-										CSVExperimentResult.addSeparator(csvLine); csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
-									}
-									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
-									experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-								}
-								
-								@Override
-								public SGEExperimentResult[] getGraphs() {
-									return new SGEExperimentResult[]{resultCSV};
-								}
-							};
 							int chunkLen = 3;
 							int seedForFSM = 0;
 							double weightOfInconsistencies = 1.0;
 							boolean aveOrMax=false;
 							int divisor=2;
 							for(int states:new int[]{20})
-								for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
-									for(int attempt=0;attempt<2;++attempt)
+								for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+									for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 									{
-										final PairQualityParameters pars = new PairQualityParameters(states, sample, attempt,seedForFSM);
+										final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample,seedForFSM);
 										pars.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 										pars.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 										pars.setInnerParameters(parametersInnerLearner);
@@ -162,13 +132,14 @@ public class LearnUsingClassifier {
 											parameters.setColumn("WithClassifier");
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 											parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
+
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
 											{
 												@Override
 												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 												{
 													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector.markovHelper);
-													l.setPairQualityCounter(pairQualityCounter);
+													l.setPairQualityCounter(pairQualityCounter);l.setPairPredictionCounter(predictionQuality);
 													return l;
 												}											
 											};
@@ -246,7 +217,41 @@ public class LearnUsingClassifier {
 										++seedForFSM;
 									}
 					    	
+							processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {
+								@Override
+								public void processSubResult(ExperimentResult<PairQualityParameters> result, RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentrunner) throws IOException 
+								{
+									SampleData sm = result.samples.get(0);
+									ScoresForGraph data=sm.actualLearner;
+									StringBuffer csvLine = new StringBuffer();
+									csvLine.append(data.differenceBCR.getValue());
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
+
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+																
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
+
+									if (result.parameters.pairQualityCounter != null)
+									{
+										CSVExperimentResult.addSeparator(csvLine); csvLine.append(DrawGraphs.objectAsText(result.parameters.pairQualityCounter));
+									}
+									CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
+									experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+								}
+								
+								@Override
+								public SGEExperimentResult[] getGraphs() {
+									return new SGEExperimentResult[]{resultCSV};
+								}
+							};
 					    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
+
+					    	System.out.println("PREDICTION QUALITY: "+predictionQuality);
 					    	
 					    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS || experimentRunner.getPhase() == PhaseEnum.COLLECT_AVAILABLE)
 					    	{

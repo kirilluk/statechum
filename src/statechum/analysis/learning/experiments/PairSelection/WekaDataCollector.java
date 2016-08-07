@@ -525,7 +525,7 @@ public class WekaDataCollector
 						if (others.size()>1)
 						{
 							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
-							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,pairs);
+							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,others);
 							int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
 							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
 							fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);

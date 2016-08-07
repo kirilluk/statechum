@@ -334,17 +334,11 @@ public class PairQualityLearner
 			}
 		});
 		
-		assessors.add(classifier.new PairRank("number of new outgoing transitions from blue")
+		assessors.add(classifier.new PairRank("new outgoing transitions from blue")
 		{// 12
 			@Override
 			public long getValue(PairScore p) {
-				Map<Label,CmpVertex> redTransitions = tentativeGraph().transitionMatrix.get(p.getR());
-				int counter = 0;
-				for(Label lbl:tentativeGraph().transitionMatrix.get(p.getQ()).keySet())
-					if (!redTransitions.containsKey(lbl))
-						counter++;
-				
-				return counter;
+				return newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
 			}
 
 			@Override
@@ -353,17 +347,11 @@ public class PairQualityLearner
 			}
 		});
 		
-		assessors.add(classifier.new PairRank("number of new outgoing transitions from red")
+		assessors.add(classifier.new PairRank("new outgoing transitions from red")
 		{// 13
 			@Override
 			public long getValue(PairScore p) {
-				Map<Label,CmpVertex> redTransitions = tentativeGraph().transitionMatrix.get(p.getQ());
-				int counter = 0;
-				for(Label lbl:tentativeGraph().transitionMatrix.get(p.getR()).keySet())
-					if (!redTransitions.containsKey(lbl))
-						counter++;
-				
-				return counter;
+				return newTransitionsFromStateB(tentativeGraph(), p.getQ(), p.getR());
 			}
 
 			@Override
@@ -371,27 +359,29 @@ public class PairQualityLearner
 				return false;
 			}
 		});
+		
+		
+		assessors.add(classifier.new PairRank("new outgoing transitions from blue v.s. all outgoing from red")
+		{// 14
+			@Override
+			public long getValue(PairScore p) {
+				long newFromBlue = newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
+				return kFrom_ab(tentativeGraph().transitionMatrix.get(p.getR()).size(), newFromBlue);						
+			}
 
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+	
 		if (parameters.markovParameters != null)
 		{
-			assessors.add(classifier.new PairRank("score minus inconsistency")
-			{// 14
-				@Override
-				public long getValue(PairScore p) {
-					return p.getScore()-classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
-				}
-	
-				@Override
-				public boolean isAbsolute() {
-					return false;
-				}
-			});
-			
-			assessors.add(classifier.new PairRank("score minus 2*inconsistency")
+			assessors.add(classifier.new PairRank("score v.s. inconsistency")
 			{// 15
 				@Override
 				public long getValue(PairScore p) {
-					return p.getScore()-2*classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+					return kFrom_ab(p.getScore(),classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore);
 				}
 	
 				@Override
@@ -400,8 +390,31 @@ public class PairQualityLearner
 				}
 			});
 		}
-		classifier.initialise("HindsightExperiment",100000,assessors,parameters.ifDepth);
+
+		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
 		return classifier;
+	}
+	
+	/** Computes the  balance of two scores, the former indicating that a pair should be merged and another one that suggests it should not be. */
+	public static long kFrom_ab(long score, long b)
+	{
+		assert b >= 0;
+		if (score < 0)
+			return 0;
+		if (b == 0)
+			return score*2;// in score/b computation where b is an integer, we inflate score to where b reflects perfection (== 0)
+		return score/b;
+	}
+	
+	public static long newTransitionsFromStateB(LearnerGraph graph, CmpVertex a, CmpVertex b)
+	{
+		Map<Label,CmpVertex> redTransitions = graph.transitionMatrix.get(a);
+		long counter = 0;
+		for(Label lbl:graph.transitionMatrix.get(b).keySet())
+			if (!redTransitions.containsKey(lbl))
+				counter++;// this is the same as computing an intersection of the two sets - default Java implementation iterates through the vertices. 
+		
+		return counter;
 	}
 	
 	public static class InitialConfigurationAndData

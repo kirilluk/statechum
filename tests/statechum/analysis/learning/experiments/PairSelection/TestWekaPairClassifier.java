@@ -1045,7 +1045,7 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(0,comparisonResults[4]);
 		Assert.assertEquals(0,comparisonResults[5]);
 		Assert.assertEquals(-1,comparisonResults[6]);
-		Assert.assertEquals(-1,comparisonResults[7]);
+		Assert.assertEquals(0,comparisonResults[7]);
 
 		Assert.assertEquals(0,comparisonResults[8]);
 		Assert.assertEquals(0,comparisonResults[9]);

@@ -292,10 +292,15 @@ public class LearningAlgorithms
 			return copy;
 		}
 		
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, boolean noLimitOnStateNumber) 
+		{
+			super(constructConfiguration(evalCnf,noLimitOnStateNumber?-1:reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring);
+			referenceGraph = reference;
+		}
+		
 		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring) 
 		{
-			super(constructConfiguration(evalCnf,reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring);
-			referenceGraph = reference;
+			this(evalCnf,reference,argInitialPTA,scoring,false);
 		}
 
 		protected boolean allMergersCorrect = true;

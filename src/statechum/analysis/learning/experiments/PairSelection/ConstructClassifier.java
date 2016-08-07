@@ -46,6 +46,7 @@ import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUpdatesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
@@ -453,6 +454,7 @@ public class ConstructClassifier
 		final int samplesPerFSM = 16;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
+		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
 
 		try
 		{
@@ -465,19 +467,18 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-						MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth, new MarkovHelper(markovParameters),!markovParameters.useCentreVertex);
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false);
+						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
 						int numberOfTasks = 0;
 						for(int states:new int[]{20})
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 								for(int attempt=0;attempt<2;++attempt)
 								{
 									final PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
-									parameters.setExperimentParameters(false,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
+									parameters.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									parameters.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 									parameters.setColumn("LearnClassifier");
-									parameters.markovParameters = markovParameters;
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override
@@ -581,7 +582,7 @@ public class ConstructClassifier
 						//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
 						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
-						final Classifier classifier = new NearestClassifier();
+						final Classifier classifier = new weka.classifiers.trees.J48();//new NearestClassifier();
 						classifier.buildClassifier(dataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)

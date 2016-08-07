@@ -57,6 +57,7 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReference;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
@@ -371,9 +372,9 @@ public class UASPairQuality extends ExperimentPaperUAS
  		} catch (AugmentFromIfThenAutomatonException e) {
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
- 		UseWekaResultsParameters parameters = new UseWekaResultsParameters(ifDepth); 	
+ 		UseWekaResultsParameters parameters = new UseWekaResultsParameters(new DataCollectorParameters(ifDepth, null, true)); 	
 		MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, new MarkovHelper(markovParameters)):
+		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, new MarkovHelper(markovParameters), false):
  					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -716,7 +717,7 @@ public class UASPairQuality extends ExperimentPaperUAS
 
  		LearnerGraph referenceGraph = new LearnerGraph(initialConfigAndData.initial.graph.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraph, initialConfigAndData.learnerInitConfiguration.getLabelConverter());
 		MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth,new MarkovHelper(markovParameters),!markovParameters.useCentreVertex);
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,true), new MarkovHelper(markovParameters));
      	LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph,dataCollector.markovHelper,false);
  		learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		
@@ -746,7 +747,7 @@ public class UASPairQuality extends ExperimentPaperUAS
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, initConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once (refer to the explanation above).
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(ifDepth,new MarkovHelper(markovParameters),!markovParameters.useCentreVertex);
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,true), new MarkovHelper(markovParameters));
 		// Run the learner that will find out how to select the correct pairs.
 		LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initConfiguration,referenceGraph,dataCollector,initialPTA,dataCollector.markovHelper,false);
 		LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

@@ -49,7 +49,7 @@ public class MarkovHelper
 	LearnerGraphND inverseGraph = null;
 	long comparisonsPerformed = 0;
 
-	MarkovParameters markovParameters;
+	public final MarkovParameters markovParameters;
 	
 	Map<CmpVertex,Long> inconsistenciesPerVertex = null;
 

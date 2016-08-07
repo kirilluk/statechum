@@ -42,7 +42,10 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.PredictionEvaluation;
@@ -68,7 +71,7 @@ public class LearnUsingClassifier {
 		String outPathPrefix = outDir + File.separator;
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
-
+		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
 		final int samplesPerFSM = 4;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
@@ -85,8 +88,9 @@ public class LearnUsingClassifier {
 					{
 						final PredictionEvaluation predictionQuality=new PredictionEvaluation();
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						parExperiment.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-						// load the classified from serialised representation
+						DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false);
+						parExperiment.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+						// load the classifier from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 						ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
 						final Classifier classifier = (Classifier)objectInputStream.readObject();
@@ -99,12 +103,12 @@ public class LearnUsingClassifier {
 						{
 							final boolean zeroScoringAsRed = false;
 	
-							final UseWekaResultsParameters parametersInnerLearner = new UseWekaResultsParameters(ifDepth);
+							final UseWekaResultsParameters parametersInnerLearner = new UseWekaResultsParameters(collectorPars);
 							parametersInnerLearner.setUseClassifierForRed(selectingRed);parametersInnerLearner.setUseClassifierToChooseNextRed(classifierToBlockAllMergers);
 							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);parametersInnerLearner.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 							parametersInnerLearner.setThreshold(threshold);
 	
-							String selection =parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
+							String selection = parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
 	
 							final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File(outPathPrefix+"percentage_score"+selection+".pdf"));
 							final RBoxPlot<String> gr_QualityForNumberOfTraces = new RBoxPlot<String>("traces","%%",new File(outPathPrefix+"quality_traces"+selection+".pdf"));
@@ -122,23 +126,24 @@ public class LearnUsingClassifier {
 									for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 									{
 										final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample,seedForFSM);
-										pars.setExperimentParameters(true,ifDepth, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
+										pars.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 										pars.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 										pars.setInnerParameters(parametersInnerLearner);
-										pars.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+										pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										
 										{// first, use the learner with a classifier 
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("WithClassifier");
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 											parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
-
-											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@Override
 												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 												{
-													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector.markovHelper);
+
+													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector.markovHelper,true);
 													l.setPairQualityCounter(pairQualityCounter);l.setPairPredictionCounter(predictionQuality);
 													return l;
 												}											
@@ -149,7 +154,8 @@ public class LearnUsingClassifier {
 										{// second, use a traditional learner 
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("Reference");
-											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
 												@Override
@@ -166,15 +172,15 @@ public class LearnUsingClassifier {
 										{// third, use EDSM-Markov learner, no premerge
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("EDSM-Markov");
-											parameters.markovParameters.setPresetLearningParameters(0);
-											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(null,parameters, learnerInitConfiguration)
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
 												@Override
 												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 												{
-													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.markovParameters);
-													final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
+													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.dataCollectorParameters.markovParameters);
+													final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false);
 
 													new MarkovClassifier(m, argInitialPTA).updateMarkov(false);// construct Markov chain if asked for.
 													

@@ -22,15 +22,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 
 public class PairQualityParameters implements ThreadResultID  
 {
 	public final int states,sample,attempt;
 	public boolean pickUniqueFromInitial;
-	int ifDepth;
+	DataCollectorParameters dataCollectorParameters;
 	boolean onlyUsePositives, useUnique;
 	int traceQuantity, traceLengthMultiplier;
 	double trainingDataMultiplier;
@@ -42,13 +42,11 @@ public class PairQualityParameters implements ThreadResultID
 	/** Whether to use scores that include inconsistencies instead of normal scores. */
 	boolean scoresIncludeInconsistencies;
 	
-	public MarkovParameters markovParameters = new MarkovParameters();
-	
 	public PairQualityParameters(PairQualityParameters a)
 	{
 		states=a.states;sample=a.sample;attempt=a.attempt;
 		pickUniqueFromInitial = a.pickUniqueFromInitial;
-		ifDepth = a.ifDepth;
+		dataCollectorParameters = a.dataCollectorParameters;
 		onlyUsePositives = a.onlyUsePositives;useUnique = a.useUnique;
 		traceQuantity = a.traceQuantity;traceLengthMultiplier = a.traceLengthMultiplier;
 		trainingDataMultiplier = a.trainingDataMultiplier;
@@ -56,7 +54,6 @@ public class PairQualityParameters implements ThreadResultID
 		seed = a.seed;
 		usingClassifierRatherThanLearningClassifier = a.usingClassifierRatherThanLearningClassifier;
 		column = a.column;
-		markovParameters = new MarkovParameters(a.markovParameters);
 		innerLearner = a.innerLearner;
 	}
 	
@@ -72,9 +69,9 @@ public class PairQualityParameters implements ThreadResultID
 	
 	ThreadResultID innerLearner = null;
 	
-	public void setExperimentParameters(boolean whetherUseClassifierOrLearnClassifier, int ifDepth,boolean onlyPositives,boolean useUnique,int alphabetMult, int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
+	public void setExperimentParameters(boolean whetherUseClassifierOrLearnClassifier, DataCollectorParameters p,boolean onlyPositives,boolean useUnique,int alphabetMult, int traceQuantity,int lengthMultiplier,double trainingDataMultiplier)
 	{
-		this.ifDepth = ifDepth;this.usingClassifierRatherThanLearningClassifier = whetherUseClassifierOrLearnClassifier;this.onlyUsePositives = onlyPositives;this.useUnique = useUnique;this.tracesAlphabetMultiplier = alphabetMult; this.traceQuantity = traceQuantity;this.traceLengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
+		dataCollectorParameters = p;this.usingClassifierRatherThanLearningClassifier = whetherUseClassifierOrLearnClassifier;this.onlyUsePositives = onlyPositives;this.useUnique = useUnique;this.tracesAlphabetMultiplier = alphabetMult; this.traceQuantity = traceQuantity;this.traceLengthMultiplier = lengthMultiplier;this.trainingDataMultiplier = trainingDataMultiplier;
 	}
 	
 	public void setInnerParameters(ThreadResultID inner)
@@ -102,14 +99,9 @@ public class PairQualityParameters implements ThreadResultID
 		states = argStates;sample=argSample;attempt=argAttempt;seed = argSeed;
 	}
 	
-	protected String getIfDepthAsString()
-	{
-		return "ifD="+ifDepth;
-	}
-	
 	public String getExperimentID()
 	{
-		String exp = getIfDepthAsString()+"_"+(scoresIncludeInconsistencies?"_SI":"")+
+		String exp = (scoresIncludeInconsistencies?"_SI":"")+
 		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
 		return exp;
 	}
@@ -123,14 +115,14 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String[] getColumnText() 
 	{
-		List<String> values = new ArrayList<String>();values.add(column);values.add(Integer.toString(ifDepth));values.addAll(markovParameters.getColumnListForMarkovLearner());
+		List<String> values = new ArrayList<String>();values.add(column);values.addAll(dataCollectorParameters.getColumnList());
 		return values.toArray(new String[]{});
 	}
 
 	@Override
 	public String getColumnID() 
 	{
-		return column+getIfDepthAsString()+"_"+markovParameters.getColumnID(true);
+		return column+dataCollectorParameters.toString();
 	}
 
 	public static final String [] cellheaderStd = new String[]{"BCR","Diff","States","fracS","marPre","marRec","centreCorrect","centerpaths","%transitions"};

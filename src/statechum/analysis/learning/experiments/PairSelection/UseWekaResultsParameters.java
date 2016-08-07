@@ -18,12 +18,13 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class UseWekaResultsParameters implements ThreadResultID
 {
-	public UseWekaResultsParameters(int ifDepth) {
-		this.ifDepth = ifDepth;
+	public UseWekaResultsParameters(DataCollectorParameters pars) {
+		dataCollectorParameters = pars;
 	}
 
 	/** Whether to use scores that include inconsistencies instead of normal scores.
@@ -37,12 +38,12 @@ public class UseWekaResultsParameters implements ThreadResultID
 	}
 
 	// This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
-	int ifDepth;
+	DataCollectorParameters dataCollectorParameters;
 	
 	/** The length of compound if-then conditions over REL metrics to evaluate. */
-	public void setIfdepth(int value)
+	public void setIfdepth(DataCollectorParameters pars)
 	{
-		ifDepth = value;
+		dataCollectorParameters = pars;
 	}
 	
 	public boolean selectingRed,classifierToBlockAllMergers;
@@ -86,7 +87,7 @@ public class UseWekaResultsParameters implements ThreadResultID
 	@Override
 	public String getRowID()
 	{
-		return "IFD="+ifDepth+"_TH="+threshold+(selectingRed?"_RED":"")+(classifierToBlockAllMergers?"_BL":"")+(zeroScoringAsRed?"_ZR":"");
+		return dataCollectorParameters.toString()+"_TH="+threshold+(selectingRed?"_RED":"")+(classifierToBlockAllMergers?"_BL":"")+(zeroScoringAsRed?"_ZR":"");
 	}
 
 	@Override

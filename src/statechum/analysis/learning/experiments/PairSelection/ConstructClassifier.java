@@ -452,7 +452,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 16;
+		final int samplesPerFSM = 32;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
@@ -591,7 +591,8 @@ public class ConstructClassifier
 						//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
 						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
-						final Classifier classifier = new weka.classifiers.trees.J48();//new NearestClassifier();
+						final Classifier classifier = new NearestClassifier();
+								//new weka.classifiers.trees.J48();//
 						classifier.buildClassifier(globalDataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+globalDataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)

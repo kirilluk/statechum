@@ -136,6 +136,9 @@ public class LearnUsingClassifier {
 											parameters.setColumn("WithClassifier");
 											final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 											parameters.setPairQualityCounter(pairQualityCounter);// pairQualityCounter is shared between parameters and the inner learner. This permits the inner learner to use it and for the processSubExperimentResult to extract the value of it, all with the outer learner being oblivious to it.
+											
+											// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
+											// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
 											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{

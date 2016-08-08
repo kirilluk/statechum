@@ -437,6 +437,7 @@ public class ConstructClassifier
 					//correctPrediction/(double)evaluation.numInstances();
 	}
 	
+	// Important: this routine ignores its arguments and always runs in a 'standalone' mode.
 	public static void main(String args[]) throws Exception
 	{
 		DrawGraphs gr = new DrawGraphs();
@@ -469,7 +470,8 @@ public class ConstructClassifier
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
 						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,true);
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
+						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
+						List<WekaDataCollector> listOfCollectors = new ArrayList<WekaDataCollector>();
 						int numberOfTasks = 0;
 						for(int states:new int[]{20})
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
@@ -479,6 +481,10 @@ public class ConstructClassifier
 									parameters.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									parameters.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 									parameters.setColumn("LearnClassifier");
+									// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
+									// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
+									WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
+									listOfCollectors.add(dataCollector);
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override
@@ -504,36 +510,39 @@ public class ConstructClassifier
 						};
 						
 						experimentRunner.collectOutcomeOfExperiments(resultHandler);
-	
+						for(WekaDataCollector w:listOfCollectors)
+							globalDataCollector.trainingData.addAll(w.trainingData);// pool all the training data.
+						listOfCollectors.clear();// and throw away the source data 
+						
 						// we are here because the outcome of all experiments submitted so far has been obtained, it is therefore time to construct classifiers from the logged pair information.
 						int nonZeroes = 0;
 						long numberOfValues = 0;
-						System.out.println("number of instances: "+dataCollector.trainingData.numInstances());
-						int freqData[] = new int[dataCollector.attributesOfAnInstance.length];
-						for(int i=0;i<dataCollector.trainingData.numInstances();++i)
-							for(int attrNum=0;attrNum<dataCollector.attributesOfAnInstance.length;++attrNum)
+						System.out.println("number of instances: "+globalDataCollector.trainingData.numInstances());
+						int freqData[] = new int[globalDataCollector.attributesOfAnInstance.length];
+						for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
+							for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 							{
-								assert dataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
-								if (dataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
+								assert globalDataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
+								if (globalDataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
 								{
 									++freqData[attrNum];++numberOfValues;
 								}
 							}
-						for(int attrNum=0;attrNum<dataCollector.attributesOfAnInstance.length;++attrNum)
+						for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 							if (freqData[attrNum]>0) 
 								++nonZeroes;
 						
-						System.out.println("Total instances: "+dataCollector.trainingData.numInstances()+" with "+dataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes);
+						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes);
 						Arrays.sort(freqData);
 						int numOfcolumns=20;
-						int stepWidth = dataCollector.attributesOfAnInstance.length/numOfcolumns;
+						int stepWidth = globalDataCollector.attributesOfAnInstance.length/numOfcolumns;
 						
 						final RBoxPlot<Long> gr_HistogramOfAttributeValues = new RBoxPlot<Long>("Attributes","Number of values",new File(outPathPrefix+parExperiment.getExperimentID()+"_attributes_use"+".pdf"));
 						for(int i=0;i<numOfcolumns;++i)
 						{
 							int columnData=0;
 							for(int j=i*stepWidth;j<(i+1)*stepWidth;++j)
-								if (j < dataCollector.attributesOfAnInstance.length)
+								if (j < globalDataCollector.attributesOfAnInstance.length)
 									columnData+=freqData[j];
 							
 							gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
@@ -548,14 +557,14 @@ public class ConstructClassifier
 						{
 							wekaInstances = new FileWriter(whereToWrite);
 							// This chunk is almost verbatim from Weka's Instances.toString()
-							wekaInstances.append(Instances.ARFF_RELATION).append(" ").append(Utils.quote(dataCollector.trainingData.relationName())).append("\n\n");
-						    for (int i = 0; i < dataCollector.trainingData.numAttributes(); i++) {
-						    	wekaInstances.append(dataCollector.trainingData.attribute(i).toString()).append("\n");
+							wekaInstances.append(Instances.ARFF_RELATION).append(" ").append(Utils.quote(globalDataCollector.trainingData.relationName())).append("\n\n");
+						    for (int i = 0; i < globalDataCollector.trainingData.numAttributes(); i++) {
+						    	wekaInstances.append(globalDataCollector.trainingData.attribute(i).toString()).append("\n");
 						    }
 						    wekaInstances.append("\n").append(Instances.ARFF_DATA).append("\n");
-						    for (int i = 0; i < dataCollector.trainingData.numInstances(); i++) {
-						    	wekaInstances.append(dataCollector.trainingData.instance(i).toString());
-						        if (i < dataCollector.trainingData.numInstances() - 1) {
+						    for (int i = 0; i < globalDataCollector.trainingData.numInstances(); i++) {
+						    	wekaInstances.append(globalDataCollector.trainingData.instance(i).toString());
+						        if (i < globalDataCollector.trainingData.numInstances() - 1) {
 						        	wekaInstances.append('\n');
 						        }
 						      }
@@ -583,8 +592,8 @@ public class ConstructClassifier
 						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
 						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
 						final Classifier classifier = new weka.classifiers.trees.J48();//new NearestClassifier();
-						classifier.buildClassifier(dataCollector.trainingData);
-						System.out.println("Entries in the classifier: "+dataCollector.trainingData.numInstances());
+						classifier.buildClassifier(globalDataCollector.trainingData);
+						System.out.println("Entries in the classifier: "+globalDataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)
 							System.out.println("Reduced entries in the classifier: "+((NearestClassifier)classifier).getTrainingSize());
 						/*
@@ -598,9 +607,9 @@ public class ConstructClassifier
 						}
 						System.out.println("time per iteration: "+((double)10000/itersCount)+" ms");
 						*/
-						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,dataCollector));
+						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,globalDataCollector));
 						//System.out.println(classifier);
-						dataCollector=null;// throw all the training data away.
+						globalDataCollector=null;// throw all the training data away.
 
 						{// serialise the classifier, this is the only way to store it.
 							OutputStream os = new FileOutputStream(outDir+File.separator+parExperiment.getExperimentID()+".ser");

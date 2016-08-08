@@ -384,6 +384,7 @@ public class WekaDataCollector
 
 		// now run comparators. These obtain values based both on filtered an unfiltered values.
 		if (assessors != null)
+		{
 			for(PairScore pair:pairs)
 				for(int i=0;i<assessors.size();++i)
 				{
@@ -392,11 +393,11 @@ public class WekaDataCollector
 					measurements.valueSD[i]+=value*value;// abuse valueSD into storing squares of values.
 				}
 
-		if (assessors != null)
 			for(int i=0;i<assessors.size();++i)
 			{
 				measurements.valueAverage[i]/=pairs.size();measurements.valueSD[i]=Math.sqrt(measurements.valueSD[i]/pairs.size()-measurements.valueAverage[i]*measurements.valueAverage[i]);
 			}
+		}
 	}
 
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values greater for some points and less for others. */

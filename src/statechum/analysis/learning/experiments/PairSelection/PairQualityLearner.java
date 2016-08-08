@@ -141,6 +141,12 @@ public class PairQualityLearner
 	public static class PairMeasurements
 	{
  		public long compatibilityScore, inconsistencyScore;
+ 		
+ 		@Override
+ 		public String toString()
+ 		{
+ 			return "{"+compatibilityScore+","+inconsistencyScore+"}";
+ 		}
 	}
 	
 	/** Configures the attributes used in the data collector. */
@@ -399,11 +405,10 @@ public class PairQualityLearner
 	/** Computes the  balance of two scores, the former indicating that a pair should be merged and another one that suggests it should not be. */
 	public static long kFrom_ab(long score, long b)
 	{
-		assert b >= 0;
 		if (score < 0)
 			return 0;
-		if (b == 0)
-			return score*2;// in score/b computation where b is an integer, we inflate score to where b reflects perfection (== 0)
+		if (b <= 0)
+			return score*2;// in score/b computation where b is an integer, we inflate score to where b reflects perfection (<= 0)
 		return score/b;
 	}
 	
@@ -1675,14 +1680,6 @@ public class PairQualityLearner
 				Visualiser.updateFrame(gr, null);
 				*/
  			outcome.samples.add(dataSample);
-			if (sampleCollector != null)
-				synchronized(sampleCollector.trainingData)
-				{
-					for(int i=0;i< sampleCollector.trainingData.numInstances();++i)
-						sampleCollector.trainingData.add(sampleCollector.trainingData.instance(i));
-				}
-			sampleCollector.trainingData.delete();
-			
 			return outcome;
 		}
 

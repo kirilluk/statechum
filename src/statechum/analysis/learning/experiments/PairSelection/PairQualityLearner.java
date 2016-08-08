@@ -149,10 +149,11 @@ public class PairQualityLearner
 		public final int ifDepth;
 		public final MarkovParameters markovParameters;
 		public final boolean graphIsPTA;
+		public final boolean comparePairOnlyWithBadPairs;
 		
-		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta)
+		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, boolean compareOnlyWithBadPairs)
 		{
-			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;
+			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;
 		}
 		
 		public List<String> getColumnList()
@@ -164,17 +165,17 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return "["+ifDepth+"_"+(graphIsPTA?"PTA":"")+"_"+markovParameters.getColumnID(true)+"]";
+			return "["+ifDepth+(graphIsPTA?"_PTA":"")+(comparePairOnlyWithBadPairs?"_CB":"")+"_"+markovParameters.getColumnID(true)+"]";
 		}
 		
 		public DataCollectorParameters()
 		{
-			ifDepth = 1;markovParameters = null;graphIsPTA = false;
+			ifDepth = 1;markovParameters = null;graphIsPTA = false;comparePairOnlyWithBadPairs = false;
 		}
 		
 		public DataCollectorParameters(DataCollectorParameters from)
 		{
-			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;
+			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;comparePairOnlyWithBadPairs = from.comparePairOnlyWithBadPairs; 
 		}
 	}
 	
@@ -391,7 +392,7 @@ public class PairQualityLearner
 			});
 		}
 
-		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
+		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth, parameters.comparePairOnlyWithBadPairs);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
 		return classifier;
 	}
 	

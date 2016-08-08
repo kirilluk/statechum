@@ -467,7 +467,7 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false);
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,true);
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
 						int numberOfTasks = 0;

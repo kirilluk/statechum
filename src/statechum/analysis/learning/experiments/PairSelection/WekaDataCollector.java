@@ -108,7 +108,7 @@ public class WekaDataCollector
 	 * @param argAssessor a collection of assessors to use.
 	 * @param level the maximal number of attributes to use as part of a conditional statement.
 	 */
-	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor, int level)
+	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor, int level, boolean compareOnlyWithBadPairs)
 	{
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
@@ -119,7 +119,7 @@ public class WekaDataCollector
 		if (comparators.size() > Long.SIZE-1)
 			throw new IllegalArgumentException("attributes will not fit into long");
 		
-		maxLevel = level;
+		maxLevel = level;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;
 
 		n = comparators.size();// the number of indices we go through
 		long instanceLen = 0;
@@ -251,11 +251,20 @@ public class WekaDataCollector
 		return outcome;
 	}
 	
-	protected boolean useDenseInstance = false;
+	protected boolean useDenseInstance = true;
 	
 	public void setUseDenseInstance(boolean value)
 	{
 		useDenseInstance = value;
+	}
+	
+	public double []constructInstanceValuesBasedOnComparisonResults(int []comparisonResults, boolean classification)
+	{
+		double []instanceValues=new double[instanceLength+1];
+		for(int i=0;i<instanceLength;++i)
+			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
+		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
+		return instanceValues;
 	}
 	
 	/** Constructs a Weka {@link Instance} for a pair of interest.
@@ -269,11 +278,7 @@ public class WekaDataCollector
 		if (comparisonResults.length != instanceLength)
 			throw new IllegalArgumentException("results' length does not match the number of comparators");
 
-		double []instanceValues=new double[instanceLength+1];
-		for(int i=0;i<instanceLength;++i)
-			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
-		
-		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
+		double []instanceValues=constructInstanceValuesBasedOnComparisonResults(comparisonResults, classification);		
 		Instance outcome = useDenseInstance?new DenseInstance(1,instanceValues):new BinarySparseInstance(1,instanceValues);
 		outcome.setDataset(trainingData);
 		return outcome;
@@ -396,11 +401,15 @@ public class WekaDataCollector
 
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values greater for some points and less for others. */
 	public static final int comparison_inconclusive=-10;
-
-	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> others)
+	
+	/** Compares a pair with all others. 
+	 * 
+	 * @param badPairs we only compare the current pair with all the pairs that are 'bad'. By using all pairs here, we mimic the implementation that existed for some time; using only wrong pairs or correct pairs, one can build a classifier that intends to discriminate between good and bad pairs rather than picking top pair and hence being too selective.  
+	 */ 
+	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> badPairs)
 	{
-		int comparisonResult = 0;
-		for(PairScore w:others)
+		int comparisonResult = cmp.compare(pair, pair);// first of all, compare the pair with itself. It hence does not matter whether badPairs includes this pair or not (it will for comparePairOnlyWithBadPairs == false and not otherwise).
+		for(PairScore w:badPairs)
 		{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
 				int newValue = cmp.compare(pair, w);
 				assert newValue != comparison_inconclusive;
@@ -437,7 +446,7 @@ public class WekaDataCollector
 	 * @param offset the starting position to fill in.
 	 * @param xyz bitmask indicating attributes to be ignored.
 	 */
-	void comparePairWithOthers(PairScore pair, Collection<PairScore> others, int []whatToFillIn, int offset, long xyz)
+	void comparePairWithOthers(PairScore pair, Collection<PairScore> badPairs, int []whatToFillIn, int offset, long xyz)
 	{
 		assert !comparators.isEmpty();
 		
@@ -446,7 +455,7 @@ public class WekaDataCollector
 			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 		{
 				PairComparator cmp = comparators.get(attr);
-				int value = comparePairWithOthers(cmp, pair, others);
+				int value = comparePairWithOthers(cmp, pair, badPairs);
 				if (value == comparison_inconclusive)
 					value = 0;
 				whatToFillIn[i+offset] = value;
@@ -471,7 +480,6 @@ public class WekaDataCollector
 			{
 				final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
 				whatToFillIn[i+offset]=value;
-				assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
 				++i;
 	}
 	}
@@ -487,7 +495,7 @@ public class WekaDataCollector
 	 * because for each entry at the previous level we need to have +1 and -1 entries of (n-currentLevel) attributes at the current level. Hence multiplying by V*(n-currentLevel). 
 	 * @param xyz bitmask of the attributes used in the previous levels.
 	 * @param pairOfInterest pair being evaluated.
-	 * @param pairs other pairs it is to be compared with.
+	 * @param pairs other pairs it is to be compared with. This can be a collection of all pairs where we intend to identify dominating pairs or only a collection of 'bad' pairs where we filter pairs dominating (or being dominated) by the wrong-merge pairs for learning of a 'positive' classifier and the other way around for a 'negative' one.
 	 * @param measurements long-to-compute parameters of the pairs, used by assessors to evaluate the pairOfInterest
 	 * @param currentLevel current level in construction of the attributes.
 	 */
@@ -520,9 +528,10 @@ public class WekaDataCollector
 						{
 							int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
 							if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
-								others.add(currentPair);
+								others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
 						}
-						if (others.size()>1)
+						
+						if (others.size()>1)//  || (others.size() > 0 && comparePairOnlyWithBadPairs))
 						{
 							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
 							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,others);
@@ -545,9 +554,12 @@ public class WekaDataCollector
 			throw new IllegalArgumentException("array is too short");
 		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForFilteredCollectionOfPairs,0);
 	}
+	
+	/** If true, only compares the pair with wrong pairs when building a 'positive' instance and with correct pairs for a 'negative' instance. If false, compares a pair with absolutely all pairs, hence utilising a rather narrow selection criteria (any correct pairs that did not happen to be 'top' are set as 'inconclusive' even though they could become 'top' in the absence of the current top-scoring pair). */
+	protected boolean comparePairOnlyWithBadPairs;
 
 	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
-	 * We do not compare correct pairs with each other, or wrong pairs with each other. Pairs that have negative scores are ignored.
+	 * Pairs that have negative scores are ignored.
 	 * 
 	 * @param pairs pairs to add
 	 * @param currentGraph the current graph
@@ -568,8 +580,25 @@ public class WekaDataCollector
 		for(PairScore p:pairsToConsider)
 		{
 			int []comparisonResults = new int[instanceLength];
-			fillInPairDetails(comparisonResults,p, pairsToConsider);// only compare with other non-negatives
 			boolean correctPair = correctPairs.contains(p);
+			if (comparePairOnlyWithBadPairs)
+			{// If we leave lists of wrong/correct pairs unchanged, not only comparison but also subsequent filtering (if p is best or worst in some attribute) will apply to 'wrong' pairs. 
+			 // This implies that the pair will not be compared with itself and hence where the list of wrong pairs only has one element, it will be ignored unless (other.size() > 0 && comparePairOnlyWithBadPairs) 
+		     // is added to (others.size()>1) condition in fillInEntry. 
+				
+				if (correctPair)
+				{
+					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(wrongPairs);badPairs.add(p);
+					fillInPairDetails(comparisonResults,p, badPairs);// this is the correct pair, hence compare it to all the 'wrong' pairs.
+				}
+				else
+				{
+					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(correctPairs);badPairs.add(p);
+					fillInPairDetails(comparisonResults,p, badPairs);// this is the wrong pair, hence compare it to all the 'correct' pairs.
+				}
+			}
+			else
+				fillInPairDetails(comparisonResults,p, pairsToConsider);
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
 	}

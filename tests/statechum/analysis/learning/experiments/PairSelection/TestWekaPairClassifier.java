@@ -179,6 +179,35 @@ public class TestWekaPairClassifier {
 	}
 	
 	@Test
+	public void testNewTransitionsFromStateB0()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("A1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB2()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB3()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")));
+		Assert.assertEquals(2,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB4()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("B1")),tentativeGraph.findVertex(VertexID.parseID("A1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	
+	@Test
 	public void testBuildSetsForComparators1()
 	{
 		WekaDataCollector classifier = new WekaDataCollector(null,true);

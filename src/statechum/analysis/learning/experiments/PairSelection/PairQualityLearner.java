@@ -407,6 +407,7 @@ public class PairQualityLearner
 		return score/b;
 	}
 	
+	/** Computes the number of transitions that are new to state b compared to state a. Assumes states a and b can be merged. */
 	public static long newTransitionsFromStateB(LearnerGraph graph, CmpVertex a, CmpVertex b)
 	{
 		Map<Label,CmpVertex> redTransitions = graph.transitionMatrix.get(a);

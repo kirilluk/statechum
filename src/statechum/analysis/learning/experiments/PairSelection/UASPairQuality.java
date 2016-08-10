@@ -373,8 +373,9 @@ public class UASPairQuality extends ExperimentPaperUAS
  			Helper.throwUnchecked("failed to augment using if-then", e);
  		}// we only need  to augment our PTA once (refer to the explanation above).
  		UseWekaResultsParameters parameters = new UseWekaResultsParameters(new DataCollectorParameters(ifDepth, null, true,true)); 	
-		MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, new MarkovHelper(markovParameters), false):
+ 		MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,true,true), new MarkovHelper(markovParameters));
+		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, dataCollector, false):
  					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

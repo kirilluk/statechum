@@ -592,11 +592,11 @@ public class PairQualityLearner
 			predictionQuality = qualityCounter;
 		}
 
-		public LearnerThatUsesWekaResults(UseWekaResultsParameters parameters,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA,MarkovHelper helper, boolean noLimitOnStateNumber) 
+		public LearnerThatUsesWekaResults(UseWekaResultsParameters parameters,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA,WekaDataCollector argDataCollector, boolean noLimitOnStateNumber) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,null,helper, noLimitOnStateNumber);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
+			super(evalCnf,argReferenceGraph,argInitialPTA,null,argDataCollector.markovHelper, noLimitOnStateNumber);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
 			par=parameters;
-			dataCollector = createDataCollector(parameters.dataCollectorParameters, helper);//if we do a second pass, the graph will not be a PTA. !parameters.markovParameters.useCentreVertex);
+			dataCollector = argDataCollector;
 			classifier=wekaClassifier;
 			classTrue=dataCollector.classAttribute.indexOfValue(Boolean.TRUE.toString());classFalse=dataCollector.classAttribute.indexOfValue(Boolean.FALSE.toString());
 		}
@@ -640,7 +640,7 @@ public class PairQualityLearner
 		{
 			assert distribution.length == 2;
 			double goodClass = distribution[classOfInterest], badClass = distribution[1-classOfInterest];
-			if (Math.abs(goodClass - badClass) < Configuration.fpAccuracy)
+			if (Math.abs(goodClass - badClass) < 0.20)//Configuration.fpAccuracy)
 				return unknown;
 			if (badClass < Configuration.fpAccuracy)
 				return maxQuality;
@@ -648,17 +648,82 @@ public class PairQualityLearner
 			if (ratio < par.threshold)
 				return -1;
 			return (long)(maxQuality*goodClass);
+			
 			//return Math.min(maxQuality, (long)(maxQuality*ratio/2));
 		}
 		
 		
+		protected Collection<PairScore> classifyAllPairsInList(Collection<PairScore> allPairs)
+		{
+			int []comparisonResults = new int[dataCollector.getInstanceLength()], bestComparisonResults = new int[dataCollector.getInstanceLength()];
+			List<PairScore> currentPairs = new ArrayList<PairScore>(allPairs.size());currentPairs.addAll(allPairs);
+			Collection<PairScore> outcome = new ArrayList<PairScore>(allPairs.size());
+			int pairsLeft = allPairs.size();
+			while(pairsLeft > 0)
+			{
+				int bestMatch = dataCollector.attributes.size();int bestPair = -1;
+				for(int i=0;i<currentPairs.size();++i)
+				{
+					PairScore p = currentPairs.get(i);
+					if (p != null)
+					{
+						dataCollector.fillInPairDetails(comparisonResults,p, currentPairs);
+						int cnt=0;
+						for(int a=0;a<comparisonResults.length;++a)
+							if (comparisonResults[a] == 0)
+								cnt++;
+						if (cnt<bestMatch)
+						{
+							bestMatch = cnt;bestPair = i;System.arraycopy(comparisonResults, 0, bestComparisonResults, 0, comparisonResults.length);
+						}
+					}
+				}
+				Instance instance = dataCollector.constructInstance(bestComparisonResults, true);// here classification is a dummy.
+				double distribution[]=null;
+				try
+				{
+					distribution=classifier.distributionForInstance(instance);
+				}
+				catch(Exception ex)
+				{
+					ex.printStackTrace();
+					throw new IllegalArgumentException("failed to classify pair "+bestPair, ex);
+				}
+				long trueQuality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
+				long falseQuality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
+				PairScore revisedPair = null, currentBest = currentPairs.get(bestPair);
+				if (trueQuality > 0)
+					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),classTrue);
+				else if (falseQuality > 0)
+					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),classFalse);
+				else
+					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),unknown);// unknown
+				outcome.add(revisedPair);
+				currentPairs.set(bestPair,null);// 'remove' the current pair from the list.
+				
+				--pairsLeft;
+			}
+			
+			return outcome;
+		}
+		
+		protected long classifyPairAfterItWasClassified(PairScore p,@SuppressWarnings("unused") Collection<PairScore> allPairs, int classToUse)
+		{
+			if (p.getAnotherScore() == unknown)
+				return unknown;
+			else
+				if (p.getAnotherScore() == classToUse)
+					return maxQuality;
+				else
+					return -1;
+		}
 		// values for pairs cannot be cached because they depend on other pairs in consideration. Hence the same pair as part of a larger collection of pairs may be deemed either good or not so good, it all depends on other pairs.
 		
 		protected long classifyPair(PairScore p,Collection<PairScore> allPairs, int classToUse)
 		{
 			int []comparisonResults = new int[dataCollector.getInstanceLength()];
 			dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
-			Instance instance = dataCollector.constructInstance(comparisonResults, true);
+			Instance instance = dataCollector.constructInstance(comparisonResults, true);// here classification is a dummy.
 			double distribution[]=null;
 			try
 			{
@@ -932,7 +997,7 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPair(p,pairs,classToUse);
+					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classToUse);
 					if (quality == unknown)
 						unknownCounter++;
 					else
@@ -963,7 +1028,7 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPair(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
 					if (quality < 0 && helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else
@@ -975,7 +1040,7 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPair(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
 					if (quality >= 0 && helper.computeScoreBasedOnInconsistencies(p) < 0)
 						predictedCounter++;
 					else
@@ -987,7 +1052,7 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPair(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
 					if (quality < 0 || helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else
@@ -1014,6 +1079,7 @@ public class PairQualityLearner
 
 			public synchronized void update(LearnerThatUsesWekaResults learner, MarkovHelper markovHelper,List<PairScore> pairs,List<PairScore> correctPairs,List<PairScore> wrongPairs)
 			{
+				
 				wekaCorrect.updateUsingWeka(learner,pairs,correctPairs, learner.classTrue);wekaWrong.updateUsingWeka(learner,pairs,wrongPairs,learner.classFalse);
 				markovCorrect.updateUsingMarkov(markovHelper, correctPairs, true);markovWrong.updateUsingMarkov(markovHelper, wrongPairs, false);
 				wmPlusCorrect.updatePositiveBoth(learner,markovHelper,pairs,correctPairs, learner.classFalse);wmPlusWrong.updatePositiveBoth(learner,markovHelper,pairs,wrongPairs, learner.classFalse);
@@ -1256,8 +1322,9 @@ public class PairQualityLearner
 					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 					
 					{
-						List<PairScore> correctPairsFromAll = new ArrayList<PairScore>(origPairs.size()), wrongPairsFromAll = new ArrayList<PairScore>(origPairs.size());
-						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, origPairs, correctPairsFromAll, wrongPairsFromAll);
+						Collection<PairScore> classifiedPairs = classifyAllPairsInList(origPairs);
+						List<PairScore> correctPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size()), wrongPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size());
+						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, classifiedPairs, correctPairsFromAll, wrongPairsFromAll);
 						if (predictionQuality != null)
 						{
 							dataCollector.buildSetsForComparators(origPairs,graph);

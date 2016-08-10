@@ -102,7 +102,7 @@ public class PairQualityParameters implements ThreadResultID
 	public String getExperimentID()
 	{
 		String exp = (scoresIncludeInconsistencies?"_SI":"")+
-		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier;
+		(onlyUsePositives?"POS":"PN")+(useUnique?"_U":"")+"_tQU="+traceQuantity+"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier+"_tDM="+trainingDataMultiplier+"_"+dataCollectorParameters;
 		return exp;
 	}
 	

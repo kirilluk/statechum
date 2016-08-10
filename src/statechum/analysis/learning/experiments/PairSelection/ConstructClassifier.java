@@ -19,9 +19,12 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -82,10 +85,10 @@ public class ConstructClassifier
 		int instanceSize;
 		int instanceNumber;
 		int classAttrInTrainingDataArray;
-		public static int valueToBits(String value)
+		public static long valueToBits(String value)
 		{
 			if (value == WekaDataCollector.ZERO)
-				return 0x1;
+				return 0x0;
 			else // this ordering of values makes it possible to predict 
 				if (value == WekaDataCollector.MINUSONE)
 					return 0x2;
@@ -119,7 +122,7 @@ public class ConstructClassifier
 			for(int attr=0;attr<instance.numAttributes();++attr)
 				if (attr != classIndex)
 				{
-					array[offset+(attrPos/attributesPerLong)] |= valueToBits(instance.stringValue(attr)) << (bitsPerAttribute* (attrPos & bitMask) );
+					array[offset+(attrPos/attributesPerLong)] |= valueToBits(instance.stringValue(attr)) << (bitsPerAttribute* (attrPos % attributesPerLong) );
 					++attrPos;
 				}
 			//if (fillInClassification)
@@ -167,9 +170,9 @@ public class ConstructClassifier
 					return false;
 				PosNeg other = (PosNeg) obj;
 				//if (Double.doubleToLongBits(aboveZero) != Double.doubleToLongBits(other.aboveZero))
-				if (Math.abs(aboveZero-other.aboveZero) < Configuration.fpAccuracy)
+				if (Math.abs(aboveZero-other.aboveZero) > Configuration.fpAccuracy)
 					return false;
-				if (Math.abs(zero-other.zero) < Configuration.fpAccuracy)
+				if (Math.abs(zero-other.zero) > Configuration.fpAccuracy)
 					return false;
 				return true;
 			}
@@ -205,11 +208,19 @@ public class ConstructClassifier
 			throw new IllegalArgumentException("failed to fine value for \""+forWhat+"\"");
 		}
 		
+		/** Contains the least upper bound on the number of matched attributes where the result of match has no ambiguity. */
+		long thresholdForUnambiguousResults = 0;
+		
+		public long getThresholdForUnambiguousResults()
+		{
+			return thresholdForUnambiguousResults;
+		}
+		
 		@Override
 		public void buildClassifier(Instances data) throws Exception 
 		{
 			instanceSize = (data.numAttributes() + attributesPerLong-1)/attributesPerLong;
-			classAttrInTrainingDataArray = data.numAttributes()-1;
+			classAttrInTrainingDataArray = data.numAttributes()-1;thresholdForUnambiguousResults = 0;
 			
 			
 			Attribute classAttr = data.attribute(data.classIndex());
@@ -247,6 +258,13 @@ public class ConstructClassifier
 					for(int i=0;i<instanceSize;++i)
 						trainingData[instanceCnt*instanceSize+i]=v.getKey().get(i);
 					PosNeg value = v.getValue();
+					
+					int cnt=0;
+					for(int a=0;a<instanceSize;++a)
+						cnt+=Long.bitCount(trainingData[instanceCnt*instanceSize+a]);
+					if (value.aboveZero > 0 && value.zero > 0 && cnt > thresholdForUnambiguousResults)
+						thresholdForUnambiguousResults = cnt;
+					
 					double sum=value.aboveZero+value.zero;
 					if (sum>0)
 					{
@@ -300,8 +318,9 @@ public class ConstructClassifier
 
 		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
 		{
-			return classifyInstanceAsPosNegInexact(instance);
-					//classifyInstanceAsPosNegExact(instance);
+			return //classifyInstanceAsPosNegInexact(instance);
+				//	classifyInstanceAsPosNegExact(instance);
+					classifyInstanceAsPosInexactWithThreshold(instance);
 		}
 		
 		/** Permits matches where an instance of training data could have had more or less bits set compared to the instance being classified. */
@@ -317,6 +336,17 @@ public class ConstructClassifier
 			if (pnid.cntForInstance == pnid.bestCount)
 				return pnid;
 			return new PosNeg(0.5,0.5);
+		}
+
+		/** Permits matches where an instance of training data could have had more bits set compared to the instance being classified. */
+		public PosNeg classifyInstanceAsPosInexactWithThreshold(Instance instance) throws Exception 
+		{
+			PosNegAndInstanceId pnid = classifyInstanceAsPosNegAndInstance(instance);
+			if (pnid.cntForInstance == pnid.bestCount)
+				return pnid;
+			
+			double multiplier = Math.exp( -5.0*((double)pnid.cntForInstance - pnid.bestCount)/pnid.cntForInstance );
+			return new PosNeg(pnid.aboveZero*multiplier,pnid.zero*multiplier);
 		}
 
 		@Override
@@ -345,6 +375,62 @@ public class ConstructClassifier
 			PosNeg values = classifyInstanceAsPosNeg(instance);
 			double[] outcome = new double[]{values.zero,values.aboveZero};
 			return outcome;			
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + attrValueForFalse;
+			result = prime * result + attrValueForTrue;
+			result = prime * result + classAttrInTrainingDataArray;
+			result = prime * result + instanceNumber;
+			result = prime * result + instanceSize;
+			result = prime * result + Arrays.hashCode(trainingData);
+			result = prime * result + Arrays.hashCode(trainingDistribution);
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof NearestClassifier)) {
+				return false;
+			}
+			NearestClassifier other = (NearestClassifier) obj;
+			if (attrValueForFalse != other.attrValueForFalse) {
+				return false;
+			}
+			if (attrValueForTrue != other.attrValueForTrue) {
+				return false;
+			}
+			if (classAttrInTrainingDataArray != other.classAttrInTrainingDataArray) {
+				return false;
+			}
+			if (instanceNumber != other.instanceNumber) {
+				return false;
+			}
+			if (instanceSize != other.instanceSize) {
+				return false;
+			}
+			if (!Arrays.equals(trainingData, other.trainingData)) {
+				return false;
+			}
+			if (!Arrays.equals(trainingDistribution, other.trainingDistribution)) {
+				return false;
+			}
+			return true;
 		}
 	}
 	
@@ -385,7 +471,33 @@ public class ConstructClassifier
 			}
 		}
 		System.out.println("training data: "+ninetyPercent.numInstances()+", evaluation data: "+evaluation.numInstances());
-		classifier.buildClassifier(ninetyPercent);
+		return evaluateClassifierUsingSpecifiedEvaluationData(classifier, ninetyPercent, evaluation);
+	}
+	
+	public static void evaluateClassifierOnDataFromIndividualInstances(Classifier classifier, List<Instances> data) throws Exception
+	{
+		Instances firstInstance = data.get(0);
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>(firstInstance.numAttributes());
+		for(int i=0;i<firstInstance.numAttributes();++i) attributes.add(firstInstance.attribute(i));
+		int totalInstances = 0;for(Instances i:data) totalInstances+=i.numInstances();
+		for(int i=0;i<data.size();++i)
+		{
+			Instances trainingData = new Instances("trainingData",attributes,totalInstances), evaluation = data.get(i);
+			trainingData.setClass(firstInstance.classAttribute());
+			for(int j=0;j<data.size();++j)
+				if (i != j)
+					trainingData.addAll(data.get(j));
+			System.out.println("Evaluation "+i+"/"+data.size()+" "+evaluateClassifierUsingSpecifiedEvaluationData(classifier,trainingData,evaluation));
+		}
+	}
+	
+	public static EvaluationOfClassifierOutcome evaluateClassifierUsingSpecifiedEvaluationData(Classifier classifier, Instances trainingSet, Instances evaluationSet) throws Exception
+	{
+		classifier.buildClassifier(trainingSet);return evaluateSpecificClassifierUsingSpecifiedEvaluationData(classifier,evaluationSet);
+	}
+	
+	public static EvaluationOfClassifierOutcome evaluateSpecificClassifierUsingSpecifiedEvaluationData(Classifier classifier, Instances evaluationSet) throws Exception
+	{
 		/*
 		for(int i=0;i<ninetyPercent.numInstances();++i)
 		{
@@ -394,9 +506,9 @@ public class ConstructClassifier
 		}
 		*/
 		long correctPredictionPos = 0, correctPredictionNeg = 0, totalPos = 0, totalNeg = 0, unknownValues = 0;
-		for(int i=0;i<evaluation.numInstances();++i)
+		for(int i=0;i<evaluationSet.numInstances();++i)
 		{
-			Instance instance = evaluation.instance(i);
+			Instance instance = evaluationSet.instance(i);
 			
 			double [] distribution = classifier.distributionForInstance(instance);
 			assert distribution.length == 2;
@@ -429,10 +541,10 @@ public class ConstructClassifier
 				}
 			}
 		}
-		if (evaluation.numInstances() == 0)
+		if (evaluationSet.numInstances() == 0)
 			return new EvaluationOfClassifierOutcome();
 		else
-			return new EvaluationOfClassifierOutcome(ConfusionMatrix.divide(correctPredictionPos, totalPos),ConfusionMatrix.divide(correctPredictionNeg, totalNeg),ConfusionMatrix.divide(unknownValues,evaluation.numInstances()));
+			return new EvaluationOfClassifierOutcome(ConfusionMatrix.divide(correctPredictionPos, totalPos),ConfusionMatrix.divide(correctPredictionNeg, totalNeg),ConfusionMatrix.divide(unknownValues,evaluationSet.numInstances()));
 					
 					//correctPrediction/(double)evaluation.numInstances();
 	}
@@ -452,7 +564,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 32;
+		final int samplesPerFSM = 16;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
@@ -512,7 +624,6 @@ public class ConstructClassifier
 						experimentRunner.collectOutcomeOfExperiments(resultHandler);
 						for(WekaDataCollector w:listOfCollectors)
 							globalDataCollector.trainingData.addAll(w.trainingData);// pool all the training data.
-						listOfCollectors.clear();// and throw away the source data 
 						
 						// we are here because the outcome of all experiments submitted so far has been obtained, it is therefore time to construct classifiers from the logged pair information.
 						int nonZeroes = 0;
@@ -584,7 +695,7 @@ public class ConstructClassifier
 						}
 						
 						// Run the evaluation
-						final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
+						//final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
 						//repTree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
 						// As part of learning, we also prune some of the nodes where the ratio of correctly-classified pairs to those incorrectly classified is comparable.
 						// The significant advantage of not pruning is that the result is no longer sensitive to the order of elements in the tree and hence does not depend on the order in which elements have been obtained by concurrent threads.
@@ -592,11 +703,14 @@ public class ConstructClassifier
 						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
 						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
 						final Classifier classifier = new NearestClassifier();
-								//new weka.classifiers.trees.J48();//
+								//new weka.classifiers.trees.J48();
 						classifier.buildClassifier(globalDataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+globalDataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)
+						{
 							System.out.println("Reduced entries in the classifier: "+((NearestClassifier)classifier).getTrainingSize());
+							System.out.println("Threshold for unambiguous: "+((NearestClassifier)classifier).getThresholdForUnambiguousResults());
+						}
 						/*
 						int itersCount = 0;
 						long endTime = System.nanoTime()+1000000000*10L;// 10 sec
@@ -608,7 +722,11 @@ public class ConstructClassifier
 						}
 						System.out.println("time per iteration: "+((double)10000/itersCount)+" ms");
 						*/
-						System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,globalDataCollector));
+						//System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,globalDataCollector));
+						
+						List<Instances> trainingDataComponents = new ArrayList<Instances>();for(WekaDataCollector c:listOfCollectors) trainingDataComponents.add(c.trainingData);
+						//evaluateClassifierOnDataFromIndividualInstances(classifier,trainingDataComponents);
+						
 						//System.out.println(classifier);
 						globalDataCollector=null;// throw all the training data away.
 
@@ -618,15 +736,18 @@ public class ConstructClassifier
 		                    oo.writeObject(classifier);
 		                    os.close();
 						}
-/*						
+						
+/*
 						{
 							InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
 							ObjectInputStream objectInputStream = new ObjectInputStream(inputStream); 
 							final Classifier classifierLoaded = (Classifier)objectInputStream.readObject();
 		                    inputStream.close();
-		                    System.out.println(classifierLoaded.equals(classifier));
+		                    classifierLoaded.equals(classifier);
+		                    System.out.println("Equality of classifiers: "+classifierLoaded.equals(classifier)+" and performance is : "+evaluateSpecificClassifierUsingSpecifiedEvaluationData(classifierLoaded,trainingDataComponents.get(0)));
 						}
 */
+
 					}
 				}
 		}

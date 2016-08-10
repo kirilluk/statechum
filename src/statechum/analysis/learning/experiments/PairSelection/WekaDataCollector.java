@@ -411,28 +411,29 @@ public class WekaDataCollector
 	{
 		int comparisonResult = cmp.compare(pair, pair);// first of all, compare the pair with itself. It hence does not matter whether badPairs includes this pair or not (it will for comparePairOnlyWithBadPairs == false and not otherwise).
 		for(PairScore w:badPairs)
-		{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
-				int newValue = cmp.compare(pair, w);
-				assert newValue != comparison_inconclusive;
-				// comparisonResults[i] can be 1,0,-1, same for newValue
-				if (newValue > 0)
-				{
-					if (comparisonResult < 0)
+			if (w != null) // in order to permit sparse collections, we allow null-entries.
+			{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
+					int newValue = cmp.compare(pair, w);
+					assert newValue != comparison_inconclusive;
+					// comparisonResults[i] can be 1,0,-1, same for newValue
+					if (newValue > 0)
 					{
-						comparisonResult= comparison_inconclusive;break;
-					}
-					comparisonResult=newValue;
-				}
-				else
-					if (newValue < 0)
-					{
-						if (comparisonResult > 0)
+						if (comparisonResult < 0)
 						{
-							comparisonResult = comparison_inconclusive;break;
+							comparisonResult= comparison_inconclusive;break;
 						}
 						comparisonResult=newValue;
 					}
-		}
+					else
+						if (newValue < 0)
+						{
+							if (comparisonResult > 0)
+							{
+								comparisonResult = comparison_inconclusive;break;
+							}
+							comparisonResult=newValue;
+						}
+			}
 		return comparisonResult;
 	}
 	
@@ -525,12 +526,13 @@ public class WekaDataCollector
 					{
 						assert attributeREL == 1 || attributeREL == -1;
 						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
-						for(PairScore currentPair:pairs) 
-						{
-							int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
-							if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
-								others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
-						}
+						for(PairScore currentPair:pairs)
+							if (currentPair != null)
+							{// to permit the list of pairs to have holes
+								int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
+								if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+									others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
+							}
 						
 						if (others.size()>1)//  || (others.size() > 0 && comparePairOnlyWithBadPairs))
 						{

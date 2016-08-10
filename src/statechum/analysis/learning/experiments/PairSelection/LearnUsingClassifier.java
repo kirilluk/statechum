@@ -129,7 +129,7 @@ public class LearnUsingClassifier {
 										pars.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 										pars.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 										pars.setInnerParameters(parametersInnerLearner);
-										pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
+										//pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										
 										{// first, use the learner with a classifier 
 											PairQualityParameters parameters = new PairQualityParameters(pars);
@@ -146,7 +146,7 @@ public class LearnUsingClassifier {
 												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 												{
 
-													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector.markovHelper,true);
+													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector,true);
 													l.setPairQualityCounter(pairQualityCounter);l.setPairPredictionCounter(predictionQuality);
 													return l;
 												}											

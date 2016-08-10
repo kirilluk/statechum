@@ -653,6 +653,7 @@ public class PairQualityLearner
 		}
 		
 		
+		
 		protected Collection<PairScore> classifyAllPairsInList(Collection<PairScore> allPairs)
 		{
 			int []comparisonResults = new int[dataCollector.getInstanceLength()], bestComparisonResults = new int[dataCollector.getInstanceLength()];
@@ -661,23 +662,7 @@ public class PairQualityLearner
 			int pairsLeft = allPairs.size();
 			while(pairsLeft > 0)
 			{
-				int bestMatch = dataCollector.attributes.size();int bestPair = -1;
-				for(int i=0;i<currentPairs.size();++i)
-				{
-					PairScore p = currentPairs.get(i);
-					if (p != null)
-					{
-						dataCollector.fillInPairDetails(comparisonResults,p, currentPairs);
-						int cnt=0;
-						for(int a=0;a<comparisonResults.length;++a)
-							if (comparisonResults[a] == 0)
-								cnt++;
-						if (cnt<bestMatch)
-						{
-							bestMatch = cnt;bestPair = i;System.arraycopy(comparisonResults, 0, bestComparisonResults, 0, comparisonResults.length);
-						}
-					}
-				}
+				PairScore currentBest = dataCollector.pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);
 				Instance instance = dataCollector.constructInstance(bestComparisonResults, true);// here classification is a dummy.
 				double distribution[]=null;
 				try
@@ -687,11 +672,11 @@ public class PairQualityLearner
 				catch(Exception ex)
 				{
 					ex.printStackTrace();
-					throw new IllegalArgumentException("failed to classify pair "+bestPair, ex);
+					throw new IllegalArgumentException("failed to classify pair "+currentBest, ex);
 				}
 				long trueQuality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
 				long falseQuality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
-				PairScore revisedPair = null, currentBest = currentPairs.get(bestPair);
+				PairScore revisedPair = null;
 				if (trueQuality > 0)
 					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),classTrue);
 				else if (falseQuality > 0)
@@ -699,7 +684,6 @@ public class PairQualityLearner
 				else
 					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),unknown);// unknown
 				outcome.add(revisedPair);
-				currentPairs.set(bestPair,null);// 'remove' the current pair from the list.
 				
 				--pairsLeft;
 			}

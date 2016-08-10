@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
@@ -345,8 +347,11 @@ public class ConstructClassifier
 			if (pnid.cntForInstance == pnid.bestCount)
 				return pnid;
 			
-			double multiplier = Math.exp( -5.0*((double)pnid.cntForInstance - pnid.bestCount)/pnid.cntForInstance );
-			return new PosNeg(pnid.aboveZero*multiplier,pnid.zero*multiplier);
+			double multiplier = Math.exp( -3.0*((double)pnid.cntForInstance - pnid.bestCount)/pnid.cntForInstance );
+			PosNeg value = new PosNeg(pnid.aboveZero*multiplier,pnid.zero*multiplier);
+			if (value.aboveZero < 0.45 && value.zero < 0.45)
+				return new PosNeg(0.5,0.5);
+			return value;
 		}
 
 		@Override
@@ -526,6 +531,12 @@ public class ConstructClassifier
 					++totalPos;
 					if (distribution[indexOfTrue] > distribution[indexOfFalse])
 						++correctPredictionPos;
+					/*
+					else
+					{
+						System.out.println();
+						classifier.distributionForInstance(instance);
+					}*/
 				}
 			}
 			else
@@ -538,6 +549,12 @@ public class ConstructClassifier
 					++totalNeg;
 					if (distribution[indexOfFalse] > distribution[indexOfTrue])
 						++correctPredictionNeg;
+					/*
+					else
+					{
+						System.out.println();
+						classifier.distributionForInstance(instance);
+					}*/
 				}
 			}
 		}
@@ -564,7 +581,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 16;
+		final int samplesPerFSM = 2;//16;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
@@ -642,7 +659,24 @@ public class ConstructClassifier
 						for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 							if (freqData[attrNum]>0) 
 								++nonZeroes;
+						/*
+						List<Pair<Integer,Integer>> sortedFreq = new ArrayList<Pair<Integer,Integer>>(globalDataCollector.attributesOfAnInstance.length);
+						for(int i=0;i<globalDataCollector.attributesOfAnInstance.length;++i) sortedFreq.add(new Pair<Integer,Integer>(freqData[i],i));
+						sortedFreq.sort(new Comparator<Pair<Integer,Integer>>() {
+
+							@Override
+							public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+								return -o1.compareTo(o2);
+							}});
 						
+						for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
+							for(int attrNum=nonZeroes/50;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
+							{
+								int attrIdx = sortedFreq.get(attrNum).secondElem;
+								// set values of attributes that are not used as much to a zero
+								globalDataCollector.trainingData.instance(i).setValue(attrIdx, WekaDataCollector.ZERO);
+							}
+						*/						
 						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes);
 						Arrays.sort(freqData);
 						int numOfcolumns=20;
@@ -725,7 +759,7 @@ public class ConstructClassifier
 						//System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,globalDataCollector));
 						
 						List<Instances> trainingDataComponents = new ArrayList<Instances>();for(WekaDataCollector c:listOfCollectors) trainingDataComponents.add(c.trainingData);
-						//evaluateClassifierOnDataFromIndividualInstances(classifier,trainingDataComponents);
+						evaluateClassifierOnDataFromIndividualInstances(classifier,trainingDataComponents);
 						
 						//System.out.println(classifier);
 						globalDataCollector=null;// throw all the training data away.

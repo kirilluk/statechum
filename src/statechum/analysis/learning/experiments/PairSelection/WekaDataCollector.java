@@ -568,7 +568,7 @@ public class WekaDataCollector
 	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsA(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
 		buildSetsForComparators(pairs,currentGraph);
 		
@@ -606,6 +606,68 @@ public class WekaDataCollector
 		}
 	}
 	
+	/** Returns next pair that has the most number of attributes set to non-zero. 
+	 * 
+	 * @param currentPairs the collection of current pairs. Upon return, the entry for the returned pair will be set to null.
+	 * @param comparisonResults worker array, to avoid reallocation.
+	 * @param bestComparisonResults contains details for the returned pair and can be directly used to construct an {@link Instance}.
+	 * @return pair that has the most non-zero attributes of all the pairs.
+	 */
+	public PairScore pickNextMostNonZeroPair(List<PairScore> currentPairs, int []comparisonResults, int []bestComparisonResults)
+	{
+		int bestMatch = attributes.size();int bestPair = -1;
+		for(int i=0;i<currentPairs.size();++i)
+		{
+			PairScore p = currentPairs.get(i);
+			if (p != null)
+			{
+				fillInPairDetails(comparisonResults,p, currentPairs);
+				int cnt=0;
+				for(int a=0;a<comparisonResults.length;++a)
+					if (comparisonResults[a] == 0)
+						cnt++;
+				if (cnt<bestMatch)
+				{
+					bestMatch = cnt;bestPair = i;System.arraycopy(comparisonResults, 0, bestComparisonResults, 0, comparisonResults.length);
+				}
+			}
+		}
+		PairScore currentBest = currentPairs.get(bestPair);
+		currentPairs.set(bestPair,null);// 'remove' the current pair from the list.
+		return currentBest;
+	}
+	
+	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
+	 * Pairs that have negative scores are ignored.
+	 * 
+	 * @param pairs pairs to add
+	 * @param currentGraph the current graph
+	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
+	 */
+	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	{
+		buildSetsForComparators(pairs,currentGraph);
+		
+		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+		List<PairScore> currentPairs = new ArrayList<PairScore>(pairs.size());
+		for(PairScore p:pairs) 
+			if (p.getQ().isAccept() && p.getR().isAccept()) currentPairs.add(p);// only consider non-negatives
+
+		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, currentPairs, correctPairs, wrongPairs);
+		
+		int pairsLeft = currentPairs.size();
+		while(pairsLeft > currentPairs.size()/2)
+		{
+			int []comparisonResults = new int[instanceLength], bestComparisonResults = new int[instanceLength];
+			PairScore nextBest = pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);
+
+			boolean correctPair = correctPairs.contains(nextBest);
+			trainingData.add(constructInstance(bestComparisonResults, correctPair));
+
+			--pairsLeft;
+		}
+	}
+
 	/** Provides helper methods in order to train a classifier to recognise good/bad pairs
 	 * <hr/>
 	 * It is a nested class to permit access to instance variables. This seems natural because elements of this class need access to data obtained from the transition matrix. 

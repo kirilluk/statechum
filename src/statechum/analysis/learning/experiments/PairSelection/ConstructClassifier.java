@@ -588,7 +588,6 @@ public class ConstructClassifier
 
 		try
 		{
-			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
 			for(final int lengthMultiplier:new int[]{1})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
@@ -597,7 +596,7 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,true, DataCollectorParameters.enabledAll());
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0));
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
 						List<WekaDataCollector> listOfCollectors = new ArrayList<WekaDataCollector>();
@@ -608,7 +607,6 @@ public class ConstructClassifier
 								{
 									final PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
 									parameters.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-									parameters.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 									parameters.setColumn("LearnClassifier");
 									// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
 									// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
@@ -619,7 +617,7 @@ public class ConstructClassifier
 										@Override
 										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 										{
-											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper,parameters.scoresIncludeInconsistencies);
+											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper);
 										}
 									};
 									experimentRunner.submitTask(learnerRunner);
@@ -668,7 +666,7 @@ public class ConstructClassifier
 							public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
 								return -o1.compareTo(o2);
 							}});
-						
+						/*
 						int attributesToKeep = 0;//nonZeroes/10;
 						if (attributesToKeep > 0)
 						{// do the filtering.
@@ -699,6 +697,7 @@ public class ConstructClassifier
 						}
 						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+
 								nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes+" of attributes"+(attributesToKeep>0? (", "+attributesToKeep+" were kept"):""));
+						*/
 						Arrays.sort(freqData);
 						int numOfcolumns=20;
 						int stepWidth = globalDataCollector.attributesOfAnInstance.length/numOfcolumns;

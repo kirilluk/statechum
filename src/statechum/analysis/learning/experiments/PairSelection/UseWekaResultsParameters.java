@@ -26,17 +26,7 @@ public class UseWekaResultsParameters implements ThreadResultID
 	public UseWekaResultsParameters(DataCollectorParameters pars) {
 		dataCollectorParameters = pars;
 	}
-
-	/** Whether to use scores that include inconsistencies instead of normal scores.
-	 * This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
-	 */
-	boolean scoresIncludeInconsistencies;
-
-	public void setScoresUseInconsistencies(boolean value)
-	{
-		scoresIncludeInconsistencies = value;
-	}
-
+	
 	// This duplicates that in a higher-level experiment parameters, however only these parameters are accessible to the learner that uses them, we hence to make a copy here.
 	DataCollectorParameters dataCollectorParameters;
 	

@@ -39,6 +39,7 @@ import statechum.JUConstants;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.ConstructClassifier.NearestClassifier;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -207,10 +208,12 @@ public class TestWekaPairClassifier {
 	}
 	
 	
+	public static final DataCollectorParameters testDataCollectionParameters = new DataCollectorParameters(1,null,true,DataCollectorParameters.enabledAll());
+	
 	@Test
 	public void testBuildSetsForComparators1()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{});
 		classifier.buildSetsForComparators(pairs, tentativeGraph);
 		Assert.assertTrue(classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.isEmpty());
@@ -221,7 +224,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators2()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("A1")),1,0);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
@@ -238,7 +241,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators3()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
@@ -256,7 +259,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators4()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
@@ -278,7 +281,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators5()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -304,7 +307,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testBuildSetsForComparators6()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -330,7 +333,7 @@ public class TestWekaPairClassifier {
 	/** Adjacency in Blue rather than in Red should not be considered */
 	public void testBuildSetsForComparators7()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B2")),2,0) // the score of 2 ensures it will be at the end of the keySet
 				;
@@ -381,7 +384,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructTooBig1()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -399,7 +402,7 @@ public class TestWekaPairClassifier {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				classifier.initialise("TestCreateInstances2", 10, assessors,40, false);
+				classifier.initialise("TestCreateInstances2", 10, assessors,40);
 			}
 		}, IllegalArgumentException.class, "too many levels");
 	}
@@ -407,7 +410,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructTooBig2()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -438,7 +441,7 @@ public class TestWekaPairClassifier {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				classifier.initialise("TestCreateInstances2", 10, assessors,15, false);
+				classifier.initialise("TestCreateInstances2", 10, assessors,15);
 			}
 		}, IllegalArgumentException.class, "too many levels for the");
 	}
@@ -446,7 +449,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructTooBig3()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -477,7 +480,7 @@ public class TestWekaPairClassifier {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				classifier.initialise("TestCreateInstances2", 10, assessors,15, false);
+				classifier.initialise("TestCreateInstances2", 10, assessors,15);
 			}
 		}, IllegalArgumentException.class, "will not fit into");
 	}
@@ -485,13 +488,13 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructEmptyInstanceFail()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		final ArrayList<PairRank> assessors = new ArrayList<PairRank>();
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
 			{
-				classifier.initialise("testConstructEmptyInstanceFail", 10, assessors,0, false);
+				classifier.initialise("testConstructEmptyInstanceFail", 10, assessors,0);
 			}
 		}, IllegalArgumentException.class, "too many levels");
 
@@ -500,7 +503,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructMostlyEmptyInstance1()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		ArrayList<PairRank> assessors = new ArrayList<PairRank>();
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -514,7 +517,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		Instance instance = classifier.constructInstance(new int []{1,2},false);
 		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
 		Assert.assertFalse(instance.hasMissingValue());
@@ -528,7 +531,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructMostlyEmptyInstance2a()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -543,7 +546,7 @@ public class TestWekaPairClassifier {
 			}
 		});
 
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		Helper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
@@ -558,7 +561,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances2a()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);classifier.setUseDenseInstance(true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -572,7 +575,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 0, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 0, assessors,0);
 		
 		Instance instance = classifier.constructInstance(new int []{1,0},true);
 		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
@@ -587,7 +590,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances2b()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);classifier.setUseDenseInstance(false);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);classifier.setUseDenseInstance(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -601,7 +604,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 0, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 0, assessors,0);
 		
 		Instance instance = classifier.constructInstance(new int []{1,0},true);
 		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
@@ -611,7 +614,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances3()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);classifier.setUseDenseInstance(true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{
@@ -625,7 +628,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 
 		Instance instance = classifier.constructInstance(new int []{1,-1},true);
 		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
@@ -647,7 +650,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances4()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{
@@ -661,7 +664,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 
 		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
@@ -689,7 +692,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances5()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);classifier.setUseDenseInstance(true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
@@ -715,7 +718,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		
 		Instance instance = classifier.constructInstance(new int []{1,0,0,-1}, true);
 		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(5,instance.numValues());
@@ -745,7 +748,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances6()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(null,true);
+		final WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
@@ -771,7 +774,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		
 		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
@@ -783,7 +786,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testComputeAverageAndSD0()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
@@ -798,7 +801,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0, false);
+		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0);
 		
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
@@ -814,7 +817,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testComputeAverageAndSD1()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -832,7 +835,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0, false);
+		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0);
 		
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
@@ -848,7 +851,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testComputeAverageAndSD1_absolute()
 	{
-		WekaDataCollector classifier = new WekaDataCollector(null,true);
+		WekaDataCollector classifier = new WekaDataCollector(null,testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -866,7 +869,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0, false);
+		classifier.initialise("testComputeAverageAndSD1", 10, assessors,0);
 		
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
@@ -888,7 +891,7 @@ public class TestWekaPairClassifier {
 	@Before
 	public void beforeTest()
 	{
-		testClassifier = new WekaDataCollector(null,true);testClassifier.setUseDenseInstance(true);
+		testClassifier = new WekaDataCollector(null,testDataCollectionParameters);testClassifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(testClassifier.new PairRank("statechum score")
 		{// 1
@@ -914,7 +917,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		testClassifier.initialise("TestCreateInstances2", 10, assessors,0, false);
+		testClassifier.initialise("TestCreateInstances2", 10, assessors,0);
 	}
 	
 	/** Tests comparison of a pair to other pairs. All values are equal. */
@@ -1031,7 +1034,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1057,7 +1060,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, false);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
 		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
@@ -1083,57 +1086,6 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(0,comparisonResults[11]);
 	}
 	
-	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. This test tests compareOnlyWithBadPairs == true. */
-	@Test
-	public void TestCreateComparePairs6b()
-	{
-		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
-		PairScore 
-			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
-			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
-			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
-			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
-
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
-		List<PairRank> assessors = new ArrayList<PairRank>(20);
-		assessors.add(dataCollector.new PairRank("statechum score")
-		{// 1
-			@Override
-			public long getValue(PairScore pair) {
-				return pair.getScore();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		assessors.add(testClassifier.new PairRank("statechum compatibility score")
-		{// 2
-			@Override
-			public long getValue(PairScore pair) {
-				return pair.getAnotherScore();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
-		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
-		int []comparisonResults = new int[dataCollector.getInstanceLength()];
-		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
-		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
-		Assert.assertEquals(-1,comparisonResults[1]);// ... and worst in attribute 2
-
-		Assert.assertEquals(0,comparisonResults[2]);// unused - pairA is not 'bottom' in attribute 1.
-		Assert.assertEquals(-1,comparisonResults[3]);// pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'top' in attribute 1.
-		Assert.assertEquals(1,comparisonResults[4]);// pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. 
-		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
-	}
-	
 	/** Tests masking of attributes. */
 	@Test
 	public void TestCreateComparePairs6b_usingmask1()
@@ -1145,7 +1097,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1171,7 +1123,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		dataCollector.setBlock(1);dataCollector.configureNoRecurse();
 
 		int mask[] = dataCollector.getMask();
@@ -1208,7 +1160,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1234,7 +1186,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		dataCollector.setBlock(2);dataCollector.configureNoRecurse();
 
 		int mask[] = dataCollector.getMask();
@@ -1271,7 +1223,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1297,7 +1249,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		dataCollector.setBlock(2);dataCollector.setBlock(3);dataCollector.configureNoRecurse();
 
 		int mask[] = dataCollector.getMask();
@@ -1323,7 +1275,7 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
 	}
 	
-	/** Tests comparison of a Correct pair to other pairs, taking into account if-then conditions. This test tests compareOnlyWithBadPairs == true. */
+	/** Tests comparison of a Correct pair to other pairs, taking into account if-then conditions. */
 	@Test
 	public void TestCreateComparePairs6c()
 	{
@@ -1334,7 +1286,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);dataCollector.setEnableSD(false);
 		dataCollector.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
@@ -1361,7 +1313,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
 		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
 		double []comparisonResults = dataCollector.trainingData.get(0).toDoubleArray();
@@ -1371,69 +1323,15 @@ public class TestWekaPairClassifier {
 
 		-1,// 2 pairA is now compared (using attribute 2) with wrong pairs that score 'bottom' in attribute 1. Only one pair (the last one) qualifies.
 		0, // 3 unused - pairA is not 'top' in attribute 1.
-		0, // 4 pairA is now compared (using attribute 1) with wrong pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
+		-1, // 4 pairA is now compared (using attribute 1) with wrong pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
 		0, // 5 unused - pairA is not 'top' in attribute 2.
 		},true);
 		Assert.assertArrayEquals(expectedResults, comparisonResults, Configuration.fpAccuracy);
 	}
 
-	/** Tests comparison of a Correct pair to other pairs, taking into account if-then conditions. This test tests compareOnlyWithBadPairs == false. */
+	/** Tests comparison of a Wrong pair to other pairs, taking into account if-then conditions.  */
 	@Test
 	public void TestCreateComparePairs6d()
-	{
-		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
-		PairScore 
-			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,-1),
-			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,-1),
-			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
-			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
-
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
-		dataCollector.setUseDenseInstance(true);
-		List<PairRank> assessors = new ArrayList<PairRank>(20);
-		assessors.add(dataCollector.new PairRank("statechum score")
-		{// 1
-			@Override
-			public long getValue(PairScore pair) {
-				return pair.getScore();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		assessors.add(testClassifier.new PairRank("statechum compatibility score")
-		{// 2
-			@Override
-			public long getValue(PairScore pair) {
-				return pair.getAnotherScore();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, false);
-		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
-		double []comparisonResults = dataCollector.trainingData.get(0).toDoubleArray();
-		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
-		-1,// 0 pairA is worst in attribute 1 ...
-		-1,// 1 ... and worst in attribute 2
-
-		-1,// 2 pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'bottom' in attribute 1. Only one pair (the last one) qualifies.
-		0, // 3 unused - pairA is not 'top' in attribute 1.
-		-1, // 4 pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. Only the second pair qualifies.
-		0, // 5 unused - pairA is not 'top' in attribute 2.
-		},true);
-		Assert.assertArrayEquals(expectedResults, comparisonResults, Configuration.fpAccuracy);
-	}
-
-	/** Tests comparison of a Wrong pair to other pairs, taking into account if-then conditions. This test tests compareOnlyWithBadPairs == true. */
-	@Test
-	public void TestCreateComparePairs6e()
 	{
 		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
 		PairScore 
@@ -1442,7 +1340,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,-1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,-1);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		WekaDataCollector dataCollector = new WekaDataCollector(null, new DataCollectorParameters());dataCollector.setEnableSD(false);
 		dataCollector.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
@@ -1469,7 +1367,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
 		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
 		double []comparisonResults = dataCollector.trainingData.get(2).toDoubleArray();// we are looking at pair 3 (aka pairC) here.
@@ -1479,7 +1377,7 @@ public class TestWekaPairClassifier {
 
 		-1,// 2 pairC is now compared (using attribute 2) with correct pairs that score 'bottom' in attribute 1. Only one pair (the first one) qualifies.
 		0, // 3 unused - pairC is not 'top' in attribute 1.
-		0, // 4 pairC is now compared (using attribute 1) with correct pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
+		-1, // 4 pairC is now compared (using attribute 1) with correct pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
 		0, // 5 unused - pairC is not 'top' in attribute 2.
 		},false);
 		Assert.assertArrayEquals(expectedResults, comparisonResults, Configuration.fpAccuracy);
@@ -1496,7 +1394,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1534,7 +1432,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,2, false);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
 		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
@@ -1583,7 +1481,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
@@ -1622,7 +1520,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,2, false);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
 		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
@@ -1671,7 +1569,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		final WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		final WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1697,7 +1595,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, false);
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		final List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC,pairD});
 		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
 		final int []comparisonResults = new int[1];
@@ -1973,7 +1871,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestNearestNeighbourClassifier1() throws Exception
 	{
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
@@ -2013,7 +1911,7 @@ public class TestWekaPairClassifier {
 			}
 		});
 		
-		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0, false);
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
 		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
 		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
 		NearestClassifier classifier = new NearestClassifier();
@@ -2027,7 +1925,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestNearestNeighbourClassifier2() throws Exception
 	{
-		WekaDataCollector dataCollector = new WekaDataCollector(null,true);
+		WekaDataCollector dataCollector = new WekaDataCollector(null,testDataCollectionParameters);
 		dataCollector.setEnableSD(false);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
@@ -2067,7 +1965,7 @@ public class TestWekaPairClassifier {
 			}
 		});
 		
-		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0, false);
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
 		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
 		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
 		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));

@@ -155,17 +155,37 @@ public class PairQualityLearner
 		public final int ifDepth;
 		public final MarkovParameters markovParameters;
 		public final boolean graphIsPTA;
-		public final boolean comparePairOnlyWithBadPairs;
 		public final long bitstringOfEnabledParameters;
 		
+		/** Used to determine which difference of good v.s. bad in a probability distribution for a pair is enough to 
+		 * consider a pair classified. Pairs that are not classfied are deemed 'unknown'.
+		 */
+		public final double good_vs_bad_diff;
+
+		/** When peeling pairs, only first few may have a lot of values set in the min/max vector. The rest will 
+		 * probably become unknown and in the worst case will be incorrectly classified. This determines the 
+		 * fraction of the number of pairs to mark unknown. 
+		 */
+		public final double fraction_of_pairs_to_ignore;
+		
+		/** Whether to peel pairs one by one in the order of the number of min/max values in vector or to ignore this order. */
+		public final boolean peel;
+
 		public static long enabledAll()
 		{
 			return ~0;
 		}
 		
-		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, boolean compareOnlyWithBadPairs, long enabledParameters)
+		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta,long enabledParameters)
 		{
-			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;bitstringOfEnabledParameters = enabledParameters;
+			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;bitstringOfEnabledParameters = enabledParameters;
+			good_vs_bad_diff=0.2;fraction_of_pairs_to_ignore = 0.7;peel = true;
+		}
+		
+		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, double good_bad, double fraction, boolean p, long enabledParameters)
+		{
+			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;bitstringOfEnabledParameters = enabledParameters;
+			good_vs_bad_diff = good_bad;fraction_of_pairs_to_ignore = fraction;peel=p;
 		}
 		
 		public List<String> getColumnList()
@@ -177,17 +197,18 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return "["+ifDepth+(graphIsPTA?"_PTA":"")+(comparePairOnlyWithBadPairs?"_CB":"")+"_"+markovParameters.getColumnID(true)+"]";
+			return "["+ifDepth+(graphIsPTA?"_PTA":"")+"_G="+Double.toString(good_vs_bad_diff)+"_I="+fraction_of_pairs_to_ignore+(peel?"_P":"_N")+"_"+markovParameters.getColumnID(true)+"]";
 		}
 		
 		public DataCollectorParameters()
 		{
-			ifDepth = 1;markovParameters = null;graphIsPTA = false;comparePairOnlyWithBadPairs = false;bitstringOfEnabledParameters = enabledAll();
+			this(1,null,false,enabledAll());
 		}
 		
 		public DataCollectorParameters(DataCollectorParameters from)
 		{
-			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;comparePairOnlyWithBadPairs = from.comparePairOnlyWithBadPairs;bitstringOfEnabledParameters = from.bitstringOfEnabledParameters; 
+			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;bitstringOfEnabledParameters = from.bitstringOfEnabledParameters;
+			good_vs_bad_diff=from.good_vs_bad_diff;fraction_of_pairs_to_ignore = from.fraction_of_pairs_to_ignore;peel = from.peel;
 		}
 	}
 	
@@ -200,7 +221,7 @@ public class PairQualityLearner
 	 */
 	public static WekaDataCollector createDataCollector(DataCollectorParameters parameters, MarkovHelper m)
 	{
-		final WekaDataCollector classifier = new WekaDataCollector(m,parameters.graphIsPTA);
+		final WekaDataCollector classifier = new WekaDataCollector(m,parameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		int arg=0;
 		
@@ -443,7 +464,7 @@ public class PairQualityLearner
 			});
 		}
 
-		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth, parameters.comparePairOnlyWithBadPairs);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
+		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
 		return classifier;
 	}
 	
@@ -540,12 +561,11 @@ public class PairQualityLearner
 	public static class LearnerThatUpdatesWekaResults extends LearnerThatUsesClassifiers
 	{
 		final WekaDataCollector dataCollector;
-		final boolean scoringUsesInconsistency;
 		
-		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper helper, boolean useInconsistencyScoring) 
+		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper helper) 
 		{
 			super(evalCnf,argReferenceGraph, argInitialPTA,null,helper, false);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
-			dataCollector = argDataCollector;scoringUsesInconsistency = useInconsistencyScoring;
+			dataCollector = argDataCollector;
 		}
 		
 		@Override 
@@ -598,16 +618,8 @@ public class PairQualityLearner
 				}
 			});
 			if (!outcome.isEmpty())
-			{/*
-				if (scoringUsesInconsistency)
-				{
-					ArrayList<PairScore> pairsWithScoresUsingInconsistency = new ArrayList<PairScore>(outcome.size());
-					for(PairScore p:outcome)
-						pairsWithScoresUsingInconsistency.add(new PairScore(p.getQ(),p.getR(),markovHelper.computeScoreBasedOnInconsistencies(p),0));
-					dataCollector.updateDatasetWithPairs(pairsWithScoresUsingInconsistency, graph, referenceGraph);
-				}
-				else*/
-					dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
+			{
+				dataCollector.updateDatasetWithPairs(outcome, graph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
 				PairScore chosenPair = pickCorrectPair(outcome, graph);// selects any of the correct pairs, using a reference graph. This is why this learner is called 
 				outcome.clear();outcome.push(chosenPair);
 			}
@@ -685,7 +697,7 @@ public class PairQualityLearner
 		{
 			assert distribution.length == 2;
 			double goodClass = distribution[classOfInterest], badClass = distribution[1-classOfInterest];
-			if (Math.abs(goodClass - badClass) < 0.20)//Configuration.fpAccuracy)
+			if (Math.abs(goodClass - badClass) < par.dataCollectorParameters.good_vs_bad_diff)//Configuration.fpAccuracy)
 				return unknown;
 			if (badClass < Configuration.fpAccuracy)
 				return maxQuality;
@@ -697,15 +709,52 @@ public class PairQualityLearner
 			//return Math.min(maxQuality, (long)(maxQuality*ratio/2));
 		}
 		
+		protected Collection<PairScore> classifyAllPairsUsingClassifyPair(Collection<PairScore> allPairs)
+		{
+			Collection<PairScore> outcome = new ArrayList<PairScore>(allPairs.size());
+			int []comparisonResults = new int[dataCollector.getInstanceLength()];
+
+			for(PairScore p:allPairs)
+			{
+				dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
+				Instance instance = dataCollector.constructInstance(comparisonResults, true);// here classification is a dummy.
+				double distribution[]=null;
+				try
+				{
+					distribution=classifier.distributionForInstance(instance);
+				}
+				catch(Exception ex)
+				{
+					ex.printStackTrace();
+					throw new IllegalArgumentException("failed to classify pair "+p, ex);
+				}
+				long trueQuality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
+				long falseQuality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
+				PairScore revisedPair = null;
+				if (trueQuality > 0)
+					revisedPair = new PairScore(p.getQ(),p.getR(),p.getScore(),classTrue);
+				else if (falseQuality > 0)
+					revisedPair = new PairScore(p.getQ(),p.getR(),p.getScore(),classFalse);
+				else
+					revisedPair = new PairScore(p.getQ(),p.getR(),p.getScore(),unknown);// unknown
+				outcome.add(revisedPair);
+			}
+			return outcome;
+		}
 		
-		
+		/**
+		 * Peels pairs from the list in the order of the number of non-zero values in a vector of min/max values and classifies each peeled pair.
+		 * 
+		 * @param allPairs pairs to process
+		 * @return classified pairs.
+		 */
 		protected Collection<PairScore> classifyAllPairsInList(Collection<PairScore> allPairs)
 		{
 			int []comparisonResults = new int[dataCollector.getInstanceLength()], bestComparisonResults = new int[dataCollector.getInstanceLength()];
 			List<PairScore> currentPairs = new ArrayList<PairScore>(allPairs.size());currentPairs.addAll(allPairs);
 			Collection<PairScore> outcome = new ArrayList<PairScore>(allPairs.size());
 			int pairsLeft = allPairs.size();
-			while(pairsLeft > 0)
+			while(pairsLeft >allPairs.size()*par.dataCollectorParameters.fraction_of_pairs_to_ignore)
 			{
 				PairScore currentBest = dataCollector.pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);
 				Instance instance = dataCollector.constructInstance(bestComparisonResults, true);// here classification is a dummy.
@@ -732,6 +781,10 @@ public class PairQualityLearner
 				
 				--pairsLeft;
 			}
+			
+			for(PairScore p:currentPairs)
+				if (p != null)
+					outcome.add(new PairScore(p.getQ(),p.getR(),p.getScore(),unknown));
 			
 			return outcome;
 		}
@@ -808,10 +861,6 @@ public class PairQualityLearner
 					if (pairToDebug != null && (p.getQ() == pairToDebug.getQ() && p.getR() == pairToDebug.getR()))
 						debugBreak();
 					long inconsistencyScore = p.getScore();
-					/*
-					if (par.scoresIncludeInconsistencies)
-						inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);
-					*/
 					long quality = 0;
 					
 					if (inconsistencyScore >= 0)
@@ -886,8 +935,6 @@ public class PairQualityLearner
 							try
 							{
 								long inconsistencyScore = 0;
-								/*if (par.scoresIncludeInconsistencies)
-									inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);*/
 								long quality = 0;
 								
 								if (inconsistencyScore >= 0)
@@ -967,10 +1014,6 @@ public class PairQualityLearner
 				try
 				{
 					long inconsistencyScore = 0;
-					/*
-					if (par.scoresIncludeInconsistencies)
-						inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(p);
-						*/
 					long quality = 0;
 					
 					if (inconsistencyScore >= 0)
@@ -1316,21 +1359,14 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public long overrideScoreComputation(PairScore p) {
-					long score = -1;
-					/*
-					if (par.scoresIncludeInconsistencies)
-						score = markovHelper.computeScoreBasedOnInconsistencies(p);
-					else
-					*/
-						score = p.getScore();// dummy
-					return score;
-				}
-
-				@Override
 				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 				{
 					return markovHelper.getSurroundingTransitions(currentRed);
+				}
+
+				@Override
+				public long overrideScoreComputation(PairScore p) {
+					return p.getScore();
 				}
 			});
 			if (!outcome.isEmpty())

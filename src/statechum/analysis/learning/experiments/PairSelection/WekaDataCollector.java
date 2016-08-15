@@ -32,6 +32,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -68,14 +69,16 @@ public class WekaDataCollector
 		return instanceLength;
 	}
 	
+	protected final DataCollectorParameters dataCollectorParameters;
+	
 	/**
 	 * Begins construction of an instance of pair classifier.
 	 * @param markovHelper helper used to construct inconsistencies for the use with Markov experiments. The associated ranking routines are not used if this is null.
 	 * @param graphPTA true if the graph rooted at the blue state is expected to be a PTA rather than a directed graph. 
 	 */
-	public WekaDataCollector(MarkovHelper helper, boolean graphPTA)
+	public WekaDataCollector(MarkovHelper helper, DataCollectorParameters p)
 	{
-		markovHelper = helper;graphIsPTA = graphPTA;
+		markovHelper = helper;dataCollectorParameters = p;
 		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
@@ -108,7 +111,7 @@ public class WekaDataCollector
 	 * @param argAssessor a collection of assessors to use.
 	 * @param level the maximal number of attributes to use as part of a conditional statement.
 	 */
-	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor, int level, boolean compareOnlyWithBadPairs)
+	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor, int level)
 	{
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
@@ -119,7 +122,7 @@ public class WekaDataCollector
 		if (comparators.size() > Long.SIZE-1)
 			throw new IllegalArgumentException("attributes will not fit into long");
 		
-		maxLevel = level;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;
+		maxLevel = level;
 
 		n = comparators.size();// the number of indices we go through
 		long instanceLen = 0;
@@ -324,7 +327,6 @@ public class WekaDataCollector
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
 	
-	protected final boolean graphIsPTA;
 	protected final MarkovHelper markovHelper;
 	
 	class MeasurementsForCollectionOfPairs
@@ -353,7 +355,7 @@ public class WekaDataCollector
 
 			PairMeasurements m = new PairMeasurements();
 			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			if (graphIsPTA)
+			if (dataCollectorParameters.graphIsPTA)
 				m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
 			if (markovHelper!= null)
 				m.inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(pair);
@@ -739,7 +741,7 @@ public class WekaDataCollector
 		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, currentPairs, correctPairs, wrongPairs);
 		
 		int pairsLeft = currentPairs.size();
-		while(pairsLeft > Math.max(0, currentPairs.size()-3))
+		while(pairsLeft > currentPairs.size()*dataCollectorParameters.fraction_of_pairs_to_ignore)
 		{
 			int []comparisonResults = new int[instanceLength], bestComparisonResults = new int[instanceLength];
 			PairScore nextBest = pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);

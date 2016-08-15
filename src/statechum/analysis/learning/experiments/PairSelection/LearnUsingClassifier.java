@@ -78,7 +78,6 @@ public class LearnUsingClassifier {
 		final int trainingSamplesPerFSM = 2;
 		try
 		{
-			for(final boolean scoresIncludeInconsistencies:new boolean[]{true})
 			for(final int traceLengthMultiplier:new int[]{1})
 			for(final int ifDepth:new int []{1})
 			for(final boolean onlyPositives:new boolean[]{true})
@@ -88,7 +87,7 @@ public class LearnUsingClassifier {
 					{
 						final PredictionEvaluation predictionQuality=new PredictionEvaluation();
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false,true, DataCollectorParameters.enabledAll());
+						DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false,DataCollectorParameters.enabledAll());
 						parExperiment.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classifier from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");
@@ -105,7 +104,7 @@ public class LearnUsingClassifier {
 	
 							final UseWekaResultsParameters parametersInnerLearner = new UseWekaResultsParameters(collectorPars);
 							parametersInnerLearner.setUseClassifierForRed(selectingRed);parametersInnerLearner.setUseClassifierToChooseNextRed(classifierToBlockAllMergers);
-							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);parametersInnerLearner.setScoresUseInconsistencies(scoresIncludeInconsistencies);
+							parametersInnerLearner.setBlacklistZeroScoringPairs(zeroScoringAsRed);
 							parametersInnerLearner.setThreshold(threshold);
 	
 							String selection = parExperiment.getExperimentID()+"-"+parametersInnerLearner.getRowID();
@@ -127,7 +126,6 @@ public class LearnUsingClassifier {
 									{
 										final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample,seedForFSM);
 										pars.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
-										pars.setScoresUseInconsistencies(scoresIncludeInconsistencies);
 										pars.setInnerParameters(parametersInnerLearner);
 										//pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,chunkLen,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										

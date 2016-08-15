@@ -156,10 +156,16 @@ public class PairQualityLearner
 		public final MarkovParameters markovParameters;
 		public final boolean graphIsPTA;
 		public final boolean comparePairOnlyWithBadPairs;
+		public final long bitstringOfEnabledParameters;
 		
-		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, boolean compareOnlyWithBadPairs)
+		public static long enabledAll()
 		{
-			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;
+			return ~0;
+		}
+		
+		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, boolean compareOnlyWithBadPairs, long enabledParameters)
+		{
+			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;comparePairOnlyWithBadPairs = compareOnlyWithBadPairs;bitstringOfEnabledParameters = enabledParameters;
 		}
 		
 		public List<String> getColumnList()
@@ -176,12 +182,12 @@ public class PairQualityLearner
 		
 		public DataCollectorParameters()
 		{
-			ifDepth = 1;markovParameters = null;graphIsPTA = false;comparePairOnlyWithBadPairs = false;
+			ifDepth = 1;markovParameters = null;graphIsPTA = false;comparePairOnlyWithBadPairs = false;bitstringOfEnabledParameters = enabledAll();
 		}
 		
 		public DataCollectorParameters(DataCollectorParameters from)
 		{
-			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;comparePairOnlyWithBadPairs = from.comparePairOnlyWithBadPairs; 
+			ifDepth = from.ifDepth;markovParameters = new MarkovParameters(from.markovParameters);graphIsPTA = from.graphIsPTA;comparePairOnlyWithBadPairs = from.comparePairOnlyWithBadPairs;bitstringOfEnabledParameters = from.bitstringOfEnabledParameters; 
 		}
 	}
 	
@@ -196,10 +202,11 @@ public class PairQualityLearner
 	{
 		final WekaDataCollector classifier = new WekaDataCollector(m,parameters.graphIsPTA);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		int arg=0;
 		
-		if (parameters.graphIsPTA)
+		if (parameters.graphIsPTA && (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 			assessors.add(classifier.new PairRank("conventional score")
-			{// 1
+			{// 
 				@Override
 				public long getValue(PairScore p) {
 					return classifier.measurementsObtainedFromPairs.get(p).compatibilityScore;
@@ -211,181 +218,219 @@ public class PairQualityLearner
 				}
 			});
 
-		assessors.add(classifier.new PairRank("score (which could be Statechum or any other)")
-		{// 2
-			@Override
-			public long getValue(PairScore p) {
-				return p.getScore();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("size of tree rooted at Blue")
-		{// 3
-			@Override
-			public long getValue(PairScore p) {
-				return treeRootedAt(p.getQ());
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("Number of alternatives with same red")
-		{// 4
-			@Override
-			public long getValue(PairScore p) {
-				return  classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).nrOfAlternatives;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("Depth of Blue")
-		{// 5
-			@Override
-			public long getValue(PairScore p) {
-				return  p.getQ().getDepth();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("Depth of Red")
-		{// 6
-			@Override
-			public long getValue(PairScore p) {
-				return  p.getR().getDepth();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("Statechum score is above zero")
-		{// 7
-			@Override
-			public long getValue(PairScore p) {
-				return  p.getScore() > 0?1:0;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return true;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("state identifiers Red")
-		{// 8
-			@Override
-			public long getValue(PairScore p) {
-				return p.getR().getIntegerID();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("state identifiers Blue")
-		{// 9
-			@Override
-			public long getValue(PairScore p) {
-				return p.getQ().getIntegerID();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("proximity of the red and blue by depth")
-		{// 10
-			@Override
-			public long getValue(PairScore p) {
-				return p.getQ().getDepth()-p.getR().getDepth();
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("whether red and blue are adjacent")
-		{// 11
-			@Override
-			public long getValue(PairScore p) {
-				return classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).adjacent? 1:0;
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("new outgoing transitions from blue")
-		{// 12
-			@Override
-			public long getValue(PairScore p) {
-				return newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		assessors.add(classifier.new PairRank("new outgoing transitions from red")
-		{// 13
-			@Override
-			public long getValue(PairScore p) {
-				return newTransitionsFromStateB(tentativeGraph(), p.getQ(), p.getR());
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
-		
-		
-		assessors.add(classifier.new PairRank("new outgoing transitions from blue v.s. all outgoing from red")
-		{// 14
-			@Override
-			public long getValue(PairScore p) {
-				long newFromBlue = newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
-				return kFrom_ab(tentativeGraph().transitionMatrix.get(p.getR()).size(), newFromBlue);						
-			}
-
-			@Override
-			public boolean isAbsolute() {
-				return false;
-			}
-		});
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("score (which could be Statechum or any other)")
+			{// 0
+				@Override
+				public long getValue(PairScore p) {
+					return p.getScore();
+				}
 	
-		if (parameters.markovParameters != null)
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("size of tree rooted at Blue")
+			{// 1
+				@Override
+				public long getValue(PairScore p) {
+					return treeRootedAt(p.getQ());
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("Number of alternatives with same red")
+			{// 2
+				@Override
+				public long getValue(PairScore p) {
+					return  classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).nrOfAlternatives;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("Depth of Blue")
+			{// 3
+				@Override
+				public long getValue(PairScore p) {
+					return  p.getQ().getDepth();
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("Depth of Red")
+			{// 4
+				@Override
+				public long getValue(PairScore p) {
+					return  p.getR().getDepth();
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("Statechum score is above zero")
+			{// 5
+				@Override
+				public long getValue(PairScore p) {
+					return  p.getScore() > 0?1:0;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return true;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("state identifiers Red")
+			{// 6
+				@Override
+				public long getValue(PairScore p) {
+					return p.getR().getIntegerID();
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("state identifiers Blue")
+			{// 7
+				@Override
+				public long getValue(PairScore p) {
+					return p.getQ().getIntegerID();
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("proximity of the red and blue by depth")
+			{// 8
+				@Override
+				public long getValue(PairScore p) {
+					return p.getQ().getDepth()-p.getR().getDepth();
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("whether red and blue are adjacent")
+			{// 9
+				@Override
+				public long getValue(PairScore p) {
+					return classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(p).adjacent? 1:0;
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("new outgoing transitions from blue")
+			{// 10
+				@Override
+				public long getValue(PairScore p) {
+					return newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+		
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("new outgoing transitions from red")
+			{// 11
+				@Override
+				public long getValue(PairScore p) {
+					return newTransitionsFromStateB(tentativeGraph(), p.getQ(), p.getR());
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+
+		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
+		{
+			assessors.add(classifier.new PairRank("new outgoing transitions from blue v.s. all outgoing from red")
+			{// 12
+				@Override
+				public long getValue(PairScore p) {
+					long newFromBlue = newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
+					return kFrom_ab(tentativeGraph().transitionMatrix.get(p.getR()).size(), newFromBlue);						
+				}
+	
+				@Override
+				public boolean isAbsolute() {
+					return false;
+				}
+			});
+		}
+
+		if (parameters.markovParameters != null && (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("score v.s. inconsistency")
-			{// 15
+			{// 13
 				@Override
 				public long getValue(PairScore p) {
 					return kFrom_ab(p.getScore(),classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore);

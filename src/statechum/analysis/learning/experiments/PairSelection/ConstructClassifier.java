@@ -597,7 +597,7 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,true);
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,true, DataCollectorParameters.enabledAll());
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
 						List<WekaDataCollector> listOfCollectors = new ArrayList<WekaDataCollector>();
@@ -659,7 +659,7 @@ public class ConstructClassifier
 						for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 							if (freqData[attrNum]>0) 
 								++nonZeroes;
-						/*
+
 						List<Pair<Integer,Integer>> sortedFreq = new ArrayList<Pair<Integer,Integer>>(globalDataCollector.attributesOfAnInstance.length);
 						for(int i=0;i<globalDataCollector.attributesOfAnInstance.length;++i) sortedFreq.add(new Pair<Integer,Integer>(freqData[i],i));
 						sortedFreq.sort(new Comparator<Pair<Integer,Integer>>() {
@@ -669,15 +669,36 @@ public class ConstructClassifier
 								return -o1.compareTo(o2);
 							}});
 						
-						for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
-							for(int attrNum=nonZeroes/50;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
+						int attributesToKeep = 0;//nonZeroes/10;
+						if (attributesToKeep > 0)
+						{// do the filtering.
+							for(int attrNum=attributesToKeep;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 							{
 								int attrIdx = sortedFreq.get(attrNum).secondElem;
-								// set values of attributes that are not used as much to a zero
-								globalDataCollector.trainingData.instance(i).setValue(attrIdx, WekaDataCollector.ZERO);
+								globalDataCollector.setBlock(attrIdx);
 							}
-						*/						
-						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes);
+							globalDataCollector.configureNoRecurse();
+							System.out.println("Setting masked attributes to zero in datasets");
+							for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
+								for(int attrNum=attributesToKeep;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
+								{
+									int attrIdx = sortedFreq.get(attrNum).secondElem;
+									// set values of attributes that are not used as much to a zero
+									globalDataCollector.trainingData.instance(i).setValue(attrIdx, WekaDataCollector.ZERO);								
+								}
+							for(WekaDataCollector w:listOfCollectors)
+							{
+								for(int i=0;i<w.trainingData.numInstances();++i)
+									for(int attrNum=attributesToKeep;attrNum<w.attributesOfAnInstance.length;++attrNum)
+									{
+										int attrIdx = sortedFreq.get(attrNum).secondElem;
+										// set values of attributes that are not used as much to a zero
+										w.trainingData.instance(i).setValue(attrIdx, WekaDataCollector.ZERO);								
+									}
+							}
+						}
+						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+
+								nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes+" of attributes"+(attributesToKeep>0? (", "+attributesToKeep+" were kept"):""));
 						Arrays.sort(freqData);
 						int numOfcolumns=20;
 						int stepWidth = globalDataCollector.attributesOfAnInstance.length/numOfcolumns;

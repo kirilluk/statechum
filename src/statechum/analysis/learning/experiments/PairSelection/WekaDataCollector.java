@@ -150,8 +150,21 @@ public class WekaDataCollector
 		attributes.add(classAttribute);
 		trainingData = new Instances(trainingSetName,attributes,capacity);
 		trainingData.setClass(classAttribute);
+		
+		fillinMask = new int[instanceLength];
+		Arrays.fill(fillinMask, fillin_FILL);
 	}
 
+	public void setBlock(int attr)
+	{
+		fillinMask[attr]=fillin_MASKED;
+	}
+	
+	public int [] getMask()
+	{
+		int outcome[] = new int[fillinMask.length];System.arraycopy(fillinMask, 0, outcome, 0, fillinMask.length);return outcome;
+	}
+	
 	/** Fills in the names attributes for the current level and position in the level, recursing across all the positions in the next level.
 	 * 
 	 * @param whatToFillIn array where data is to be stored.
@@ -454,15 +467,19 @@ public class WekaDataCollector
 		
 		int i=0;
 		for(int attr=0;attr<n;++attr)
-			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
-		{
-				PairComparator cmp = comparators.get(attr);
-				int value = comparePairWithOthers(cmp, pair, badPairs);
-				if (value == comparison_inconclusive)
-					value = 0;
-				whatToFillIn[i+offset] = value;
-			++i;
-		}
+			if (  ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
+			{
+				if (fillinMask[i+offset] != fillin_MASKED)
+				{
+					PairComparator cmp = comparators.get(attr);
+					int value = comparePairWithOthers(cmp, pair, badPairs);
+					if (value == comparison_inconclusive)
+						value = 0;
+					whatToFillIn[i+offset] = value;
+				}
+
+				++i;
+			}
 	}
 
 	/** Assesses a supplied pair based on the values.
@@ -480,13 +497,22 @@ public class WekaDataCollector
 		for(int attr=0;attr<n;++attr)
 			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
 			{
-				final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
-				whatToFillIn[i+offset]=value;
+				if (fillinMask[i+offset] != fillin_MASKED)
+				{
+					final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
+					whatToFillIn[i+offset]=value;
+				}
 				++i;
-	}
+			}
 	}
 
-	/** Fills in the values of attributes for the current level and position in the level, recursing across all the positions in the next level.
+	public static final int fillin_FILL=0, fillin_MASKED=10, fillin_NORECURSE = 11;
+	/** Reflects values that are to be filled in; values marked with masked are ignored. and those marked norecurse are filled in but {@link WekaDataCollector#fillInEntry(int[], int, int, int, long, PairScore, Collection, MeasurementsForCollectionOfPairs, int)} is not called recursively on them. */
+	protected int [] fillinMask;
+	
+	/** Fills in the values of attributes for the current level and position in the level, recursing across all the positions in the next level. 
+	 * Only attributes set to zero in the mask are filled in, those that are 'masked' are ignored; 'norecurse' attributes 
+	 * are recorded but fillInEntry is not called recursively on those attributes. 
 	 * 
 	 * @param whatToFillIn array where data is to be stored.
 	 * @param section_start the buffer for the current level will start at this offset, in units of int (or whatever the type of buffer is).
@@ -500,6 +526,7 @@ public class WekaDataCollector
 	 * @param pairs other pairs it is to be compared with. This can be a collection of all pairs where we intend to identify dominating pairs or only a collection of 'bad' pairs where we filter pairs dominating (or being dominated) by the wrong-merge pairs for learning of a 'positive' classifier and the other way around for a 'negative' one.
 	 * @param measurements long-to-compute parameters of the pairs, used by assessors to evaluate the pairOfInterest
 	 * @param currentLevel current level in construction of the attributes.
+	 * @return true if any entries were filled in.
 	 */
 	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int prev_section_size, long xyz, 
 			PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
@@ -521,28 +548,31 @@ public class WekaDataCollector
 				long positionalBit = 1 << attr;
 				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
 				{
-					int attributeREL = whatToFillIn[sectionPlusOffset+i];
-					if (attributeREL != 0)
+					if (fillinMask[sectionPlusOffset+i] == fillin_FILL)
 					{
-						assert attributeREL == 1 || attributeREL == -1;
-						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
-						for(PairScore currentPair:pairs)
-							if (currentPair != null)
-							{// to permit the list of pairs to have holes
-								int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
-								if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
-									others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
-							}
-						
-						if (others.size()>1)//  || (others.size() > 0 && comparePairOnlyWithBadPairs))
+						int attributeREL = whatToFillIn[sectionPlusOffset+i];
+						if (attributeREL != 0)
 						{
-							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
-							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,others);
-							int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
-							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
-							fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
+							assert attributeREL == 1 || attributeREL == -1;
+							Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+							for(PairScore currentPair:pairs)
+								if (currentPair != null)
+								{// to permit the list of pairs to have holes
+									int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
+									if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+										others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
+								}
+							
+							if (others.size()>1)
+							{
+								MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
+								buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,others);
+								int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+								// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+								fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
+							}
 						}
-					}				
+					}
 					++i;
 				}
 			}
@@ -550,6 +580,59 @@ public class WekaDataCollector
 		}
 	}
 
+	/** If all lower-level elements are not supposed to be filled in, it does not make sense to make a recursive call, hence we mark an element as 'no recurse'. Returns true if any elements have to be filled in. */
+	protected boolean configureNoRecurse(int section_start, int idx_in_section, int prev_section_size, long xyz, int currentLevel)
+	{
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+		
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
+		boolean outcome = false;
+		int attrOffset = 0;
+		for(int attr=0;attr<n;++attr)
+		{
+			if (  ((1 << attr) & xyz) == 0 )
+			{
+				if (fillinMask[sectionPlusOffset+attrOffset] == fillin_FILL)
+					outcome = true;
+				
+				++attrOffset;
+			}
+		}
+		if (currentLevel < maxLevel)
+		{
+			int i=0;
+			for(int attr=0;attr<n;++attr)
+			{
+				boolean nested = false;
+				long positionalBit = 1 << attr;
+				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
+				{
+					if (fillinMask[sectionPlusOffset+i] == fillin_FILL)
+					{
+						int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+						// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+						nested |= configureNoRecurse(section_start+currentSectionSize,newOffset+(1)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,currentLevel+1);
+						nested |= configureNoRecurse(section_start+currentSectionSize,newOffset+(0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,currentLevel+1);
+						
+						if (!nested)
+							fillinMask[sectionPlusOffset+i] = fillin_NORECURSE;// if nothing to fill in below here, mark the entry as such.   
+					}
+					++i;
+				}
+			}
+			assert i == attrCountAtThisLevel;
+		}
+		
+		return outcome;
+	}
+
+	public void configureNoRecurse()
+	{
+		configureNoRecurse(0,0,1,0,0);
+	}
+	
 	/** Fills in the array with comparison results. For correct operation, the supplied pair of interest has to be included in the collection of pairs. */
 	public void fillInPairDetails(int [] whatToFillIn, PairScore pairOfInterest, Collection<PairScore> pairs)
 	{
@@ -568,7 +651,7 @@ public class WekaDataCollector
 	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairsA(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsOrig(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
 		buildSetsForComparators(pairs,currentGraph);
 		
@@ -656,7 +739,7 @@ public class WekaDataCollector
 		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, currentPairs, correctPairs, wrongPairs);
 		
 		int pairsLeft = currentPairs.size();
-		while(pairsLeft > currentPairs.size()/2)
+		while(pairsLeft > Math.max(0, currentPairs.size()-3))
 		{
 			int []comparisonResults = new int[instanceLength], bestComparisonResults = new int[instanceLength];
 			PairScore nextBest = pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);

@@ -1134,6 +1134,195 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
 	}
 	
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask1()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.setBlock(1);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(0,comparisonResults[1]);// ignored due to mask
+
+		Assert.assertEquals(0,comparisonResults[2]);// unused - pairA is not 'bottom' in attribute 1.
+		Assert.assertEquals(-1,comparisonResults[3]);// pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'top' in attribute 1.
+		Assert.assertEquals(0,comparisonResults[4]);// ignored due to mask 
+		Assert.assertEquals(0,comparisonResults[5]);// ignored due to mask
+	}
+
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask2()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.setBlock(2);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(-1,comparisonResults[1]);// ... and worst in attribute 2
+
+		Assert.assertEquals(0,comparisonResults[2]);// ignored due to mask
+		Assert.assertEquals(-1,comparisonResults[3]);// pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'top' in attribute 1.
+		Assert.assertEquals(1,comparisonResults[4]);// pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. 
+		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
+	}
+	
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask3()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,true);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
+		dataCollector.setBlock(2);dataCollector.setBlock(3);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_NORECURSE,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(-1,comparisonResults[1]);// ... and worst in attribute 2
+
+		Assert.assertEquals(0,comparisonResults[2]);// ignored due to mask
+		Assert.assertEquals(0,comparisonResults[3]);// ignored due to mask
+		Assert.assertEquals(1,comparisonResults[4]);// pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. 
+		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
+	}
+	
 	/** Tests comparison of a Correct pair to other pairs, taking into account if-then conditions. This test tests compareOnlyWithBadPairs == true. */
 	@Test
 	public void TestCreateComparePairs6c()
@@ -1174,7 +1363,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.updateDatasetWithPairs(pairs, tentativeGraph, correctGraph);
+		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
 		double []comparisonResults = dataCollector.trainingData.get(0).toDoubleArray();
 		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
 		-1,// 0 pairA is worst in attribute 1 ...
@@ -1228,7 +1417,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, false);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.updateDatasetWithPairs(pairs, tentativeGraph, correctGraph);
+		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
 		double []comparisonResults = dataCollector.trainingData.get(0).toDoubleArray();
 		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
 		-1,// 0 pairA is worst in attribute 1 ...
@@ -1282,7 +1471,7 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1, true);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.updateDatasetWithPairs(pairs, tentativeGraph, correctGraph);
+		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, correctGraph);
 		double []comparisonResults = dataCollector.trainingData.get(2).toDoubleArray();// we are looking at pair 3 (aka pairC) here.
 		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
 		-1,// 0 pairC is worst in attribute 1 ...
@@ -1577,7 +1766,7 @@ public class TestWekaPairClassifier {
 			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair
@@ -1644,7 +1833,7 @@ public class TestWekaPairClassifier {
 			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair
@@ -1681,7 +1870,7 @@ public class TestWekaPairClassifier {
 			pairD2=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("C2"),0,0),// wrong pair
 			pairE=new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("C2"),0,-1);// correct pair
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD1,pairD2,pairE}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairD1,pairD2,pairE}), tentativeGraph, correctGraph);
 		Assert.assertEquals(0,testClassifier.trainingData.numInstances());
 	}
 	
@@ -1698,8 +1887,8 @@ public class TestWekaPairClassifier {
 			pairD=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("A2"),0,0),// wrong pair
 			pairE=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,-1);// wrong pair
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD,pairE}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairD,pairE}), tentativeGraph, correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair, only compared with B and C

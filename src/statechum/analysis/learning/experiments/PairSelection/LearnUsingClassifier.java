@@ -88,7 +88,7 @@ public class LearnUsingClassifier {
 					{
 						final PredictionEvaluation predictionQuality=new PredictionEvaluation();
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false,true);
+						DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false,true, DataCollectorParameters.enabledAll());
 						parExperiment.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 						// load the classifier from serialised representation
 						InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");

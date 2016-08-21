@@ -179,7 +179,7 @@ public class PairQualityLearner
 		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta,long enabledParameters)
 		{
 			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;bitstringOfEnabledParameters = enabledParameters;
-			good_vs_bad_diff=0.2;fraction_of_pairs_to_ignore = 0.7;peel = true;
+			good_vs_bad_diff=0.2;fraction_of_pairs_to_ignore = 0;peel = true;
 		}
 		
 		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta, double good_bad, double fraction, boolean p, long enabledParameters)
@@ -742,13 +742,21 @@ public class PairQualityLearner
 			return outcome;
 		}
 		
+		/** Classifies pairs into correct/incorrect and returns the outcome. */
+		protected Collection<PairScore> classifyAllPairs(Collection<PairScore> allPairs)
+		{
+			if (par.dataCollectorParameters.peel)
+				return classifyAllPairsInListUsingPeel(allPairs);
+			return classifyAllPairsUsingClassifyPair(allPairs);
+		}
+		
 		/**
 		 * Peels pairs from the list in the order of the number of non-zero values in a vector of min/max values and classifies each peeled pair.
 		 * 
 		 * @param allPairs pairs to process
 		 * @return classified pairs.
 		 */
-		protected Collection<PairScore> classifyAllPairsInList(Collection<PairScore> allPairs)
+		protected Collection<PairScore> classifyAllPairsInListUsingPeel(Collection<PairScore> allPairs)
 		{
 			int []comparisonResults = new int[dataCollector.getInstanceLength()], bestComparisonResults = new int[dataCollector.getInstanceLength()];
 			List<PairScore> currentPairs = new ArrayList<PairScore>(allPairs.size());currentPairs.addAll(allPairs);
@@ -789,7 +797,7 @@ public class PairQualityLearner
 			return outcome;
 		}
 		
-		protected long classifyPairAfterItWasClassified(PairScore p,@SuppressWarnings("unused") Collection<PairScore> allPairs, int classToUse)
+		protected long classifyPairAfterItWasClassified(PairScore p, int classToUse)
 		{
 			if (p.getAnotherScore() == unknown)
 				return unknown;
@@ -800,35 +808,17 @@ public class PairQualityLearner
 					return -1;
 		}
 		// values for pairs cannot be cached because they depend on other pairs in consideration. Hence the same pair as part of a larger collection of pairs may be deemed either good or not so good, it all depends on other pairs.
-		
-		protected long classifyPair(PairScore p,Collection<PairScore> allPairs, int classToUse)
-		{
-			int []comparisonResults = new int[dataCollector.getInstanceLength()];
-			dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
-			Instance instance = dataCollector.constructInstance(comparisonResults, true);// here classification is a dummy.
-			double distribution[]=null;
-			try
-			{
-				distribution=classifier.distributionForInstance(instance);
-			}
-			catch(Exception ex)
-			{
-				ex.printStackTrace();
-				throw new IllegalArgumentException("failed to classify pair "+p, ex);
-			}
-			return obtainMeasureOfQualityFromDistribution(distribution,classToUse);
-		}
-		
+
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 		 * <p/> 
 		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those contradicting mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
 		 */
-		protected Stack<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph tentativeGraph, PairScore pairToDebug)
+		protected Stack<PairScore> classifyPairs(Collection<PairScore> pairsToStartWith, LearnerGraph tentativeGraph, PairScore pairToDebug)
 		{
 			boolean allPairsNegative = true;
-			for(PairScore p:pairs)
+			for(PairScore p:pairsToStartWith)
 			{
 				assert p.getScore() >= 0;
 				
@@ -838,16 +828,16 @@ public class PairQualityLearner
 				}
 			}
 			Stack<PairScore> possibleResults = new Stack<PairScore>();
-			ArrayList<PairScore> nonNegPairs = new ArrayList<PairScore>(pairs.size());
+			ArrayList<PairScore> nonNegPairs = new ArrayList<PairScore>(pairsToStartWith.size());
 			if (allPairsNegative)
-				possibleResults.addAll(pairs);
+				possibleResults.addAll(pairsToStartWith);
 			else
 			{// not all pairs contain negative nodes, hence we have to build the sets necessary to evaluate those pairs. Strictly speaking, only those that are used in a tree need to be computed but this 
 			 // would make the whole process significantly more complex and hence not done.
 
 				// By the time we get here, it is assumed that all mandatory merge conditions are satisfied and hence every pair can be merged.
-				dataCollector.buildSetsForComparators(pairs,tentativeGraph);
-				for(PairScore p:pairs)
+				dataCollector.buildSetsForComparators(pairsToStartWith,tentativeGraph);
+				for(PairScore p:pairsToStartWith)
 				{
 					assert p.getScore() >= 0;
 					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
@@ -855,8 +845,9 @@ public class PairQualityLearner
 					else
 						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
 				}
-				
-				for(PairScore p:nonNegPairs)
+				Collection<PairScore> pairs=classifyAllPairs(nonNegPairs);
+
+				for(PairScore p:pairs)
 				{
 					if (pairToDebug != null && (p.getQ() == pairToDebug.getQ() && p.getR() == pairToDebug.getR()))
 						debugBreak();
@@ -865,7 +856,7 @@ public class PairQualityLearner
 					
 					if (inconsistencyScore >= 0)
 					{
-						quality = classifyPair(p,nonNegPairs,classTrue);
+						quality = classifyPairAfterItWasClassified(p,classTrue);
 						if (quality == unknown)
 							quality = inconsistencyScore;// if the classifier does not know, use the inconsistency score.
 						
@@ -898,6 +889,12 @@ public class PairQualityLearner
 		protected static class ValueAndCount
 		{
 			public int value=0,count=0;
+			
+			@Override
+			public String toString()
+			{
+				return "VC["+value+","+count+"]";
+			}
 		}
 		
 		public static final void debugBreak()
@@ -906,16 +903,17 @@ public class PairQualityLearner
 		}
 		
 		/** If there is a state to be labelled red, returns it. This permits one to enlarge a set of possible pairs, merging only best ones compared to choosing from a list of mediocre pairs. */
-		protected CmpVertex selectRedStateIfAnySeemsRedEnough(Collection<PairScore> pairs, LearnerGraph tentativeGraph,CmpVertex stateToDebug)
+		protected CmpVertex selectRedStateIfAnySeemsRedEnough(Collection<PairScore> pairsToStartWith, LearnerGraph tentativeGraph,CmpVertex stateToDebug)
 		{
 			Map<CmpVertex,ValueAndCount> possiblyRedVerticesToTheirQuality = new TreeMap<CmpVertex,ValueAndCount>();
-			for(PairScore p:pairs)
+			for(PairScore p:pairsToStartWith)
 				possiblyRedVerticesToTheirQuality.put(p.getQ(),new ValueAndCount());
 
-			dataCollector.buildSetsForComparators(pairs,tentativeGraph);
+			dataCollector.buildSetsForComparators(pairsToStartWith,tentativeGraph);
 			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 
+			Collection<PairScore> pairs=classifyAllPairs(pairsToStartWith);
 			for(PairScore p:pairs)
 			{
 				if (p.getQ() == stateToDebug)	
@@ -934,22 +932,10 @@ public class PairQualityLearner
 						else
 							try
 							{
-								long inconsistencyScore = 0;
-								long quality = 0;
-								
-								if (inconsistencyScore >= 0)
-								{
-									quality = classifyPair(p,pairs,classFalse);
-									if (quality == unknown)
-										quality = -inconsistencyScore;// inconsistency was positive because it looks like a reasonable merge. Classifier does not know, hence we have to conclude that it really is a possible merge and return a value reflecting it.
-								}
-								else
-									quality = 200;
-									
-								if ( quality > 0 )
+								if ( classifyPairAfterItWasClassified(p, classFalse) > 0 )
 								{// seems like a bad pair to merge, hence keep the corresponding blue state marked as a possible red.
-									if (stateToDebug != null)
-										System.out.println("vertex "+p.getQ()+" quality: "+quality+" classification score: "+classifyPair(p,pairs,classFalse));
+									long quality = p.getScore();
+									//if (stateToDebug != null) System.out.println("vertex "+p.getQ()+" quality: "+quality+" classification score: "+classifyPairAfterItWasClassified(p, classFalse));
 									ValueAndCount vc = possiblyRedVerticesToTheirQuality.get(p.getQ());
 									vc.count++;vc.value+=quality;
 								}
@@ -971,78 +957,18 @@ public class PairQualityLearner
 				return null;
 			CmpVertex bestCandidateForRed = null;
 			double bestAverage = -1;
+			if (stateToDebug != null)
+				System.out.println(possiblyRedVerticesToTheirQuality);
 			for(Entry<CmpVertex,ValueAndCount> entry:possiblyRedVerticesToTheirQuality.entrySet())
 			{
 				double currentValue = ConfusionMatrix.divide(entry.getValue().value, entry.getValue().count);
-				if (currentValue > bestAverage)
+				if ((bestAverage < 0 || currentValue < bestAverage) && entry.getValue().count < 10)
 				{
 					bestAverage = currentValue;bestCandidateForRed = entry.getKey();
 				}
 			}
-			assert bestCandidateForRed != null;
+			//assert bestCandidateForRed != null;
 			return bestCandidateForRed;
-		}
-		
-		
-		/** This function aims to identify a pair that clearly should be merged. In this case, this method will return null. Where no pairs are mergeable, the method will return the pair it is most certain to be unmergeable. */
-		protected PairScore getPairToBeLabelledRed(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
-		{
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-					return null;// negatives can always be merged.
-			}
-			
-			// if we are here, none of the pairs are clear candidates for mergers.
-			
-			dataCollector.buildSetsForComparators(pairs,tentativeGraph);
-
-			PairScore pairBestToReturnAsRed = null;
-			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
-			
-			for(PairScore p:pairs)
-			{
-				if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge, false) < 0)
-				// This pair cannot be merged, return as red. Note that this computation is deferred to this stage from computePairScores in order to consider 
-				// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory merge conditions are taken into account.
-					return p;
-				
-				// potentially meaningful pair, check with the classifier
-				try
-				{
-					long inconsistencyScore = 0;
-					long quality = 0;
-					
-					if (inconsistencyScore >= 0)
-						quality = classifyPair(p,pairs,classFalse);
-					else
-						quality = 200;
-						
-					if ( quality > 0 )
-					{// seems like a bad pair
-						if (pairBestToReturnAsRed == null || quality >pairBestToReturnAsRed.getAnotherScore())
-							pairBestToReturnAsRed = new PairScore(p.getQ(), p.getR(), p.getScore(), quality);// this is the pair to return.
-					}
-					else // we are here because Weka was not confident that this pair should not be merged, hence check the score and if zero, consider blocking the merge. 
-					if (par.blacklistZeroScoringPairs && p.getScore() == 0)
-					{// blacklisting pairs with zero score
-						if (pairBestToReturnAsRed == null || pairBestToReturnAsRed.getAnotherScore() == 0)
-							pairBestToReturnAsRed = new PairScore(p.getQ(), p.getR(), p.getScore(), 0);// this is the pair that may be mergeable but the score is zero and we hence blacklist it.
-					}
-					else // quality is <= 0 (which means that pair is probably good) and we do not blacklist zeroes
-						return null;// this pair seems a plausible merge candidate.
-				}
-				catch(Exception ex)
-				{
-					ex.printStackTrace();
-					throw new IllegalArgumentException("failed to classify pair "+p, ex);
-				}
-			}
-			
-			return pairBestToReturnAsRed;
 		}
 		
 		public static class TrueFalseCounter implements Serializable
@@ -1065,11 +991,11 @@ public class PairQualityLearner
 				return "[unknown: "+unknownCounter+", predicted: "+predictedCounter+", not predicted: "+notpredictedCounter+"]";						
 			}
 			
-			public void updateUsingWeka(LearnerThatUsesWekaResults learner, List<PairScore> pairs,List<PairScore> selectedPairs, int classToUse)
+			public void updateUsingWeka(LearnerThatUsesWekaResults learner, List<PairScore> selectedPairs, int classToUse)
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classToUse);
+					long quality = learner.classifyPairAfterItWasClassified(p,classToUse);
 					if (quality == unknown)
 						unknownCounter++;
 					else
@@ -1096,11 +1022,11 @@ public class PairQualityLearner
 			}
 			
 			/** Counts the number of times a pair is predicted as positive by Markov and as a not-a-negative by Weka. */
-			public void updatePositiveBoth(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> pairs,List<PairScore> selectedPairs, int classForNeg)
+			public void updatePositiveBoth(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> selectedPairs, int classForNeg)
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
 					if (quality < 0 && helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else
@@ -1108,11 +1034,11 @@ public class PairQualityLearner
 				}
 			}
 			/** Counts the number of times a pair is predicted as positive by Markov and as a not-a-negative by Weka. */
-			public void updateNegativeBoth(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> pairs,List<PairScore> selectedPairs, int classForNeg)
+			public void updateNegativeBoth(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> selectedPairs, int classForNeg)
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
 					if (quality >= 0 && helper.computeScoreBasedOnInconsistencies(p) < 0)
 						predictedCounter++;
 					else
@@ -1120,11 +1046,11 @@ public class PairQualityLearner
 				}
 			}
 			/** Counts the number of times a pair is predicted as positive by Markov and as a not-a-negative by Weka. */
-			public void updatePositiveEither(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> pairs,List<PairScore> selectedPairs, int classForNeg)
+			public void updatePositiveEither(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> selectedPairs, int classForNeg)
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,pairs,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
 					if (quality < 0 || helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else
@@ -1149,14 +1075,14 @@ public class PairQualityLearner
 						"posEP: "+wmPosEitherCorrect+", posEW: "+wmPosEitherWrong;
 			}
 
-			public synchronized void update(LearnerThatUsesWekaResults learner, MarkovHelper markovHelper,List<PairScore> pairs,List<PairScore> correctPairs,List<PairScore> wrongPairs)
+			public synchronized void update(LearnerThatUsesWekaResults learner, MarkovHelper markovHelper,List<PairScore> correctPairs,List<PairScore> wrongPairs)
 			{
 				
-				wekaCorrect.updateUsingWeka(learner,pairs,correctPairs, learner.classTrue);wekaWrong.updateUsingWeka(learner,pairs,wrongPairs,learner.classFalse);
+				wekaCorrect.updateUsingWeka(learner,correctPairs, learner.classTrue);wekaWrong.updateUsingWeka(learner,wrongPairs,learner.classFalse);
 				markovCorrect.updateUsingMarkov(markovHelper, correctPairs, true);markovWrong.updateUsingMarkov(markovHelper, wrongPairs, false);
-				wmPlusCorrect.updatePositiveBoth(learner,markovHelper,pairs,correctPairs, learner.classFalse);wmPlusWrong.updatePositiveBoth(learner,markovHelper,pairs,wrongPairs, learner.classFalse);
-				wmMinusCorrect.updateNegativeBoth(learner,markovHelper,pairs,correctPairs, learner.classFalse);wmMinusWrong.updateNegativeBoth(learner,markovHelper,pairs,wrongPairs, learner.classFalse);
-				wmPosEitherCorrect.updatePositiveEither(learner,markovHelper,pairs,correctPairs, learner.classFalse);wmPosEitherWrong.updatePositiveEither(learner,markovHelper,pairs,wrongPairs, learner.classFalse);
+				wmPlusCorrect.updatePositiveBoth(learner,markovHelper,correctPairs, learner.classFalse);wmPlusWrong.updatePositiveBoth(learner,markovHelper,wrongPairs, learner.classFalse);
+				wmMinusCorrect.updateNegativeBoth(learner,markovHelper,correctPairs, learner.classFalse);wmMinusWrong.updateNegativeBoth(learner,markovHelper,wrongPairs, learner.classFalse);
+				wmPosEitherCorrect.updatePositiveEither(learner,markovHelper,correctPairs, learner.classFalse);wmPosEitherWrong.updatePositiveEither(learner,markovHelper,wrongPairs, learner.classFalse);
 				if (updateCounter++ == 100)
 				{
 					updateCounter = 0;
@@ -1285,44 +1211,12 @@ public class PairQualityLearner
 
 					if (par.classifierToChooseWhereNoMergeIsAppropriate)
 					{
-						PairScore worstPair = getPairToBeLabelledRed(pairs,coregraph);
-						if (worstPair != null)
-						{
-							stateToLabelRed = worstPair.getQ();
-
-							long highestScore=-1;
-							for(PairScore p:pairs)
-								if (p.getScore() > highestScore) highestScore = p.getScore();
-							{
-								List<PairScore> pairOfInterest = Arrays.asList(new PairScore[]{worstPair});
-								List<PairScore> correctPairs = new ArrayList<PairScore>(pairOfInterest.size()), wrongPairs = new ArrayList<PairScore>(pairOfInterest.size());
-								LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
-								if (!correctPairs.isEmpty())
-								{// this one is checking the list of wrong pairs because we aim to check that the pair chosen is not the right one to merge
-									System.out.println("resolvePotentialDeadEnd: pair forced red: "+stateToLabelRed+" pair: "+worstPair+" max score: "+highestScore+(wrongPairs.isEmpty()?" THAT IS INCORRECT":""));
-									getPairToBeLabelledRed(pairs,coregraph);
-								}
-							}
-
-						}
-						else
-						{// worstpair == null, implying that there is at least one ok pair to merge.
-							List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
-							LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
-							if (correctPairs.isEmpty())
-							{
-								System.out.println("neither pair is correct in "+pairs);
-								getPairToBeLabelledRed(pairs,coregraph);
-							}
-						}
-
-						/*
 						List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
 						if (predictionQuality != null)
 						{
 							dataCollector.buildSetsForComparators(pairs,coregraph);
-							predictionQuality.update(LearnerThatUsesWekaResults.this,markovHelper,pairs,correctPairs,wrongPairs);
+							predictionQuality.update(LearnerThatUsesWekaResults.this,markovHelper,correctPairs,wrongPairs);
 						}
 						stateToLabelRed = selectRedStateIfAnySeemsRedEnough(pairs,coregraph,null);
 						long highestScore=-1;
@@ -1335,7 +1229,7 @@ public class PairQualityLearner
 							if (!possiblyReds.contains(stateToLabelRed))
 							{// this one is checking the list of wrong pairs because we aim to check that the pair chosen is not the right one to merge
 								System.out.println("resolvePotentialDeadEnd: state "+stateToLabelRed+" is incorrectly made red, correct reds are "+possiblyReds+"  max score: "+highestScore);
-								//selectRedStateIfAnySeemsRedEnough(pairs,coregraph,stateToLabelRed);
+								selectRedStateIfAnySeemsRedEnough(pairs,coregraph,stateToLabelRed);
 							}
 								
 						}
@@ -1347,7 +1241,6 @@ public class PairQualityLearner
 								//selectRedStateIfAnySeemsRedEnough(pairs,coregraph,wrongPairs.get(0).getQ());
 							}
 						}		
-						 */
 						//System.out.println("resolvePotentialDeadEnd: number of states considered = "+pairs.size()+" number of reds: "+reds.size()+(worstPair != null?(" pair chosen as the worst: "+worstPair):""));
 					}
 					return stateToLabelRed;// resolution depends on whether Weka has successfully guessed that all pairs are wrong.
@@ -1387,13 +1280,13 @@ public class PairQualityLearner
 					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 					
 					{
-						Collection<PairScore> classifiedPairs = classifyAllPairsInList(origPairs);
+						Collection<PairScore> classifiedPairs = classifyAllPairs(origPairs);
 						List<PairScore> correctPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size()), wrongPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size());
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, classifiedPairs, correctPairsFromAll, wrongPairsFromAll);
 						if (predictionQuality != null)
 						{
 							dataCollector.buildSetsForComparators(origPairs,graph);
-							predictionQuality.update(LearnerThatUsesWekaResults.this,markovHelper,origPairs,correctPairsFromAll,wrongPairsFromAll);
+							predictionQuality.update(LearnerThatUsesWekaResults.this,markovHelper,correctPairsFromAll,wrongPairsFromAll);
 						}					
 					}
 					

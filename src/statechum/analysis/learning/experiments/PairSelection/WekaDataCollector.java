@@ -767,9 +767,21 @@ public class WekaDataCollector
 			return att;
 		}
 		
+		/** Constructs a nominal attribute using the provided values.
+		 * @param name attribute name
+		 * @param range possible values for the attribute. 
+		 */
 		protected PairRankingSupport(String name, String [] range)
 		{
 			att = new Attribute(name,Arrays.asList(range));
+		}
+
+		/** Constructs a numeric attribute using the provided values.
+		 * @param name attribute name
+		 */
+		protected PairRankingSupport(String name)
+		{
+			att = new Attribute(name);
 		}
 
 		@Override

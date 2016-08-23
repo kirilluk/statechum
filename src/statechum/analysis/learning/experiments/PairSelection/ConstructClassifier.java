@@ -68,7 +68,227 @@ import weka.core.Utils;
 
 public class ConstructClassifier 
 {
-	public static class NearestClassifier extends AbstractClassifier
+	
+	public static class PosNeg implements Serializable
+	{
+		/**
+		 * ID for serialisation
+		 */
+		private static final long serialVersionUID = -5672965229484999993L;
+		double aboveZero=0,zero=0;
+
+		public PosNeg(double aZ,double z)
+		{
+			aboveZero = aZ;zero = z;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "PosNeg("+aboveZero+","+zero+")";
+		}
+		
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			long temp;
+			temp = Double.doubleToLongBits(aboveZero);
+			result = prime * result + (int) (temp ^ (temp >>> 32));
+			temp = Double.doubleToLongBits(zero);
+			result = prime * result + (int) (temp ^ (temp >>> 32));
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			PosNeg other = (PosNeg) obj;
+			//if (Double.doubleToLongBits(aboveZero) != Double.doubleToLongBits(other.aboveZero))
+			if (Math.abs(aboveZero-other.aboveZero) > Configuration.fpAccuracy)
+				return false;
+			if (Math.abs(zero-other.zero) > Configuration.fpAccuracy)
+				return false;
+			return true;
+		}
+	}
+
+	public static abstract class NominalAttributeClassifier extends AbstractClassifier
+	{
+		/**
+		 *  ID for serialisation
+		 */
+		private static final long serialVersionUID = -8407270538306744387L;
+		
+		protected int attrValueForTrue,attrValueForFalse;
+		
+		/** Returns the position of the 'true' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
+		 */
+		public int posForTrue()
+		{
+			return attrValueForTrue;
+		}
+		
+		/** Returns the position of the 'false' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
+		 */
+		public int posForFalse()
+		{
+			return attrValueForFalse;
+		}
+		
+		protected static int getIndexFor(Attribute classAttr, String forWhat)
+		{
+			for(int i=0;i<classAttr.numValues();++i)
+				if (classAttr.value(i).equalsIgnoreCase(forWhat))
+					return i;
+			
+			throw new IllegalArgumentException("failed to fine value for \""+forWhat+"\"");
+		}
+
+		public abstract PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception;
+		
+		@Override
+		public double classifyInstance(Instance instance) throws Exception 
+		{
+			PosNeg values = classifyInstanceAsPosNeg(instance);
+			if (values.aboveZero> values.zero)
+				return 1.0;
+			else
+				return 0.0;
+		}
+		
+		@Override
+		public double[] distributionForInstance(Instance instance) throws Exception 
+		{
+			PosNeg values = classifyInstanceAsPosNeg(instance);
+			double[] outcome = new double[]{values.zero,values.aboveZero};
+			return outcome;			
+		}
+	}
+	
+	public static class PickBestAttributeClassifier extends NominalAttributeClassifier
+	{
+		/**
+		 * Value for serialisation.
+		 */
+		private static final long serialVersionUID = 469870791295294824L;
+
+		public static boolean isInstanceAccept(Instance instance) 
+		{
+			return Boolean.parseBoolean(instance.stringValue(instance.classIndex()));
+		}
+
+		/** Attribute that is best for learning. */
+		int bestAttribute = 0;
+		/** Whether the positive value of the attribute should be seen as a predictor for a classifier returning a positive value of an attribute. */
+		boolean positivePredictsAboveZero;
+		
+		private PosNeg attributeDataPos, attributeDataNeg;
+		private PosNeg attributeClassificationUnknown = new PosNeg(0.5,0.5);
+		
+		/** We would like a classifier that returns true/false most of the time. 
+		 * This is the maximal %% of instances where a classifier is permitted to say 'unknown'. 
+		 * Attributes where WekaDataCollector.ZERO account for more than this percentage are ignored.
+		 */
+		double percentageInstancesIgnoredByAttribute=1.0;//0.3;
+		
+		
+		private static boolean attributeValuePositive(String value)
+		{
+			return value == WekaDataCollector.ONE || value == WekaDataCollector.TWO;
+		}
+		
+		private static boolean attributeValueNegative(String value)
+		{
+			return value == WekaDataCollector.MINUSONE || value == WekaDataCollector.MINUSTWO;
+		}
+		
+		@Override
+		public void buildClassifier(Instances data) throws Exception 
+		{
+			Attribute classAttr = data.attribute(data.classIndex());
+			if (classAttr.numValues() != 2)
+				throw new IllegalArgumentException("class should have exactly two values, {true,false}");
+			attrValueForTrue = getIndexFor(classAttr,"true");attrValueForFalse = getIndexFor(classAttr,"false");
+
+			PosNeg classificationPos[]=new PosNeg[data.numAttributes()];// counts the number of positive values of the attribute that match a specific classification.
+			PosNeg classificationNeg[]=new PosNeg[data.numAttributes()];// counts the number of negative values of the attribute that match a specific classification.
+			for(int attr=0;attr<data.numAttributes();++attr)
+			{
+				classificationPos[attr]=new PosNeg(0,0);classificationNeg[attr]=new PosNeg(0,0);
+			}
+			
+			for(int instanceid=0;instanceid < data.numInstances();++instanceid)
+			{
+				Instance instance = data.get(instanceid);
+				for(int attr=0;attr<data.numAttributes();++attr)
+				{
+					String value = instance.stringValue(attr);
+					
+					if (attributeValuePositive(value))
+					{
+						if (instance.classValue() > 0)
+							++classificationPos[attr].aboveZero;
+						else
+							++classificationPos[attr].zero;
+					}
+					else
+						if (attributeValueNegative(value))
+						{
+							if (instance.classValue() > 0)
+								++classificationNeg[attr].aboveZero;
+							else
+								++classificationNeg[attr].zero;
+						}
+						
+				}
+			}
+			double bestPerformance = -1;
+			final double numNonZeroInstancesToConsiderAttribute = data.numInstances()*(1-percentageInstancesIgnoredByAttribute);
+			// With information for all the instances collected, we pick an attribute that is likely to perform the best.
+			for(int attr=0;attr<data.numAttributes();++attr)
+			{
+				PosNeg pos = classificationPos[attr], neg = classificationNeg[attr];
+				double performance = 0;
+				if (pos.aboveZero > pos.zero)
+					performance = Math.min(ConfusionMatrix.divide(pos.aboveZero, pos.aboveZero+pos.zero),ConfusionMatrix.divide(neg.zero, neg.aboveZero+neg.zero));
+				else
+					performance = Math.min(ConfusionMatrix.divide(pos.zero, pos.aboveZero+pos.zero),ConfusionMatrix.divide(neg.aboveZero, neg.aboveZero+neg.zero));
+				
+				if (performance > bestPerformance && pos.aboveZero+pos.zero+neg.aboveZero+neg.zero > numNonZeroInstancesToConsiderAttribute)
+				{
+					bestPerformance = performance; 
+					bestAttribute = attr;
+					attributeDataPos = pos;attributeDataNeg = neg;
+					if (pos.aboveZero > pos.zero)
+						positivePredictsAboveZero = true;
+				}
+			}
+			if (bestPerformance <= 0)
+				throw new IllegalArgumentException("invalid training data - the classifier could not pick an attribute that is good enough");
+			System.out.println("PickBestAttributeClassifier: best attr is "+data.attribute(bestAttribute).name()+" with performance at "+bestPerformance);
+		}
+
+		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
+		{
+			String value = instance.stringValue(bestAttribute);
+			if (attributeValuePositive(value))
+				return attributeDataPos;
+			else
+				if (attributeValueNegative(value))
+					return attributeDataNeg;
+				else
+					return attributeClassificationUnknown;
+		}
+		
+	}
+	
+	public static class NearestClassifier extends NominalAttributeClassifier
 	{
 		/**
 		 * Value for serialisation.
@@ -131,85 +351,11 @@ public class ConstructClassifier
 			//	array[offset+(classAttrInTrainingDataArray/attributesPerLong)] |= (instance.classValue()>0?1:0) << (bitsPerAttribute* (classAttrInTrainingDataArray & bitMask) );
 		}
 		
-		public static class PosNeg implements Serializable
-		{
-			/**
-			 * ID for serialisation
-			 */
-			private static final long serialVersionUID = -5672965229484999993L;
-			double aboveZero=0,zero=0;
-
-			public PosNeg(double aZ,double z)
-			{
-				aboveZero = aZ;zero = z;
-			}
-			
-			@Override
-			public String toString()
-			{
-				return "PosNeg("+aboveZero+","+zero+")";
-			}
-			
-			@Override
-			public int hashCode() {
-				final int prime = 31;
-				int result = 1;
-				long temp;
-				temp = Double.doubleToLongBits(aboveZero);
-				result = prime * result + (int) (temp ^ (temp >>> 32));
-				temp = Double.doubleToLongBits(zero);
-				result = prime * result + (int) (temp ^ (temp >>> 32));
-				return result;
-			}
-
-			@Override
-			public boolean equals(Object obj) {
-				if (this == obj)
-					return true;
-				if (obj == null)
-					return false;
-				if (getClass() != obj.getClass())
-					return false;
-				PosNeg other = (PosNeg) obj;
-				//if (Double.doubleToLongBits(aboveZero) != Double.doubleToLongBits(other.aboveZero))
-				if (Math.abs(aboveZero-other.aboveZero) > Configuration.fpAccuracy)
-					return false;
-				if (Math.abs(zero-other.zero) > Configuration.fpAccuracy)
-					return false;
-				return true;
-			}
-		}
-		
 		public int getTrainingSize()
 		{
 			return instanceNumber;
 		}
-		
-		protected int attrValueForTrue,attrValueForFalse;
-		
-		/** Returns the position of the 'true' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
-		 */
-		public int posForTrue()
-		{
-			return attrValueForTrue;
-		}
-		
-		/** Returns the position of the 'false' value in the distribution returned by {@link ConstructClassifier#distributionForInstance()}
-		 */
-		public int posForFalse()
-		{
-			return attrValueForFalse;
-		}
-		
-		private static int getIndexFor(Attribute classAttr, String forWhat)
-		{
-			for(int i=0;i<classAttr.numValues();++i)
-				if (classAttr.value(i).equalsIgnoreCase(forWhat))
-					return i;
-			
-			throw new IllegalArgumentException("failed to fine value for \""+forWhat+"\"");
-		}
-		
+				
 		/** Contains the least upper bound on the number of matched attributes where the result of match has no ambiguity. */
 		long thresholdForUnambiguousResults = 0;
 		
@@ -354,15 +500,6 @@ public class ConstructClassifier
 			return value;
 		}
 
-		@Override
-		public double classifyInstance(Instance instance) throws Exception 
-		{
-			PosNeg values = classifyInstanceAsPosNeg(instance);
-			if (values.aboveZero> values.zero)
-				return 1.0;
-			else
-				return 0.0;
-		}
 		
 		public String classifyInstanceString(Instance instance) throws Exception
 		{
@@ -374,13 +511,6 @@ public class ConstructClassifier
 			return Boolean.parseBoolean(classifyInstanceString(instance));
 		}
 		
-		@Override
-		public double[] distributionForInstance(Instance instance) throws Exception 
-		{
-			PosNeg values = classifyInstanceAsPosNeg(instance);
-			double[] outcome = new double[]{values.zero,values.aboveZero};
-			return outcome;			
-		}
 
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
@@ -581,7 +711,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 8;//16;
+		final int samplesPerFSM = 2;//16;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
@@ -589,7 +719,7 @@ public class ConstructClassifier
 		try
 		{
 			for(final int lengthMultiplier:new int[]{1})
-			for(final int ifDepth:new int []{1})
+			for(final int ifDepth:new int []{2})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
 					final int traceQuantity=10;
@@ -756,9 +886,11 @@ public class ConstructClassifier
 						//final weka.classifiers.lazy.IB1 ib1 = new weka.classifiers.lazy.IB1();
 						//final weka.classifiers.trees.J48 j48classifier = new weka.classifiers.trees.J48();
 						//final weka.classifiers.lazy.IBk ibk = new weka.classifiers.lazy.IBk(1);
-						final Classifier classifier = //new NearestClassifier();
+						final Classifier classifier =
+								new PickBestAttributeClassifier();
+								//new NearestClassifier();
 								//new weka.classifiers.trees.J48();
-								new weka.classifiers.trees.REPTree();
+								//new weka.classifiers.trees.REPTree();
 						classifier.buildClassifier(globalDataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+globalDataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)

@@ -711,7 +711,7 @@ public class ConstructClassifier
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
 		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
-		final int samplesPerFSM = 2;//16;
+		final int samplesPerFSM = 8;//16;
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
@@ -719,7 +719,7 @@ public class ConstructClassifier
 		try
 		{
 			for(final int lengthMultiplier:new int[]{1})
-			for(final int ifDepth:new int []{2})
+			for(final int ifDepth:new int []{-2})
 			for(final boolean onlyPositives:new boolean[]{true})
 			{
 					final int traceQuantity=10;
@@ -771,31 +771,34 @@ public class ConstructClassifier
 							globalDataCollector.trainingData.addAll(w.trainingData);// pool all the training data.
 						
 						// we are here because the outcome of all experiments submitted so far has been obtained, it is therefore time to construct classifiers from the logged pair information.
+						
 						int nonZeroes = 0;
 						long numberOfValues = 0;
 						System.out.println("number of instances: "+globalDataCollector.trainingData.numInstances());
-						int freqData[] = new int[globalDataCollector.attributesOfAnInstance.length];
-						for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
-							for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
-							{
-								assert globalDataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
-								if (globalDataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
+						if (!globalDataCollector.getUseNumericalAttributes())
+						{
+							int freqData[] = new int[globalDataCollector.attributesOfAnInstance.length];
+							for(int i=0;i<globalDataCollector.trainingData.numInstances();++i)
+								for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
 								{
-									++freqData[attrNum];++numberOfValues;
+									assert globalDataCollector.attributesOfAnInstance[attrNum].index() == attrNum;
+									if (globalDataCollector.trainingData.instance(i).stringValue(attrNum) != WekaDataCollector.ZERO)
+									{
+										++freqData[attrNum];++numberOfValues;
+									}
 								}
-							}
-						for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
-							if (freqData[attrNum]>0) 
-								++nonZeroes;
-
-						List<Pair<Integer,Integer>> sortedFreq = new ArrayList<Pair<Integer,Integer>>(globalDataCollector.attributesOfAnInstance.length);
-						for(int i=0;i<globalDataCollector.attributesOfAnInstance.length;++i) sortedFreq.add(new Pair<Integer,Integer>(freqData[i],i));
-						sortedFreq.sort(new Comparator<Pair<Integer,Integer>>() {
-
-							@Override
-							public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
-								return -o1.compareTo(o2);
-							}});
+							for(int attrNum=0;attrNum<globalDataCollector.attributesOfAnInstance.length;++attrNum)
+								if (freqData[attrNum]>0) 
+									++nonZeroes;
+	
+							List<Pair<Integer,Integer>> sortedFreq = new ArrayList<Pair<Integer,Integer>>(globalDataCollector.attributesOfAnInstance.length);
+							for(int i=0;i<globalDataCollector.attributesOfAnInstance.length;++i) sortedFreq.add(new Pair<Integer,Integer>(freqData[i],i));
+							sortedFreq.sort(new Comparator<Pair<Integer,Integer>>() {
+	
+								@Override
+								public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+									return -o1.compareTo(o2);
+								}});
 						/*
 						int attributesToKeep = 0;//nonZeroes/10;
 						if (attributesToKeep > 0)
@@ -828,22 +831,24 @@ public class ConstructClassifier
 						System.out.println("Total instances: "+globalDataCollector.trainingData.numInstances()+" with "+globalDataCollector.attributesOfAnInstance.length+" attributes, non-zeroes are "+
 								nonZeroes+" with average of "+((double)numberOfValues)/nonZeroes+" of attributes"+(attributesToKeep>0? (", "+attributesToKeep+" were kept"):""));
 						*/
-						Arrays.sort(freqData);
-						int numOfcolumns=20;
-						int stepWidth = globalDataCollector.attributesOfAnInstance.length/numOfcolumns;
-						
-						final RBoxPlot<Long> gr_HistogramOfAttributeValues = new RBoxPlot<Long>("Attributes","Number of values",new File(outPathPrefix+parExperiment.getExperimentID()+"_attributes_use"+".pdf"));
-						for(int i=0;i<numOfcolumns;++i)
-						{
-							int columnData=0;
-							for(int j=i*stepWidth;j<(i+1)*stepWidth;++j)
-								if (j < globalDataCollector.attributesOfAnInstance.length)
-									columnData+=freqData[j];
+							Arrays.sort(freqData);
+							int numOfcolumns=20;
+							int stepWidth = globalDataCollector.attributesOfAnInstance.length/numOfcolumns;
 							
-							gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
+							final RBoxPlot<Long> gr_HistogramOfAttributeValues = new RBoxPlot<Long>("Attributes","Number of values",new File(outPathPrefix+parExperiment.getExperimentID()+"_attributes_use"+".pdf"));
+							for(int i=0;i<numOfcolumns;++i)
+							{
+								int columnData=0;
+								for(int j=i*stepWidth;j<(i+1)*stepWidth;++j)
+									if (j < globalDataCollector.attributesOfAnInstance.length)
+										columnData+=freqData[j];
+								
+								gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
+							}
+							//gr_HistogramOfAttributeValues.drawInteractive(gr);
+							gr_HistogramOfAttributeValues.reportResults(gr);
 						}
-						//gr_HistogramOfAttributeValues.drawInteractive(gr);
-						gr_HistogramOfAttributeValues.reportResults(gr);
+						
 						
 						// write arff
 						FileWriter wekaInstances = null;
@@ -878,6 +883,50 @@ public class ConstructClassifier
 								}
 						}
 						
+						FileWriter csvInstances = null;
+						String csvToWrite = outDir+File.separator+parExperiment.getExperimentID()+".csv";
+						try
+						{
+							csvInstances = new FileWriter(csvToWrite);
+							csvInstances.append("c1,c2,class\n");
+						    for (int i = 0; i < globalDataCollector.trainingData.numInstances(); i++) 
+						    {
+						    	Instance instance = globalDataCollector.trainingData.instance(i);
+
+						    	int value = (int)instance.classValue();
+								int indexOfTrue = instance.classAttribute().indexOfValue(Boolean.TRUE.toString());
+								
+						    	csvInstances.append(Double.toString(instance.value(0)));csvInstances.append(',');
+						    	//csvInstances.append(Double.toString(instance.value(1)/PairQualityLearner.kfromab_multiplier));csvInstances.append(',');
+						    	csvInstances.append(Double.toString(instance.value(2)/PairQualityLearner.kfromab_multiplier));csvInstances.append(',');
+						    	csvInstances.append(Boolean.toString(value == indexOfTrue));csvInstances.append('\n');
+						    }		
+						    
+						    /* Drawing the plots involves calling the following:
+						     * mydata = read.csv("C:\\Users\\Kirill\\git\\statechum\\tmp\\LearningWithClassifiers\\POS_tQU=10_tM=1_tAMr=1_tDM=2.0_[Num_G=0.2_I=0.0_P_0_cl=3_w1.0].csv")
+						     * f=subset(mydata,class=="false")
+						     * t=subset(mydata,class=="true")
+						     * t=data.frame(t$c1,t$c2)
+						     * f=data.frame(f$c1,f$c2)
+						     * plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
+						     * par(new=TRUE)
+						     * plot(as.vector(f[[1]]),as.vector(f[[2]]) , type = "p",col="red",xlim=range(0,20), ylim=range(0, 20))
+						     */
+						    
+						}
+						catch(Exception ex)
+						{
+							Helper.throwUnchecked("failed to create a file with training data for "+csvToWrite, ex);
+						}
+						finally
+						{
+							if (csvInstances != null)
+								try {
+									csvInstances.close();
+								} catch (IOException e) {
+									// ignore this, we are not proceeding anyway due to an earlier exception so whether the file was actually written does not matter
+								}
+						}
 						// Run the evaluation
 						//final weka.classifiers.trees.REPTree repTree = new weka.classifiers.trees.REPTree();repTree.setMaxDepth(4);
 						//repTree.setNoPruning(true);// since we only use the tree as a classifier (as a conservative extension of what is currently done) and do not actually look at it, elimination of pruning is not a problem. 
@@ -891,6 +940,7 @@ public class ConstructClassifier
 								//new NearestClassifier();
 								//new weka.classifiers.trees.J48();
 								//new weka.classifiers.trees.REPTree();
+						/*
 						classifier.buildClassifier(globalDataCollector.trainingData);
 						System.out.println("Entries in the classifier: "+globalDataCollector.trainingData.numInstances());
 						if (classifier instanceof NearestClassifier)
@@ -898,6 +948,8 @@ public class ConstructClassifier
 							System.out.println("Reduced entries in the classifier: "+((NearestClassifier)classifier).getTrainingSize());
 							System.out.println("Threshold for unambiguous: "+((NearestClassifier)classifier).getThresholdForUnambiguousResults());
 						}
+						*/
+						
 						/*
 						int itersCount = 0;
 						long endTime = System.nanoTime()+1000000000*10L;// 10 sec
@@ -911,6 +963,7 @@ public class ConstructClassifier
 						*/
 						//System.out.println("evaluation of the classifier: "+evaluateClassifier(classifier,globalDataCollector));
 						
+						/*
 						List<Instances> trainingDataComponents = new ArrayList<Instances>();for(WekaDataCollector c:listOfCollectors) trainingDataComponents.add(c.trainingData);
 						evaluateClassifierOnDataFromIndividualInstances(classifier,trainingDataComponents);
 						
@@ -923,7 +976,7 @@ public class ConstructClassifier
 		                    oo.writeObject(classifier);
 		                    os.close();
 						}
-						
+						*/
 /*
 						{
 							InputStream inputStream = new FileInputStream(outPathPrefix+parExperiment.getExperimentID()+".ser");

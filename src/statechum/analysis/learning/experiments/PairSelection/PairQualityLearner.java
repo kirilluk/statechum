@@ -197,7 +197,7 @@ public class PairQualityLearner
 		@Override
 		public String toString()
 		{
-			return "["+ifDepth+(graphIsPTA?"_PTA":"")+"_G="+Double.toString(good_vs_bad_diff)+"_I="+fraction_of_pairs_to_ignore+(peel?"_P":"_N")+"_"+markovParameters.getColumnID(true)+"]";
+			return "["+(ifDepth>=0?ifDepth:"Num")+(graphIsPTA?"_PTA":"")+"_G="+Double.toString(good_vs_bad_diff)+"_I="+fraction_of_pairs_to_ignore+(peel?"_P":"_N")+"_"+markovParameters.getColumnID(true)+"]";
 		}
 		
 		public DataCollectorParameters()
@@ -438,7 +438,8 @@ public class PairQualityLearner
 				@Override
 				public long getValue(PairScore p) {
 					long newFromBlue = newTransitionsFromStateB(tentativeGraph(), p.getR(), p.getQ());
-					return kFrom_ab(tentativeGraph().transitionMatrix.get(p.getR()).size(), newFromBlue);						
+					long currentFromRed = tentativeGraph().transitionMatrix.get(p.getR()).size();
+					return kFrom_ab(currentFromRed, newFromBlue);						
 				}
 	
 				@Override
@@ -454,7 +455,8 @@ public class PairQualityLearner
 			{// 13
 				@Override
 				public long getValue(PairScore p) {
-					return kFrom_ab(p.getScore(),classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore);
+					long inconsistency = classifier.measurementsObtainedFromPairs.get(p).inconsistencyScore;
+					return kFrom_ab(p.getScore(),inconsistency);
 				}
 	
 				@Override
@@ -464,9 +466,14 @@ public class PairQualityLearner
 			});
 		}
 
-		classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
+		if (parameters.ifDepth >= 0)
+			classifier.initialise("HindsightExperiment",400000,assessors,parameters.ifDepth);// capacity is an estimate, the actual capacity depends on the size of the experiment, more than 0.25mil take a while to build a classifier for.
+		else
+			classifier.initialise("HindsightExperiment",400000,assessors);
 		return classifier;
 	}
+	
+	public static final long kfromab_multiplier = 1000;
 	
 	/** Computes the  balance of two scores, the former indicating that a pair should be merged and another one that suggests it should not be. */
 	public static long kFrom_ab(long score, long b)
@@ -474,8 +481,8 @@ public class PairQualityLearner
 		if (score < 0)
 			return 0;
 		if (b <= 0)
-			return score*2;// in score/b computation where b is an integer, we inflate score to where b reflects perfection (<= 0)
-		return score/b;
+			return kfromab_multiplier*score*2;// in score/b computation where b is an integer, we inflate score to where b reflects perfection (<= 0)
+		return kfromab_multiplier*score/b;
 	}
 	
 	/** Computes the number of transitions that are new to state b compared to state a. Assumes states a and b can be merged. */

@@ -141,6 +141,21 @@ public class MarkovHelper
 						new TreeMap<CmpVertex,Long>();
 	}
 	
+	
+	public long onlyComputeInconsistency(PairScore p)
+	{
+		if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+			return 0;
+		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+		long score= genScore;
+		if (genScore >= 0)
+		{			
+			score = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
+		}		
+		return score;
+	}
+	
 	public long computeScoreBasedOnInconsistencies(PairScore p) 
 	{
 		if(p.getQ().isAccept()==false && p.getR().isAccept()==false)

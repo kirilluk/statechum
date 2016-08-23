@@ -83,6 +83,9 @@ public class WekaDataCollector
 	}
 
 	protected int n,attrMult=2;
+
+	/** If this is false, uses nominal attributes determined by comparison of each pair with other pairs. Where it is false, uses numerical attributes and hence no filtering. */
+	protected boolean useNumericalAttributes = false;
 	
 	public void setEnableSD(boolean value)
 	{
@@ -90,6 +93,11 @@ public class WekaDataCollector
 			attrMult = 2;
 		else
 			attrMult = 1;
+	}
+	
+	public boolean getUseNumericalAttributes()
+	{
+		return useNumericalAttributes;
 	}
 	
 	/** Number of values for attributes to consider. This means where a pair scores at the top or at the bottom of a list of pairs according to each attribute from comparators.size(); pairs with values outside SD are recorded but not used for splitting to reduce the amount of data thrown at the machine learner. */
@@ -104,7 +112,9 @@ public class WekaDataCollector
 	}
 	
 	/**
-	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
+	 * Completes construction of an instance of pair classifier. Entries reflect relative values of attributes in each collection of pairs.
+	 * 
+	 * Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
 	 * @param trainingSetName the name for a training set.
 	 * @param capacity the maximal number of elements in the training set
@@ -141,6 +151,7 @@ public class WekaDataCollector
 			prev_section_size = currentSectionSize;
 		}
 		instanceLength = (int)instanceLen;
+		useNumericalAttributes = false;
 
 		boolean [] uniqueArray = new boolean[instanceLength];
 		attributes = new ArrayList<Attribute>(instanceLength+1);
@@ -157,7 +168,41 @@ public class WekaDataCollector
 		fillinMask = new int[instanceLength];
 		Arrays.fill(fillinMask, fillin_FILL);
 	}
+	
+	/** Completes construction of an instance of pair classifier. 
+	 * The classifier will not do any relative ranking but will only collect numerical values from all attributes. 
+	 * 
+	 * Comparators contain attributes that are tied into the training set when it is constructed in this method.
+	 * 
+	 * @param trainingSetName the name for a training set.
+	 * @param capacity the maximal number of elements in the training set
+	 * @param argAssessor a collection of assessors to use.
+	 */
+	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor)
+	{
+		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
+		
+		pairValues = new ArrayList<PairEvaluator>(argAssessor.size());
+		for(PairRank pr:argAssessor)
+			pairValues.add(new PairEvaluator(pr));
 
+		maxLevel = 0;attrMult=1;
+
+		n = pairValues.size();// the number of indices we go through
+		instanceLength = n;
+		useNumericalAttributes = true;
+		
+		attributes = new ArrayList<Attribute>(instanceLength+1);
+		for(int i=0;i<instanceLength;++i)
+			attributes.add(pairValues.get(i).getAttribute());
+		attributes.add(classAttribute);
+		trainingData = new Instances(trainingSetName,attributes,capacity);
+		trainingData.setClass(classAttribute);
+		
+		fillinMask = new int[instanceLength];
+		Arrays.fill(fillinMask, fillin_FILL);
+	}
+	
 	public void setBlock(int attr)
 	{
 		fillinMask[attr]=fillin_MASKED;
@@ -277,8 +322,16 @@ public class WekaDataCollector
 	public double []constructInstanceValuesBasedOnComparisonResults(int []comparisonResults, boolean classification)
 	{
 		double []instanceValues=new double[instanceLength+1];
-		for(int i=0;i<instanceLength;++i)
-			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
+		if (useNumericalAttributes)
+		{
+			for(int i=0;i<instanceLength;++i)
+				instanceValues[i]=comparisonResults[i];
+		}
+		else
+		{
+			for(int i=0;i<instanceLength;++i)
+				instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
+		}
 		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
 		return instanceValues;
 	}
@@ -326,6 +379,7 @@ public class WekaDataCollector
 
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
+	protected List<PairEvaluator> pairValues;
 	
 	protected final MarkovHelper markovHelper;
 	
@@ -358,7 +412,7 @@ public class WekaDataCollector
 			if (dataCollectorParameters.graphIsPTA)
 				m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
 			if (markovHelper!= null)
-				m.inconsistencyScore = markovHelper.computeScoreBasedOnInconsistencies(pair);
+				m.inconsistencyScore = markovHelper.onlyComputeInconsistency(pair);
 			tentativeGraph.config.setLearnerScoreMode(origScore);
 			measurementsObtainedFromPairs.put(pair,m);
 		}
@@ -367,21 +421,8 @@ public class WekaDataCollector
 		buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredCollectionOfPairs,pairs);
 	}
 	
-	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
-	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
-	 * @param measurements where to store the result of measurement.
-	 * @param pairs pairs to build sets for.
-	 */
-	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
+	void buildAuxiliarySets(Collection<PairScore> pairs)
 	{
-		measurements.measurementsForComparators.clear();
-		if (measurements.valueAverage.length < n)
-			measurements.valueAverage = new double[n];
-		if (measurements.valueSD.length < n)
-			measurements.valueSD = new double[n];
-		
-		Arrays.fill(measurements.valueAverage, 0);Arrays.fill(measurements.valueSD, 0);
-		
 		// prepare auxiliary information that is supposed to be cached rather than recomputed by individual instances of comparators in measurementsForComparators 
 		for(PairScore pair:pairs)
 		{
@@ -396,6 +437,34 @@ public class WekaDataCollector
 			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
 			measurementsForFilteredCollectionOfPairs.measurementsForComparators.put(pair, m);
 		}			
+	}
+	
+	protected void fillInNumericalEntry(int [] whatToFillIn,PairScore pair)
+	{
+		if (pairValues != null)
+		{
+			for(int i=0;i<pairValues.size();++i)
+			{
+				whatToFillIn[i] = (int) pairValues.get(i).getValue(pair);
+			}
+		}
+	}
+
+	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
+	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
+	 * @param measurements where to store the result of measurement.
+	 * @param pairs pairs to build sets for.
+	 */
+	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
+	{
+		measurements.measurementsForComparators.clear();
+		if (measurements.valueAverage.length < n)
+			measurements.valueAverage = new double[n];
+		if (measurements.valueSD.length < n)
+			measurements.valueSD = new double[n];
+		
+		Arrays.fill(measurements.valueAverage, 0);Arrays.fill(measurements.valueSD, 0);
+		buildAuxiliarySets(pairs);
 
 		// now run comparators. These obtain values based both on filtered an unfiltered values.
 		if (assessors != null)
@@ -416,7 +485,7 @@ public class WekaDataCollector
 	}
 
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values greater for some points and less for others. */
-	public static final int comparison_inconclusive=-10;
+	public static final int comparison_inconclusive=Integer.MIN_VALUE;
 	
 	/** Compares a pair with all others. 
 	 * 
@@ -690,6 +759,27 @@ public class WekaDataCollector
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
 	}
+
+	public void updateDatasetWithPairsNumericalValues(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	{
+		buildSetsForComparators(pairs,currentGraph);
+		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
+		if (!pairs.isEmpty())
+		{
+			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
+		}
+		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
+		
+		for(PairScore p:pairsToConsider)
+		{
+			int []comparisonResults = new int[instanceLength];
+			boolean correctPair = correctPairs.contains(p);
+			fillInNumericalEntry(comparisonResults,p);
+			
+			trainingData.add(constructInstance(comparisonResults, correctPair));
+		}
+	}
 	
 	/** Returns next pair that has the most number of attributes set to non-zero. 
 	 * 
@@ -730,6 +820,14 @@ public class WekaDataCollector
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
 	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	{
+		if (useNumericalAttributes)
+			updateDatasetWithPairsNumericalValues(pairs,currentGraph,correctGraph);
+		else
+			updateDatasetWithPairsByPeeling(pairs,currentGraph,correctGraph);
+	}
+	
+	public void updateDatasetWithPairsByPeeling(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
 	{
 		buildSetsForComparators(pairs,currentGraph);
 		
@@ -818,7 +916,25 @@ public class WekaDataCollector
 		}
 	}
 	
-	/** {@link PairComparator} permits one to compare pairs with each other. This one aims to give a rank to each pair in a collection of pairs, by either retrieving specific attributes or 
+	/** Computes values of numerical attributes for evaluation of pairs. */
+	public class PairEvaluator extends PairRankingSupport
+	{
+		protected final PairRank assessor;
+		
+		protected PairEvaluator(PairRank argAssessor)
+		{
+			super(argAssessor.getAttribute().name());assessor = argAssessor;
+		}
+		
+		public long getValue(PairScore pair)
+		{
+			return assessor.getValue(pair);
+		}
+	}
+
+	/** {@link PairComparator} permits one to compare pairs with each other. 
+	 * 
+	 * This one aims to give a rank to each pair in a collection of pairs, by either retrieving specific attributes or 
 	 * doing the average/standard deviation thresholding.
 	 */
 	public abstract class PairRank extends PairRankingSupport

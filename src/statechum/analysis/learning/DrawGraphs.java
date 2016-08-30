@@ -73,6 +73,7 @@
 // This file is based on rtest.java
 
 package statechum.analysis.learning;
+import java.awt.Color;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -87,6 +88,7 @@ import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -1158,8 +1160,136 @@ public class DrawGraphs {
 			if (!onlyCheckItParses)
 				add((ELEM) argValue,yValue,color,label);
 		}
-	}	
+	}
+	
+	/** Data points in a scatterplot. */
+	public final static class DataPoint
+	{
+		public final double x,y;
+		
+		public DataPoint(double a,double b)
+		{
+			x=a;y=b;
+		}
+	}
 
+	/** Makes it possible to construct a scatterplot of x/y values in a few colours (that it, it is a superimposed collection of two plots). It derives from {@link RExperimentResult} 
+	 * in order to benefit from the possibility of recording results to files. */
+	public static class ScatterPlot extends RExperimentResult<Double>
+	{
+		protected final String xAxis,yAxis;
+		
+		public ScatterPlot(String x, String y, File name) 
+		{
+			super(name);xAxis = x;yAxis = y;
+		}
+
+		protected final Map<String,Collection<DataPoint> > values = new TreeMap<String,Collection<DataPoint> >();
+ 
+		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
+		 * column of data values.
+		 * @param el identifier for the column
+		 * @param value value to be added to it
+		 * @param colour colour with which box plot values are to be shown
+		 * @param label label to show on the horizonal axis, empty string for no label.
+		 */
+		@Override
+		public synchronized void add(Double el,Double value, String colour, @SuppressWarnings("unused") String label)
+		{
+			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
+			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			
+			if (xMin != null && xMin.compareTo(el) > 0) return;
+			if (xMax != null && xMax.compareTo(el) < 0) return;
+			
+			add(el.doubleValue(),value.doubleValue(),colour);
+		}
+		
+		public synchronized void add(double x, double y, String colour)
+		{
+			Collection<DataPoint> valuesForColour = values.get(colour);
+			if (valuesForColour == null)
+			{
+				valuesForColour = new ArrayList<DataPoint>();values.put(colour,valuesForColour);
+			}
+			valuesForColour.add(new DataPoint(x,y));
+		}
+		
+		@SuppressWarnings("unused")
+		@Override
+		public void add(Double el, Double value) 
+		{
+			throw new UnsupportedOperationException("a colour is required");
+		}
+		
+		@Override
+		public void drawInteractive(DrawGraphs gr)
+		{
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			gr.drawInteractivePlot(drawingCommands, file.getName());
+		}
+
+		public static double plotSize = 4;
+		
+		@Override
+		public void reportResults(DrawGraphs gr)
+		{
+			if (values.size() > 0)
+			{
+				List<String> drawingCommands = new LinkedList<String>();
+				drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+				gr.drawPlot(drawingCommands, plotSize,plotSize,file);
+
+			}
+			else
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
+		}
+
+		/** Returns a command to draw a graph in R. */
+		public List<String> getDrawingCommand() 
+		{
+			List<String> outcome = new ArrayList<String>();
+			if (values.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
+			
+			// plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
+			boolean firstGraph = true;
+			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
+				if (!entry.getValue().isEmpty())
+				{
+					StringBuffer result = new StringBuffer();
+
+					if (firstGraph)
+						firstGraph = false;
+					else
+						outcome.add("par(new=TRUE)");
+
+					result.append("plot(c(");
+					boolean startVector = true;
+					for(DataPoint d:entry.getValue())
+					{
+						if (!startVector) result.append(",");else startVector=false;
+						result.append(d.x);
+					}
+					result.append("),c(");
+					startVector = true;
+					for(DataPoint d:entry.getValue())
+					{
+						if (!startVector) result.append(",");else startVector=false;
+						result.append(d.y);
+					}
+					result.append("),type = \"p\",col=\"");result.append(entry.getKey());result.append("\",xlab=\"");result.append(xAxis);result.append("\",ylab=\"");result.append(yAxis);
+					// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
+					result.append("\",axes=FALSE, frame.plot=TRUE)");
+					outcome.add(result.toString());
+				}
+			
+			return outcome;
+		}
+		
+	}
+	
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
 	{
 		protected final String xAxis,yAxis;
@@ -1637,15 +1767,6 @@ public class DrawGraphs {
 		public boolean checkSingleDot() {
 			return getSize().width < Configuration.fpAccuracy && getSize().height < Configuration.fpAccuracy;
 		}
-	}
-	
-	public static class ScatterPlot extends Graph2D
-	{
-
-		public ScatterPlot(String x, String y, File name) {
-			super(x, y, "plot", name);
-		}
-		
 	}
 	
 	/** Draws a square bag plot. */

@@ -26,6 +26,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.ScatterPlot;
 import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -1223,5 +1224,88 @@ public class TestDrawGraphs {
 				g.getDrawingCommand());
 	}
 
+
+	public static String arrayToString(List<String> a)
+	{
+		StringBuffer outcome = new StringBuffer();
+		boolean first = true;
+		for(String s:a)
+		{
+			if (first)
+				first = false;
+			else
+				outcome.append(',');
+			
+			outcome.append(s);
+		}
+		return outcome.toString();
+	}
 	
+	@Test
+	public void testDrawingScatterPlot1()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
+		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{"plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"})),arrayToString(plot.getDrawingCommand()));
+	}
+	
+	@Test
+	public void testDrawingScatterPlot2()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
+		plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
+		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{
+				"plot(c(0.0,0.0),c(0.5,1.5),type = \"p\",col=\"blue\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+				"par(new=TRUE)",
+				"plot(c(1.5),c(0.0),type = \"p\",col=\"green\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+				"par(new=TRUE)",
+				"plot(c(0.0,1.0,0.0,1.0,1.2),c(0.0,0.0,1.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"				
+		})),arrayToString(plot.getDrawingCommand()));
+	}
+	
+	@Test
+	public void testDrawingScatterFail()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			plot.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
+	}
+
+	@Test
+	public void testRunDrawingScatterPlot() throws IOException
+	{
+		final DrawGraphs gr = new DrawGraphs();
+
+		final String X="axisX", Y="axisY";
+		File output = new File(testDir,"out.pdf");
+		final ScatterPlot plot = new ScatterPlot(X, Y, output);
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
+		plot.reportResults(gr);
+		
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y});
+		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append(line);
+				for(String str:stringsOfInterest)
+					if (line.contains(str)) encounteredStrings.put(str,true);
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
+	}
 }

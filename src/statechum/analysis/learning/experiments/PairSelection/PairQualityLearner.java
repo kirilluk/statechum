@@ -254,7 +254,7 @@ public class PairQualityLearner
 				}
 			});
 		}
-		
+
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("size of tree rooted at Blue")
@@ -270,7 +270,7 @@ public class PairQualityLearner
 				}
 			});
 		}
-		
+
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("Number of alternatives with same red")
@@ -286,7 +286,7 @@ public class PairQualityLearner
 				}
 			});
 		}
-		
+
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("Depth of Blue")
@@ -302,7 +302,7 @@ public class PairQualityLearner
 				}
 			});
 		}
-		
+
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("Depth of Red")

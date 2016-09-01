@@ -203,7 +203,6 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		boolean outcome = false;
 		if (valueInMap == null)
 		{
-			//if (coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
 			if (useArrayMap)
 			{
 				where.put(label,target);

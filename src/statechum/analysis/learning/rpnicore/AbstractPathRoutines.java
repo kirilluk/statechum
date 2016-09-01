@@ -50,6 +50,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines.EquivalenceStatePair;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
@@ -677,6 +678,63 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public LearnerGraph buildDeterministicGraph() throws IncompatibleStatesException
 	{
 		return buildDeterministicGraph(coregraph.getInit());
+	}
+	
+	public static class EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	{
+		public final EquivalenceClass<TARGET_TYPE,CACHE_TYPE> first, second;
+		
+		public EquivalenceStatePair(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> a, EquivalenceClass<TARGET_TYPE,CACHE_TYPE> b)
+		{
+			first = a;second = b;
+		}
+	}
+	
+	/** This derives from AMEquivalenceClass and makes it possible to request target states to be sorted. This is important where we need to look up a collection of states. */
+	public static class EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> extends AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>
+	{
+
+		public EqClassWithSortedTargets(int number, AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> graph) 
+		{
+			super(number, graph);
+		}
+		
+	}
+	
+	public long computeScore(CmpVertex a, CmpVertex b) throws IncompatibleStatesException
+	{
+		long score = 0;
+		int eqClassNumber = 0;
+		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initialA = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph), initialB = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);
+		initialA.mergeWith(a,null);initialB.mergeWith(b,null);
+		
+		Map<Object,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>> 
+			collectionOfStatesToEquivalenceClassA = new HashMap<Object,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>(), 
+			collectionOfStatesToEquivalenceClassB = new HashMap<Object,EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
+			// maps either a CmpVertex or an ArrayList to an instance of EquivalenceClass (the specific object is 
+			// determined by elements of AMEquivalenceClass's getOutgoing map). If an ArrayList is used, it has to 
+			// be sorted which is why we sort those lists at the point when they are constructed.
+		
+		EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE>(initialA,initialB);
+		Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+		currentExplorationBoundary.offer(pair);
+		
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE> currentPair = currentExplorationBoundary.remove();
+			List<Label> labelsToProcess=new ArrayList<Label>();
+			for(Entry<Label,Object> outgoing:currentPair.first.getOutgoing().entrySet())
+				if (currentPair.second.getOutgoing().containsKey(outgoing.getKey()))
+					// we have a match, record it
+					labelsToProcess.add(outgoing.getKey());
+			
+			for(Label lbl:labelsToProcess)
+			{// we have a match, add 1 to score and explore the next pair.
+				
+			}
+		}
+		
+		return score;		
 	}
 
 	/** Takes the recorded non-deterministic transition matrix and turns it into

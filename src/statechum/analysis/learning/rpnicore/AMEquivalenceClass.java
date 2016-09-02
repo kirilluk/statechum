@@ -39,7 +39,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	implements Comparable<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, EquivalenceClass<TARGET_TYPE, CACHE_TYPE>
 {
 	/** The list of outgoing transitions from this equivalence class. It maps to Object because where we have singleton entries, it is space-efficient to directly store a CmpVertex and only replace it with ArrayList<CmpVertex> where more than a single entry has been added. */ 
-	private Map<Label,Object> outgoingTransitions = null;
+	protected Map<Label,Object> outgoingTransitions = null;
 	
 	/**	Vertices in the original graph corresponding to the merged vertex. 
 	 * A tree is used to permit easy comparison between equivalence classes. 
@@ -60,7 +60,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	private final int ClassNumber;
 	
 	/** The graph which states we shall store here (except for <em>mergedVertex</em> which will belong to another graph. */
-	private final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
+	protected final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
 	
 	public AMEquivalenceClass(int number, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
@@ -160,7 +160,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * @return false if the new state is not compatible with any state in this equivalence class
 	 * @throws IncompatibleStatesException if the state to be added is incompatible with any state in the equivalence class.
 	 */
-	private boolean addState(CmpVertex vert) throws IncompatibleStatesException
+	protected boolean addState(CmpVertex vert) throws IncompatibleStatesException
 	{
 		if (!states.isEmpty() &&
 				(accept != vert.isAccept() || incompatibleStates.contains(vert)))
@@ -235,7 +235,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public static boolean addAllTransitions(Map<Label,Object> where, Map<Label,Object> what, boolean useArrayMap)
 	{
 		boolean singleton = true;
-		//if ()
+		
 		for(Entry<Label,Object> entry:what.entrySet())
 		{
 			if (entry.getValue() instanceof CmpVertex)

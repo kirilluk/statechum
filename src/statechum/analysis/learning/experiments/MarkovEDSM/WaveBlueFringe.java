@@ -39,6 +39,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -598,7 +599,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				//if (inconsistencyForTheReferenceGraph != 53)
 				//	break;// ignore automata where we get good results.
 				final int divisorForPathCount = 2;
-				MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
+				MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m,pta,null);
 				final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,true,divisorForPathCount,1);
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
@@ -609,7 +610,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null, false);
 				final CmpVertex vertexWithMostTransitions = findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta),0);
 				ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
-				ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
+				ptaClassifier = new MarkovClassifierLG(m,ptaAfterInitialMerge,null);// rebuild the classifier
 				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaAfterInitialMerge);
 				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				
@@ -637,7 +638,7 @@ public class WaveBlueFringe extends PairQualityLearner
 						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 						assert genScore >= 0;
 						LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, null, false);
-						long value = MarkovClassifier.computeInconsistency(merged, m, checker, false);
+						long value = MarkovClassifier.computeInconsistency(merged, null, m, checker, false);
 						inconsistencyFromAnEarlierIteration = value;
 						return null;
 					}
@@ -654,7 +655,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					{
 						coregraph = graph;
 						//labelStatesAwayFromRoot(coregraph,m.getChunkLen()-1);
-						inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
+						inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
 						vertexToPartition.clear();
 						int partitionNumber=0;
 						for(Set<CmpVertex> set:verticesToMergeBasedOnInitialPTA)
@@ -681,11 +682,11 @@ public class WaveBlueFringe extends PairQualityLearner
 						if (genScore >= 0)
 						{
 							LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, null, false);
-							currentInconsistency = MarkovClassifier.computeInconsistency(merged, m, checker, 
+							currentInconsistency = MarkovClassifier.computeInconsistency(merged, null, m, checker, 
 									false
 									//p.getQ().getStringId().equals("P2672") && p.getR().getStringId().equals("P2209")
 									)-inconsistencyFromAnEarlierIteration;
-							relativeInconsistency = new MarkovClassifier(m, merged).computeRelativeInconsistency(checker);
+							relativeInconsistency = new MarkovClassifierLG(m, merged,null).computeRelativeInconsistency(checker);
 						}
 						
 						// A green state next to a red may have many incoming paths, more than in a PTA, some of which may predict its outgoing transition as non-existent. 
@@ -759,7 +760,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actual,testSet);
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actual.getStateNumber() - referenceGraph.getStateNumber());
 		if (m != null && checker != null)
-			outcome.inconsistency = MarkovClassifier.computeInconsistency(actual, m, checker,false);
+			outcome.inconsistency = MarkovClassifier.computeInconsistency(actual, null, m, checker,false);
 		return outcome;
 	}		
 

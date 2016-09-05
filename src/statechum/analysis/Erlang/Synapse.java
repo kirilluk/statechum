@@ -50,6 +50,7 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.KTailsReferenceLearner;
@@ -655,7 +656,7 @@ public class Synapse implements Runnable {
 			for(List<Label> seq:sMinus)
 				pta.paths.augmentPTA(seq,false,false,null);
 			pta.clearColours();
-			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain
+			new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m, pta, null).updateMarkov(false);// construct Markov chain
 			// For Markov, we do not need to learn anything at all - our Markov matrix contains enough information to classify paths and hence compare it to the reference graph.
 			ConfusionMatrix mat = DiffExperiments.classifyAgainstMarkov(testSet, referenceGraph, m);
 			DifferenceToReferenceLanguageBCR differenceBCRMarkov = new DifferenceToReferenceLanguageBCR(mat);
@@ -928,7 +929,7 @@ public class Synapse implements Runnable {
 														MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
 														final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
 
-														new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+														new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m, pta, null).updateMarkov(false);// construct Markov chain if asked for.
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
@@ -991,7 +992,7 @@ public class Synapse implements Runnable {
 															MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
 															final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
 
-															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
+															final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m, ptaInitial,null);ptaClassifier.updateMarkov(false);
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{
@@ -1061,7 +1062,7 @@ public class Synapse implements Runnable {
 															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
 															final MarkovModel m= new MarkovModel(3,true,true,false);
 
-															final MarkovClassifier ptaClassifier = new MarkovClassifier(m, ptaInitial);ptaClassifier.updateMarkov(false);
+															final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m, ptaInitial,null);ptaClassifier.updateMarkov(false);
 															LearnerGraph ptaToUseForInference = ptaInitial;
 															final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 															{

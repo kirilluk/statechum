@@ -28,6 +28,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -719,7 +720,7 @@ public class LearningSupportRoutines
 	}
 
 	/** Uses sideways predictions in order to identify more states to be merged. */
-	public static Collection<Set<CmpVertex>> mergeBasedOnInversePredictions(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
+	public static Collection<Set<CmpVertex>> mergeBasedOnInversePredictions(MarkovClassifierLG ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
 	{/*
 		Map<CmpVertex,LearnerGraph> pathsFromEachStateInGraph = PairQualityLearner.constructPathsFromEachState(pta,directionForwardOrInverse);
 		ConsistencyChecker checker = new MarkovUniversalLearner.DifferentPredictionsInconsistency();
@@ -733,17 +734,17 @@ public class LearningSupportRoutines
 		m.constructMarkovTentative(graph,predictForwardOrSideways);// ... and use it to add more transitions.
 		*/
 		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),true,!ptaClassifier.model.directionForwardOrInverse,false);
-		MarkovClassifier cl = new MarkovClassifier(inverseModel,ptaClassifier.graph);cl.updateMarkov(false);
+		MarkovClassifierLG cl = new MarkovClassifierLG(inverseModel,ptaClassifier.graphD,null);cl.updateMarkov(false);
 		Collection<Set<CmpVertex>> verticesToMergeUsingSideways=cl.buildVerticesToMergeForPaths(pathsOfInterest);
 		return verticesToMergeUsingSideways;
 	}
 	
-	public static LearnerGraph checkIfSingleStateLoopsCanBeFormed(MarkovClassifier ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
+	public static LearnerGraph checkIfSingleStateLoopsCanBeFormed(MarkovClassifierLG ptaClassifier,LearnerGraph referenceGraph,final Collection<List<Label>> pathsOfInterest)
 	{
 		List<StatePair> pairsList = ptaClassifier.buildVerticesToMergeForPath(pathsOfInterest);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);// after merging all paths of interest, we get this graph.
+		ptaClassifier.graphD.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
+		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(ptaClassifier.graphD, null, verticesToMerge, null, false);// after merging all paths of interest, we get this graph.
 		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
 		final long genScoreThreshold = 1;
 		int nrOfMergers=0;
@@ -755,12 +756,12 @@ public class LearningSupportRoutines
 					PairScore p = new PairScore(entry.getKey(),transition.getValue(),0,0);
 					ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(ptaClassifier.graph, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
+					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(ptaClassifier.graphD, referenceGraph, pairOfInterest, correctPairs, wrongPairs);
 					
 					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					long genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
-					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);
-					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, ptaClassifier.model, checker, false);
+					long genScore = ptaClassifier.graphD.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+					LearnerGraph mergedForThisPair = MergeStates.mergeCollectionOfVertices(ptaClassifier.graphD, null, verticesToMerge, null, false);
+					long value = MarkovClassifier.computeInconsistency(mergedForThisPair, null, ptaClassifier.model, checker, false);
 					
 					boolean decidedToMerge= (value == 0 && genScore >= genScoreThreshold);
 					if (decidedToMerge)
@@ -773,7 +774,7 @@ public class LearningSupportRoutines
 							//(wrongPairs.isEmpty() && value > 0 || genScore < genScoreThreshold) ||  (!wrongPairs.isEmpty() && value == 0 && genScore >= genScoreThreshold))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");
-						System.out.println( "R: " + ptaClassifier.graph.transitionMatrix.get(p.getR())+" B: "+ptaClassifier.graph.transitionMatrix.get(p.getQ()));
+						System.out.println( "R: " + ptaClassifier.graphD.transitionMatrix.get(p.getR())+" B: "+ptaClassifier.graphD.transitionMatrix.get(p.getQ()));
 					}
 				}
 		System.out.println("mergers identified: "+nrOfMergers);
@@ -926,11 +927,11 @@ public class LearningSupportRoutines
 
 
 	
-	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifier ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
+	public static void showInconsistenciesForDifferentMergers(LearnerGraph referenceGraph,MarkovClassifierLG ptaClassifier, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		int genScore = ptaClassifier.graph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
-		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graph, null, verticesToMerge, null, false);
+		int genScore = ptaClassifier.graphD.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(ptaClassifier.graphD.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+		LearnerGraph graph = MergeStates.mergeCollectionOfVertices(ptaClassifier.graphD, null, verticesToMerge, null, false);
 		
 		Set<CmpVertex> tr=graph.transform.trimGraph(10, graph.getInit()).transitionMatrix.keySet();
 		ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistency();
@@ -948,7 +949,7 @@ public class LearningSupportRoutines
 					verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					genScore = graph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 					LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
-					long value = MarkovClassifier.computeInconsistency(merged, ptaClassifier.model, checker, false);
+					long value = MarkovClassifier.computeInconsistency(merged, null, ptaClassifier.model, checker, false);
 					if ( (wrongPairs.isEmpty() && value > 0) ||  (!wrongPairs.isEmpty() && value == 0))
 					{
 						System.out.println( p.toString()+(wrongPairs.isEmpty()?"valid, ":"invalid:")+value+ "(score "+genScore+")");

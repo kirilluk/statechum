@@ -19,14 +19,8 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -274,6 +268,7 @@ public class ConstructClassifier
 			System.out.println("PickBestAttributeClassifier: best attr is "+data.attribute(bestAttribute).name()+" with performance at "+bestPerformance);
 		}
 
+		@Override
 		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
 		{
 			String value = instance.stringValue(bestAttribute);
@@ -464,6 +459,7 @@ public class ConstructClassifier
 			return new PosNegAndInstanceId(trainingDistribution[currentBestInstanceIdx],currentBestInstanceIdx,currentBestCount,cntForInstance);
 		}
 
+		@Override
 		public PosNeg classifyInstanceAsPosNeg(Instance instance) throws Exception 
 		{
 			return //classifyInstanceAsPosNegInexact(instance);

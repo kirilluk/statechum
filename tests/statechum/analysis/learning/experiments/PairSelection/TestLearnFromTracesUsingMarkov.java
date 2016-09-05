@@ -25,6 +25,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -68,7 +69,7 @@ public class TestLearnFromTracesUsingMarkov {
 		long inconsistencyFromAnEarlierIteration = 0;
 		LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
-		MarkovClassifier cl=null;
+		MarkovClassifierLG cl=null;
 		LearnerGraphND inverseGraph = null;
 		long currentMillis = System.currentTimeMillis();
 		Map<CmpVertex,Long> inconsistenciesPerVertex = null;
@@ -78,11 +79,11 @@ public class TestLearnFromTracesUsingMarkov {
 		{
 			coregraph = graph;
 					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker, false);
+			long value = MarkovClassifier.computeInconsistency(coregraph, null, Markov, checker, false);
 			inconsistencyFromAnEarlierIteration=value;
-			cl = new MarkovClassifier(Markov, coregraph);
+			cl = new MarkovClassifierLG(Markov, coregraph,null);
 		    extendedGraph = cl.constructMarkovTentative();
-			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
+			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
 			long newMillis = System.currentTimeMillis();
 			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
 //			for(CmpVertex v:coregraph.transitionMatrix.keySet())
@@ -114,7 +115,7 @@ public class TestLearnFromTracesUsingMarkov {
 						throw diffEx;
 				}
 				*/
-				currentInconsistency = MarkovClassifier.computeInconsistency(merged, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
+				currentInconsistency = MarkovClassifier.computeInconsistency(merged, null, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
 				score=genScore-currentInconsistency;	
 
 				long fastInconsistency =  MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);						
@@ -197,7 +198,7 @@ public class TestLearnFromTracesUsingMarkov {
 		//DifferentFSMException diff = WMethod.checkM(ptaExpected, ptaExpected.getInit(), pta, pta.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE);Assert.assertNull(diff);
 		final MarkovModel m= new MarkovModel(chunkLen,true,true,true);
 
-		new MarkovClassifier(m, pta).updateMarkov(false);
+		new MarkovClassifierLG(m, pta, null).updateMarkov(false);
 		pta.clearColours();
 
 		assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
@@ -207,7 +208,7 @@ public class TestLearnFromTracesUsingMarkov {
 
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		//long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
-		MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
+		MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m,pta, null);
 		final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker, false,2,1);
 		
 		// These vertices are merged first and then the learning start from the root as normal.
@@ -223,7 +224,7 @@ public class TestLearnFromTracesUsingMarkov {
 		final CmpVertex vertexWithMostTransitions = WaveBlueFringe.findVertexWithMostTransitions(ptaAfterInitialMerge,MarkovClassifier.computeInverseGraph(pta),0);
 		ptaAfterInitialMerge.clearColours();ptaAfterInitialMerge.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 		ptaAfterInitialMerge.pathroutines.updateDepthLabelling();// this is needed in order for the .toString() to give the correct depth values in vertex details.
-		ptaClassifier = new MarkovClassifier(m,ptaAfterInitialMerge);// rebuild the classifier
+		ptaClassifier = new MarkovClassifierLG(m,ptaAfterInitialMerge,null);// rebuild the classifier
 		LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(ptaAfterInitialMerge);
 		//System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+MarkovPassivePairSelection.countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 		
@@ -240,7 +241,7 @@ public class TestLearnFromTracesUsingMarkov {
 		LearnerGraph expectedAfterInitialMerge = new LearnerGraph(config);AbstractPersistence.loadGraph(graphToTestComputationFrom+"_afterinitialmerge.xml", expectedAfterInitialMerge,converter);
 		DifferentFSMException diff = WMethod.checkM(expectedAfterInitialMerge, ptaAfterInitialMerge);// checks that the graph is as expected.
 		Assert.assertNull(diff);
-		long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, m, checker, false);
+		long value = MarkovClassifier.computeInconsistency(ptaAfterInitialMerge, null, m, checker, false);
 		Assert.assertEquals(29,value);// check that we computed inconsistencies in the usual way.
 
 		Stack<PairScore> stack = ptaAfterInitialMerge.pairscores.chooseStatePairs(new InconsistencyComputation(m, checker));

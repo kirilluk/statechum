@@ -12,6 +12,7 @@ import statechum.Configuration.ScoreMode;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.experiments.I2cexperiment;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
@@ -41,7 +42,7 @@ public class TestMarkov_i2c
 		//Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, 1);// we only need  to augment our PTA once.
 		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,1, true,1,0,1);
 		final MarkovModel m= new MarkovModel(chunkSize,true,true,false);
-		new MarkovClassifier(m, initialPTA).updateMarkov(false);// construct Markov chain if asked for.
+		new MarkovClassifierLG(m, initialPTA, null).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);

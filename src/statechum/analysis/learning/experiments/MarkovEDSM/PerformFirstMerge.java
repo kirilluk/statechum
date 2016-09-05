@@ -31,6 +31,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -56,7 +57,7 @@ public class PerformFirstMerge
 	 */
 	public void buildFirstGraph(LearnerGraph pta, LearnerGraph referenceGraph, MarkovParameters par,MarkovModel m, final ConsistencyChecker checker)
 	{
-		final MarkovClassifier ptaClassifier = new MarkovClassifier(m,pta);
+		final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m,pta,null);
 		final List<List<Label>> pathsToMerge=ptaClassifier.identifyPathsToMerge(checker,par.useAverageOrMax,par.divisorForPathCount,par.expectedWLen);
 		centrePathNumber = pathsToMerge.size();
 		// These vertices are merged first and then the learning start from the root as normal.

@@ -45,7 +45,7 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
@@ -992,14 +992,14 @@ public class LearningAlgorithms
 		
 		LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
-		MarkovClassifier cl=null;
+		MarkovClassifierLG cl=null;
 		
 		@Override
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
 
-			cl = new MarkovClassifier(m, coregraph);
+			cl = new MarkovClassifierLG(m, coregraph,null);
 		    extendedGraph = cl.constructMarkovTentative();
 		}
 		

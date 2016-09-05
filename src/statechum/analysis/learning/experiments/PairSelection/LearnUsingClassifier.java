@@ -37,6 +37,7 @@ import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -183,7 +184,7 @@ public class LearnUsingClassifier {
 													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.dataCollectorParameters.markovParameters);
 													final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false);
 
-													new MarkovClassifier(m, argInitialPTA).updateMarkov(false);// construct Markov chain if asked for.
+													new MarkovClassifierLG(m, argInitialPTA,null).updateMarkov(false);// construct Markov chain if asked for.
 													
 													argInitialPTA.clearColours();
 													final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();

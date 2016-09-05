@@ -49,6 +49,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
@@ -1662,7 +1663,7 @@ public class PairQualityLearner
 			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 
 			final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false);
-			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			
 			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
@@ -1698,7 +1699,7 @@ public class PairQualityLearner
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
-			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
+			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
 			/*
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 

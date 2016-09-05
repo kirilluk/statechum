@@ -34,6 +34,7 @@ import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -45,7 +46,7 @@ import statechum.collections.ArrayMapWithSearchPos;
 public class MarkovHelper
 {
 	LearnerGraph extendedGraph = null;
-	MarkovClassifier cl=null;
+	MarkovClassifierLG cl=null;
 	LearnerGraphND inverseGraph = null;
 	long comparisonsPerformed = 0;
 
@@ -126,21 +127,19 @@ public class MarkovHelper
 		return possibleResults;
 	}
 
-	// The following routines are the ones to be called by a user integrating (mixing) this class into a learner. 
-	
+	/** The following routine is to be called by a user integrating (mixing) this class into a learner. */
 	public void initComputation(LearnerGraph graph) 
 	{
 		coregraph = graph;
 				 				
-		cl = new MarkovClassifier(Markov, coregraph);
+		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
+		cl = new MarkovClassifierLG(Markov, coregraph, inverseGraph);
 	    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
-		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 		inconsistenciesPerVertex =
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
 						new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber()):
 						new TreeMap<CmpVertex,Long>();
 	}
-	
 	
 	public long onlyComputeInconsistency(PairScore p)
 	{

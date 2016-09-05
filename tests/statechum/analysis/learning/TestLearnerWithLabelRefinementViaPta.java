@@ -280,7 +280,7 @@ public class TestLearnerWithLabelRefinementViaPta
 		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testAbstractInitialPta6",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0,new MarkovParameters(0, 3,1, true,1,0,1));
-		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifier(m, initialPta).updateMarkov(false);learner.setMarkov(m);
+		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifierLG(m, initialPta,null).updateMarkov(false);learner.setMarkov(m);
 		learner.initComputation(learner.abstractInitialGraph('('));
 		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
 		LearnerGraph refinedGraph = learner.refineGraph();
@@ -298,7 +298,7 @@ public class TestLearnerWithLabelRefinementViaPta
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(3)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels2_pta",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0,new MarkovParameters(0, 3,1, true,1,0,1));
 		LearnerGraph graph = learner.abstractInitialGraph('(');
-		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifier(m, initialPta).updateMarkov(false);learner.setMarkov(m);
+		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifierLG(m, initialPta,null).updateMarkov(false);learner.setMarkov(m);
 		learner.initComputation(graph);
 		learner.initComputation(MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex(VertexID.parseID("G1")),graph.getInit())));graph.setName("testSplitLabels2_refined");
 		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
@@ -317,7 +317,7 @@ public class TestLearnerWithLabelRefinementViaPta
 		LearnerGraph initialPta = FsmParser.buildLearnerGraph("A-a()->B-a()->C / A-a(2)->B1 / A-a(3)->B2 / A-b(0)->B3-a(1)->T1 / B3-a(2)->T2 / B3-b(1)->G1-c(0)->I-a(0)->J / A-b(3)->B4-a(1)->T3 / B4-a(5)->T4 / B4-b(2)->G2-a(1)->H / A-c(3)->D / D-a(4)->C1 / D-b(3)->C2","testSplitLabels3_pta",evalConfig.config,evalConfig.getLabelConverter());
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0,new MarkovParameters(0, 3,1, true,1,0,1));
 		LearnerGraph graph = learner.abstractInitialGraph('(');
-		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifier(m, initialPta).updateMarkov(false);learner.setMarkov(m);
+		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifierLG(m, initialPta,null).updateMarkov(false);learner.setMarkov(m);
 		learner.initComputation(graph);
 		learner.initComputation(MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex(VertexID.parseID("G1")),graph.getInit())));graph.setName("testSplitLabels3_refined");
 		learner.constructMapOfInconsistentStates_fromRejectStates(LearnerWithLabelRefinementViaPta.createSetOfVertID(Arrays.asList(new VertID[]{VertexID.parseID("T1")})));
@@ -357,7 +357,7 @@ public class TestLearnerWithLabelRefinementViaPta
 		}
 				
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0,new MarkovParameters(0, 3,1, true,1,0,1));
-		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifier(m, initialPta).updateMarkov(false);learner.setMarkov(m);
+		final MarkovModel m= new MarkovModel(3,true,true,false);new MarkovClassifierLG(m, initialPta,null).updateMarkov(false);learner.setMarkov(m);
 		learner.initComputation(learner.abstractInitialGraph('('));
 		learner.constructMapOfInconsistentStates_fromRejectStates(rejectStates);
 		LearnerGraph refinedGraph = learner.refineGraph();refinedGraph.setName("testSplitLabels4_refined");

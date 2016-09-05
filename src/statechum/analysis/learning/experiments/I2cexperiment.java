@@ -43,6 +43,7 @@ import statechum.StringLabel;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
@@ -186,7 +187,7 @@ public class I2cexperiment extends PairQualityLearner
 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), eval.config, eval.getLabelConverter()).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, 1);// we only need  to augment our PTA once.
 		final MarkovModel m= new MarkovModel(chunkSize,true,true,false);
-		new MarkovClassifier(m, initialPTA).updateMarkov(false);// construct Markov chain if asked for.
+		new MarkovClassifierLG(m, initialPTA,null).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,1, true,1,0,1);

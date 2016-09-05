@@ -49,6 +49,7 @@ import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -163,7 +164,7 @@ public class MarkovExperiment
 	
 			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
 
-			new MarkovClassifier(m, pta).updateMarkov(false);// construct Markov chain if asked for.
+			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
 			
 			pta.clearColours();
 
@@ -177,7 +178,7 @@ public class MarkovExperiment
 
 			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, m, checker,false);
+			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, null, m, checker,false);
 
 			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
 			if (par.markovParameters.useCentreVertex)
@@ -268,14 +269,14 @@ public class MarkovExperiment
 
 			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
 			dataSample.actualLearner.executionTime = runTime;
-			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, m, checker,false);
+			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, null, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
 			dataSample.centreCorrect = fmg.correctCentre;
 			dataSample.centrePathNumber = fmg.centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
-			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifier(m, referenceGraph).evaluateCorrectnessOfMarkov();
+			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
  			if (markovLearner != null)
  				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;

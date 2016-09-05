@@ -41,7 +41,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
-import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -55,13 +54,13 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 
-/** An instance of this class holds all the necessary parameters in order to make it possible to predict transitions and/or check inconsistencies using a Markov model. Depending on the kind of model passed to it, 
+/** An instance of this class holds all the necessary parameters in order to make it possible to predict transitions 
+ * and/or check inconsistencies using a Markov model. Depending on the kind of model passed to it, 
  * it will be making appropriate predictions.
  */
-public class MarkovClassifier 
+public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
 	public static final double fREJECT = -1;
 	public static final long dREJECT = -1;
@@ -69,10 +68,14 @@ public class MarkovClassifier
 	/** Markov model being used in this classifier. Also determines the direction of prediction and whether forward or sideways. */
 	public final MarkovModel model;
 	/** The graph in which we are making predictions.*/
-	public final LearnerGraph graph;
 	
-	/** Contains paths to be supplied to Markov for making predictions. The specific kind of the graph depends on the direction in which we are doing predictions. Could be either a deterministic or a non-deterministic graph.
-	 * <br/>Should be immutable and contain the same states and transition labels as {@link MarkovClassifier#graph}. This is used both in exploration and construction of an alphabet.
+	private final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
+	
+	/** Contains paths to be supplied to Markov for making predictions. The specific kind of the graph 
+	 * depends on the direction in which we are doing predictions. Could be either a deterministic or 
+	 * a non-deterministic graph.
+	 * <br/>Should be immutable and contain the same states and transition labels as 
+	 * {@link MarkovClassifier#graph}. This is used both in exploration and construction of an alphabet.
 	 */
 	@SuppressWarnings("rawtypes")
 	public final AbstractLearnerGraph graphToUseForPrediction;
@@ -85,8 +88,10 @@ public class MarkovClassifier
 	 */
 	public final boolean predictionGraphInverted;
 
-	/** Contains paths to be used for consistency checking. The specific kind of the graph depends on the direction in which we are doing predictions. Could be either a deterministic or a non-deterministic graph. 
-	 * <br/>Should be immutable and contain the same states and transition labels as {@link MarkovClassifier#graph}. This is used both in exploration and construction of an alphabet.
+	/** Contains paths to be used for consistency checking. The specific kind of the graph depends on 
+	 * the direction in which we are doing predictions. Could be either a deterministic or a non-deterministic graph. 
+	 * <br/>Should be immutable and contain the same states and transition labels as {@link MarkovClassifier#graph}. 
+	 * This is used both in exploration and construction of an alphabet.
 	 */
 	@SuppressWarnings("rawtypes")
 	public final AbstractLearnerGraph graphToCheckForConsistency;  
@@ -138,7 +143,7 @@ public class MarkovClassifier
 	 * @param graph what to invert.
 	 * @return inverted graph
 	 */
-	public static LearnerGraphND computeInverseGraph(LearnerGraph graph)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> LearnerGraphND computeInverseGraph(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
 		Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);shallowCopy.setMaxAcceptStateNumber(graph.vertPositiveID);shallowCopy.setMaxRejectStateNumber(graph.vertNegativeID);
 		LearnerGraphND inverseGraph = new LearnerGraphND(shallowCopy);
@@ -151,15 +156,18 @@ public class MarkovClassifier
 	 * Returns an inverse when <i>predictForward</i> is true and <i>graph</i> otherwise.
 	 * @param graph what to compute an inverse of
 	 * @param constructInverseOrForward whether to invert
-	 * @return either an inverse or the original graph
+	 * @return either an inverse or the original graph. Since either of them can be a deterministic or a non-deterministic graph, the return type is just an archetype and we do not include template parameters.
 	 */
-	@SuppressWarnings("rawtypes")
-	public static AbstractLearnerGraph computeInverseGraph(LearnerGraph graph,boolean constructInverseOrForward)
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static AbstractLearnerGraph computeInverseGraph(AbstractLearnerGraph graph,AbstractLearnerGraph grInverseOrNull, boolean constructInverseOrForward)
 	{
 		AbstractLearnerGraph inverseGraph = null;
 		if (constructInverseOrForward)
 		{
-			inverseGraph = computeInverseGraph(graph);
+			if (grInverseOrNull != null)
+				inverseGraph = grInverseOrNull;
+			else
+				inverseGraph = computeInverseGraph(graph);
 		}
 		else
 			inverseGraph = graph;
@@ -177,34 +185,25 @@ public class MarkovClassifier
 	 * </table>
 	 * @param m model to use
 	 * @param gr graph to make predictions in
+	 * @param inverseGR inverse of graph gr, if available. If not, pass null here and it will be computed.
 	 */
-	public MarkovClassifier(MarkovModel m, LearnerGraph gr)
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public MarkovClassifier(MarkovModel m, AbstractLearnerGraph gr, AbstractLearnerGraph grInverse)
 	{
 		model = m;graph = gr;
 		predictionGraphInverted = model.predictForwardOrSideways == model.directionForwardOrInverse;
-		graphToUseForPrediction=computeInverseGraph(graph,predictionGraphInverted);
+		graphToUseForPrediction=computeInverseGraph(graph,grInverse,predictionGraphInverted);
 		assert graph.transitionMatrix.keySet().equals(graphToUseForPrediction.transitionMatrix.keySet());
-		graphToCheckForConsistency=computeInverseGraph(graph,!model.directionForwardOrInverse);
+		graphToCheckForConsistency=computeInverseGraph(graph,grInverse,!model.directionForwardOrInverse);
 		assert graph.transitionMatrix.keySet().equals(graphToCheckForConsistency.transitionMatrix.keySet());
 	}
-	
+
 	interface ForEachCollectionOfPaths
 	{
 		/** This one is called for each path in an explored graph. */
 		public void handlePath(List<Label> path);
 	}
-	
-	public static class FrontLineElemA
-	{
-		public final Label pathToFrontLine[];
-		public final CmpVertex currentState;
-		
-		public FrontLineElemA(Label path[], CmpVertex vert) {
-			pathToFrontLine=path;
-			currentState=vert;
-		}
-		
-	}
+
 	public static class FrontLineElem
 	{
 		public final List<Label> pathToFrontLine;
@@ -299,7 +298,8 @@ public class MarkovClassifier
 	 * @param m Markov model used to compute inconsistencies.
 	 * @param origClassifier the classifier used on the original graph. 
 	 */
-	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, LearnerGraphND inverseGraph,  List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,Map<CmpVertex,Long> origInconsistencies, MarkovModel m, MarkovClassifier origClassifier, ConsistencyChecker checker)
+	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, LearnerGraphND inverseGraph,  List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,
+			Map<CmpVertex,Long> origInconsistencies, MarkovModel m, MarkovClassifier<CmpVertex,LearnerGraphCachedData> origClassifier, ConsistencyChecker checker)
 	{
 		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraph = new LinkedHashSet<CmpVertex>(),influentialVerticesInOrigGraph = new LinkedHashSet<CmpVertex>();
 		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
@@ -333,11 +333,94 @@ public class MarkovClassifier
 					origInconsistencyRelativeToChanges+=inconsistency;
 				}
 			}
-		MarkovClassifier cl = new MarkovClassifier(m, merged);
+		MarkovClassifier<CmpVertex,LearnerGraphCachedData> cl = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m, merged, null);
 		long mergedInconsistencyRelativeToChanges = cl.computeConsistencyForSpecificVertices(checker,affectedVerticesInMergedGraph,false);
 		return mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
 	}
 	
+	/** Given a collection of vertices that is to be merged, computes the 
+	 * inconsistency of the outcome of a merger. 
+	 * This is defined as the difference in inconsistency scores between the merged
+	 * graph and the original graph. This routine aims to avoid computation of an 
+	 * inconsistency of complete graphs, instead looking only at those vertices that 
+	 * are affected by mergers and the vicinity of them. The merged graph should be 
+	 * constructed by merging vertices in verticesToMerge, otherwise merged vertices 
+	 * would not be available as part of elements of {@link AMEquivalenceClass} and 
+	 * we'll crash.
+	 *
+	 * @param coregraph the original graph
+	 * @param inverseGraph the inverse of the original graph
+	 * @param verticesToMerge vertices to merge in the original graph, computed by the generalised scoring routine.
+	 * @param m Markov model used to compute inconsistencies.
+	 * @param origClassifier the classifier used on the original graph.
+	 * @param maxPredictionLength is the maximal number of transitions in either direction of the vertices of interest that may affect the scores. This is computed as a maximal value of <tt>m.getPredictionLen()</tt>  
+	 */
+	public static long [] computeInconsistencyOfAMergerWithMultipleClassifiers(LearnerGraph coregraph, LearnerGraphND inverseGraph,  List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,
+			Map<CmpVertex,Long> origInconsistencies, MarkovModel [] m, MarkovClassifier<CmpVertex,LearnerGraphCachedData> [] origClassifier, ConsistencyChecker [] checker, int maxPredictionLength)
+	{
+		assert m.length == origClassifier.length;
+		assert origClassifier.length == checker.length;
+		Set<CmpVertex> affectedVerticesInMergedGraphAll = new LinkedHashSet<CmpVertex>(), affectedVerticesInMergedGraphBackward = new LinkedHashSet<CmpVertex>(),
+				affectedVerticesInOrigGraphForward = new LinkedHashSet<CmpVertex>(),affectedVerticesInOrigGraphBackward = new LinkedHashSet<CmpVertex>(),
+						influentialVerticesInOrigGraphAll = new LinkedHashSet<CmpVertex>(),influentialVerticesInOrigGraphBackward = new LinkedHashSet<CmpVertex>();
+
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
+			if (eqClass.getStates().size() > 1)
+				// only look at vertices affected by mergers, it is this property that permits a call to computePairCompatibilityScore_general with the last argument (fullMergedVertices) set to false.
+				affectedVerticesInOrigGraphForward.addAll(eqClass.getStates());
+		affectedVerticesInOrigGraphBackward.addAll(affectedVerticesInOrigGraphForward);
+		
+		computeClosure(coregraph,affectedVerticesInOrigGraphForward,maxPredictionLength);// here we expect predictions to be based on a few past vertices, hence computing closure in the forward direction.
+		computeClosure(inverseGraph,affectedVerticesInOrigGraphBackward,maxPredictionLength);// here we expect predictions to be based on a few past vertices, hence computing closure in the backward direction.
+		
+		// now we collect together all the vertices that may affect scores of the vertices directly or indirectly affected by mergers.
+		// (vertices directly or indirectly affected by mergers are affectedVerticesInOrigGraph; vertices that may affect affectedVerticesInOrigGraph are influentialVerticesInOrigGraph).
+		influentialVerticesInOrigGraphAll.addAll(affectedVerticesInOrigGraphForward);influentialVerticesInOrigGraphBackward.addAll(affectedVerticesInOrigGraphBackward);affectedVerticesInOrigGraphBackward = null;
+		
+		computeClosure(inverseGraph,influentialVerticesInOrigGraphAll,maxPredictionLength);
+		computeClosure(coregraph,influentialVerticesInOrigGraphBackward,maxPredictionLength);influentialVerticesInOrigGraphAll.addAll(affectedVerticesInOrigGraphBackward);
+		// at this point, affectedVerticesInOrigGraphBackward is not needed and affectedVerticesInOrigGraph is created to store all of the affected vertices.
+		Set<CmpVertex> affectedVerticesInOrigGraph = affectedVerticesInOrigGraphForward;affectedVerticesInOrigGraphForward.addAll(affectedVerticesInOrigGraphBackward);
+		affectedVerticesInOrigGraphForward = null;affectedVerticesInOrigGraphBackward = null;
+		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, influentialVerticesInOrigGraphAll,false);// by the virtue of using a small set of
+		// vertices influentialVerticesInOrigGraph to build a graph, both construction of a merged graph and construction of the inverse of this merged graph should be fast 
+		// they are currently contributing a lot of time to the runtime cost of running the learner).
+		
+		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
+			if (eqClass.getStates().size() > 1)
+				affectedVerticesInMergedGraphAll.add(eqClass.getMergedVertex());// we have to do this separately to the computation of affected vertices in the original graph because merged vertices are not constructed (that is, getMergedVertex() returns null) until the merged graph is built.
+		affectedVerticesInMergedGraphBackward.addAll(affectedVerticesInOrigGraphForward);
+		
+		computeClosure(merged,affectedVerticesInMergedGraphAll,maxPredictionLength);
+		LearnerGraphND mergedInverse=MarkovClassifier.computeInverseGraph(merged);
+		computeClosure(mergedInverse,affectedVerticesInMergedGraphBackward,maxPredictionLength);
+		affectedVerticesInMergedGraphAll.addAll(affectedVerticesInMergedGraphBackward);
+		
+		long [] outcome = new long[m.length];
+		
+//System.out.println("coregraph: "+coregraph.getStateNumber()+" states, merged graph: "+merged.getStateNumber()+" states, affected: "+affectedVerticesInOrigGraph.size()+" affected in merged: "+affectedVerticesInMergedGraph.size());
+		for(int i=0;i<m.length;++i)
+		{
+			long origInconsistencyRelativeToChanges = 0;
+			for(CmpVertex v:affectedVerticesInOrigGraph)
+				if (v.isAccept()) // we only consider prefix-closed languages where there are never any outgoing transitions from reject-states and hence no potential for inconsistencies.
+				{
+					if (origInconsistencies.containsKey(v))
+						origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
+					else
+					{
+						long inconsistency = origClassifier[i].checkFanoutInconsistency(v,checker[i],false);
+						origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
+						origInconsistencyRelativeToChanges+=inconsistency;
+					}
+				}
+			MarkovClassifier<CmpVertex,LearnerGraphCachedData> cl = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m[i], merged, mergedInverse);
+			long mergedInconsistencyRelativeToChanges = cl.computeConsistencyForSpecificVertices(checker[i],affectedVerticesInMergedGraphAll,false);
+			outcome[i] = mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
+		}
+		return outcome;
+	}
+
 	/** Walks all paths of the specified distance and states encountered are added to the provided set.
 	 * 
 	 * @param coregraph graph to explore
@@ -379,55 +462,13 @@ public class MarkovClassifier
 		}
 	}
 	
-	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
-	 * The large number of arguments reflect the extent to which this process can be customised. 
-	 * <p>
-	 * This is a special version of {@link #computeInconsistencyForMergingPath(Collection)} for a single path.
-	 * 
-	 * @param path a single path to use.
-	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
-	 * @return how inconsistent predictions are compared to the actual graph. Always non-negative.
-	 */
-	public long computeInconsistencyForMergingPath(List<Label> path, ConsistencyChecker checker)
-	{
-		Collection<List<Label>> paths=new LinkedList<List<Label>>();paths.add(path);
-		return computeInconsistencyForMergingPaths(paths,checker);
-	}
-	
-	/** Given a graph, it uses the supplied collection of labels in order to identify states to merge, constructs a merge and counts the number of inconsistencies between the Markov-predicted vertices and the actual ones.
-	 * The large number of arguments reflect the extent to which this process can be customised. 
-	 * 
-	 * @param paths paths to use.
-	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
-	 * @return how inconsistent predictions are compared to the actual graph. Always non-negative.
-	 */
-	public long computeInconsistencyForMergingPaths(Collection<List<Label>> paths,  ConsistencyChecker checker)
-	{
-		long outcome = 0;
-		
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = buildVerticesToMergeForPath(paths);
-		if (!pairsList.isEmpty())
-		{
-			int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-			if (score < 0)
-				outcome = dREJECT;
-			else
-			{
-				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
-				outcome = computeInconsistency(merged,model,checker,false);
-			}
-		}
-		
-		return outcome;
-	}
-	
 	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph. This is implemented by creating another classifier with the same parameters but a supplied graph as an argument. */
-	public static long computeInconsistency(LearnerGraph gr, MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
+	@SuppressWarnings("rawtypes")
+	public static long computeInconsistency(AbstractLearnerGraph gr, AbstractLearnerGraph grInverse,MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
 	{
-		MarkovClassifier cl = new MarkovClassifier(model, gr);return cl.computeConsistency(checker,displayTrace);
+		MarkovClassifier cl = new MarkovClassifier(model, gr, grInverse);return cl.computeConsistency(checker,displayTrace);
 	}
-	
+
 	/** Implementations of this interface are used to check for consistency between Markov predictions and actual mergers. For instance, we could have a transition with a specific label predicted from a state where there is no transition
 	 * with such a label or a positive transition is predicted whereas a negative transition is present. Another case is where no transition is predicted whereas a transition is present in an actual graph.
 	 * <ul>
@@ -627,187 +668,6 @@ public class MarkovClassifier
 		}
 	}
 
-	/** This function is predicts transitions from each state and then adds them to the supplied graph. 
-	 * Uses floating-point calculations as to whether to add or not.
-	 * <br/>
-	 * Can only be used to predict transition forward since inverse expects disconnected states to be added and QSM is not expected to deal with such states. We could certainly attempt to merge them somewhere but this seems to make little sense.
-	 *  
-	 * @param predictForwardOrSideways whether to make predictions forward or sideways
-	 * @param highThreshold if the predicted probability of a transition is above this value, it seems plausible to add this transition.
-	 * @param lowThreshold if the predicted probability of a transition is below this value, it is believed that the impact of this transition is insignificant.
-	 */
-	@SuppressWarnings("unchecked")
-	public LearnerGraph Markov_tentative(double highThreshold, double lowThreshold)
-	{
-		if (!model.directionForwardOrInverse)
-			throw new IllegalArgumentException("predictions are only supported in the forward direction, not inverse");
-		
-		class UpdatablePairDouble 
-		{
-			public double firstElem, secondElem;
-			public UpdatablePairDouble(double a, double b) {
-				firstElem=a;secondElem=b;
-			}
-			
-			@Override
-			public String toString()
-			{
-				return "(pos: "+firstElem+", neg: "+secondElem+")";
-			}
-		}
-		
-		/** Maps states to a function associating labels to a sum of probabilities from a Markov matrix. Such a sum is supposed to predict the likelyhood of a transition with this label from every state. */
-		Map<CmpVertex,Map<Label,UpdatablePairInteger>> state_outgoing_occurence=new HashMap<CmpVertex,Map<Label,UpdatablePairInteger>>();
-		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-		Map<CmpVertex,Map<Label,UpdatablePairDouble>> state_outgoing=new HashMap<CmpVertex,Map<Label,UpdatablePairDouble>>();
-
-		final Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph outcome = new LearnerGraph(shallowCopy);
-		LearnerGraph.copyGraphs(graph, outcome);
-		final Set<Label> allElementsOfAlphabet = graph.learnerCache.getAlphabet(); 
-		// mapping map to store all paths leave each state in different length
-    	for(CmpVertex vert:graph.transitionMatrix.keySet())
-    	{
-    		if(vert.isAccept() )
-            {
-		        final Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
-		        final Map<Label,UpdatablePairInteger> outgoing_labels_occurrences=new HashMap<Label,UpdatablePairInteger>();
-		        final UpdatablePairInteger sum=new UpdatablePairInteger(0,0);
-		        WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),new ForEachCollectionOfPaths() 
-		        {
-					@Override
-					public void handlePath(List<Label> pathToNewState) 
-					{
-	    				List<Label> partOfTraceUsedInMarkovPredictions=new ArrayList<Label>(pathToNewState.size());partOfTraceUsedInMarkovPredictions.addAll(pathToNewState);
-    					if (predictionGraphInverted)
-    						Collections.reverse(partOfTraceUsedInMarkovPredictions);
-    					Map<Label,PTASequenceEngine.Node> lastElementToPrediction = model.markovMatrix.getMapFromLabelsToPredictions(partOfTraceUsedInMarkovPredictions);
-	    				for(Label label:allElementsOfAlphabet)
-	    				{
-	    					PredictionForSequence prediction = MarkovMatrixEngine.getPredictionIfExists(lastElementToPrediction,label);
-
-	    					UpdatablePairInteger occurrence_of_label_predicted_form_Markov=prediction == null?null:prediction.occurrence;
-
-	    					if(outgoing_labels_occurrences.containsKey(label))
-	    					{
-	    						UpdatablePairInteger labels_occurence= outgoing_labels_occurrences.get(label);
-	    						sum.add(labels_occurence);
-	    						labels_occurence.add(occurrence_of_label_predicted_form_Markov);											 
-	    					}
-	    					else
-	    					{
-	    						outgoing_labels_occurrences.put(label, occurrence_of_label_predicted_form_Markov);
-	    						sum.add(occurrence_of_label_predicted_form_Markov);
-	    					}	
-	    				}
-					}
-				});
-
-			    for(Entry<Label,UpdatablePairInteger> labelValue:outgoing_labels_occurrences.entrySet())
-			    	outgoing_labels_probabilities.put(labelValue.getKey(),new UpdatablePairDouble(labelValue.getValue().firstElem/sum.firstElem, labelValue.getValue().secondElem/sum.secondElem));
-
-			    state_outgoing.put(vert, outgoing_labels_probabilities);
-			    state_outgoing_occurence.put(vert, outgoing_labels_occurrences);
-			}
-
-    		// in this part the tree is extended depending on what we learnt from traces.
-    	 	for(Entry<CmpVertex, Map<Label, UpdatablePairDouble>> outgoing:state_outgoing.entrySet())
-    	 	{
-    	 		CmpVertex currrent_state_to_explore_outgoing= outgoing.getKey();
-    	 		Map<Label, UpdatablePairDouble> list_of_outgoing = outgoing.getValue();
-    	 		for(Entry<Label, UpdatablePairDouble> out:list_of_outgoing.entrySet())
-    	 		{
-    	 			Map<Label, CmpVertex> already_outgoing = graph.transitionMatrix.get(currrent_state_to_explore_outgoing);
-    	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
-
-    	 			if(!already_outgoing.containsKey(out.getKey()))
-    	 			{  	   						
-    	 				if(out.getValue().firstElem >  highThreshold && out.getValue().secondElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
-    	 				{  
-    	 					if(!outcome.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
-    	 					{
-    	 						extendWithLabel(outcome,currrent_state_to_explore_outgoing, true, out.getKey());
-    	 					}     					      
-    	 				} 
-
-    	 				if(out.getValue().secondElem >  highThreshold && out.getValue().firstElem <= lowThreshold && currrent_state_to_explore_outgoing.isAccept()==true)
-    	 				{  
-    	 					if(!outcome.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
-    	 					{
-    	 						extendWithLabel(outcome,currrent_state_to_explore_outgoing, false, out.getKey());
-    	 					}     					      
-    	 				} 	 					
-    	 			}					   
-    	 		}          	       	      
-    	 	}
-    	}
-    	
-    	return outcome;
-	}
-
-	/** Extends the supplied graph with transitions in the forward direction.
-	 * 
-	 * @param what
-	 * @param prevState
-	 * @param isAccept
-	 * @param input
-	 */
-	public void extendWithLabel(LearnerGraph what, CmpVertex prevState, boolean isAccept, Label input)
-	{
-		CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(what.nextID(isAccept),what.config);
-		assert !what.transitionMatrix.containsKey(newVertex);
-		newVertex.setAccept(isAccept);
-		what.transitionMatrix.put(newVertex, what.createNewRow());
-		what.addTransition(what.transitionMatrix.get(prevState),input,newVertex);
-	}
-
-
-	/** This function is predicts transitions from each state and then adds them to the supplied graph. Uses predictions from the model to add transitions without a second thought.
-	 * <br/>
-	 * Can only be used to predict transition forward since inverse expects disconnected states to be added and QSM is not expected to deal with such states. We could certainly attempt to merge them somewhere but this seems to make little sense.
-	 * <ul>
-	 * <li>
-	 * Where <i>predictForward</i> is true, we are predicting transitions based on paths leading to the state of interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
-	 * </li>
-	 * <li> 
-	 * Where <i>predictForward</i> is false, we are predicting transitions based on paths leading from the state of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i>.
-	 * </li>
-	 * </ul>
-	 * <em>directionForwardOrInverse</em> determines whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
-	 * @return the graph with predicted transitions added to it.
-	 */
-	public LearnerGraph constructMarkovTentative()
-	{
-		if (!model.directionForwardOrInverse)
-			throw new IllegalArgumentException("predictions are only supported in the forward direction, not inverse");
-
-		/** Maps states to a function associating labels to a probability of a transition with the label of interest from a state of interest. Computed from {@link MarkovUniversalLearner#state_outgoing_occurence}. */
-		Map<CmpVertex,Map<Label,MarkovOutcome>> state_outgoing=predictTransitions();
-
-		final Configuration shallowCopy = graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph graphWithPredictedTransitions = new LearnerGraph(shallowCopy);
-		LearnerGraph.copyGraphs(graph, graphWithPredictedTransitions);
-
-		// in this part the tree is extended depend on their outgoing transition probabilities
-	 	for(Entry<CmpVertex, Map<Label, MarkovOutcome>> outgoing:state_outgoing.entrySet())
-	 	{
-	 		CmpVertex currrent_state_to_explore_outgoing= outgoing.getKey();
-	 		Map<Label, MarkovOutcome> list_of_outgoing = outgoing.getValue();
-	 		for(Entry<Label, MarkovOutcome> out:list_of_outgoing.entrySet())
-	 		{
-	 			Map<Label, CmpVertex> already_outgoing = graph.transitionMatrix.get(currrent_state_to_explore_outgoing);
-	 			assert already_outgoing!=null : "state "+currrent_state_to_explore_outgoing+" is not mentioned in the transition diagram";
-
-	 			if(!already_outgoing.containsKey(out.getKey()) && out.getValue() != MarkovOutcome.failure)
-	 			{  	   
- 					if(!graphWithPredictedTransitions.transitionMatrix.get(currrent_state_to_explore_outgoing).keySet().contains(out.getKey()))
- 						extendWithLabel(graphWithPredictedTransitions,currrent_state_to_explore_outgoing, out.getValue().isPositive, out.getKey());
-	 			}					   
-	 		}          	       	      
-	 	}
-
-      return graphWithPredictedTransitions;
-	}
 
 	/** Uses the supplied Markov matrix to predict transitions from a specific state, passed as an argument. The choice of direction is <em>not</em> a choice between predicting transitions leaving a state based on those surrounding that state v.s
 	 * predicting transitions entering a state based on those surrounding it. It is rather a choice of classifier to make predictions, the one that looks at history and decides what is to follow and the one looking at surrounding transitions and
@@ -887,7 +747,7 @@ public class MarkovClassifier
 
 	    return outgoing_labels_probabilities;
 	}
-	
+
 	/** Updates Markov. This is useful where we have added something to the original PTA and need to update Markov. Crucial for learning of Markov for sideways inference, where we cannot learn from the original
 	 * traces and have to delay Markov construction to the time where PTA is built.
 	 * <p>
@@ -898,7 +758,6 @@ public class MarkovClassifier
 	 * @param alphabet alphabet of the graph of interest
 	 * @param chunkLength how many steps to make a prediction for.
 	 */
-	@SuppressWarnings("unchecked")
 	public void updateMarkov(CmpVertex vert, int chunkLength)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<List<Label>>();
@@ -1019,10 +878,11 @@ public class MarkovClassifier
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);
 		final AtomicLong inconsistencies = new AtomicLong();
 
-		for(Entry<Label,CmpVertex> entry:graph.transitionMatrix.get(vert).entrySet())
-		{
-			outgoing_labels_value.put(entry.getKey(),entry.getValue().isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
-		}
+		for(Entry<Label, TARGET_TYPE> entry:graph.transitionMatrix.get(vert).entrySet())
+			for(CmpVertex transitionTarget:graph.getTargets(entry.getValue()))
+			{
+				outgoing_labels_value.put(entry.getKey(),transitionTarget.isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
+			}
 		
 		WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),new ForEachCollectionOfPaths() 
         {
@@ -1112,15 +972,19 @@ public class MarkovClassifier
 	{
 		double outcome = 0;
 		Collection<List<Label>> collectionOfPaths = new ArrayList<List<Label>>();
-    	for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-    		if(entry.getKey().isAccept() )
+    	for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+     		if(entry.getKey().isAccept() )
             {
     			// it would be more efficient if I passed a mock of a collection instead of an actual one but for small graphs it does not matter.
     			long value=checkFanoutInconsistency(entry.getKey(),checker,false);
     			if (value > 0)
     			{
     				predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),collectionOfPaths);
-    				double inconsistencyforThisState=((double)value)/(collectionOfPaths.size()*entry.getValue().size());collectionOfPaths.clear();
+    				int outgoingPaths = 0;
+    				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
+    					outgoingPaths += graph.getTargets(transition.getValue()).size();
+    						
+    				double inconsistencyforThisState=((double)value)/(collectionOfPaths.size()*outgoingPaths);collectionOfPaths.clear();
     				outcome += inconsistencyforThisState;
     			}
             }
@@ -1268,162 +1132,6 @@ public class MarkovClassifier
 		return setsConsidered;
 	}
 
-	/**
-	 * Uses a supplied consistency checker to find paths that uniquely identify states. The supplied consistency checker is used to verify consistency after states deemed identical are merged.
-	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
-	 * @param useAverageOfMax if true, takes an average, divides by divisor and uses this value; for false, uses a maximal value and divides that.
-	 * @param divisor permits one to select a subset of paths that are not often used.
-	 * @param WLength The length of sequences to check from every state. The usual starting value is 1 which is a guess, based the observation of behaviour of graphs with large alphabet size. We have no way to tell whether paths of this length are going to separate states or not.
-	 * @return paths to uniquely identify states.
-	 */
-	public List<List<Label>> identifyPathsToMerge(final ConsistencyChecker checker, boolean useAverageOfMax,int divisor, final int WLength)
-	{
-		if (model.getChunkLen() < 2)
-			throw new IllegalArgumentException("not enough data for a first-order Markov model");
-		
-		updateMarkov(false);
-		long scoreAfterBigMerge=-1;
-		List<List<Label>> whatToMerge = Collections.emptyList();
-
-		final AtomicLong maxCount = new AtomicLong(0), sumInPta = new AtomicLong(0), pathsExplored = new AtomicLong(0);
-		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(model.markovMatrix) {
-			@Override
-			public Boolean newUserObject() {
-				return null;
-			}
-
-			@Override
-			public void nodeEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
-				if (pathToInit.size() == WLength && prediction.prediction == MarkovOutcome.positive)
-				{
-					long countInPTA=prediction.occurrence.firstElem;
-					if (countInPTA > maxCount.longValue())
-						maxCount.set(countInPTA);
-					sumInPta.addAndGet(countInPTA);pathsExplored.incrementAndGet();
-				}
-			}
-
-			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				nodeEntered(currentNode, pathToInit);
-			}
-
-			@Override
-			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode, @SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				// nothing to do here.
-			}
-
-		};
-		exploration.walkThroughAllPaths();
-		// paths that are common are likely to be present from a number of different states and as such not very good for discriminating between them.
-		final long valueAverage = pathsExplored.get() > 0?sumInPta.get()/pathsExplored.get():0;
-		final long countForInfrequentPaths = useAverageOfMax?valueAverage/divisor:maxCount.get()/divisor;
-		final Map<Long,List<List<Label>>> thresholdToInconsistency = new TreeMap<Long,List<List<Label>>>();
-		exploration = new PTAExploration<Boolean>(model.markovMatrix) {
-			@Override
-			public Boolean newUserObject() {
-				return null;
-			}
-
-			@Override
-			public void nodeEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
-				if (pathToInit.size() == WLength && prediction.prediction == MarkovOutcome.positive)
-				{
-					long countInPTA=prediction.occurrence.firstElem;
-					if (countInPTA < countForInfrequentPaths) 
-					{
-						LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
-						long value = computeInconsistencyForMergingPath(path, checker);
-						if (value >= 0)
-						{
-							List<List<Label>> pathsForThisInconsistency = thresholdToInconsistency.get(value);
-							if (pathsForThisInconsistency == null)
-							{
-								pathsForThisInconsistency = new LinkedList<List<Label>>();thresholdToInconsistency.put(value, pathsForThisInconsistency); 
-							}
-							pathsForThisInconsistency.add(path);
-						}
-					}
-				}
-			}
-
-			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				nodeEntered(currentNode, pathToInit);
-			}
-
-			@Override
-			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode, @SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				// nothing to do here.
-			}
-
-		};
-		exploration.walkThroughAllPaths();
-		
-		if (!thresholdToInconsistency.isEmpty())
-		{// Now evaluate the most consistent element in the map and merge all paths associated with it. 
-		 // In reality, there would be many other elements that might be feasible, however we'd like 
-		 // not to get this one wrong and the way to do it is to be cautious. 
-		 // At present, we seem to be getting around 10% of these wrong.
-			whatToMerge = thresholdToInconsistency.entrySet().iterator().next().getValue();
-			List<StatePair> pairsList = buildVerticesToMergeForPath(whatToMerge);
-			scoreAfterBigMerge = dREJECT;
-			LearnerGraph merged = null;
-			if (//thresholdToInconsistency.entrySet().iterator().next().getKey() == 0 && 
-					!pairsList.isEmpty())
-			{
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-				int score = graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false);
-				if (score < 0)
-					scoreAfterBigMerge = dREJECT;
-				else
-				{
-					merged = MergeStates.mergeCollectionOfVertices(graph, null, verticesToMerge, null, false);
-					scoreAfterBigMerge = computeInconsistency(merged, model, checker,false);
-				}
-			}
-			if (scoreAfterBigMerge < 0)
-				whatToMerge = Collections.emptyList();
-		}
-		return whatToMerge;
-	}
-
-	/** Given the collection of paths and a way to tell which states to merge, computes which states to merge and uses the reference graph to check for validity. Returns true if a merged graph would be valid.
-	 * 
-	 * @param trimmedReference reference graph
-	 * @param graph graph in which to identify states to merge
-	 * @param whatToMerge paths to check. 
-	 * @return true if a merge will be valid and false otherwise.
-	 */
-	public static boolean checkMergeValidity(LearnerGraph trimmedReference, LearnerGraph graph, MarkovModel model, Collection<List<Label>> whatToMerge)
-	{
-		Map<CmpVertex,LinkedList<Label>> graphToPath=PairOfPaths.convertSetOfStatesToPaths(graph,graph.transitionMatrix.keySet());
-		assert graphToPath != null;
-		boolean valid = true;
-		MarkovClassifier cl = new MarkovClassifier(model,graph);
-		for(Set<CmpVertex> set:cl.buildVerticesToMergeForPaths(whatToMerge))
-		{
-			CmpVertex expected = trimmedReference.getVertex(graphToPath.get(set.iterator().next()));
-			for(CmpVertex v:set)
-				if (trimmedReference.getVertex(graphToPath.get(v)) != expected)
-				{
-					valid = false;//System.out.println("INVALID MERGE: "+set);
-					break;
-				}
-			
-			if (!valid)
-				break;
-		}
-		return valid;
-	}
 	
 	/** Given a graph, computes the proportion of states that can be identified using singleton sequences.
 	 * 
@@ -1482,37 +1190,41 @@ public class MarkovClassifier
 		
 		long correctPredictions=0, numberOfPredictions=0;
 		long numberOfExistingPredicted=0;
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 			{
 				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), null);
 				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
 				{
-					CmpVertex target = entry.getValue().get(prediction.getKey()); 
+					TARGET_TYPE targetList = entry.getValue().get(prediction.getKey()); 
 					assert prediction.getValue() != MarkovOutcome.failure;
 					++numberOfPredictions;
-	
-					if (prediction.getValue() == MarkovOutcome.positive)
+					for(CmpVertex target:graph.getTargets(targetList))
 					{
-						if(target != null && target.isAccept())
-							++correctPredictions;
-					}
-					if (prediction.getValue() == MarkovOutcome.negative)
-					{
-						if (target == null || !target.isAccept())
-							++correctPredictions;
+						if (prediction.getValue() == MarkovOutcome.positive)
+						{
+							if(target != null && target.isAccept())
+								++correctPredictions;
+						}
+						if (prediction.getValue() == MarkovOutcome.negative)
+						{
+							if (target == null || !target.isAccept())
+								++correctPredictions;
+						}
 					}
 				}
 				
 				
-				for(Entry<Label,CmpVertex> existing:entry.getValue().entrySet())
+				for(Entry<Label,TARGET_TYPE> existingTransition:entry.getValue().entrySet())
 				{
-					MarkovOutcome predictedTarget = predictions.get(existing.getKey());
-					
-					if (existing.getValue().isAccept() && predictedTarget == MarkovOutcome.positive)
-						++numberOfExistingPredicted;
-					if (!existing.getValue().isAccept() && predictedTarget == MarkovOutcome.negative)
-						++numberOfExistingPredicted;
+					MarkovOutcome predictedTarget = predictions.get(existingTransition.getKey());
+					for(CmpVertex existing:graph.getTargets(existingTransition.getValue()))
+					{
+						if (existing.isAccept() && predictedTarget == MarkovOutcome.positive)
+							++numberOfExistingPredicted;
+						if (!existing.isAccept() && predictedTarget == MarkovOutcome.negative)
+							++numberOfExistingPredicted;
+					}
 				}
 			}
 		if (numberOfPredictions > 0) outcomePrecision = (double)correctPredictions/numberOfPredictions;

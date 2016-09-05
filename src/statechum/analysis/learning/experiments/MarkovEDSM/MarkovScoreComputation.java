@@ -42,6 +42,7 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -712,7 +713,7 @@ public class MarkovScoreComputation
 	 * @param stepNumber how many waves of transitions to generate
 	 * @return number of matching transitions 
 	 */
-	protected static long comparePredictedFanouts(MarkovClassifier cl, CmpVertex red, CmpVertex blue, List<Label> pathLenBeyondCurrentState,int stepNumber)
+	protected static long comparePredictedFanouts(MarkovClassifierLG cl, CmpVertex red, CmpVertex blue, List<Label> pathLenBeyondCurrentState,int stepNumber)
 	{
 		if (!red.isAccept() || !blue.isAccept())
 			return 0;
@@ -770,18 +771,18 @@ public class MarkovScoreComputation
 	 * predictions (only short paths are considered for predictions of subsequent transitions).</li>
 	 * </ul>
 	 */
-	public static long computeScoreBasedOnMarkov(MarkovClassifier cl, StatePair pair)
+	public static long computeScoreBasedOnMarkov(MarkovClassifierLG cl, StatePair pair)
 	{
 		assert pair.getQ() != pair.getR();
-		assert cl.graph.transitionMatrix.containsKey(pair.firstElem);
-		assert cl.graph.transitionMatrix.containsKey(pair.secondElem);
-		Configuration shallowCopy = cl.graph.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph result = new LearnerGraph(cl.graph,shallowCopy);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(shallowCopy,cl.graph);
+		assert cl.graphD.transitionMatrix.containsKey(pair.firstElem);
+		assert cl.graphD.transitionMatrix.containsKey(pair.secondElem);
+		Configuration shallowCopy = cl.graphD.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph result = new LearnerGraph(cl.graphD,shallowCopy);
+		Map<CmpVertex,List<CmpVertex>> mergedVertices = AbstractLearnerGraph.constructMap(shallowCopy,cl.graphD);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
 
-		long pairScore = cl.graph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
+		long pairScore = cl.graphD.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
 		if (pairScore < 0)
 			throw new IllegalArgumentException("elements of the pair are incompatible");
 
@@ -795,7 +796,7 @@ public class MarkovScoreComputation
 
 		
 		// make a loop
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graphD.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
 				if (rowEntry.getValue() == pair.getQ())
@@ -817,7 +818,7 @@ public class MarkovScoreComputation
 		Set<Label> inputsUsed = new HashSet<Label>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graphD.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
 			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
@@ -836,7 +837,7 @@ public class MarkovScoreComputation
 				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
 				// (as long as this combination is the one _not_ already present from the corresponding red state).
 					boolean somethingWasAdded = false;
-					for(Entry<Label,CmpVertex> input_and_target:cl.graph.transitionMatrix.get(toMerge).entrySet())
+					for(Entry<Label,CmpVertex> input_and_target:cl.graphD.transitionMatrix.get(toMerge).entrySet())
 						if (!inputsUsed.contains(input_and_target.getKey()))
 						{
 							// We are adding a transition to state vert with label input_and_target.getKey() and target state input_and_target.getValue();
@@ -863,7 +864,7 @@ public class MarkovScoreComputation
 		// mapping map to store all paths leave each state in different length
 		double tentativeScore=0;
 		ConsistencyChecker checker = new MarkovClassifier.InconsistencyNullVsPredicted();
-		MarkovClassifier resultClassifier = new MarkovClassifier(cl.model,result);
+		MarkovClassifierLG resultClassifier = new MarkovClassifierLG(cl.model,result,null);
 		for(Entry<CmpVertex,Collection<Label>> entry:labelsAdded.entrySet())
 			if (!entry.getValue().isEmpty())
 			{
@@ -874,12 +875,12 @@ public class MarkovScoreComputation
 		return (long)tentativeScore;
 	}
 
-	public static long computeScoreUsingMarkovFanouts(MarkovClassifier cl, StatePair p)
+	public static long computeScoreUsingMarkovFanouts(MarkovClassifierLG cl, StatePair p)
 	{
 		long currentScore=0;//comparePredictedFanouts(cl,p.getR(),p.getQ(),new LinkedList<Label>(),2);
 		// The one below compares states based on actual outgoing transitions, the one above only uses Markov predictions, current outgoing are taken into account when I count inconsistencies.
-		Map<Label,CmpVertex> transitionsFromBlue = cl.graph.transitionMatrix.get(p.getQ());
-		for(Entry<Label,CmpVertex> outgoing:cl.graph.transitionMatrix.get(p.getR()).entrySet())
+		Map<Label,CmpVertex> transitionsFromBlue = cl.graphD.transitionMatrix.get(p.getQ());
+		for(Entry<Label,CmpVertex> outgoing:cl.graphD.transitionMatrix.get(p.getR()).entrySet())
 		{
 			CmpVertex targetFromBlue = transitionsFromBlue.get(outgoing.getKey());
 			if (targetFromBlue != null)

@@ -56,8 +56,8 @@ public class MarkovHelper
 
 	public LearnerGraph coregraph = null;
 
-	protected MarkovModel Markov;
-	protected ConsistencyChecker checker;
+	protected MarkovModel markovModel;
+	protected ConsistencyChecker markovConsistencyChecker;
 	
 	public MarkovHelper(MarkovParameters pars)
 	{
@@ -65,11 +65,11 @@ public class MarkovHelper
 	}
 	
 	public void setMarkov(MarkovModel m) {
-		Markov=m;
+		markovModel=m;
 	}
 
 	public void setChecker(ConsistencyChecker c) {
-		checker=c;
+		markovConsistencyChecker=c;
 	}
 
 	/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
@@ -133,7 +133,7 @@ public class MarkovHelper
 		coregraph = graph;
 				 				
 		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
-		cl = new MarkovClassifierLG(Markov, coregraph, inverseGraph);
+		cl = new MarkovClassifierLG(markovModel, coregraph, inverseGraph);
 	    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
 		inconsistenciesPerVertex =
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
@@ -150,7 +150,7 @@ public class MarkovHelper
 		long score= genScore;
 		if (genScore >= 0)
 		{			
-			score = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
+			score = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 		}		
 		return score;
 	}
@@ -166,14 +166,14 @@ public class MarkovHelper
 		long score= genScore;
 		if (genScore >= 0)
 		{			
-			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);
+			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 			
 			score=Math.round(genScore-markovParameters.weightOfInconsistencies*currentInconsistency);
 			
 			if (markovParameters.useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 			{
-				if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),Markov.getPredictionLen()) ||
-						!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),Markov.getPredictionLen()))
+				if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),markovModel.getPredictionLen()) ||
+						!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getQ(),markovModel.getPredictionLen()))
 				{
 					if (extendedGraph == null)
 						extendedGraph = cl.constructMarkovTentative();

@@ -141,15 +141,15 @@ public class MarkovModel
 	/** Returns the maximal length of paths in either of the two matrices. */
 	public int getChunkLen()
 	{
-		return chunk_Length;
+		return chunkLength;
 	}
 	
 	public int getPredictionLen()
 	{
-		return chunk_Length-1;
+		return chunkLength-1;
 	}
 	
-	private final int chunk_Length;
+	private final int chunkLength;
 
 	public final boolean predictForwardOrSideways,directionForwardOrInverse;
 	
@@ -157,7 +157,7 @@ public class MarkovModel
     {
     	if (chunkLen < 2)
     		throw new IllegalArgumentException("chunkLen should be at least 2");
-    	chunk_Length = chunkLen;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
+    	chunkLength = chunkLen;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
     	markovMatrix = new MarkovMatrixEngine(PTAUseMatrix);
     }
     
@@ -377,7 +377,7 @@ public class MarkovModel
 		for(List<Label> positive_trace:pos)
 		{
 			Trace current_positive_trace=new Trace(positive_trace, true);
-			for(int i=onlyLongest?chunk_Length-1:0;i<chunk_Length;i++)
+			for(int i=onlyLongest?chunkLength-1:0;i<chunkLength;i++)
 			{
 				List<Trace> List_traces=splitTrace(current_positive_trace,i+1);
 				for (Trace tracePos:List_traces)
@@ -388,7 +388,7 @@ public class MarkovModel
 		// from negative traces initialize the Markov matrix
 		for(List<Label> negative_trace:neg)
 		{
-			for(int i=onlyLongest?chunk_Length-1:0; i<chunk_Length; i++)
+			for(int i=onlyLongest?chunkLength-1:0; i<chunkLength; i++)
 			{
 				Trace trace=new Trace(negative_trace,true);
 				List<Trace> List_traces=splitTrace(trace,i+1);
@@ -513,7 +513,7 @@ public class MarkovModel
 		exploration.walkThroughAllPaths();
 		return outcome;
 	}
-	
+
 	protected void updateOccurrenceMatrix(Trace traceToMarkov, boolean positive)
 	{
 		UpdatablePairInteger occurrence_of_trace=markovMatrix.getPredictionAndCreateNewOneIfNecessary(traceToMarkov.getList()).occurrence;

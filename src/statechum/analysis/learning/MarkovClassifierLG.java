@@ -1,3 +1,20 @@
+/* Copyright (c) 2016 The University of Sheffield.
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning;
 
 import java.util.ArrayList;
@@ -9,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
 import statechum.Label;
@@ -58,7 +75,7 @@ public class MarkovClassifierLG extends MarkovClassifier<CmpVertex,LearnerGraphC
 			else
 			{
 				LearnerGraph merged = MergeStates.mergeCollectionOfVertices(graphD, null, verticesToMerge, null, false);
-				outcome = computeInconsistency(merged,null, model,checker,false);
+				outcome = computeInconsistency(merged,null,model,checker,false);
 			}
 		}
 		
@@ -262,6 +279,7 @@ public class MarkovClassifierLG extends MarkovClassifier<CmpVertex,LearnerGraphC
       return graphWithPredictedTransitions;
 	}
 
+
 	/**
 	 * Uses a supplied consistency checker to find paths that uniquely identify states. The supplied consistency checker is used to verify consistency after states deemed identical are merged.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
@@ -402,7 +420,7 @@ public class MarkovClassifierLG extends MarkovClassifier<CmpVertex,LearnerGraphC
 		Map<CmpVertex,LinkedList<Label>> graphToPath=PairOfPaths.convertSetOfStatesToPaths(graph,graph.transitionMatrix.keySet());
 		assert graphToPath != null;
 		boolean valid = true;
-		MarkovClassifierLG cl = new MarkovClassifierLG(model,graph,null);
+		MarkovClassifier<CmpVertex,LearnerGraphCachedData> cl = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(model,null,graph);
 		for(Set<CmpVertex> set:cl.buildVerticesToMergeForPaths(whatToMerge))
 		{
 			CmpVertex expected = trimmedReference.getVertex(graphToPath.get(set.iterator().next()));
@@ -418,5 +436,5 @@ public class MarkovClassifierLG extends MarkovClassifier<CmpVertex,LearnerGraphC
 		}
 		return valid;
 	}
-	
+
 }

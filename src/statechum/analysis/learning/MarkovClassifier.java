@@ -686,7 +686,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param pathBeyondCurrentState labels that are assumed to be at the tail of all paths leading to a state of interest. 
 	 * Used in predictions where we are considering a PTA rooted at some real states. Each path in this PTA can the be passed as <i>pathBeyondCurrentState</i>. 
 	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
-	 * @param pathsOfInterest paths considered for prediction. Ignored if <i>null</i>.
+	 * @param pathsOfInterest paths considered for prediction, filled in by this method. Ignored if <i>null</i>.
 	 * Each such path had an outgoing label added and possibly <i>pathBeyondCurrentState</i> appended to it before being passed into Markov and the summary of the outcomes of such predictions is returned by this method.
 	 * @return map from labels to predictions.
 	 */

@@ -264,21 +264,26 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		Label[] elements = graph.transitionMatrix.get(vert).keySet().toArray(new Label[]{});
 		if (elements.length < pathLength)
 			return;// cannot build complete paths
-		LinkedList<FrontLineSet> frontLine = new LinkedList<FrontLineSet>();
-		frontLine.add(new FrontLineSet(new ArrayList<Label>(elements.length),0,0));
-		while(!frontLine.isEmpty())
+		if (pathLength == 0)
+			callback.handlePath(new ArrayList<Label>());
+		else
 		{
-			FrontLineSet setSoFar = frontLine.pop();
-			int lastPlusOne = elements.length+setSoFar.currentPosition-pathLength;// we need to ensure there is enough elements left for a complete (pathLength-length) entry. 
-			for(int i=setSoFar.maxElement;i<lastPlusOne;++i)
+			LinkedList<FrontLineSet> frontLine = new LinkedList<FrontLineSet>();
+			frontLine.add(new FrontLineSet(new ArrayList<Label>(elements.length),0,0));
+			while(!frontLine.isEmpty())
 			{
-				List<Label> nextSet = new ArrayList<Label>(setSoFar.currentSet);
-				nextSet.add(elements[i]);
-				if (setSoFar.currentPosition == pathLength)
-					callback.handlePath(setSoFar.currentSet);
-				else
-					// not reached the maximal length of paths to explore
-					frontLine.offer(new FrontLineSet(nextSet,setSoFar.currentPosition+1,i+1));
+				FrontLineSet setSoFar = frontLine.pop();
+				int lastPlusOne = elements.length+setSoFar.currentPosition-pathLength+1;// we need to ensure there is enough elements left for a complete (pathLength-length) entry. 
+				for(int i=setSoFar.maxElement;i<lastPlusOne;++i)
+				{
+					List<Label> nextSet = new ArrayList<Label>(setSoFar.currentSet);
+					nextSet.add(elements[i]);
+					if (setSoFar.currentPosition == pathLength-1)
+						callback.handlePath(nextSet);
+					else
+						// not reached the maximal length of paths to explore
+						frontLine.offer(new FrontLineSet(nextSet,setSoFar.currentPosition+1,i+1));
+				}
 			}
 		}
 	}

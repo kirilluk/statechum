@@ -709,6 +709,285 @@ public class TestMarkovLearner
 	}
 	
 	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),1,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+	
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths3a()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertTrue(pathsActual.isEmpty());
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths3b()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),2,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertTrue(pathsActual.isEmpty());
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths3c()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),1,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertTrue(pathsActual.isEmpty());
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths3d()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths3e()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","a"}, new String[]{"b","a"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExplorePaths5()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"b","a","a"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets1()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"}, new String[]{"b"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),1,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets2()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets3()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertTrue(pathsActual.isEmpty());
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets4()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),0,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets5()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets6()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);
+		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),1,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertTrue(pathsActual.isEmpty());
+	}
+
+	@Test
+	/** Tests for exploration of paths. */
+	public void testExploreSets7()
+	{
+		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C / E-b->C / E-c->C","testExploreSets7",config, converter);
+		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","c"},new String[]{"b","c"} },config,converter), pathsActual = new HashSet<List<Label>>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
+	        {
+				@Override
+				public void handlePath(List<Label> pathToNewState) 
+				{
+					pathsActual.add(pathToNewState);
+				}
+	        }
+		);
+		Assert.assertEquals(pathsExpected,pathsActual);
+	}
+
+	@Test
 	public void testUpdateMarkovSideways1a()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);

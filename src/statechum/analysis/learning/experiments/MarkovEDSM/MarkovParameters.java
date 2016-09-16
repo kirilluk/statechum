@@ -29,12 +29,19 @@ public class MarkovParameters
 	public int divisorForPathCount=1,expectedWLen=1;
 	public int whichMostConnectedVertex = 0;
 	
+	/** If true, we are looking at sequences of transitions to/from a state of interest. 
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	 * permits elements such sets to be represented as sequences.
+	 */
+	public boolean pathsOrSets = true;
+
 	public MarkovParameters()
 	{}
 	
 	public MarkovParameters(MarkovParameters a)
 	{
-		chunkLen = a.chunkLen;preset = a.preset;
+		chunkLen = a.chunkLen;pathsOrSets = a.pathsOrSets;preset = a.preset;
 		useAverageOrMax = a.useAverageOrMax;weightOfInconsistencies = a.weightOfInconsistencies;
 		divisorForPathCount = a.divisorForPathCount;expectedWLen = a.expectedWLen;
 		whichMostConnectedVertex = a.whichMostConnectedVertex;
@@ -54,6 +61,7 @@ public class MarkovParameters
 		result = prime * result + expectedWLen;
 		result = prime * result + preset;
 		result = prime * result + (useAverageOrMax ? 1231 : 1237);
+		result = prime * result + (pathsOrSets ? 1231 : 1237);
 		long temp;
 		temp = Double.doubleToLongBits(weightOfInconsistencies);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
@@ -75,6 +83,8 @@ public class MarkovParameters
 		MarkovParameters other = (MarkovParameters) obj;
 		if (chunkLen != other.chunkLen)
 			return false;
+		if (pathsOrSets != other.pathsOrSets)
+			return false;
 		if (divisorForPathCount != other.divisorForPathCount)
 			return false;
 		if (expectedWLen != other.expectedWLen)
@@ -90,14 +100,14 @@ public class MarkovParameters
 		return true;
 	}
 
-	public MarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		setMarkovParameters(pr,chunkLength,weight,aveOrMax,divisor,mostConnectedVertex,wlen);
+		setMarkovParameters(pr,chunkLength,argPathsOrSets,weight,aveOrMax,divisor,mostConnectedVertex,wlen);
 	}
 	
-	public void setMarkovParameters(int pr, int chunkLength, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		chunkLen=chunkLength;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;setPresetLearningParameters(preset);
+		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;setPresetLearningParameters(preset);
 	}
 	
 	public void setPresetLearningParameters(int value)

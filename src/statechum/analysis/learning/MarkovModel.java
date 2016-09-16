@@ -153,11 +153,18 @@ public class MarkovModel
 
 	public final boolean predictForwardOrSideways,directionForwardOrInverse;
 	
-    public MarkovModel(int chunkLen,boolean argPredictForwardOrSideways,boolean argDirectionForwardOrInverse, boolean PTAUseMatrix)
+	/** If true, we are looking at sequences of transitions to/from a state of interest. 
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	 * permits elements such sets to be represented as sequences.
+	 */
+	public final boolean pathsOrSets;
+	
+    public MarkovModel(int chunkLen,final boolean argPathsOrSets, boolean argPredictForwardOrSideways,boolean argDirectionForwardOrInverse, boolean PTAUseMatrix)
     {
     	if (chunkLen < 2)
     		throw new IllegalArgumentException("chunkLen should be at least 2");
-    	chunkLength = chunkLen;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
+    	chunkLength = chunkLen;pathsOrSets = argPathsOrSets;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
     	markovMatrix = new MarkovMatrixEngine(PTAUseMatrix);
     }
     

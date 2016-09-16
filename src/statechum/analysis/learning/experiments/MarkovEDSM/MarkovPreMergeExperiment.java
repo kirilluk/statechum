@@ -218,7 +218,7 @@ public class MarkovPreMergeExperiment
 												parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 												parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 												parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-												parameters.markovParameters.setMarkovParameters(preset, chunkSize,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
+												parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
 												parameters.setDisableInconsistenciesInMergers(false);
 												parameters.setUsePrintf(experimentRunner.isInteractive());
 												MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

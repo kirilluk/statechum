@@ -196,7 +196,7 @@ public class TestLearnFromTracesUsingMarkov {
 		assert sPlus.size() > 0;
 		*/
 		//DifferentFSMException diff = WMethod.checkM(ptaExpected, ptaExpected.getInit(), pta, pta.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE);Assert.assertNull(diff);
-		final MarkovModel m= new MarkovModel(chunkLen,true,true,true);
+		final MarkovModel m= new MarkovModel(chunkLen,true, true,true,true);
 
 		new MarkovClassifierLG(m, pta, null).updateMarkov(false);
 		pta.clearColours();

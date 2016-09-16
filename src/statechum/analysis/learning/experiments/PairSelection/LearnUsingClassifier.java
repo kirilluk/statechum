@@ -182,7 +182,7 @@ public class LearnUsingClassifier {
 												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 												{
 													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.dataCollectorParameters.markovParameters);
-													final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false);
+													final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,par.dataCollectorParameters.markovParameters.pathsOrSets,true,true,false);
 
 													new MarkovClassifierLG(m, argInitialPTA,null).updateMarkov(false);// construct Markov chain if asked for.
 													

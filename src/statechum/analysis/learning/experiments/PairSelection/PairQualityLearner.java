@@ -157,6 +157,7 @@ public class PairQualityLearner
 		public final MarkovParameters markovParameters;
 		public final boolean graphIsPTA;
 		public final long bitstringOfEnabledParameters;
+
 		
 		/** Used to determine which difference of good v.s. bad in a probability distribution for a pair is enough to 
 		 * consider a pair classified. Pairs that are not classfied are deemed 'unknown'.
@@ -177,7 +178,7 @@ public class PairQualityLearner
 			return ~0;
 		}
 		
-		public DataCollectorParameters(final int depth, MarkovParameters markov, boolean pta,long enabledParameters)
+		public DataCollectorParameters(final int depth, final MarkovParameters markov, boolean pta,long enabledParameters)
 		{
 			ifDepth = depth;markovParameters = markov;graphIsPTA = pta;bitstringOfEnabledParameters = enabledParameters;
 			good_vs_bad_diff=0.2;fraction_of_pairs_to_ignore = 0;peel = true;
@@ -1662,7 +1663,7 @@ public class PairQualityLearner
 			LearnerGraph actualAutomaton = null;
 			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 
-			final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false);
+			final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,par.dataCollectorParameters.markovParameters.pathsOrSets,true,true,false);
 			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			

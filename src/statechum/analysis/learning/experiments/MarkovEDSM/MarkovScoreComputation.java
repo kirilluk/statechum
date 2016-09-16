@@ -719,8 +719,8 @@ public class MarkovScoreComputation
 			return 0;
 		
 		long scoreCurrentFanout = 0, score = 0;
-		Map<Label,MarkovOutcome> outgoing_red_probabilities=cl.predictTransitionsFromState(red,pathLenBeyondCurrentState,cl.model.getChunkLen(),null);
-		Map<Label,MarkovOutcome> outgoing_blue_probabilities=cl.predictTransitionsFromState(blue,pathLenBeyondCurrentState,cl.model.getChunkLen(),null);
+		Map<Label,MarkovOutcome> outgoing_red_probabilities=cl.predictTransitionsFromState(red,pathLenBeyondCurrentState,cl.model.getChunkLen(),cl.model.pathsOrSets,null);
+		Map<Label,MarkovOutcome> outgoing_blue_probabilities=cl.predictTransitionsFromState(blue,pathLenBeyondCurrentState,cl.model.getChunkLen(),cl.model.pathsOrSets,null);
 		for(Entry<Label,MarkovOutcome> entry:outgoing_red_probabilities.entrySet())
 		{
 			MarkovOutcome outcomeBlue = outgoing_blue_probabilities.get(entry.getKey());

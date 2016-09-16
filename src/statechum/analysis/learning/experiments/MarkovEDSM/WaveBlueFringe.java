@@ -574,7 +574,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				});
 				assert sPlus.size() > 0;
 				assert sMinus.size() > 0;
-				final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
+				final MarkovModel m= new MarkovModel(chunkLen,true,true,true,false);
 				m.createMarkovLearner(sPlus, sMinus,false);
 				
 				pta.clearColours();

@@ -69,7 +69,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	public final MarkovModel model;
 	/** The graph in which we are making predictions.*/
 	
-	private final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
+	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
 	
 	/** Contains paths to be supplied to Markov for making predictions. The specific kind of the graph 
 	 * depends on the direction in which we are doing predictions. Could be either a deterministic or 
@@ -198,7 +198,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		assert graph.transitionMatrix.keySet().equals(graphToCheckForConsistency.transitionMatrix.keySet());
 	}
 
-	interface ForEachCollectionOfPaths
+	public interface ForEachCollectionOfPaths
 	{
 		/** This one is called for each path in an explored graph. */
 		public void handlePath(List<Label> path);
@@ -216,7 +216,41 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		
 	}
 
+	public static class FrontLineSet
+	{
+		/** A set is represented by a list because elements of this set have a total order. */
+		public final List<Label> currentSet;
+		public final int currentPosition;
+		public final int maxElement;
+		
+		public FrontLineSet(List<Label> set, int position, int elem) {
+			currentSet=set;
+			currentPosition = position;maxElement=elem;
+		}
+		
+	}
+
 	/** Explores all positive states up to the specified length, calling the supplied callback for each of them. Can be used on both deterministic and non-deterministic graphs. 
+	 * In the non-deterministic case, could report the same path multiple times.
+	 * 
+	 * @param graph graph to explore
+	 * @param vert vertex to start with
+	 * @param pathLength length of paths to explore
+	 * @param pathsOrSets if true, we are looking at sequences of transitions to/from a state of interest. 
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	 * permits elements such sets to be represented as sequences.
+	 * @param callback what to call for each discovered path.
+	 */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,final boolean pathsOrSets,ForEachCollectionOfPaths callback)
+	{
+		if (pathsOrSets)
+			WalkThroughAllPathsOfSpecificLength_Sequences(graph,vert,pathLength,callback);
+		else
+			WalkThroughAllPathsOfSpecificLength_Sets(graph,vert,pathLength,callback);
+	}
+
+	/** Explores all sets of labels on transitions to/from a supplied state, calling the supplied callback for each of them. Can be used on both deterministic and non-deterministic graphs. 
 	 * In the non-deterministic case, could report the same path multiple times.
 	 * 
 	 * @param graph graph to explore
@@ -224,7 +258,40 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param pathLength length of paths to explore
 	 * @param callback what to call for each discovered path.
 	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength_Sets(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
+	{
+		// considering that there is a total order on the labels, pick the smallest first, then the next one etc.
+		Label[] elements = graph.transitionMatrix.get(vert).keySet().toArray(new Label[]{});
+		if (elements.length < pathLength)
+			return;// cannot build complete paths
+		LinkedList<FrontLineSet> frontLine = new LinkedList<FrontLineSet>();
+		frontLine.add(new FrontLineSet(new ArrayList<Label>(elements.length),0,0));
+		while(!frontLine.isEmpty())
+		{
+			FrontLineSet setSoFar = frontLine.pop();
+			int lastPlusOne = elements.length+setSoFar.currentPosition-pathLength;// we need to ensure there is enough elements left for a complete (pathLength-length) entry. 
+			for(int i=setSoFar.maxElement;i<lastPlusOne;++i)
+			{
+				List<Label> nextSet = new ArrayList<Label>(setSoFar.currentSet);
+				nextSet.add(elements[i]);
+				if (setSoFar.currentPosition == pathLength)
+					callback.handlePath(setSoFar.currentSet);
+				else
+					// not reached the maximal length of paths to explore
+					frontLine.offer(new FrontLineSet(nextSet,setSoFar.currentPosition+1,i+1));
+			}
+		}
+	}
+	
+	/** Explores all positive states up to the specified length, calling the supplied callback for each of them. Can be used on both deterministic and non-deterministic graphs. 
+	 * In the non-deterministic case, would report each path only once.
+	 * 
+	 * @param graph graph to explore
+	 * @param vert vertex to start with
+	 * @param pathLength length of paths to explore
+	 * @param callback what to call for each discovered path.
+	 */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength_Sequences(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
 	{
 		LinkedList<FrontLineElem> frontline = new LinkedList<FrontLineElem>();
         FrontLineElem e=new FrontLineElem(new LinkedList<Label>(),vert);
@@ -237,7 +304,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 			if(e.pathToFrontLine.size()==pathLength)
 			{
 				if (!pathsEncountered.contains(e.pathToFrontLine))
-				{
+				{// this accounts for multiple identical paths from a state in a non-deterministic graph
 					pathsEncountered.add(e.pathToFrontLine);
 					callback.handlePath(e.pathToFrontLine);
 				}
@@ -250,7 +317,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 					for(CmpVertex target:graph.getTargets(transitions.get(lbl)))
 		    			if (target.isAccept())
 			    		{
-			    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+1);// +1 is to avoid potential array reallocation
+			    			List<Label> pathToNewState=new ArrayList<Label>(pathLength+2);// +2 is to avoid potential array reallocation, some versions of JDK reallocate when an array is full without waiting for a next call to add. 
 			    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
 	    					frontline.add(new FrontLineElem(pathToNewState,target));
 			    		}
@@ -339,7 +406,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	}
 	
 	/** Given a collection of vertices that is to be merged, computes the 
-	 * inconsistency of the outcome of a merger. 
+	 * inconsistency of the outcome of a merger, using a number of different models and classifiers. 
+	 * This makes it possible to make predictions both forward, inverse in sideways at the same time. 
 	 * This is defined as the difference in inconsistency scores between the merged
 	 * graph and the original graph. This routine aims to avoid computation of an 
 	 * inconsistency of complete graphs, instead looking only at those vertices that 
@@ -403,18 +471,17 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		{
 			long origInconsistencyRelativeToChanges = 0;
 			for(CmpVertex v:affectedVerticesInOrigGraph)
-				if (v.isAccept()) // we only consider prefix-closed languages where there are never any outgoing transitions from reject-states and hence no potential for inconsistencies.
+			{// here we cannot filter for only accept-states because evaluation of inconsistencies backwards would look at transitions entering reject-states.
+				if (origInconsistencies.containsKey(v))
+					origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
+				else
 				{
-					if (origInconsistencies.containsKey(v))
-						origInconsistencyRelativeToChanges+=origInconsistencies.get(v);
-					else
-					{
-						long inconsistency = origClassifier[i].checkFanoutInconsistency(v,checker[i],false);
-						origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
-						origInconsistencyRelativeToChanges+=inconsistency;
-					}
+					long inconsistency = origClassifier[i].checkFanoutInconsistency(v,checker[i],false);
+					origInconsistencies.put(v,inconsistency);// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
+					origInconsistencyRelativeToChanges+=inconsistency;
 				}
-			MarkovClassifier<CmpVertex,LearnerGraphCachedData> cl = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m[i], merged, mergedInverse);
+			}
+			MarkovClassifier<CmpVertex,LearnerGraphCachedData> cl = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m[i], merged, mergedInverse);// this chooses between the forward and inverse graphs depending on the parameters of markov model, passed as the first argument.
 			long mergedInconsistencyRelativeToChanges = cl.computeConsistencyForSpecificVertices(checker[i],affectedVerticesInMergedGraphAll,false);
 			outcome[i] = mergedInconsistencyRelativeToChanges - origInconsistencyRelativeToChanges;
 		}
@@ -686,12 +753,16 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param pathBeyondCurrentState labels that are assumed to be at the tail of all paths leading to a state of interest. 
 	 * Used in predictions where we are considering a PTA rooted at some real states. Each path in this PTA can the be passed as <i>pathBeyondCurrentState</i>. 
 	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
+	 * @param pathsOrSets if true, we are looking at sequences of transitions to/from a state of interest. 
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	 * permits elements such sets to be represented as sequences.
 	 * @param pathsOfInterest paths considered for prediction. Ignored if <i>null</i>.
 	 * Each such path had an outgoing label added and possibly <i>pathBeyondCurrentState</i> appended to it before being passed into Markov and the summary of the outcomes of such predictions is returned by this method.
 	 * @return map from labels to predictions.
 	 */
 	@SuppressWarnings("unchecked")
-	public Map<Label, MarkovOutcome> predictTransitionsFromState(CmpVertex vert, final List<Label> pathBeyondCurrentState, int chunkLength,final Collection<List<Label>> pathsOfInterest)
+	public Map<Label, MarkovOutcome> predictTransitionsFromState(CmpVertex vert, final List<Label> pathBeyondCurrentState, int chunkLength,final boolean pathsOrSets, final Collection<List<Label>> pathsOfInterest)
 	{
 		assert vert.isAccept();
 		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
@@ -703,7 +774,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		final Set<Label> failureLabels = new TreeSet<Label>();
 		final Map<Label,MarkovOutcome> outgoing_labels_probabilities=
 				graph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,MarkovOutcome>() : new HashMap<Label,MarkovOutcome>();
-        WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,chunkLength-1-lengthOfPathBeyond,new ForEachCollectionOfPaths() 
+        WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,chunkLength-1-lengthOfPathBeyond, pathsOrSets,new ForEachCollectionOfPaths() 
         {
 			@Override
 			public void handlePath(List<Label> pathToNewState) 
@@ -757,11 +828,15 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param vert state to predict for
 	 * @param alphabet alphabet of the graph of interest
 	 * @param chunkLength how many steps to make a prediction for.
+	 * @param pathsOrSets if true, we are looking at sequences of transitions to/from a state of interest. 
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	 * permits elements such sets to be represented as sequences.
 	 */
-	public void updateMarkov(CmpVertex vert, int chunkLength)
+	public void updateMarkov(CmpVertex vert, int chunkLength, final boolean pathsOrSets)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<List<Label>>();
-		predictTransitionsFromState(vert,null,chunkLength,markovPathsToUpdate);
+		predictTransitionsFromState(vert,null,chunkLength,pathsOrSets,markovPathsToUpdate);
 
 	    // Now we iterate through all the labels and update entries in markovEntriesToUpdate depending on the outcome.
 	    for(Label lbl:graph.getCache().getAlphabet())
@@ -884,7 +959,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				outgoing_labels_value.put(entry.getKey(),transitionTarget.isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
 			}
 		
-		WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),new ForEachCollectionOfPaths() 
+		WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),model.pathsOrSets,new ForEachCollectionOfPaths() 
         {
 			@Override
 			public void handlePath(List<Label> pathToNewState) 
@@ -949,7 +1024,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		if(vert.isAccept() )
             {
-        	   Map<Label,MarkovOutcome> outgoing_labels_probabilities=predictTransitionsFromState(vert,null,model.getChunkLen(),null);
+        	   Map<Label,MarkovOutcome> outgoing_labels_probabilities=predictTransitionsFromState(vert,null,model.getChunkLen(),model.pathsOrSets,null);
 			   if (!outgoing_labels_probabilities.isEmpty())
 			    	state_outgoing.put(vert, outgoing_labels_probabilities);
 			}
@@ -979,7 +1054,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
     			long value=checkFanoutInconsistency(entry.getKey(),checker,false);
     			if (value > 0)
     			{
-    				predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),collectionOfPaths);
+    				predictTransitionsFromState(entry.getKey(),null,model.getChunkLen(),model.pathsOrSets,collectionOfPaths);
     				int outgoingPaths = 0;
     				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
     					outgoingPaths += graph.getTargets(transition.getValue()).size();
@@ -1003,7 +1078,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		for(int len=onlyLongest?model.getChunkLen():1;len <=model.getChunkLen();++len)// this is very inefficient; we'll optimize it later if needed.
 	           if(vert.isAccept())
-	        	  updateMarkov(vert,len);
+	        	  updateMarkov(vert,len, model.pathsOrSets);
 	}
 	
 	/** Given a collection of paths, constructs a collection where each path is an inverse of what it was.
@@ -1193,7 +1268,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 			{
-				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), null);
+				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), model.pathsOrSets, null);
 				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
 				{
 					TARGET_TYPE targetList = entry.getValue().get(prediction.getKey()); 

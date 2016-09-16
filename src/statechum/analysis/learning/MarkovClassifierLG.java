@@ -143,7 +143,7 @@ public class MarkovClassifierLG extends MarkovClassifier<CmpVertex,LearnerGraphC
 		        final Map<Label,UpdatablePairDouble> outgoing_labels_probabilities=new HashMap<Label,UpdatablePairDouble>();
 		        final Map<Label,UpdatablePairInteger> outgoing_labels_occurrences=new HashMap<Label,UpdatablePairInteger>();
 		        final UpdatablePairInteger sum=new UpdatablePairInteger(0,0);
-		        WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),new ForEachCollectionOfPaths() 
+		        WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),model.pathsOrSets,new ForEachCollectionOfPaths() 
 		        {
 					@Override
 					public void handlePath(List<Label> pathToNewState) 

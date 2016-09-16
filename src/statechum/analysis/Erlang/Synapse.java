@@ -649,7 +649,7 @@ public class Synapse implements Runnable {
 			DifferenceToReferenceDiff differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, learntGraph, config, 1);
 			DifferenceToReferenceLanguageBCR differenceBCRlearnt=DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, learntGraph,testSet);
 		
-			final MarkovModel m= new MarkovModel(chunkLen,true,true,false);
+			final MarkovModel m= new MarkovModel(chunkLen,true,true,true,false);
 			LearnerGraph pta=new LearnerGraph(config);
 			for(List<Label> seq:sPlus)
 				pta.paths.augmentPTA(seq,true,false,null);
@@ -926,8 +926,8 @@ public class Synapse implements Runnable {
 															pta.paths.augmentPTA(seq,true,false,null);
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
-														MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-														final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
+														MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
+														final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,true,false);
 
 														new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m, pta, null).updateMarkov(false);// construct Markov chain if asked for.
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
@@ -989,8 +989,8 @@ public class Synapse implements Runnable {
 																ptaInitial.paths.augmentPTA(seq,true,false,null);
 															//for(List<Label> seq:sMinus)
 															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
-															MarkovParameters markovParameters = new MarkovParameters(0, 3,1, true,1,0,1);
-															final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,false);
+															MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
+															final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,true,false);
 
 															final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m, ptaInitial,null);ptaClassifier.updateMarkov(false);
 															LearnerGraph ptaToUseForInference = ptaInitial;
@@ -1060,7 +1060,7 @@ public class Synapse implements Runnable {
 																ptaInitial.paths.augmentPTA(seq,true,false,null);
 															//for(List<Label> seq:sMinus)
 															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
-															final MarkovModel m= new MarkovModel(3,true,true,false);
+															final MarkovModel m= new MarkovModel(3,true,true,true,false);
 
 															final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m, ptaInitial,null);ptaClassifier.updateMarkov(false);
 															LearnerGraph ptaToUseForInference = ptaInitial;

@@ -162,7 +162,7 @@ public class MarkovExperiment
 			
 			LearnerGraph pta = constructPTA();
 	
-			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,false);
+			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
 
 			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
 			
@@ -494,6 +494,7 @@ public class MarkovExperiment
 		final int traceQuantity = 1;
 		final double traceLengthMultiplierMax = 10;
 		final int chunkSize = 3;
+		final boolean pathsOrSets = true;
 		final int statesToUse[] = new int[]{10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
@@ -642,7 +643,7 @@ public class MarkovExperiment
 										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-										parameters.markovParameters.setMarkovParameters(preset,chunkSize,weightOfInconsistencies, aveOrMax,divisor,0,1);
+										parameters.markovParameters.setMarkovParameters(preset,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,1);
 										parameters.setDisableInconsistenciesInMergers(false);
 										parameters.setUsePrintf(experimentRunner.isInteractive());
 										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

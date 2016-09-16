@@ -733,7 +733,7 @@ public class LearningSupportRoutines
 		m.updateMarkov(merged,predictForwardOrSideways,false);// now we construct sideways learner ...
 		m.constructMarkovTentative(graph,predictForwardOrSideways);// ... and use it to add more transitions.
 		*/
-		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),true,!ptaClassifier.model.directionForwardOrInverse,false);
+		MarkovModel inverseModel = new MarkovModel(ptaClassifier.model.getChunkLen(),ptaClassifier.model.pathsOrSets,true,!ptaClassifier.model.directionForwardOrInverse,false);
 		MarkovClassifierLG cl = new MarkovClassifierLG(inverseModel,ptaClassifier.graphD,null);cl.updateMarkov(false);
 		Collection<Set<CmpVertex>> verticesToMergeUsingSideways=cl.buildVerticesToMergeForPaths(pathsOfInterest);
 		return verticesToMergeUsingSideways;

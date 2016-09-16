@@ -186,11 +186,11 @@ public class I2cexperiment extends PairQualityLearner
 		// The purpose of if-then below is to make it clear that an error transition will not be repeated - this was the only problem in the inferred model. 
 		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), eval.config, eval.getLabelConverter()).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, 1);// we only need  to augment our PTA once.
-		final MarkovModel m= new MarkovModel(chunkSize,true,true,false);
+		final MarkovModel m= new MarkovModel(chunkSize,true,true,true,false);
 		new MarkovClassifierLG(m, initialPTA,null).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,1, true,1,0,1);
+		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,true,1, true,1,0,1);
 		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 
 		System.out.println("started: "+new Date());

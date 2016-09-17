@@ -42,7 +42,6 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.linear.GDLearnerGraph;
-import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
@@ -892,173 +891,193 @@ public class PairScoreComputation {
 		return 0;
 	}
 
-	/** Computes a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by GDLearnerGraph's filter are ignored.
-	 * The outcome is not sorted - this internal routine is used by 
-	 * chooseStatePairs_filtered and chooseStatePairs.
-	 * 
-	 * @param threshold the threshold to use, prior to scaling.
-	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
-	 * @param ThreadNumber the number of CPUs to use
-	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
-	 * @param filter determines the states to filter out.
-	 * @param randomWalkGenerator random number generator to be used in walk generation.
-	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> ArrayList<PairScore> 
-		chooseStatePairs_internal(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, final double threshold, final double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, final StatesToConsider filter, StateBasedRandom randomWalkGenerator)
+	public static class LinearScoring<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 	{
-		final GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
-		switch(coregraph.config.getGdScoreComputationAlgorithm())
-		{
-		case SCORE_RANDOMPATHS:
-		case SCORE_TESTSET:
-			// build (1) deterministic machines for each state and (2) walks from each state. 
-			ndGraph.computeWalkSequences(randomWalkGenerator, ThreadNumber);
-			break;
-		case SCORE_LINEAR:
-			break;
-		default:
-			throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
-		}
+		protected final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
+		protected final GDLearnerGraph ndGraph;
+		protected final int [] pairToScore;
+		protected final LSolver solver;
+		protected final StatesToConsider filter;
+		protected final int threadNumber;
 		
-		final int [] pairToScore = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<pairToScore.length;++i) pairToScore[i]=GDLearnerGraph.PAIR_OK;
-		final int pairsNumber = ndGraph.findIncompatiblePairs(pairToScore,ThreadNumber);
-		final LSolver solver = ndGraph.buildMatrix_internal(pairToScore, pairsNumber, ThreadNumber,ddrh);
-		solver.solve(ThreadNumber);
-		solver.freeAllButResult();// deallocate memory before creating a large array.
-		ArrayList<PairScore> pairsAndScores = new ArrayList<PairScore>(pairToScore.length);
-
-		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
-		@SuppressWarnings("unchecked")
-		final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+		/** Permits one to compute scores of state using Linear. 
+		 * States which are filtered out by GDLearnerGraph's filter are ignored.
+		 * The outcome is not sorted - this internal routine is used by 
+		 * chooseStatePairs_filtered and chooseStatePairs.
+		 * 
+		 * @param graph graph to use for score computation.
+		 * @param ThreadNumber the number of CPUs to use
+		 * @param ddrh class to compute diagonal and right-hand side in state comparisons
+		 * @param filter determines the states to filter out.
+		 * @param randomWalkGenerator random number generator to be used in walk generation.
+		 */
+		public LinearScoring(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph,int ThreadNumber, 
+				final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, final StatesToConsider filterToUse, StateBasedRandom randomWalkGenerator)
 		{
-			resultsPerThread[threadCnt]=new LinkedList<PairScore>();
-			handlerList.add(new HandleRow<List<CmpVertex>>()
+			threadNumber = ThreadNumber;filter = filterToUse;coregraph = graph;
+			ndGraph = new GDLearnerGraph(coregraph, filter, false);
+			switch(coregraph.config.getGdScoreComputationAlgorithm())
 			{
-				@Override
-				public void init(@SuppressWarnings("unused") int threadNo) {
-					// No per-thread initialisation is needed.
-				}
-
-				@Override
-				public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
-				{
-					// Now iterate through states
-					Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
-					while(stateB_It.hasNext())
-					{
-						Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
-						int currentStatePair = pairToScore[ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey())];
-						if (currentStatePair >= 0)
-						{
-							double score = solver.j_x[currentStatePair];
-
-							if (score>threshold)
-								resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
-
-						}
-						else
-							if (GDLearnerGraph.PAIR_INCOMPATIBLE > threshold)
-								resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE),0));
-						
-						if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
-					}// B-loop
-				}
-			});
+			case SCORE_RANDOMPATHS:
+			case SCORE_TESTSET:
+				// build (1) deterministic machines for each state and (2) walks from each state. 
+				ndGraph.computeWalkSequences(randomWalkGenerator, threadNumber);
+				break;
+			case SCORE_LINEAR:
+				break;
+			default:
+				throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
+			}
+			
+			pairToScore = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<pairToScore.length;++i) pairToScore[i]=GDLearnerGraph.PAIR_OK;
+			final int pairsNumber = ndGraph.findIncompatiblePairs(pairToScore,threadNumber);
+			solver = ndGraph.buildMatrix_internal(pairToScore, pairsNumber, threadNumber,ddrh);
+			solver.solve(threadNumber);
+			solver.freeAllButResult();// deallocate memory before creating a large array.
 		}
-		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix,filter,
-				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.matrixForward.transitionMatrix.size()));
-		// now collect the results of processing
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-			pairsAndScores.addAll(resultsPerThread[threadCnt]);
 		
-		return pairsAndScores;
-	}
-	
-	/** Returns a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by GDLearnerGraph's filter are ignored.
-	 * 
-	 * @param threshold the threshold to use, prior to scaling.
-	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
-	 * @param ThreadNumber the number of CPUs to use
-	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
-	 * @param filter determines the states to filter out.
-	 * @param randomWalkGenerator random number generator to be used in walk generation.
-	 * @return
-	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Stack<PairScore>
-		chooseStatePairs_filtered(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, double threshold, double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
-	{
-		ArrayList<PairScore> pairAndScores = chooseStatePairs_internal(coregraph,threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
-		return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairAndScores,coregraph.config);
-	}
-
-	/** Returns a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by GDLearnerGraph's filter are initially ignored and subsequently 
-	 * added. 
-	 * 
-	 * @param threshold the threshold to use, prior to scaling.
-	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
-	 * @param ThreadNumber the number of CPUs to use
-	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
-	 * @param filter determines the states to filter out at the initial stage; all state pairs which 
-	 * were filtered out are subsequently appended to the end of the stack returned.
-	 * @return
-	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Stack<PairScore> 
-		chooseStatePairs(final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, final double threshold, final double scale, final int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter,StateBasedRandom randomWalkGenerator)
-	{
-		ArrayList<PairScore> pairsAndScores = chooseStatePairs_internal(coregraph,threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
-		if (threshold <= 0)
+		/** Computes a stack of states with scores over a given threshold, using Linear. 
+		 * States which are filtered out by GDLearnerGraph's filter are ignored.
+		 * The outcome is not sorted - this internal routine is used by 
+		 * chooseStatePairs_filtered and chooseStatePairs.
+		 * 
+		 * @param threshold the threshold to use, prior to scaling.
+		 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+		 */
+		public ArrayList<PairScore>	chooseStatePairs_internal(final double threshold, final double scale)
 		{
-			List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<HandleRow<TARGET_TYPE>>();
+			ArrayList<PairScore> pairsAndScores = new ArrayList<PairScore>(pairToScore.length);
+
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 			@SuppressWarnings("unchecked")
-			final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
-			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+			final List<PairScore> resultsPerThread [] = new List[threadNumber];
+			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			{
 				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
-				handlerList.add(new HandleRow<TARGET_TYPE>()
+				handlerList.add(new HandleRow<List<CmpVertex>>()
 				{
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
 					}
-	
+
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<Label, TARGET_TYPE>> entryA, int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
 					{
 						// Now iterate through states
-						Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+						Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
 						while(stateB_It.hasNext())
 						{
-							Entry<CmpVertex,Map<Label,TARGET_TYPE>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
-							if (!filter.stateToConsider(entryA.getKey()) ||
-									!filter.stateToConsider(stateB.getKey()))
-							{// the above condition picks vertices that have previously been ignored.
-								int score = 0;
+							Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+							int currentStatePair = pairToScore[ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey())];
+							if (currentStatePair >= 0)
+							{
+								double score = solver.j_x[currentStatePair];
 
-								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
-
-								if (score>threshold) // note that we only get here if threshold <= 0 (as per condition at the top of chooseStatePairs)
+								if (score>threshold)
 									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
 
-								if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 							}
+							else
+								if (GDLearnerGraph.PAIR_INCOMPATIBLE > threshold)
+									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE),0));
+							
+							if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 						}// B-loop
 					}
 				});
 			}
-			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
-					GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
+			GDLearnerGraph.performRowTasks(handlerList, threadNumber, ndGraph.matrixForward.transitionMatrix,filter,
+					GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,ndGraph.matrixForward.transitionMatrix.size()));
 			// now collect the results of processing
-			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 				pairsAndScores.addAll(resultsPerThread[threadCnt]);
+			
+			return pairsAndScores;
 		}
-				
-		return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairsAndScores,coregraph.config);
+		
+		/** Returns a score for a provided pair of states. */
+		public long scoreForPair(CmpVertex a, CmpVertex b,final double scale)
+		{
+			int currentStatePair = pairToScore[ndGraph.vertexToIntNR(a, b)];
+			if (currentStatePair < 0)
+				return -1;
+			return (long)(solver.j_x[currentStatePair]*scale);
+		}
+		
+		/** Returns a stack of states with scores over a given threshold, using Linear. 
+		 * States which are filtered out by GDLearnerGraph's filter are ignored.
+		 * 
+		 * @param threshold the threshold to use, prior to scaling.
+		 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+		 * @return
+		 */
+		public Stack<PairScore>
+			chooseStatePairs_filtered(double threshold, double scale)
+		{
+			ArrayList<PairScore> pairAndScores = chooseStatePairs_internal(threshold, scale);
+			return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairAndScores,coregraph.config);
+		}
+		
+		/** Returns a stack of states with scores over a given threshold, using Linear. 
+		 * States which are filtered out by GDLearnerGraph's filter are initially ignored and subsequently 
+		 * added. 
+		 * 
+		 * @param threshold the threshold to use, prior to scaling.
+		 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+		 * @return
+		 */
+		public Stack<PairScore>	chooseStatePairs(final double threshold, final double scale)
+		{
+			ArrayList<PairScore> pairsAndScores = chooseStatePairs_internal(threshold, scale);
+			if (threshold <= 0)
+			{
+				List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<HandleRow<TARGET_TYPE>>();
+				@SuppressWarnings("unchecked")
+				final List<PairScore> resultsPerThread [] = new List[threadNumber];
+				for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
+				{
+					resultsPerThread[threadCnt]=new LinkedList<PairScore>();
+					handlerList.add(new HandleRow<TARGET_TYPE>()
+					{
+						@Override
+						public void init(@SuppressWarnings("unused") int threadNo) {
+							// No per-thread initialisation is needed.
+						}
+		
+						@Override
+						public void handleEntry(Entry<CmpVertex, Map<Label, TARGET_TYPE>> entryA, int threadNo) 
+						{
+							// Now iterate through states
+							Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+							while(stateB_It.hasNext())
+							{
+								Entry<CmpVertex,Map<Label,TARGET_TYPE>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+								if (!filter.stateToConsider(entryA.getKey()) ||
+										!filter.stateToConsider(stateB.getKey()))
+								{// the above condition picks vertices that have previously been ignored.
+									int score = 0;
+
+									if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
+
+									if (score>threshold) // note that we only get here if threshold <= 0 (as per condition at the top of chooseStatePairs)
+										resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
+
+									if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+								}
+							}// B-loop
+						}
+					});
+				}
+				GDLearnerGraph.performRowTasks(handlerList, threadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
+						GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,coregraph.transitionMatrix.size()));
+				// now collect the results of processing
+				for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
+					pairsAndScores.addAll(resultsPerThread[threadCnt]);
+			}
+					
+			return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairsAndScores,coregraph.config);
+		}
 	}
+
 }

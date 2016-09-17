@@ -25,16 +25,18 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.StringVertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 
-
-public class ScoreMatrixOutput {
+public class ScoreMatrixOutput 
+{
 	
 	public static void main(String[] args) throws IOException
 	{
@@ -47,7 +49,9 @@ public class ScoreMatrixOutput {
 	
 	public static void writeMatrix(LearnerGraph gr, String name) throws IOException
 	{
-		Stack<PairScore> pairScores = PairScoreComputation.chooseStatePairs(gr,GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(1));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData>(gr,1,null,
+				LearnerGraphND.ignoreNone, new StateBasedRandom(1));
+		Stack<PairScore> pairScores = ndComputation.chooseStatePairs_filtered(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10);
 		ArrayList<StringVertex> vertexList = new ArrayList<StringVertex>();
 		DirectedSparseGraph dsg = gr.pathroutines.getGraph();
 		vertexList.addAll(dsg.getVertices());

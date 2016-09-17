@@ -181,15 +181,21 @@ public class PairScoreComputation {
 	/** Used to sort the collection of pairs and scores and do the filtering if needed. */
 	public Stack<PairScore>  getSortedPairsAndScoresStackFromUnsorted()
 	{
-		Collections.sort(coregraph.pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
+		return getSortedPairsAndScoresStackFromUnsorted(coregraph.pairsAndScores, coregraph.config);
+	}
+	
+	/** Used to sort the collection of pairs and scores and do the filtering if needed. */
+	public static Stack<PairScore>  getSortedPairsAndScoresStackFromUnsorted(ArrayList<PairScore> pairsAndScores, Configuration config)
+	{
+		Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 
 		Stack<PairScore> result = new Stack<PairScore>();
-		if (coregraph.config.getPairsMergedPerHypothesis() > 0)
+		if (config.getPairsMergedPerHypothesis() > 0)
 		{
-			int numberOfElements = Math.min(coregraph.pairsAndScores.size(),coregraph.config.getPairsMergedPerHypothesis());
-			result.addAll(coregraph.pairsAndScores.subList(0, numberOfElements));
+			int numberOfElements = Math.min(pairsAndScores.size(),config.getPairsMergedPerHypothesis());
+			result.addAll(pairsAndScores.subList(0, numberOfElements));
 		}
-		else result.addAll(coregraph.pairsAndScores);
+		else result.addAll(pairsAndScores);
 
 		return result;		
 	}
@@ -898,7 +904,8 @@ public class PairScoreComputation {
 	 * @param filter determines the states to filter out.
 	 * @param randomWalkGenerator random number generator to be used in walk generation.
 	 */
-	public void chooseStatePairs_internal(final double threshold, final double scale, int ThreadNumber, 
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> ArrayList<PairScore> 
+		chooseStatePairs_internal(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, final double threshold, final double scale, int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, final StatesToConsider filter, StateBasedRandom randomWalkGenerator)
 	{
 		final GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
@@ -920,7 +927,7 @@ public class PairScoreComputation {
 		final LSolver solver = ndGraph.buildMatrix_internal(pairToScore, pairsNumber, ThreadNumber,ddrh);
 		solver.solve(ThreadNumber);
 		solver.freeAllButResult();// deallocate memory before creating a large array.
-		coregraph.pairsAndScores.clear();
+		ArrayList<PairScore> pairsAndScores = new ArrayList<PairScore>(pairToScore.length);
 
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 		@SuppressWarnings("unchecked")
@@ -965,7 +972,9 @@ public class PairScoreComputation {
 				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.matrixForward.transitionMatrix.size()));
 		// now collect the results of processing
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-			coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
+			pairsAndScores.addAll(resultsPerThread[threadCnt]);
+		
+		return pairsAndScores;
 	}
 	
 	/** Returns a stack of states with scores over a given threshold, using Linear. 
@@ -979,11 +988,12 @@ public class PairScoreComputation {
 	 * @param randomWalkGenerator random number generator to be used in walk generation.
 	 * @return
 	 */
-	public Stack<PairScore> chooseStatePairs_filtered(double threshold, double scale, int ThreadNumber, 
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Stack<PairScore>
+		chooseStatePairs_filtered(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, double threshold, double scale, int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
 	{
-		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
-		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
+		ArrayList<PairScore> pairAndScores = chooseStatePairs_internal(coregraph,threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
+		return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairAndScores,coregraph.config);
 	}
 
 	/** Returns a stack of states with scores over a given threshold, using Linear. 
@@ -998,19 +1008,20 @@ public class PairScoreComputation {
 	 * were filtered out are subsequently appended to the end of the stack returned.
 	 * @return
 	 */
-	public Stack<PairScore> chooseStatePairs(final double threshold, final double scale, final int ThreadNumber, 
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> Stack<PairScore> 
+		chooseStatePairs(final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph, final double threshold, final double scale, final int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter,StateBasedRandom randomWalkGenerator)
 	{
-		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
+		ArrayList<PairScore> pairsAndScores = chooseStatePairs_internal(coregraph,threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
 		if (threshold <= 0)
 		{
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<HandleRow<TARGET_TYPE>>();
 			@SuppressWarnings("unchecked")
 			final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			{
 				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
-				handlerList.add(new HandleRow<CmpVertex>()
+				handlerList.add(new HandleRow<TARGET_TYPE>()
 				{
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
@@ -1018,13 +1029,13 @@ public class PairScoreComputation {
 					}
 	
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<Label, TARGET_TYPE>> entryA, int threadNo) 
 					{
 						// Now iterate through states
-						Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+						Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
 						while(stateB_It.hasNext())
 						{
-							Entry<CmpVertex,Map<Label,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+							Entry<CmpVertex,Map<Label,TARGET_TYPE>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
 							if (!filter.stateToConsider(entryA.getKey()) ||
 									!filter.stateToConsider(stateB.getKey()))
 							{// the above condition picks vertices that have previously been ignored.
@@ -1045,9 +1056,9 @@ public class PairScoreComputation {
 					GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
 			// now collect the results of processing
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
+				pairsAndScores.addAll(resultsPerThread[threadCnt]);
 		}
 				
-		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
+		return PairScoreComputation.getSortedPairsAndScoresStackFromUnsorted(pairsAndScores,coregraph.config);
 	}
 }

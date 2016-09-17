@@ -30,6 +30,7 @@ import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 
 
@@ -44,10 +45,9 @@ public class ScoreMatrixOutput {
 	}
 	
 	
-	@SuppressWarnings("unchecked")
 	public static void writeMatrix(LearnerGraph gr, String name) throws IOException
 	{
-		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(1));
+		Stack<PairScore> pairScores = PairScoreComputation.chooseStatePairs(gr,GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(1));
 		ArrayList<StringVertex> vertexList = new ArrayList<StringVertex>();
 		DirectedSparseGraph dsg = gr.pathroutines.getGraph();
 		vertexList.addAll(dsg.getVertices());

@@ -898,10 +898,10 @@ public class PairScoreComputation {
 	 * @param filter determines the states to filter out.
 	 * @param randomWalkGenerator random number generator to be used in walk generation.
 	 */
-	public void chooseStatePairs_internal(double threshold, double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
+	public void chooseStatePairs_internal(final double threshold, final double scale, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, final StatesToConsider filter, StateBasedRandom randomWalkGenerator)
 	{
-		GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
+		final GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
 		switch(coregraph.config.getGdScoreComputationAlgorithm())
 		{
 		case SCORE_RANDOMPATHS:
@@ -915,25 +915,59 @@ public class PairScoreComputation {
 			throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
 		}
 		
-		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=GDLearnerGraph.PAIR_OK;
-		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
-		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
+		final int [] pairToScore = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<pairToScore.length;++i) pairToScore[i]=GDLearnerGraph.PAIR_OK;
+		final int pairsNumber = ndGraph.findIncompatiblePairs(pairToScore,ThreadNumber);
+		final LSolver solver = ndGraph.buildMatrix_internal(pairToScore, pairsNumber, ThreadNumber,ddrh);
 		solver.solve(ThreadNumber);
 		solver.freeAllButResult();// deallocate memory before creating a large array.
 		coregraph.pairsAndScores.clear();
-		// now fill in the scores in the array.
-		for(int i=0;i<incompatiblePairs.length;++i)
+
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+		@SuppressWarnings("unchecked")
+		final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
+		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 		{
-			int index = incompatiblePairs[i];
-			if (index >= 0) 
+			resultsPerThread[threadCnt]=new LinkedList<PairScore>();
+			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
-				double value = solver.j_x[incompatiblePairs[i]];
-				if (value > threshold) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*value), 0));
-			}
-			else // PAIR_INCOMPATIBLE
-				if (threshold < GDLearnerGraph.PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE), 0));
+				@Override
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
+
+				@Override
+				public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
+				{
+					// Now iterate through states
+					Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
+					while(stateB_It.hasNext())
+					{
+						Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+						int currentStatePair = pairToScore[ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey())];
+						if (currentStatePair >= 0)
+						{
+							double score = solver.j_x[currentStatePair];
+
+							if (score>threshold)
+								resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
+
+						}
+						else
+							if (GDLearnerGraph.PAIR_INCOMPATIBLE > threshold)
+								resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE),0));
+						
+						if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+					}// B-loop
+				}
+			});
 		}
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix,filter,
+				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.matrixForward.transitionMatrix.size()));
+		// now collect the results of processing
+		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+			coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
 	}
+	
 	/** Returns a stack of states with scores over a given threshold, using Linear. 
 	 * States which are filtered out by GDLearnerGraph's filter are ignored.
 	 * 
@@ -993,12 +1027,12 @@ public class PairScoreComputation {
 							Entry<CmpVertex,Map<Label,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
 							if (!filter.stateToConsider(entryA.getKey()) ||
 									!filter.stateToConsider(stateB.getKey()))
-							{
+							{// the above condition picks vertices that have previously been ignored.
 								int score = 0;
 
 								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
 
-								if (score>threshold)
+								if (score>threshold) // note that we only get here if threshold <= 0 (as per condition at the top of chooseStatePairs)
 									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
 
 								if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.

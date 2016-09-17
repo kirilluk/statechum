@@ -604,7 +604,7 @@ public class GDLearnerGraph
 								for(CmpVertex srcA:outLabel.getValue())
 									for(CmpVertex srcB:to)
 									{
-										// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
+										// It is possible that for the same inputs (srcA,srcB)=(A,B) and (B,A)
 										// in this case, we have to avoid including (B,A) in the list, but 
 										// it is not known in advance if any such case occurs, so we have to store
 										// the pairs we encountered and eliminate them. 

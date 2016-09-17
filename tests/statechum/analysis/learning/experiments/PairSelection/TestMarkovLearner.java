@@ -37,7 +37,6 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.MarkovClassifier.ForEachCollectionOfPaths;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;

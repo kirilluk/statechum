@@ -109,6 +109,7 @@ public class FastTests {
         statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
         statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
         statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner.class,
+        statechum.analysis.learning.rpnicore.TestNDScoring.class,
     	statechum.analysis.learning.TestStateMerging.class,
         statechum.TestProgressIndicator.class
     })

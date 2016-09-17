@@ -738,6 +738,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				return false;
 			return true;
 		}
+		
+		@Override
+		public String toString()
+		{
+			return "[ "+first+", "+second+"]";
+		}
 	}
 	
 	/** This derives from AMEquivalenceClass and makes it possible to request target states to be sorted. This is important where we need to look up a collection of states. */
@@ -752,8 +758,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		/** Records which outgoing transitions have sorted target states. */
 		protected Set<Label> sortedTargets = new TreeSet<Label>();
 		
+		/** Once we started sorting target states, no new additions will be permitted. */
+		protected boolean sortingStarted = false;
+		
 		public boolean mergeWithState(CmpVertex v) throws IncompatibleStatesException
 		{
+			assert !sortingStarted;
 			addState(v);
 			boolean singleton = true;
 			for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(v).entrySet())
@@ -762,13 +772,19 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			return singleton;
 		}
 		
-		/** Ensures that targets of a transition are sorted, hence it is possible to use them as a key to identify a hyper-state that was identified before. Returns the target state/collection after it was sorted. */ 
+		/** Ensures that targets of a transition with a supplied label are sorted, hence it is possible to use these targets as a 
+		 * key to identify a hyper-state that was visited before (given a total order on vertices, a sorted target is 
+		 * the same regardless in which order states have been added). 
+		 * Returns the target state/collection of states after it was sorted. 
+		 * It is assumed that no more states are added to the current state because this will easily invalidate the sorted collection. 
+		 */ 
 		public Object getSortedTarget(Label l)
 		{
-			Object target = null;
+			sortingStarted = true;
+			
+			Object target = getOutgoing().get(l);
 			if (!sortedTargets.contains(l))
-			{
-				target = getOutgoing().get(l);
+			{// not yet sorted, sort before returning.
 				if (target != null)
 				{
 					if (target instanceof CmpVertex)
@@ -779,21 +795,23 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 						if (target instanceof ArrayList)
 						{
 							@SuppressWarnings("unchecked")
-							ArrayList<Label> arrayTarget = (ArrayList<Label>)target;
-							arrayTarget.sort(new Comparator<Label>() {
-
-								@Override
-								public int compare(Label o1, Label o2) {
-									return o1.compareTo(o2);
-								}});
+							ArrayList<CmpVertex> arrayTarget = (ArrayList<CmpVertex>)target;
+							TreeSet<CmpVertex> targets = new TreeSet<CmpVertex>(arrayTarget);
+							arrayTarget.clear();arrayTarget.addAll(targets);
 						}
 						else
 							throw new IllegalArgumentException("only CmpVertex and ArrayList are valid targets of a transition in an equivalence class");
 				}
 				sortedTargets.add(l);
 			}
-			
+
 			return target;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "{"+getStates()+"}";
 		}
 	}
 	
@@ -829,12 +847,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 						@SuppressWarnings("unchecked")
 						List<CmpVertex> listTarget = (List<CmpVertex>)target;
 						for(CmpVertex tgt:listTarget)
-							
 							outcome.mergeWithState(tgt);
 					}
 					else
 						throw new IllegalArgumentException("only CmpVertex and ArrayList are valid targets of a transition in an equivalence class");
-				
+			
+				cache.put(target, outcome);
 			}
 			
 			return outcome;
@@ -869,23 +887,20 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE> currentPair = currentExplorationBoundary.remove();
-			List<Label> labelsToProcess=new ArrayList<Label>();
+			//System.out.println("Visiting pair "+currentPair+" hashcode "+currentPair.hashCode()+" with "+currentPair.first.hashCode()+" - "+currentPair.second.hashCode());
+			Map<Label,Object> outgoingFromSecond = currentPair.second.getOutgoing();
 			for(Entry<Label,Object> outgoing:currentPair.first.getOutgoing().entrySet())
-				if (currentPair.second.getOutgoing().containsKey(outgoing.getKey()))
-					// we have a match, record it
-					labelsToProcess.add(outgoing.getKey());
-			
-			for(Label lbl:labelsToProcess)
-			{// we have a match, add 1 to score and explore the next pair.
-				EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> next = currentPair.getNext(lbl, cache);
-				if (next.sameStates())
-					return Integer.MAX_VALUE;// languages are probably not the same but have a common infinite part, hence return the corresponding value. 
-				
-				if (!visited.contains(next))
-				{
-					visited.add(next);currentExplorationBoundary.offer(next);++score;
+				if (outgoingFromSecond.containsKey(outgoing.getKey()))
+				{// we have a match, add 1 to score and explore the next pair.
+					EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> next = currentPair.getNext(outgoing.getKey(), cache);
+					//if (next.sameStates())
+					//	return Integer.MAX_VALUE;// languages are probably not the same but have a common infinite part, hence return the corresponding value. 
+					
+					if (!visited.contains(next))
+					{
+						visited.add(next);currentExplorationBoundary.offer(next);++score;
+					}
 				}
-			}
 		}
 		
 		return score;

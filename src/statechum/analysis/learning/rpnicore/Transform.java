@@ -47,6 +47,7 @@ import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
@@ -1314,11 +1315,10 @@ public class Transform
 	/** Given a large graph, this method chops all states more than a specific number of transitions away from the root node. 
 	 * Very useful for visualisation of complex graphs where Jung will choke doing a layout and the part of interest is close to the root node.
 	 * 
-	 * @param coregraph graph to trim.
 	 * @param depth the diameter of the graph to leave.
 	 * @return trimmed graph
 	 */
-	public LearnerGraph trimGraph(int depth,CmpVertex startingState)
+	public LearnerGraph trimGraph(int depth, CmpVertex startingState)
 	{
 		if (coregraph.findVertex(startingState) != startingState)
 			throw new IllegalArgumentException("starting state passed as an argument to trimGraph does not belong to coregraph");
@@ -1375,5 +1375,70 @@ public class Transform
 		while(!newFringe.isEmpty() && waveNumber <= depth);
 		return trimmedOne;
 	}
+
 	
+	/** Given a graph, the method chops states more than a certain distance away from the red states. Heavily relies on the 
+	 * assumption that labelling states red is continuous, in that a red state can only be created as a neighbour of a red state, 
+	 * permitting one to construct a boundary and then expand it. This is more efficient than doing a 
+	 * {@link MarkovClassifier#computeClosure(AbstractLearnerGraph, Set, int)} followed by a merge.
+	 * 
+	 * @param depth the diameter of the graph to leave.
+	 * @return trimmed graph
+	 */
+	public LearnerGraph trimGraph(int depth)
+	{
+		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
+		trimmedOne.initEmpty();
+		
+		if (depth < 0)
+			return trimmedOne;
+		
+		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
+		final Map<CmpVertex,Integer> visited = new HashMap<CmpVertex,Integer>();
+		for(CmpVertex v:coregraph.transitionMatrix.keySet()) 
+			if (v.getColour() == JUConstants.RED)
+			{ 
+				visited.put(v, 0);
+				trimmedOne.transitionMatrix.put(v, trimmedOne.createNewRow());
+				if (depth > 0)
+					currentExplorationBoundary.offer(v);
+			}
+		if (visited.isEmpty())
+			return trimmedOne;
+		
+		CmpVertex explorationElement = null;
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			explorationElement = currentExplorationBoundary.remove();
+			int exploredDistance = visited.get(explorationElement)+1;
+			for(Entry<Label,CmpVertex> transitionND:coregraph.transitionMatrix.get(explorationElement).entrySet())
+			{
+				CmpVertex targetState = transitionND.getValue();
+				Integer distanceSeen = visited.get(targetState);
+				
+				if (distanceSeen == null || distanceSeen > exploredDistance)
+				{
+					visited.put(targetState,exploredDistance);// record the new or revised distance
+					trimmedOne.transitionMatrix.put(targetState, trimmedOne.createNewRow());
+					
+					if (exploredDistance < depth) // only explore from the found element if we did not reach the limit.
+						currentExplorationBoundary.offer(targetState);// ensure we explore this element later in our breadth-first search.
+				}
+			}
+		}
+		
+		// now we have a collection of states in the trimmed graph, but no transitions, hence add them.
+		for(CmpVertex vertex:visited.keySet())// we iterate over visited because it is not going to be modified. In contrast, we are adding elements to trimmed graph's transitionMatrix.
+		{
+			Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(vertex);
+			for(Entry<Label,CmpVertex> transition:coregraph.transitionMatrix.get(vertex).entrySet())
+				if (visited.containsKey(transition.getValue()))
+				{
+					row.put(transition.getKey(), transition.getValue());
+				}
+		}
+		assert trimmedOne.transitionMatrix.containsKey(coregraph.getInit());
+		trimmedOne.setInit(coregraph.getInit());
+		return trimmedOne;
+	}
 }

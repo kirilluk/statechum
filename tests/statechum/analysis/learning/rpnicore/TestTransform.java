@@ -1950,7 +1950,7 @@ public class TestTransform
 		LearnerGraph trimmed = graph.transform.trimGraph(4,graph.getInit());
 		Assert.assertNull(WMethod.checkM(graph,trimmed));
 	}
-	
+
 	@Test
 	public final void testTrimGraph13a()
 	{
@@ -1960,7 +1960,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
 	@Test
 	public final void testTrimGraph13b()
 	{
@@ -1970,7 +1970,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
 	@Test
 	public final void testTrimGraph13c()
 	{
@@ -1980,7 +1980,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
 	@Test
 	public final void testTrimGraph13d()
 	{
@@ -1990,7 +1990,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
 	@Test
 	public final void testTrimGraph13e()
 	{
@@ -2000,7 +2000,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
 	@Test
 	public final void testTrimGraph13f()
 	{
@@ -2010,4 +2010,115 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
+
+	@Test
+	public final void testTrimGraphRed1()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		Assert.assertTrue(graph.transform.trimGraph(-1).transitionMatrix.isEmpty());
+	}
+
+	/* no red states, hence empty outcome. */
+	@Test
+	public final void testTrimGraphRed2()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(null);
+		LearnerGraph outcome = graph.transform.trimGraph(1);
+		Assert.assertTrue(outcome.transitionMatrix.isEmpty());
+	}
+
+	@Test
+	public final void testTrimGraphRed3()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		final LearnerGraph expected = new LearnerGraph(config);
+		//final LearnerGraph expected = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed3_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(0);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+
+	@Test
+	public final void testTrimGraphRed4()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		final LearnerGraph expected = buildLearnerGraph("A-a->B","testTrimGraphRed4_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(1);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+
+	@Test
+	public final void testTrimGraphRed5()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->C","testTrimGraphRed5_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(2);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testTrimGraphRed6()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		LearnerGraph outcome = graph.transform.trimGraph(20);
+		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testTrimGraphRed7()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / A-b->C","testTrimGraphRed7",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->C / A-b->C","testTrimGraphRed7_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(1);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testTrimGraphRed8()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testTrimGraphRed1",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		graph.findVertex(VertexID.parseID("B")).setColour(JUConstants.RED);
+		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->C","testTrimGraphRed8_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(1);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testTrimGraphRed9()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / A-b->C","testTrimGraphRed7",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		graph.findVertex(VertexID.parseID("B")).setColour(JUConstants.RED);
+		graph.findVertex(VertexID.parseID("C")).setColour(JUConstants.RED);
+		final LearnerGraph expected = buildLearnerGraph("A-a->B-a->C / A-b->C","testTrimGraphRed9_expected",config,converter);
+		LearnerGraph outcome = graph.transform.trimGraph(0);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testTrimGraphRed10()
+	{
+		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / A-b->C","testTrimGraphRed7",config,converter);
+		graph.findVertex(VertexID.parseID("A")).setColour(JUConstants.RED);
+		graph.findVertex(VertexID.parseID("B")).setColour(JUConstants.RED);
+		graph.findVertex(VertexID.parseID("C")).setColour(JUConstants.RED);
+		LearnerGraph outcome = graph.transform.trimGraph(1);
+		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
 }

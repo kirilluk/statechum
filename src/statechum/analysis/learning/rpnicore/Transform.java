@@ -1383,11 +1383,12 @@ public class Transform
 	 * {@link MarkovClassifier#computeClosure(AbstractLearnerGraph, Set, int)} followed by a merge.
 	 * 
 	 * @param depth the diameter of the graph to leave.
+	 * @param config configuration to use for the new graph.
 	 * @return trimmed graph
 	 */
-	public LearnerGraph trimGraph(int depth)
+	public LearnerGraph trimGraph(int depth, Configuration config)
 	{
-		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
+		LearnerGraph trimmedOne = new LearnerGraph(config);
 		trimmedOne.initEmpty();
 		
 		if (depth < 0)

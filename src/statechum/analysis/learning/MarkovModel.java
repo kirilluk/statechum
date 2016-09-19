@@ -168,6 +168,12 @@ public class MarkovModel
     	markovMatrix = new MarkovMatrixEngine(PTAUseMatrix);
     }
     
+    @Override
+    public String toString()
+    {
+    	return "MarkovModel("+chunkLength+"-"+(directionForwardOrInverse?"forward":"backward")+","+ (pathsOrSets?("paths"+(predictForwardOrSideways?"forward":"sideways")):"sets")+")";
+    }
+    
     /** Used to record outcomes of Markov computations. Its primary use are the three values and static routines to make decisions between them. */
     public static  class MarkovOutcome 
 	{

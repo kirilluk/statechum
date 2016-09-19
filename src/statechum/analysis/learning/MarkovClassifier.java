@@ -68,7 +68,6 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	/** Markov model being used in this classifier. Also determines the direction of prediction and whether forward or sideways. */
 	public final MarkovModel model;
 	/** The graph in which we are making predictions.*/
-	
 	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
 	
 	/** Contains paths to be supplied to Markov for making predictions. The specific kind of the graph 
@@ -448,13 +447,13 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		
 		// now we collect together all the vertices that may affect scores of the vertices directly or indirectly affected by mergers.
 		// (vertices directly or indirectly affected by mergers are affectedVerticesInOrigGraph; vertices that may affect affectedVerticesInOrigGraph are influentialVerticesInOrigGraph).
-		influentialVerticesInOrigGraphAll.addAll(affectedVerticesInOrigGraphForward);influentialVerticesInOrigGraphBackward.addAll(affectedVerticesInOrigGraphBackward);affectedVerticesInOrigGraphBackward = null;
+		influentialVerticesInOrigGraphAll.addAll(affectedVerticesInOrigGraphForward);influentialVerticesInOrigGraphBackward.addAll(affectedVerticesInOrigGraphBackward);
 		
 		computeClosure(inverseGraph,influentialVerticesInOrigGraphAll,maxPredictionLength);
-		computeClosure(coregraph,influentialVerticesInOrigGraphBackward,maxPredictionLength);influentialVerticesInOrigGraphAll.addAll(affectedVerticesInOrigGraphBackward);
+		computeClosure(coregraph,influentialVerticesInOrigGraphBackward,maxPredictionLength);influentialVerticesInOrigGraphAll.addAll(influentialVerticesInOrigGraphBackward);
 		// at this point, affectedVerticesInOrigGraphBackward is not needed and affectedVerticesInOrigGraph is created to store all of the affected vertices.
 		Set<CmpVertex> affectedVerticesInOrigGraph = affectedVerticesInOrigGraphForward;affectedVerticesInOrigGraphForward.addAll(affectedVerticesInOrigGraphBackward);
-		affectedVerticesInOrigGraphForward = null;affectedVerticesInOrigGraphBackward = null;
+		affectedVerticesInOrigGraphForward = null;affectedVerticesInOrigGraphBackward = null;affectedVerticesInOrigGraphBackward = null;
 		LearnerGraph merged = MergeStates.mergeCollectionOfVertices(coregraph, null, verticesToMerge, influentialVerticesInOrigGraphAll,false);// by the virtue of using a small set of
 		// vertices influentialVerticesInOrigGraph to build a graph, both construction of a merged graph and construction of the inverse of this merged graph should be fast 
 		// they are currently contributing a lot of time to the runtime cost of running the learner).
@@ -462,7 +461,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
 			if (eqClass.getStates().size() > 1)
 				affectedVerticesInMergedGraphAll.add(eqClass.getMergedVertex());// we have to do this separately to the computation of affected vertices in the original graph because merged vertices are not constructed (that is, getMergedVertex() returns null) until the merged graph is built.
-		affectedVerticesInMergedGraphBackward.addAll(affectedVerticesInOrigGraphForward);
+		affectedVerticesInMergedGraphBackward.addAll(affectedVerticesInMergedGraphAll);
 		
 		computeClosure(merged,affectedVerticesInMergedGraphAll,maxPredictionLength);
 		LearnerGraphND mergedInverse=MarkovClassifier.computeInverseGraph(merged);

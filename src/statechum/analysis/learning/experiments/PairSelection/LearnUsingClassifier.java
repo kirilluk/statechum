@@ -44,6 +44,7 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
@@ -138,7 +139,7 @@ public class LearnUsingClassifier {
 											
 											// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
 											// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
-											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters), new MarkovHelperClassifier(markovParameters));
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@Override
@@ -156,7 +157,7 @@ public class LearnUsingClassifier {
 										{// second, use a traditional learner 
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("Reference");
-											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters), new MarkovHelperClassifier(markovParameters));
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")
@@ -174,7 +175,7 @@ public class LearnUsingClassifier {
 										{// third, use EDSM-Markov learner, no premerge
 											PairQualityParameters parameters = new PairQualityParameters(pars);
 											parameters.setColumn("EDSM-Markov");
-											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters));
+											WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(collectorPars, new MarkovHelper(collectorPars.markovParameters), new MarkovHelperClassifier(markovParameters));
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@SuppressWarnings("unused")

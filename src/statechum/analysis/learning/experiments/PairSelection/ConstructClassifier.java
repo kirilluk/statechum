@@ -43,6 +43,7 @@ import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
@@ -722,9 +723,11 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0));
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0) | (0xffff << 14));
+						dataCollectorParameters.modelNumber = 4;
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
+						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters),
+								new MarkovHelperClassifier(dataCollectorParameters.markovParameters));
 						List<WekaDataCollector> listOfCollectors = new ArrayList<WekaDataCollector>();
 						int numberOfTasks = 0;
 						for(int states:new int[]{20})
@@ -736,14 +739,15 @@ public class ConstructClassifier
 									parameters.setColumn("LearnClassifier");
 									// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
 									// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
-									WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters));
+									WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters), 
+											new MarkovHelperClassifier(dataCollectorParameters.markovParameters));
 									listOfCollectors.add(dataCollector);
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
 										@Override
 										public LearnerThatCanClassifyPairs createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA) 
 										{
-											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper);
+											return new LearnerThatUpdatesWekaResults(evalCnf,argReferenceGraph,argDataCollector,argInitialPTA, argDataCollector.markovHelper, argDataCollector.markovMultiHelper);
 										}
 									};
 									experimentRunner.submitTask(learnerRunner);

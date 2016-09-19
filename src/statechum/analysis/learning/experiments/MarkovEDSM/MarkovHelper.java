@@ -72,6 +72,12 @@ public class MarkovHelper
 		markovConsistencyChecker=c;
 	}
 
+	@Override
+	public String toString()
+	{
+		return markovModel.toString();
+	}
+	
 	/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 	 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 	 * <p/> 
@@ -127,12 +133,15 @@ public class MarkovHelper
 		return possibleResults;
 	}
 
-	/** The following routine is to be called by a user integrating (mixing) this class into a learner. */
-	public void initComputation(LearnerGraph graph) 
+	/** The following routine is to be called by a user integrating (mixing) this class into a learner. 
+	 * @param graph the current tentative graph
+	 * @param invGraph an inverse of the current tentative graph. If null, the inverse is computed, otherwise the passed value is used.   
+	 */
+	public void initComputation(LearnerGraph graph, LearnerGraphND invGraph) 
 	{
 		coregraph = graph;
 				 				
-		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
+		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,invGraph,true);
 		cl = new MarkovClassifierLG(markovModel, coregraph, inverseGraph);
 	    extendedGraph = null;// this will be built when it is needed and value stored until next call to initComputation.
 		inconsistenciesPerVertex =

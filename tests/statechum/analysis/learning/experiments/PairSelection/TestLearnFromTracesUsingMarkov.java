@@ -41,7 +41,8 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.collections.ArrayMapWithSearchPos;
 
-public class TestLearnFromTracesUsingMarkov {
+public class TestLearnFromTracesUsingMarkov 
+{
 	static class InconsistencyComputation implements statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure
 	{
 		protected MarkovModel Markov;

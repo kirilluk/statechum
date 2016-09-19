@@ -36,8 +36,10 @@ public class PairQualityParameters implements ThreadResultID
 	double trainingDataMultiplier;
 	int tracesAlphabetMultiplier;
 	int seed;
+	
 	/** True means using classifier, false means learning classifier. */
 	boolean usingClassifierRatherThanLearningClassifier = true;
+	
 	String column = null;
 	
 	public PairQualityParameters(PairQualityParameters a)

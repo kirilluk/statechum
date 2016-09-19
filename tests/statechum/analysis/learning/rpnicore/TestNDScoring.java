@@ -31,7 +31,6 @@ import statechum.Label;
 import statechum.StringLabel;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class TestNDScoring 
@@ -73,7 +72,7 @@ public class TestNDScoring
 
 
 	@Test
-	public void testNDScore1() throws IncompatibleStatesException
+	public void testNDScore1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -82,7 +81,7 @@ public class TestNDScoring
 	}
 
 	@Test
-	public void testNDScore2() throws IncompatibleStatesException
+	public void testNDScore2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -91,7 +90,7 @@ public class TestNDScoring
 	}
 
 	@Test
-	public void testNDScore3() throws IncompatibleStatesException
+	public void testNDScore3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -100,7 +99,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore4() throws IncompatibleStatesException
+	public void testNDScore4()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G","testNDScore4",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -109,7 +108,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore5() throws IncompatibleStatesException
+	public void testNDScore5()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G / E-b->G","testNDScore5",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -118,7 +117,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore6() throws IncompatibleStatesException
+	public void testNDScore6()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore6",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -127,7 +126,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore7() throws IncompatibleStatesException
+	public void testNDScore7()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore7",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -138,7 +137,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore8() throws IncompatibleStatesException
+	public void testNDScore8()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore8",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
@@ -150,7 +149,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore9() throws IncompatibleStatesException
+	public void testNDScore9()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->C / B-b->C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore9",config, converter);
 		LearnerGraphND ndGraph = new LearnerGraphND(graph,config);
@@ -165,7 +164,7 @@ public class TestNDScoring
 	}
 	
 	@Test
-	public void testNDScore10() throws IncompatibleStatesException
+	public void testNDScore10()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->C / C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore10",config, converter);
 		LearnerGraphND ndGraph = new LearnerGraphND(graph,config);

@@ -17,6 +17,7 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,15 +28,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import statechum.Configuration;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
 import weka.core.BinarySparseInstance;
@@ -74,11 +83,12 @@ public class WekaDataCollector
 	/**
 	 * Begins construction of an instance of pair classifier.
 	 * @param markovHelper helper used to construct inconsistencies for the use with Markov experiments. The associated ranking routines are not used if this is null.
+	 * @param manyHelpers used where we'd like to compute different variation of inconsistencies. Slower than doing a single one.
 	 * @param graphPTA true if the graph rooted at the blue state is expected to be a PTA rather than a directed graph. 
 	 */
-	public WekaDataCollector(MarkovHelper helper, DataCollectorParameters p)
+	public WekaDataCollector(MarkovHelper helper, MarkovHelperClassifier manyHelpers, DataCollectorParameters p)
 	{
-		markovHelper = helper;dataCollectorParameters = p;
+		markovHelper = helper;markovMultiHelper = manyHelpers; dataCollectorParameters = p;
 		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
@@ -380,13 +390,20 @@ public class WekaDataCollector
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
 	protected List<PairEvaluator> pairValues;
-	
+	/** This is where we use a single helper. Useful because an array of helpers requires calling MarkovHelperClassifier's 
+	 * routines which evaluate closure both in the forward and backward direction assuming a whole range of 
+	 * different ways to compute inconsistencies. This is slower than using a more specialised 
+	 * version with a single helper. */
 	protected final MarkovHelper markovHelper;
+	
+	protected final MarkovHelperClassifier markovMultiHelper;
 	
 	class MeasurementsForCollectionOfPairs
 	{
 		Map<StatePair,FilteredPairMeasurements> measurementsForComparators=new HashMap<StatePair,FilteredPairMeasurements>();
 		double valueAverage[]=new double[0], valueSD[]=new double[0];
+		
+		
 	}
 	Map<StatePair,PairMeasurements> measurementsObtainedFromPairs = new HashMap<StatePair,PairMeasurements>();
 	
@@ -394,12 +411,25 @@ public class WekaDataCollector
 	
 	MeasurementsForCollectionOfPairs measurementsForFilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
 	
+	/** The current tentative graph. */
 	LearnerGraph tentativeGraph = null;
+	/** The inverse of the current tentative graph. */
+	LearnerGraphND invTentativeGraph = null;
 	
-	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
+	
+	/** Cache for non-deterministic score computation, in the backward direction. */
+	AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> scoreNDbackwardCache;
+	/** Cache for non-deterministic score computation, in the forward direction. */
+	AbstractPathRoutines.CacheOfStateGroups<CmpVertex,LearnerGraphCachedData> scoreNDforwardCache;
+	/** Stores the data to compute linear scores on the trimmed graph forwards. */
+	PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> linearForwards;
+	/** Stores the data to compute linear scores on the trimmed graph backwards. */
+	PairScoreComputation.LinearScoring<List<CmpVertex>,LearnerGraphNDCachedData> linearBackwards;
+	
+	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraphND inverseGraph)
 	{
 		treeForComparators.clear();
-		tentativeGraph = graph;
+		tentativeGraph = graph;invTentativeGraph = inverseGraph;
 		
 		// First, we obtain measurements that only depend on a specific pair of states, regardless of other pairs in a collection of pairs. 
 		for(PairScore pair:pairs)
@@ -413,10 +443,24 @@ public class WekaDataCollector
 				m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
 			if (markovHelper!= null)
 				m.inconsistencyScore = markovHelper.onlyComputeInconsistency(pair);
+			if (markovMultiHelper != null)
+				m.markovScores = markovMultiHelper.computeInconsistency(pair);
 			tentativeGraph.config.setLearnerScoreMode(origScore);
 			measurementsObtainedFromPairs.put(pair,m);
 		}
 
+		scoreNDbackwardCache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(invTentativeGraph);
+		scoreNDforwardCache = new AbstractPathRoutines.CacheOfStateGroups<CmpVertex,LearnerGraphCachedData>(tentativeGraph);
+		
+		if(dataCollectorParameters.depthToTrim >= 0)
+		{
+			Configuration configForLinear = tentativeGraph.config.copy();configForLinear.setAttenuationK(dataCollectorParameters.attenuation);
+			LearnerGraph trimmedGraph = tentativeGraph.transform.trimGraph(dataCollectorParameters.depthToTrim,configForLinear);
+			linearForwards = new PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData>(trimmedGraph,dataCollectorParameters.threadNumber,null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+			linearBackwards = new PairScoreComputation.LinearScoring<List<CmpVertex>,LearnerGraphNDCachedData>(MarkovClassifier.computeInverseGraph(trimmedGraph),dataCollectorParameters.threadNumber,
+					null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+		}
+		
 		// Second, obtain measurements that depend on other pairs in a collection of pairs.  
 		buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredCollectionOfPairs,pairs);
 	}
@@ -722,9 +766,9 @@ public class WekaDataCollector
 	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairsOrig(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsOrig(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND invCurrentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,currentGraph);
+		buildSetsForComparators(pairs,currentGraph, invCurrentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
@@ -760,9 +804,9 @@ public class WekaDataCollector
 		}
 	}
 
-	public void updateDatasetWithPairsNumericalValues(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsNumericalValues(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseCurrentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,currentGraph);
+		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
 		if (!pairs.isEmpty())
@@ -819,17 +863,17 @@ public class WekaDataCollector
 	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseGraph, LearnerGraph correctGraph)
 	{
 		if (useNumericalAttributes)
-			updateDatasetWithPairsNumericalValues(pairs,currentGraph,correctGraph);
+			updateDatasetWithPairsNumericalValues(pairs,currentGraph,inverseGraph, correctGraph);
 		else
-			updateDatasetWithPairsByPeeling(pairs,currentGraph,correctGraph);
+			updateDatasetWithPairsByPeeling(pairs,currentGraph,inverseGraph, correctGraph);
 	}
 	
-	public void updateDatasetWithPairsByPeeling(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsByPeeling(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseCurrentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,currentGraph);
+		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> currentPairs = new ArrayList<PairScore>(pairs.size());

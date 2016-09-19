@@ -44,6 +44,7 @@ import edu.uci.ics.jung.utils.UserData;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -874,35 +875,42 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @return
 	 * @throws IncompatibleStatesException
 	 */
-	public long computeScore(CmpVertex a, CmpVertex b, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache) throws IncompatibleStatesException
+	public long computeScore(CmpVertex a, CmpVertex b, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache)
 	{
 		long score = 0;
-		EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> initialA = cache.getNextClass(a), initialB = cache.getNextClass(b);
-		
-		EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE>(initialA,initialB);
-		Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
-		currentExplorationBoundary.offer(pair);
-		Set<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> visited = new HashSet<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();visited.add(pair);
-		
-		while(!currentExplorationBoundary.isEmpty())
+		try
 		{
-			EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE> currentPair = currentExplorationBoundary.remove();
-			//System.out.println("Visiting pair "+currentPair+" hashcode "+currentPair.hashCode()+" with "+currentPair.first.hashCode()+" - "+currentPair.second.hashCode());
-			Map<Label,Object> outgoingFromSecond = currentPair.second.getOutgoing();
-			for(Entry<Label,Object> outgoing:currentPair.first.getOutgoing().entrySet())
-				if (outgoingFromSecond.containsKey(outgoing.getKey()))
-				{// we have a match, add 1 to score and explore the next pair.
-					EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> next = currentPair.getNext(outgoing.getKey(), cache);
-					//if (next.sameStates())
-					//	return Integer.MAX_VALUE;// languages are probably not the same but have a common infinite part, hence return the corresponding value. 
-					
-					if (!visited.contains(next))
-					{
-						visited.add(next);currentExplorationBoundary.offer(next);++score;
+			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> initialA = cache.getNextClass(a), initialB = cache.getNextClass(b);
+			
+			EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE>(initialA,initialB);
+			Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+			currentExplorationBoundary.offer(pair);
+			Set<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> visited = new HashSet<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();visited.add(pair);
+			
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE> currentPair = currentExplorationBoundary.remove();
+				//System.out.println("Visiting pair "+currentPair+" hashcode "+currentPair.hashCode()+" with "+currentPair.first.hashCode()+" - "+currentPair.second.hashCode());
+				Map<Label,Object> outgoingFromSecond = currentPair.second.getOutgoing();
+				for(Entry<Label,Object> outgoing:currentPair.first.getOutgoing().entrySet())
+					if (outgoingFromSecond.containsKey(outgoing.getKey()))
+					{// we have a match, add 1 to score and explore the next pair.
+						EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> next = currentPair.getNext(outgoing.getKey(), cache);
+						//if (next.sameStates())
+						//	return Integer.MAX_VALUE;// languages are probably not the same but have a common infinite part, hence return the corresponding value. 
+						
+						if (!visited.contains(next))
+						{
+							visited.add(next);currentExplorationBoundary.offer(next);++score;
+						}
 					}
-				}
+			}
 		}
-		
+		catch(IncompatibleStatesException ex)
+		{
+			score = -1;
+			Helper.throwUnchecked("This exception should not be thrown at this point", ex);
+		}
 		return score;
 	}
 

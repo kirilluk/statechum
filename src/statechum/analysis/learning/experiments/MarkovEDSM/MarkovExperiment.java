@@ -378,7 +378,7 @@ public class MarkovExperiment
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
-			markovHelper.initComputation(graph);
+			markovHelper.initComputation(graph, MarkovClassifier.computeInverseGraph(coregraph));
 		}
 
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation

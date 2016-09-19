@@ -39,7 +39,7 @@ import statechum.collections.ArrayMapWithSearchPos;
 
 public class MarkovHelperClassifier 
 {
-	MarkovClassifier [] cl=null;
+	MarkovClassifier<CmpVertex,LearnerGraphCachedData> [] cl=null;
 	LearnerGraphND inverseGraph = null;
 	long comparisonsPerformed = 0;
 
@@ -49,30 +49,35 @@ public class MarkovHelperClassifier
 
 	public LearnerGraph coregraph = null;
 	
-	protected MarkovModel [] markovModel;
-	protected ConsistencyChecker [] markovConsistencyChecker;
+	protected MarkovModel [] arrayOfMarkovModels;
+	protected ConsistencyChecker [] arrayOfMarkovConsistencyCheckers;
 
 	public MarkovHelperClassifier(MarkovParameters pars)
 	{
 		markovParameters = pars;
 	}
-
+/*
+	public MarkovModel [] getModels()
+	{
+		return arrayOfMarkovModels;
+	}
+	*/
 	public void setMarkovAndChecker(MarkovModel []m,ConsistencyChecker []c) 
 	{
-		markovModel=m;markovConsistencyChecker=c;
+		arrayOfMarkovModels=m;arrayOfMarkovConsistencyCheckers=c;
 		if (m.length != c.length)
 			throw new IllegalArgumentException("the length of models should match that of checkers");
 		cl = new MarkovClassifier[m.length];
 	}
 
 	/** The following routine is to be called by a user integrating (mixing) this class into a learner. */
-	public void initComputation(LearnerGraph graph) 
+	public void initComputation(LearnerGraph graph, LearnerGraphND invGraph) 
 	{
 		coregraph = graph;
 
-		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,null,true);
-		for(int i=0;i<markovModel.length;++i)
-			cl[i] = new MarkovClassifier(markovModel[i], coregraph, inverseGraph);
+		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,invGraph,true);
+		for(int i=0;i<arrayOfMarkovModels.length;++i)
+			cl[i] = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(arrayOfMarkovModels[i], coregraph, inverseGraph);// this chooses between the supplied graphs depending on the parameters of the Markov model.
 		inconsistenciesPerVertex =
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
 						new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber()):
@@ -81,17 +86,17 @@ public class MarkovHelperClassifier
 
 	public long [] computeInconsistency(PairScore p)
 	{
-		long [] outcome = new long[markovModel.length];
+		long [] outcome = new long[arrayOfMarkovModels.length];
 		if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
 			return outcome;// return zeroes
 		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 		if (genScore >= 0)
 		{			
-			outcome = MarkovClassifier.computeInconsistencyOfAMergerWithMultipleClassifiers(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker, markovParameters.chunkLen-1);
+			outcome = MarkovClassifier.computeInconsistencyOfAMergerWithMultipleClassifiers(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, arrayOfMarkovModels, cl, arrayOfMarkovConsistencyCheckers, markovParameters.chunkLen-1);
 		}		
 		else
-			for(int i=0;i<markovModel.length;++i)
+			for(int i=0;i<arrayOfMarkovModels.length;++i)
 				outcome[i] = genScore;
 		return outcome;
 	}

@@ -23,6 +23,7 @@ import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
@@ -33,6 +34,7 @@ import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -476,15 +478,16 @@ public class TestMiscLearningRoutines
 
 			final CmpVertex bestVertexFinal = bestVertex;
 			Collection<PairScore> pairsReturned = graph.pairscores.chooseStatePairs(new RedNodeSelectionProcedure() {
+				protected LearnerGraphND inverseTentativeGraph = null;
 				
 				@Override
 				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
 					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<Collection<PairScore>>();
-					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, tentativeRedNodes, new CollectionOfPairsEstimator() {
+					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, inverseTentativeGraph, tentativeRedNodes, new CollectionOfPairsEstimator() {
 	
 						@Override
-						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, Collection<PairScore> pairs) 
+						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, @SuppressWarnings("unused") LearnerGraphND inverseGraph, Collection<PairScore> pairs) 
 						{
 							Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
 							Set<PairScore> AdditionalPairs = new TreeSet<PairScore>(pairs);
@@ -510,8 +513,9 @@ public class TestMiscLearningRoutines
 				}
 				
 				@Override
-				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
+				public void initComputation(LearnerGraph gr) 
+				{
+					inverseTentativeGraph = MarkovClassifier.computeInverseGraph(gr);
 				}
 
 				@Override

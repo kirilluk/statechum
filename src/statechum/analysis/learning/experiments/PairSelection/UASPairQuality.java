@@ -374,7 +374,7 @@ public class UASPairQuality extends ExperimentPaperUAS
  		}// we only need  to augment our PTA once (refer to the explanation above).
  		UseWekaResultsParameters parameters = new UseWekaResultsParameters(new DataCollectorParameters(ifDepth, null,false,DataCollectorParameters.enabledAll())); 	
  		MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
-     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters));
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters), null);
 		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, dataCollector, false):
  					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
@@ -718,8 +718,8 @@ public class UASPairQuality extends ExperimentPaperUAS
 
  		LearnerGraph referenceGraph = new LearnerGraph(initialConfigAndData.initial.graph.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraph, initialConfigAndData.learnerInitConfiguration.getLabelConverter());
 		MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
-     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters));
-     	LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph,dataCollector.markovHelper);
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters), null);
+     	LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initialConfigAndData.learnerInitConfiguration,referenceGraph,dataCollector,initialConfigAndData.initial.graph,dataCollector.markovHelper, null);
  		learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		
  		FileWriter wekaInstances=new FileWriter("resources/largePTA/pairsEncountered3.arff");
@@ -748,9 +748,9 @@ public class UASPairQuality extends ExperimentPaperUAS
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, initConfiguration.config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once (refer to the explanation above).
 		System.out.println(new Date().toString()+" if-then states added, now "+initialPTA.getStateNumber()+" states");
 		MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
-     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters));
+     	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters), null);
 		// Run the learner that will find out how to select the correct pairs.
-		LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initConfiguration,referenceGraph,dataCollector,initialPTA,dataCollector.markovHelper);
+		LearnerThatCanClassifyPairs learnerOfPairs = new PairQualityLearner.LearnerThatUpdatesWekaResults(initConfiguration,referenceGraph,dataCollector,initialPTA,dataCollector.markovHelper, null);
 		LearnerGraph actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		
 		// final weka.classifiers.trees.J48 classifier = new weka.classifiers.trees.J48();

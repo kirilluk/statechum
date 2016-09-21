@@ -72,6 +72,11 @@ public class MarkovHelper
 		markovConsistencyChecker=c;
 	}
 
+	public void updateMarkovModel(LearnerGraph pta)
+	{
+		new MarkovClassifierLG(markovModel, pta,null).updateMarkov(false);// construct Markov chain
+	}
+	
 	@Override
 	public String toString()
 	{
@@ -197,5 +202,15 @@ public class MarkovHelper
 	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 	{
 		return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+	}
+
+	public MarkovModel getModel() 
+	{
+		return markovModel;
+	}
+
+	public ConsistencyChecker getChecker() 
+	{
+		return markovConsistencyChecker;
 	}
 }

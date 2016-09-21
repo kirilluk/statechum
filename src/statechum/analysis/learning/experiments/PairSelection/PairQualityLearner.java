@@ -30,7 +30,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -49,17 +48,11 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
-import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRandomFSM;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
-import statechum.analysis.learning.experiments.MarkovEDSM.PerformFirstMerge;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.LearnerSimulator;
@@ -71,10 +64,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.PairScoreComputation;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 
@@ -191,9 +181,6 @@ public class PairQualityLearner
 		/** Different bits determine which samplers are enabled and which are not. This permits one to run experiments with a subset of samplers. */
 		public final long bitstringOfEnabledParameters;
 
-		/** How many Markov scoring methods to use as part of MarkovHelperClassifier. */
-		public int modelNumber = 0;
-		
 		/** Used to determine which difference of good v.s. bad in a probability distribution for a pair is enough to 
 		 * consider a pair classified. Pairs that are not classfied are deemed 'unknown'.
 		 */
@@ -266,9 +253,11 @@ public class PairQualityLearner
 		final WekaDataCollector classifier = new WekaDataCollector(m,multi,parameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		int arg=0;
+		List<PairRank> assessorsThatComputeScores = new ArrayList<PairRank>(), assessorsThatUseMarkov = new ArrayList<PairRank>();
+		
 		
 		if (parameters.graphIsPTA && (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
-			assessors.add(classifier.new PairRank("conventional score")
+			assessorsThatComputeScores.add(classifier.new PairRank("conventional score")
 			{// 
 				@Override
 				public long getValue(PairScore p) {
@@ -283,7 +272,7 @@ public class PairQualityLearner
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("score (which could be Statechum or any other)")
+			assessorsThatComputeScores.add(classifier.new PairRank("score (which could be Statechum or any other)")
 			{// 0
 				@Override
 				public long getValue(PairScore p) {
@@ -296,10 +285,11 @@ public class PairQualityLearner
 				}
 			});
 		}
+		
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("size of tree rooted at Blue")
+			assessorsThatComputeScores.add(classifier.new PairRank("size of tree rooted at Blue")
 			{// 1
 				@Override
 				public long getValue(PairScore p) {
@@ -315,7 +305,7 @@ public class PairQualityLearner
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("Number of alternatives with same red")
+			assessorsThatComputeScores.add(classifier.new PairRank("Number of alternatives with same red")
 			{// 2
 				@Override
 				public long getValue(PairScore p) {
@@ -331,7 +321,7 @@ public class PairQualityLearner
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("Depth of Blue")
+			assessorsThatComputeScores.add(classifier.new PairRank("Depth of Blue")
 			{// 3
 				@Override
 				public long getValue(PairScore p) {
@@ -347,7 +337,7 @@ public class PairQualityLearner
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("Depth of Red")
+			assessorsThatComputeScores.add(classifier.new PairRank("Depth of Red")
 			{// 4
 				@Override
 				public long getValue(PairScore p) {
@@ -363,7 +353,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("Statechum score is above zero")
+			assessorsThatComputeScores.add(classifier.new PairRank("Statechum score is above zero")
 			{// 5
 				@Override
 				public long getValue(PairScore p) {
@@ -379,7 +369,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("state identifiers Red")
+			assessorsThatComputeScores.add(classifier.new PairRank("state identifiers Red")
 			{// 6
 				@Override
 				public long getValue(PairScore p) {
@@ -395,7 +385,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("state identifiers Blue")
+			assessorsThatComputeScores.add(classifier.new PairRank("state identifiers Blue")
 			{// 7
 				@Override
 				public long getValue(PairScore p) {
@@ -411,7 +401,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("proximity of the red and blue by depth")
+			assessorsThatComputeScores.add(classifier.new PairRank("proximity of the red and blue by depth")
 			{// 8
 				@Override
 				public long getValue(PairScore p) {
@@ -427,7 +417,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("whether red and blue are adjacent")
+			assessorsThatComputeScores.add(classifier.new PairRank("whether red and blue are adjacent")
 			{// 9
 				@Override
 				public long getValue(PairScore p) {
@@ -443,7 +433,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("new outgoing transitions from blue")
+			assessorsThatComputeScores.add(classifier.new PairRank("new outgoing transitions from blue")
 			{// 10
 				@Override
 				public long getValue(PairScore p) {
@@ -459,7 +449,7 @@ public class PairQualityLearner
 		
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("new outgoing transitions from red")
+			assessorsThatComputeScores.add(classifier.new PairRank("new outgoing transitions from red")
 			{// 11
 				@Override
 				public long getValue(PairScore p) {
@@ -475,7 +465,7 @@ public class PairQualityLearner
 
 		if ( (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("new outgoing transitions from blue v.s. all outgoing from red")
+			assessorsThatComputeScores.add(classifier.new PairRank("new outgoing transitions from blue v.s. all outgoing from red")
 			{// 12
 				@Override
 				public long getValue(PairScore p) {
@@ -490,7 +480,7 @@ public class PairQualityLearner
 				}
 			});
 		}
-
+/*
 		if (parameters.markovParameters != null && (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
 			assessors.add(classifier.new PairRank("score v.s. inconsistency")
@@ -507,12 +497,12 @@ public class PairQualityLearner
 				}
 			});
 		}
-
+*/
 		if (parameters.depthToTrim >= 0)
 		{
 			if ((parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 			{
-				assessors.add(classifier.new PairRank("linear score forward")
+				assessorsThatComputeScores.add(classifier.new PairRank("linear score forward")
 				{// 14
 					@Override
 					public long getValue(PairScore p) {
@@ -529,7 +519,7 @@ public class PairQualityLearner
 			
 			if ((parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 			{
-				assessors.add(classifier.new PairRank("linear score backward")
+				assessorsThatComputeScores.add(classifier.new PairRank("linear score backward")
 				{// 15
 					@Override
 					public long getValue(PairScore p) {
@@ -547,7 +537,7 @@ public class PairQualityLearner
 		
 		if ((parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("nd score forward")
+			assessorsThatComputeScores.add(classifier.new PairRank("nd score forward")
 			{// 16
 				@Override
 				public long getValue(PairScore p) {
@@ -564,7 +554,7 @@ public class PairQualityLearner
 
 		if ((parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
 		{
-			assessors.add(classifier.new PairRank("nd score backward")
+			assessorsThatComputeScores.add(classifier.new PairRank("nd score backward")
 			{// 17
 				@Override
 				public long getValue(PairScore p) {
@@ -579,14 +569,17 @@ public class PairQualityLearner
 			});
 		}
 		
+		assessors.addAll(assessorsThatComputeScores);
+		
 		if (multi != null)
 		{
-			for(int i=0;i<parameters.modelNumber;++i)
+			MarkovModel models [] = multi.getModels();
+			for(int i=0;i<models.length;++i)
 			{
 				if  ((parameters.bitstringOfEnabledParameters & (1 << arg)) != 0)
 				{
 					final int multiElement = i;
-					assessors.add(classifier.new PairRank("markov score, position "+arg)
+					assessorsThatUseMarkov.add(classifier.new PairRank("markov score for "+models[i]+", position "+arg)
 					{// 17
 						@Override
 						public long getValue(PairScore p) {
@@ -603,6 +596,28 @@ public class PairQualityLearner
 				}
 				++arg;
 			}
+			
+			assessors.addAll(assessorsThatUseMarkov);
+			
+			for(PairRank scoreEvaluator:assessorsThatComputeScores)
+				for(PairRank markovEvaluator:assessorsThatUseMarkov)
+				{
+					final PairRank scoreFinal = scoreEvaluator, markovFinal  = markovEvaluator;
+					
+					assessors.add(classifier.new PairRank(scoreEvaluator+" v.s. "+markovEvaluator+", position "+arg)
+					{
+						@Override
+						public long getValue(PairScore p) {
+							return kFrom_ab(scoreFinal.getValue(p),markovFinal.getValue(p));
+						}
+			
+						@Override
+						public boolean isAbsolute() {
+							return false;
+						}
+					});
+					++arg;
+				}
 		}
 		
 		if (parameters.ifDepth >= 0)
@@ -1742,175 +1757,5 @@ public class PairQualityLearner
 		public String getSubExperimentName();
 		/** Returns the position of the "execution time element", starting from zero. Negatives mean no execution time. This element will be scaled based on the factor in the global configuration. */
 		public int executionTimeInCell();
-	}
-
-	public abstract static class PairQualityLearnerRunner extends UASExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>
-	{
-		protected final WekaDataCollector sampleCollector;
-		
-		public PairQualityLearnerRunner(WekaDataCollector collector,PairQualityParameters parameters, LearnerEvaluationConfiguration evalCnf)
-		{
-			super(parameters,evalCnf,directoryNamePrefix);sampleCollector = collector;
-		}
-		
-		public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA);
-		
-		@Override
-		public ExperimentResult<PairQualityParameters> call() throws Exception 
-		{
-			final int tracesAlphabet = par.tracesAlphabetMultiplier*par.states;
-			ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
-			
-			final Random rnd = new Random(par.seed*31+par.attempt*par.states);
-			ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-			fsmConstruction.generateFSM(rnd, tracesAlphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
-			referenceGraph = fsmConstruction.referenceGraph;
-			
-			final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
-			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.traceQuantity);
-			
-			if (par.pickUniqueFromInitial)
-			{
-				final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-										
-						@Override
-						public int getLength() {
-							return  par.traceLengthMultiplier*par.states*tracesAlphabet;// same as for Markov learner
-						}
-	
-						@Override
-						public int getPrefixLength(int len) {
-							return len;
-						}
-					},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
-	
-				if (par.onlyUsePositives)
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
-				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
-					// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-					// This is done below if onlyUsePositives is not set. 
-			}
-			else
-			{// not using unique from initial
-				final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,null);
-				generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-						
-						@Override
-						public int getLength() {
-							return par.traceLengthMultiplier*par.states*tracesAlphabet;// not the same as for SmallVsHuge or LearnerEvaluation
-						}
-		
-						@Override
-						public int getPrefixLength(int len) {
-							return len;
-						}
-					});
-	
-	
-				if (par.onlyUsePositives)
-				{
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
-				}
-				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));
-			}
-			pta.clearColours();
-			if (!par.onlyUsePositives)
-				assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
-			else 
-				assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-			
-			LearnerWithMandatoryMergeConstraints learnerOfPairs = null;
-			LearnerGraph actualAutomaton = null;
-			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
-
-			final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,par.dataCollectorParameters.markovParameters.pathsOrSets,true,true,false);
-			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
-			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-			
-			final MarkovModel m_pathForward= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,true,false);
-			final MarkovModel m_pathBackward= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,true,true,false,false);
-			final MarkovModel m_setForward= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,false,true,true,false);
-			final MarkovModel m_setBackward= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,false,true,false,false);
-			
-			final MarkovModel []models = new MarkovModel[]{m_pathForward,m_pathBackward, m_setForward, m_setBackward };
-			assert models.length == par.dataCollectorParameters.modelNumber;
-			final ConsistencyChecker []checkers = new ConsistencyChecker[models.length];for(int i=0;i<models.length;++i) checkers[i] = checker; 
-			for(int i=0;i<models.length;++i) new MarkovClassifierLG(models[i],pta,null).updateMarkov(false);// build models for all the requested types of models.
-			
-			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
-			if (par.dataCollectorParameters.markovParameters.useCentreVertex)
-			{
-				saveGraph(namePTABEFORECENTRE,pta);
-				fmg.buildFirstGraph(pta, null, par.dataCollectorParameters.markovParameters, m, checker);
-			}
-						
-			// not merging based on a unique transition from an initial state
-			learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,sampleCollector,fmg.ptaToUseForInference);
-			sampleCollector.markovHelper.setMarkov(m);sampleCollector.markovHelper.setChecker(checker);
-			sampleCollector.markovMultiHelper.setMarkovAndChecker(models, checkers);
- 			long startTime = LearningSupportRoutines.getThreadTime();
- 			/*
- 			System.out.println("learning started");
- 			tmpAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-			System.out.println("second go on the graph");
-			tmpAutomaton.clearColours();
-			LearnerWithMandatoryMergeConstraints learnerSecondAttempt = createLearner(learnerInitConfiguration,referenceGraph,dataCollector,tmpAutomaton);
-			actualAutomaton = learnerSecondAttempt.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
- 			System.out.println("learning finished");
- 			*/
- 			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
- 			
- 			long runTime = LearningSupportRoutines.getThreadTime()-startTime;
-			
-			SampleData dataSample = new SampleData(null,null);
-			dataSample.actualLearner = estimateDifference(referenceGraph, actualAutomaton, testSet);
-			dataSample.actualLearner.executionTime = runTime;
-			dataSample.referenceLearner = MarkovExperiment.zeroScore;
-			dataSample.centreCorrect = fmg.correctCentre;
-			dataSample.centrePathNumber = fmg.centrePathNumber;
-			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
-			dataSample.stateNumber = referenceGraph.getStateNumber();
-			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
-			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov();
-			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
-			/*
-			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
-					new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
-
-				LearnerGraphND grA=new LearnerGraphND(referenceGraph,referenceGraph.config),
-						grB=new LearnerGraphND(actualAutomaton,actualAutomaton.config);
-				DirectedSparseGraph gr = gd.showGD(
-						grA,grB,
-						ExperimentRunner.getCpuNumber());
-				Visualiser.updateFrame(gr, null);
-				*/
- 			outcome.samples.add(dataSample);
-			return outcome;
-		}
-
-		// Delegates to a specific estimator
-		ScoresForGraph estimateDifference(LearnerGraph reference, LearnerGraph actual,Collection<List<Label>> testSet)
-		{
-			ScoresForGraph outcome = new ScoresForGraph();
-			outcome.differenceStructural=DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(reference, actual, learnerInitConfiguration.config, 1);
-			outcome.differenceBCR=DifferenceToReferenceLanguageBCR.estimationOfDifference(reference, actual,testSet);
-			outcome.differenceFMeasure=DifferenceToReferenceFMeasure.estimationOfDifference(reference, actual,testSet);
-			outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actual.getStateNumber() - referenceGraph.getStateNumber());
-			return outcome;
-		}
 	}
 }

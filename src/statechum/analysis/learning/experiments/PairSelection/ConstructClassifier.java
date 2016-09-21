@@ -37,8 +37,12 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.DrawGraphs.ScatterPlot;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -48,7 +52,6 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUpdatesWekaResults;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairQualityLearnerRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -693,6 +696,41 @@ public class ConstructClassifier
 					//correctPrediction/(double)evaluation.numInstances();
 	}
 	
+	/** Constructs a helper that can be used to both build Markov models and to evaluate inconsistencies. 
+	 * The intention is to have such a configuration in the same place where it can be picked up by both 
+	 * classifier construction and classifier evaluation. 
+	 * The method below constructs a helper that can evaluate four Markov scores in the time it takes to do two of them. 
+	 */
+	public static MarkovHelperClassifier constructMarkovModelsWithParametersForExperiment(MarkovParameters markovParameters)
+	{
+		final MarkovModel m_pathForward= new MarkovModel(markovParameters.chunkLen,true,true,true,false);
+		final MarkovModel m_pathBackward= new MarkovModel(markovParameters.chunkLen,true,true,false,false);
+		final MarkovModel m_setForward= new MarkovModel(markovParameters.chunkLen,false,true,true,false);
+		final MarkovModel m_setBackward= new MarkovModel(markovParameters.chunkLen,false,true,false,false);
+		
+		MarkovModel [] models = new MarkovModel[]{m_pathForward,m_pathBackward, m_setForward, m_setBackward };
+		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+		final ConsistencyChecker []checkers = new ConsistencyChecker[models.length];for(int i=0;i<models.length;++i) checkers[i] = checker; 
+		MarkovHelperClassifier outcome = new MarkovHelperClassifier(markovParameters);
+		outcome.setMarkovAndChecker(models, checkers);
+		return outcome;
+	}
+	
+	/** Constructs a helper that can be used to both build Markov models and to evaluate inconsistencies. 
+	 * The intention is to have such a configuration in the same place where it can be picked up by both 
+	 * classifier construction and classifier evaluation.
+	 * 
+	 *  
+	 */
+	public static MarkovHelper constructMarkovHelper(MarkovParameters markovParameters)
+	{
+		final MarkovModel m= new MarkovModel(markovParameters.chunkLen,markovParameters.pathsOrSets,true,true,false);
+		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+		MarkovHelper result = new MarkovHelper(markovParameters);
+		result.setMarkov(m);result.setChecker(checker);
+		return result;
+	}
+	
 	// Important: this routine ignores its arguments and always runs in a 'standalone' mode.
 	public static void main(String args[]) throws Exception
 	{
@@ -712,7 +750,6 @@ public class ConstructClassifier
 		final int alphabetMultiplier = 1;
 		final double trainingDataMultiplier = 2;
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
-
 		try
 		{
 			for(final int lengthMultiplier:new int[]{1})
@@ -723,11 +760,12 @@ public class ConstructClassifier
 					for(final boolean useUnique:new boolean[]{false})
 					{
 						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
-						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0) | (0xffff << 14));
-						dataCollectorParameters.modelNumber = 4;
+						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0) | (0xfffff << 14));
+						dataCollectorParameters.depthToTrim=5;
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
-						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters),
-								new MarkovHelperClassifier(dataCollectorParameters.markovParameters));
+						WekaDataCollector globalDataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, 
+								constructMarkovHelper(markovParameters),// this cannot be shared between different experiments, hence we create a unique instance for each experiment.
+								constructMarkovModelsWithParametersForExperiment(markovParameters));// this cannot be shared between different experiments, hence we create a unique instance for each experiment.
 						List<WekaDataCollector> listOfCollectors = new ArrayList<WekaDataCollector>();
 						int numberOfTasks = 0;
 						for(int states:new int[]{20})
@@ -739,8 +777,10 @@ public class ConstructClassifier
 									parameters.setColumn("LearnClassifier");
 									// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and
 									// running multiple tasks in parallel on different graphs will mess them up unless there is a unique instance of a data collector per learner. 
-									WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters, new MarkovHelper(dataCollectorParameters.markovParameters), 
-											new MarkovHelperClassifier(dataCollectorParameters.markovParameters));
+									WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(dataCollectorParameters,
+											constructMarkovHelper(markovParameters),// this cannot be shared between different experiments, hence we create a unique instance for each experiment.
+											constructMarkovModelsWithParametersForExperiment(markovParameters));// this cannot be shared between different experiments, hence we create a unique instance for each experiment.
+
 									listOfCollectors.add(dataCollector);
 									PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 									{
@@ -849,6 +889,16 @@ public class ConstructClassifier
 							gr_HistogramOfAttributeValues.reportResults(gr);
 						}
 						
+						final double valueCap = 250;
+						
+						// Now cap large values
+					    for (int i = 0; i < globalDataCollector.trainingData.numInstances(); i++)
+					    {
+					    	Instance instance = globalDataCollector.trainingData.instance(i);
+					    	for(int attr=0;attr<instance.numAttributes();++attr)
+					    		if (attr != instance.classIndex() && instance.value(attr) > valueCap)
+					    			instance.setValue(attr, valueCap);
+					    }
 						
 						// write arff
 						FileWriter wekaInstances = null;
@@ -882,7 +932,22 @@ public class ConstructClassifier
 									// ignore this, we are not proceeding anyway due to an earlier exception so whether the file was actually written does not matter
 								}
 						}
-						
+						File output = new File(outDir,parExperiment.getExperimentID()+"-out.pdf");
+						final ScatterPlot plot = new ScatterPlot("Value", "Plot", output);
+					    for (int i = 0; i < globalDataCollector.trainingData.numInstances(); i++) 
+					    {
+					    	Instance instance = globalDataCollector.trainingData.instance(i);
+
+					    	int value = (int)instance.classValue();
+							int indexOfTrue = instance.classAttribute().indexOfValue(Boolean.TRUE.toString());
+							int y=0;
+							for(int attr=0;attr<instance.numValues();++attr)
+								if (attr != instance.classIndex())
+									plot.add(instance.value(attr), y++, value == indexOfTrue?"blue":"red");
+					    }
+					    
+						plot.reportResults(gr);
+												
 						FileWriter csvInstances = null;
 						String csvToWrite = outDir+File.separator+parExperiment.getExperimentID()+".csv";
 						try

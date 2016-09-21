@@ -28,6 +28,7 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
@@ -70,6 +71,11 @@ public class MarkovHelperClassifier
 		cl = new MarkovClassifier[m.length];
 	}
 
+	public void updateMarkovModel(LearnerGraph pta)
+	{
+		for(int i=0;i<arrayOfMarkovModels.length;++i) new MarkovClassifierLG(arrayOfMarkovModels[i],pta,null).updateMarkov(false);// build models for all the requested types of models.
+	}
+
 	/** The following routine is to be called by a user integrating (mixing) this class into a learner. */
 	public void initComputation(LearnerGraph graph, LearnerGraphND invGraph) 
 	{
@@ -104,5 +110,15 @@ public class MarkovHelperClassifier
 	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 	{
 		return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+	}
+	
+	public MarkovModel [] getModels()
+	{
+		return arrayOfMarkovModels;
+	}
+	
+	public ConsistencyChecker [] getConsistencyCheckers()
+	{
+		return arrayOfMarkovConsistencyCheckers;
 	}
 }

@@ -610,7 +610,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a row for a transition matrix needs to be updated with
-	 * a new label and a target state, it will add an input and/or a state to the row.
+	 * a new label and a target state, it will add an input and/or a state to the row. The row 
+	 * corresponding to the target state may not exist at the point when this is called 
+	 * (refer to {@link AbstractLearnerGraph#addAndRelabelGraphs(AbstractLearnerGraph, Map, AbstractLearnerGraph)}).
 	 * 
 	 * @param row the row to update
 	 * @param input the input to use
@@ -737,6 +739,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Copies a transition matrix and incompatible sets between graphs, relabelling states as specified.
 	 * The relabelling map has to be total; it is not checked for duplicate target states. If any target
 	 * states have the same IDs as those of existing states, new transitions lead to existing states.
+	 * This method expects the target graph to already have rows for all the states reported by oldToNew to be available. 
+	 * This is why {@link AbstractLearnerGraph#copyGraphs(AbstractLearnerGraph, AbstractLearnerGraph)} clones vertices first.
 	 * 
 	 * @param from graph to copy
 	 * @param relabel map relabelling states

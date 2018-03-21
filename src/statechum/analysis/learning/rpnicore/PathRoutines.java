@@ -964,7 +964,7 @@ public class PathRoutines {
 		{
 			rowsProcessed.add(entry.getKey());
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
-				if (!rowsProcessed.contains(associations.getKey()))
+				if (!rowsProcessed.contains(associations.getKey())) // ensures we only explore a triangle from a rectangle of possible pairs.
 				{
 					Label label = AbstractLearnerGraph.generateNewLabel(associationPrefix+associations.getValue().name(),config,converter);
 					if (alphabet.contains(label))

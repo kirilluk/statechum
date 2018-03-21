@@ -331,7 +331,7 @@ public class ExperimentRunner
 		 * 
 		 * @param inputFile input file to process
 		 * @param per percentage
-		 * @param instance a single number which can be used to identify this file/percentage/learner_kind combo.
+		 * @param inID instanceID - a single number which can be used to identify this file/percentage/learner_kind combo.
 		 * @param exp the enclosing instance of the experiment - a poor man's way to subclassing nested classes.
 		 * @param cnf configuration to base this learner experiment on
 		 * @param name the name to give to this learner.
@@ -421,6 +421,7 @@ public class ExperimentRunner
 			return fileName+FS+getLearnerName()+FS+percentValue+currentOutcome;
 		}
 
+		@SuppressWarnings("resource")
 		protected void loadGraph()
 		{
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);

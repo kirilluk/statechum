@@ -412,7 +412,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		{
 			return new DeterministicVertex(name);			
 		}		
-		
 	}
 	
 	/** Constructs a new Jung vertex. */

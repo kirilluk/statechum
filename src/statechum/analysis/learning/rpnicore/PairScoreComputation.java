@@ -80,7 +80,8 @@ public class PairScoreComputation {
 		 */
 		Collection<Entry<Label,CmpVertex>> getSurroundingTransitions(CmpVertex currentRed);
 		
-		/** Given a graph, the current collection of red nodes and those not compatible with any current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
+		/** Given a graph, the current collection of red nodes and those not compatible with any 
+		 * current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * 
 		 * @param coregraph graph to work with.
 		 * @param reds nodes currently coloured red.
@@ -89,10 +90,14 @@ public class PairScoreComputation {
 		 */
 		CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes);
 		
-		/** Given a collection of pairs, it may happen that none of these pairs selected so far are valid mergers (compared to the reference automaton). 
-		 * This means that all blue states mentioned in these pairs are not compatible with all the existing red states 
-		 * and hence at least one of them should be considered red. This method is called whenever there are any red-blue pairs available in order to check whether such a problem actually occurred.
-		 * Since the idea is to return a state to colour red, the prototype for this method is similar to the prototype for the {@link #selectRedNode}.
+		/** Given a collection of pairs selected so far, it may happen that none of these 
+		 * pairs are valid mergers (compared to the reference automaton). 
+		 * This means that all blue states mentioned in these pairs are not compatible 
+		 * with all the existing red states and hence at least one of them should be 
+		 * considered red. This method is called whenever there are any red-blue pairs 
+		 * available in order to check whether such a problem actually occurred.
+		 * Since the idea is to return a state to colour red, the prototype for 
+		 * this method is similar to the prototype for the {@link #selectRedNode}.
 		 */
 		CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs);
 	}
@@ -116,7 +121,6 @@ public class PairScoreComputation {
 			RedStatesFound.clear();coregraph.pairsAndScores.clear();
 			currentExplorationBoundary.addAll(reds);
 			//System.out.println("iterating through loop with "+reds.size()+" red states");
-			if (coregraph.additionalExplorationRoot != null) currentExplorationBoundary.addAll(coregraph.additionalExplorationRoot);
 			while(!currentExplorationBoundary.isEmpty())
 			{
 				CmpVertex currentRed = currentExplorationBoundary.remove();
@@ -791,10 +795,11 @@ public class PairScoreComputation {
 	 * 
 	 * In a similar way to ordinary Sicco score computation, there are three modes,
 	 * <ul>
-	 * <li>Only look at the current pair to merge and the states that got merged into it.</li>
+	 * <li>Only look at the current pair to merge and the states that got merged into it (requested with howToScore == SiccoGeneralScoring.S_ONEPAIR). </li>
 	 * <li>Look at mergers of any state into a red state (if there are multiple red states being merged together, this will do a union of their outgoing transitions).</li>
 	 * </ul>
-	 * Unlike the score computation that relies on mergers between a branch of a tree and a graph, this scoring routine cannot tell whether any node comes from a tree or from the main graph (except where they are labelled red or blue).
+	 * Unlike the score computation that relies on mergers between a branch of a tree and a graph, 
+	 * this scoring routine cannot tell whether any node comes from a tree or from the main graph (except where they are labelled red or blue).
 	 * This is why it cannot do an equivalent of 'recursive' computation where one follows a branch and checks states against those in the main graph. On the positive side, it can be used
 	 * for arbitrary mergers in a graph, something that typical Sicco score computation cannot handle.
 	 * 

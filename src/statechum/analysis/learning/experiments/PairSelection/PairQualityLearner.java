@@ -1095,15 +1095,18 @@ public class PairQualityLearner
 				if (p.getQ() == stateToDebug)	
 					debugBreak();
 				
-				if (possiblyRedVerticesToTheirQuality.containsKey(p.getQ())) // once a vertex is no longer a plausible red, no point considering pairs it is part of.
+				if (possiblyRedVerticesToTheirQuality.containsKey(p.getQ())) // once a vertex is no longer a plausible red, no point considering pairs it is part of. Initially all are plausible and then we filter some of them out. 
 				{
 					if (!p.getQ().isAccept() || !p.getR().isAccept())
 						possiblyRedVerticesToTheirQuality.remove(p.getQ());// if both are rejects, a merge is always possible, hence disqualify the vertex from being possibly red.
 					else
 						if (!pairsList.isEmpty() && tentativeGraph.pairscores.computePairCompatibilityScore_general(p, pairsList, verticesToMerge, false) < 0)
 						{
-							// This pair cannot be merged, keep the corresponding blue state marked as a potentially red state. Note that this computation is deferred to this stage from computePairScores in order to consider 
-							// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory merge conditions are taken into account.
+							// This pair cannot be merged alongside mandatory merge conditions specified via labelsLeadingToStatesToBeMerged and 
+							// labelsLeadingFromStatesToBeMerged, keep the corresponding blue state marked as a potentially red state. 
+							// Note that this computation is deferred to this stage from computePairScores in order to consider 
+							// only a small subset of pairs that are apparently compatible but will be incompatible once the mandatory 
+							// merge conditions are taken into account.
 						}
 						else
 							try
@@ -1137,7 +1140,7 @@ public class PairQualityLearner
 				System.out.println(possiblyRedVerticesToTheirQuality);
 			for(Entry<CmpVertex,ValueAndCount> entry:possiblyRedVerticesToTheirQuality.entrySet())
 			{
-				double currentValue = ConfusionMatrix.divide(entry.getValue().value, entry.getValue().count);
+				double currentValue = ConfusionMatrix.divide(entry.getValue().value, entry.getValue().count);// this computes the 'negativity' score of a pair, that is, how bad it seems according to Weka.
 				if ((bestAverage < 0 || currentValue < bestAverage) && entry.getValue().count < 10)
 				{
 					bestAverage = currentValue;bestCandidateForRed = entry.getKey();
@@ -1202,19 +1205,19 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);// we are looking for a prediction 'as a negative' hence a non-negative quality means it is a negative.
 					if (quality < 0 && helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else
 						notpredictedCounter++;
 				}
 			}
-			/** Counts the number of times a pair is predicted as positive by Markov and as a not-a-negative by Weka. */
+			/** Counts the number of times a pair is predicted as negative by both Markov and Weka. */
 			public void updateNegativeBoth(LearnerThatUsesWekaResults learner, MarkovHelper helper, List<PairScore> selectedPairs, int classForNeg)
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);// we are looking for a prediction 'as a negative' hence a non-negative quality means it is a negative.
 					if (quality >= 0 && helper.computeScoreBasedOnInconsistencies(p) < 0)
 						predictedCounter++;
 					else
@@ -1226,7 +1229,7 @@ public class PairQualityLearner
 			{
 				for(PairScore p:selectedPairs)
 				{
-					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);
+					long quality = learner.classifyPairAfterItWasClassified(p,classForNeg);// we are looking for a prediction 'as a negative' hence a non-negative quality means it is a negative.
 					if (quality < 0 || helper.computeScoreBasedOnInconsistencies(p) >= 0)
 						predictedCounter++;
 					else

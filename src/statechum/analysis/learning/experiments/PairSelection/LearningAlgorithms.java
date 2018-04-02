@@ -1233,6 +1233,8 @@ public class LearningAlgorithms
 			Map<Label,CmpVertex> next = existingGraph.transitionMatrix.get(vA);
 			if (!next.isEmpty())
 				vA=next.values().iterator().next();// there can only be one 'next' element because our PTA is built from a sequence.
+				// Therefore, the expression vA=existingGraph.transitionMatrix.get(vA).values().iterator().next() when executed a 
+				// number of times will return all states associated with the added path.
 			else
 				vA=null;
 		}
@@ -1335,7 +1337,7 @@ public class LearningAlgorithms
 				}
 				else
 				{
-					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
+					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(false),graphWithTraces.config);
 					graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
 					graphWithTraces.paths.augmentPTA(neg, startForPath, false, false,null);
 					graphWithTraces.pairscores.mergePair(new StatePair(graphWithTraces.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);

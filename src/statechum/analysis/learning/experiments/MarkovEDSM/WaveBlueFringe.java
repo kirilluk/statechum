@@ -69,15 +69,15 @@ public class WaveBlueFringe extends PairQualityLearner
 	 * 
 	 * @param coregraph graph to consider
 	 * @param currentRed the state of interest
-	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param includeSelf whether to include single-state loops. 
 	 * @param whereToAddTransitions collection of transitions to populate, not a map to permit non-deterministic choice.
 	 */
 	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean ignoreSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
+		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean includeSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
 	{
 		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
 			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
-				if (v.getColour() != JUConstants.RED && (ignoreSelf || v != currentRed))
+				if (v.getColour() != JUConstants.RED && (includeSelf || v != currentRed))
 					whereToAddTransitions.add(new Map.Entry<Label,CmpVertex>(){
 						final Label key = incoming.getKey();
 						final CmpVertex target = v;
@@ -102,17 +102,17 @@ public class WaveBlueFringe extends PairQualityLearner
 	 * 
 	 * @param coregraph graph to consider
 	 * @param current the state of interest
-	 * @param ignoreSelf whether to include single-state loops. 
+	 * @param includeSelf whether to include single-state loops. 
 	 * @param number of outgoing transitions.
 	 */
 	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean ignoreSelf)
+		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean includeSelf)
 	{
 		long outcome = 0;
 		
 		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(current).entrySet())
 			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
-				if ( (ignoreSelf || v != current) )
+				if ( (includeSelf || v != current) )
 					++outcome;
 
 		return outcome;

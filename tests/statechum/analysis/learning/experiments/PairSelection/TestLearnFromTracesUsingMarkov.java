@@ -119,7 +119,7 @@ public class TestLearnFromTracesUsingMarkov
 				currentInconsistency = MarkovClassifier.computeInconsistency(merged, null, Markov, checker, false)-inconsistencyFromAnEarlierIteration;
 				score=genScore-currentInconsistency;	
 
-				long fastInconsistency =  MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);						
+				long fastInconsistency =  MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, Markov, cl, checker);						
 				Assert.assertEquals(currentInconsistency,fastInconsistency);
 			}
 			return score;

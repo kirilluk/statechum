@@ -82,7 +82,7 @@ public class MergeStates {
 	}
 	
 	/** Adds all transitions from the provided vertex (current) to the transition matrix row (row). A target vertex for each transition is either a merged vertex from an equivalence class
-	 * (if an entry exists in origToNew) or an actual CmpVertex (equivalence classes does not contain entries where a state was not merged).
+	 * (if an entry exists in origToNew) or an actual CmpVertex (equivalence classes does not contain entries where a state was not merged with any other state).
 	 * Some of the mentioned states have been seen before and either were or will be processed. Those that were seen would be a member of visitedTargetStates and where they were not seen,
 	 * they need to be and hence added to currentExplorationBoundary.
 	 * 
@@ -146,7 +146,7 @@ public class MergeStates {
 		Map<VertID,Collection<VertID>> hardOrig = original.learnerCache.getMergedToHardFacts();
         if (hardOrig != null && hardOrig.containsKey(currentInOrigin))
         {
-            hardVertices.addAll(hardOrig.get(currentInOrigin));
+            hardVertices.addAll(hardOrig.get(currentInOrigin));// if the original vertex was built out of a collection of vertices, add IDs of all of these vertices to that of the merged vertex.
         }
         else
             hardVertices.add(currentInOrigin);
@@ -282,6 +282,7 @@ public class MergeStates {
 						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:vertexToValue.entrySet())
 							if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE)
 								incompatibleVertices.add(entry.getKey());
+						// there is no equivalence class associated with this vertex because it is a singleton, hence create a dummy equivalence class containing all the relevant incompatible vertices.
 						mergedForCompatibility.add(new EquivalenceClassForConstructionOfCompatibility(current, originalVertexToClonedVertex.get(current), incompatibleVertices));
 					}
 				}
@@ -300,7 +301,7 @@ public class MergeStates {
 
 		if (updateAuxInformation)
 		{
-			AMEquivalenceClass.populateCompatible(result, mergedForCompatibility);
+			AMEquivalenceClass.populateCompatible(result, mergedForCompatibility);// note that here each merged vertex is associated with exactly one equivalence class. 
 			result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 		}
 
@@ -308,7 +309,7 @@ public class MergeStates {
 	}
 
 	/** This is a very simplified version of an equivalence class, only for the use with {@link AMEquivalenceClass#populateCompatible(AbstractLearnerGraph, Collection)} 
-	 * routine. Unlike a real equivalence class, it store much less information and hence takes up less space. 
+	 * routine. Unlike a real equivalence class, it stores much less information and hence takes up less space. 
 	 */
 	public static class EquivalenceClassForConstructionOfCompatibility implements EquivalenceClass<CmpVertex,LearnerGraphCachedData>
 	{

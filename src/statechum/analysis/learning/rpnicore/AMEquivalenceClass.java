@@ -508,7 +508,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * based on the states in an equivalence class. This routine performs pairwise
 	 * compatibility check between states of a graph based on equivalence classes and populates
 	 * the incompatibles array. When used for regular mergers, each state will only be included in a single equivalence class,
-	 * but subset construction would usually generate intersecting equivalence classes.   
+	 * but subset construction (used in {@link AbstractPathRoutines#buildDeterministicGraph()} would usually 
+	 * generate intersecting equivalence classes that correspond to subsets of vertices.   
 	 * 
 	 * @param graph the graph to update
 	 * @param eqClasses the collection of equivalence classes out of which this graph has been built.

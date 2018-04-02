@@ -164,7 +164,7 @@ public class MarkovHelper
 		long score= genScore;
 		if (genScore >= 0)
 		{			
-			score = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
+			score = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 		}		
 		return score;
 	}
@@ -180,7 +180,7 @@ public class MarkovHelper
 		long score= genScore;
 		if (genScore >= 0)
 		{			
-			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
+			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 			
 			score=Math.round(genScore-markovParameters.weightOfInconsistencies*currentInconsistency);
 			

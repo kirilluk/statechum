@@ -44,11 +44,18 @@ import statechum.model.testset.PTASequenceSetAutomaton;
  * making decisions based on that.  
  * <ul>
  * <li>
- * Where <i>predictForwardOrSideways</i> is true, we are predicting transitions based on paths leading to the state of interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
+ * Where <i>predictForwardOrSideways</i> is true and <i>directionForwardOrInverse</i> is true, 
+ * we are predicting transitions based on paths leading to the state of interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
+ * </li>
+ * <li>
+ * Where <i>predictForwardOrSideways</i> is true and <i>directionForwardOrInverse</i> is false, means that we are predicting transition based on paths from a state of interest forwards. Hence prediction graph is the normal (forward) graph. 
  * </li>
  * <li> 
- * Where <i>predictForwardOrSideways</i> is false, we are predicting transitions based on paths leading from the state of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i> and 
+ * Where <i>predictForwardOrSideways</i> is false and <i>directionForwardOrInverse</i> is true, we are predicting transitions based on paths leading from the state of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i> and 
  * <i>pathBeyondCurrentState</i> should be null because once we predicted one transition, there are no further transitions from that state, hence no further transitions can be predicted sideways.
+ * </li>
+ * <li> 
+ * Where <i>predictForwardOrSideways</i> is false and <i>directionForwardOrInverse</i> is false, we are predicting transitions leading to the state of interest based on paths leading to the state of interest.
  * </li>
  * </ul>
  */
@@ -132,10 +139,15 @@ public class MarkovModel
 	
 	public final MarkovMatrixEngine markovMatrix;
 	
-	/** Contains the number of times a specific path was encountered. Would usually be prefix-closed by construction. This property is used both to identify if a particular path was never seen*/
+	/** Contains the number of times a specific path was encountered. Would usually be prefix-closed by construction. 
+	 * This property is used both to identify if a particular path was never seen. 
+	 * Commented out because it is replaced by a PTA representation of the map.
+	 */
 	//public final Map<Trace, UpdatablePairInteger> occurrenceMatrix =  new HashMap<Trace,UpdatablePairInteger>();
 	
-	/** The model, effectively an boolean representation of <em>numberOfOccurrences</em>. */
+	/** The model, effectively an boolean representation of <em>numberOfOccurrences</em>. 
+	 * Commented out because it is replaced by a PTA representation of the map.
+	 */
 	//public final Map<Trace, MarkovOutcome> predictionsMatrix =  new HashMap<Trace,MarkovOutcome>();
 	
 	/** Returns the maximal length of paths in either of the two matrices. */
@@ -152,6 +164,21 @@ public class MarkovModel
 	private final int chunkLength;
 
 	public final boolean predictForwardOrSideways,directionForwardOrInverse;
+
+	/** True if the graph used for predictions is an inverse, in this case all paths we obtain from it are best inverted before lookup in Markov model. 
+	 * For efficiency, we could have obviously invert paths in the model but the current setup makes it easier to understand and we need to copy the 
+	 * graphs anyway which is be accomplished as fast as inversion.
+	 * <p/? 
+	 * Decisions to invert or not are based on the following:
+	 * <table>
+	 * <tr><td>predictForwardOrSideways</td><td>directionForwardOrInverse</td><td>Decision</td></tr>
+	 * <tr><td>T</td><td>T</td><td>graphsToUseForPrediction=inverse<br/>graphsToCheckForConsistency=<b>forward</b></td></tr>
+	 * <tr><td>T</td><td>F</td><td>graphsToUseForPrediction=<b>forward</b><br/>graphsToCheckForConsistency=inverse</td></tr>
+	 * <tr><td>F</td><td>T</td><td>graphsToUseForPrediction=<b>forward</b><br/>graphsToCheckForConsistency=<b>forward</b></td></tr>
+	 * <tr><td>F</td><td>F</td><td>graphsToUseForPrediction=inverse<br/>graphsToCheckForConsistency=inverse</td></tr>
+	 * </table>
+	 */
+	public final boolean predictionGraphInverted;
 	
 	/** If true, we are looking at sequences of transitions to/from a state of interest. 
 	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
@@ -165,6 +192,7 @@ public class MarkovModel
     	if (chunkLen < 2)
     		throw new IllegalArgumentException("chunkLen should be at least 2");
     	chunkLength = chunkLen;pathsOrSets = argPathsOrSets;predictForwardOrSideways = argPredictForwardOrSideways;directionForwardOrInverse = argDirectionForwardOrInverse;
+    	predictionGraphInverted = predictForwardOrSideways == directionForwardOrInverse;
     	markovMatrix = new MarkovMatrixEngine(PTAUseMatrix);
     }
     
@@ -256,10 +284,14 @@ public class MarkovModel
 		/** Given two outcomes of a prediction of a transition (any of which could be a null), computes the expected outcome. Reports a failure if any difference between opinions is observed.
 		 * If any of the two is unknown, the other value overrides it.
 		 * <p>
-		 * The significance of this is that where we make a merge, a number of states get merged and hence there will be a number of paths leading to and from a state of interest. Markov will predict outgoing transitions
-		 * based on those paths, relying on an entire graph as the source of information. These predictions may or may not match actual transitions, for each actual outgoing transition (pos/neg/non-existing) we might 
-		 * like to match it with the predicted one and count the number of labels where predictions from one or more paths does not match the actual data (which will also imply that predictions contradict each other). 
-		 * We could instead look for consistent predictions (where all paths to or from a state lead to the same prediction) and use those to check whether they contradict the actual data. 
+		 * The significance of this is that where we make a merge, a number of states get merged and hence there will 
+		 * be a number of paths leading to and from a state of interest. Markov will predict outgoing transitions
+		 * based on those paths, relying on an entire graph as the source of information. These predictions may or 
+		 * may not match actual transitions, for each actual outgoing transition (pos/neg/non-existing) we might 
+		 * like to match it with the predicted one and count the number of labels where predictions from one or 
+		 * more paths does not match the actual data (which will also imply that predictions contradict each other). 
+		 * We could instead look for consistent predictions (where all paths to or from a state lead to the same 
+		 * prediction) and use those to check whether they contradict the actual data. 
 		 * 
 		 * @param a first opinion
 		 * @param b second opinion
@@ -418,7 +450,11 @@ public class MarkovModel
 		}
 		
 		// Construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
-		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter sequence is rejected but from other states a longer one is accepted).
+		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter 
+		// sequence is rejected but from other states a longer one is accepted. This is detected because with onlyLongest being false, 
+		// all strict prefixes of a trace (plus whole trace if positive) will be added as positives 
+		// so if there was a shorter trace labelled as a negative, there will be a both a positive counter 
+		// and a negative one above zero leading to a failure-prediction).
 		
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
 			@Override
@@ -469,7 +505,12 @@ public class MarkovModel
 			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
 			{
 				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
-				LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+				LinkedList<Label> path = new LinkedList<Label>();
+				if (predictionGraphInverted)
+					for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+				else
+					for(PTAExplorationNode elem:pathToInit) path.addLast(elem.getInput());
+				
 				if (prediction.prediction != null)
 					outcome.put(path, prediction.prediction);
 			}
@@ -504,7 +545,11 @@ public class MarkovModel
 			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
 			{
 				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
-				LinkedList<Label> path = new LinkedList<Label>();for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+				LinkedList<Label> path = new LinkedList<Label>();
+				if (predictionGraphInverted)
+					for(PTAExplorationNode elem:pathToInit) path.addFirst(elem.getInput());
+				else
+					for(PTAExplorationNode elem:pathToInit) path.addLast(elem.getInput());
 
 				if (prediction.prediction != null)
 					outcome.put(path, prediction.occurrence);

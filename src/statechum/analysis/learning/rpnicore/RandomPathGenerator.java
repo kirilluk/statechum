@@ -391,8 +391,9 @@ public class RandomPathGenerator {
 			if (shortestPathToInit == null)
 				throw new IllegalArgumentException("there is no path to the initial state ("+g.getInit()+") from the "+transition.getValue()+" state");
 			int newLength = 1+shortestPathToInit;
-			if (newLength <= lengthMax && longestPathsNotLeadingToInit.get(transition.getValue()) >= lengthMin) // the comparison will do NullPointer if the initial state is not reachable from some vertices, but this is ensure by construction
-				// we should consider this transition if we will not be forced to take a long way to the initial state at the end ...
+			if (newLength <= lengthMax && longestPathsNotLeadingToInit.get(transition.getValue()) >= lengthMin) 
+				// The comparison above will do NullPointer if the initial state is not reachable from some vertices, but this is ensured by construction.
+				// We should consider this transition if we will not be forced to take a long way to the initial state at the end of the walk ...
 				// ... and additionally there has to be a way to reach the desired way, no point visiting deadends.
 				currentRow.add(transition);
 		}
@@ -429,7 +430,11 @@ public class RandomPathGenerator {
 			{// If we are asked to generate negative paths of length 1, we cannot start with anything positive.
 				
 			 // Where we are offered a prefix longer than a maximal sequence we could generate, generate nothing positive.
-				int currentLength = prefixForAllSequencesLength+(positive?lengthOfShortestPathsIntoInit.get(current):0);// for a positive trace, the length is the one we obtain by the walk plus the length of a path to init, for negative traces, this is just zero since we are not aiming to reach init. 
+				int currentLength = prefixForAllSequencesLength+(positive?lengthOfShortestPathsIntoInit.get(current):0);
+				// for a positive trace, the length is the one we obtain by the walk plus the length of a path to init, 
+				// for negative traces, this is just zero since we are not aiming to reach init and no additional 
+				// path has to be taken eventually to get to init.
+				
 				while(currentLength < positiveLength)
 				{
 					Entry<Label,CmpVertex> inputState = null;
@@ -437,12 +442,17 @@ public class RandomPathGenerator {
 					//	break;// we got a path that is long enough, stop now. The current path is not too long (beyond positiveLength+delta) because in that case pickNextState would have returned null and we would have stopped before making a step.
 					
 					// Our current length is positiveLength-currentLength short, the subsequent step may get us closer to the target or we may overshoot. 
-					// In case of overshoot, the step may get us further away from the target, hence we should not take the step even if it is within delta of the target.
-					// This is the reason why lengthMax should be set accordingly in the call to pickNextState below.
-					// The absolute max that should be added is positiveLength+deltaInGenerationOfWalkLeadingToTheInitialState-i
-					// The desirable one is where positiveLength-currentLength-1 is used instead of deltaInGenerationOfWalkLeadingToTheInitialState, if smaller.
-					// The shortest path to init is positiveLength-i-deltaInGenerationOfWalkLeadingToTheInitialState
-					int maxLength = positive? positiveLength-path.size()+ Math.min(deltaInGenerationOfWalkLeadingToTheInitialState, positiveLength-currentLength-1) : Integer.MAX_VALUE;// for negative paths, we are not constrained by the maximal length because there is no need to enter an initial sate
+					// In case of overshoot, the step may get us further away from the target than we are now (positiveLength-currentLength), 
+					// hence if we overshoot by more than (positiveLength-currentLength), we should not take the step even if it is within delta of the target.
+					// Otherwise, on average we end up generating longer paths than needed. 
+					// This means that we should overshoot by at most positiveLength-currentLength-1,
+					// hence overshoot is a min of (deltaInGenerationOfWalkLeadingToTheInitialState, positiveLength-currentLength-1).
+					// This is how lengthMax should be set accordingly in the call to pickNextState below, taking into account that pickNextState uses lengthOfShortestPathsIntoInit and 
+					// hence needs to be provided with a maximal length for the whole path rather than maximal length of what needs adding to the current path.
+					// path.size() is the current length of the sequence including prefixForAllSequences.
+					// The shortest path to init is positiveLength-path.size()-deltaInGenerationOfWalkLeadingToTheInitialState
+					int maxLength = positive? positiveLength-path.size()+ Math.min(deltaInGenerationOfWalkLeadingToTheInitialState, positiveLength-currentLength-1) 
+							: Integer.MAX_VALUE;// for negative paths, we are not constrained by the maximal length because there is no need to enter an initial sate
 					inputState = pickNextState(current,positiveLength-path.size()-deltaInGenerationOfWalkLeadingToTheInitialState, maxLength);
 					if (inputState == null)
 						// any subsequent step is either impossible (no more transitions from this state, this should be impossible because of the way the automata are generated),

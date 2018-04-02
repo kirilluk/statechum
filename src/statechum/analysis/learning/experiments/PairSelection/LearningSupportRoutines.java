@@ -409,7 +409,7 @@ public class LearningSupportRoutines
 			if (entry.getKey().isAccept())
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 				{
-					Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());
+					Collection<CmpVertex> statesToMerge = labelToStates.get(transition.getKey());// this is only null if the label is not part of set transitionsToTheSameState
 					if (statesToMerge != null && transition.getValue().isAccept()) statesToMerge.add(transition.getValue());
 
 					Collection<CmpVertex> sourceStatesToMerge = labelFromStates.get(transition.getKey());
@@ -699,7 +699,8 @@ public class LearningSupportRoutines
 		return outcome;
 	}
 	
-	/** Takes a supplied automaton and removes all transitions that have not been covered by a supplied PTA.
+	/** Takes a supplied automaton and removes all transitions that have not been covered by a supplied PTA. 
+	 * Does not remove states that may have become unreachable as a consequence of removal of transitions.
 	 * 
 	 * @param pta contains covered transitions
 	 * @param reference all of the transitions.
@@ -856,7 +857,8 @@ public class LearningSupportRoutines
 		}
 	}
 	
-	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each state accepts one of the supplied sequences. Where multiple states accept one of the sequences,
+	/** Given a graph and a collection of sequences, extracts a set of states from the graph where each 
+	 * state accepts one of the supplied sequences. Where multiple states accept one of the sequences,
 	 * all of those states are returned. <b>There is no expectation of uniqueness</b>.
 	 * 
 	 * @param referenceGraph graph of interest
@@ -869,19 +871,26 @@ public class LearningSupportRoutines
 		for(List<Label> seq:collectionOfSeq)
 		{
 			for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-				if (referenceGraph.getVertex(v,seq) != null)
+			{
+				CmpVertex enteredState = referenceGraph.getVertex(v,seq);
+				if (enteredState != null && enteredState.isAccept())
 					statesUniquelyIdentified.add(v);
+			}
 		}
 		return statesUniquelyIdentified;
 	}
 	
+	/** Identifies a state uniquely identified by the supplied sequence, which means it is the only state 
+	 * that accepts a path labelled by this sequence. 
+	 * If there is none or more than a single state like that, returns null. 
+	 */
 	public static CmpVertex checkSeqUniqueOutgoing(LearnerGraph referenceGraph, List<Label> seq)
 	{
 		CmpVertex vertexOfInterest = null;
 		for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
 		{
 			CmpVertex currTarget = referenceGraph.getVertex(v,seq);
-			if (currTarget != null)
+			if (currTarget != null && currTarget.isAccept())
 			{
 				if (vertexOfInterest != null)
 					return null;
@@ -894,12 +903,12 @@ public class LearningSupportRoutines
 	}
 	
 	
-	/** Identifies states <i>steps</i> away from the root state and labels the first of them red and others blue. The colour of all other states is removed. When the learner
+	/** Identifies states <i>steps</i> away from the root state and labels the first of them red. The colour of all other states is removed. When the learner
 	 * starts, the exploration begins not from the root state as per blue fringe but from the marked red state. 
-	 * The aim is to permit Markov predictive power to be used on arbitrary states, 
+	 * The aim is to permit Markov's predictive power to be used on arbitrary states, 
 	 * without this we cannot predict anything in the vicinity of the root state which has no incoming transitions unless pre-merge is used. 
 	 */ 
-	public static void labelStatesAwayFromRoot(LearnerGraph graph, int steps)
+	public static Collection<CmpVertex> labelStatesAwayFromRoot(LearnerGraph graph, int steps)
 	{
 		graph.clearColours();graph.getInit().setColour(null);
 		
@@ -918,11 +927,10 @@ public class LearningSupportRoutines
 			
 			previousFrontLine = frontLine;frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
 		}
-		for(CmpVertex blue:frontLine) blue.setColour(JUConstants.BLUE);
 		if (frontLine.isEmpty())
 			throw new IllegalArgumentException("no states beyond the steps");
-		graph.additionalExplorationRoot = previousFrontLine;
 		frontLine.iterator().next().setColour(JUConstants.RED);
+		return previousFrontLine;
 	}
 
 

@@ -46,7 +46,7 @@ public class MarkovHelperClassifier
 
 	public final MarkovParameters markovParameters;
 
-	Map<CmpVertex,Long> inconsistenciesPerVertex = null;
+	Map<CmpVertex,Long> inconsistenciesPerVertexAndMarkovModel[] = null;
 
 	public LearnerGraph coregraph = null;
 	
@@ -82,12 +82,15 @@ public class MarkovHelperClassifier
 		coregraph = graph;
 
 		inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,invGraph,true);
+		inconsistenciesPerVertexAndMarkovModel = new Map[arrayOfMarkovModels.length];
 		for(int i=0;i<arrayOfMarkovModels.length;++i)
+		{
 			cl[i] = new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(arrayOfMarkovModels[i], coregraph, inverseGraph);// this chooses between the supplied graphs depending on the parameters of the Markov model.
-		inconsistenciesPerVertex =
+			inconsistenciesPerVertexAndMarkovModel[i]=
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
 						new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber()):
 						new TreeMap<CmpVertex,Long>();
+		}
 	}
 
 	public long [] computeInconsistency(PairScore p)
@@ -99,7 +102,7 @@ public class MarkovHelperClassifier
 		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 		if (genScore >= 0)
 		{			
-			outcome = MarkovClassifier.computeInconsistencyOfAMergerWithMultipleClassifiers(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertex, arrayOfMarkovModels, cl, arrayOfMarkovConsistencyCheckers, markovParameters.chunkLen-1);
+			outcome = MarkovClassifier.computeInconsistencyOfAMergerWithMultipleClassifiers(coregraph, inverseGraph, verticesToMerge, inconsistenciesPerVertexAndMarkovModel, arrayOfMarkovModels, cl, arrayOfMarkovConsistencyCheckers, markovParameters.chunkLen-1);
 		}		
 		else
 			for(int i=0;i<arrayOfMarkovModels.length;++i)

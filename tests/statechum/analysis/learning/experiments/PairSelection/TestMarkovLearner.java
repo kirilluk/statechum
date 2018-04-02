@@ -1032,8 +1032,8 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblB})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblA})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblC})));
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblC})));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblA})));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblB})));
 
 		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB})));
@@ -1082,8 +1082,8 @@ public class TestMarkovLearner
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(3,mPredictionsMatrix.size());
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblA})));
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblB})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblA})));// this is obvious: if we have a label 'a' leading from a state then the prediction reports that in this case we can find 'a'. 
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblC})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC})));
 	}
 	
@@ -1099,7 +1099,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblC})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblA})));
 		
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblU})));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblB})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC})));
@@ -1116,14 +1116,14 @@ public class TestMarkovLearner
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(6,mPredictionsMatrix.size());
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblB,lblC})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblB,lblA})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblB,lblA})));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblU,lblC})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblU,lblA})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblU,lblC})));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC,lblC})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC,lblA})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblC,lblC})));
 	}
 	
 	@Test
@@ -1173,14 +1173,14 @@ public class TestMarkovLearner
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(8,mPredictionsMatrix.size());
 		
-		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblU})));
+		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblB})));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblA})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblA})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblC})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC})));
 		
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblB})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblU})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblU})));
 	}
@@ -1714,13 +1714,13 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot1()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		LearningSupportRoutines.labelStatesAwayFromRoot(graph,0);
+		Collection<CmpVertex> previousFrontline = LearningSupportRoutines.labelStatesAwayFromRoot(graph,0);
 		Assert.assertSame(JUConstants.RED, graph.findVertex("A").getColour());
 		Assert.assertNull(graph.findVertex("B").getColour());
 		
 		Assert.assertNull(graph.findVertex("C").getColour());Assert.assertNull(graph.findVertex("D").getColour());
 		
-		Assert.assertNull(graph.additionalExplorationRoot);
+		Assert.assertNull(previousFrontline);
 	}
 
 
@@ -1728,13 +1728,12 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot2()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		LearningSupportRoutines.labelStatesAwayFromRoot(graph,1);
+		Collection<CmpVertex> previousFrontline = LearningSupportRoutines.labelStatesAwayFromRoot(graph,1);
 		Assert.assertSame(JUConstants.RED, graph.findVertex("C").getColour());
-		Assert.assertSame(JUConstants.BLUE, graph.findVertex("B").getColour());
 		
 		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("D").getColour());
 
-		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("A")})), actual = new TreeSet<CmpVertex>(graph.additionalExplorationRoot);
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("A")})), actual = new TreeSet<CmpVertex>(previousFrontline);
 		Assert.assertEquals(expected,actual);
 	}
 	
@@ -1742,12 +1741,12 @@ public class TestMarkovLearner
 	public void testLabelStatesAwayFromRoot3()
 	{
 		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
-		LearningSupportRoutines.labelStatesAwayFromRoot(graph,2);
+		Collection<CmpVertex> previousFrontline = LearningSupportRoutines.labelStatesAwayFromRoot(graph,2);
 		
 		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("B").getColour());Assert.assertNull(graph.findVertex("C").getColour());
 		Assert.assertSame(JUConstants.RED, graph.findVertex("D").getColour());
 
-		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("B"),graph.findVertex("C")})), actual = new TreeSet<CmpVertex>(graph.additionalExplorationRoot);
+		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("B"),graph.findVertex("C")})), actual = new TreeSet<CmpVertex>(previousFrontline);
 		Assert.assertEquals(expected,actual);
 	}
 	
@@ -2626,7 +2625,7 @@ public class TestMarkovLearner
 	public void testUniquePaths5()
 	{
 		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-t->B-t-#C", "testUniquePaths2",config,converter);
-		Assert.assertEquals(0,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
+		Assert.assertEquals(1/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
 	}
 	
 	@Test

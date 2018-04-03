@@ -47,18 +47,37 @@ public class ComputeExecutionTimeCorrectionValue
 {
 	public static final String unknownValue = "UNKNOWN";
 	
-	public static void main(String []ignored)
+	// This compares the results of the experiment 'benchmark_learners_Apr_2016' with results from the directory specified on the command-line.
+	// In order to run the command-line experiment, the 'iceberg' directory has 'runbenchmark.sh' script for this.
+	// In order to re-generate the benchmark_learners_Apr_2016 folder, run BenchmarkCPU with arguments COUNT_TASKS and then again with RUN_PARALLEL 1
+	// VM arguments on Linux (64-bit, 24 Hypethreaded cores, 96GB RAM) are:
+	// -ea -DVIZ_CONFIG=kirill_tests -DVIZ_DIR=resources/graphLayout -Dthreadnum=24 -Djava.library.path=linear/.libs:smt/.libs:/usr/lib/R/site-library/rJava/jri -DERLANGHOME=/usr/local/soft/otp_src_R16B02 -Xmx85000m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba
+	// this assumes environment variable R_HOME is set to /usr/lib/R
+	public static void main(String []directoryToCompareAgainst)
 	{
 		String[] args={"COLLECT_RESULTS"};
-		String directoryToUse[] = new String[]{"evaluation_of_learners_Apr_2016","E5_2650-benchmark_learners_Apr_2016","m6e_benchmark_learners_Apr_2016","regi_benchmark_learners_Apr_2016"};
+		
+		String referenceDirectory="benchmark_learners_Apr_2016";
+		
+		String directoryToUse[] = new String[]{referenceDirectory,directoryToCompareAgainst[0]};
+		String directoryFullPathCollection[] = new String[2];
+		for(int i=0;i<directoryToUse.length;++i)
+		{
+			String outDir = "tmp"+File.separator+directoryToUse[i];//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+			directoryFullPathCollection[i] = outDir + File.separator;
+			if (!new File(directoryFullPathCollection[i]).isDirectory())
+			{
+				System.out.println("directory "+directoryFullPathCollection[i]+" does not exist or is not a directory");return;
+			}
+		}
 		List<CSVExperimentResult> csvOfExperiment = new ArrayList<CSVExperimentResult>();
-		for(final String directoryNamePrefix:directoryToUse)
+		for(final String directoryFullPath:directoryFullPathCollection)
 		{
 			final String directoryExperimentResult = "experimentresult"+File.separator;
 			
-			String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-			String outPathPrefix = outDir + File.separator;
-			final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+			
+			final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = 
+					new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryFullPath + directoryExperimentResult,args);
 			SGE_ExperimentRunner.configureCPUFreqNormalisation();
 			LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 			GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -66,10 +85,10 @@ public class ComputeExecutionTimeCorrectionValue
 			final int samplesPerFSMSize = 5;
 			final int attemptsPerFSM = 2;
 
-			final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-			final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+			final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(directoryFullPath+"BCR_vs_experiment.pdf"));
+			final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(directoryFullPath+"diff_vs_experiment.pdf"));
 
-			final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+			final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(directoryFullPath+"results.csv"));
 			csvOfExperiment.add(resultCSV);
 	    	processSubExperimentResult<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> resultHandler = new processSubExperimentResult<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>() {
 
@@ -158,14 +177,11 @@ public class ComputeExecutionTimeCorrectionValue
 		}
 		System.out.println();
 		// Now we have all the spreadsheets, use them to compute correction.
+
+		// parameters below are dummy - they are needed to construct an instance but only values hardwired into EvaluationOfLearnersParameters are used.
 		EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);
-		// parameters above are dummy - they are needed to construct an instance but only values hardwired into EvaluationOfLearnersParameters are used.
 		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,10,1);
-		System.out.println("iceberg v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
-		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(2), par, 3600L*4L,50,1);
-		System.out.println("m6e v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
-		tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(3), par, 3600L*4L,20,1.0/0.4);
-		System.out.println("regi v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
+		System.out.println("directory provided v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		
 	}

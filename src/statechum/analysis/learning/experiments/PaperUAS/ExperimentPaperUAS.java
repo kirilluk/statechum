@@ -78,6 +78,7 @@ import statechum.Configuration.STATETREE;
 import statechum.Label;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -1000,6 +1001,9 @@ public class ExperimentPaperUAS
 			case CONVENTIONAL:
 				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM);
 				break;
+			case CONVENTIONALUNIQUE:
+				sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM, uniqueLabel);
+				break;
 			case PREMERGE:
 				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
@@ -1015,9 +1019,7 @@ public class ExperimentPaperUAS
  		}		
  	}
  	 	
- 	// Arguments: first is a path to most files, followed by a configuration file parameters.txt and then all the seed files.
- 	// Example: 
- 	// C:\experiment\research\xmachine\ModelInferenceUAS\traces parameters.txt seed1_d.txt seed2_d.txt seed3_d.txt seed4_d.txt seed5_d.txt seed6_d.txt seed7_d.txt seed8_d.txt seed9_d.txt seed10_d.txt seed11_d.txt seed12_d.txt seed13_d.txt  seed14_d.txt seed15_d.txt seed16_d.txt seed17_d.txt seed18_d.txt seed19_d.txt
+ 	// Arguments: same as SGE, meaning that the location of the data files is hardcoded for the time being. 
  	public static void main(String args[]) throws Exception
  	{
  		System.out.println("Started "+new Date());
@@ -1050,44 +1052,12 @@ public class ExperimentPaperUAS
     	// positive only or pos-neg (no point, except for ktails where we learn from positives only)
     	// EDSM/check constraints but merge EDSM-way/premerge on the transition of interest.
     	
-		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
-
-		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-
-    	processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>> resultHandler = new processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>>() {
-			@Override
-			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
-			{
-				ScoresForGraph difference = result.samples.get(0).actualLearner;
-				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(difference.differenceBCR.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
-				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				String experimentName = result.parameters.ptaName+"_"+result.parameters.learningType+result.parameters.scoringMethod.name;
-						//EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
-
-				experimentrunner.RecordR(BCR_vs_experiment,experimentName,difference.differenceBCR.getValue(),null,null);
-				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
-				
-				//BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
-			}
-						
-			@Override
-			public SGEExperimentResult[] getGraphs() {
-				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment, resultCSV};
-			}
-		};
-
-		
 		int []rangeOfValues = new int[]{8,4,2};
 		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_NOFULLMERGE;
 		
 		boolean mergePTA = false;
 		Configuration.STATETREE matrix = Configuration.STATETREE.STATETREE_ARRAY;
-		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.PREMERGE, LearningType.CONSTRAINTS};
+		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.CONVENTIONALUNIQUE, LearningType.PREMERGE, LearningType.CONSTRAINTS};
 		
 		// all UAV, all data 
 		Map<Integer,PTASequenceEngine> framesToTraces = null; 
@@ -1102,8 +1072,8 @@ public class ExperimentPaperUAS
 			System.out.println("maximal depth: "+depth);
 		}
 		List<UASCaseStudy> listOfExperiments = new ArrayList<UASCaseStudy>();
-				
-		{// process all the traces from all UAVs and seeds in one go
+		final String parametersAllSeeds = "All",parametersAU="AU",parametersAUFrame="AUF";
+		{// process all the traces from all UAVs and seeds in one go - this is 'all data' case.
 			String graphName = outPathPrefix+"uas-All";
 			if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
 			{
@@ -1116,14 +1086,16 @@ public class ExperimentPaperUAS
  				for(LearningType type:learningTypes)
 	 			{
 					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-					parameters.setParameters(false, true, "", "All");
+					parameters.setParameters(false, true, "", parametersAllSeeds,0);
 					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
 					//printLastFrame("All",framesToTraces.keySet());
 					listOfExperiments.add(experiment);
 	 			}
 		}    	
 		
-		// for each seed, all UAVs
+		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
+		// Separately, we need to show that as the frame number grows, we get better model 
+		// by looking at all UAVs at once. This result should not really depend on seed (aka luck). 
 		for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
      		{
@@ -1143,7 +1115,7 @@ public class ExperimentPaperUAS
      				for(LearningType type:learningTypes)
     	 			{
     					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-    					parameters.setParameters(false, true, seed, "AU");
+    					parameters.setParameters(false, true, seed, parametersAU,0);
     					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
     	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
     					listOfExperiments.add(experiment);
@@ -1163,7 +1135,7 @@ public class ExperimentPaperUAS
          				for(LearningType type:learningTypes)
         	 			{
            					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-        					parameters.setParameters(false, true, seed, "AU"+fraction);
+        					parameters.setParameters(false, true, seed, parametersAUFrame+fraction,100/fraction);
         					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
         	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
         					listOfExperiments.add(experiment);
@@ -1171,7 +1143,51 @@ public class ExperimentPaperUAS
      			}
      		}
 
-		// for each seed, individual UAVs
+		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment_allseeds ","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+		final RBoxPlot<String> BCR_vs_experiment_frames = new RBoxPlot<String>("experiment_allseeds ","BCR",new File(outPathPrefix+"BCR_vs_experiment_frames.pdf"));
+		//final Map<LearningType,RBoxPlot<String>> BCR_vs_experiment = new TreeMap<LearningType,RBoxPlot<String>>();		
+		//for(LearningType type:learningTypes)
+		//	BCR_vs_experiment.put(type,new RBoxPlot<String>("experiment_allseeds "+type,"BCR",new File(outPathPrefix+"BCR_vs_experiment_"+type+".pdf")));
+		
+		//final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+
+    	processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>> resultHandler = new processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>>() {
+			@Override
+			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
+			{
+				ScoresForGraph difference = result.samples.get(0).actualLearner;
+				StringBuffer csvLine = new StringBuffer();
+				csvLine.append(difference.differenceBCR.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
+				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+				String experimentName = result.parameters.ptaName+"_"+result.parameters.learningType+result.parameters.scoringMethod.name;
+						//EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
+
+				if (result.parameters.ptaName == parametersAllSeeds)
+					experimentrunner.RecordR(BCR_vs_experiment,"all "+result.parameters.learningType,difference.differenceBCR.getValue(),null,null);
+				else
+					if (result.parameters.ptaName == parametersAU)
+						experimentrunner.RecordR(BCR_vs_experiment,"seed "+result.parameters.learningType,difference.differenceBCR.getValue(),null,null);
+					else // sets of frames for all seeds
+						experimentrunner.RecordR(BCR_vs_experiment_frames,""+result.parameters.percentageOfFrames+"%-"+result.parameters.learningType,difference.differenceBCR.getValue(),null,null);
+				//experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
+				
+				//BCR_vs_experiment.drawInteractive(gr);diff_vs_experiment.drawInteractive(gr);
+			}
+						
+			@Override
+			public SGEExperimentResult[] getGraphs() {
+				return new SGEExperimentResult[]{BCR_vs_experiment,BCR_vs_experiment_frames,//diff_vs_experiment, 
+						resultCSV};
+			}
+		};
+/*
+		// For each seed, individual UAVs.
+		// Here we need to show the growth in the quality of the solution depending on how many traces we use.
     	for(String seed:paper.collectionOfTraces.keySet())
      		if (seed != UAVAllSeeds)
 	     	{
@@ -1197,7 +1213,7 @@ public class ExperimentPaperUAS
              				for(LearningType type:learningTypes)
             	 			{
                					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-            					parameters.setParameters(false, true, seed+"-"+uav, "U");
+            					parameters.setParameters(false, true, seed+"-"+uav, "U",0);
             					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
         	         			//printLastFrame("U_"+seed+"_"+uav,framesToTraces.keySet());
             					listOfExperiments.add(experiment);
@@ -1218,7 +1234,7 @@ public class ExperimentPaperUAS
 		         				for(LearningType type:learningTypes)
 	            	 			{
 	               					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-	            					parameters.setParameters(false, true, seed+"-"+uav, "U"+fraction);
+	            					parameters.setParameters(false, true, seed+"-"+uav, "U"+fraction,0);
 	            					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
 	        	         			//printLastFrame("U_"+seed+"_"+uav,framesToTraces.keySet());
 	            					listOfExperiments.add(experiment);
@@ -1226,7 +1242,7 @@ public class ExperimentPaperUAS
 		         		}
 	     			}
  	     	}
-
+*/
     	System.out.println("completed constructing the source graphs "+new Date());
     	paper = null;// throw the original traces away
     	System.gc();

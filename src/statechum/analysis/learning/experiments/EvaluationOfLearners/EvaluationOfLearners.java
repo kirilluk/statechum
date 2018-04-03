@@ -75,31 +75,14 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 	{
 		final int alphabet = par.states*2;
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
-		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 	
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-/*
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
-		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-								
-				@Override
-				public int getLength() {
-					return  lengthMultiplier*states;
-				}
-
-				@Override
-				public int getPrefixLength(int len) {
-					return len;
-				}
-			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
-*/
 		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getInit());
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								

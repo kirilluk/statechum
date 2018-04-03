@@ -77,77 +77,15 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 		final int alphabet = par.states*2;
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
-		Label uniqueFromInitial = null;
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
-		boolean pickUniqueFromInitial = par.pickUniqueFromInitial;
-		do
-		{
-			referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-			if (pickUniqueFromInitial)
-			{
-				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);
-				if(!uniques.isEmpty())
-				{ 
-					// some uniques are loops, hence ignore them to match our case study where the unique transition enters a normal state rather than looping in the initial one. 
-					for(Entry<Label,CmpVertex> entry:uniques.entrySet())
-						if (referenceGraph.transitionMatrix.get(entry.getValue()).get(entry.getKey()) != entry.getValue())
-						{
-							referenceGraph.setInit(entry.getValue());uniqueFromInitial = entry.getKey();break;// found a unique of interest
-						}
-				}
-				if (uniqueFromInitial == null)
-				{// need to generate a unique transition that did not occur through randomness.
-					Set<Label> existingAlphabet = referenceGraph.pathroutines.computeAlphabet();
-					if (existingAlphabet.size() < alphabet)
-					{// There is scope for generation of a new (unique) label. Given how an alphabet is constructed by ForestFireLabelledStateMachineGenerator, 
-					 // it seems appropriate.  
-						Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("unique", learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
-						assert(!existingAlphabet.contains(uniqueLabel));
-						List<CmpVertex> possibleVertices = new ArrayList<CmpVertex>();
-						for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
-							if (entry.getValue().size() < alphabet)
-								possibleVertices.add(entry.getKey());
-						assert(!possibleVertices.isEmpty());
-						CmpVertex newInit = possibleVertices.get(rnd.nextInt(possibleVertices.size()));
-						referenceGraph.setInit(newInit);uniqueFromInitial = uniqueLabel;
-						int targetIdx = rnd.nextInt(referenceGraph.getStateNumber()-1);
-						CmpVertex target = null;
-						for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-							if (v != newInit)
-							{// target should not be the same as the source
-								if (targetIdx-- <= 0)
-								{
-									target = v;
-									break;
-								}
-							}
-						// Adding a new unique transition from the initial state does not affect reachability of vertices or the connectivity.
-						// In addition, given that all states were distinguishable the uniqueness of the label does not make any of them equivalent.  
-						referenceGraph.addTransition(referenceGraph.transitionMatrix.get(newInit), uniqueLabel,target);
-					}
-				}
-			}
-		}
-		while(pickUniqueFromInitial && uniqueFromInitial == null);
+		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
+		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		referenceGraph = fsmConstruction.referenceGraph;
+
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-/*
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));
-		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-								
-				@Override
-				public int getLength() {
-					return  lengthMultiplier*states;
-				}
-
-				@Override
-				public int getPrefixLength(int len) {
-					return len;
-				}
-			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
-*/
 		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getInit());
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
@@ -350,7 +288,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 												LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 												ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 												ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
-												ev.config.setAlwaysUseTheSameMatrixType(false);
+												ev.config.setAlwaysUseTheSameMatrixType(true);// to ensure we do not change the matrix part-way.
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
 												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);

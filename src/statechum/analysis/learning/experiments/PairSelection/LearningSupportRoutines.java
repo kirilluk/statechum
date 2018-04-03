@@ -287,7 +287,7 @@ public class LearningSupportRoutines
 	}
 	
 	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence, from any state. If a pair is possible from some states and not others, it will not be included. 
-	 * This is subsequently used to construct if-then automata.
+	 * This is subsequently used to construct if-then automata for the UAS experiment.
 	 */
 	public static Map<Label,Set<Label>> computeInfeasiblePairs(LearnerGraph tentativeGraph)
 	{
@@ -381,8 +381,8 @@ public class LearningSupportRoutines
 		return java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
 	}
 
-	/** Given a collection of labels, identifies states that transitions with those labels lead to. For each label, 
-	 * there will be a set of states that is supposed to be merged. 
+	/** Given a collection of labels, identifies states that transitions with those labels lead to. 
+	 * For each label, there will be a set of states that is supposed to be merged. 
 	 * It is important to point out that only positive states are taken into account, there are frequent 
 	 * cases where a transition cannot be repeated, hence all transitions with this label will lead to the same state in the dataset,
 	 * except for a transition from that very state that is often to be rejected.

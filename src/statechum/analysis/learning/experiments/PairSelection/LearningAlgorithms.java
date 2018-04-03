@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -633,9 +634,23 @@ public class LearningAlgorithms
 		}		
 	}
 	
-	/** This learner infers models where all traces start with a specific transition from an initial state. It does not matter whether the graph to start from is a PTA or not.
-	 * Such a learner is different from any other learner in that the starting state is not the initial state but the one entered by a unique transition and the advantage
-	 * is that it takes into account a wide range of outgoing transitions from that state instead of just one.
+	/** This learner infers models where all traces start with a specific transition from an initial state. 
+	 * It does not matter whether the graph to start from is a PTA or not.
+	 * Such a learner is different from any other learner in that the starting state is 
+	 * not the initial state but the one entered by a unique transition and the advantage
+	 * is that it takes into account a wide range of outgoing transitions from that state 
+	 * instead of just one.
+	 * <p/>
+	 * The disadvantages are that unless the real learner this one delegates to (via the parameter of the constructor) 
+	 * utilises the unique transition of interest, the results are likely to be poor because it is not the position of
+	 * the initial state that messes it all up but the long traces. The only learners that use unique transition are 
+	 * constraint learner and pre-merge learner (not the one with Markov but the one that does a merge first and then 
+	 * learns from there as in UAS case study). In both of these cases we do not benefit from the selection of the initial
+	 * state in advance - this only makes a difference if the set of traces is extremely incomplete and the specific 
+	 * unique transition is not present from the initial state of the PTA (for example, there could be multiple outgoing
+	 * transitions in a reference graph and the walk did not happen to choose the one that was uniquely-identifying 
+	 * the initial state). In this case, {@link LearningSupportRoutines#findBestMatchForInitialVertexInGraph} would 
+	 * certainly help.
 	 */
 	public static class LearnerWithUniqueFromInitial implements Learner
 	{
@@ -650,17 +665,52 @@ public class LearningAlgorithms
 			throw new UnsupportedOperationException("Not supported by this learner");
 		}
 
-		private static LearnerGraph recolouredInitialPTA(LearnerGraph graph,List<Label> initialSeq)
+		private static LearnerGraph recolouredInitialPTA(LearnerGraph graph,CmpVertex newInit)
 		{
 			LearnerGraph recolouredPTA = new LearnerGraph(graph,graph.config);
-			recolouredPTA.getInit().setColour(null);recolouredPTA.getVertex(initialSeq).setColour(JUConstants.RED);
+			assert recolouredPTA.transitionMatrix.containsKey(newInit);
+			recolouredPTA.getInit().setColour(null);recolouredPTA.findVertex(newInit).setColour(JUConstants.RED);
 			return recolouredPTA;
 		}
 		
 		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
 			uniqueLabel = uniqueFromInitial;config = argInitialPTA.config;
-			initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(new Label[]{uniqueFromInitial}));
+			
+			Set<CmpVertex> visited = new HashSet<CmpVertex>();
+			Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();
+			
+			CmpVertex newInitialState = null;
+			if (argInitialPTA.transitionMatrix.get(argInitialPTA.getInit()).containsKey(uniqueFromInitial))
+				newInitialState = argInitialPTA.getInit();
+			else
+			{
+				frontLine.add(argInitialPTA.getInit());visited.add(argInitialPTA.getInit());
+			}
+			while(!frontLine.isEmpty() && newInitialState == null)
+			{
+				for(CmpVertex vert:frontLine)
+					for(CmpVertex next:argInitialPTA.transitionMatrix.get(vert).values())
+						if (!visited.contains(next))
+						{
+							if (argInitialPTA.transitionMatrix.get(vert).containsKey(uniqueFromInitial))
+							{
+								newInitialState = vert;break;
+							}
+							else
+							{
+								nextLine.add(next);visited.add(next);
+							}
+						}
+				
+				frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
+			}
+
+			if (newInitialState == null)
+				throw new IllegalArgumentException(
+						"supplied PTA does not have a state reachable from an initial state with "+uniqueFromInitial+
+						" label that should be present unless the walk from which PTA was built is extremely incomplete");
+			initPTA = recolouredInitialPTA(argInitialPTA,newInitialState);
 			learner = learnerToUse;learner.init(initPTA);
 		}
 

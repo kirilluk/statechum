@@ -58,6 +58,14 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
+// This runs a benchmark, the directory prefix needs changing for a different system. 
+// It is hardcoded becase the way to run it is also system-specific.
+// For instance, using a hostname as part of benchmark will only work is this is 
+// not run on a supercomputer/grid and it will usually be run there.
+// Using CPU from /proc/cpuinfo makes sense but not if run on Windows or MacOS.
+//
+// Computation of the correction values and how to run BenchmarkCPU : see ComputeExecutionTimeCorrectionValue.java
+//
 public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
 	public static final String directoryNamePrefix = "benchmark_learners_Apr_2016";

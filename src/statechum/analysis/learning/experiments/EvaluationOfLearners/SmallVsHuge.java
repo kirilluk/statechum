@@ -62,7 +62,7 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
-	public static final String directoryNamePrefix = "small_vs_huge";
+	public static final String directoryNamePrefix = "small_vs_huge_2018";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
@@ -77,13 +77,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	{
 		final int alphabet = par.states*2;
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
-		
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
-		//referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//generator.setWalksShouldLeadToInitialState();
 		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
@@ -99,7 +97,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				public int getPrefixLength(int len) {
 					return len;
 				}
-			},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
+			},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));// this is important: it ensures that traces always start with the supplied label to mimic data from the UAS traces.
 
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (par.onlyUsePositives)
@@ -287,7 +285,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 										for(boolean pta:new boolean[]{false})
 										{
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
@@ -324,17 +322,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 	    	
 	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
-	    	{// process the results.
-	    		/*
-	    		final String 
-	    		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
-					
-					@Override
-					public void merge(double A, double B) {
-						// TODO Auto-generated method stub
-						
-					}
-				},resultCSV,)*/
+	    	{// process the results if needed.
 	    	}
 		}
 		finally

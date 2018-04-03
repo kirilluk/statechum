@@ -217,9 +217,10 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
-			LearnerGraph pta = ptaSource.buildPTA();
+			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
 			long startTime = LearningSupportRoutines.getThreadTime();
-			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM), pta, uniqueLabel);
+			LearnerGraph smallPta = UASExperiment.mergePTA(ptaToLearnFrom,uniqueLabel,false);
+			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod, scoringForEDSM), smallPta, uniqueLabel);
 		
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
@@ -237,7 +238,8 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		return outcome;
 	}
 
-	/** Learns an automaton by requesting it from a supplier ptaSource.
+	/** Learns an automaton after requesting it from a supplier ptaSource. Using the unique label, 
+	 * turns a PTA into a graph with loops and the proceeds to learn using generalised merger routines.
 	 * 
 	 * @param ptaSource where to get automaton from
 	 * @param scoringMethod how to compute scores
@@ -290,7 +292,6 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		ScoresForGraph outcome =  new ScoresForGraph();
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -299,6 +300,18 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		return outcome;
 	}
 	
+	/** Starts by constructing a PTA such that transitions with the unique label of interest will be merged during the learning process. See 
+	 * {@link LearningSupportRoutines#constructPairsToMergeWithOutgoing(LearnerGraph, Label)} for details.
+	 * 
+	 * @param ptaSource generator for PTA
+	 * @param experimentID
+	 * @param scoringMethod
+	 * @param scoringForEDSM 
+	 * @param uniqueLabel labels transitions from the initial state
+	 * @return
+	 * @throws AugmentFromIfThenAutomatonException
+	 * @throws IOException
+	 */
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results. The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new state in order to persuade the learner to merge the right states.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
@@ -328,17 +341,6 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		/*
-		if (diffMeasure.getValue()>0.9)
-		{
-			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-			DirectedSparseGraph gr = gd.showGD(
-				actualAutomaton,referenceGraph,
-				ExperimentRunner.getCpuNumber());
-			Visualiser.updateFrameWithPos(gr,3);
-			Visualiser.updateFrame(actualAutomaton, referenceGraph);
-			Visualiser.waitForKey();
-		}*/
 		ScoresForGraph outcome =  new ScoresForGraph();
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -369,7 +371,6 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);
-		//Visualiser.updateFrame(actualAutomaton,referenceGraph);
 		ScoresForGraph outcome =  new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());

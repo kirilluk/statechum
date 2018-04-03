@@ -346,7 +346,7 @@ public class SGE_ExperimentRunner
 					 tmpDir+sanitiseFileName(pars.getSubExperimentName())+"-"+
 							sanitiseFileName(pars.getRowID());
 					statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName(pars.getColumnID())+".sgetaskstarted";
+			return pathName+File.separator+sanitiseFileName(pars.getColumnID())+".sgetaskstarted-"+getHostName();
 		}
 		
 		/** Plots the supplied graphs. If the task number is divisible by 10, plots them on the screen, if negative - dumps a pdf.  
@@ -872,15 +872,23 @@ public class SGE_ExperimentRunner
 	{
 		String outcome = getCpuFreqValue();
 		if (outcome == null)
+			outcome = getHostName();
+		if (outcome == null)
+			throw new IllegalArgumentException("failure to obtain a value of argument to look up CPU speed normalisation value");
+		return outcome;
+	}
+	
+	public static String getHostName()
+	{
+		String outcome = null;
+		try
 		{
-			try
-			{
-				outcome = java.net.InetAddress.getLocalHost().getHostName();
-			}
-			catch(Exception ex)
-			{// ignore this, arg will remain null.
-			}
+			outcome = java.net.InetAddress.getLocalHost().getHostName();
 		}
+		catch(Exception ex)
+		{// ignore this, arg will remain null.
+		}
+		
 		if (outcome == null)
 		{// This part is based on http://stackoverflow.com/questions/7348711/recommended-way-to-get-hostname-in-java thread, answer by Malt
 	        String OS = System.getProperty("os.name").toLowerCase();
@@ -891,8 +899,6 @@ public class SGE_ExperimentRunner
 	            if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0)
 	            	outcome = System.getenv("HOSTNAME");
 		}		
-		if (outcome == null)
-			throw new IllegalArgumentException("failure to obtain a value of argument to look up CPU speed normalisation value");
 		return outcome;
 	}
 	

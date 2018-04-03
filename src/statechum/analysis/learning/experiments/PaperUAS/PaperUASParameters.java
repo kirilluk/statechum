@@ -33,15 +33,16 @@ public class PaperUASParameters implements ThreadResultID
 	public final ScoringToApply scoringMethod;
 	public final Configuration.ScoreMode scoringForEDSM;
 	public final Configuration.STATETREE matrixType;
+	public int percentageOfFrames=0;
 	
 	public void setOnlyUsePositives(boolean value)
 	{
 		onlyUsePositives = value;
 	}
 	
-	public void setParameters(boolean usePositive,boolean ifthen,String argPtaID,String experimentName)
+	public void setParameters(boolean usePositive,boolean ifthen,String argPtaID,String experimentName, int argPercentageOfFrames)
 	{
-		onlyUsePositives = usePositive;useIfThen=ifthen;ptaName = experimentName;ptaID = argPtaID;
+		onlyUsePositives = usePositive;useIfThen=ifthen;ptaID = argPtaID;ptaName = experimentName;percentageOfFrames = argPercentageOfFrames;
 	}
 
 	public PaperUASParameters(Configuration.ScoreMode scEDSM,ScoringToApply scoring, LearningType type,boolean pta, Configuration.STATETREE matrix)

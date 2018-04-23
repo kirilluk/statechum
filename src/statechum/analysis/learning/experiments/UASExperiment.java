@@ -110,7 +110,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()
 	{
-		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,//ScoringToApply.SCORING_EDSM_1,
+		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,ScoringToApply.SCORING_EDSM_1,
 				ScoringToApply.SCORING_EDSM_2,
 				//ScoringToApply.SCORING_EDSM_3,
 				ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,

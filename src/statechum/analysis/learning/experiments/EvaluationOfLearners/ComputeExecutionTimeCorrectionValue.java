@@ -63,7 +63,7 @@ public class ComputeExecutionTimeCorrectionValue
 		String directoryFullPathCollection[] = new String[2];
 		for(int i=0;i<directoryToUse.length;++i)
 		{
-			String outDir = "tmp"+File.separator+directoryToUse[i];//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+			String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryToUse[i];//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 			directoryFullPathCollection[i] = outDir + File.separator;
 			if (!new File(directoryFullPathCollection[i]).isDirectory())
 			{

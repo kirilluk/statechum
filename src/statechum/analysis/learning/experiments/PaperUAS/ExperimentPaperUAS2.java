@@ -65,6 +65,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.GlobalConfiguration;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
@@ -1115,11 +1116,13 @@ public class ExperimentPaperUAS2
  	public static void main(String args[]) throws Exception
  	{
  		System.out.println("Started "+new Date());
-		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		String outDir = 
+				GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 
-		String argsForLoading [] = {"/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces", 
+		String argsForLoading [] = {
+				GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_UASPAPER), 
 				"parameters.txt", 
 				"seed1_d.txt", "seed2_d.txt", "seed3_d.txt", "seed4_d.txt", "seed5_d.txt", "seed6_d.txt", "seed7_d.txt", "seed8_d.txt", "seed9_d.txt", "seed10_d.txt", 
 				"seed11_d.txt", "seed12_d.txt", "seed13_d.txt", "seed14_d.txt", "seed15_d.txt", "seed16_d.txt", "seed17_d.txt", "seed18_d.txt", "seed19_d.txt"};

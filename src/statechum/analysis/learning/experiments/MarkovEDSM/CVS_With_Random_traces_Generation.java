@@ -22,8 +22,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import statechum.GlobalConfiguration;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -70,7 +72,7 @@ public class CVS_With_Random_traces_Generation
 	
 	public static void main(String args[]) throws Exception
 	{
-		String outDir = "tmp"+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
+		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();

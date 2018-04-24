@@ -77,6 +77,8 @@ public class GlobalConfiguration {
 		,SGE_MAP_FILENAMEPREFIX // the prefix of the name of the file containing a map from virtual task names to lists of actual tasks to run for each virtual task.
 		,SGE_EXECUTIONTIME_SCALING // the scale factor to apply to execution time, in order to normalise it to iceberg-level CPUs, while running an experiment on a range of different computers.
 		,SGE_DISABLEGRAPHSAVE // to avoid filling the filesystem, we do not save PTAs or final graphs.
+		,PATH_UASPAPER // the location of files for the UAS paper, has to be a global configuration because command-line options have to match SGE ones and leave no space for this path.
+		,PATH_EXPERIMENTRESULTS // where to store the outcome of SGE-runner experiments
 		;
 	}
 
@@ -120,6 +122,8 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX,"default");
 		defaultValues.put(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, "");		
 		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "true");
+		defaultValues.put(G_PROPERTIES.PATH_UASPAPER, "/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces");
+		defaultValues.put(G_PROPERTIES.PATH_EXPERIMENTRESULTS, "tmp");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 

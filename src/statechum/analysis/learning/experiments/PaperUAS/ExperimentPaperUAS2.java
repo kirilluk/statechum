@@ -37,6 +37,10 @@ package statechum.analysis.learning.experiments.PaperUAS;
 // Add the following to the path,
 // C:\Program Files\Java\jre6\bin\server;C:\Program Files\R\R-2.15.1\bin\x64
 
+// Running: 
+// On Linux, the following arguments apply:
+// -ea -DVIZ_CONFIG=kirill_tests -DVIZ_DIR=resources/graphLayout -Dthreadnum=24 -Djava.library.path=linear/.libs:smt/.libs:/usr/lib/R/site-library/rJava/jri -DERLANGHOME=/usr/local/soft/otp_src_R16B02 -Xmx85000m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba -DPATH_EXPERIMENTRESULTS="/home/kirill/office/office/research_results" -DPATH_UASPAPER="/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces"
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -413,9 +417,11 @@ public class ExperimentPaperUAS2
 	            		AddLastPositiveTrace(seed, UAV, data);
 	            	
 	              	dataForSeed.maxFrameNumber.put(UAV, frameNumber);
-	             	UAVs.add(UAV);frameNumbers.add(frameNumber);
-	        
-	             	if (frameNumber > maxFrameNumber) maxFrameNumber = frameNumber;
+	              	synchronized(frameNumbers)
+	              	{
+	              		UAVs.add(UAV);frameNumbers.add(frameNumber);
+		             	if (frameNumber > maxFrameNumber) maxFrameNumber = frameNumber;
+	              	}              	
 	             	
 	            	QSMTool.parseSequenceOfTraces(traceToLoad,learnerInitConfiguration.config, new TraceAdder() {
 	
@@ -1339,6 +1345,8 @@ public class ExperimentPaperUAS2
  	     	}
 */
     	System.out.println("completed constructing the source graphs "+new Date());
+		if (paper != null)
+			paper.shutdown();
     	paper = null;// throw the original traces away
     	System.gc();
     	try
@@ -1350,8 +1358,6 @@ public class ExperimentPaperUAS2
 		finally
 		{
 			experimentRunner.successfulTermination();
-			if (paper != null)
-				paper.shutdown();
 			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		}
 		

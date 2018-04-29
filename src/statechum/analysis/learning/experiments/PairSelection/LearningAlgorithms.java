@@ -655,7 +655,6 @@ public class LearningAlgorithms
 	public static class LearnerWithUniqueFromInitial implements Learner
 	{
 		final Learner learner;
-		final Label uniqueLabel;
 		final Configuration config;
 		LearnerGraph initPTA;
 		
@@ -675,7 +674,7 @@ public class LearningAlgorithms
 		
 		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
-			uniqueLabel = uniqueFromInitial;config = argInitialPTA.config;
+			config = argInitialPTA.config;
 			
 			Set<CmpVertex> visited = new HashSet<CmpVertex>();
 			Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();

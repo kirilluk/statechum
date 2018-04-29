@@ -67,6 +67,8 @@
  * R_HOME needs to be set to /opt/local/Library/Frameworks/R.framework/Resources
  * and /opt/local/Library/Frameworks/R.framework/Versions/3.0/Resources/library/rJava/jri needs adding to java.library.path
  * 
+ * Specific configuration variable affecting Win64 and R-3.4 (not the case for R-3.0)
+ * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.4"
  */
 
 

@@ -62,7 +62,7 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
-	public static final String directoryNamePrefix = "small_vs_huge_2018";
+	public static final String directoryNamePrefix = "small_vs_huge";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 	
 	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
@@ -285,6 +285,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 										for(boolean pta:new boolean[]{false})
 										{
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_1),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_2),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
@@ -292,7 +295,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.CONVENTIONAL,LearningType.CONVENTIONALUNIQUE, LearningType.PREMERGE, LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

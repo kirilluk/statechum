@@ -396,7 +396,7 @@ public class SGE_ExperimentRunner
 		/** For a given task ID, loads the result and feeds them into R or spreadsheet. 
 		 * 
 		 * @param rCounter task ID
-		 * @param plotName plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
+		 * plotName instance variable is plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
 		 */
 		private void loadExperimentResult(int rCounter)
 		{

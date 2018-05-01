@@ -42,7 +42,7 @@ package statechum.analysis.learning.experiments.PaperUAS;
 //
 // Running: 
 // On Linux, the following arguments apply:
-// -ea -DVIZ_CONFIG=kirill_tests -DVIZ_DIR=resources/graphLayout -Dthreadnum=24 -Djava.library.path=linear/.libs:smt/.libs:/usr/lib/R/site-library/rJava/jri -DERLANGHOME=/usr/local/soft/otp_src_R16B02 -Xmx85000m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba -DPATH_EXPERIMENTRESULTS="/home/kirill/office/office/research_results" -DPATH_UASPAPER="/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces"
+// -ea -DVIZ_CONFIG=kirill_tests -DVIZ_DIR=resources/graphLayout -Dthreadnum=24 -Djava.library.path=linear/.libs:smt/.libs:/usr/lib/R/site-library/rJava/jri -DERLANGHOME=/usr/local/soft/otp_src_R16B02 -Xmx85000m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba -DPATH_EXPERIMENTRESULTS="/home/kirill/office/office/research_experiments" -DPATH_UASPAPER="/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces"
 // On Win64,
 // -ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;"C:/Program Files/R/R-3.4.1/library/rJava/jri/x64" -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME="C:\Program Files\erl7.0" -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS="C:\\experiment\\research_experiments" -DPATH_UASPAPER="C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces"
 
@@ -1270,7 +1270,7 @@ public class ExperimentPaperUAS2
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				String experimentName = result.parameters.ptaName+"_"+result.parameters.learningType+result.parameters.scoringMethod.name;
+				//String experimentName = result.parameters.ptaName+"_"+result.parameters.learningType+result.parameters.scoringMethod.name;
 						//EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
 
 				if (result.parameters.ptaName == parametersAllSeeds)

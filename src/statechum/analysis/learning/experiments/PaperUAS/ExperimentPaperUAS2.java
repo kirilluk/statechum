@@ -80,6 +80,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -1163,7 +1164,7 @@ public class ExperimentPaperUAS2
 		
 		boolean mergePTA = false;
 		Configuration.STATETREE matrix = Configuration.STATETREE.STATETREE_ARRAY;
-		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.CONVENTIONALUNIQUE, LearningType.PREMERGE, LearningType.CONSTRAINTS};
+		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.PREMERGE, LearningType.CONSTRAINTS};
 		
 		// all UAV, all data 
 		Map<Integer,PTASequenceEngine> framesToTraces = null; 
@@ -1249,8 +1250,17 @@ public class ExperimentPaperUAS2
      			}
      		}
 
-		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment_allseeds ","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlot<String> BCR_vs_experiment_frames = new RBoxPlot<String>("experiment_allseeds ","BCR",new File(outPathPrefix+"BCR_vs_experiment_frames.pdf"));
+		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+		BCR_vs_experiment.setRelabelling(DrawGraphs.buildStringMapFromStringPairs(new String[][] {
+			new String[] {"all "+LearningType.CONVENTIONAL,"edsm"}, 
+			new String[] {"all "+LearningType.PREMERGE,"pre"}, 
+			new String[] {"all "+LearningType.CONSTRAINTS,"cons"}, 
+			new String[] {"seed "+LearningType.CONVENTIONAL,"s edsm"}, 
+			new String[] {"seed "+LearningType.PREMERGE,"s pre"}, 
+			new String[] {"seed "+LearningType.CONSTRAINTS,"s cons"}, 
+		}));
+		
+		final RBoxPlot<String> BCR_vs_experiment_frames = new RBoxPlot<String>("","BCR",new File(outPathPrefix+"BCR_vs_experiment_frames.pdf"));
 		//final Map<LearningType,RBoxPlot<String>> BCR_vs_experiment = new TreeMap<LearningType,RBoxPlot<String>>();		
 		//for(LearningType type:learningTypes)
 		//	BCR_vs_experiment.put(type,new RBoxPlot<String>("experiment_allseeds "+type,"BCR",new File(outPathPrefix+"BCR_vs_experiment_"+type+".pdf")));

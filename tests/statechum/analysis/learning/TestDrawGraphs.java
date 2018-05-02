@@ -1,5 +1,6 @@
 package statechum.analysis.learning;
 
+import static org.junit.Assert.assertTrue;
 import static statechum.Helper.checkForCorrectException;
 
 import java.io.BufferedReader;
@@ -10,6 +11,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,7 @@ import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import static statechum.analysis.learning.DrawGraphs.buildStringMapFromStringPairs;
 
 public class TestDrawGraphs {
 
@@ -1308,4 +1311,105 @@ public class TestDrawGraphs {
 
 		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
 	}
+
+
+	@Test
+	public final void testBuildStringMapFromPairs1()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+		})));
+	}
+	
+	@Test
+	public final void testBuildStringMapFromPairs2()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"a","value2"},
+				new String[]{"b","value3"}
+		})));
+	}
+	
+	@Test
+	public final void testBuildStringMapFromPairs3()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value2"},
+				new String[]{"a","value1"},
+				new String[]{"b","value3"}
+		})));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs4()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a"},// an invalid sequence
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs5()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{},// an invalid sequence - too few elements
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs6()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a","c","d"},// an invalid sequence - too many elements
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs7()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{null,"value"},// an invalid sequence - null in the first element
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs8()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a", null},// an invalid sequence - null in the second element
+				new String[]{"b",null}
+		})));
+	}
+
 }

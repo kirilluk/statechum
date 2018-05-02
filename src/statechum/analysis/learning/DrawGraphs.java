@@ -92,6 +92,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -330,7 +331,7 @@ public class DrawGraphs {
 				result.append(")");
 			}
 		}
-		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && otherAttrs.length() > 0) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
@@ -1307,6 +1308,26 @@ public class DrawGraphs {
 
 		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
  
+		/** Additional options for R. */
+		protected String otherOptions = "";
+		
+		/** Sets additional options for R. */
+		public void setOtherOptions(String str)
+		{
+			otherOptions = str;
+		}
+		
+		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<ELEM,String>();
+		
+		/** Permits labels to be altered - currently these labels are based on enums and intended for internal use. 
+		 * For graphs these labels need to be modified. 
+		 */
+		public void setRelabelling(Map<ELEM,String> alteration)
+		{
+			for(Entry<ELEM,String> entry:alteration.entrySet())
+				relabellingOfLabels.put(entry.getKey(), entry.getValue());
+		}
+		
 		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
 		 * column of data values.
 		 * @param el identifier for the column
@@ -1503,7 +1524,27 @@ public class DrawGraphs {
 		}
 		
 	}
+
+	/** Builds a map from an array, where each element corresponds to a pair of strings.
+	 * 
+	 * @param data source data
+	 * @return a string->string map
+	 */
+	public static Map<String,String> buildStringMapFromStringPairs(String [][] data)
+	{
+		Map<String,String> result = new HashMap<String,String>();
+		for(String[] str:data)
+		{
+			if (str.length != 2)
+				throw new IllegalArgumentException("more than two elements in sequence "+str);
+			if (str[0] == null || str[1] == null)
+				throw new IllegalArgumentException("invalid data in array");
+			result.put(str[0],str[1]);
+		}
+		return result;
+	}
 	
+
 	public static class RBoxPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
 		public RBoxPlot(String x, String y, File name) {
@@ -1521,14 +1562,18 @@ public class DrawGraphs {
 				String label = entry.getValue().label;
 				if (label == null)
 					label = entry.getKey().toString();
+				String relabelled = relabellingOfLabels.get(label);
+				//System.out.println("orig: "+label+" relabelled: "+relabelled);
+				if (relabelled != null)
+					label = relabelled;
 				names.add(label);
 				String colour = entry.getValue().colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
 			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
-					:null		
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+otherOptions
+					:otherOptions		
 					));
 		}
 
@@ -1539,6 +1584,7 @@ public class DrawGraphs {
 		}
 	}
 	
+	/** Almost the same as RBoxPlot but horizontal labels are rotated vertically. */
 	public static class RBoxPlotP<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
 		public RBoxPlotP(String x, String y, File name) {
@@ -1556,12 +1602,15 @@ public class DrawGraphs {
 				String label = entry.getValue().label;
 				if (label == null)
 					label = entry.getKey().toString();
+				String relabelled = relabellingOfLabels.get(label);
+				if (relabelled != null)
+					label = relabelled;
 				names.add(label);
 				String colour = entry.getValue().colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+otherOptions));
 		}
 
 		@Override

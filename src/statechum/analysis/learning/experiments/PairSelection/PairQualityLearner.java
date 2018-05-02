@@ -1657,6 +1657,12 @@ public class PairQualityLearner
 		public long inconsistency;
 		public double fanoutPos,fanoutNeg;
 		public int ptaStateNumber;
+		
+		/** How many nodes there was in the original PTA. */
+		public long ptaTotalNodes = 0;
+		/** How many tail nodes there was in the original PTA. */
+		public long ptaTailNodes = 0;
+
 		public long executionTime;
 		
 		@Override
@@ -1719,7 +1725,7 @@ public class PairQualityLearner
 		
 		/** How many comparisons have been performed as part of learning. */
 		public long comparisonsPerformed;
-		
+
 		public SampleData()
 		{
 			this(null,null);

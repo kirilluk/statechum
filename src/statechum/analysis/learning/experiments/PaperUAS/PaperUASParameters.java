@@ -58,13 +58,13 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		return (onlyUsePositives?"Pos":"posNeg")+"-"+(learningType == null?"_":learningType.name)+"-"+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
+		return (onlyUsePositives?"Pos":"posNeg")+"-"+ptaID+"-"+(learningType == null?"_":learningType.name)+"-"+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
 	}
 
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ (onlyUsePositives?"Pos":"posNeg"), (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
+		return new String[]{ (onlyUsePositives?"Pos":"posNeg"), ptaID, learningType == null?"":learningType.name, (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
 	}
 
 	@Override
@@ -75,7 +75,7 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		return new String[]{"BCR","Diff","States","Time"};
+		return new String[]{"BCR","Diff","States","PTA nodes","PTA tails","Time"};
 	}
 
 	@Override
@@ -87,6 +87,6 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public int executionTimeInCell() 
 	{
-		return 3;
+		return 5;
 	}
 }

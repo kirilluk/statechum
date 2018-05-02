@@ -223,6 +223,17 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return new Pair<Integer,Integer>(countAccept,countReject);
 	}
 
+	/** Returns the number of states that have no outgoing transitions. It is 
+	 * assumed that they are all reachable from the root state, otherwise they are not really leaf. */
+	public int getLeafStateNumber()
+	{
+		int count=0;
+		for(Map<Label,TARGET_TYPE> transition:transitionMatrix.values())
+			if (transition.isEmpty())
+				++count;
+		
+		return count;
+	}
 	
 	/** Identifies maximal values of currently used IDs and makes sure 
 	 * that generation of IDs will not return any of the existing ones.

@@ -189,10 +189,12 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
 			LearnerGraph pta = ptaSource.buildPTA();
+			ptaTotalNodes = pta.getStateNumber();ptaTailNodes = pta.getLeafStateNumber();
  			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM);
  			long startTime = LearningSupportRoutines.getThreadTime();
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
@@ -207,6 +209,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
 		outcome.executionTime = runTime;
 		return outcome;
 	}
@@ -215,6 +218,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -222,7 +226,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			long startTime = LearningSupportRoutines.getThreadTime();
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaToLearnFrom,uniqueLabel,false);
 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod, scoringForEDSM), smallPta, uniqueLabel);
-		
+			ptaTotalNodes = smallPta.getStateNumber();ptaTailNodes = smallPta.getLeafStateNumber();
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
@@ -235,6 +239,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		ScoresForGraph outcome = new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
 		outcome.executionTime = runTime;
 		return outcome;
 	}
@@ -255,6 +260,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		double fanoutPos=0, fanoutNeg = 0;
 		int ptaStateNumber=0;
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -278,7 +284,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			//LearnerGraph trimmedGraph = smallPta.transform.trimGraph(5, smallPta.getInit());
 			//trimmedGraph.setName(experimentName+"-part_of_premerge");
 			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
-			
+			ptaTotalNodes = smallPta.getStateNumber();ptaTailNodes = smallPta.getLeafStateNumber();
 			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod,scoringForEDSM);
 					//new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
 
@@ -297,6 +303,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
 		outcome.fanoutPos = fanoutPos;outcome.fanoutNeg = fanoutNeg;outcome.ptaStateNumber=ptaStateNumber;
+		outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
 		outcome.executionTime = runTime;
 		return outcome;
 	}
@@ -318,6 +325,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		int ptaStateNumber = 0;
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -326,6 +334,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			long startTime = LearningSupportRoutines.getThreadTime();
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueLabel);
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
+			ptaTotalNodes = reducedPTA.getStateNumber();ptaTailNodes = reducedPTA.getLeafStateNumber();
 			ReferenceLearner refLearner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, reducedPTA,scoringMethod, scoringForEDSM);
 			refLearner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
 			Learner learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
@@ -345,7 +354,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		ScoresForGraph outcome =  new ScoresForGraph();
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
-		outcome.ptaStateNumber=ptaStateNumber;
+		outcome.ptaStateNumber=ptaStateNumber;outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
 		outcome.executionTime = runTime;
 		return outcome;
 	}
@@ -354,6 +363,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	{// conventional learning, but check each merger against the unique-label merge
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
 		long runTime = 0;
 		if(actualAutomaton == null)
 		{
@@ -361,7 +371,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			long startTime = LearningSupportRoutines.getThreadTime();
  			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaToLearnFrom,scoringMethod, scoringForEDSM);
  			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
-
+ 			ptaTotalNodes = ptaToLearnFrom.getStateNumber();ptaTailNodes = ptaToLearnFrom.getLeafStateNumber();
 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
@@ -375,6 +385,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		ScoresForGraph outcome =  new ScoresForGraph(); 
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
 		outcome.executionTime = runTime;
 		return outcome;
 	}

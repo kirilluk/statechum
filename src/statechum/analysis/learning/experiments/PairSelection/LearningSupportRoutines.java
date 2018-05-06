@@ -585,7 +585,7 @@ public class LearningSupportRoutines
  	 * @param whatToPad
  	 * @param ch character to pad with
  	 * @param length the length to pad to
- 	 * @return
+ 	 * @return padded string
  	 */
  	public static String padString(String whatToPad, char ch, int length)
  	{

@@ -58,13 +58,13 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		return (onlyUsePositives?"Pos":"posNeg")+"-"+ptaID+"-"+(learningType == null?"_":learningType.name)+"-"+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
+		return (onlyUsePositives?"Pos":"posNeg")+"-"+(learningType == null?"_":learningType.name)+"-"+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name; 
 	}
 
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ (onlyUsePositives?"Pos":"posNeg"), ptaID, learningType == null?"":learningType.name, (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
+		return new String[]{ (onlyUsePositives?"Pos":"posNeg"), learningType == null?"":learningType.name, (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name}; 
 	}
 
 	@Override

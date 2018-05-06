@@ -825,6 +825,7 @@ public class SGE_ExperimentRunner
 			if (cpuString.equals(LearningSupportRoutines.removeSpaces(elems[0])))
 				return LearningSupportRoutines.removeSpaces(elems[1]);
 		}
+		System.err.println("WARNING: no correction for CPU string "+cpuStringArg);
 		return null;
 	}
 	static final String cpuName = "model name";

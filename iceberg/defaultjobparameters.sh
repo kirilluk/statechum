@@ -1,0 +1,1 @@
+DEFAULTJOBPARAMETERS="-l rmem=16g -l h_rt=16:00:00"

@@ -3,6 +3,8 @@ EXPERIMENTNAME=matrixevaluation
 WHATTORUN=w-run${EXPERIMENTNAME}.sh
 EMAIL=acp95keb@sheffield.ac.uk
 
+source defaultjobparameters.sh
+
 [ -r data ] || mkdir data
 rm -f tmp/${EXPERIMENTNAME}-OUT.txt tmp/${EXPERIMENTNAME}-ERR.txt
  /data/acp95keb/local/soft/apache-ant-1.9.4/bin/ant compileStatechum
@@ -15,6 +17,6 @@ if [ -z ${TASKNUMBER+x} ];then
 fi
 
 # thanks to http://collaborate.bu.edu/linga/SGE/JobArray
-JID=`qsub -terse -cwd -o tmp/${EXPERIMENTNAME}-OUT.txt -e tmp/${EXPERIMENTNAME}-ERR.txt -t 1-$TASKNUMBER ${WHATTORUN} | sed -r "s/\.(.*)//"`
-qsub -cwd -terse -cwd -o tmp/${EXPERIMENTNAME}-OUT.txt -e tmp/${EXPERIMENTNAME}-ERR.txt -hold_jid $JID -m e  -M ${EMAIL} ${WHATTORUN}
+JID=`qsub -terse -cwd -o tmp/${EXPERIMENTNAME}-OUT.txt -e tmp/${EXPERIMENTNAME}-ERR.txt ${DEFAULTJOBPARAMETERS} -t 1-$TASKNUMBER ${WHATTORUN} | sed -r "s/\.(.*)//"`
+qsub -cwd -terse -cwd -o tmp/${EXPERIMENTNAME}-OUT.txt -e tmp/${EXPERIMENTNAME}-ERR.txt ${DEFAULTJOBPARAMETERS} -hold_jid $JID -m e  -M ${EMAIL} ${WHATTORUN}
 

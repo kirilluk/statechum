@@ -272,7 +272,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
 		try
 		{
-			for(int states:new int[]{20}) // 5,10,20,40})
+			for(int states:new int[]{5,10,20,40})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)

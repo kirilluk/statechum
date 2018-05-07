@@ -1,5 +1,4 @@
 #!/bin/sh
-#$ -l mem=16G -l rmem=13g -l 'arch=intel*'
 
 EXPERIMENT=statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge
 

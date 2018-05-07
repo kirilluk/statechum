@@ -1,5 +1,5 @@
 #!/bin/sh
-#$ -l mem=20G -l rmem=14g -l 'arch=intel*'
+#$ -l rmem=14g -l h_rt=2:00:00
 
 EXPERIMENT=statechum.analysis.learning.experiments.EvaluationOfLearners.BenchmarkCPU
 

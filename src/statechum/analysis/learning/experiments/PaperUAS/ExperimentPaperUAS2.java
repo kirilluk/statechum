@@ -1200,6 +1200,26 @@ public class ExperimentPaperUAS2
 					//printLastFrame("All",framesToTraces.keySet());
 					listOfExperiments.add(experiment);
 	 			}
+
+			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring())
+ 				for(LearningType type:learningTypes)
+	 			{
+    				PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
+					parameters.setParameters(posneg, true, "All", parametersAU,0);
+					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
+	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
+					listOfExperiments.add(experiment);
+	 			}
+			/*
+			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfTraditionalKTailsMethods())
+ 				for(LearningType type:learningTypes)
+	 			{
+    				PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
+					parameters.setParameters(false, true, "All", parametersAU,0);
+					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
+	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
+					listOfExperiments.add(experiment);
+	 			}*/
 		}    	
 		
 		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
@@ -1229,6 +1249,7 @@ public class ExperimentPaperUAS2
     	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
     					listOfExperiments.add(experiment);
     	 			}
+
      			for(int fraction:rangeOfValues)
      			{
      				graphName = sprintf("%suas-%s-AU-%02d",outPathPrefix,seedPadded,fraction);
@@ -1280,7 +1301,7 @@ public class ExperimentPaperUAS2
 		}
 
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		/*
+
 		BCR_vs_experiment.setRelabelling(DrawGraphs.buildStringMapFromStringPairs(new String[][] {
 			new String[] {"all "+LearningType.CONVENTIONAL,"edsm"}, 
 			new String[] {"all "+LearningType.PREMERGE,"pre"}, 
@@ -1288,7 +1309,7 @@ public class ExperimentPaperUAS2
 			new String[] {"seed "+LearningType.CONVENTIONAL,"s edsm"}, 
 			new String[] {"seed "+LearningType.PREMERGE,"s pre"}, 
 			new String[] {"seed "+LearningType.CONSTRAINTS,"s cons"}, 
-		}));*/
+		}));
 		
 		//final RBoxPlot<String> BCR_vs_experiment_frames = new RBoxPlot<String>("","BCR",new File(outPathPrefix+"BCR_vs_experiment_frames.pdf"));
 		//final Map<LearningType,RBoxPlot<String>> BCR_vs_experiment = new TreeMap<LearningType,RBoxPlot<String>>();		

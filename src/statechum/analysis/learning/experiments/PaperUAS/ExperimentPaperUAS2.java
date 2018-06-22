@@ -1160,7 +1160,7 @@ public class ExperimentPaperUAS2
     	// positive only or pos-neg (no point, except for ktails where we learn from positives only)
     	// EDSM/check constraints but merge EDSM-way/premerge on the transition of interest.
     	
-		int []rangeOfValues = new int[]{8,4,2,1};
+		int []rangeOfValues = new int[]{8,6,4,3,2,1};
 		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_NOFULLMERGE;
 		
 		boolean mergePTA = false;

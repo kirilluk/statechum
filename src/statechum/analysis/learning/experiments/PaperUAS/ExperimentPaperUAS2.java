@@ -79,7 +79,6 @@ import statechum.GlobalConfiguration;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
-import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -1190,7 +1189,7 @@ public class ExperimentPaperUAS2
 				initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
 				initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
 			}
-			
+			paper.learnerInitConfiguration.config.setOverride_maximalNumberOfStates(50);// maximal number of states is set to 50
  			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
  				for(LearningType type:learningTypes)
 	 			{
@@ -1221,6 +1220,7 @@ public class ExperimentPaperUAS2
 					listOfExperiments.add(experiment);
 	 			}*/
 		}    	
+		paper.learnerInitConfiguration.config.setOverride_maximalNumberOfStates(-1);// maximal number of states is set to default
 		
 		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
 		// Separately, we need to show that as the frame number grows, we get better model 

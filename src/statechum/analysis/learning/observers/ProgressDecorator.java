@@ -196,10 +196,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			graph = gr;testSet = tests;config = cnf.copy();ifthenSequences = ltl;labelDetails=lblDetails;
 		}
 
-		/** A copy-constructor that does not clone its arguments. */
+		/** A copy-constructor that does not clone its arguments, except for the configuration. */
 		public LearnerEvaluationConfiguration(LearnerEvaluationConfiguration from)
 		{
-			graph = from.graph;testSet = from.testSet;config = from.config;ifthenSequences = from.ifthenSequences; labelDetails = from.labelDetails;labelConverter = from.labelConverter;
+			graph = from.graph;testSet = from.testSet;config = from.config.copy();ifthenSequences = from.ifthenSequences; labelDetails = from.labelDetails;labelConverter = from.labelConverter;
 		}
 		
 		/* (non-Javadoc)

@@ -128,7 +128,8 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring()
 	{
 		return Arrays.asList(new ScoringToApply[]{
-				ScoringToApply.SCORING_PTAK_1,ScoringToApply.SCORING_PTAK_2,ScoringToApply.SCORING_PTAK_3,ScoringToApply.SCORING_PTAK_4
+				ScoringToApply.SCORING_PTAK_1,ScoringToApply.SCORING_PTAK_2,ScoringToApply.SCORING_PTAK_3,ScoringToApply.SCORING_PTAK_4,
+				ScoringToApply.SCORING_PTAK_ALL_1,ScoringToApply.SCORING_PTAK_ALL_2,ScoringToApply.SCORING_PTAK_ALL_3,ScoringToApply.SCORING_PTAK_ALL_4
 				});
 	}
 

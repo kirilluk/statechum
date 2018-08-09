@@ -99,6 +99,7 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed.Automaton;
@@ -994,6 +995,12 @@ public class ExperimentPaperUAS2
 		System.out.printf("last frame of %s is %d\n",name,v);
 	}
 	
+	public static void printLastFrameForPercentage(String name,Map<Integer,PTASequenceEngine> frameToTraces,long value)
+	{
+		int v = constructFractionOfFrameNumberThatIsAvailable(frameToTraces.keySet(),value);
+		System.out.printf("last frame of %s is %d\n",name,v);
+	}
+
 	public static void augmentPTAWithTracesForFrameRange(LearnerGraph pta,Map<Integer,PTASequenceEngine> frameToTraces,long value)
 	{
 		int v=constructFractionOfFrameNumberThatIsAvailable(frameToTraces.keySet(),value);
@@ -1183,13 +1190,13 @@ public class ExperimentPaperUAS2
     	// positive only or pos-neg (no point, except for ktails where we learn from positives only)
     	// EDSM/check constraints but merge EDSM-way/premerge on the transition of interest.
     	
-		int []rangeOfValues = new int[]{8,6,4,3,2,1};
+		int []rangeOfValues = new int[]{16,8,6,4,3,2,1};
 		Configuration.ScoreMode scoringForEDSM = Configuration.ScoreMode.GENERAL_NOFULLMERGE;
 		
 		boolean mergePTA = false;
 		Configuration.STATETREE matrix = Configuration.STATETREE.STATETREE_ARRAY;
 		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.PREMERGE, LearningType.CONSTRAINTS};
-		
+		LearningType[] learningTypesReduced = new LearningType[]{LearningType.PREMERGE, LearningType.CONSTRAINTS};
 		// all UAV, all data 
 		Map<Integer,PTASequenceEngine> framesToTraces = null; 
 		// compute the maximal depth for filtering.
@@ -1247,6 +1254,42 @@ public class ExperimentPaperUAS2
 		}    	
 		paper.learnerInitConfiguration.config.setOverride_maximalNumberOfStates(-1);// maximal number of states is set to default
 		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
+		for(String seed:paper.collectionOfTraces.keySet())
+     		if (seed != UAVAllSeeds)
+     		{
+     			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
+     			String graphName = sprintf("%suas-%s-AU",outPathPrefix,seedPadded);
+     			framesToTraces = paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll);
+/*
+    			LearnerGraph initialPTAForThisSeed = new LearnerGraph(paper.learnerInitConfiguration.config);
+    			initialPTAForThisSeed.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
+    			int depthForSeed = -1;
+    			for(CmpVertex vert:initialPTAForThisSeed.transitionMatrix.keySet())
+    				depthForSeed = Math.max(depthForSeed, vert.getDepth());
+    			System.out.println("Max depth for seed "+seed+" is "+depthForSeed);
+    			*/
+     			
+     			LearnerGraph referenceToUse = referenceGraph;
+
+ 				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+     			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+     	    	paper.learnerInitConfiguration.testSet = testSetFull;
+     			
+     			if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
+     			{
+     				initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
+     			}
+     			for(LearningAlgorithms.ScoringToApply scoringMethod:new LearningAlgorithms.ScoringToApply[] {ScoringToApply.SCORING_EDSM})
+     				for(LearningType type:learningTypesReduced)
+    	 			{
+    					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
+    					parameters.setParameters(false, true, seed, "N"+parametersAU,0);
+    					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceToUse,graphName,paper.learnerInitConfiguration);
+    	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
+    					listOfExperiments.add(experiment);
+    	 			}
+     		}
+		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
 		// Separately, we need to show that as the frame number grows, we get better model 
 		// by looking at all UAVs at once. This result should not really depend on seed (aka luck). 
 		for(String seed:paper.collectionOfTraces.keySet())
@@ -1285,8 +1328,8 @@ public class ExperimentPaperUAS2
      			{
      				initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
      			}
-     			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
-     				for(LearningType type:learningTypes)
+     			for(LearningAlgorithms.ScoringToApply scoringMethod:new LearningAlgorithms.ScoringToApply[] {ScoringToApply.SCORING_EDSM})
+     				for(LearningType type:learningTypesReduced)
     	 			{
     					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
     					parameters.setParameters(false, true, seed, parametersAU,0);
@@ -1300,14 +1343,14 @@ public class ExperimentPaperUAS2
      				graphName = sprintf("%suas-%s-AU-%02d",outPathPrefix,seedPadded,fraction);
          			if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
          			{
-         				//LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-	         			LearnerGraph trimmed = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+         				LearnerGraph pta = new LearnerGraph(paper.learnerInitConfiguration.config);
+	         			augmentPTAWithTracesForFrameRange(pta,framesToTraces,paper.maxFrameNumber/fraction);
+	         			//LearnerGraph trimmed = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
 	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-	         			trimmed.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
+	         			pta.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
          			}
-         			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
-         				for(LearningType type:learningTypes)
+         			for(LearningAlgorithms.ScoringToApply scoringMethod:new LearningAlgorithms.ScoringToApply[] {ScoringToApply.SCORING_EDSM})
+         				for(LearningType type:learningTypesReduced)
         	 			{
            					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
         					parameters.setParameters(false, true, seed, parametersAUFrame+fraction,100/fraction);
@@ -1324,18 +1367,19 @@ public class ExperimentPaperUAS2
 			String graphName = sprintf("%suas-%02d",outPathPrefix,fraction);
  			//if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
  			{
- 				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-     			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-     			LearnerGraph trimmed = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+ 				LearnerGraph pta = new LearnerGraph(paper.learnerInitConfiguration.config);
+     			augmentPTAWithTracesForFrameRange(pta,framesToTraces,paper.maxFrameNumber/fraction);
+     			printLastFrameForPercentage("PTA",framesToTraces,paper.maxFrameNumber/fraction);
+     			//LearnerGraph trimmed = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
      			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
      			int curDepth=-1;
-    			for(CmpVertex vert:trimmed.transitionMatrix.keySet())		
+    			for(CmpVertex vert:pta.transitionMatrix.keySet())		
     				curDepth = Math.max(curDepth, vert.getDepth());
     			System.out.println("maximal depth for fraction: "+fraction+ " is "+curDepth);
-    			trimmed.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
+    			pta.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
  			}
- 			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
- 				for(LearningType type:learningTypes)
+ 			for(LearningAlgorithms.ScoringToApply scoringMethod:new LearningAlgorithms.ScoringToApply[] {ScoringToApply.SCORING_EDSM})
+ 				for(LearningType type:learningTypesReduced)
 	 			{
    					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
 					parameters.setParameters(false, true, "NONE", parametersAUFrame+fraction,100/fraction);
@@ -1370,10 +1414,15 @@ public class ExperimentPaperUAS2
 		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
 		seeds_pre_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-diff.pdf"));
-		seeds_con_All_diff.addExtraCommand("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-diff.pdf"));
-		seeds_pre_All_diff.addExtraCommand("ylim = c(0.7, 1.0)");
 
+		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-bcr.pdf"));
+		seeds_con_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		final RGraph<String> seedsN_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-bcr.pdf"));
+		seeds_pre_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-diff.pdf"));
+		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-diff.pdf"));
+		
 		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
 		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
 		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-diff.pdf"));
@@ -1386,6 +1435,7 @@ public class ExperimentPaperUAS2
 		final CSVExperimentResult allCSV = new CSVExperimentResult(new File(outPathPrefix+"all-method.csv"));
 		final CSVExperimentResult framesCSV = new CSVExperimentResult(new File(outPathPrefix+"frames-method.csv"));
 		final CSVExperimentResult seedsCSV = new CSVExperimentResult(new File(outPathPrefix+"seeds-method.csv"));
+		final CSVExperimentResult seedsNCSV = new CSVExperimentResult(new File(outPathPrefix+"seedsN-method.csv"));
 		final CSVExperimentResult aufSeedsCSV = new CSVExperimentResult(new File(outPathPrefix+"seeds-percentage.csv"));
 		final CSVExperimentResult aufCSV = new CSVExperimentResult(new File(outPathPrefix+"all-percentage.csv"));
 		
@@ -1446,11 +1496,32 @@ public class ExperimentPaperUAS2
 							seedsCSV.add(id, text);
 						}
 						else
+						if (id.getRowID().startsWith("NAU-"))
+						{
+							if (descr != null && id.getColumnText()[3].equals("E0"))
+							{
+								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(3), ' ', 2);
+								if (descr.equals("pre"))
+								{
+									seedsN_pre_All_bcr.add(rowIDPadded, bcr);
+									seedsN_pre_All_diff.add(rowIDPadded, diff);
+								}
+								else
+									if (descr.equals("con"))
+									{
+										seedsN_con_All_bcr.add(rowIDPadded, bcr);
+										seedsN_con_All_diff.add(rowIDPadded, diff);
+									}
+							}
+								
+							seedsNCSV.add(id, text);
+						}
+						else
 						if (id.getRowID().startsWith(parametersAUFrame) && !id.getRowID().endsWith("NONE"))
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String percentage = Double.toString(100/Integer.parseInt(id.getRowID().substring(3,4)));
+								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,4))),' ',3);
 								if (descr.equals("pre"))
 								{
 									aufSeeds_pre_bcr.add(percentage, bcr);
@@ -1471,7 +1542,7 @@ public class ExperimentPaperUAS2
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String percentage = Double.toString(100/Integer.parseInt(id.getRowID().substring(3,4)));
+								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,4))),' ',3);
 								if (descr.equals("pre"))
 								{
 									auf_pre_bcr.add(percentage, bcr);
@@ -1593,11 +1664,13 @@ public class ExperimentPaperUAS2
 	    	for(UASCaseStudy e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
     		experimentRunner.collectOutcomeOfExperiments(resultHandler);
-    		for(SGEExperimentResult res:new SGEExperimentResult[] {allCSV,framesCSV,seedsCSV,resultCSV,aufSeedsCSV,aufCSV})
+    		for(SGEExperimentResult res:new SGEExperimentResult[] {allCSV,framesCSV,seedsCSV,seedsNCSV,resultCSV,aufSeedsCSV,aufCSV})
     			if (res != null)
     				res.reportResults(gr);
     		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,
-    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_con_diff,auf_pre_diff})
+    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_con_diff,auf_pre_diff,
+    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff		
+    			})
     			if (res != null)
     				res.reportResults(gr);
 		}

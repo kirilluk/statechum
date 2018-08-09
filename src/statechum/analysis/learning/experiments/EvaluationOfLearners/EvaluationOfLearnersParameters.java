@@ -31,6 +31,11 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 		{
 			name = n;
 		}
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 	public final LearningType learningType;
 	public boolean onlyUsePositives = false;

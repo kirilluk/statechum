@@ -45,7 +45,8 @@ package statechum.analysis.learning.experiments.PaperUAS;
 // -ea -DVIZ_CONFIG=kirill_tests -DVIZ_DIR=resources/graphLayout -Dthreadnum=24 -Djava.library.path=linear/.libs:smt/.libs:/usr/lib/R/site-library/rJava/jri -DERLANGHOME=/usr/local/soft/otp_src_R16B02 -Xmx85000m -DLTL2BA=lib/ltl2ba-1.1/ltl2ba -DPATH_EXPERIMENTRESULTS="/home/kirill/office/office/research_experiments" -DPATH_UASPAPER="/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces"
 // On Win64,
 // -ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;"C:/Program Files/R/R-3.4.1/library/rJava/jri/x64" -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME="C:\Program Files\erl7.0" -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS="C:\\experiment\\research_experiments" -DPATH_UASPAPER="C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces"
-
+// (note: the link to R package could also be C:\Users\Kirill\Documents\R\win-library\3.4\rJava\jri\x64 
+// Important: without a R_HOME variable, R pops a dialog box on Windows which is easy to miss and consumes 100% CPU for no reason while the box is active)
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -80,6 +81,8 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
+import statechum.analysis.learning.DrawGraphs.RExperimentResult;
+import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
@@ -97,6 +100,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -307,7 +311,7 @@ public class ExperimentPaperUAS2
 	              	dataForSeed.maxFrameNumber.put(UAV, frameNumber);
 	             	UAVs.add(UAV);frameNumbers.add(frameNumber);
 	             	if (frameNumber > maxFrameNumber) maxFrameNumber = frameNumber;
-	             	
+	             	System.out.println("Seed: "+seed+" UAV: "+UAV+" max frame number : "+frameNumber);
 	            	QSMTool.parseSequenceOfTraces(traceToLoad,learnerInitConfiguration.config, new TraceAdder() {
 	
 	    				@Override
@@ -378,7 +382,7 @@ public class ExperimentPaperUAS2
     	{
     		TracesForSeed dataForSeedTmp = new TracesForSeed();data.put(UAVAllSeeds,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace=new TreeMap<String,List<Label>>();
     	}
-         
+        
         scanData(inputData, new HandleOneTrace() {
 			
 			@Override
@@ -395,7 +399,6 @@ public class ExperimentPaperUAS2
                  		dataForSeedTmp = new TracesForSeed();data.put(seed,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace=new TreeMap<String,List<Label>>();
                  	}
             	}
-            	
              	final TracesForSeed dataForSeed = dataForSeedTmp;
              	synchronized(dataForSeed)
              	{// synchronized permits running a different input file in a separate thread, speeding-up the loading process
@@ -490,6 +493,16 @@ public class ExperimentPaperUAS2
 	        		AddLastPositiveTrace(seed, UAV, data);
 
       	constructSequencesForAllUAVandFrame(data, frameNumbers);
+    	for(Entry<String,TracesForSeed> traceEntry:data.entrySet())
+    	{
+    		System.out.println("Seed : "+traceEntry.getKey());
+			for(Entry<String,Integer> uavToMaxFrame:traceEntry.getValue().maxFrameNumber.entrySet())
+			{
+				System.out.println("UAV: "+uavToMaxFrame.getKey()+" maxFrame: "+uavToMaxFrame.getValue());
+				Set<List<Label>> traces=traceEntry.getValue().collectionOfPositiveTraces.get(uavToMaxFrame.getKey()).get(maxFrameNumber);
+				System.out.println("positive traces for this UAV: "+traces.size());
+			}
+    	}
    }
 
     protected void constructSequencesForAllUAVandFrame(Map<String,TracesForSeed> data,final Set<Integer> frameNumbers)
@@ -1122,6 +1135,16 @@ public class ExperimentPaperUAS2
  			return outcome;
  		}		
  	}
+ 	
+ 	/** Removes all transitions with the specified label from the graph. */
+ 	public static LearnerGraph removeLabel(LearnerGraph gr,Label lbl)
+ 	{
+ 		LearnerGraph outcome = new LearnerGraph(gr,gr.config);
+ 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:gr.transitionMatrix.entrySet())
+ 				outcome.transitionMatrix.get(entry.getKey()).remove(lbl);
+ 		
+ 		return outcome;
+ 	}
  	 	
  	// Arguments: same as SGE, meaning that the location of the data files is hardcoded for the time being. 
  	public static void main(String args[]) throws Exception
@@ -1140,8 +1163,9 @@ public class ExperimentPaperUAS2
      	ExperimentPaperUAS2 paper = loadTraces(argsForLoading,true);
     	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
-    	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
-
+		LearnerGraph referenceWithoutDeprecatesWaypoint = removeLabel(referenceGraph, AbstractLearnerGraph.generateNewLabel("Data_Deprecates_Waypoint", referenceGraph.config, paper.learnerInitConfiguration.getLabelConverter()));
+    	Collection<List<Label>> testSetFull = LearningAlgorithms.buildEvaluationSet(referenceGraph), testSetNoDeprecatesWaypoint = LearningAlgorithms.buildEvaluationSet(referenceWithoutDeprecatesWaypoint);
+    	paper.learnerInitConfiguration.testSet = testSetFull;
     	//Visualiser.updateFrame(referenceGraph, null);Visualiser.waitForKey();
  		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
@@ -1173,8 +1197,9 @@ public class ExperimentPaperUAS2
 		{// load the data
 			framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds); 
 			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+			System.out.println("max frame number is "+paper.maxFrameNumber);
 			initialPTA.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
-			for(CmpVertex vert:initialPTA.transitionMatrix.keySet())		
+			for(CmpVertex vert:initialPTA.transitionMatrix.keySet())
 				depth = Math.max(depth, vert.getDepth());
 			System.out.println("maximal depth: "+depth);
 		}
@@ -1221,7 +1246,6 @@ public class ExperimentPaperUAS2
 	 			}*/
 		}    	
 		paper.learnerInitConfiguration.config.setOverride_maximalNumberOfStates(-1);// maximal number of states is set to default
-		
 		// For each seed, all UAVs. Here we need to show that we can learn well for all seeds.
 		// Separately, we need to show that as the frame number grows, we get better model 
 		// by looking at all UAVs at once. This result should not really depend on seed (aka luck). 
@@ -1231,13 +1255,34 @@ public class ExperimentPaperUAS2
      			String seedPadded = LearningSupportRoutines.padString(seed, '_', 2);
      			String graphName = sprintf("%suas-%s-AU",outPathPrefix,seedPadded);
      			framesToTraces = paper.collectionOfTraces.get(seed).tracesForUAVandFrame.get(UAVAll);
+/*
+    			LearnerGraph initialPTAForThisSeed = new LearnerGraph(paper.learnerInitConfiguration.config);
+    			initialPTAForThisSeed.paths.augmentPTA(framesToTraces.get(paper.maxFrameNumber));
+    			int depthForSeed = -1;
+    			for(CmpVertex vert:initialPTAForThisSeed.transitionMatrix.keySet())
+    				depthForSeed = Math.max(depthForSeed, vert.getDepth());
+    			System.out.println("Max depth for seed "+seed+" is "+depthForSeed);
+    			*/
+     			
+     			LearnerGraph referenceToUse = referenceGraph;
+
+ 				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+     			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+     	    	paper.learnerInitConfiguration.testSet = testSetFull;
+
+     			for (Label l:initialPTA.pathroutines.computeAlphabet())
+     				if (l.toString().equals("Data_Deprecates_Waypoint"))
+     				{
+     					System.out.println("Data_Deprecates_Waypoint is in seed "+seed);
+     				}
+     				else
+     				{
+     					referenceToUse = referenceWithoutDeprecatesWaypoint;
+     					paper.learnerInitConfiguration.testSet = testSetNoDeprecatesWaypoint;
+     				}
+     			
      			if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
      			{
-     				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-     				augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
-     				for (Label l:initialPTA.pathroutines.computeAlphabet())
-     					if (l.toString().equals("Data_Deprecates_Waypoint"))
-     						System.out.println("Data_Deprecates_Waypoint is in seed "+seed);
      				initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
      			}
      			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
@@ -1245,7 +1290,7 @@ public class ExperimentPaperUAS2
     	 			{
     					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
     					parameters.setParameters(false, true, seed, parametersAU,0);
-    					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
+    					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceToUse,graphName,paper.learnerInitConfiguration);
     	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
     					listOfExperiments.add(experiment);
     	 			}
@@ -1255,8 +1300,8 @@ public class ExperimentPaperUAS2
      				graphName = sprintf("%suas-%s-AU-%02d",outPathPrefix,seedPadded,fraction);
          			if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
          			{
-         				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+         				//LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
+	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
 	         			LearnerGraph trimmed = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
 	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
 	         			trimmed.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
@@ -1266,18 +1311,18 @@ public class ExperimentPaperUAS2
         	 			{
            					PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
         					parameters.setParameters(false, true, seed, parametersAUFrame+fraction,100/fraction);
-        					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
+        					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceToUse,graphName,paper.learnerInitConfiguration);
         	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
         					listOfExperiments.add(experiment);
         	 			}
      			}
      		}
 		
-		framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds); 
+		framesToTraces = paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds);
 		for(int fraction:rangeOfValues)
 		{
 			String graphName = sprintf("%suas-%02d",outPathPrefix,fraction);
- 			if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
+ 			//if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
  			{
  				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
      			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
@@ -1317,9 +1362,133 @@ public class ExperimentPaperUAS2
 		//	BCR_vs_experiment.put(type,new RBoxPlot<String>("experiment_allseeds "+type,"BCR",new File(outPathPrefix+"BCR_vs_experiment_"+type+".pdf")));
 		
 		//final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+		
+		final RGraph<String> all_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-bcr.pdf"));
+		final RGraph<String> all_method_diff = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-diff.pdf"));
+		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-bcr.pdf"));
+		seeds_con_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
+		seeds_pre_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-diff.pdf"));
+		seeds_con_All_diff.addExtraCommand("ylim = c(0.7, 1.0)");
+		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-diff.pdf"));
+		seeds_pre_All_diff.addExtraCommand("ylim = c(0.7, 1.0)");
 
-		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
+		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
+		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-diff.pdf"));
+		final RGraph<String> aufSeeds_pre_diff = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-diff.pdf"));
+		final RGraph<String> auf_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_con-bcr.pdf"));
+		final RGraph<String> auf_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_pre-bcr.pdf"));
+		final RGraph<String> auf_con_diff = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_con-diff.pdf"));
+		final RGraph<String> auf_pre_diff = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_pre-diff.pdf"));
+		
+		final CSVExperimentResult allCSV = new CSVExperimentResult(new File(outPathPrefix+"all-method.csv"));
+		final CSVExperimentResult framesCSV = new CSVExperimentResult(new File(outPathPrefix+"frames-method.csv"));
+		final CSVExperimentResult seedsCSV = new CSVExperimentResult(new File(outPathPrefix+"seeds-method.csv"));
+		final CSVExperimentResult aufSeedsCSV = new CSVExperimentResult(new File(outPathPrefix+"seeds-percentage.csv"));
+		final CSVExperimentResult aufCSV = new CSVExperimentResult(new File(outPathPrefix+"all-percentage.csv"));
+		
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"))				
+				{
+					@Override
+					/** Adds text to the spreadsheet. */
+					public void add(ThreadResultID id, String text)
+					{
+						super.add(id, text);
+						
+						String descr = null;
+						
+						if (id.getColumnText()[1].equals(LearningType.CONVENTIONAL.toString()))
+							descr = "edsm";
+						else
+							if (id.getColumnText()[1].equals(LearningType.PREMERGE.toString()))
+								descr = "pre";
+							else
+								if (id.getColumnText()[1].equals(LearningType.CONSTRAINTS.toString()))
+									descr = "con";
 
+						String [] data = text.split(",", -2);
+						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]), nrOfStates = Double.parseDouble(data[2]);
+						int ptaTotalNodes = Integer.parseInt(data[3]),ptaTailNodes = Integer.parseInt(data[4]);
+
+						if (id.getRowID().startsWith("All"))
+						{
+							
+							if (bcr > 0.55)
+							{
+								all_method_bcr.add(id.getColumnText()[1], bcr);
+								all_method_diff.add(id.getColumnText()[1], diff);
+							}			
+										//id.getColumnText()[0]+":"+id.getColumnText()[1]+":"+id.getColumnText()[3], bcr);
+							
+							allCSV.add(id, text);
+						}
+						else
+						if (id.getRowID().startsWith("AU-") && !id.getRowID().equals("AU-All"))
+						{
+							if (descr != null && id.getColumnText()[3].equals("E0"))
+							{
+								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(3), ' ', 2);
+								if (descr.equals("pre"))
+								{
+									seeds_pre_All_bcr.add(rowIDPadded, bcr);
+									seeds_pre_All_diff.add(rowIDPadded, diff);
+								}
+								else
+									if (descr.equals("con"))
+									{
+										seeds_con_All_bcr.add(rowIDPadded, bcr);
+										seeds_con_All_diff.add(rowIDPadded, diff);
+									}
+							}
+								
+							seedsCSV.add(id, text);
+						}
+						else
+						if (id.getRowID().startsWith(parametersAUFrame) && !id.getRowID().endsWith("NONE"))
+						{
+							if (descr != null && id.getColumnText()[3].equals("E0"))
+							{
+								String percentage = Double.toString(100/Integer.parseInt(id.getRowID().substring(3,4)));
+								if (descr.equals("pre"))
+								{
+									aufSeeds_pre_bcr.add(percentage, bcr);
+									aufSeeds_pre_diff.add(percentage, diff);
+								}
+								else
+									if (descr.equals("con"))
+									{
+										aufSeeds_con_bcr.add(percentage, bcr);
+										aufSeeds_con_diff.add(percentage, diff);
+									}
+							}
+								
+							aufSeedsCSV.add(id, text);
+						}
+						else
+						if (id.getRowID().startsWith(parametersAUFrame) && id.getRowID().endsWith("NONE"))
+						{
+							if (descr != null && id.getColumnText()[3].equals("E0"))
+							{
+								String percentage = Double.toString(100/Integer.parseInt(id.getRowID().substring(3,4)));
+								if (descr.equals("pre"))
+								{
+									auf_pre_bcr.add(percentage, bcr);
+									auf_pre_diff.add(percentage, diff);
+								}
+								else
+									if (descr.equals("con"))
+									{
+										auf_con_bcr.add(percentage, bcr);
+										auf_con_diff.add(percentage, diff);
+									}
+							}
+								
+							aufCSV.add(id, text);
+						}
+					}
+				};
     	processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>> resultHandler = new processSubExperimentResult<PaperUASParameters,ExperimentResult<PaperUASParameters>>() {
 			@Override
 			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
@@ -1413,6 +1582,8 @@ public class ExperimentPaperUAS2
  	     	}
 */
     	System.out.println("completed constructing the source graphs "+new Date());
+		DrawGraphs gr = new DrawGraphs();
+
 		if (paper != null)
 			paper.shutdown();
     	paper = null;// throw the original traces away
@@ -1422,13 +1593,19 @@ public class ExperimentPaperUAS2
 	    	for(UASCaseStudy e:listOfExperiments)
 	    		experimentRunner.submitTask(e);
     		experimentRunner.collectOutcomeOfExperiments(resultHandler);
+    		for(SGEExperimentResult res:new SGEExperimentResult[] {allCSV,framesCSV,seedsCSV,resultCSV,aufSeedsCSV,aufCSV})
+    			if (res != null)
+    				res.reportResults(gr);
+    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,
+    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_con_diff,auf_pre_diff})
+    			if (res != null)
+    				res.reportResults(gr);
 		}
 		finally
 		{
 			experimentRunner.successfulTermination();
 			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		}
-		
     	/*
 		//initialPTA.paths.augmentPTA(paper.collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(paper.maxFrameNumber));
 		System.out.printf("positive leaf nodes: %d, transitions: %d\n",computeLeafCount(initialPTA)-(initialPTA.getStateNumber()-initialPTA.getAcceptStateNumber()),computeTransitionCount(initialPTA));

@@ -1376,7 +1376,12 @@ public class ExperimentPaperUAS2
     			for(CmpVertex vert:pta.transitionMatrix.keySet())		
     				curDepth = Math.max(curDepth, vert.getDepth());
     			System.out.println("maximal depth for fraction: "+fraction+ " is "+curDepth);
-    			pta.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
+     			for (Label l:pta.pathroutines.computeAlphabet())
+     				if (l.toString().equals("Data_Deprecates_Waypoint"))
+     				{
+     					System.out.println("Data_Deprecates_Waypoint is in this block");
+     				}
+     			pta.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
  			}
  			for(LearningAlgorithms.ScoringToApply scoringMethod:new LearningAlgorithms.ScoringToApply[] {ScoringToApply.SCORING_EDSM})
  				for(LearningType type:learningTypesReduced)
@@ -1410,18 +1415,22 @@ public class ExperimentPaperUAS2
 		final RGraph<String> all_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-bcr.pdf"));
 		final RGraph<String> all_method_diff = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-diff.pdf"));
 		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-bcr.pdf"));
-		seeds_con_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		seeds_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
-		seeds_pre_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		seeds_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-diff.pdf"));
+		seeds_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-diff.pdf"));
+		seeds_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 
 		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-bcr.pdf"));
-		seeds_con_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		seedsN_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seedsN_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-bcr.pdf"));
-		seeds_pre_All_bcr.addExtraCommand("ylim = c(0.7, 1.0)");
+		seedsN_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-diff.pdf"));
+		seedsN_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-diff.pdf"));
+		seedsN_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		
 		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
 		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
@@ -1479,7 +1488,7 @@ public class ExperimentPaperUAS2
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(3), ' ', 2);
+								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(id.getRowID().indexOf('-')+1), ' ', 2);
 								if (descr.equals("pre"))
 								{
 									seeds_pre_All_bcr.add(rowIDPadded, bcr);
@@ -1500,7 +1509,7 @@ public class ExperimentPaperUAS2
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(3), ' ', 2);
+								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(id.getRowID().indexOf('-')+1), ' ', 2);
 								if (descr.equals("pre"))
 								{
 									seedsN_pre_All_bcr.add(rowIDPadded, bcr);
@@ -1521,7 +1530,8 @@ public class ExperimentPaperUAS2
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,4))),' ',3);
+								String frameAsText = id.getRowID().substring(3,id.getRowID().indexOf('-'));
+								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(frameAsText)),' ',3);
 								if (descr.equals("pre"))
 								{
 									aufSeeds_pre_bcr.add(percentage, bcr);
@@ -1542,7 +1552,7 @@ public class ExperimentPaperUAS2
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
-								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,4))),' ',3);
+								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,id.getRowID().indexOf('-')))),' ',3);
 								if (descr.equals("pre"))
 								{
 									auf_pre_bcr.add(percentage, bcr);

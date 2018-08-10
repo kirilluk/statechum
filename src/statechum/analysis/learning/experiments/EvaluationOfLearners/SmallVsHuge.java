@@ -50,6 +50,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -242,19 +243,21 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 100;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{5,10,20,40};
+		final int stateNumberList[] = new int[]{5,10};//,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
-		final RBoxPlotP<String> plotsBCR[]=new RBoxPlotP[stateNumberList.length],plotsDiff[]=new RBoxPlotP[stateNumberList.length];
-		final CSVExperimentResult tableCSV[] = new CSVExperimentResult[stateNumberList.length];
+		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
 		for(int q=0;q<stateNumberList.length;++q)
-		{
-			plotsBCR[q]=new RBoxPlotP<String>("","BCR",new File(outPathPrefix+stateNumberList[q]+"-BCR.pdf"));
-			plotsDiff[q]=new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+stateNumberList[q]+"-DIFF.pdf"));
-			tableCSV[q]=new CSVExperimentResult(new File(outPathPrefix+stateNumberList[q]+"-table.csv"));
-		}
+			for(String descr:new String[] {"E","P","C"})
+			{
+				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
+				plotsBCR.put(fullDescr,new RBoxPlotP<String>("","BCR",new File(outPathPrefix+fullDescr+"-BCR.pdf")));
+				plotsDiff.put(fullDescr,new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+fullDescr+"-DIFF.pdf")));
+				tableCSV.put(fullDescr,new CSVExperimentResult(new File(outPathPrefix+fullDescr+"-table.csv")));
+			}
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"))
 				{
 					@Override
@@ -280,7 +283,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						
 						String [] data = text.split(",", -2);
 						
-						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]), nrOfStates = Double.parseDouble(data[2]);
+						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);//, nrOfStates = Double.parseDouble(data[2]);
 		
 						String rowDetails[]=id.getRowID().split("-",-2);
 						int stateNumber = Integer.parseInt(rowDetails[0]);
@@ -290,10 +293,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							{
 								position = q;break;
 							}
-						String label = descr+":"+scoring+":"+AB;
-						plotsBCR[position].add(label, bcr);
-						plotsDiff[position].add(label, diff);
-						tableCSV[position].add(id, text);
+						String label = scoring+":"+AB;
+						String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[position],descr);
+						plotsBCR.get(fullDescr).add(label, bcr);
+						plotsDiff.get(fullDescr).add(label, diff);
+						tableCSV.get(fullDescr).add(id, text);
 					}
 				};
 		resultCSV.setMissingValue(unknownValue);
@@ -330,7 +334,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
 						for(int traceQuantity:new int[]{1})
-							for(int traceLengthMultiplier:new int[]{1,8,16})
+							for(int traceLengthMultiplier:new int[]{1,4,16})
 								if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -377,9 +381,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
 	    	{// post-process the results if needed.
 	    		for(int q=0;q<stateNumberList.length;++q)
-	    		{
-	    			plotsBCR[q].reportResults(gr);plotsDiff[q].reportResults(gr);tableCSV[q].reportResults(gr);
-	    		}
+	    			for(String descr:new String[] {"E","P","C"})
+	    			{
+	    				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
+	    				plotsBCR.get(fullDescr).reportResults(gr);plotsDiff.get(fullDescr).reportResults(gr);tableCSV.get(fullDescr).reportResults(gr);
+	    			}
 	    	}
 		}
 		finally

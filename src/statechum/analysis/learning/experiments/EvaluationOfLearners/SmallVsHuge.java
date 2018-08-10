@@ -49,6 +49,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningSupportRout
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
@@ -59,6 +60,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
 {
@@ -79,7 +81,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
@@ -113,7 +115,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			// This is done below if onlyUsePositives is not set. 
 
 		pta.clearColours();
-		
+		/*
 		if (!par.onlyUsePositives)
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
 			assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
@@ -123,7 +125,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			{
 				Set<Label> value = new TreeSet<Label>();
 				if (!entry.getValue().isEmpty()) 
-				{// we add a single entry per label, to mimic what was done with UAS study, where labels could not be repeated.
+				{// we add two entries per label, to mimic what was done with UAS study, where labels could not be repeated.
 					Label possibleLabels[]=entry.getValue().toArray(new Label[]{});
 					if (possibleLabels.length == 1)
 						value.add(possibleLabels[0]);
@@ -144,7 +146,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		}
 		else 
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-		
+		*/
 		
 		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
@@ -240,11 +242,60 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 100;
 		final int attemptsPerFSM = 2;
+		final int stateNumberList[] = new int[]{5,10,20,40};
+		
+		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
-		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
-
-		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
+		final RBoxPlotP<String> plotsBCR[]=new RBoxPlotP[stateNumberList.length],plotsDiff[]=new RBoxPlotP[stateNumberList.length];
+		final CSVExperimentResult tableCSV[] = new CSVExperimentResult[stateNumberList.length];
+		for(int q=0;q<stateNumberList.length;++q)
+		{
+			plotsBCR[q]=new RBoxPlotP<String>("","BCR",new File(outPathPrefix+stateNumberList[q]+"-BCR.pdf"));
+			plotsDiff[q]=new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+stateNumberList[q]+"-DIFF.pdf"));
+			tableCSV[q]=new CSVExperimentResult(new File(outPathPrefix+stateNumberList[q]+"-table.csv"));
+		}
+		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"))
+				{
+					@Override
+					/** Adds text to the spreadsheet. */
+					public void add(ThreadResultID id, String text)
+					{
+						super.add(id, text);
+						
+						String descr = null;
+						
+						if (id.getColumnText()[0].equals(LearningType.CONVENTIONAL.toString()))
+							descr = "E";
+						else
+							if (id.getColumnText()[0].equals(LearningType.PREMERGE.toString()))
+								descr = "P";
+							else
+								if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
+									descr = "C";
+						String scoring = id.getColumnText()[2];
+						if (scoring.equals(ScoringToApply.SCORING_SICCO.toString()))
+							scoring = "SV";
+						String AB = LearningSupportRoutines.padString(id.getColumnText()[6],'0',2);//+"-"+id.getColumnText()[6];
+						
+						String [] data = text.split(",", -2);
+						
+						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]), nrOfStates = Double.parseDouble(data[2]);
+		
+						String rowDetails[]=id.getRowID().split("-",-2);
+						int stateNumber = Integer.parseInt(rowDetails[0]);
+						int position=-1;
+						for(int q=0;q<stateNumberList.length;++q)
+							if (stateNumberList[q] == stateNumber)
+							{
+								position = q;break;
+							}
+						String label = descr+":"+scoring+":"+AB;
+						plotsBCR[position].add(label, bcr);
+						plotsDiff[position].add(label, diff);
+						tableCSV[position].add(id, text);
+					}
+				};
 		resultCSV.setMissingValue(unknownValue);
 		
     	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
@@ -272,21 +323,21 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
 		try
 		{
-			for(int states:new int[]{5,10,20,40})
+			for(int states:stateNumberList)
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{1,8})
-							for(int traceLengthMultiplier:new int[]{1,8})
+						for(int traceQuantity:new int[]{1})
+							for(int traceLengthMultiplier:new int[]{1,8,16})
 								if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
 										{
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_2),
+													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_2),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
@@ -316,7 +367,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{
 			Helper.throwUnchecked("failed to compute", ex);
 		}
-		
+		DrawGraphs gr = new DrawGraphs();
 		try
 		{
 	    	for(SmallVsHuge e:listOfExperiments)
@@ -324,7 +375,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	experimentRunner.collectOutcomeOfExperiments(resultHandler);
 	    	
 	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
-	    	{// process the results if needed.
+	    	{// post-process the results if needed.
+	    		for(int q=0;q<stateNumberList.length;++q)
+	    		{
+	    			plotsBCR[q].reportResults(gr);plotsDiff[q].reportResults(gr);tableCSV[q].reportResults(gr);
+	    		}
 	    	}
 		}
 		finally

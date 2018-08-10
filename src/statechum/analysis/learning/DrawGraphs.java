@@ -1571,9 +1571,8 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+otherOptions
-					:otherOptions		
+			return Collections.singletonList( (otherOptions.length()>0?otherOptions+",":"")+boxPlotToString(data, names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":""
 					));
 		}
 
@@ -1610,7 +1609,7 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+otherOptions));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+(otherOptions.length()>0?","+otherOptions:"")));
 		}
 
 		@Override

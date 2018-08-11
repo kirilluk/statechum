@@ -90,7 +90,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		boolean pickUniqueFromInitial = par.pickUniqueFromInitial;
 		do
 		{
-			referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+			referenceGraph = mg.nextMachine(alphabet, -1.0,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			if (pickUniqueFromInitial)
 			{
 				Map<Label,CmpVertex> uniques = LearningSupportRoutines.uniqueFromState(referenceGraph);

@@ -22,7 +22,7 @@ public class ConstructRandomFSM
 	public LearnerGraph referenceGraph = null;
 	public Label uniqueFromInitial = null;
 	
-	public void generateFSM(Random rnd, int alphabet, int states, int seed, boolean pickUniqueFromInitial, final LearnerEvaluationConfiguration learnerInitConfiguration)
+	public void generateFSM(Random rnd, int alphabet, int states, double perStateMultiplier, int seed, boolean pickUniqueFromInitial, final LearnerEvaluationConfiguration learnerInitConfiguration)
 	{
 		
 		MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
@@ -30,7 +30,7 @@ public class ConstructRandomFSM
 		do
 		{
 			try {
-				referenceGraph = mg.nextMachine(alphabet,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+				referenceGraph = mg.nextMachine(alphabet,perStateMultiplier,seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to build FSM", e);
 			}

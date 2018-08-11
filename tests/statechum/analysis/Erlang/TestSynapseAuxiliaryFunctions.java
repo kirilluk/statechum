@@ -64,7 +64,7 @@ public class TestSynapseAuxiliaryFunctions {
 		{
 			final int alphabet = 2*states;
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			LearnerGraph graph = mg.nextMachine(alphabet,-states, config, converter).pathroutines.buildDeterministicGraph();
+			LearnerGraph graph = mg.nextMachine(alphabet, -1.0,-states, config, converter).pathroutines.buildDeterministicGraph();
 						
 			LearnerGraph parsedOutcome = new LearnerGraph(config);
 			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter,true);
@@ -91,7 +91,7 @@ public class TestSynapseAuxiliaryFunctions {
 		{
 			final int alphabet = 2*states;
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			LearnerGraphND graph = mg.nextMachine(alphabet,-states, config, converter);
+			LearnerGraphND graph = mg.nextMachine(alphabet, -1.0,-states, config, converter);
 			
 			LearnerGraphND parsedOutcome = new LearnerGraphND(config);
 			StatechumProcess.parseStatemachine(StatechumProcess.constructFSM(graph), parsedOutcome, converter,true);

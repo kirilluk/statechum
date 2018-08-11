@@ -59,9 +59,8 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		final int tracesAlphabet = par.tracesAlphabetMultiplier*par.states;
 		ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
 		
-		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(rnd, tracesAlphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), tracesAlphabet, par.states, -1,par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		
 		final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);

@@ -109,7 +109,7 @@ public class MarkovExperiment
 			
 			try {
 				// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				referenceGraph = mg.nextMachine(alphabet,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
+				referenceGraph = mg.nextMachine(alphabet, -1.0,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate graph", e);
 			}

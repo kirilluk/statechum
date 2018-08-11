@@ -960,7 +960,7 @@ public class TestStateMerging
 		{
 			final int states = 50;
 			MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-			LearnerGraph referenceGraph = mg.nextMachine(states/2,fsmNumber, config,getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, in the mergers below we can still attempt to merge arbitrary subsets of states.
+			LearnerGraph referenceGraph = mg.nextMachine(states/2, -1.0,fsmNumber, config,getLabelConverter()).pathroutines.buildDeterministicGraph();// reference graph has no reject-states, in the mergers below we can still attempt to merge arbitrary subsets of states.
 			scoring.init(referenceGraph);
 			for(CmpVertex a:referenceGraph.transitionMatrix.keySet())
 				for(CmpVertex b:referenceGraph.transitionMatrix.keySet())

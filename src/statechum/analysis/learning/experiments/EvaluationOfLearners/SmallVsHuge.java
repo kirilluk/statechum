@@ -24,9 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -37,7 +35,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
-import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -57,7 +54,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubEx
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -80,9 +76,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	{
 		final int alphabet = par.states*2;
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
-		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
@@ -116,6 +111,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			// This is done below if onlyUsePositives is not set. 
 
 		pta.clearColours();
+		
+		//System.out.println("Transitions per state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
 		/*
 		if (!par.onlyUsePositives)
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
@@ -243,7 +240,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 100;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{5,10};//,20,40};
+		final int stateNumberList[] = new int[]{20};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));

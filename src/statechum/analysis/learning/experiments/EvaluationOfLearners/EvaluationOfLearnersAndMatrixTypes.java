@@ -79,7 +79,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(rnd, alphabet, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, -1,par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);

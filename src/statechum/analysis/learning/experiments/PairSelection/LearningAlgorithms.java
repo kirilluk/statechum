@@ -384,12 +384,6 @@ public class LearningAlgorithms
 		{
 			name = nameText;
 		}
-		
-		@Override
-		public String toString()
-		{
-			return name;
-		}
 	}
 
 	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 

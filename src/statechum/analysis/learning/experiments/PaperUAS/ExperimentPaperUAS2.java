@@ -1178,6 +1178,8 @@ public class ExperimentPaperUAS2
  		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
+		System.out.println("transitions from each state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
+		
     	// Experiments:
     	// all UAV, all data (to show that even having all data does not help)
     	// for each seed, all UAVs (all frames), 
@@ -1416,6 +1418,8 @@ public class ExperimentPaperUAS2
 		
 		final RGraph<String> all_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-bcr.pdf"));
 		final RGraph<String> all_method_diff = new RBoxPlotP<String>("method","DIFF",new File(outPathPrefix+"all-method-diff.pdf"));
+		final RGraph<String> all_posNeg_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-posneg-method-bcr.pdf"));
+		final RGraph<String> all_pos_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-pos-method-bcr.pdf"));
 		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-bcr.pdf"));
 		seeds_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
@@ -1461,29 +1465,54 @@ public class ExperimentPaperUAS2
 						String descr = null;
 						
 						if (id.getColumnText()[1].equals(LearningType.CONVENTIONAL.toString()))
-							descr = "edsm";
+							descr = "E";
 						else
 							if (id.getColumnText()[1].equals(LearningType.PREMERGE.toString()))
-								descr = "pre";
+								descr = "P";
 							else
 								if (id.getColumnText()[1].equals(LearningType.CONSTRAINTS.toString()))
-									descr = "con";
+									descr = "C";
 
+						String scoring = id.getColumnText()[3];
+						if (scoring.startsWith("KTPTA"))
+							scoring.replaceAll("KTPTA", "KA");
+						else
+							if (scoring.startsWith("KTPTL"))
+								scoring.replaceAll("KTPTL", "KL");
+							else
+								if (scoring.equalsIgnoreCase(ScoringToApply.SCORING_SICCO.toString()))
+									scoring = "SV";
+						
 						String [] data = text.split(",", -2);
-						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]), nrOfStates = Double.parseDouble(data[2]);
-						int ptaTotalNodes = Integer.parseInt(data[3]),ptaTailNodes = Integer.parseInt(data[4]);
+						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);
+						//double nrOfStates = Double.parseDouble(data[2]);
+						//int ptaTotalNodes = Integer.parseInt(data[3]),ptaTailNodes = Integer.parseInt(data[4]);
 
 						if (id.getRowID().startsWith("All"))
 						{
-							
 							if (bcr > 0.55)
 							{
 								all_method_bcr.add(id.getColumnText()[1], bcr);
 								all_method_diff.add(id.getColumnText()[1], diff);
 							}			
-										//id.getColumnText()[0]+":"+id.getColumnText()[1]+":"+id.getColumnText()[3], bcr);
+							
+							
+							if (id.getColumnText()[0].equalsIgnoreCase("posNeg"))
+								all_posNeg_method_bcr.add(descr+":"+scoring, bcr);
+							else
+								all_pos_method_bcr.add(descr+":"+scoring, bcr);
 							
 							allCSV.add(id, text);
+						}
+						else
+						if (id.getRowID().equals("AU-All"))
+						{
+							/*
+							if (id.getColumnText()[0].equalsIgnoreCase("posNeg"))
+								all_posNeg_method_bcr.add(descr+":"+scoring, bcr);
+							else
+								all_pos_method_bcr.add(descr+":"+scoring, bcr);
+								*/
 						}
 						else
 						if (id.getRowID().startsWith("AU-") && !id.getRowID().equals("AU-All"))
@@ -1491,19 +1520,19 @@ public class ExperimentPaperUAS2
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
 								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(id.getRowID().indexOf('-')+1), ' ', 2);
-								if (descr.equals("pre"))
+								if (descr.equals("P"))
 								{
 									seeds_pre_All_bcr.add(rowIDPadded, bcr);
 									seeds_pre_All_diff.add(rowIDPadded, diff);
 								}
 								else
-									if (descr.equals("con"))
+									if (descr.equals("C"))
 									{
 										seeds_con_All_bcr.add(rowIDPadded, bcr);
 										seeds_con_All_diff.add(rowIDPadded, diff);
 									}
 							}
-								
+							
 							seedsCSV.add(id, text);
 						}
 						else
@@ -1512,13 +1541,13 @@ public class ExperimentPaperUAS2
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
 								String rowIDPadded = LearningSupportRoutines.padString(id.getRowID().substring(id.getRowID().indexOf('-')+1), ' ', 2);
-								if (descr.equals("pre"))
+								if (descr.equals("P"))
 								{
 									seedsN_pre_All_bcr.add(rowIDPadded, bcr);
 									seedsN_pre_All_diff.add(rowIDPadded, diff);
 								}
 								else
-									if (descr.equals("con"))
+									if (descr.equals("C"))
 									{
 										seedsN_con_All_bcr.add(rowIDPadded, bcr);
 										seedsN_con_All_diff.add(rowIDPadded, diff);
@@ -1534,13 +1563,13 @@ public class ExperimentPaperUAS2
 							{
 								String frameAsText = id.getRowID().substring(3,id.getRowID().indexOf('-'));
 								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(frameAsText)),' ',3);
-								if (descr.equals("pre"))
+								if (descr.equals("P"))
 								{
 									aufSeeds_pre_bcr.add(percentage, bcr);
 									aufSeeds_pre_diff.add(percentage, diff);
 								}
 								else
-									if (descr.equals("con"))
+									if (descr.equals("C"))
 									{
 										aufSeeds_con_bcr.add(percentage, bcr);
 										aufSeeds_con_diff.add(percentage, diff);
@@ -1555,13 +1584,13 @@ public class ExperimentPaperUAS2
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
 								String percentage = LearningSupportRoutines.padString(Integer.toString(100/Integer.parseInt(id.getRowID().substring(3,id.getRowID().indexOf('-')))),' ',3);
-								if (descr.equals("pre"))
+								if (descr.equals("P"))
 								{
 									auf_pre_bcr.add(percentage, bcr);
 									auf_pre_diff.add(percentage, diff);
 								}
 								else
-									if (descr.equals("con"))
+									if (descr.equals("C"))
 									{
 										auf_con_bcr.add(percentage, bcr);
 										auf_con_diff.add(percentage, diff);
@@ -1683,6 +1712,7 @@ public class ExperimentPaperUAS2
 	    			if (res != null)
 	    				res.reportResults(gr);
 	    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,
+	    				all_pos_method_bcr,all_posNeg_method_bcr,
 	    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_con_diff,auf_pre_diff,
 	    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff		
 	    			})

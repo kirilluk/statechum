@@ -1005,7 +1005,10 @@ public class ExperimentPaperUAS
 				sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM, uniqueLabel);
 				break;
 			case PREMERGE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,false,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				break;
+			case PREMERGEUNIQUE:
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,true,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case CONSTRAINTS:
 				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);

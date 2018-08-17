@@ -18,6 +18,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -249,13 +250,14 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	 * turns a PTA into a graph with loops and the proceeds to learn using generalised merger routines.
 	 * 
 	 * @param ptaSource where to get automaton from
+	 * @param useLearnerUnique whether to use a learner taking a unique transition from an initial state into account or not.
 	 * @param scoringMethod how to compute scores
 	 * @param uniqueLabel label identifying a transition from an initial state
 	 * @return scores comparing the graph against the reference one.
 	 * @throws AugmentFromIfThenAutomatonException
 	 * @throws IOException
 	 */
-	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
+	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, ThreadResultID experimentID, boolean useLearnerUnique, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
@@ -285,9 +287,14 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			//LearnerGraph trimmedGraph = smallPta.transform.trimGraph(5, smallPta.getInit());
 			//trimmedGraph.setName(experimentName+"-part_of_premerge");
 			//Visualiser.updateFrame(trimmedGraph,referenceGraph);
+			
 			ptaTotalNodes = smallPta.getStateNumber();ptaTailNodes = smallPta.getLeafStateNumber();
-			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod,scoringForEDSM);
-					//new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, smallPta,scoringMethod),smallPta,uniqueLabel);
+			Learner innerlearner = LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod,scoringForEDSM);
+			Learner learner = null;
+			if (useLearnerUnique)
+				learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(innerlearner,smallPta,uniqueLabel);
+			else
+				learner = innerlearner;
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
@@ -296,7 +303,8 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
  			actualAutomaton.setName(experimentName+"-actual");
  			saveGraph(nameOUTCOME,actualAutomaton);
 		}		
-		
+		//Visualiser.updateFrame(referenceGraph, actualAutomaton);
+		//Visualiser.waitForKey();
 		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
 		actualAutomaton.setName(experimentName);

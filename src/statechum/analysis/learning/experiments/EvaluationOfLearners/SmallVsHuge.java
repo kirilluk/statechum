@@ -21,10 +21,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -34,6 +37,7 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -55,8 +59,8 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 
 public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>
@@ -74,29 +78,70 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	@Override
 	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
 	{
-		final int alphabet = par.states*2;
+		final double density = par.states*0.2;
+		final int alphabet = (int)(par.states*density);
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, par.states, par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, density, par.seed, true, learnerInitConfiguration);// par.pickUniqueFromInitial
 		referenceGraph = fsmConstruction.referenceGraph;
+		final Random rndFSM = new Random(par.attempt*23+par.seed);
 		assert fsmConstruction.uniqueFromInitial != null : "unique transition has to be available";
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-		//generator.setWalksShouldLeadToInitialState();
-		final int tracesToGenerate = LearningSupportRoutines.makeEven(par.states*par.traceQuantity);
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
+		
+		// In the generation of traces, we generate par.traceQuantity traces, each consisting of par.lengthmult traces concatenated together.
+		final int tracesToGenerate = par.states*par.traceQuantity*par.lengthmult;
+		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
+		generator.setWalksShouldLeadToInitialState();
+		generator.setAppendUniqueToPath(fsmConstruction.uniqueFromInitial);
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
 				@Override
 				public int getLength() {
-					return  par.lengthmult*par.states;
+					int p = rndFSM.nextInt(100);
+					if (p < 70)
+						return (int)(par.states*(0.1+rndFSM.nextDouble()*0.9));
+					else if (p < 90)
+						return (int)(par.states*(1+rndFSM.nextDouble()));
+					else
+						return (int)(par.states*(2+rndFSM.nextDouble()*20));
 				}
 
 				@Override
 				public int getPrefixLength(int len) {
 					return len;
 				}
-			},true,true,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));// this is important: it ensures that traces always start with the supplied label to mimic data from the UAS traces.
+			},true,false,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));// this is important: it ensures that traces always start with the supplied label to mimic data from the UAS traces.
+		//assert pta.getStateNumber() == pta.getAcceptStateNumber();// we only expect positives since attemptNegatives argument to generateRandomPosNeg is false.
 
+		
+		if (par.learningType != LearningType.PREMERGE)
+		{
+			// Now stitch all the sequences together.
+			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
+			generator = null;
+			
+			for(int seq=0;seq<par.states*par.traceQuantity;++seq)
+			{
+				List<Label> sequence = new ArrayList<Label>(par.lengthmult*par.states*3);
+				for(int elem=0;elem<par.lengthmult;++elem)
+					if (traceIter.hasNext())
+					{
+						List<Label> newSequence = traceIter.next();
+						sequence.addAll(newSequence.subList(0, newSequence.size()-1));
+					}
+				if (!sequence.isEmpty())
+				{
+					//System.out.println("sequence len: "+sequence.size()+" expected max: "+(par.lengthmult*par.states*3));
+					sequence.add(fsmConstruction.uniqueFromInitial);
+					pta.paths.augmentPTA(sequence, true, false, null);
+				}
+			}
+		}
+		else
+		{// do PREMERGE even before we are asked for it.
+			pta.paths.augmentPTA(generator.getAllSequences(0));
+		}
+/*
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (par.onlyUsePositives)
 			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
@@ -105,18 +150,13 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
 				}
 			}));
-		else
-			pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
-			// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-			// This is done below if onlyUsePositives is not set. 
-
+*/
 		pta.clearColours();
-		
+		Random rnd = new Random(par.seed*31+par.states+par.attempt);
 		//System.out.println("Transitions per state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
-		/*
+
 		if (!par.onlyUsePositives)
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
-			assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
 			Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
 			Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
 			for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
@@ -129,7 +169,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						value.add(possibleLabels[0]);
 					else
 					{
-						for(int cnt=0;cnt < 2;++cnt)
+						for(int cnt=0;cnt < density;++cnt) // in the uas case study, it is one negative at the end of each sequence plus one per element of alphabet.
 							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
 					}
 				}
@@ -144,7 +184,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		}
 		else 
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
-		*/
+
 		
 		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
@@ -182,7 +222,10 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PREMERGE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,false,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			break;
+		case PREMERGEUNIQUE:
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,true,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PTAPREMERGE:
 			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
@@ -238,7 +281,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		eval.config.setTimeOut(3600000L*8L);// timeout for tasks, in milliseconds, equivalent to 8hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		
-		final int samplesPerFSMSize = 100;
+		final int samplesPerFSMSize = 4;
 		final int attemptsPerFSM = 2;
 		final int stateNumberList[] = new int[]{20};
 		
@@ -330,9 +373,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{1})
-							for(int traceLengthMultiplier:new int[]{1,4,16})
-								if (traceQuantity*traceLengthMultiplier <= 64)
+						for(int traceQuantity:new int[]{5})
+							for(int traceLengthMultiplier:new int[]{32})
+								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
 										{
@@ -346,7 +389,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE}) //LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

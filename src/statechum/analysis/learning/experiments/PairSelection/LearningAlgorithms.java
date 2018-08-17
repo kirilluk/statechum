@@ -138,7 +138,7 @@ public class LearningAlgorithms
 			{
 				long countOfRed = 0;
 				for(CmpVertex v:graph.transitionMatrix.keySet())
-					if (v.getColour() == JUConstants.RED)
+					if (v.isAccept() && v.getColour() == JUConstants.RED)
 						if (countOfRed++ > maxNumberOfReds)
 							throw new LearnerAbortedException(false);
 			}
@@ -685,14 +685,14 @@ public class LearningAlgorithms
 			Set<CmpVertex> visited = new HashSet<CmpVertex>();
 			Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();
 			
-			CmpVertex newInitialState = null;
+			CmpVertex stateWithUniqueTransition = null;
 			if (argInitialPTA.transitionMatrix.get(argInitialPTA.getInit()).containsKey(uniqueFromInitial))
-				newInitialState = argInitialPTA.getInit();
+				stateWithUniqueTransition = argInitialPTA.getInit();
 			else
 			{
 				frontLine.add(argInitialPTA.getInit());visited.add(argInitialPTA.getInit());
 			}
-			while(!frontLine.isEmpty() && newInitialState == null)
+			while(!frontLine.isEmpty() && stateWithUniqueTransition == null)
 			{
 				for(CmpVertex vert:frontLine)
 					for(CmpVertex next:argInitialPTA.transitionMatrix.get(vert).values())
@@ -700,7 +700,7 @@ public class LearningAlgorithms
 						{
 							if (argInitialPTA.transitionMatrix.get(vert).containsKey(uniqueFromInitial))
 							{
-								newInitialState = vert;break;
+								stateWithUniqueTransition = vert;break;
 							}
 							else
 							{
@@ -711,11 +711,11 @@ public class LearningAlgorithms
 				frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
 			}
 
-			if (newInitialState == null)
+			if (stateWithUniqueTransition == null)
 				throw new IllegalArgumentException(
 						"supplied PTA does not have a state reachable from an initial state with "+uniqueFromInitial+
 						" label that should be present unless the walk from which PTA was built is extremely incomplete");
-			initPTA = recolouredInitialPTA(argInitialPTA,newInitialState);
+			initPTA = recolouredInitialPTA(argInitialPTA,argInitialPTA.transitionMatrix.get(stateWithUniqueTransition).get(uniqueFromInitial));// re-colour using the state entered by the unique transition as the initial state.
 			learner = learnerToUse;learner.init(initPTA);
 		}
 
@@ -742,7 +742,7 @@ public class LearningAlgorithms
 				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
 
 				if (outcome.getInit().getColour() == null)
-				{// since the initial state only has one transition to the state reached by the uniqueFromInitial, it will not receive a colour and hence will not participate in state merging.
+				{// If the initial graph is a PTA, the initial state only has one transition to the state reached by the uniqueFromInitial, it will not hence receive a colour and hence will not participate in state merging.
 					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(outcome,initPTA);// will only return null if the learner failed (and returned an single-state reject graph)
 					if (newInit != null)
 						outcome.setInit(newInit);

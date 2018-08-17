@@ -60,22 +60,18 @@ public class ConstructRandomFSM
 							if (entry.getValue().size() < alphabet)
 								possibleVertices.add(entry.getKey());
 						assert(!possibleVertices.isEmpty());
-						CmpVertex newInit = possibleVertices.get(rnd.nextInt(possibleVertices.size()));
-						referenceGraph.setInit(newInit);uniqueFromInitial = uniqueLabel;
-						int targetIdx = rnd.nextInt(referenceGraph.getStateNumber()-1);
-						CmpVertex target = null;
-						for(CmpVertex v:referenceGraph.transitionMatrix.keySet())
-							if (v != newInit)
-							{// target should not be the same as the source
-								if (targetIdx-- <= 0)
-								{
-									target = v;
-									break;
-								}
-							}
+						uniqueFromInitial = uniqueLabel;
+						List<CmpVertex> possibleTargetsList = new ArrayList<CmpVertex>(alphabet);
+						for(CmpVertex v:referenceGraph.transitionMatrix.entrySet().iterator().next().getValue().values())
+							if (v != referenceGraph.getInit())
+								possibleTargetsList.add(v);
+						CmpVertex possibleTargets[]=possibleTargetsList.toArray(new CmpVertex[] {});
+						assert possibleTargets.length > 0;
+						CmpVertex target = possibleTargets[rnd.nextInt(possibleTargets.length)];
+						
 						// Adding a new unique transition from the initial state does not affect reachability of vertices or the connectivity.
 						// In addition, given that all states were distinguishable the uniqueness of the label does not make any of them equivalent.  
-						referenceGraph.addTransition(referenceGraph.transitionMatrix.get(newInit), uniqueLabel,target);
+						referenceGraph.addTransition(referenceGraph.transitionMatrix.get(referenceGraph.getInit()), uniqueLabel,target);
 					}
 				}
 			}

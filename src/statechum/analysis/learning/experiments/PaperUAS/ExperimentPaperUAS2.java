@@ -366,6 +366,8 @@ public class ExperimentPaperUAS2
    /** Number to be assigned to the next generated label. */
    int labelNumber=0;
    
+   Map<Integer,AtomicInteger> statisticsOfLength = null;//new LinkedHashMap<Integer,AtomicInteger>(); 
+   
     /** Loads traces from the file into the pair of positive/negative maps,
      * parameterised by UAV and timeframe. The process is to assume a specific starting point and concatenate the following 
      * negative traces with it, until we meet a positive trace. After concatenation of that positive trace, we have a revised starting point.
@@ -412,7 +414,6 @@ public class ExperimentPaperUAS2
 	            	if (!dataForSeed.maxFrameNumber.containsKey(UAV))
 	             	{// add an entry for this UAV to both maxFrameNumber and lastPointOnTrace
 	             		dataForSeed.maxFrameNumber.put(UAV,-1);dataForSeed.lastPointOnTrace.put(UAV, new ArrayList<Label>());
-	             		
 	             	}
 	            	
 	            	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
@@ -420,7 +421,7 @@ public class ExperimentPaperUAS2
 	            		throw new IllegalArgumentException("current frame number "+frameNumber+" is invalid");
 	                if (frameNumber < 0 || frameNumber < dataForSeed.maxFrameNumber.get(UAV))
 	            		throw new IllegalArgumentException("current frame number "+frameNumber+", previous one "+dataForSeed.maxFrameNumber.get(UAV));
-	
+
 	            	final List<Label> lastPositiveTrace = dataForSeed.lastPointOnTrace.get(UAV);
 	            	if (frameNumber > dataForSeed.maxFrameNumber.get(UAV) && dataForSeed.maxFrameNumber.get(UAV) >=0)
 	            	// new frame started, dump the last positive sequence
@@ -449,7 +450,17 @@ public class ExperimentPaperUAS2
 	    						if (!lastPositiveTrace.isEmpty() && !lastPositiveTrace.get(0).equals(lastElement))
 	    							throw new IllegalArgumentException("the first element of the last positive trace ("+lastPositiveTrace.get(0)+") is not the same as the starting element of the current trace "+trace);
 	    						
-	    						if (lastPositiveTrace.isEmpty())
+	    						if (statisticsOfLength != null)
+		    		                synchronized (statisticsOfLength) {
+		    		                	AtomicInteger a = statisticsOfLength.get(trace.size()-1);
+		    		                	if (a == null)
+		    		                	{
+		    		                		a=new AtomicInteger(0);statisticsOfLength.put(trace.size()-1,a);
+		    		                	}
+		    		                	a.incrementAndGet();
+		    						}
+	    		                
+	    		                if (lastPositiveTrace.isEmpty())
 	    							lastPositiveTrace.addAll(trace);
 	    						else
 	    							lastPositiveTrace.addAll(trace.subList(1, traceLen));// we do not append it to a collection of traces here because it will be done when we hit a new frame
@@ -486,6 +497,8 @@ public class ExperimentPaperUAS2
 			}
 		});
 		
+        //for(Entry<Integer,AtomicInteger> entry:statisticsOfLength.entrySet())	System.out.println(entry.getKey()+" "+entry.getValue());
+        
         // This one adds the last positive trace from the last frame. It would not be added otherwise because the above loop is looking for a new frame which will not appear 
         // once they have all been dealt with.
         for(String seed:data.keySet())
@@ -1130,7 +1143,10 @@ public class ExperimentPaperUAS2
 				sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM, uniqueLabel);
 				break;
 			case PREMERGE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,false,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				break;
+			case PREMERGEUNIQUE:
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,true,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case CONSTRAINTS:
 				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);

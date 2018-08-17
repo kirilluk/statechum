@@ -25,7 +25,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 {
 	public static enum LearningType
 	{
-		CONVENTIONAL("con"),PREMERGE("pre"),PTAPREMERGE("PTApre"),CONSTRAINTS("conS"),CONVENTIONALUNIQUE("conU");
+		CONVENTIONAL("con"),PREMERGE("pre"),PREMERGEUNIQUE("preU"),PTAPREMERGE("PTApre"),CONSTRAINTS("conS"),CONVENTIONALUNIQUE("conU");
 		public final String name;
 		private LearningType(String n)
 		{

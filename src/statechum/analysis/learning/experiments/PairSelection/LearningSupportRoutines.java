@@ -299,7 +299,10 @@ public class LearningSupportRoutines
 		}
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> firstTransition:entry.getValue().entrySet())
+			{
+				//System.out.println("Looking at label "+firstTransition.getKey()+", removing "+tentativeGraph.transitionMatrix.get(firstTransition.getValue()).keySet());
 				labelToSet.get(firstTransition.getKey()).removeAll(tentativeGraph.transitionMatrix.get(firstTransition.getValue()).keySet());
+			}
 			
 		return labelToSet;
 	}

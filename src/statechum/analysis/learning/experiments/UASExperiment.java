@@ -297,6 +297,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 				learner = innerlearner;
 
  			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			Visualiser.updateFrame(learntGraph,referenceGraph);
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 

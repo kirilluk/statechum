@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +57,9 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -90,8 +93,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		// In the generation of traces, we generate par.traceQuantity traces, each consisting of par.lengthmult traces concatenated together.
 		final int tracesToGenerate = par.states*par.traceQuantity*par.lengthmult;
+
 		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
-		generator.setWalksShouldLeadToInitialState();
+		//generator.setWalksShouldLeadToInitialState();
 		generator.setAppendUniqueToPath(fsmConstruction.uniqueFromInitial);
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
@@ -114,7 +118,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		//assert pta.getStateNumber() == pta.getAcceptStateNumber();// we only expect positives since attemptNegatives argument to generateRandomPosNeg is false.
 
 		
-		if (par.learningType != LearningType.PREMERGE)
+		if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
 		{
 			// Now stitch all the sequences together.
 			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
@@ -139,8 +143,46 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		}
 		else
 		{// do PREMERGE even before we are asked for it.
-			pta.paths.augmentPTA(generator.getAllSequences(0));
+			//pta.paths.augmentPTA(generator.getAllSequences(0));
+
+			LearnerGraphND inverse = new LearnerGraphND(referenceGraph.config);
+			AbstractPathRoutines.buildInverse(referenceGraph,LearnerGraphND.ignoreNone,inverse);
+			Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
+			for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
+				if (path.getValue().size() == 0)
+					shortestPathsIntoInit.put(path.getKey(),Collections.<Label>emptyList());
+				else
+				{
+					Label[] invertedPath = new Label[path.getValue().size()];
+					int i=path.getValue().size()-1;
+					for(Label elem:path.getValue())
+						invertedPath[i--]=elem;
+					shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
+				}
+
+			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
+			while(traceIter.hasNext())
+			{
+				List<Label> trace = traceIter.next();
+				List<Label> traceToAdd = new ArrayList<Label>(trace.size()+referenceGraph.getStateNumber());
+				traceToAdd.addAll(trace);traceToAdd.addAll(shortestPathsIntoInit.get(referenceGraph.getVertex(trace)));traceToAdd.add(fsmConstruction.uniqueFromInitial);
+				pta.paths.augmentPTA(traceToAdd,true,false,null);
+			}
 		}
+		/*
+		{// This checks that the generated paths start with the right vertex, end with the right one and lead to an expected state.
+			CmpVertex firstState = referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
+			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
+			while(traceIter.hasNext())
+			{
+				List<Label> trace = traceIter.next();
+				assert trace.get(0) == fsmConstruction.uniqueFromInitial;
+				assert trace.get(trace.size()-1) == fsmConstruction.uniqueFromInitial;
+				assert referenceGraph.getVertex(trace) == firstState;
+			}
+		}
+		*/
+		
 /*
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (par.onlyUsePositives)
@@ -374,7 +416,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
 						for(int traceQuantity:new int[]{5})
-							for(int traceLengthMultiplier:new int[]{32})
+							for(int traceLengthMultiplier:new int[]{16})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})

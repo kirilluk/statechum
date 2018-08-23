@@ -50,7 +50,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperi
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -171,7 +170,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 		};
 
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
-		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
+		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,null,par,par.scoringMethod,par.scoringForEDSM);
 		//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
 		//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
 				

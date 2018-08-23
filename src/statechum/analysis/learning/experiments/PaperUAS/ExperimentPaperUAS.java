@@ -81,6 +81,8 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
@@ -703,7 +705,7 @@ public class ExperimentPaperUAS
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = LearningAlgorithms.constructLearner(learnerInitConfiguration,initPTA,scoringToUse,scoringForEDSM).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = LearningAlgorithms.constructLearner(learnerInitConfiguration,initPTA,scoringToUse,scoringForEDSM,null).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -996,22 +998,23 @@ public class ExperimentPaperUAS
 			};
 
  			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
+ 			ReduceGraphByMergingRedsThatAreSameInReference redReducer = ReduceGraphKnowingTheSolution.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
 			switch(par.learningType)
 			{
 			case CONVENTIONAL:
-				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM);
+				sample.actualLearner = runExperimentUsingConventional(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives, redReducer,par,par.scoringMethod,par.scoringForEDSM);
 				break;
 			case CONVENTIONALUNIQUE:
-				sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM, uniqueLabel);
+				sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives, redReducer,par,par.scoringMethod,par.scoringForEDSM, uniqueLabel);
 				break;
 			case PREMERGE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,false,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives, redReducer,par,false,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case PREMERGEUNIQUE:
-				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,true,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingPremerge(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives, redReducer,par,true,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			case CONSTRAINTS:
-				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
+				sample.actualLearner = runExperimentUsingConstraints(par.onlyUsePositives?ptaWithoutNegatives:ptaWithNegatives, redReducer,par,par.scoringMethod,par.scoringForEDSM,uniqueLabel);
 				break;
 			default:
 				throw new IllegalArgumentException("invalid learning type "+par.learningType);

@@ -168,7 +168,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		};
 
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
-		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
+		sample.actualLearner = runExperimentUsingConventional(ptaConstructor,null,par,par.scoringMethod,par.scoringForEDSM);
 		//sample.referenceLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,scoringMethod, uniqueFromInitial);
 		//sample.premergeLearner = runExperimentUsingPTAPremerge(ptaConstructor,scoringMethod,uniqueFromInitial);
 				

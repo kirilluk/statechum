@@ -148,7 +148,7 @@ public class PairOfPaths
 	 * <p>
 	 * Does not use state cover computation for memory efficiency since we only need a subset of all the states.
 	 */
-	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Set<CmpVertex> statesOfInterestArg)
+	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Collection<CmpVertex> statesOfInterestArg)
 	{
 		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();// not many of these hence not a HashSetWithSearch
 		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());

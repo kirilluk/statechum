@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -38,9 +39,9 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.experiments.ComputePathLengthDistribution;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -49,6 +50,8 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
@@ -75,13 +78,33 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	{
 		super(parameters,eval,directoryNamePrefix);
 	}
-	
+		
+	/** Counts the number of times a path has a repeated label in it. This is used to determine the number of single-state loops in the path. 
+	 * 
+	 * @param path path to evaluate
+	 * @return number of repeats.
+	 */
+	public static int calculateRepeatedStates(List<Label> path, LearnerGraph reference)
+	{
+		int count = 0;
+		CmpVertex curVertex = reference.getInit();
+		for(Label l:path)
+		{
+			CmpVertex nextState = reference.transitionMatrix.get(curVertex).get(l);
+			assert nextState != null;
+			if (nextState == curVertex)
+				++count;
+			curVertex = nextState;
+		}
+		
+		return count; 
+	}
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
 	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
 	{
-		final double density = par.states*0.2;
+		final double density = par.states*0.3;
 		final int alphabet = (int)(par.states*density);
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
@@ -98,16 +121,17 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		//generator.setWalksShouldLeadToInitialState();
 		generator.setAppendUniqueToPath(fsmConstruction.uniqueFromInitial);
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-								
+				static final double halfOffset = 0.5;
+				
 				@Override
 				public int getLength() {
 					int p = rndFSM.nextInt(100);
 					if (p < 70)
-						return (int)(par.states*(0.1+rndFSM.nextDouble()*0.9));
+						return (int)(par.states*(0.1+rndFSM.nextDouble()*halfOffset));
 					else if (p < 90)
-						return (int)(par.states*(1+rndFSM.nextDouble()));
+						return (int)(par.states*(0.1+halfOffset+rndFSM.nextDouble()*halfOffset));
 					else
-						return (int)(par.states*(2+rndFSM.nextDouble()*20));
+						return (int)(par.states*(1+rndFSM.nextDouble()*20));
 				}
 
 				@Override
@@ -144,7 +168,21 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		else
 		{// do PREMERGE even before we are asked for it.
 			//pta.paths.augmentPTA(generator.getAllSequences(0));
-
+			ComputePathLengthDistribution pld = new ComputePathLengthDistribution(10,2,referenceGraph.getAcceptStateNumber());
+			int addedLength = 0;
+			int repeatedStates = 0;
+			Collection<List<Label>> allTraces = generator.getAllSequences(0).getData();
+			/*
+			Iterator<List<Label>> traceIter = allTraces.iterator();
+			while(traceIter.hasNext())
+			{
+				List<Label> trace = traceIter.next();
+				pta.paths.augmentPTA(trace,true,false,null);
+				repeatedStates += calculateRepeatedStates(trace,referenceGraph);
+				pld.updatePathLengthStatistics(trace.size());
+			}
+			*/
+			
 			LearnerGraphND inverse = new LearnerGraphND(referenceGraph.config);
 			AbstractPathRoutines.buildInverse(referenceGraph,LearnerGraphND.ignoreNone,inverse);
 			Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
@@ -160,14 +198,22 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
 				}
 
-			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
+			
+			Iterator<List<Label>> traceIter = allTraces.iterator();
 			while(traceIter.hasNext())
 			{
 				List<Label> trace = traceIter.next();
 				List<Label> traceToAdd = new ArrayList<Label>(trace.size()+referenceGraph.getStateNumber());
-				traceToAdd.addAll(trace);traceToAdd.addAll(shortestPathsIntoInit.get(referenceGraph.getVertex(trace)));traceToAdd.add(fsmConstruction.uniqueFromInitial);
+				List<Label> addedPathToInit = shortestPathsIntoInit.get(referenceGraph.getVertex(trace));
+				addedLength+=addedPathToInit.size();
+				traceToAdd.addAll(trace);traceToAdd.addAll(addedPathToInit);traceToAdd.add(fsmConstruction.uniqueFromInitial);
 				pta.paths.augmentPTA(traceToAdd,true,false,null);
+				repeatedStates += calculateRepeatedStates(traceToAdd,referenceGraph);
+				pld.updatePathLengthStatistics(traceToAdd.size());
 			}
+			
+			System.out.println("FSM: "+par.seed+" repeated states: "+repeatedStates+" out of "+allTraces.size()+" traces. Added length per trace: "+(addedLength/allTraces.size()));
+			//pld.reportLengthStatistics();
 		}
 		/*
 		{// This checks that the generated paths start with the right vertex, end with the right one and lead to an expected state.
@@ -201,6 +247,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
 			Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
 			Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
+			int totalNegatives = 0;
 			for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
 			{
 				Set<Label> value = new TreeSet<Label>();
@@ -214,10 +261,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						for(int cnt=0;cnt < density;++cnt) // in the uas case study, it is one negative at the end of each sequence plus one per element of alphabet.
 							value.add(possibleLabels[rnd.nextInt(possibleLabels.length)]);
 					}
+					totalNegatives+=value.size();
 				}
 				subsetOfPairs.put(entry.getKey(),value);
 			}
-			
+			System.out.println("Total negatives per label: "+((double)totalNegatives/alphabet));
 			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerInitConfiguration,subsetOfPairs);
 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 			learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
@@ -250,30 +298,31 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				return pta;
 			}
 		};
-
+		ReduceGraphByMergingRedsThatAreSameInReference redReducer = ReduceGraphKnowingTheSolution.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
+			
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
 		switch(par.learningType)
 		{
 		case CONVENTIONAL:
-			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM);
+			sample.actualLearner = runExperimentUsingConventional(ptaConstructor,redReducer,par,par.scoringMethod,par.scoringForEDSM);
 			break;
 		case CONVENTIONALUNIQUE:
-			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM, fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConventionalWithUniqueLabel(ptaConstructor,redReducer,par,par.scoringMethod,par.scoringForEDSM, fsmConstruction.uniqueFromInitial);
 			break;
 		case CONSTRAINTS:
-			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingConstraints(ptaConstructor,redReducer,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PREMERGE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,false,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,redReducer,par,false,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PREMERGEUNIQUE:
-			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,par,true,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPremerge(ptaConstructor,redReducer,par,true,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		case PTAPREMERGE:
-			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
+			sample.actualLearner = runExperimentUsingPTAPremerge(ptaConstructor,redReducer,par,par.scoringMethod,par.scoringForEDSM,fsmConstruction.uniqueFromInitial);
 			break;
 		}
-		
+
 		outcome.samples.add(sample);
 		/*
 		{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
@@ -333,7 +382,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
 		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
 		for(int q=0;q<stateNumberList.length;++q)
-			for(String descr:new String[] {"E","P","C"})
+			for(String descr:new String[] {"E","P","C","U"})
 			{
 				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
 				plotsBCR.put(fullDescr,new RBoxPlotP<String>("","BCR",new File(outPathPrefix+fullDescr+"-BCR.pdf")));
@@ -356,9 +405,12 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							if (id.getColumnText()[0].equals(LearningType.PREMERGE.toString()))
 								descr = "P";
 							else
-								if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
-									descr = "C";
-						String scoring = id.getColumnText()[2];
+								if (id.getColumnText()[0].equals(LearningType.PREMERGEUNIQUE.toString()))
+									descr = "U";
+								else
+									if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
+										descr = "C";
+						String scoring = id.getColumnText()[2];// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
 						if (scoring.equals(ScoringToApply.SCORING_SICCO.toString()))
 							scoring = "SV";
 						String AB = LearningSupportRoutines.padString(id.getColumnText()[6],'0',2);//+"-"+id.getColumnText()[6];
@@ -415,8 +467,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{5})
-							for(int traceLengthMultiplier:new int[]{16})
+						for(int traceQuantity:new int[]{states*10})
+							for(int traceLengthMultiplier:new int[]{1})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -431,7 +483,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE}) //LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE}) //LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -463,7 +515,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
 	    	{// post-process the results if needed.
 	    		for(int q=0;q<stateNumberList.length;++q)
-	    			for(String descr:new String[] {"E","P","C"})
+	    			for(String descr:new String[] {"E","P","C","U"})
 	    			{
 	    				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
 	    				plotsBCR.get(fullDescr).reportResults(gr);plotsDiff.get(fullDescr).reportResults(gr);tableCSV.get(fullDescr).reportResults(gr);

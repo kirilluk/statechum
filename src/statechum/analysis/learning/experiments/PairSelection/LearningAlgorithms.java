@@ -47,6 +47,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
@@ -118,6 +119,101 @@ public class LearningAlgorithms
 		return computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*maxStateNumberMultiplier,LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
 	}
 	
+	/** Sicco heuristic intentionally undermerges, particularly in dense graphs. In order to easily evaluate whether a subsequent pass of SAT/SMT would
+	 * yeild the correct graph, we merge all red states that should be merged in the reference since such a possibility will definitely be considered
+	 * by an exhaustive enumeration process.
+	 * <p/>
+	 * Only red states are considered: if we would like to find out whether there are too many reds (and hence abort learning), 
+	 * we need to only look at reds (and looking at all states will take a while); after learning is completed, all states are red.
+	 */
+	public interface ReduceGraphByMergingRedsThatAreSameInReference
+	{
+		/** Constructs a reduced graph where sets of red states corresponding to the same vertex in a reference graph are merged together. */
+		public LearnerGraph reduceGraphRedsKnowingTheCorrectSolution(LearnerGraph graph);
+		/** Counts the number of reds in a graph where sets of red states corresponding to the same vertex in a reference graph are merged together. */
+		public int countRedsKnowingTheCorrectSolution(LearnerGraph graph); 
+	}
+	
+	public static class ReduceGraphKnowingTheSolution implements ReduceGraphByMergingRedsThatAreSameInReference
+	{
+		protected final LearnerGraph referenceGraph;
+		
+		public static ReduceGraphKnowingTheSolution constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod)
+		{
+			ReduceGraphKnowingTheSolution redReducer = null, possibleReducer = new ReduceGraphKnowingTheSolution(reference);
+			switch(scoringMethod)
+			{
+			case SCORING_SICCO:
+			case SCORING_SICCO_NIS:
+			case SCORING_SICCO_PTA:
+			case SCORING_SICCO_PTARECURSIVE:
+			case SCORING_SICCO_RED:
+				redReducer = possibleReducer;
+				break;
+			default:
+				redReducer = null;
+				break;
+			}
+			return redReducer;
+		}
+		public ReduceGraphKnowingTheSolution(LearnerGraph graph) {
+			referenceGraph = graph;
+		}
+		
+		@Override
+		public LearnerGraph reduceGraphRedsKnowingTheCorrectSolution(LearnerGraph graph) 
+		{
+			List<CmpVertex> reds = new ArrayList<CmpVertex>();
+			for(CmpVertex v:graph.transitionMatrix.keySet())
+				if (v.getColour() == JUConstants.RED)
+					reds.add(v);
+			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, reds);
+			Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			Collection<StatePair> pairsToMerge = new ArrayList<StatePair>(reds.size()*reds.size()/2);
+			for(int i=0;i<reds.size()-1;++i)
+			{
+				CmpVertex a = referenceGraph.getVertex(stateToPath.get(reds.get(i)));
+				if (a != null)
+					for(int j=i+1;j<reds.size();++j)
+					{
+						CmpVertex b = referenceGraph.getVertex(stateToPath.get(reds.get(j)));
+						if (a ==b)
+							pairsToMerge.add(new StatePair(reds.get(i),reds.get(j)));
+					}
+			}
+			if (graph.pairscores.computePairCompatibilityScore_general(null,pairsToMerge,mergedVertices, false) < 0)
+			{
+				System.out.println("cannot reduce reds in graph "+graph);
+				return null;// cannot merge all those that should be merged. This means that there are incorrect mergers somewhere in the graph that cause inconsistency
+			}
+			return MergeStates.mergeCollectionOfVertices(graph,null,mergedVertices,null,false);
+		}
+		
+		@Override
+		public int countRedsKnowingTheCorrectSolution(LearnerGraph graph) 
+		{
+			List<CmpVertex> reds = new ArrayList<CmpVertex>();
+			for(CmpVertex v:graph.transitionMatrix.keySet())
+				if (v.getColour() == JUConstants.RED)
+					reds.add(v);
+			
+			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, reds);
+			int redsNotInRef = 0;
+			Set<CmpVertex> verticesInReferenceGraphCorrespondingToReds = new LinkedHashSet<CmpVertex>();
+			for(CmpVertex v:reds)
+			{
+				CmpVertex refVert = referenceGraph.getVertex(stateToPath.get(v));
+				if (refVert == null)
+					redsNotInRef++;
+				else
+					verticesInReferenceGraphCorrespondingToReds.add(refVert);
+			}
+			
+			return verticesInReferenceGraphCorrespondingToReds.size()+redsNotInRef;
+		}
+		
+	}
+	
 	public static class LearnerAbortedException extends RuntimeException
 	{
 		public final boolean timedOut;
@@ -132,7 +228,7 @@ public class LearningAlgorithms
 		 */
 		private static final long serialVersionUID = 5271079210565150062L;
 		
-		public static void throwExceptionIfTooManyReds( LearnerGraph graph, int maxNumberOfReds )
+		protected static boolean checkTooManyReds(LearnerGraph graph,int maxNumberOfReds)
 		{
 			if (maxNumberOfReds >= 0)
 			{
@@ -140,8 +236,24 @@ public class LearningAlgorithms
 				for(CmpVertex v:graph.transitionMatrix.keySet())
 					if (v.isAccept() && v.getColour() == JUConstants.RED)
 						if (countOfRed++ > maxNumberOfReds)
-							throw new LearnerAbortedException(false);
+							return true;
 			}
+			return false;
+		}
+		
+		public static void throwExceptionIfTooManyReds( LearnerGraph graph, int maxNumberOfReds,ReduceGraphByMergingRedsThatAreSameInReference reducerIfNotNull)
+		{
+			if (!checkTooManyReds(graph, maxNumberOfReds))
+				return;
+			// possibly too many reds, check if reduction is needed before confirming.
+			if (reducerIfNotNull != null)
+			{
+				int numberOfReds = reducerIfNotNull.countRedsKnowingTheCorrectSolution(graph);
+				if (numberOfReds > maxNumberOfReds)
+					throw new LearnerAbortedException(false);
+			}
+			else // too many reds and no reducer available.
+				throw new LearnerAbortedException(false);
 		}
 	}
 
@@ -292,15 +404,15 @@ public class LearningAlgorithms
 			return copy;
 		}
 		
-		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, boolean noLimitOnStateNumber) 
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, boolean noLimitOnStateNumber,ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			super(constructConfiguration(evalCnf,noLimitOnStateNumber?-1:reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring);
+			super(constructConfiguration(evalCnf,noLimitOnStateNumber?-1:reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring,redReducer);
 			referenceGraph = reference;
 		}
 		
-		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring) 
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			this(evalCnf,reference,argInitialPTA,scoring,false);
+			this(evalCnf,reference,argInitialPTA,scoring,false,redReducer);
 		}
 
 		protected boolean allMergersCorrect = true;
@@ -384,38 +496,44 @@ public class LearningAlgorithms
 		{
 			name = nameText;
 		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 
-	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 
+	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM, ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 	{
 		Learner outcome = null;
 		//final int threadNumber = 1;// we run each experiment on a separate thread hence do not create many threads.
 		switch(howToScore)
 		{
 		case SCORING_EDSM:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, -1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, -1, redReducer);break;
 		case SCORING_EDSM_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2, redReducer);break;
 		case SCORING_EDSM_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 3, redReducer);break;
 		case SCORING_EDSM_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 4, redReducer);break;
 		case SCORING_EDSM_5:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 5);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 5, redReducer);break;
 		case SCORING_EDSM_6:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 6);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 6, redReducer);break;
 		case SCORING_EDSM_7:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 7);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 7, redReducer);break;
 		case SCORING_EDSM_8:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 8);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 8, redReducer);break;
 		case SCORING_EDSM_9:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 9);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 9, redReducer);break;
 		case SCORING_EDSM_10:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 10);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 10, redReducer);break;
 		case SCORING_EDSM_11:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 11);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 11, redReducer);break;
 		case SCORING_EDSM_12:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 12);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 12, redReducer);break;
 		case SCORING_KT_1:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
@@ -445,31 +563,31 @@ public class LearningAlgorithms
 				}};
 			break;
 		case SCORING_PTAK_1:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 1, redReducer);break;
 		case SCORING_PTAK_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 2, redReducer);break;
 		case SCORING_PTAK_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 3, redReducer);break;
 		case SCORING_PTAK_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 4, redReducer);break;
 		case SCORING_PTAK_ALL_1:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 1, redReducer);break;
 		case SCORING_PTAK_ALL_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 2, redReducer);break;
 		case SCORING_PTAK_ALL_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 3, redReducer);break;
 		case SCORING_PTAK_ALL_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 4, redReducer);break;
 		case SCORING_SICCO_PTA:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA,redReducer);break;
 		case SCORING_SICCO_PTARECURSIVE:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE,redReducer);break;
 		case SCORING_SICCO:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);break;
 		case SCORING_SICCO_NIS:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS,redReducer);break;
 		case SCORING_SICCO_RED:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED,redReducer);break;
 		default:
 			throw new IllegalArgumentException("unknown learner "+howToScore);
 
@@ -489,10 +607,16 @@ public class LearningAlgorithms
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
 		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_PTA, SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_RED }
 		protected final OverrideScoringToApply scoringMethod;
+		protected ReduceGraphByMergingRedsThatAreSameInReference redReducer = null;
 		
-		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring) 
+		public void setRedReducer(ReduceGraphByMergingRedsThatAreSameInReference reducer)
 		{
-			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;
+			redReducer = reducer;
+		}
+		
+		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring,ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
+		{
+			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;setRedReducer(redReducer);
 		}
 
 		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
@@ -517,7 +641,16 @@ public class LearningAlgorithms
 			try
 			{
 				outcome = super.learnMachine();
-				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates(),redReducer);// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+				if (redReducer != null)
+				{
+					LearnerGraph gr = redReducer.reduceGraphRedsKnowingTheCorrectSolution(outcome);
+					if (gr != null)
+					{
+						System.out.println("Red-reduced graph from "+outcome.getAcceptStateNumber()+" to "+gr.getAcceptStateNumber()+" states, using scoring "+scoringMethod);
+						outcome = gr;
+					}
+				}
 			}
 			catch(LearnerAbortedException ex)
 			{
@@ -532,7 +665,7 @@ public class LearningAlgorithms
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
-			LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates());
+			LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates(),redReducer);
 			if (graph.config.getLearnerScoreMode() == ScoreMode.ONLYOVERRIDE) // we only check this here because in the constructor it is too early - derived classes may choose to substitute an alternative scoring method.
 				throw new IllegalArgumentException("this method complements an existing scoring routine, it is not a replacement for it, hence ONLYOVERRIDE scoring mode cannot be used");
 
@@ -663,6 +796,12 @@ public class LearningAlgorithms
 		final Learner learner;
 		final Configuration config;
 		LearnerGraph initPTA;
+		protected ReduceGraphByMergingRedsThatAreSameInReference redReducer = null;
+		
+		public void setRedReducer(ReduceGraphByMergingRedsThatAreSameInReference reducer)
+		{
+			redReducer = reducer;
+		}
 		
 		@Override
 		public LearnerGraph learnMachine() 
@@ -739,7 +878,7 @@ public class LearningAlgorithms
 			try
 			{
 				outcome = learner.learnMachine(plus, minus);
-				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates(),redReducer);// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
 
 				if (outcome.getInit().getColour() == null)
 				{// If the initial graph is a PTA, the initial state only has one transition to the state reached by the uniqueFromInitial, it will not hence receive a colour and hence will not participate in state merging.
@@ -843,9 +982,9 @@ public class LearningAlgorithms
 
 		protected final boolean scoringSiccoRecursive;
 		
-		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive) 
+		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive,ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE:OverrideScoringToApply.SCORING_SICCO_PTA);
+			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE:OverrideScoringToApply.SCORING_SICCO_PTA,redReducer);
 			scoringSiccoRecursive = SiccoRecursive;
 		}
 
@@ -869,7 +1008,7 @@ public class LearningAlgorithms
 		
 		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
 		{
-			super(constructConfiguration(evalCnf,allPaths,k),argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf,allPaths,k),argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,null);
 		}
 		
 		@Override
@@ -892,9 +1031,10 @@ public class LearningAlgorithms
 			return copy;
 		}
 
-		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, Configuration.ScoreMode scoringForEDSM, int threshold) 
+		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, Configuration.ScoreMode scoringForEDSM, int threshold,ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			super(constructConfiguration(evalCnf,scoringForEDSM,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf,scoringForEDSM,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,redReducer);
+			setRedReducer(redReducer);
 		}
 
 		@Override
@@ -999,9 +1139,9 @@ public class LearningAlgorithms
 			return copy;
 		}
 
-		public LearnerThatDelegatesToTheSuppliedClassifier(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		public LearnerThatDelegatesToTheSuppliedClassifier(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA,ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			super(constructConfiguration(evalCnf),argReferenceGraph,argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf),argReferenceGraph,argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,redReducer);
 		}
 		
 		public static String refToString(Object obj)

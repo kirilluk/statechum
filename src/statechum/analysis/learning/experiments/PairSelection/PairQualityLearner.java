@@ -53,6 +53,7 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.LearnerSimulator;
@@ -692,9 +693,9 @@ public class PairQualityLearner
 	
 	public static class LearnerThatUsesClassifiers extends LearningAlgorithms.LearnerThatCanClassifyPairs
 	{
-		public LearnerThatUsesClassifiers(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA, OverrideScoringToApply scoring,MarkovHelper helper, MarkovHelperClassifier helpers, boolean noLimitOnStateNumber) 
+		public LearnerThatUsesClassifiers(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA, OverrideScoringToApply scoring,MarkovHelper helper, MarkovHelperClassifier helpers, boolean noLimitOnStateNumber, ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
 		{
-			super(evalCnf, reference, argInitialPTA, scoring, noLimitOnStateNumber);markovHelper = helper;markovMultiHelpers = helpers;
+			super(evalCnf, reference, argInitialPTA, scoring, noLimitOnStateNumber,redReducer);markovHelper = helper;markovMultiHelpers = helpers;
 		}
 
 		/** Permits us to compute Markov scores. */
@@ -731,7 +732,7 @@ public class PairQualityLearner
 		
 		public LearnerThatUpdatesWekaResults(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA,MarkovHelper singleHelper, MarkovHelperClassifier helpers) 
 		{
-			super(evalCnf,argReferenceGraph, argInitialPTA,null,singleHelper, helpers, false);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
+			super(evalCnf,argReferenceGraph, argInitialPTA,null,singleHelper, helpers, false,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below. 
 			dataCollector = argDataCollector;
 		}
 		
@@ -827,7 +828,7 @@ public class PairQualityLearner
 
 		public LearnerThatUsesWekaResults(UseWekaResultsParameters parameters,LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, Classifier wekaClassifier, final LearnerGraph argInitialPTA,WekaDataCollector argDataCollector, boolean noLimitOnStateNumber) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,null,argDataCollector.markovHelper,argDataCollector.markovMultiHelper, noLimitOnStateNumber);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
+			super(evalCnf,argReferenceGraph,argInitialPTA,null,argDataCollector.markovHelper,argDataCollector.markovMultiHelper, noLimitOnStateNumber,null);// the scoring argument is not set for the parent learner since the part that makes use of it is completely overridden below.
 			par=parameters;
 			dataCollector = argDataCollector;
 			classifier=wekaClassifier;

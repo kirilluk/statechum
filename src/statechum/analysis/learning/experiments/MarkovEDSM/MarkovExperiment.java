@@ -66,6 +66,7 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
@@ -215,7 +216,7 @@ public class MarkovExperiment
 			{
 				LearnerGraph ptaBuilt = ptaConstructor.buildPTA();
 				Learner learnerOfPairs = null;
-				
+				ReduceGraphKnowingTheSolution redReducer = new ReduceGraphKnowingTheSolution(referenceGraph);
 	 			switch(par.learnerToUse)
 	 			{
 	 			case LEARNER_EDSMMARKOV:
@@ -223,25 +224,25 @@ public class MarkovExperiment
 	 				learnerOfPairs = markovLearner;
 	 				break;
 	 			case LEARNER_EDSM2:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 	 			case LEARNER_EDSM4:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 	 			case LEARNER_SICCO:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_SICCO,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_SICCO,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
 	 				break;
 	 			case LEARNER_KTAILS_PTA1:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 	 			case LEARNER_KTAILS_PTA2:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 	 			case LEARNER_KTAILS_1:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_1,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_1,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 	 			case LEARNER_KTAILS_2:
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_2,ScoreMode.GENERAL_NOFULLMERGE);
+	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_2,ScoreMode.GENERAL_NOFULLMERGE,null);
 	 				break;
 				default:
 					throw new IllegalArgumentException("unexpected learner "+par.learnerToUse.name()+" requested");
@@ -408,7 +409,7 @@ public class MarkovExperiment
 
 		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold, MarkovParameters markovPars) 
 		{
-			super(constructConfiguration(evalCnf,threshold), argInitialPTA,null);// null means that we expect our ChooseStatePairs to completely replace the one in the parent class.
+			super(constructConfiguration(evalCnf,threshold), argInitialPTA,null,null);// null means that we expect our ChooseStatePairs to completely replace the one in the parent class.
 			markovHelper = new MarkovHelper(markovPars);
 		}
 		

@@ -160,7 +160,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
 			}
 
-		if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
+		//if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
 		{
 			// Now stitch all the sequences together.
 			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
@@ -183,6 +183,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				}
 			}
 		}
+		/*
 		else
 		{// do PREMERGE even before we are asked for it.
 			//pta.paths.augmentPTA(generator.getAllSequences(0));
@@ -190,18 +191,6 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			int addedLength = 0;
 			int repeatedStates = 0;
 			Collection<List<Label>> allTraces = generator.getAllSequences(0).getData();
-			/*
-			Iterator<List<Label>> traceIter = allTraces.iterator();
-			while(traceIter.hasNext())
-			{
-				List<Label> trace = traceIter.next();
-				pta.paths.augmentPTA(trace,true,false,null);
-				repeatedStates += calculateRepeatedStates(trace,referenceGraph);
-				pld.updatePathLengthStatistics(trace.size());
-			}
-			*/
-			
-
 			
 			Iterator<List<Label>> traceIter = allTraces.iterator();
 			while(traceIter.hasNext())
@@ -218,7 +207,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			
 			System.out.println("FSM: "+par.seed+" repeated states: "+repeatedStates+" out of "+allTraces.size()+" traces. Added length per trace: "+(addedLength/allTraces.size()));
 			//pld.reportLengthStatistics();
-		}
+		}*/
 		/*
 		{// This checks that the generated paths start with the right vertex, end with the right one and lead to an expected state.
 			CmpVertex firstState = referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
@@ -269,7 +258,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				}
 				subsetOfPairs.put(entry.getKey(),value);
 			}
-			System.out.println("Total negatives per label: "+((double)totalNegatives/alphabet));
+			//System.out.println("Total negatives per label: "+((double)totalNegatives/alphabet));
 			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerInitConfiguration,subsetOfPairs);
 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 			learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
@@ -378,7 +367,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 4;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{20};
+		final int stateNumberList[] = new int[]{5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
@@ -498,7 +487,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
 						for(int traceQuantity:new int[]{states/2,states,states*2})
-							for(int traceLengthMultiplier:new int[]{1,2,4})
+							for(int traceLengthMultiplier:new int[]{1,2,4,8})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -513,7 +502,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE}) // ,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

@@ -183,7 +183,7 @@ public class LearningAlgorithms
 			}
 			if (graph.pairscores.computePairCompatibilityScore_general(null,pairsToMerge,mergedVertices, false) < 0)
 			{
-				System.out.println("cannot reduce reds in graph "+graph);
+				//System.out.println("cannot reduce reds in graph "+graph);
 				return null;// cannot merge all those that should be merged. This means that there are incorrect mergers somewhere in the graph that cause inconsistency
 			}
 			return MergeStates.mergeCollectionOfVertices(graph,null,mergedVertices,null,false);
@@ -647,7 +647,7 @@ public class LearningAlgorithms
 					LearnerGraph gr = redReducer.reduceGraphRedsKnowingTheCorrectSolution(outcome);
 					if (gr != null)
 					{
-						System.out.println("Red-reduced graph from "+outcome.getAcceptStateNumber()+" to "+gr.getAcceptStateNumber()+" states, using scoring "+scoringMethod);
+						//System.out.println("Red-reduced graph from "+outcome.getAcceptStateNumber()+" to "+gr.getAcceptStateNumber()+" states, using scoring "+scoringMethod);
 						outcome = gr;
 					}
 				}

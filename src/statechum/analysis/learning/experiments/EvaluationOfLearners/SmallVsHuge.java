@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -40,7 +41,9 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
+import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.ComputePathLengthDistribution;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -142,26 +145,41 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		//assert pta.getStateNumber() == pta.getAcceptStateNumber();// we only expect positives since attemptNegatives argument to generateRandomPosNeg is false.
 
 		
+		LearnerGraphND inverse = new LearnerGraphND(referenceGraph.config);
+		AbstractPathRoutines.buildInverse(referenceGraph,LearnerGraphND.ignoreNone,inverse);
+		Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
+		for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
+			if (path.getValue().size() == 0)
+				shortestPathsIntoInit.put(path.getKey(),Collections.<Label>emptyList());
+			else
+			{
+				Label[] invertedPath = new Label[path.getValue().size()];
+				int i=path.getValue().size()-1;
+				for(Label elem:path.getValue())
+					invertedPath[i--]=elem;
+				shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
+			}
+
 		if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
 		{
 			// Now stitch all the sequences together.
 			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
 			generator = null;
-			
 			for(int seq=0;seq<par.states*par.traceQuantity;++seq)
 			{
-				List<Label> sequence = new ArrayList<Label>(par.lengthmult*par.states*3);
+				List<Label> traceToAdd = new ArrayList<Label>(par.lengthmult*par.states*3);
 				for(int elem=0;elem<par.lengthmult;++elem)
 					if (traceIter.hasNext())
 					{
-						List<Label> newSequence = traceIter.next();
-						sequence.addAll(newSequence.subList(0, newSequence.size()-1));
+						List<Label> trace = traceIter.next();
+						//sequence.addAll(newSequence.subList(0, newSequence.size()-1));
+						List<Label> addedPathToInit = shortestPathsIntoInit.get(referenceGraph.getVertex(trace));
+						traceToAdd.addAll(trace);traceToAdd.addAll(addedPathToInit);
 					}
-				if (!sequence.isEmpty())
+				if (!traceToAdd.isEmpty())
 				{
-					//System.out.println("sequence len: "+sequence.size()+" expected max: "+(par.lengthmult*par.states*3));
-					sequence.add(fsmConstruction.uniqueFromInitial);
-					pta.paths.augmentPTA(sequence, true, false, null);
+					traceToAdd.add(fsmConstruction.uniqueFromInitial);
+					pta.paths.augmentPTA(traceToAdd, true, false, null);
 				}
 			}
 		}
@@ -183,20 +201,6 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			}
 			*/
 			
-			LearnerGraphND inverse = new LearnerGraphND(referenceGraph.config);
-			AbstractPathRoutines.buildInverse(referenceGraph,LearnerGraphND.ignoreNone,inverse);
-			Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
-			for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
-				if (path.getValue().size() == 0)
-					shortestPathsIntoInit.put(path.getKey(),Collections.<Label>emptyList());
-				else
-				{
-					Label[] invertedPath = new Label[path.getValue().size()];
-					int i=path.getValue().size()-1;
-					for(Label elem:path.getValue())
-						invertedPath[i--]=elem;
-					shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
-				}
 
 			
 			Iterator<List<Label>> traceIter = allTraces.iterator();
@@ -358,7 +362,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	}
 	
 	public static final String unknownValue = "UNKNOWN";
-	
+
 	public static void main(String []args)
 	{
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -380,8 +384,10 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
 		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,SquareBagPlot> plotsPreVsUnique = new TreeMap<String,SquareBagPlot>();
 		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
 		for(int q=0;q<stateNumberList.length;++q)
+		{
 			for(String descr:new String[] {"E","P","C","U"})
 			{
 				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
@@ -389,6 +395,10 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				plotsDiff.put(fullDescr,new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+fullDescr+"-DIFF.pdf")));
 				tableCSV.put(fullDescr,new CSVExperimentResult(new File(outPathPrefix+fullDescr+"-table.csv")));
 			}
+		}
+		
+		final Map<Integer,Map<Object,Double>> uToBCR = new TreeMap<Integer,Map<Object,Double>>(),pToBCR = new TreeMap<Integer,Map<Object,Double>>();
+		
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"))
 				{
 					@Override
@@ -398,27 +408,6 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						super.add(id, text);
 						
 						String descr = null;
-						
-						if (id.getColumnText()[0].equals(LearningType.CONVENTIONAL.toString()))
-							descr = "E";
-						else
-							if (id.getColumnText()[0].equals(LearningType.PREMERGE.toString()))
-								descr = "P";
-							else
-								if (id.getColumnText()[0].equals(LearningType.PREMERGEUNIQUE.toString()))
-									descr = "U";
-								else
-									if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
-										descr = "C";
-						String scoring = id.getColumnText()[2];// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
-						if (scoring.equals(ScoringToApply.SCORING_SICCO.toString()))
-							scoring = "SV";
-						String AB = LearningSupportRoutines.padString(id.getColumnText()[6],'0',2);//+"-"+id.getColumnText()[6];
-						
-						String [] data = text.split(",", -2);
-						
-						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);//, nrOfStates = Double.parseDouble(data[2]);
-		
 						String rowDetails[]=id.getRowID().split("-",-2);
 						int stateNumber = Integer.parseInt(rowDetails[0]);
 						int position=-1;
@@ -427,15 +416,56 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							{
 								position = q;break;
 							}
-						String label = scoring+":"+AB;
+						String scoring = id.getColumnText()[2];// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
+						if (scoring.equals(ScoringToApply.SCORING_SICCO.toString()))
+							scoring = "SV";
+						String AB = LearningSupportRoutines.padString(id.getColumnText()[5],'0',2)+":"+LearningSupportRoutines.padString(id.getColumnText()[6],'0',2);//+"-"+id.getColumnText()[6];
+						int size = Integer.parseInt(id.getColumnText()[5])*Integer.parseInt(id.getColumnText()[6]);
+						String label = "("+LearningSupportRoutines.padString(Integer.toString(size),'0',4)+")"+scoring+":"+AB;
+						
+						String [] idArray=Arrays.copyOf(id.getColumnText(), id.getColumnText().length);idArray[0]=null;
+						String idArrayAsString = Arrays.toString(idArray);
+						
+						String [] data = text.split(",", -2);						
+						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);//, nrOfStates = Double.parseDouble(data[2]);
+
+						if (id.getColumnText()[0].equals(LearningType.CONVENTIONAL.toString()))
+							descr = "E";
+						else
+							if (id.getColumnText()[0].equals(LearningType.PREMERGE.toString()))
+							{
+								descr = "P";
+								Map<Object,Double> entry = pToBCR.get(stateNumberList[position]);
+								if (entry == null)
+								{
+									entry = new LinkedHashMap<Object,Double>();pToBCR.put(stateNumberList[position], entry);
+								}
+								entry.put(idArrayAsString, bcr);
+							}
+							else
+								if (id.getColumnText()[0].equals(LearningType.PREMERGEUNIQUE.toString()))
+								{
+									descr = "U";
+									Map<Object,Double> entry = uToBCR.get(stateNumberList[position]);
+									if (entry == null)
+									{
+										entry = new LinkedHashMap<Object,Double>();uToBCR.put(stateNumberList[position], entry);
+									}
+									entry.put(idArrayAsString, bcr);
+								}
+								else
+									if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
+										descr = "C";
+						
 						String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[position],descr);
+		
 						plotsBCR.get(fullDescr).add(label, bcr);
 						plotsDiff.get(fullDescr).add(label, diff);
 						tableCSV.get(fullDescr).add(id, text);
 					}
 				};
 		resultCSV.setMissingValue(unknownValue);
-		
+				
     	processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> resultHandler = new processSubExperimentResult<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>() {
 
 			@Override
@@ -467,8 +497,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{states*10})
-							for(int traceLengthMultiplier:new int[]{1})
+						for(int traceQuantity:new int[]{states/2,states,states*2})
+							for(int traceLengthMultiplier:new int[]{1,2,4})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -483,7 +513,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE}) //LearningType.CONVENTIONAL,LearningType.PREMERGE, LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -520,6 +550,35 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
 	    				plotsBCR.get(fullDescr).reportResults(gr);plotsDiff.get(fullDescr).reportResults(gr);tableCSV.get(fullDescr).reportResults(gr);
 	    			}
+	    		
+	    		for(Entry<Integer,Map<Object,Double>> entry:pToBCR.entrySet())
+	    		{
+	    			String descrComparison = ExperimentPaperUAS2.sprintf("%02d", entry.getKey());
+	    			SquareBagPlot plot = plotsPreVsUnique.get(descrComparison);
+	    			if (plot == null)
+	    			{
+	    				plot = new SquareBagPlot("Pre", "Pre-Unique" , new File(outPathPrefix+descrComparison+"-unique_vs_non_unique.pdf"),0,1,true);plotsPreVsUnique.put(descrComparison, plot);
+	    			}
+
+	    			Map<Object,Double> entryOther = uToBCR.get(entry.getKey());
+	    			if (entryOther != null)
+	    			{
+	    				for(Entry<Object,Double> value:entry.getValue().entrySet())
+	    				{
+	    					Double v = entryOther.get(value.getKey());
+	    					if (v != null)
+	    						plotsPreVsUnique.get(descrComparison).add(v.doubleValue(), value.getValue().doubleValue());
+	    				}
+	    				
+	    			}
+	    		}
+	    		for(Entry<Integer,Map<Object,Double>> entry:pToBCR.entrySet())
+	    		{
+	    			String descrComparison = ExperimentPaperUAS2.sprintf("%02d", entry.getKey());
+	    			RBagPlot plot = plotsPreVsUnique.get(descrComparison);
+	    			if (plot != null)
+	    				plot.reportResults(gr);
+	    		}
 	    	}
 		}
 		finally

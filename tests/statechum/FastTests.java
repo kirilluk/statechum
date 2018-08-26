@@ -100,6 +100,7 @@ public class FastTests {
         statechum.model.testset.TestPrefixRemovingCollection.class,
         statechum.model.testset.TestPTASequenceEngine.class,
         statechum.analysis.learning.rpnicore.TestMiscTransformFunctions.class,
+        statechum.analysis.learning.rpnicore.TestMergeStatistics.class,
         statechum.analysis.learning.rpnicore.TestTransform.class,
         statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
         statechum.analysis.learning.rpnicore.TestWMethod.class,

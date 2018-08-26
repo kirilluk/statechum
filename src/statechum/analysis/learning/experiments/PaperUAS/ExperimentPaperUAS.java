@@ -81,8 +81,8 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
@@ -998,7 +998,7 @@ public class ExperimentPaperUAS
 			};
 
  			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
- 			ReduceGraphByMergingRedsThatAreSameInReference redReducer = ReduceGraphKnowingTheSolution.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
+ 			StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
 			switch(par.learningType)
 			{
 			case CONVENTIONAL:

@@ -118,6 +118,32 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return graphName;
 	}
 	
+	public enum LearningAbortedReason { LEARNING_OK("L_OK"), LEARNING_TIMEOUT("L_TM"), LEARNING_TOOMANYREDS("L_REDS");
+		
+		public final String name;
+		private LearningAbortedReason(String n)
+		{
+			name = n;
+		}
+		@Override
+		public String toString()
+		{
+			return name;
+		}
+	}
+	
+	protected LearningAbortedReason learningResult = LearningAbortedReason.LEARNING_OK;
+	
+	public void setLearningAbortedReason(LearningAbortedReason value)
+	{
+		learningResult = value;
+	}
+	
+	public LearningAbortedReason getLearningAbortedReason()
+	{
+		return learningResult;
+	}
+	
 	public static final String unknownName = "<UNKNOWN>";
 	
 	/** Returns a name if assigned and "Unknown" otherwise. 
@@ -734,7 +760,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		result.transitionMatrix = result.createNewTransitionMatrix(from);
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
-
+		result.setLearningAbortedReason(from.learningResult);
 		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,from);
 		
 		// First, clone vertices

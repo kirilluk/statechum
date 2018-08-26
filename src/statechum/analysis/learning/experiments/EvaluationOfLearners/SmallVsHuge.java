@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -53,8 +52,8 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
@@ -107,7 +106,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	@Override
 	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
 	{
-		final double density = par.states*0.3;
+		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
 		final int alphabet = (int)(par.states*density);
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
@@ -129,12 +128,12 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				@Override
 				public int getLength() {
 					int p = rndFSM.nextInt(100);
-					if (p < 70)
-						return (int)(par.states*(0.1+rndFSM.nextDouble()*halfOffset));
-					else if (p < 90)
-						return (int)(par.states*(0.1+halfOffset+rndFSM.nextDouble()*halfOffset));
+					if (p < 42)
+						return 1+(int)( (par.states*halfOffset-1)*rndFSM.nextDouble());
+					else if (p < 85)
+						return 1+(int)( (par.states*halfOffset-1)+par.states*halfOffset*rndFSM.nextDouble());
 					else
-						return (int)(par.states*(1+rndFSM.nextDouble()*20));
+						return 1+(int)( 2*par.states*halfOffset-1+rndFSM.nextDouble()*par.states*LearningAlgorithms.maxStateNumberMultiplier);
 				}
 
 				@Override
@@ -161,6 +160,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			}
 
 		//if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
+		ComputePathLengthDistribution pld = new ComputePathLengthDistribution(3,2,referenceGraph.getAcceptStateNumber());
 		{
 			// Now stitch all the sequences together.
 			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
@@ -172,6 +172,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					if (traceIter.hasNext())
 					{
 						List<Label> trace = traceIter.next();
+						pld.updatePathLengthStatistics(trace.size());
 						//sequence.addAll(newSequence.subList(0, newSequence.size()-1));
 						List<Label> addedPathToInit = shortestPathsIntoInit.get(referenceGraph.getVertex(trace));
 						traceToAdd.addAll(trace);traceToAdd.addAll(addedPathToInit);
@@ -235,6 +236,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		pta.clearColours();
 		Random rnd = new Random(par.seed*31+par.states+par.attempt);
 		//System.out.println("Transitions per state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
+		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
 
 		if (!par.onlyUsePositives)
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
@@ -258,6 +260,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				}
 				subsetOfPairs.put(entry.getKey(),value);
 			}
+			sample.percentageOfLabelsProhibitedPerLabel = (double)totalNegatives/alphabet;
 			//System.out.println("Total negatives per label: "+((double)totalNegatives/alphabet));
 			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerInitConfiguration,subsetOfPairs);
 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
@@ -267,6 +270,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		}
 		else 
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+		sample.distributionOfTraceLength = pld.lengthStatisticsAsString(':');
 
 		
 		for(Entry<CmpVertex,List<Label>> path: pta.pathroutines.computeShortPathsToAllStates().entrySet())
@@ -291,9 +295,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				return pta;
 			}
 		};
-		ReduceGraphByMergingRedsThatAreSameInReference redReducer = ReduceGraphKnowingTheSolution.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
+		StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingSiccoScoring(referenceGraph,par.scoringMethod);
 			
-		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
 		switch(par.learningType)
 		{
 		case CONVENTIONAL:
@@ -367,21 +370,26 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 4;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{5,10,20,40};
+		final int stateNumberList[] = new int[]{20};//5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
-		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>(), plotsTraceLength=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,RBoxPlotP<String>> plotsInvalid=new TreeMap<String,RBoxPlotP<String>>(),plotsMissed=new TreeMap<String,RBoxPlotP<String>>();
 		final Map<String,SquareBagPlot> plotsPreVsUnique = new TreeMap<String,SquareBagPlot>();
 		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
 		for(int q=0;q<stateNumberList.length;++q)
 		{
+			String stateNum = ExperimentPaperUAS2.sprintf("%02d", stateNumberList[q]);
+			plotsTraceLength.put(stateNum,new RBoxPlotP<String>("","Trace Length",new File(outPathPrefix+stateNum+"-tracelen.pdf")));
 			for(String descr:new String[] {"E","P","C","U"})
 			{
 				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
 				plotsBCR.put(fullDescr,new RBoxPlotP<String>("","BCR",new File(outPathPrefix+fullDescr+"-BCR.pdf")));
 				plotsDiff.put(fullDescr,new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+fullDescr+"-DIFF.pdf")));
+				plotsInvalid.put(fullDescr,new RBoxPlotP<String>("","INVALID",new File(outPathPrefix+fullDescr+"-INVALID.pdf")));
+				plotsMissed.put(fullDescr,new RBoxPlotP<String>("","MISSED",new File(outPathPrefix+fullDescr+"-MISSED.pdf")));
 				tableCSV.put(fullDescr,new CSVExperimentResult(new File(outPathPrefix+fullDescr+"-table.csv")));
 			}
 		}
@@ -405,19 +413,21 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							{
 								position = q;break;
 							}
-						String scoring = id.getColumnText()[2];// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
+						String []columnText = id.getColumnText();// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
+						String scoring = columnText[2];
 						if (scoring.equals(ScoringToApply.SCORING_SICCO.toString()))
 							scoring = "SV";
-						String AB = LearningSupportRoutines.padString(id.getColumnText()[5],'0',2)+":"+LearningSupportRoutines.padString(id.getColumnText()[6],'0',2);//+"-"+id.getColumnText()[6];
-						int size = Integer.parseInt(id.getColumnText()[5])*Integer.parseInt(id.getColumnText()[6]);
-						String label = "("+LearningSupportRoutines.padString(Integer.toString(size),'0',4)+")"+scoring+":"+AB;
+						String AB = LearningSupportRoutines.padString(columnText[5],'0',2)+":"+LearningSupportRoutines.padString(columnText[6],'0',2);//+"-"+id.getColumnText()[6];
+						String label = scoring+":"+AB;
 						
-						String [] idArray=Arrays.copyOf(id.getColumnText(), id.getColumnText().length);idArray[0]=null;
+						String [] idArray=Arrays.copyOf(columnText, columnText.length);idArray[0]=null;
 						String idArrayAsString = Arrays.toString(idArray);
 						
-						String [] data = text.split(",", -2);						
-						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);//, nrOfStates = Double.parseDouble(data[2]);
-
+						String [] data = text.split(",", -2);
+						// data could be ["Success","BCR","Diff","M_Invalid","M_Missed","States","prohibited","traceLength","Time"]
+						// actual value: L_OK,0.9613003095975232,0.9744275944097531,0.0,0.0,1.0,1.475,0.3:0.45:0.25,9
+						double bcr = Double.parseDouble(data[1]), diff = Double.parseDouble(data[2]);//, nrOfStates = Double.parseDouble(data[2]);
+						double invalidMergers = Double.parseDouble(data[3]),missedMergers = Double.parseDouble(data[4]);
 						if (id.getColumnText()[0].equals(LearningType.CONVENTIONAL.toString()))
 							descr = "E";
 						else
@@ -450,6 +460,11 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 						plotsBCR.get(fullDescr).add(label, bcr);
 						plotsDiff.get(fullDescr).add(label, diff);
+						String [] traceLenStats = data[7].split(":", -2);
+						RBoxPlotP<String> traceLengthPlot = plotsTraceLength.get(ExperimentPaperUAS2.sprintf("%02d", stateNumberList[position]));
+						traceLengthPlot.add("< 50%", Double.parseDouble(traceLenStats[0]));traceLengthPlot.add("50%..100%", Double.parseDouble(traceLenStats[1]));traceLengthPlot.add(">= 100%", Double.parseDouble(traceLenStats[2]));
+						plotsInvalid.get(fullDescr).add(label, invalidMergers);
+						plotsMissed.get(fullDescr).add(label, missedMergers);
 						tableCSV.get(fullDescr).add(id, text);
 					}
 				};
@@ -461,13 +476,20 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			public void processSubResult(ExperimentResult<SmallVsHugeParameters> result, RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentrunner) throws IOException 
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
+				double percentageOfProhibititedLabelsPerLabel = result.samples.get(0).percentageOfLabelsProhibitedPerLabel;
+				String distributionOfGeneratedTraceLength = result.samples.get(0).distributionOfTraceLength;
 				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(difference.differenceBCR.getValue());
+				csvLine.append(difference.whetherLearningSuccessfulOrAborted);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergers);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(percentageOfProhibititedLabelsPerLabel);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(distributionOfGeneratedTraceLength);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-				String experimentName = result.parameters.states+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
+				String experimentName = result.parameters.states+"-"+result.parameters.perStateSquaredDensityMultipliedBy10+"-"+result.parameters.traceQuantity+"-"+result.parameters.lengthmult+"_"+EvaluationOfLearnersParameters.ptaMergersToString(result.parameters.ptaMergers)+"-"+result.parameters.matrixType.name;
 				experimentrunner.RecordR(BCR_vs_experiment,experimentName ,difference.differenceBCR.getValue(),null,null);
 				experimentrunner.RecordR(diff_vs_experiment,experimentName,difference.differenceStructural.getValue(),null,null);
 			}
@@ -481,13 +503,14 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		try
 		{
 			for(int states:stateNumberList)
+			for(int density:new int[] {3})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{states/2,states,states*2})
-							for(int traceLengthMultiplier:new int[]{1,2,4,8})
+						for(int traceQuantity:new int[]{states})//,states,states*2})
+							for(int traceLengthMultiplier:new int[]{1})//1,2,4,8})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -509,7 +532,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 														ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 														
 														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
-														par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+														par.setParameters(states, density, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 														par.setPickUniqueFromInitial(true);
 														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
@@ -534,12 +557,15 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    	if (experimentRunner.getPhase() == PhaseEnum.COLLECT_RESULTS)
 	    	{// post-process the results if needed.
 	    		for(int q=0;q<stateNumberList.length;++q)
+	    		{
+	    			plotsTraceLength.get(ExperimentPaperUAS2.sprintf("%02d",stateNumberList[q])).reportResults(gr);
 	    			for(String descr:new String[] {"E","P","C","U"})
 	    			{
 	    				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
 	    				plotsBCR.get(fullDescr).reportResults(gr);plotsDiff.get(fullDescr).reportResults(gr);tableCSV.get(fullDescr).reportResults(gr);
+	    				plotsInvalid.get(fullDescr).reportResults(gr);plotsMissed.get(fullDescr).reportResults(gr);
 	    			}
-	    		
+	    		}
 	    		for(Entry<Integer,Map<Object,Double>> entry:pToBCR.entrySet())
 	    		{
 	    			String descrComparison = ExperimentPaperUAS2.sprintf("%02d", entry.getKey());
@@ -556,7 +582,10 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    				{
 	    					Double v = entryOther.get(value.getKey());
 	    					if (v != null)
+	    					{
 	    						plotsPreVsUnique.get(descrComparison).add(v.doubleValue(), value.getValue().doubleValue());
+	    						System.out.println(v.doubleValue()+" "+value.getValue().doubleValue());
+	    					}
 	    				}
 	    				
 	    			}

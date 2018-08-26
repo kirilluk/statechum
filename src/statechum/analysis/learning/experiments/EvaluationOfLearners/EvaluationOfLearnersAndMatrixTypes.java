@@ -289,7 +289,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 												ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 												ev.config.setAlwaysUseTheSameMatrixType(true);// to ensure we do not change the matrix part-way.
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
-												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+												par.setParameters(states, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
 												EvaluationOfLearnersAndMatrixTypes learnerRunner = new EvaluationOfLearnersAndMatrixTypes(par, ev);
 												learnerRunner.setAlwaysRunExperiment(true);

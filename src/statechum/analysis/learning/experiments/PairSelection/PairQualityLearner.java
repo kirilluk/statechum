@@ -53,12 +53,13 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -693,7 +694,7 @@ public class PairQualityLearner
 	
 	public static class LearnerThatUsesClassifiers extends LearningAlgorithms.LearnerThatCanClassifyPairs
 	{
-		public LearnerThatUsesClassifiers(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA, OverrideScoringToApply scoring,MarkovHelper helper, MarkovHelperClassifier helpers, boolean noLimitOnStateNumber, ReduceGraphByMergingRedsThatAreSameInReference redReducer) 
+		public LearnerThatUsesClassifiers(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA, OverrideScoringToApply scoring,MarkovHelper helper, MarkovHelperClassifier helpers, boolean noLimitOnStateNumber, StateMergingStatistics redReducer) 
 		{
 			super(evalCnf, reference, argInitialPTA, scoring, noLimitOnStateNumber,redReducer);markovHelper = helper;markovMultiHelpers = helpers;
 		}
@@ -1658,6 +1659,8 @@ public class PairQualityLearner
 		public long inconsistency;
 		public double fanoutPos,fanoutNeg;
 		public int ptaStateNumber;
+		public double invalidMergers, missedMergers; 
+		public LearningAbortedReason whetherLearningSuccessfulOrAborted;
 		
 		/** How many nodes there was in the original PTA. */
 		public long ptaTotalNodes = 0;
@@ -1701,6 +1704,8 @@ public class PairQualityLearner
 		public ScoresForGraph premergeLearner, actualLearner,actualConstrainedLearner,referenceLearner,ktailsLearner,markovLearner,EDSMzero, EDSMone, EDSMtwo;
 		public Map<String,ScoresForGraph> miscGraphs;
 		
+		public double percentageOfLabelsProhibitedPerLabel;
+		public String distributionOfTraceLength;
 		/** %% of states in a reference graph can be identified by singleton sequences. */
 		public long fractionOfStatesIdentifiedBySingletons = 0;
 		

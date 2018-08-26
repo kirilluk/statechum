@@ -38,7 +38,7 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		return new String[]{"BCR","Diff","States","Time"};
+		return new String[]{"Success","BCR","Diff","M_Invalid","M_Missed","States","prohibited","traceLength","Time"};
 	}
 
 	@Override
@@ -49,6 +49,6 @@ public class SmallVsHugeParameters extends EvaluationOfLearnersParameters
 	
 	@Override
 	public int executionTimeInCell() {
-		return 3;
+		return 8;
 	}
 }

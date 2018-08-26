@@ -47,8 +47,8 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphByMergingRedsThatAreSameInReference;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -359,9 +359,9 @@ public class WaveBlueFringe extends PairQualityLearner
 			blacklistZeroScoringPairs = value;
 		}
 	
-		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA,StateMergingStatistics redReducer) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,null);
+			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
 		}
 	
 		public static String refToString(Object obj)
@@ -617,7 +617,8 @@ public class WaveBlueFringe extends PairQualityLearner
 				System.out.println("Centre vertex: "+vertexWithMostTransitions+" "+countTransitions(ptaAfterInitialMerge, inverseOfPtaAfterInitialMerge, vertexWithMostTransitions));
 				
 				//learnerEval.config.setGeneralisationThreshold(1);
-				learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge);learnerOfPairs.setMarkovModel(m);
+				final StateMergingStatistics redReducerMarkov = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
+				learnerOfPairs = new LearnerMarkovPassive(learnerEval,referenceGraph,ptaAfterInitialMerge, redReducerMarkov);learnerOfPairs.setMarkovModel(m);
 
 				final LearnerGraph finalReferenceGraph = referenceGraph;
 
@@ -627,7 +628,10 @@ public class WaveBlueFringe extends PairQualityLearner
 					@Override
 					public CmpVertex selectRedNode(LearnerGraph gr,Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 					{
-						return tentativeRedNodes.iterator().next();
+						CmpVertex redVertex = tentativeRedNodes.iterator().next();
+						if (redReducerMarkov != null)
+							redReducerMarkov.stateSelectedAsRed(gr,redVertex,reds);
+						return redVertex;
 					}
 					
 					@SuppressWarnings("unused")
@@ -742,8 +746,8 @@ public class WaveBlueFringe extends PairQualityLearner
 					rejectVertexID = actualAutomaton.nextID(false);
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker,referenceGraph,testSet);
-				ReduceGraphByMergingRedsThatAreSameInReference redReducer = new ReduceGraphKnowingTheSolution(referenceGraph);
-				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,Configuration.ScoreMode.COMPATIBILITY,redReducer).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				StateMergingStatistics redReducerReferenceLearner = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph, true);
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,Configuration.ScoreMode.COMPATIBILITY,redReducerReferenceLearner).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(outcomeOfReferenceLearner,null,null,referenceGraph,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);

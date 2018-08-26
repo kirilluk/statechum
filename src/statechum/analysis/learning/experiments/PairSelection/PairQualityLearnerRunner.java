@@ -32,7 +32,7 @@ import statechum.analysis.learning.experiments.EvaluationOfLearners.ConstructRan
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.PerformFirstMerge;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
@@ -52,7 +52,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		super(parameters,evalCnf,PairQualityLearner.directoryNamePrefix);sampleCollector = collector;
 	}
 	
-	public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA, ReduceGraphKnowingTheSolution redReducer);
+	public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA, ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer);
 	
 	@Override
 	public ExperimentResult<PairQualityParameters> call() throws Exception 
@@ -147,7 +147,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		}
 					
 		// not merging based on a unique transition from an initial state
-		ReduceGraphKnowingTheSolution redReducer = new ReduceGraphKnowingTheSolution(referenceGraph);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
 		learnerOfPairs = createLearner(learnerInitConfiguration,referenceGraph,sampleCollector,fmg.ptaToUseForInference, redReducer);
 		long startTime = LearningSupportRoutines.getThreadTime();
 		/*

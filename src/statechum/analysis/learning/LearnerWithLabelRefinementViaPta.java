@@ -38,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -231,9 +232,9 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		}
 	}
 
-	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,MarkovParameters markovParameters) 
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,MarkovParameters markovParameters, StateMergingStatistics redReducer) 
 	{
-		super(evalCnf, argInitialPTA, threshold,markovParameters);
+		super(evalCnf, argInitialPTA, threshold,markovParameters, redReducer);
 	}
 
 	protected LearnerGraphND coreInverse = null;

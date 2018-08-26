@@ -45,7 +45,7 @@ public class TestMarkov_i2c
 		new MarkovClassifierLG(m, initialPTA, null).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters,null);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	
 		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 		LearnerGraph expected = new LearnerGraph(eval.config);AbstractPersistence.loadGraph("resources/i2c_study/outcome_i2c_chunk7.xml", expected,eval.getLabelConverter());expected.setName("expected");

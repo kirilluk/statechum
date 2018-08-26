@@ -360,7 +360,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 												ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 												ev.config.setAlwaysUseTheSameMatrixType(false);
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
-												par.setParameters(states, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+												par.setParameters(states, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
 												BenchmarkCPU learnerRunner = new BenchmarkCPU(par, ev);
 												//learnerRunner.setAlwaysRunExperiment(true);

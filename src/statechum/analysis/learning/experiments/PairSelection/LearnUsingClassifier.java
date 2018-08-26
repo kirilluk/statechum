@@ -47,7 +47,7 @@ import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerWithMandatoryMergeConstraints;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReduceGraphKnowingTheSolution;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
@@ -143,7 +143,7 @@ public class LearnUsingClassifier {
 											PairQualityLearnerRunner learnerRunner = new PairQualityLearnerRunner(dataCollector,parameters, learnerInitConfiguration)
 											{
 												@Override
-												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA,@SuppressWarnings("unused") ReduceGraphKnowingTheSolution redReducer) 
+												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph,WekaDataCollector argDataCollector,	LearnerGraph argInitialPTA,@SuppressWarnings("unused") ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer) 
 												{
 
 													LearnerThatUsesWekaResults l = new LearnerThatUsesWekaResults(parametersInnerLearner,evalCnf,argReferenceGraph,classifier,argInitialPTA,argDataCollector,true);
@@ -162,7 +162,7 @@ public class LearnUsingClassifier {
 											{
 												@SuppressWarnings("unused")
 												@Override
-												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,LearnerGraph argInitialPTA,ReduceGraphKnowingTheSolution redReducer) 
+												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,LearnerGraph argInitialPTA,ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer) 
 												{
 													return new LearningAlgorithms.ReferenceLearner(evalCnf,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
 												}
@@ -180,9 +180,9 @@ public class LearnUsingClassifier {
 											{
 												@SuppressWarnings("unused")
 												@Override
-												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, LearnerGraph argInitialPTA,ReduceGraphKnowingTheSolution redReducer) 
+												public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, LearnerGraph argInitialPTA,ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer) 
 												{
-													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.dataCollectorParameters.markovParameters);
+													EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(evalCnf,argInitialPTA,0,par.dataCollectorParameters.markovParameters,redReducer);
 													final MarkovModel m= new MarkovModel(par.dataCollectorParameters.markovParameters.chunkLen,par.dataCollectorParameters.markovParameters.pathsOrSets,true,true,false);
 
 													new MarkovClassifierLG(m, argInitialPTA,null).updateMarkov(false);// construct Markov chain if asked for.

@@ -57,6 +57,20 @@ public class ComputePathLengthDistribution
 		{
 			System.out.printf("%03d - %03d %03d%%\n", 100*i/plsDivisor, 100*(i+1)/plsDivisor, 100*statistics[i]/total);
 		}
-		System.out.printf("%03d - ... %03d%%\n", 100*plsSlotNumber/plsDivisor, 100*statistics[plsSlotNumber-1]/total);
+		System.out.printf("%03d - ... %03d%%\n", 100*(plsSlotNumber-1)/plsDivisor, 100*statistics[plsSlotNumber-1]/total);
+	}
+	
+	public String lengthStatisticsAsString(char separator)
+	{
+		int total = 0;
+		for(int i=0;i<plsSlotNumber;++i)
+			total+=statistics[i];
+		StringBuffer result = new StringBuffer();
+		for(int i=0;i<plsSlotNumber-1;++i)
+		{
+			result.append((double)statistics[i]/total);result.append(separator);
+		}		
+		result.append((double)statistics[plsSlotNumber-1]/total);
+		return result.toString();
 	}
 }

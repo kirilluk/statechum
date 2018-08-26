@@ -191,7 +191,7 @@ public class I2cexperiment extends PairQualityLearner
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,true,1, true,1,0,1);
-		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters, null);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 
 		System.out.println("started: "+new Date());
 		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

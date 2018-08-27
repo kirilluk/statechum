@@ -402,7 +402,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		JUConstants [][]priorities = new JUConstants[][]{
 				new JUConstants[]{JUConstants.AMBER,JUConstants.GRAY,JUConstants.INF_AMBER},
 				new JUConstants[]{JUConstants.NONE},
-				new JUConstants[]{JUConstants.BLUE,JUConstants.RED }
+				new JUConstants[]{JUConstants.BLUE},
+				new JUConstants[]{JUConstants.RED}
 				};
 	
 		for(int priority=0;priority<priorities.length;++priority)

@@ -118,6 +118,7 @@ public class ComputeExecutionTimeCorrectionValue
 			try
 			{
 				for(int states:new int[]{35})
+					for(int alphabetMult:new int[] {2})
 					for(boolean unique:new boolean[]{true,false})
 					{
 						int seedThatIdentifiesFSM=0;
@@ -149,7 +150,7 @@ public class ComputeExecutionTimeCorrectionValue
 													ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 													ev.config.setAlwaysUseTheSameMatrixType(false);
 													EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
-													par.setParameters(states, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+													par.setParameters(states, alphabetMult, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 													par.setPickUniqueFromInitial(unique);
 													BenchmarkCPU learnerRunner = new BenchmarkCPU(par, ev);
 													//learnerRunner.setAlwaysRunExperiment(true);

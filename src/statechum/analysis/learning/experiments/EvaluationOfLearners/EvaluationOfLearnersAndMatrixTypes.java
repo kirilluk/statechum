@@ -258,6 +258,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 		try
 		{
 			for(int states:new int[]{5,10,20,40})
+				for(int alphabetMult:new int[] {2})
 				for(boolean unique:new boolean[]{true,false})
 				{
 					int seedThatIdentifiesFSM=0;
@@ -289,7 +290,7 @@ public class EvaluationOfLearnersAndMatrixTypes extends UASExperiment<Evaluation
 												ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 												ev.config.setAlwaysUseTheSameMatrixType(true);// to ensure we do not change the matrix part-way.
 												EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,null,pta,matrix);
-												par.setParameters(states, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+												par.setParameters(states, alphabetMult, 0, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 												par.setPickUniqueFromInitial(unique);
 												EvaluationOfLearnersAndMatrixTypes learnerRunner = new EvaluationOfLearnersAndMatrixTypes(par, ev);
 												learnerRunner.setAlwaysRunExperiment(true);

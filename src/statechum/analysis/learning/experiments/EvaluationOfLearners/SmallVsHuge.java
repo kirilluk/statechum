@@ -108,7 +108,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
 	{
 		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
-		final int alphabet = (int)(par.states*density);
+		final int alphabet = par.states*par.alphabetMultiplier;
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, density, par.seed, true, learnerInitConfiguration);// par.pickUniqueFromInitial
@@ -509,6 +509,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		try
 		{
 			for(int states:stateNumberList)
+			for(int alphabetMult:new int[] {2})
 			for(int density:new int[] {0,3})
 			{
 				int seedThatIdentifiesFSM=0;
@@ -538,7 +539,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 														ev.config.setOverride_usePTAMerging(pta);ev.config.setTransitionMatrixImplType(matrix);
 														
 														SmallVsHugeParameters par = new SmallVsHugeParameters(scoringPair.scoringForEDSM,scoringPair.scoringMethod,type,pta,matrix);
-														par.setParameters(states, density, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
+														par.setParameters(states, alphabetMult,density, sample, attempt, seedThatIdentifiesFSM, traceQuantity, traceLengthMultiplier);
 														par.setPickUniqueFromInitial(true);
 														SmallVsHuge learnerRunner = new SmallVsHuge(par, ev);
 														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

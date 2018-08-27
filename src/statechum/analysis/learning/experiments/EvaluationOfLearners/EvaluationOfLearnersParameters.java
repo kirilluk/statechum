@@ -43,7 +43,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	public final ScoringToApply scoringMethod;
 	public final Configuration.ScoreMode scoringForEDSM;
 	public final Configuration.STATETREE matrixType;
-	public int states, perStateSquaredDensityMultipliedBy10,fsmSample, attempt, seed, traceQuantity, lengthmult;// here some of the parameters are not really used in row or column values because seed can be used to uniquely determine an FSM.
+	public int states, perStateSquaredDensityMultipliedBy10,alphabetMultiplier,fsmSample, attempt, seed, traceQuantity, lengthmult;// here some of the parameters are not really used in row or column values because seed can be used to uniquely determine an FSM.
 	public boolean pickUniqueFromInitial = false;
 	
 	
@@ -62,9 +62,9 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
-	public void setParameters(int argStates, int density10, int argFsmSample, int argAttempt, int argSeed, int traceQuantity, int lengthmult)
+	public void setParameters(int argStates, int alphabetMult, int density10, int argFsmSample, int argAttempt, int argSeed, int traceQuantity, int lengthmult)
 	{
-		states = argStates;perStateSquaredDensityMultipliedBy10 = density10;fsmSample = argFsmSample;attempt = argAttempt;seed = argSeed;this.traceQuantity = traceQuantity;this.lengthmult = lengthmult;
+		states = argStates;alphabetMultiplier = alphabetMult;perStateSquaredDensityMultipliedBy10 = density10;fsmSample = argFsmSample;attempt = argAttempt;seed = argSeed;this.traceQuantity = traceQuantity;this.lengthmult = lengthmult;
 	}
 	
 	public EvaluationOfLearnersParameters(Configuration.ScoreMode scEDSM,ScoringToApply scoring, LearningType type,boolean pta, Configuration.STATETREE matrix)
@@ -91,7 +91,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return states+"-"+uniqueAsString()+"-"+LearningSupportRoutines.padString(Integer.toString(fsmSample),'0',4)+"-"+LearningSupportRoutines.padString(Integer.toString(seed),'0',6)+"-D"+perStateSquaredDensityMultipliedBy10+"-A"+attempt;
+		return states+"-"+alphabetMultiplier+"-"+uniqueAsString()+"-"+LearningSupportRoutines.padString(Integer.toString(fsmSample),'0',4)+"-"+LearningSupportRoutines.padString(Integer.toString(seed),'0',6)+"-D"+perStateSquaredDensityMultipliedBy10+"-A"+attempt;
 	}
 
 	@Override

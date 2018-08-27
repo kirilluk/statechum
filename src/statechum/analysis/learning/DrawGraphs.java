@@ -75,7 +75,6 @@
 // This file is based on rtest.java
 
 package statechum.analysis.learning;
-import java.awt.Color;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -100,6 +99,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.swing.SwingUtilities;
 
@@ -1318,6 +1318,7 @@ public class DrawGraphs {
 		}
 		
 		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<ELEM,String>();
+		protected List<ELEM> orderingOfLabels = null;
 		
 		/** Permits labels to be altered - currently these labels are based on enums and intended for internal use. 
 		 * For graphs these labels need to be modified. 
@@ -1326,6 +1327,17 @@ public class DrawGraphs {
 		{
 			for(Entry<ELEM,String> entry:alteration.entrySet())
 				relabellingOfLabels.put(entry.getKey(), entry.getValue());
+		}
+		
+		/** Gives an order to the appearance of columns in the output graph. */
+		public void setOrderingOfLabels(Collection<ELEM> ordering)
+		{
+			if (orderingOfLabels != null)
+				orderingOfLabels.clear();
+			else
+				orderingOfLabels = new ArrayList<ELEM>();
+			
+			orderingOfLabels.addAll(ordering);
 		}
 		
 		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
@@ -1556,18 +1568,30 @@ public class DrawGraphs {
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
 			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			
+			if (orderingOfLabels != null)
 			{
-				data.add(entry.getValue().results);
-				String label = entry.getValue().label;
+				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				if (!o1.equals(collectionOfResults.keySet()))
+					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
+			}
+			
+			Iterator<ELEM> orderOfExplorationOfColumns = orderingOfLabels == null?collectionOfResults.keySet().iterator():orderingOfLabels.iterator();
+			while(orderOfExplorationOfColumns.hasNext())
+			{
+				ELEM entryKey = orderOfExplorationOfColumns.next();
+				DataColumn datacolumn = collectionOfResults.get(entryKey);
+				
+				data.add(datacolumn.results);
+				String label = datacolumn.label;
 				if (label == null)
-					label = entry.getKey().toString();
+					label = entryKey.toString();
 				String relabelled = relabellingOfLabels.get(label);
 				//System.out.println("orig: "+label+" relabelled: "+relabelled);
 				if (relabelled != null)
 					label = relabelled;
 				names.add(label);
-				String colour = entry.getValue().colour;
+				String colour = datacolumn.colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
@@ -1595,17 +1619,27 @@ public class DrawGraphs {
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
 			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
-			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			if (orderingOfLabels != null)
 			{
-				data.add(entry.getValue().results);
-				String label = entry.getValue().label;
+				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				if (!o1.equals(collectionOfResults.keySet()))
+					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
+			}
+				
+			Iterator<ELEM> orderOfExplorationOfColumns = orderingOfLabels == null?collectionOfResults.keySet().iterator():orderingOfLabels.iterator();
+			while(orderOfExplorationOfColumns.hasNext())
+			{
+				ELEM entryKey = orderOfExplorationOfColumns.next();
+				DataColumn datacolumn = collectionOfResults.get(entryKey);
+				data.add(datacolumn.results);
+				String label = datacolumn.label;
 				if (label == null)
-					label = entry.getKey().toString();
+					label = entryKey.toString();
 				String relabelled = relabellingOfLabels.get(label);
 				if (relabelled != null)
 					label = relabelled;
 				names.add(label);
-				String colour = entry.getValue().colour;
+				String colour = datacolumn.colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}

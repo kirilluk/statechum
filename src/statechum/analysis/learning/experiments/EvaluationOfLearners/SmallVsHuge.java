@@ -41,6 +41,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.ComputePathLengthDistribution;
@@ -368,21 +369,25 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		eval.config.setTimeOut(3600000L*8L);// timeout for tasks, in milliseconds, equivalent to 8hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
 		
-		final int samplesPerFSMSize = 4;
+		final int samplesPerFSMSize = 20;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{20};//5,10,20,40};
+		final int stateNumberList[] = new int[]{40};//5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 
-		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>(), plotsTraceLength=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
+		final Map<String,RBoxPlot<String>> plotsTraceLength=new TreeMap<String,RBoxPlot<String>>();
 		final Map<String,RBoxPlotP<String>> plotsInvalid=new TreeMap<String,RBoxPlotP<String>>(),plotsMissed=new TreeMap<String,RBoxPlotP<String>>();
 		final Map<String,SquareBagPlot> plotsPreVsUnique = new TreeMap<String,SquareBagPlot>();
 		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
+		
+		final String [] traceLenValues = new String[] {"<50%","50..100%",">=100%"};
 		for(int q=0;q<stateNumberList.length;++q)
 		{
 			String stateNum = ExperimentPaperUAS2.sprintf("%02d", stateNumberList[q]);
-			plotsTraceLength.put(stateNum,new RBoxPlotP<String>("","Trace Length",new File(outPathPrefix+stateNum+"-tracelen.pdf")));
+			RBoxPlot<String> traceLenGraph = new RBoxPlot<String>("","Trace Length",new File(outPathPrefix+stateNum+"-tracelen.pdf"));traceLenGraph.setOrderingOfLabels(Arrays.asList(traceLenValues));
+			plotsTraceLength.put(stateNum,traceLenGraph);
 			for(String descr:new String[] {"E","P","C","U"})
 			{
 				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
@@ -461,8 +466,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						plotsBCR.get(fullDescr).add(label, bcr);
 						plotsDiff.get(fullDescr).add(label, diff);
 						String [] traceLenStats = data[7].split(":", -2);
-						RBoxPlotP<String> traceLengthPlot = plotsTraceLength.get(ExperimentPaperUAS2.sprintf("%02d", stateNumberList[position]));
-						traceLengthPlot.add("< 50%", Double.parseDouble(traceLenStats[0]));traceLengthPlot.add("50%..100%", Double.parseDouble(traceLenStats[1]));traceLengthPlot.add(">= 100%", Double.parseDouble(traceLenStats[2]));
+						RBoxPlot<String> traceLengthPlot = plotsTraceLength.get(ExperimentPaperUAS2.sprintf("%02d", stateNumberList[position]));
+						for(int i=0;i<traceLenValues.length;++i)
+							traceLengthPlot.add(traceLenValues[i], Double.parseDouble(traceLenStats[i]));
 						plotsInvalid.get(fullDescr).add(label, invalidMergers);
 						plotsMissed.get(fullDescr).add(label, missedMergers);
 						tableCSV.get(fullDescr).add(id, text);
@@ -503,14 +509,14 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		try
 		{
 			for(int states:stateNumberList)
-			for(int density:new int[] {3})
+			for(int density:new int[] {0,3})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{states})//,states,states*2})
-							for(int traceLengthMultiplier:new int[]{1})//1,2,4,8})
+						for(int traceQuantity:new int[]{states/2,states})
+							for(int traceLengthMultiplier:new int[]{1,4})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})
@@ -525,7 +531,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{
-													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE}) // ,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
+													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

@@ -24,12 +24,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -68,7 +68,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.DrawGraphs.RBoxPlotP;
 
@@ -121,8 +120,6 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final int tracesToGenerate = par.states*par.traceQuantity*par.lengthmult;
 
 		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
-		//generator.setWalksShouldLeadToInitialState();
-		generator.setAppendUniqueToPath(fsmConstruction.uniqueFromInitial);
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 				static final double halfOffset = 0.5;
 				
@@ -160,8 +157,21 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
 			}
 
-		//if (par.learningType != LearningType.PREMERGE && par.learningType != LearningType.PREMERGEUNIQUE)
 		ComputePathLengthDistribution pld = new ComputePathLengthDistribution(3,2,referenceGraph.getAcceptStateNumber());
+
+		/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
+		final Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<CmpVertex,ArrayList<Label>>();
+		Set<Label> alphabetSet = referenceGraph.pathroutines.computeAlphabet();
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
+		{
+			Set<Label> negatives = new LinkedHashSet<Label>();
+			negatives.addAll(alphabetSet);negatives.removeAll(entry.getValue().keySet());
+			ArrayList<Label> rejects = new ArrayList<Label>();rejects.addAll(negatives);
+			inputsRejected.put(entry.getKey(), rejects);
+		}
+		
+		Random rnd = new Random(par.seed*31+par.states+par.attempt);
+		
 		{
 			// Now stitch all the sequences together.
 			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
@@ -174,71 +184,35 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 					{
 						List<Label> trace = traceIter.next();
 						pld.updatePathLengthStatistics(trace.size());
-						//sequence.addAll(newSequence.subList(0, newSequence.size()-1));
 						List<Label> addedPathToInit = shortestPathsIntoInit.get(referenceGraph.getVertex(trace));
 						traceToAdd.addAll(trace);traceToAdd.addAll(addedPathToInit);
 					}
 				if (!traceToAdd.isEmpty())
 				{
+					CmpVertex current = referenceGraph.getInit();
+					for(int i=0;i<traceToAdd.size();++i)
+					{
+						current = referenceGraph.transitionMatrix.get(current).get(traceToAdd.get(i));
+
+						ArrayList<Label> rejects = inputsRejected.get(current);
+						if (!rejects.isEmpty())
+						{
+							List<Label> negativeTrace = new ArrayList<Label>(i+2);negativeTrace.addAll(traceToAdd.subList(0, i+1));
+							negativeTrace.add(rejects.get(rnd.nextInt(rejects.size())));
+							pta.paths.augmentPTA(negativeTrace, false, false, null);
+						}
+					}
 					traceToAdd.add(fsmConstruction.uniqueFromInitial);
 					pta.paths.augmentPTA(traceToAdd, true, false, null);
 				}
 			}
 		}
-		/*
-		else
-		{// do PREMERGE even before we are asked for it.
-			//pta.paths.augmentPTA(generator.getAllSequences(0));
-			ComputePathLengthDistribution pld = new ComputePathLengthDistribution(10,2,referenceGraph.getAcceptStateNumber());
-			int addedLength = 0;
-			int repeatedStates = 0;
-			Collection<List<Label>> allTraces = generator.getAllSequences(0).getData();
-			
-			Iterator<List<Label>> traceIter = allTraces.iterator();
-			while(traceIter.hasNext())
-			{
-				List<Label> trace = traceIter.next();
-				List<Label> traceToAdd = new ArrayList<Label>(trace.size()+referenceGraph.getStateNumber());
-				List<Label> addedPathToInit = shortestPathsIntoInit.get(referenceGraph.getVertex(trace));
-				addedLength+=addedPathToInit.size();
-				traceToAdd.addAll(trace);traceToAdd.addAll(addedPathToInit);traceToAdd.add(fsmConstruction.uniqueFromInitial);
-				pta.paths.augmentPTA(traceToAdd,true,false,null);
-				repeatedStates += calculateRepeatedStates(traceToAdd,referenceGraph);
-				pld.updatePathLengthStatistics(traceToAdd.size());
-			}
-			
-			System.out.println("FSM: "+par.seed+" repeated states: "+repeatedStates+" out of "+allTraces.size()+" traces. Added length per trace: "+(addedLength/allTraces.size()));
-			//pld.reportLengthStatistics();
-		}*/
-		/*
-		{// This checks that the generated paths start with the right vertex, end with the right one and lead to an expected state.
-			CmpVertex firstState = referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));
-			Iterator<List<Label>> traceIter = generator.getAllSequences(0).getData().iterator();
-			while(traceIter.hasNext())
-			{
-				List<Label> trace = traceIter.next();
-				assert trace.get(0) == fsmConstruction.uniqueFromInitial;
-				assert trace.get(trace.size()-1) == fsmConstruction.uniqueFromInitial;
-				assert referenceGraph.getVertex(trace) == firstState;
-			}
-		}
-		*/
 		
-/*
-		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
-		if (par.onlyUsePositives)
-			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-				@Override
-				public boolean shouldBeReturned(Object name) {
-					return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-				}
-			}));
-*/
 		pta.clearColours();
-		Random rnd = new Random(par.seed*31+par.states+par.attempt);
-		//System.out.println("Transitions per state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
+		//System.out.println(""+par.getRowID()+" pta nodes: "+pta.getStateNumber()+", positive: "+pta.getAcceptStateNumber()+", transitions per state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
+		
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
-
+/*
 		if (!par.onlyUsePositives)
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
 			Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
@@ -262,7 +236,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				subsetOfPairs.put(entry.getKey(),value);
 			}
 			sample.percentageOfLabelsProhibitedPerLabel = (double)totalNegatives/alphabet;
-			//System.out.println("Total negatives per label: "+((double)totalNegatives/alphabet));
+			System.out.println(""+par.getRowID()+" total negatives per label: "+((double)totalNegatives/alphabet));
 			LearningSupportRoutines.addIfThenForPairwiseConstraints(learnerInitConfiguration,subsetOfPairs);
 			LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, referenceGraph.pathroutines.computeAlphabet(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).toArray(new LearnerGraph[0]);
 			learnerInitConfiguration.config.setUseConstraints(false);// do not use if-then during learning (refer to the explanation above)
@@ -271,6 +245,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		}
 		else 
 			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+*/
 		sample.distributionOfTraceLength = pld.lengthStatisticsAsString(':');
 
 		
@@ -371,7 +346,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 20;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{20};//5,10,20,40};
+		final int stateNumberList[] = new int[]{40};//5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
@@ -510,14 +485,14 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{
 			for(int states:stateNumberList)
 			for(int alphabetMult:new int[] {2})
-			for(int density:new int[] {0,3})
+			for(int density:new int[] {3})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
-						for(int traceQuantity:new int[]{states/2,states})
-							for(int traceLengthMultiplier:new int[]{1,4})
+						for(int traceQuantity:new int[]{states/4})
+							for(int traceLengthMultiplier:new int[]{16})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})

@@ -1217,7 +1217,7 @@ public class ExperimentPaperUAS2
 		
 		boolean mergePTA = false;
 		Configuration.STATETREE matrix = Configuration.STATETREE.STATETREE_ARRAY;
-		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.PREMERGE, LearningType.CONSTRAINTS};
+		LearningType[] learningTypes = new LearningType[]{LearningType.CONVENTIONAL, LearningType.PREMERGE, LearningType.PREMERGEUNIQUE,LearningType.CONSTRAINTS};
 		LearningType[] learningTypesReduced = new LearningType[]{LearningType.PREMERGE, LearningType.CONSTRAINTS};
 		// all UAV, all data 
 		Map<Integer,PTASequenceEngine> framesToTraces = null; 
@@ -1422,9 +1422,11 @@ public class ExperimentPaperUAS2
 		BCR_vs_experiment.setRelabelling(DrawGraphs.buildStringMapFromStringPairs(new String[][] {
 			new String[] {"all "+LearningType.CONVENTIONAL,"edsm"}, 
 			new String[] {"all "+LearningType.PREMERGE,"pre"}, 
+			new String[] {"all "+LearningType.PREMERGEUNIQUE,"preu"}, 
 			new String[] {"all "+LearningType.CONSTRAINTS,"cons"}, 
 			new String[] {"seed "+LearningType.CONVENTIONAL,"s edsm"}, 
 			new String[] {"seed "+LearningType.PREMERGE,"s pre"}, 
+			new String[] {"seed "+LearningType.PREMERGEUNIQUE,"s preu"}, 
 			new String[] {"seed "+LearningType.CONSTRAINTS,"s cons"}, 
 		}));
 		
@@ -1443,28 +1445,40 @@ public class ExperimentPaperUAS2
 		seeds_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
 		seeds_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
+		final RGraph<String> seeds_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_preu-bcr.pdf"));
+		seeds_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_con-diff.pdf"));
 		seeds_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_pre-diff.pdf"));
 		seeds_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
+		final RGraph<String> seeds_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_preu-diff.pdf"));
+		seeds_preu_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 
 		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-bcr.pdf"));
 		seedsN_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seedsN_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-bcr.pdf"));
 		seedsN_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
+		final RGraph<String> seedsN_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_preu-bcr.pdf"));
+		seedsN_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_con-diff.pdf"));
 		seedsN_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_pre-diff.pdf"));
 		seedsN_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
+		final RGraph<String> seedsN_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_preu-diff.pdf"));
+		seedsN_preu_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		
 		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
 		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
+		final RGraph<String> aufSeeds_preu_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_preu-bcr.pdf"));
 		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_con-diff.pdf"));
 		final RGraph<String> aufSeeds_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_pre-diff.pdf"));
+		final RGraph<String> aufSeeds_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_preu-diff.pdf"));
 		final RGraph<String> auf_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_con-bcr.pdf"));
 		final RGraph<String> auf_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_pre-bcr.pdf"));
+		final RGraph<String> auf_preu_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_preu-bcr.pdf"));
 		final RGraph<String> auf_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_con-diff.pdf"));
 		final RGraph<String> auf_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_pre-diff.pdf"));
+		final RGraph<String> auf_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_preu-diff.pdf"));
 		
 		final CSVExperimentResult allCSV = new CSVExperimentResult(new File(outPathPrefix+"all-method.csv"));
 		final CSVExperimentResult framesCSV = new CSVExperimentResult(new File(outPathPrefix+"frames-method.csv"));
@@ -1489,6 +1503,9 @@ public class ExperimentPaperUAS2
 							if (id.getColumnText()[1].equals(LearningType.PREMERGE.toString()))
 								descr = "P";
 							else
+								if (id.getColumnText()[1].equals(LearningType.PREMERGEUNIQUE.toString()))
+									descr = "U";
+								else
 								if (id.getColumnText()[1].equals(LearningType.CONSTRAINTS.toString()))
 									descr = "C";
 
@@ -1545,6 +1562,12 @@ public class ExperimentPaperUAS2
 									seeds_pre_All_diff.add(rowIDPadded, diff);
 								}
 								else
+									if (descr.equals("U"))
+									{
+										seeds_preu_All_bcr.add(rowIDPadded, bcr);
+										seeds_preu_All_diff.add(rowIDPadded, diff);
+									}
+									else
 									if (descr.equals("C"))
 									{
 										seeds_con_All_bcr.add(rowIDPadded, bcr);
@@ -1566,6 +1589,12 @@ public class ExperimentPaperUAS2
 									seedsN_pre_All_diff.add(rowIDPadded, diff);
 								}
 								else
+									if (descr.equals("U"))
+									{
+										seedsN_preu_All_bcr.add(rowIDPadded, bcr);
+										seedsN_preu_All_diff.add(rowIDPadded, diff);
+									}
+									else
 									if (descr.equals("C"))
 									{
 										seedsN_con_All_bcr.add(rowIDPadded, bcr);
@@ -1588,6 +1617,12 @@ public class ExperimentPaperUAS2
 									aufSeeds_pre_diff.add(percentage, diff);
 								}
 								else
+									if (descr.equals("U"))
+									{
+										aufSeeds_preu_bcr.add(percentage, bcr);
+										aufSeeds_preu_diff.add(percentage, diff);
+									}
+									else
 									if (descr.equals("C"))
 									{
 										aufSeeds_con_bcr.add(percentage, bcr);
@@ -1609,6 +1644,12 @@ public class ExperimentPaperUAS2
 									auf_pre_diff.add(percentage, diff);
 								}
 								else
+									if (descr.equals("U"))
+									{
+										auf_preu_bcr.add(percentage, bcr);
+										auf_preu_diff.add(percentage, diff);
+									}
+									else
 									if (descr.equals("C"))
 									{
 										auf_con_bcr.add(percentage, bcr);
@@ -1730,10 +1771,10 @@ public class ExperimentPaperUAS2
 	    		for(SGEExperimentResult res:new SGEExperimentResult[] {allCSV,framesCSV,seedsCSV,seedsNCSV,resultCSV,aufSeedsCSV,aufCSV})
 	    			if (res != null)
 	    				res.reportResults(gr);
-	    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,
+	    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_preu_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,seeds_preu_All_diff,
 	    				all_pos_method_bcr,all_posNeg_method_bcr,
-	    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_con_diff,auf_pre_diff,
-	    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff		
+	    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_preu_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_preu_bcr,auf_con_diff,auf_pre_diff,auf_preu_diff,
+	    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_preu_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff,seedsN_preu_All_diff		
 	    			})
 	    			if (res != null)
 	    				res.reportResults(gr);

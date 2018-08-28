@@ -120,7 +120,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final int tracesToGenerate = par.states*par.traceQuantity*par.lengthmult;
 
 		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
-		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
+		// the number of traces generated is twice the provided number because it is expected that both positive and negative traces are generated.
+		generator.generateRandomPosNeg(2*tracesToGenerate, 1, false, new RandomLengthGenerator() {
 				static final double halfOffset = 0.5;
 				
 				@Override

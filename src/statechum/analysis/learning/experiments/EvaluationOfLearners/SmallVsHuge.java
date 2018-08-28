@@ -347,7 +347,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 20;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{5,10,20,40};
+		final int stateNumberList[] = new int[]{20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
@@ -486,14 +486,14 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{
 			for(int states:stateNumberList)
 			for(int alphabetMult:new int[] {2})
-			for(int density:new int[] {3})
+			for(int density:new int[] {0,1,3})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
 					for(int attempt=0;attempt<attemptsPerFSM;++attempt)
 					{
 						for(int traceQuantity:new int[]{states/4,states/2})
-							for(int traceLengthMultiplier:new int[]{1,2,4})
+							for(int traceLengthMultiplier:new int[]{1,2,4,16})
 								//if (traceQuantity*traceLengthMultiplier <= 64)
 									for(Configuration.STATETREE matrix:new Configuration.STATETREE[]{Configuration.STATETREE.STATETREE_ARRAY})
 										for(boolean pta:new boolean[]{false})

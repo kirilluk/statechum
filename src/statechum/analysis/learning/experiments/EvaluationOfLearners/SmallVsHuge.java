@@ -347,7 +347,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 20;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{20,40};
+		final int stateNumberList[] = new int[]{5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
@@ -481,12 +481,16 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				return new SGEExperimentResult[]{BCR_vs_experiment,diff_vs_experiment,resultCSV};
 			}
 		};
+		ScoringModeScore scoringPairEDSM = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM),
+				scoringPairEDSM4 = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
+				scoringPairSICCO = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO);
+		
 		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
 		try
 		{
 			for(int states:stateNumberList)
 			for(int alphabetMult:new int[] {2})
-			for(int density:new int[] {0,1,3})
+			for(int density:new int[] {0,1,2,3})
 			{
 				int seedThatIdentifiesFSM=0;
 				for(int sample=0;sample<samplesPerFSMSize;++sample,++seedThatIdentifiesFSM)
@@ -499,16 +503,12 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 										for(boolean pta:new boolean[]{false})
 										{
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_2),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
-													//new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
+													scoringPairEDSM,scoringPairEDSM4,scoringPairSICCO
 											})
+											if (states <= 20 || scoringPair == scoringPairEDSM || scoringPair == scoringPairSICCO)
 											{
 													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
+													if (states <= 20 || type != LearningType.CONSTRAINTS)
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);

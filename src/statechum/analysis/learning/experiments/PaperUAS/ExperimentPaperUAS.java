@@ -968,7 +968,7 @@ public class ExperimentPaperUAS
 		}
 
 		@Override
- 		public ExperimentResult<PaperUASParameters> call() throws Exception 
+ 		public ExperimentResult<PaperUASParameters> runexperiment() throws Exception 
  		{
 			ExperimentResult<PaperUASParameters> outcome = new ExperimentResult<PaperUASParameters>(par);
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();

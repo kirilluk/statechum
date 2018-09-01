@@ -155,7 +155,7 @@ public class MarkovExperiment
 		}
 		
 		@Override
-		public ExperimentResult<MarkovLearningParameters> call() throws Exception 
+		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception 
 		{
 			if (par.tracesAlphabetMultiplier <= 0)
 				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
@@ -513,7 +513,6 @@ public class MarkovExperiment
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
-		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces

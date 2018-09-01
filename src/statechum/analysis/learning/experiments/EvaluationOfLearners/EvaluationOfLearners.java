@@ -71,7 +71,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 			Configuration.ScoreMode.GENERAL_NOFULLMERGE, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
 	@Override
-	public EvaluationOfLearnersResult call() throws Exception 
+	public EvaluationOfLearnersResult runexperiment() throws Exception 
 	{
 		final int alphabet = par.states*2;
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);

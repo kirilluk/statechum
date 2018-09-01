@@ -55,7 +55,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 	public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA, ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer);
 	
 	@Override
-	public ExperimentResult<PairQualityParameters> call() throws Exception 
+	public ExperimentResult<PairQualityParameters> runexperiment() throws Exception 
 	{
 		final int tracesAlphabet = par.tracesAlphabetMultiplier*par.states;
 		ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);

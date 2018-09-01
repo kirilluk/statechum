@@ -75,7 +75,7 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		return new String[]{"BCR","Diff","States","PTA nodes","PTA tails","Time"};
+		return new String[]{"Success","BCR","Diff","M_Invalid","M_Missed","States","PTA nodes","PTA tails","Time"};
 	}
 
 	@Override
@@ -87,6 +87,6 @@ public class PaperUASParameters implements ThreadResultID
 	@Override
 	public int executionTimeInCell() 
 	{
-		return 5;
+		return 8;
 	}
 }

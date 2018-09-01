@@ -82,7 +82,7 @@ public class TestSGE_ExperimentRunner
 		}
 		
 		@Override
-		public ExperimentResult<PAR> call() throws Exception 
+		public ExperimentResult<PAR> runexperiment() throws Exception 
 		{
 			return new ExperimentResult<PAR>(par);
 		}
@@ -304,6 +304,7 @@ public class TestSGE_ExperimentRunner
 	public int runD_null_for_one_of_the_samples(String []args)
 	{
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		experimentRunner.setThrowOnTaskReturningNull(true);
 		for(int sample=0;sample<3;++sample)
 		{
 			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
@@ -585,6 +586,7 @@ public class TestSGE_ExperimentRunner
 	public int runMultipleFail2(String []args)
 	{
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		experimentRunner.setThrowOnTaskReturningNull(true);
 		for(int sample=0;sample<3;++sample)
 		{
 			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);

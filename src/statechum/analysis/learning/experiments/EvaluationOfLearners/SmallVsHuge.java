@@ -103,8 +103,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	}
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
-	@Override
-	public ExperimentResult<SmallVsHugeParameters> call() throws Exception 
+	public ExperimentResult<SmallVsHugeParameters> runexperiment() throws Exception 
 	{
 		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
 		final int alphabet = par.states*par.alphabetMultiplier;
@@ -347,7 +346,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		
 		final int samplesPerFSMSize = 20;
 		final int attemptsPerFSM = 2;
-		final int stateNumberList[] = new int[]{5,10,20,40};
+		final int stateNumberList[] = new int[]{20};//5,10,20,40};
 		
 		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
 		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));

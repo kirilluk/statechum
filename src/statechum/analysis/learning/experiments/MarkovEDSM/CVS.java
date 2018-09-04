@@ -126,10 +126,11 @@ public class CVS
 				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
-				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
+				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0,0);
 				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 	
 				for(int states:statesToUse)
+				for(int density:new int[] {0,3})
 				{
 					final String experimentName = outPathPrefix+parExp.getExperimentID()+"_states="+ states+"_";
 					final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
@@ -145,12 +146,11 @@ public class CVS
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
 											parameters.setOnlyUsePositives(onlyPositives);
-											parameters.setAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
 											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
@@ -168,8 +168,11 @@ public class CVS
 							ScoresForGraph data=sm.actualLearner;
 							
 							StringBuffer csvLine = new StringBuffer();
-							csvLine.append(data.differenceBCR.getValue());
+							csvLine.append(data.whetherLearningSuccessfulOrAborted);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 	
 							if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)

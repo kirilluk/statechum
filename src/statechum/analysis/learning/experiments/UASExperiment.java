@@ -73,6 +73,28 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		}
 	}
 	
+	@Override
+	public TR call() throws Exception 
+	{
+		TR outcome = null;
+		outcome = runexperiment();
+		/*
+		try
+		{
+		}
+		catch(Exception ex)
+		{
+			System.err.println("Exception in task: "+par.getRowID()+"/"+par.getColumnID());
+			ex.printStackTrace();
+			outcome = null;
+		}
+		*/
+		return outcome;
+	}
+	
+	/** Responsible for running an experiment. */
+	public abstract TR runexperiment() throws Exception;
+	
 	/** The outcome of learning might have been stored in a file from the previous run. For this reason, it makes sense to try to load it. 
 	 * @throws IOException if the outcome of learning exists but cannot be loaded
 	 */

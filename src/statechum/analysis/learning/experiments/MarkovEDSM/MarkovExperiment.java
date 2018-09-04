@@ -83,9 +83,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 
 
@@ -107,11 +105,12 @@ public class MarkovExperiment
 		public void generateReferenceFSM()
 		{
 			final int alphabet = (int)(par.alphabetMultiplier*par.states);
+			final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 			
 			try {
 				// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				referenceGraph = mg.nextMachine(alphabet, -1.0,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
+				referenceGraph = mg.nextMachine(alphabet, density,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate graph", e);
 			}
@@ -123,39 +122,30 @@ public class MarkovExperiment
 			// Use a random generator selector passed as a parameter.
 			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.trainingSample),5,null);
-			final int tracesToGenerate = LearningSupportRoutines.makeEven(par.traceQuantity);
+			final int tracesToGenerate = 2*par.traceQuantity;// *2 is because by default we'd generate the same number of positive and negative traces; in the described experiments we mostly on generate positive traces.
 			final int tracesAlphabet = (int)(par.tracesAlphabetMultiplier*par.states);
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
-									
+
 					@Override
 					public int getLength() {
-						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);// not the same as for SmallVsHuge or LearnerEvaluation
+						// The idea is to generate long traces reflecting a lengthy period of computation. The difference between "tracesAlphabet" and "alphabetMultiplier" is to make it possible
+						// to change the size of an alphabet but generate traces of the same length, in order to evaluate how sensitive the learner is to alphabet size.
+						// Other than for this very specific experiment tracesAlphabet and alphabetMultiplier should be the same.
+						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);// not the same as for SmallVsHuge (which aims for a specific distribution of paths) or LearnerEvaluation
 					}
 	
 					@Override
 					public int getPrefixLength(int len) {
 						return len;
 					}
-				});
+				},true, !par.onlyUsePositives, null,null);
 
-
-			if (par.onlyUsePositives)
-			{
-				pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-					@Override
-					public boolean shouldBeReturned(Object name) {
-						return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-					}
-				}));
-			}
-			else
-				pta.paths.augmentPTA(generator.getAllSequences(0));
-
+			pta.paths.augmentPTA(generator.getAllSequences(0));
 			return pta;
 		}
 		
 		@Override
-		public ExperimentResult<MarkovLearningParameters> call() throws Exception 
+		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception 
 		{
 			if (par.tracesAlphabetMultiplier <= 0)
 				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
@@ -184,45 +174,30 @@ public class MarkovExperiment
 			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(trimmedReference, null, m, checker,false);
 
-			PerformFirstMerge fmg = new PerformFirstMerge();fmg.ptaToUseForInference=pta;
+			PerformFirstMerge firstMerge = new PerformFirstMerge();firstMerge.ptaToUseForInference=pta;
 			if (par.markovParameters.useCentreVertex)
 			{
 				saveGraph(namePTABEFORECENTRE,pta);
-				fmg.buildFirstGraph(pta, trimmedReference, par.markovParameters, m, checker);
-				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(fmg.ptaToUseForInference);
+				firstMerge.buildFirstGraph(pta, trimmedReference, par.markovParameters, m, checker);
+				LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(firstMerge.ptaToUseForInference);
 				if (par.usePrintf)
-					System.out.println("Centre vertex: "+fmg.vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(fmg.ptaToUseForInference, inverseOfPtaAfterInitialMerge, fmg.vertexWithMostTransitions));
+					System.out.println("Centre vertex: "+firstMerge.vertexWithMostTransitions+" number of transitions: "+WaveBlueFringe.countTransitions(firstMerge.ptaToUseForInference, inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions));
 			}
-			final LearnerGraph ptaToUseForInferenceFinal = fmg.ptaToUseForInference;
-			
-			UASExperiment.BuildPTAInterface ptaConstructor = new BuildPTAInterface() {
-				@Override
-				public String kindOfPTA()
-				{
-					return par.getRowID();
-				}
-				@Override
-				public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
-				{
-					return ptaToUseForInferenceFinal;
-				}
-			};
-			
+	
 			SampleData dataSample = new SampleData(null,null);
 			EDSM_MarkovLearner markovLearner = null;
 			long runTime = 0;
 			LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
-			saveGraph(namePTA, fmg.ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
-			if(actualAutomaton == null)
-			{
-				LearnerGraph ptaBuilt = ptaConstructor.buildPTA();
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			saveGraph(namePTA, firstMerge.ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
+			{// we always have to build a graph because without a learning process there is no record which mergers were right or not. Otherwise we'd be able to do if (actualAutomaton == null) and learn only in this case.
+				LearnerGraph ptaBuilt = firstMerge.ptaToUseForInference;
 				Learner learnerOfPairs = null;
-				ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
 	 			switch(par.learnerToUse)
 	 			{
 	 			case LEARNER_EDSMMARKOV:
 	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,fmg.ptaToUseForInference,0,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,firstMerge.ptaToUseForInference,0,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	 				learnerOfPairs = markovLearner;
 	 				break;
 	 			case LEARNER_EDSM2:
@@ -259,10 +234,10 @@ public class MarkovExperiment
 	 			
 	 			long startTime = LearningSupportRoutines.getThreadTime();
 	 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-				if (fmg.verticesToMergeBasedOnInitialPTA != null && par.markovParameters.mergeIdentifiedPathsAfterInference)
+				if (firstMerge.verticesToMergeBasedOnInitialPTA != null && par.markovParameters.mergeIdentifiedPathsAfterInference)
 				{
 					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),fmg.verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),firstMerge.verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					learntGraph = MergeStates.mergeCollectionOfVertices(learntGraph, null, verticesToMerge, null, false);
 				}			
@@ -280,11 +255,16 @@ public class MarkovExperiment
 			}
 
 			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
+			if (redReducer != null)
+			{
+				dataSample.actualLearner.invalidMergers = redReducer.reportInvalidMergers();dataSample.actualLearner.missedMergers = redReducer.reportMissedMergers();
+			}
+			dataSample.actualLearner.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 			dataSample.actualLearner.executionTime = runTime;
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, null, m, checker,false);
 			dataSample.referenceLearner = zeroScore;
-			dataSample.centreCorrect = fmg.correctCentre;
-			dataSample.centrePathNumber = fmg.centrePathNumber;
+			dataSample.centreCorrect = firstMerge.correctCentre;
+			dataSample.centrePathNumber = firstMerge.centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
@@ -503,17 +483,15 @@ public class MarkovExperiment
 		
 		DrawGraphs gr = new DrawGraphs();
 		
-		final int samplesPerFSM = 100;
+		final int samplesPerFSM = 20;
 		final int trainingSamplesPerFSM = 2;
-		final int traceQuantity = 1;
-		final double traceLengthMultiplierMax = 10;
+		final double traceLengthMultiplierMax = 16;
 		final int chunkSize = 3;
 		final boolean pathsOrSets = true;
 		final int statesToUse[] = new int[]{10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
-		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
@@ -633,37 +611,41 @@ public class MarkovExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{0})//0,1,2})
 		{
-			final int traceQuantityToUse = traceQuantity;
-			int seedForFSM = 0;
-			MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
-			parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-
-			for(int states:statesToUse)
+			// final int traceQuantityToUse = traceQuantity;
+			for(final int traceQuantityToUse:new int[]{1,2,4,8}) 
 			{
-				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
-					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
-						for(boolean aveOrMax:new boolean[]{false})
-							for(int divisor:new int[]{2})
-								for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-									for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0,6.0}:new double[]{1.0})
-									{
-										LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-										ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-										ev.config.setOverride_usePTAMerging(false);
-			
-										MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
-										parameters.setOnlyUsePositives(onlyPositives);
-										parameters.setAlphabetMultiplier(alphabetMultiplierMax);
-										parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-										parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-										parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
-										parameters.markovParameters.setMarkovParameters(preset,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,1);
-										parameters.setDisableInconsistenciesInMergers(false);
-										parameters.setUsePrintf(experimentRunner.isInteractive());
-										MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
-										learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-										experimentRunner.submitTask(learnerRunner);
-									}
+				int seedForFSM = 0;
+				//MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
+				//parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+	
+				for(int states:statesToUse)
+				for(int density:new int[] {0,3})
+				{
+					for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
+							for(boolean aveOrMax:new boolean[]{false})
+								for(double traceLengthMultiplier:new double[] {1,4,16})
+								for(int divisor:new int[]{2})
+									for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
+										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
+										{
+											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+											ev.config.setOverride_usePTAMerging(false);
+				
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
+											parameters.setOnlyUsePositives(onlyPositives);
+											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+											parameters.setTraceLengthMultiplier(traceLengthMultiplier);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+											parameters.markovParameters.setMarkovParameters(preset,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,1);
+											parameters.setDisableInconsistenciesInMergers(false);
+											parameters.setUsePrintf(experimentRunner.isInteractive());
+											MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
+											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+											experimentRunner.submitTask(learnerRunner);
+										}
+				}
 			}
 		}
 		
@@ -676,8 +658,11 @@ public class MarkovExperiment
 				ScoresForGraph data=sm.actualLearner;
 				
 				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(data.differenceBCR.getValue());
+				csvLine.append(data.whetherLearningSuccessfulOrAborted);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
@@ -1272,6 +1257,10 @@ public class MarkovExperiment
 		}
 		*/
 
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
 		}
 		finally
 		{

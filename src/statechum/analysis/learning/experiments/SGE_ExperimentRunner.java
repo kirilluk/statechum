@@ -388,6 +388,21 @@ public class SGE_ExperimentRunner
 			return phase == PhaseEnum.RUN_STANDALONE;
 		}
 		
+		/** If a task returns null as an outcome, throw an exception. nulls are returned on fatal errors such as where an exception was thrown by a task. 
+		 * This is mostly used for testing, because an exception in a single task is no excuse for stopping other tasks that are run in parallel.
+		 */
+		private boolean throwOnTaskReturningNull = false;
+		
+		public void setThrowOnTaskReturningNull(boolean value)
+		{
+			throwOnTaskReturningNull = value;
+		}
+		
+		public boolean getThrowOnTaskReturningNull()
+		{
+			return throwOnTaskReturningNull;
+		}
+		
 		Map<String,SGEExperimentResult> nameToGraph = null;
 		StringWriter outputWriter = null;
 		// Plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
@@ -689,28 +704,40 @@ public class SGE_ExperimentRunner
 						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
 						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
 							outputWriter = new StringWriter();
-							RESULT result = runner.take().get();
-
-							BufferedWriter writer = null;
+							RESULT result = null;
 							try
 							{
-								handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
-								writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
-								java.util.zip.CRC32 crc = new java.util.zip.CRC32();
-								outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
-								String text = outputWriter.toString();updateCRC(crc, text);
-								writer.append(text);
-								writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
-							}
-							finally
-							{
-								if (writer != null)
+								result = runner.take().get();
+								BufferedWriter writer = null;
+								if (result != null)
 								{
-									writer.close();writer = null;
+									try
+									{
+										handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
+										writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
+										java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+										outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
+										String text = outputWriter.toString();updateCRC(crc, text);
+										writer.append(text);
+										writer.append(CHECKSUMFIELD);writer.append(separator);writer.append(Long.toHexString(crc.getValue()));writer.append('\n');
+									}
+									finally
+									{
+										if (writer != null)
+										{
+											writer.close();writer = null;
+										}
+									}
+									new File(constructTaskStartedFileName(result.parameters)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
+									// start/stop files are not realistic on parallel executions because those are not run on a grid.
 								}
 							}
-							new File(constructTaskStartedFileName(result.parameters)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
-							// start/stop files are not realistic on parallel executions because those are not run on a grid.
+							catch(Exception ex)
+							{
+								ex.printStackTrace();// report failure but continue with other tasks. 
+							}
+							if (throwOnTaskReturningNull && result == null)
+								throw new RuntimeException("null returned by task, most likely due to exception");
 						}
 					break;
 				}

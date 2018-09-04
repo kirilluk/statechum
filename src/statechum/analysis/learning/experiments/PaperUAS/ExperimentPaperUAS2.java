@@ -1106,7 +1106,7 @@ public class ExperimentPaperUAS2
 		}
 
 		@Override
- 		public ExperimentResult<PaperUASParameters> call() throws Exception 
+ 		public ExperimentResult<PaperUASParameters> runexperiment() throws Exception 
  		{
 			ExperimentResult<PaperUASParameters> outcome = new ExperimentResult<PaperUASParameters>(par);
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
@@ -1173,6 +1173,12 @@ public class ExperimentPaperUAS2
  		return outcome;
  	}
  	 	
+ 	/** Adds the provided number of invalid/missed mergers to a plot. */
+ 	public static void addInvalidMessedToGraph(RGraph<String> plot, String label, double invalidMergers, double missedMergers)
+ 	{
+ 		plot.add(label, invalidMergers,"red",null);plot.add(label, missedMergers,"blue",null);
+ 	}
+ 	
  	// Arguments: same as SGE, meaning that the location of the data files is hardcoded for the time being. 
  	public static void main(String args[]) throws Exception
  	{
@@ -1259,7 +1265,7 @@ public class ExperimentPaperUAS2
  				for(LearningType type:learningTypes)
 	 			{
     				PaperUASParameters parameters = new PaperUASParameters(scoringForEDSM, scoringMethod, type, mergePTA, matrix);
-					parameters.setParameters(posneg, true, "All", parametersAU,0);
+					parameters.setParameters(posneg, true, "All", parametersAllSeeds,0);
 					UASCaseStudy experiment = new UASCaseStudy(parameters,referenceGraph,graphName,paper.learnerInitConfiguration);
 	     			//printLastFrame("AU_"+seed,framesToTraces.keySet());
 					listOfExperiments.add(experiment);
@@ -1439,8 +1445,12 @@ public class ExperimentPaperUAS2
 		
 		final RGraph<String> all_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-bcr.pdf"));
 		final RGraph<String> all_method_diff = new RBoxPlotP<String>("method","DIFF",new File(outPathPrefix+"all-method-diff.pdf"));
+		final RGraph<String> all_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-method-invalid_extra.pdf"));
 		final RGraph<String> all_posNeg_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-posneg-method-bcr.pdf"));
+		final RGraph<String> all_posNeg_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-posneg-method-invalid_extra.pdf"));
 		final RGraph<String> all_pos_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-pos-method-bcr.pdf"));
+		final RGraph<String> all_pos_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-pos-method-invalid_extra.pdf"));
+
 		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-bcr.pdf"));
 		seeds_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
@@ -1448,11 +1458,11 @@ public class ExperimentPaperUAS2
 		final RGraph<String> seeds_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_preu-bcr.pdf"));
 		seeds_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_con-diff.pdf"));
-		seeds_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_pre-diff.pdf"));
-		seeds_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seeds_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_preu-diff.pdf"));
-		seeds_preu_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
+		final RGraph<String> seeds_con_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_con-invalid_extra.pdf"));
+		final RGraph<String> seeds_pre_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_pre-invalid_extra.pdf"));
+		final RGraph<String> seeds_preu_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_preu-invalid_extra.pdf"));
 
 		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-bcr.pdf"));
 		seedsN_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
@@ -1461,11 +1471,11 @@ public class ExperimentPaperUAS2
 		final RGraph<String> seedsN_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_preu-bcr.pdf"));
 		seedsN_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
 		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_con-diff.pdf"));
-		seedsN_con_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_pre-diff.pdf"));
-		seedsN_pre_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
 		final RGraph<String> seedsN_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_preu-diff.pdf"));
-		seedsN_preu_All_diff.setOtherOptions("ylim = c(0.8, 1.0)");
+		final RGraph<String> seedsN_con_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_con-invalid_extra.pdf"));
+		final RGraph<String> seedsN_pre_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_pre-invalid_extra.pdf"));
+		final RGraph<String> seedsN_preu_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_preu-invalid_extra.pdf"));
 		
 		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
 		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
@@ -1473,12 +1483,18 @@ public class ExperimentPaperUAS2
 		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_con-diff.pdf"));
 		final RGraph<String> aufSeeds_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_pre-diff.pdf"));
 		final RGraph<String> aufSeeds_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_preu-diff.pdf"));
+		final RGraph<String> aufSeeds_con_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_con-invalid_extra.pdf"));
+		final RGraph<String> aufSeeds_pre_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_pre-invalid_extra.pdf"));
+		final RGraph<String> aufSeeds_preu_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_preu-invalid_extra.pdf"));
 		final RGraph<String> auf_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_con-bcr.pdf"));
 		final RGraph<String> auf_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_pre-bcr.pdf"));
 		final RGraph<String> auf_preu_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_preu-bcr.pdf"));
 		final RGraph<String> auf_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_con-diff.pdf"));
 		final RGraph<String> auf_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_pre-diff.pdf"));
 		final RGraph<String> auf_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_preu-diff.pdf"));
+		final RGraph<String> auf_con_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_con-invalid_extra.pdf"));
+		final RGraph<String> auf_pre_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_pre-invalid_extra.pdf"));
+		final RGraph<String> auf_preu_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_preu-invalid_extra.pdf"));
 		
 		final CSVExperimentResult allCSV = new CSVExperimentResult(new File(outPathPrefix+"all-method.csv"));
 		final CSVExperimentResult framesCSV = new CSVExperimentResult(new File(outPathPrefix+"frames-method.csv"));
@@ -1520,38 +1536,35 @@ public class ExperimentPaperUAS2
 									scoring = "SV";
 						
 						String [] data = text.split(",", -2);
-						double bcr = Double.parseDouble(data[0]), diff = Double.parseDouble(data[1]);
+						// The structure of data is as follows: "Success","BCR","Diff","M_Invalid","M_Missed","States","PTA nodes","PTA tails","Time"
+						double bcr = Double.parseDouble(data[1]), diff = Double.parseDouble(data[2]);
+						double invalidMergers = Math.round(100*Double.parseDouble(data[3])),missedMergers = Math.round(100*Double.parseDouble(data[4]));
 						//double nrOfStates = Double.parseDouble(data[2]);
 						//int ptaTotalNodes = Integer.parseInt(data[3]),ptaTailNodes = Integer.parseInt(data[4]);
 
 						if (id.getRowID().startsWith("All"))
 						{
-							if (bcr > 0.55)
+							//if (bcr > 0.55)
 							{
 								all_method_bcr.add(id.getColumnText()[1], bcr);
 								all_method_diff.add(id.getColumnText()[1], diff);
+								addInvalidMessedToGraph(all_method_invalid_extra,id.getColumnText()[1], invalidMergers, missedMergers);
 							}			
 							
-							
 							if (id.getColumnText()[0].equalsIgnoreCase("posNeg"))
+							{
 								all_posNeg_method_bcr.add(descr+":"+scoring, bcr);
+								addInvalidMessedToGraph(all_posNeg_method_invalid_extra,descr+":"+scoring, invalidMergers, missedMergers);
+							}
 							else
+							{
 								all_pos_method_bcr.add(descr+":"+scoring, bcr);
-							
+								addInvalidMessedToGraph(all_pos_method_invalid_extra,descr+":"+scoring, invalidMergers, missedMergers);
+							}
 							allCSV.add(id, text);
 						}
 						else
-						if (id.getRowID().equals("AU-All"))
-						{
-							/*
-							if (id.getColumnText()[0].equalsIgnoreCase("posNeg"))
-								all_posNeg_method_bcr.add(descr+":"+scoring, bcr);
-							else
-								all_pos_method_bcr.add(descr+":"+scoring, bcr);
-								*/
-						}
-						else
-						if (id.getRowID().startsWith("AU-") && !id.getRowID().equals("AU-All"))
+						if (id.getRowID().startsWith("AU-"))
 						{
 							if (descr != null && id.getColumnText()[3].equals("E0"))
 							{
@@ -1560,18 +1573,21 @@ public class ExperimentPaperUAS2
 								{
 									seeds_pre_All_bcr.add(rowIDPadded, bcr);
 									seeds_pre_All_diff.add(rowIDPadded, diff);
+									addInvalidMessedToGraph(seeds_pre_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 								}
 								else
 									if (descr.equals("U"))
 									{
 										seeds_preu_All_bcr.add(rowIDPadded, bcr);
 										seeds_preu_All_diff.add(rowIDPadded, diff);
+										addInvalidMessedToGraph(seeds_preu_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 									}
 									else
 									if (descr.equals("C"))
 									{
 										seeds_con_All_bcr.add(rowIDPadded, bcr);
 										seeds_con_All_diff.add(rowIDPadded, diff);
+										addInvalidMessedToGraph(seeds_con_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 									}
 							}
 							
@@ -1587,18 +1603,21 @@ public class ExperimentPaperUAS2
 								{
 									seedsN_pre_All_bcr.add(rowIDPadded, bcr);
 									seedsN_pre_All_diff.add(rowIDPadded, diff);
+									addInvalidMessedToGraph(seedsN_pre_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 								}
 								else
 									if (descr.equals("U"))
 									{
 										seedsN_preu_All_bcr.add(rowIDPadded, bcr);
 										seedsN_preu_All_diff.add(rowIDPadded, diff);
+										addInvalidMessedToGraph(seedsN_preu_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 									}
 									else
 									if (descr.equals("C"))
 									{
 										seedsN_con_All_bcr.add(rowIDPadded, bcr);
 										seedsN_con_All_diff.add(rowIDPadded, diff);
+										addInvalidMessedToGraph(seedsN_con_All_invalid_extra,rowIDPadded, invalidMergers, missedMergers);
 									}
 							}
 								
@@ -1615,18 +1634,21 @@ public class ExperimentPaperUAS2
 								{
 									aufSeeds_pre_bcr.add(percentage, bcr);
 									aufSeeds_pre_diff.add(percentage, diff);
+									addInvalidMessedToGraph(aufSeeds_pre_invalid_extra,percentage, invalidMergers, missedMergers);
 								}
 								else
 									if (descr.equals("U"))
 									{
 										aufSeeds_preu_bcr.add(percentage, bcr);
 										aufSeeds_preu_diff.add(percentage, diff);
+										addInvalidMessedToGraph(aufSeeds_preu_invalid_extra,percentage, invalidMergers, missedMergers);
 									}
 									else
 									if (descr.equals("C"))
 									{
 										aufSeeds_con_bcr.add(percentage, bcr);
 										aufSeeds_con_diff.add(percentage, diff);
+										addInvalidMessedToGraph(aufSeeds_con_invalid_extra,percentage, invalidMergers, missedMergers);
 									}
 							}
 								
@@ -1666,10 +1688,15 @@ public class ExperimentPaperUAS2
 			public void processSubResult(ExperimentResult<PaperUASParameters> result, RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentrunner) throws IOException 
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
+				String distributionOfGeneratedTraceLength = result.samples.get(0).distributionOfTraceLength;
 				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(difference.differenceBCR.getValue());
+				csvLine.append(difference.whetherLearningSuccessfulOrAborted);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergers);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
+				//CSVExperimentResult.addSeparator(csvLine);csvLine.append(distributionOfGeneratedTraceLength);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.ptaTotalNodes);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.ptaTailNodes);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
@@ -1771,10 +1798,12 @@ public class ExperimentPaperUAS2
 	    		for(SGEExperimentResult res:new SGEExperimentResult[] {allCSV,framesCSV,seedsCSV,seedsNCSV,resultCSV,aufSeedsCSV,aufCSV})
 	    			if (res != null)
 	    				res.reportResults(gr);
-	    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,seeds_con_All_bcr,seeds_pre_All_bcr,seeds_preu_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,seeds_preu_All_diff,
-	    				all_pos_method_bcr,all_posNeg_method_bcr,
-	    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_preu_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,auf_con_bcr,auf_pre_bcr,auf_preu_bcr,auf_con_diff,auf_pre_diff,auf_preu_diff,
-	    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_preu_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff,seedsN_preu_All_diff		
+	    		for(RExperimentResult res:new RExperimentResult[] {all_method_bcr,all_method_diff,all_method_invalid_extra,
+	    				seeds_con_All_bcr,seeds_pre_All_bcr,seeds_preu_All_bcr,seeds_con_All_diff,seeds_pre_All_diff,seeds_preu_All_diff,seeds_con_All_invalid_extra,seeds_pre_All_invalid_extra,seeds_preu_All_invalid_extra,
+	    				all_pos_method_bcr,all_pos_method_invalid_extra,all_posNeg_method_bcr,all_posNeg_method_invalid_extra,
+	    				aufSeeds_con_bcr,aufSeeds_pre_bcr,aufSeeds_preu_bcr,aufSeeds_con_diff,aufSeeds_pre_diff,aufSeeds_con_invalid_extra,aufSeeds_pre_invalid_extra,
+	    				auf_con_bcr,auf_pre_bcr,auf_preu_bcr,auf_con_diff,auf_pre_diff,auf_preu_diff,auf_con_invalid_extra,auf_pre_invalid_extra,auf_preu_invalid_extra,
+	    				seedsN_con_All_bcr,seedsN_pre_All_bcr,seedsN_preu_All_bcr,seedsN_con_All_diff,seedsN_pre_All_diff,seedsN_preu_All_diff,seedsN_con_All_invalid_extra,seedsN_pre_All_invalid_extra,seedsN_preu_All_invalid_extra	
 	    			})
 	    			if (res != null)
 	    				res.reportResults(gr);

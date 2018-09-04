@@ -103,7 +103,7 @@ public class CVS_With_Random_traces_Generation
 				final int traceQuantityToUse = traceQuantity;
 				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
-				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
+				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0,0);
 				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
 				
 					final String experimentName = outPathPrefix+parExp.getExperimentID();
@@ -119,12 +119,11 @@ public class CVS_With_Random_traces_Generation
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0,trainingSample, seedForFSM,traceQuantityToUse);
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0, alphabetMultiplierMax, 0,trainingSample, seedForFSM);
 											parameters.setOnlyUsePositives(onlyPositives);
-											parameters.setAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,states,alphabetMultiplierMax);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize, true, weightOfInconsistencies,aveOrMax, divisorForPathCount,0,1);
 											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
@@ -142,8 +141,11 @@ public class CVS_With_Random_traces_Generation
 							ScoresForGraph data=sm.actualLearner;
 							
 							StringBuffer csvLine = new StringBuffer();
-							csvLine.append(data.differenceBCR.getValue());
+							csvLine.append(data.whetherLearningSuccessfulOrAborted);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 	
 							if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)

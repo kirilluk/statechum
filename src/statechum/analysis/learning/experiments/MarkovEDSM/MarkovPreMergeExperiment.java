@@ -159,6 +159,7 @@ public class MarkovPreMergeExperiment
 									learnerRunner.setTraceLengthMultiplier(traceLengthMultiplier);
 									learnerRunner.setChunkLen(chunkSize);
 									learnerRunner.setSelectionID(selection);
+									// The call below wiggles values that are encoded in presets and assigned via learnerRunner.setPresetLearningParametes
 									learnerRunner.setlearningParameters(useCentreVertex, useDifferentScoringNearRoot, mergeIdentifiedPathsAfterInference, useClassifyToOrderPairs);
 									runner.submit(learnerRunner);
 									++numberOfTasks;
@@ -196,10 +197,9 @@ public class MarkovPreMergeExperiment
 		{
 			final int traceQuantityToUse = traceQuantity;
 			int seedForFSM = 0;
-			MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0);
-			parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 
 			for(int states:statesToUse)
+			for(int density:new int[] {0,3})
 			{
 				for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 					for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
@@ -214,12 +214,11 @@ public class MarkovPreMergeExperiment
 												ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 												ev.config.setOverride_usePTAMerging(false);
 					
-												MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, sample,trainingSample, seedForFSM,traceQuantityToUse);
+												MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
 												parameters.setOnlyUsePositives(onlyPositives);
-												parameters.setAlphabetMultiplier(alphabetMultiplierMax);
 												parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 												parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-												parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+												parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 												parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
 												parameters.setDisableInconsistenciesInMergers(false);
 												parameters.setUsePrintf(experimentRunner.isInteractive());
@@ -239,8 +238,11 @@ public class MarkovPreMergeExperiment
 				ScoresForGraph data=sm.actualLearner;
 				
 				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(data.differenceBCR.getValue());
+				csvLine.append(data.whetherLearningSuccessfulOrAborted);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);

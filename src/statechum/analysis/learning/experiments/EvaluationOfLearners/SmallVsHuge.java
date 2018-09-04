@@ -103,6 +103,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	}
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{Configuration.ScoreMode.GENERAL, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
 	
+	@Override
 	public ExperimentResult<SmallVsHugeParameters> runexperiment() throws Exception 
 	{
 		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;

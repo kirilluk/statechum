@@ -1,5 +1,5 @@
 #!/bin/sh
-#$ -l rmem=14g -l h_rt=2:00:00
+#$ -l rmem=14g -l h_rt=12:00:00 
 
 EXPERIMENT=statechum.analysis.learning.experiments.EvaluationOfLearners.BenchmarkCPU
 

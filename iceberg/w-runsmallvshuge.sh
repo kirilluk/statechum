@@ -1,6 +1,6 @@
 #!/bin/sh
 
-EXPERIMENT=statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge
+EXPERIMENT="-DSGE_MAP_FILENAMEPREFIX=final statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge"
 
 if [ -z ${SGE_TASK_ID+x} ] || [ "${SGE_TASK_ID}" == "undefined" ];then
 	if [ -z ${STATECHUM_COUNT+x} ];then

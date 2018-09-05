@@ -179,8 +179,10 @@ public class MarkovParameters
 	{
 		String outcome = Integer.toString(preset);// after identification of a centre vertex many learners can be attempted, Markov is not the only one.
 		if (useCentreVertex)
+		{
 			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount+"_v"+whichMostConnectedVertex+"_wl"+expectedWLen;
-		outcome +="_cl="+chunkLen;
+			outcome +="_cl="+chunkLen;
+		}
 		if (useMarkovLearner)
 			outcome+="_w"+weightOfInconsistencies+(useNewScoreNearRoot?"_NS":"");
 		

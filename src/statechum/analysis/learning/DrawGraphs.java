@@ -69,6 +69,13 @@
  * 
  * Specific configuration variable affecting Win64 and R-3.4 (not the case for R-3.0)
  * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.4"
+ * 
+ * Example for Windows 10 and R-3.5.2:
+ * 
+ * R_HOME="C:\Program Files\R\R-3.5.2"
+ * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.5"
+ * 
+ * It is important to note that missing the above entries for the environment variables leads to an immediate termination of the Java runtime with no error message.
  */
 
 

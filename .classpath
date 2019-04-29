@@ -12,7 +12,7 @@
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
 	<classpathentry kind="lib" path="lib/OtpErlang.jar"/>
 	<classpathentry kind="lib" path="lib/javaGD.jar"/>
-	<classpathentry kind="lib" path="lib/JRI.jar"/>
+	<classpathentry kind="lib" path="lib/JRI.jar" sourcepath="C:/Users/Kirill/Documents/R/win-library/3.4/rJava/java"/>
 	<classpathentry kind="lib" path="lib/weka.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>

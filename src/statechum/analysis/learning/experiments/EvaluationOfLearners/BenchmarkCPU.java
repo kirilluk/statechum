@@ -68,7 +68,7 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 //
 public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
-	public static final String directoryNamePrefix = "benchmark_learners_Apr_2016";
+	public static final String directoryNamePrefix = "max6_benchmark_learners_Apr_2016";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public BenchmarkCPU(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
@@ -308,8 +308,11 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 			{
 				ScoresForGraph difference = result.samples.get(0).actualLearner;
 				StringBuffer csvLine = new StringBuffer();
-				csvLine.append(difference.differenceBCR.getValue());
+				csvLine.append(difference.whetherLearningSuccessfulOrAborted);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergers);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());

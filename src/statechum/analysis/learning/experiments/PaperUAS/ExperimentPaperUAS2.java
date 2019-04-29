@@ -47,6 +47,7 @@ package statechum.analysis.learning.experiments.PaperUAS;
 // -ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;"C:/Program Files/R/R-3.4.1/library/rJava/jri/x64" -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME="C:\Program Files\erl7.0" -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS="C:\\experiment\\research_experiments" -DPATH_UASPAPER="C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces"
 // (note: the link to R package could also be C:\Users\Kirill\Documents\R\win-library\3.4\rJava\jri\x64 
 // Important: without a R_HOME variable, R pops a dialog box on Windows which is easy to miss and consumes 100% CPU for no reason while the box is active)
+// When paths are not correct, I've also seen JVM immediately terminate.
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;

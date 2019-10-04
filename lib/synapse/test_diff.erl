@@ -29,12 +29,12 @@ parseMap_test_() ->
 	{"tests map parsing",
 	{inparallel,
 	[
-			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,a},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")) end end) end,
-			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},a]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
+			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,a},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangList")) end end) end,
+			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},a]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{a,''}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"empty second state name")) end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{'',d}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"empty first state name")) end end) end,
-			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{"b",a}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
-			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{b,"a"}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{"b",a}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{b,"a"}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{b,a}]},receive {Ref,ok,[{a,b},{b,a}]} -> ok end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testMapParsing,[{a,b},{a,a}]},receive {Ref,ok,[{a,a}]} -> ok end end) end,%% second pair overwrites the first one
@@ -228,7 +228,7 @@ diffLoad_test_()->
 				deleted_states=[],
 				name_mapping=[],
 				initial_state=a}
-			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")),ok end end) end,
+			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangList")),ok end end) end,
 	
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
 					#statemachine{states=[a],transitions=[],initial_state=a,alphabet=[]}, %% dummy machine since this is testing error handling of the differences
@@ -239,7 +239,7 @@ diffLoad_test_()->
 				deleted_states=[],
 				name_mapping=[],
 				initial_state="a"}
-			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
+			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end,
 	
 	%% invalid diff
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,testDiffParsing,
@@ -326,7 +326,7 @@ diffLoad_test_()->
 				name_mapping=[],
 				initial_state=a},
 			"my graph"
-			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
+			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
 				
 %% This test actually pops a graph
 %%			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,displayDiff,

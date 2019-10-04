@@ -31,19 +31,19 @@ uploadtraces_test_() ->
 	{inparallel,
 	[
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,a},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[aaa]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[aaa]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pp,gg,eer}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"more than a pair of pos/neg")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{[],gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"List cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{[],gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"List cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pp,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"instead of pos/neg")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,["gg"]}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangList")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,["gg"]}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, aaa] },receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, aaa] },receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pp,gg,eer}] },receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"more than a pair of pos/neg")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {[],gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"List cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {[],gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"List cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pp,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"instead of pos/neg")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pos,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")) end end) end,
-		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pos,["gg"]}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pos,gg}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangList")) end end) end,
+		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[ {pos,[a]}, {pos,["gg"]}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 		
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,[a,b,c]},{pos,[a,b,c]},{neg,[a]}]},receive {Ref,ok} -> Pid!{Ref,getTraces},receive {Ref,ok,Pos,Neg} ->?assertEqual("[[a, b, c]]",Pos),?assertEqual("[[a]]",Neg) end end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,traces,[{pos,[a,b,c]},{pos,[a,b,c]},{neg,[a,a,a,a,a,a,aaa]},{neg,[a]}]},receive {Ref,ok} -> Pid!{Ref,getTraces},receive {Ref,ok,Pos,Neg} ->?assertEqual("[[a, b, c]]",Pos),?assertEqual("[[a], [a, a, a, a, a, a, aaa]]",Neg) end end end) end,
@@ -69,7 +69,7 @@ loadStatemachine_test_() ->
 					  ,[{a,wibble,b},{b,wobble,c}]
 					  ,a
 					  ,[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,{b,
 					  [a,b,c]
 					  ,[{a,wibble,b},{b,wobble,c}]
@@ -82,7 +82,7 @@ loadStatemachine_test_() ->
 					  ,transitions=[{a,wibble,b},{b,wobble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
@@ -90,14 +90,14 @@ loadStatemachine_test_() ->
 					  ,transitions=[{a,wibble,b},{b,wobble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[a,b,c]
 					  ,transitions=[{a,wibble,b},{b,wobble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,"wobble"]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=['',b,c]
@@ -133,7 +133,7 @@ loadStatemachine_test_() ->
 					  ,transitions=[{"a",wibble,b},{b,wobble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[a,b,c]
@@ -161,14 +161,14 @@ loadStatemachine_test_() ->
 					  ,transitions=[{a,wibble,b},{b,"wobble",c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[a,b,c]
 					  ,transitions=[{a,wibble,b},aa]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangTuple")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[a,b,c]
@@ -196,7 +196,7 @@ loadStatemachine_test_() ->
 					  ,transitions=[{a,wibble,"b"},{b,wobble,c}]
 					  ,initial_state=a
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[]
@@ -210,7 +210,7 @@ loadStatemachine_test_() ->
 					  ,transitions=[{a,wibble,b},{b,wobble,c}]
 					  ,initial_state="a"
 					  ,alphabet=[wibble,wobble]
-					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
+					 }},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to ")),?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangAtom")) end end) end,
 
 		fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,loadFSM,#statemachine{
 					  states=[a,b,c]

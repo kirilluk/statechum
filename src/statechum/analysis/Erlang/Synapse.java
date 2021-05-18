@@ -48,7 +48,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.ASE2014.EDSM_MarkovLearner;
+import statechum.analysis.learning.MarkovEDSM.EDSM_MarkovLearner;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
@@ -928,7 +928,7 @@ public class Synapse implements Runnable {
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,0) {
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1) {
 
 															@Override
 															protected boolean permitUnlimitedNumberOfStates()
@@ -1007,7 +1007,7 @@ public class Synapse implements Runnable {
 																
 															}
 															ptaToUseForInference.clearColours();
-															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,0) {
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

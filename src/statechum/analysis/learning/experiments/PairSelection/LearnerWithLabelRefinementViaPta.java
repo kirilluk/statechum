@@ -15,12 +15,13 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.StringLabel;
+import statechum.analysis.learning.MarkovEDSM;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner 
+public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLearner 
 {
 	
 	public static class PrevVertexAndOutgoingLabel

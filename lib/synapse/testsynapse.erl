@@ -25,7 +25,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("synapse.hrl").
 
--export([handleNotifications/2,handleNotificationsAndRecordThem/2,useworker/1,containsStrict/2,contains/2]).
+-export([handleNotifications/2,handleNotificationsAndRecordThem/2,useworker/1,containsStrict/2,contains/2,cannotBeCast/3]).
 
 useworker(Function) ->
 	StatechumRef=make_ref(),synapselauncher:find_statechum()!{self(),StatechumRef,getStatechumWorker},receive {StatechumRef,Pid} -> Ref = make_ref(),Function(Pid,Ref), Pid!{Ref,terminate} end.
@@ -40,6 +40,10 @@ contains(List,[]) -> true;
 contains([],List) -> false;
 contains([H|T],[A|B]) when H=:=A -> containsStrict(T,B) or contains(T,[A|B]);
 contains([H|T],[A|B]) when H=/=A -> contains(T,[A|B]).
+
+%% Accounts for the differences between JDK 8 and JDK 15 which reports 'cannot be cast to class'
+cannotBeCast(Text,ListA,ListB) ->
+	contains(Text,ListA ++ " cannot be cast to " ++ ListB) or contains(Text,ListA ++ " cannot be cast to class " ++ ListB).
 
 %% This one is only used for testing of notifications
 handleNotifications(Ref,Counter) ->

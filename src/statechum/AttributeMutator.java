@@ -151,12 +151,12 @@ public class AttributeMutator {
 				Object valueA = null, valueB = null;
 				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 				{
-					valueA = new Boolean(true);valueB=new Boolean(false);
+					valueA = Boolean.valueOf(true);valueB=Boolean.valueOf(false);
 				}
 				else
 				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
 				{
-					valueA = new Double(0.4);valueB=new Double(0.5);// note that we have to choose values which fall within the allowed range of values
+					valueA = Double.valueOf(0.4);valueB=Double.valueOf(0.5);// note that we have to choose values which fall within the allowed range of values
 				}
 				else
 				if (var.getType().equals(String.class))

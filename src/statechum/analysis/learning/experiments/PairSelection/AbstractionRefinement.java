@@ -20,11 +20,12 @@ package statechum.analysis.learning.experiments.PairSelection;
 
 import java.util.Stack;
 
+import statechum.analysis.learning.MarkovEDSM;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class AbstractionRefinement extends ASE2014.EDSM_MarkovLearner
+public class AbstractionRefinement extends MarkovEDSM.EDSM_MarkovLearner
 {
 
 	public AbstractionRefinement(LearnerEvaluationConfiguration learnerInitConfiguration,LearnerGraph ptaToUseForInference, int i) 

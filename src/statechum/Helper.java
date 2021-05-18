@@ -60,7 +60,10 @@ public class Helper {
 			if (ex.getMessage() == null)
 				Assert.assertNull("got null instead of \""+exceptionString+"\"",exceptionString);
 			else
-				Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
+			{
+				if (exceptionString != null) 
+					Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
+			}
 		}
 	}
 

@@ -42,7 +42,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform;
 
-public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner 
+public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLearner 
 {
 	
 	public static class PrevVertexAndOutgoingLabel
@@ -230,9 +230,9 @@ public class LearnerWithLabelRefinementViaPta extends ASE2014.EDSM_MarkovLearner
 	}
 	
 	
-	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold, int maxNumberOfStates) 
+	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold) 
 	{
-		super(evalCnf, argInitialPTA, threshold,maxNumberOfStates);
+		super(evalCnf, argInitialPTA, threshold);
 	}
 
 	protected LearnerGraphND coreInverse = null;

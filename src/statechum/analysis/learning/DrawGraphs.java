@@ -1241,6 +1241,23 @@ public class DrawGraphs {
 		double parameter=0.;
 
 		
+		public static double valueAsDouble(REXP val)
+		{
+			switch(val.getType())
+			{
+			case REXP.XT_INT:
+			case REXP.XT_ARRAY_INT:
+				return val.asInt();
+			case REXP.XT_DOUBLE:
+			case REXP.XT_ARRAY_DOUBLE:
+				return val.asDouble();
+			case REXP.XT_NULL:
+				return 0;
+			default:
+				throw new IllegalArgumentException("value "+val+" is not an integer or a double");			
+			}
+		}
+		
 		/** Using a supplied list of commands, obtains a result. 
 		 * 
 		 * @param drawingCommand commands to run, the outcome of the last one is reported.
@@ -1255,14 +1272,13 @@ public class DrawGraphs {
 			StatisticalTestResult STR=new StatisticalTestResult();
 			for(String cmd:drawingCommands)
 				eval(cmd,"failed to run "+cmd);
-
-			STR.statistic=engine.eval(varName+"$statistic").asDouble();
-			STR.pvalue=engine.eval(varName+"$p.value").asDouble();
+			STR.statistic=valueAsDouble(engine.eval(varName+"$statistic"));
+			STR.pvalue=valueAsDouble(engine.eval(varName+"$p.value"));
+			STR.alternative=engine.eval(varName+"$alternative").asString();
+			STR.parameter=valueAsDouble(engine.eval(varName+"$parameter"));
 			String methodName = engine.eval(varName+"$method").asString();
 			if (!methodName.startsWith(expectedMethodName))
 				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
-			STR.alternative=engine.eval(varName+"$alternative").asString();
-			STR.parameter=engine.eval(varName+"$parameter").asDouble();
 			return STR;
 		}
 	}

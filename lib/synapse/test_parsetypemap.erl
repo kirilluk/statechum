@@ -29,7 +29,7 @@ parseTypeMap_test_() ->
 	{"tests type map parsing",
 	{inparallel,
 	[
-			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,addTypeInformation,a},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"Atom cannot be cast to com.ericsson.otp.erlang.OtpErlangList")) end end) end,
+			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,addTypeInformation,a},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:cannotBeCast(Text,"Atom","com.ericsson.otp.erlang.OtpErlangList")) end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,addTypeInformation,[a]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"element of a list should be a tuple")) end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,addTypeInformation,[{66}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"exactly two elements")) end end) end,
 			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,addTypeInformation,[{66,77}]},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"should be an atom")) end end) end,
@@ -143,7 +143,7 @@ parseTypeMapLoad_test_() ->
 				{Path,Line,FunName,FunArity,_Type}=dict:fetch(FunToReplace,TypeDict),
 				Pid!{Ref,addTypeInformation,[{FunToReplace,{Path,Line,"differentName",FunArity,{'Func',[],[],{'Any',[]}} }}]},receive {Ref,ok,TextType} -> ok end,
 				Pid!{Ref,learnErlang,'ErlangExamples/frequency/frequencyBroken.erl'},
-				receive {Ref,failure,Text} ->?assertEqual(true,testsynapse:contains(Text,"com.ericsson.otp.erlang.OtpErlangString cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")) end 
+				receive {Ref,failure,Text} ->?assertEqual(true,testsynapse:cannotBeCast(Text,"com.ericsson.otp.erlang.OtpErlangString","com.ericsson.otp.erlang.OtpErlangAtom")) end 
 				%%io:format(user,"Failure received: ~p~n",[Text]) end
 		 end end) end,
 

@@ -22,7 +22,6 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.model.testset.PTASequenceSet;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;

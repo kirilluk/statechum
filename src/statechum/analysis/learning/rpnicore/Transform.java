@@ -1270,7 +1270,7 @@ public class Transform
 				Integer counter = TX_counter.get(transition);
 				if (counter == null)
 				{
-					counter = new Integer(0);
+					counter = Integer.valueOf(0);
 				}
 				else ++tx;
 				TX_counter.put(transition, counter+1);

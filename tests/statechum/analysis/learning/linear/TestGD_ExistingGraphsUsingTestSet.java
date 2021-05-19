@@ -97,10 +97,10 @@ public class TestGD_ExistingGraphsUsingTestSet {
 			{
 				for(double ratio:new double[]{0.3,0.9})
 					for(int pairs:new int[]{0})
-						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
+						result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(pairs),ratio,fileA,fileB});
 
 				// -1. should be floating-point number otherwise it is turned into Integer and our parametersToString fails to match the resulting list of values.
-				result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA,fileB});
+				result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(0),-1.,fileA,fileB});
 				progress.next();
 			}
 		}

@@ -510,7 +510,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         //
         if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE)))
-        	this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        	this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         else
         if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
         	this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -1485,7 +1485,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
                 Vertex v = iterator.next();
                 DoublePair p = new DoublePair(getX(v), getY(v));
-                sourceMap.put(new Integer(v.hashCode()), p);
+                sourceMap.put(Integer.valueOf(v.hashCode()), p);
             }
             //encoder.writeObject(sourceMap);
             return sourceMap;

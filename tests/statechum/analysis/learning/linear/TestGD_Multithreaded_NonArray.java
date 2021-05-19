@@ -57,7 +57,7 @@ public class TestGD_Multithreaded_NonArray {
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(int i=1;i<8;++i)
-			result.add(new Object[]{new Integer(i)});
+			result.add(new Object[]{Integer.valueOf(i)});
 		return result;
 	}
 

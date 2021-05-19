@@ -144,8 +144,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override
@@ -177,7 +177,7 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),null,null);
 					experimentrunner.RecordCSV(csvA,"line A"+result);
 					experimentrunner.RecordCSV(csvB,"line B"+result);					
 				}
@@ -211,7 +211,7 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),null,null);
 					experimentrunner.RecordCSV(csvA,"line A1_"+result);
 					experimentrunner.RecordCSV(csvA,"line A2_"+result);					
 				}
@@ -245,8 +245,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -288,8 +288,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -331,8 +331,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -365,8 +365,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new java.io.File("gg"+result),new Double(result+1),"dd"+new Double(result+1),null);// invalid data is an instance of class file rather than an instance of 
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,new java.io.File("gg"+result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);// invalid data is an instance of class file rather than an instance of 
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -399,8 +399,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -426,8 +426,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_a,Double.valueOf(result),Double.valueOf(result+2),"aa"+Double.valueOf(result+1),"bb"+Double.valueOf(result+1));
+					experimentrunner.RecordR(gr_b,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override
@@ -460,8 +460,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),"dd"+new Double(result+1),null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,"tt"+new Double(result+1));
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),"dd"+Double.valueOf(result+1),null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,"tt"+Double.valueOf(result+1));
 				}
 
 				@Override
@@ -496,8 +496,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_a,new Double(result),new Double(result+2),"aa"+new Double(result+1),"bb"+new Double(result+1));
-					experimentrunner.RecordR(gr_b,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_a,Double.valueOf(result),Double.valueOf(result+2),"aa"+Double.valueOf(result+1),"bb"+Double.valueOf(result+1));
+					experimentrunner.RecordR(gr_b,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override
@@ -529,8 +529,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override
@@ -562,8 +562,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr_StructuralDiff,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr_StructuralDiff,Double.valueOf(result),Double.valueOf(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override
@@ -596,8 +596,8 @@ public class TestSGE_ExperimentRunner {
 				@Override
 				public void processSubResult(Integer result, RunSubExperiment<Integer> experimentrunner) throws IOException 
 				{
-					experimentrunner.RecordR(gr,new Double(result),new Double(result+1),null,null);
-					experimentrunner.RecordR(gr_BCR,new Double(result+1),new Double(result-1),null,null);
+					experimentrunner.RecordR(gr,Double.valueOf(result),Double.valueOf(result+1),null,null);
+					experimentrunner.RecordR(gr_BCR,Double.valueOf(result+1),Double.valueOf(result-1),null,null);
 				}
 
 				@Override

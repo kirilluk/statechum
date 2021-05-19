@@ -297,7 +297,7 @@ public class SpinUtil {
 			if(v.containsUserDatumKey(JUConstants.INITIAL))
 				currentState = "Init";
 			if (!stateMap.keySet().contains(currentState)) {
-				stateMap.put(currentState, new Integer(stateCounter));
+				stateMap.put(currentState, Integer.valueOf(stateCounter));
 				stateCounter++;
 			}
 			if (!DeterministicDirectedSparseGraph.isAccept(v)){
@@ -323,14 +323,14 @@ public class SpinUtil {
 					if(e.getDest().containsUserDatumKey(JUConstants.INITIAL))
 						toState = "Init";
 					if (!stateMap.keySet().contains(toState)) {
-						stateMap.put(toState, new Integer(stateCounter));
+						stateMap.put(toState, Integer.valueOf(stateCounter));
 						stateCounter++;
 					}
 					Iterator<Label> labelIt = labels.iterator();
 					while (labelIt.hasNext()) {
 						Label label = labelIt.next();
 						if (!functionMap.keySet().contains(label)) {
-							functionMap.put(label.toErlangTerm(), new Integer(functionCounter));
+							functionMap.put(label.toErlangTerm(), Integer.valueOf(functionCounter));
 							functionCounter++;
 						}
 						sw.write("\n\t:: input=" + functionMap.get(label)
@@ -353,7 +353,7 @@ public class SpinUtil {
 		while (questionIt.hasNext()) {
 			Label symb = questionIt.next();
 			if (!functionMap.keySet().contains(symb)) {
-				functionMap.put(symb.toErlangTerm(), new Integer(functionCounter));
+				functionMap.put(symb.toErlangTerm(), Integer.valueOf(functionCounter));
 				functionCounter++;
 			}
 			sw.write("input="+functionMap.get(symb)+";\n");
@@ -379,7 +379,7 @@ public class SpinUtil {
 			if(string.trim().equals("")||string.trim().equals("[]"))
 				continue;
 			else if(!functionMap.keySet().contains(string)){
-				functionMap.put(string, new Integer(functionCounter));
+				functionMap.put(string, Integer.valueOf(functionCounter));
 				functionCounter++;
 			}
 		}
@@ -457,7 +457,7 @@ public class SpinUtil {
 				.findInitial(g);
 		String state = v.getUserDatum(JUConstants.LABEL).toString();
 		if (!stateMap.keySet().contains(state)) {
-			stateMap.put(state, new Integer(stateCounter));
+			stateMap.put(state, Integer.valueOf(stateCounter));
 			stateCounter++;
 		}
 		sw.write("int input=50000;\nproctype machine(){\ngoto Init;\n");

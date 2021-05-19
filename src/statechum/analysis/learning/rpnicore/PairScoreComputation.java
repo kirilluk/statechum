@@ -46,7 +46,6 @@ import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRig
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
-import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.HashMapWithSearch;
 

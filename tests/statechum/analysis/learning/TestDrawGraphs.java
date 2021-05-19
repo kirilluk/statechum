@@ -31,7 +31,6 @@ import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 public class TestDrawGraphs {
 
@@ -300,7 +299,6 @@ public class TestDrawGraphs {
 	@Test
 	public void testKruskal_Wallis_Test() throws IOException
 	{
-		new DrawGraphs();
 		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
 		StringWriter s=new StringWriter();

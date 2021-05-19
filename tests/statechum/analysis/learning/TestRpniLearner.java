@@ -50,7 +50,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
-import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -868,7 +867,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			for(int j=0;j<orderedArray.length;++j)
 			{
 				int actual = orderedArray[i].compareInTermsOfDepth(orderedArray[j]);if (actual > 0) actual=1;else if (actual < 0) actual=-1;
-				int expected = new Integer(j).compareTo(i);// the first one is the highest
+				int expected = Integer.valueOf(j).compareTo(i);// the first one is the highest
 				Assert.assertEquals(orderedArray[i]+".compareto "+orderedArray[j]+" (="+actual+") != "+expected,expected,actual);
 			}
 	}

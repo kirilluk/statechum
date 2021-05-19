@@ -569,7 +569,7 @@ public class PTASequenceEngine
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return new Boolean(true);
+				return Boolean.valueOf(true);
 			}
 
 			@Override
@@ -658,7 +658,7 @@ public class PTASequenceEngine
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return new Boolean(true);
+				return Boolean.valueOf(true);
 			}
 
 			@Override
@@ -819,7 +819,7 @@ public class PTASequenceEngine
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return new Boolean(true);
+				return Boolean.valueOf(true);
 			}
 
 			@Override

@@ -63,7 +63,7 @@ public class TestRecorderIntegration {
 			for(boolean logCompression:new boolean[]{false,true})
 				for(boolean forceFallback:new boolean[]{false,true})
 					for(RecorderTestKind kind:RecorderTestKind.values())
-			result.add(new Object[]{new Boolean(zip),new Boolean(logCompression),new Boolean(forceFallback),kind});
+			result.add(new Object[]{Boolean.valueOf(zip),Boolean.valueOf(logCompression),Boolean.valueOf(forceFallback),kind});
 		
 		return result;
 	}

@@ -15,7 +15,6 @@ import java.io.FileReader;
 
 import statechum.JUConstants;
 import statechum.analysis.learning.observers.AutoAnswers;
-import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.CachedData.ErlangCoverageData;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -105,6 +104,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     	try
     	{
     		thisModule = ErlangModule.loadModule(grOrig.config);
+    		assert thisModule != null;
     	}
     	catch(IOException ex)
     	{

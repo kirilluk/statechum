@@ -93,10 +93,21 @@ public class QSMTool {
     }
 
     public void loadConfig(String inputFileName) {
+    	FileReader fileReader = null;
         try {
-            loadConfig(new FileReader(inputFileName));
+        	fileReader = new FileReader(inputFileName);
+            loadConfig(fileReader);
         } catch (FileNotFoundException e) {
             statechum.Helper.throwUnchecked("could not open a file with initial data", e);
+        }
+        finally
+        {
+        	if (fileReader != null)
+				try {
+					fileReader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
         }
     }
 

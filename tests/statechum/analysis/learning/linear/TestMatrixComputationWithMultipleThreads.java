@@ -87,8 +87,8 @@ public class TestMatrixComputationWithMultipleThreads {
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(int i=1;i<8;++i)
 		{
-			result.add(new Object[]{new Integer(i),false});
-			result.add(new Object[]{new Integer(i),true});
+			result.add(new Object[]{Integer.valueOf(i),false});
+			result.add(new Object[]{Integer.valueOf(i),true});
 		}
 		return result;
 	}

@@ -428,7 +428,7 @@ public class Traces extends javax.swing.JFrame {
 	private javax.swing.JScrollPane alphabetPane;
 	private javax.swing.JLabel filenameLabel;
 	private javax.swing.JButton jButton1;
-	private javax.swing.JButton jButton2;
+	javax.swing.JButton jButton2;
 	private javax.swing.JLabel jLabel1;
 	private javax.swing.JLabel jLabel2;
 	private javax.swing.JLabel jLabel3;
@@ -437,8 +437,8 @@ public class Traces extends javax.swing.JFrame {
 	private javax.swing.JSeparator jSeparator2;
 	private javax.swing.JLabel moduleLabel;
 	private javax.swing.JLabel tracecountLabel;
-	private javax.swing.JCheckBox suspendLearner;
-	private javax.swing.JButton terminateLearner;
+	javax.swing.JCheckBox suspendLearner;
+	javax.swing.JButton terminateLearner;
 	
 	// End of variables declaration//GEN-END:variables
 }

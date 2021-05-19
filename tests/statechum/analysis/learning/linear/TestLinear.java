@@ -286,7 +286,7 @@ public class TestLinear {
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
 					{
-						newValue = new Integer(0);
+						newValue = Integer.valueOf(0);
 					}
 					threadToRowNumber.put(threadNo,newValue+1);
 				}
@@ -325,7 +325,7 @@ public class TestLinear {
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
 					{
-						newValue = new Integer(0);
+						newValue = Integer.valueOf(0);
 					}
 					threadToRowNumber.put(threadNo,newValue+1);
 				}
@@ -364,7 +364,7 @@ public class TestLinear {
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
 					{
-						newValue = new Integer(0);
+						newValue = Integer.valueOf(0);
 					}
 					threadToRowNumber.put(threadNo,newValue+1);
 				}

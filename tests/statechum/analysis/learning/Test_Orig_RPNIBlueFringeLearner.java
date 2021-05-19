@@ -611,7 +611,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				Vertex redVertex = redStack.pop();
 				OrigStatePair pair = new OrigStatePair(blueVertex, redVertex);
 				doneEdges = new HashSet<DirectedSparseEdge>();
-				Integer score = new Integer(computeScore(g,pair));
+				Integer score = Integer.valueOf(computeScore(g,pair));
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlusArg, sMinusArg)){
 					// singleSet maps scores to pairs which have those scores

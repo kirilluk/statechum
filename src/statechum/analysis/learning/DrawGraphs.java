@@ -687,23 +687,23 @@ public class DrawGraphs {
 				color = line[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
 			if (!line[5].isEmpty())
 				label = line[5];
-			Double yValue = new Double(line[3]);
+			Double yValue = Double.valueOf(line[3]);
 			
 			Object argValue = null;
 			if (argType.equals("java.lang.String"))
 				argValue = argStringValue;
 			else
 				if (argType.equals("java.lang.Double"))
-					argValue = new Double(argStringValue);
+					argValue = Double.valueOf(argStringValue);
 				else
 					if (argType.equals("java.lang.Float"))
-						argValue = new Float(argStringValue);
+						argValue = Float.valueOf(argStringValue);
 					else
 						if (argType.equals("java.lang.Integer"))
-							argValue = new Integer(argStringValue);
+							argValue = Integer.valueOf(argStringValue);
 						else
 							if (argType.equals("java.lang.Long"))
-								argValue = new Long(argStringValue);
+								argValue = Long.valueOf(argStringValue);
 							else
 								throw new IllegalArgumentException("cannot load a value of type "+argType);
 			add((ELEM) argValue,yValue,color,label);

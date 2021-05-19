@@ -32,7 +32,6 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;

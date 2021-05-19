@@ -110,8 +110,8 @@ public class TestSynapse {
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		result.add(new Object[]{new Boolean(false)});
-		result.add(new Object[]{new Boolean(true)});
+		result.add(new Object[]{Boolean.valueOf(false)});
+		result.add(new Object[]{Boolean.valueOf(true)});
 		
 		return result;
 	}
@@ -362,7 +362,7 @@ public class TestSynapse {
 		String ErlangHome = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME), ErlangHomeSetting="";
 		if (ErlangHome != null)
 			ErlangHomeSetting=",{'-DERLANGHOME','"+ErlangHome.replace('\\', '/')+"'}";
-		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
+		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + Boolean.valueOf(accumulateOutput).toString().toLowerCase()+"'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()");		
 	}

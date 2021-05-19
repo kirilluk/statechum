@@ -629,7 +629,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (Thread.currentThread() != secondThread)
 		{// second thread, checking.
 			
-			if (!cResult.equals(new Boolean(result)))
+			if (!cResult.equals(Boolean.valueOf(result)))
 				failureCode = new IllegalArgumentException("different success value of AddConstraints");
 			else
 			{

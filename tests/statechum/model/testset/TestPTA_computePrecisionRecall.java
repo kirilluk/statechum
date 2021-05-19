@@ -18,8 +18,6 @@
 
 package statechum.model.testset;
 
-import statechum.model.testset.PTA_FSMStructure;
-import statechum.model.testset.PTA_computePrecisionRecall;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,7 +38,6 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
-import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 

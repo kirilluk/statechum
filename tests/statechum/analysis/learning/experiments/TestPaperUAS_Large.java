@@ -14,7 +14,6 @@ import org.junit.runners.ParameterizedWithName;
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
-import statechum.analysis.learning.experiments.PaperUAS;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;

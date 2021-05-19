@@ -562,10 +562,10 @@ final public class DeterministicDirectedSparseGraph {
 				return (Boolean)obj;
 			
 			if (obj.toString().equalsIgnoreCase("true"))
-				return new Boolean(true);
+				return Boolean.valueOf(true);
 
 			if (obj.toString().equalsIgnoreCase("false"))
-				return new Boolean(false);
+				return Boolean.valueOf(false);
 			
 			throw new IllegalUserDataException(obj.toString());
 		}

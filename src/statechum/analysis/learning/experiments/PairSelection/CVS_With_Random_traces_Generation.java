@@ -792,95 +792,100 @@ public class CVS_With_Random_traces_Generation extends PairQualityLearner
 
 
 		final FileWriter writer = new FileWriter("CVSResult.csv");
-		  writer.append("TraceNumbers");
-		    writer.append(',');
-		    writer.append("Label");
-		    writer.append(',');
-		    writer.append("BCR");
-		    writer.append(',');
-		    writer.append("Structural");
-		    writer.append(',');
-		    
-		final Map<Integer,RBoxPlot<String>> gr_BCRImprovementForDifferentTraces = new  TreeMap<Integer,RBoxPlot<String>>();
-		final Map<Integer,SquareBagPlot> gr_BCR_EM_against_Sicco = new TreeMap<Integer,SquareBagPlot>();
-		for(final int traceQuantity:traceQuantityValues)
+		try
 		{
-			gr_BCRImprovementForDifferentTraces.put(traceQuantity, new RBoxPlot<String>("Different Learners","BCR",new File("BCR"+"_traceQuantity_"+traceQuantity+".pdf")));
-			gr_BCR_EM_against_Sicco.put(traceQuantity,new SquareBagPlot("BCR, SiccoN","BCR, EDSM-Markov learner",new File("improvement_"+traceQuantity+".pdf"),0.5,1,true));
-		}		
-		
-		List<RGraph> graphs = new LinkedList<RGraph>();graphs.addAll(gr_BCRImprovementForDifferentTraces.values());graphs.addAll(gr_BCR_EM_against_Sicco.values());
-		final RGraph[] graphsInExperiment = graphs.toArray(new RGraph[]{}); 
-		
-		final int preset=0;
-
-		for(final int traceQuantity:traceQuantityValues)
-		{
-//						TraceLoader tool = new TraceLoader(config,converter);
-//						tool.loadConfig("CVS.txt");
-//						LearnerGraph pta = tool.getPTA();
-//						System.out.println(pta.learnerCache.getAlphabet());
-						int numberOfTasks = 0;
-						numberOfTasks++;
-						LearnerRunner learnerRunner = new LearnerRunner(numberOfTasks, config, converter);
-						learnerRunner.setOnlyUsePositives(onlyPositives);
-//						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
-//						learnerRunner.setAlphabetMultiplier(alphabetMultiplierActual);
-						learnerRunner.setTraceLengthMultiplier(8);
-						learnerRunner.setChunkLen(chunkSize);
-						learnerRunner.setPresetLearningParameters(preset);
-						learnerRunner.setOnlyUsePositives(onlyPositives);
-						learnerRunner.setChunkLen(chunkSize);
-//						learnerRunner.setpta(pta);
-						learnerRunner.setTraceQuantity(traceQuantity);
-						experimentRunner.submitTask(learnerRunner);
-		}
-					
-		for(@SuppressWarnings("unused") final int traceQuantity:traceQuantityValues)
-		{
-			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+			writer.write("TraceNumbers");// using 'write' rather than append avoids the 'resource not closed' warning because append returns a Writer and write is void.
+		    writer.append(',');
+		    writer.write("Label");
+		    writer.append(',');
+		    writer.write("BCR");
+		    writer.append(',');
+		    writer.write("Structural");
+		    writer.append(',');
+			final Map<Integer,RBoxPlot<String>> gr_BCRImprovementForDifferentTraces = new  TreeMap<Integer,RBoxPlot<String>>();
+			final Map<Integer,SquareBagPlot> gr_BCR_EM_against_Sicco = new TreeMap<Integer,SquareBagPlot>();
+			for(final int traceQuantity:traceQuantityValues)
+			{
+				gr_BCRImprovementForDifferentTraces.put(traceQuantity, new RBoxPlot<String>("Different Learners","BCR",new File("BCR"+"_traceQuantity_"+traceQuantity+".pdf")));
+				gr_BCR_EM_against_Sicco.put(traceQuantity,new SquareBagPlot("BCR, SiccoN","BCR, EDSM-Markov learner",new File("improvement_"+traceQuantity+".pdf"),0.5,1,true));
+			}		
+			
+			List<RGraph> graphs = new LinkedList<RGraph>();graphs.addAll(gr_BCRImprovementForDifferentTraces.values());graphs.addAll(gr_BCR_EM_against_Sicco.values());
+			final RGraph[] graphsInExperiment = graphs.toArray(new RGraph[]{}); 
+			
+			final int preset=0;
 	
-				@Override
-				public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
-				{
+			for(final int traceQuantity:traceQuantityValues)
+			{
+	//						TraceLoader tool = new TraceLoader(config,converter);
+	//						tool.loadConfig("CVS.txt");
+	//						LearnerGraph pta = tool.getPTA();
+	//						System.out.println(pta.learnerCache.getAlphabet());
+							int numberOfTasks = 0;
+							numberOfTasks++;
+							LearnerRunner learnerRunner = new LearnerRunner(numberOfTasks, config, converter);
+							learnerRunner.setOnlyUsePositives(onlyPositives);
+	//						learnerRunner.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+	//						learnerRunner.setAlphabetMultiplier(alphabetMultiplierActual);
+							learnerRunner.setTraceLengthMultiplier(8);
+							learnerRunner.setChunkLen(chunkSize);
+							learnerRunner.setPresetLearningParameters(preset);
+							learnerRunner.setOnlyUsePositives(onlyPositives);
+							learnerRunner.setChunkLen(chunkSize);
+	//						learnerRunner.setpta(pta);
+							learnerRunner.setTraceQuantity(traceQuantity);
+							experimentRunner.submitTask(learnerRunner);
+			}
 						
-					for(SampleData sample:result.samples)
+			for(@SuppressWarnings("unused") final int traceQuantity:traceQuantityValues)
+			{
+				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+		
+					@Override
+					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
 					{
-						for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
+							
+						for(SampleData sample:result.samples)
 						{
-								writer.append('\n');
-								writer.append(String.valueOf(sample.traceNumber));
-								writer.append(',');
-								writer.append(String.valueOf(score.getKey()));
-								writer.append(',');
-								writer.append(String.valueOf(score.getValue().differenceBCR.getValue()));
-								writer.append(',');
-								if (score.getValue().differenceStructural != null)
-									writer.append(String.valueOf(score.getValue().differenceStructural.getValue()));
-								
-								if (score.getValue().differenceBCR.getValue() > 0)
-								{
-									experimentrunner.RecordR(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
-									experimentrunner.RecordR(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
+							for(Entry<String,ScoresForGraph> score:sample.miscGraphs.entrySet())
+							{
+									writer.append('\n');
+									writer.write(String.valueOf(sample.traceNumber));
+									writer.append(',');
+									writer.write(String.valueOf(score.getKey()));
+									writer.append(',');
+									writer.write(String.valueOf(score.getValue().differenceBCR.getValue()));
+									writer.append(',');
+									if (score.getValue().differenceStructural != null)
+										writer.write(String.valueOf(score.getValue().differenceStructural.getValue()));
+									
+									if (score.getValue().differenceBCR.getValue() > 0)
+									{
+										experimentrunner.RecordR(gr_BCR_EM_against_Sicco.get((int)sample.traceNumber),sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+										experimentrunner.RecordR(gr_BCRImprovementForDifferentTraces.get((int)sample.traceNumber),score.getKey(),score.getValue().differenceBCR.getValue(),Colours.get(score.getKey()),score.getKey());
+									}
 								}
 							}
 						}
-					}
-					
-					@Override
-					public String getSubExperimentName()
-					{
-						return "running tasks for learning whole graphs, preset "+preset;
-					}
-							
-					@SuppressWarnings("rawtypes")
-					@Override
-					public RGraph[] getGraphs() {
-						return graphsInExperiment;
-					}
-			});
+						
+						@Override
+						public String getSubExperimentName()
+						{
+							return "running tasks for learning whole graphs, preset "+preset;
+						}
+								
+						@SuppressWarnings("rawtypes")
+						@Override
+						public RGraph[] getGraphs() {
+							return graphsInExperiment;
+						}
+				});
+			}
 		}
-		writer.flush();
-	    writer.close();
+		finally
+		{
+			writer.flush();
+		    writer.close();
+		}
 	}
 }

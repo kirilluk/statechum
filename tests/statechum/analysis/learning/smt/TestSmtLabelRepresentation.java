@@ -922,7 +922,7 @@ public class TestSmtLabelRepresentation
 		public static Collection<Object []> data() 
 		{
 			Collection<Object[]> result = new LinkedList<Object[]>();
-			result.add(new Object[]{new Boolean(true)});result.add(new Object[]{new Boolean(false)});
+			result.add(new Object[]{Boolean.valueOf(true)});result.add(new Object[]{Boolean.valueOf(false)});
 			
 			return result;
 		}

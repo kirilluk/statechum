@@ -19,6 +19,7 @@ package statechum.analysis.learning.observers;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 
@@ -57,11 +58,24 @@ public class AutoAnswers extends DummyLearner {
 	protected void setAutoOracle(Configuration config)
 	{
 		if (config.getAutoAnswerFileName().length() > 0)
+		{
+			FileReader fileReader = null;
 			try {
-				loadAnswers(new FileReader(config.getAutoAnswerFileName()),config);
+				fileReader = new FileReader(config.getAutoAnswerFileName());
+				loadAnswers(fileReader,config);
 			} catch (FileNotFoundException e) {
 				// does not matter - ans remains null
 			}
+			finally
+			{
+				if (fileReader != null)
+					try {
+						fileReader.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+			}
+		}
 	}
 
 	public AutoAnswers(Learner learner) {

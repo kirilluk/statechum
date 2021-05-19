@@ -36,7 +36,6 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.linear.GD.ChangesRecorder;
 import statechum.analysis.learning.linear.GD.LearnerGraphMutator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -66,7 +65,7 @@ public class TestGD_MultipleCasesOfRenaming {
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(int i=1;i<8;++i)
 			for(String stateC:new String[]{"C","A","F","S"})
-				result.add(new Object[]{new Integer(i), stateC});
+				result.add(new Object[]{Integer.valueOf(i), stateC});
 		
 		return result;
 	}

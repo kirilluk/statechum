@@ -25,8 +25,6 @@ import java.util.Stack;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;

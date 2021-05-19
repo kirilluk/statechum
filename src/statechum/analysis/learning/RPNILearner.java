@@ -33,7 +33,6 @@ import javax.swing.event.ListSelectionListener;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.StringLabel;
-import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -266,7 +265,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     public void terminateUserDialogueFrame() {
         assert (SwingUtilities.isEventDispatchThread());
         if (dialog != null && jop != null && dialog.isVisible()) {
-            jop.setValue(new Integer(
+            jop.setValue(Integer.valueOf(
                     JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
         }		// The setting of the option above corresponds to hitting "close" or "ESC" on the dialogue,
         // which is interpreted by the learner as a request to terminate learning, hence
@@ -377,7 +376,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 
                             @Override
                             public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
-                                jop.setValue(new Integer(
+                                jop.setValue(Integer.valueOf(
                                         JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
                             }
                         });

@@ -99,14 +99,14 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	
 	public static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
 	{
-		final Boolean accept = new Boolean(true), reject = new Boolean(false);
+		final Boolean accept = Boolean.valueOf(true), reject = Boolean.valueOf(false);
 		boolean theOnlyStateReject = false;
 		for(List<Label> seq:minusStrings)
 			if (seq.isEmpty())
 			{
 				theOnlyStateReject = true;break;
 			}
-		final Boolean rejectAllStates = new Boolean(theOnlyStateReject);
+		final Boolean rejectAllStates = Boolean.valueOf(theOnlyStateReject);
 		final AtomicBoolean statesAccept = new AtomicBoolean(true);
 		PTASequenceEngine allSequences = new PTASequenceEngine();
 		

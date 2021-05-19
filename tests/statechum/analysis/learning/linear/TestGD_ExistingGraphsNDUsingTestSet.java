@@ -121,10 +121,10 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 		{
 			for(double ratio:new double[]{0.5,0.9})
 				for(int pairs:new int[]{0})
-				result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
+				result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(pairs), ratio,
 						fileA1,fileA2,fileB1,fileB2
 					});
-			result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA1,fileA2,fileB1,fileB2});
+			result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(0),-1.,fileA1,fileA2,fileB1,fileB2});
 			progress.next();
 		}
 	}

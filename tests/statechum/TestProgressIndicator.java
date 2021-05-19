@@ -21,8 +21,6 @@ package statechum;
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.ProgressIndicator;
-
 public class TestProgressIndicator {
 	@Test
 	public final void testProgressIndicator1()

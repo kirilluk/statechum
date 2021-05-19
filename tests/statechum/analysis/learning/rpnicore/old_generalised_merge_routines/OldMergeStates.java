@@ -90,7 +90,7 @@ public class OldMergeStates
 		Queue<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.getInit()));
 		Map<EquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean> visitedEqClasses = new ArrayMapWithSearch<EquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean>();
-		Boolean trueValue = new Boolean(true);
+		Boolean trueValue = Boolean.valueOf(true);
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.

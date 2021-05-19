@@ -420,15 +420,27 @@ public class ExperimentRunner
 		protected void loadGraph()
 		{
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
+			FileReader fileReader = null;
 			try
 			{
+				fileReader = new FileReader(inputFileName);
 				graph = new LearnerGraph(cnf);
-				AbstractPersistence.loadGraph(new FileReader(inputFileName),graph, experiment.getLabelConverter());
+				AbstractPersistence.loadGraph(fileReader,graph, experiment.getLabelConverter());
 			}
 			catch(Exception ex)
 			{
+				
 				IllegalArgumentException e = new IllegalArgumentException("could not load "+inputFileName);
 				e.initCause(ex);throw e;
+			}
+			finally
+			{
+				if (fileReader != null)
+					try {
+						fileReader.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 			}
 		}
 
@@ -1315,10 +1327,10 @@ public class ExperimentRunner
 				if (numbers)
 				{
 					try {
-						colHeader = new Integer(splitResult[colSort]);
+						colHeader = Integer.valueOf(splitResult[colSort]);
 					} catch(NumberFormatException e)
 					{// guess it is not an integer, try a double, will throw if it is not a double either.
-						colHeader = new Double(splitResult[colSort]);
+						colHeader = Double.valueOf(splitResult[colSort]);
 					}
 				}
 				List<String> col = resultMap.get(colHeader);

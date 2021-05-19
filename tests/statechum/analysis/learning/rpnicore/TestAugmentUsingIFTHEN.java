@@ -1670,14 +1670,14 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		@Test
 		public final void testIdentifyTheOnlyChoice2()
 		{
-			Assert.assertEquals(new Integer(2),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,false})));
+			Assert.assertEquals(Integer.valueOf(2),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,false})));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
 		public final void testIdentifyTheOnlyChoice3()
 		{
-			Assert.assertEquals(new Integer(AbstractOracle.USER_ACCEPTED),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,true})));
+			Assert.assertEquals(Integer.valueOf(AbstractOracle.USER_ACCEPTED),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,true})));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */

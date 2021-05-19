@@ -62,7 +62,7 @@ public class TestSolverRandomly {
 		final int stepCount=20;
 			for(int i=1;i<30;++i)
 				for(int count=0;count<stepCount;++count)
-					result.add(new Object[]{i*stepCount+count,new Random(i+count),new Integer(i*20)});
+					result.add(new Object[]{i*stepCount+count,new Random(i+count),Integer.valueOf(i*20)});
 		
 		return result;
 	}

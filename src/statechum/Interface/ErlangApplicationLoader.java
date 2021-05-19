@@ -161,7 +161,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		startModuleArgs = new javax.swing.JLabel();
 		jLabel4 = new javax.swing.JLabel();
 		jScrollPane1 = new javax.swing.JScrollPane();
-		modules = new javax.swing.JList();
+		modules = new javax.swing.JList<ErlangModule>();
 		jButton2 = new javax.swing.JButton();
 		jButton3 = new javax.swing.JButton();
 
@@ -441,7 +441,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			}
 			startModule.setText(app.startModule);
 			startModuleArgs.setText(app.startModuleArgs);
-			DefaultListModel model = new DefaultListModel();
+			DefaultListModel<ErlangModule> model = new DefaultListModel<ErlangModule>();
 			for (ErlangModule m : app.modules) {
 				model.addElement(m);
 			}
@@ -484,7 +484,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		}
 	}
 
-	private void beginButtonActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
+	void beginButtonActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_beginButtonActionPerformed
 		zapErlFiles(folder);
 		try {
 			/*
@@ -602,7 +602,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	private javax.swing.JLabel jLabel3;
 	private javax.swing.JLabel jLabel4;
 	private javax.swing.JScrollPane jScrollPane1;
-	private javax.swing.JList modules;
+	private javax.swing.JList<ErlangModule> modules;
 	private javax.swing.JLabel startModule;
 	private javax.swing.JLabel startModuleArgs;
 

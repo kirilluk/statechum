@@ -1463,7 +1463,7 @@ public class PairQualityLearner
 							if (j < dataCollector.attributesOfAnInstance.length)
 								columnData+=freqData[j];
 						
-						gr_HistogramOfAttributeValues.add(new Long(numOfcolumns-i),new Double(columnData>0?Math.log10(columnData):0));
+						gr_HistogramOfAttributeValues.add(Long.valueOf(numOfcolumns-i),Double.valueOf(columnData>0?Math.log10(columnData):0));
 					}
 					//gr_HistogramOfAttributeValues.drawInteractive(gr);
 					gr_HistogramOfAttributeValues.reportResults(gr);

@@ -47,14 +47,14 @@ public abstract class ScoresLogger
 	/** Loads the data from a map. */
 	public void loadMap()
 	{
-		InputStream is=null;ZipInputStream inputStream = null;
+		InputStream is=null;ZipInputStream inputStream = null;BufferedReader rd = null;
 		try {
 			is = new FileInputStream(scoresFileName);inputStream = new ZipInputStream(is);
 			
 			ZipEntry zipEntry = inputStream.getNextEntry();
 			while(zipEntry != null)
 			{
-				BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
+				rd = new BufferedReader(new InputStreamReader(inputStream));
 				String fileString= rd.readLine();Assert.assertNotNull(fileString);
 				scoresMap.put(zipEntry.getName(), (OtpErlangTuple)ErlangLabel.parseText(fileString));
 				zipEntry = inputStream.getNextEntry();
@@ -74,6 +74,7 @@ public abstract class ScoresLogger
 		{
 			if (inputStream != null) { try { inputStream.close();inputStream=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 			if (is != null) { try { is.close();is=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
+			if (rd != null) { try { rd.close();rd=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 	}
 

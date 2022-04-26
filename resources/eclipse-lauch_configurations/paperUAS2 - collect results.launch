@@ -12,7 +12,7 @@
 </mapAttribute>
 <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="RUN_PARALLEL 1"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="COLLECT_RESULTS"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="XMachineTool-current"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;C:/Users/Kirill/Documents/R/win-library/3.5/rJava/jri/x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.3&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS=&quot;C:\\experiment\\benchmark_research_experiments&quot; -DPATH_UASPAPER=&quot;C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces&quot;"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;C:/Users/Kirill/Documents/R/win-library/3.5/rJava/jri/x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.3&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS=&quot;C:\\experiment\\research_experiments&quot; -DPATH_UASPAPER=&quot;C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces&quot;"/>
 </launchConfiguration>

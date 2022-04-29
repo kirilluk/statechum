@@ -27,7 +27,7 @@
 %% During February and March 2009, Kostis Sagonas significantly
 %% cleaned up the type representation and added spec declarations.
 
--module(erl_types).
+-module(erl_types_s).
 
 -export([any_none/1,
 	 any_none_or_unit/1,
@@ -211,7 +211,6 @@
          t_widen_to_number/1,
 	 %% t_assign_variables_to_subtype/2,
 	 type_is_defined/4,
-	 record_field_diffs_to_string/2,
 	 subst_all_vars_to_any/1,
          lift_list_to_pos_empty/1, lift_list_to_pos_empty/2,
          is_opaque_type/2,
@@ -4486,30 +4485,6 @@ record_fields_to_string([F|Fs], [{FName, _Abstr, DefType}|FDefs],
     end,
   record_fields_to_string(Fs, FDefs, RecDict, NewAcc);
 record_fields_to_string([], [], _RecDict, Acc) ->
-  lists:reverse(Acc).
-
--spec record_field_diffs_to_string(erl_type(), type_table()) ->
-                                      {[FieldPos :: pos_integer()], string()}.
-
-record_field_diffs_to_string(?tuple([_|Fs], Arity, Tag), RecDict) ->
-  [TagAtom] = atom_vals(Tag),
-  {ok, FieldNames} = lookup_record(TagAtom, Arity-1, RecDict),
-  %% io:format("RecCElems = ~p\nRecTypes = ~p\n", [Fs, FieldNames]),
-  Diffs = field_diffs(Fs, FieldNames, 1, RecDict, []),
-  {FNs, FieldDiffs} = lists:unzip(Diffs),
-  {FNs, flat_join(FieldDiffs, " and ")}.
-
-field_diffs([F|Fs], [{FName, _Abstr, DefType}|FDefs], Pos, RecDict, Acc) ->
-  %% Don't care about opacity for now.
-  NewAcc =
-    case not t_is_none(t_inf(F, DefType)) of
-      true -> Acc;
-      false ->
-	Str = atom_to_string(FName) ++ "::" ++ t_to_string(DefType, RecDict),
-	[{Pos,Str}|Acc]
-    end,
-  field_diffs(Fs, FDefs, Pos + 1, RecDict, NewAcc);
-field_diffs([], [], _, _, Acc) ->
   lists:reverse(Acc).
 
 comma_sequence(Types, RecDict) ->

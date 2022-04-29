@@ -22,7 +22,7 @@
 %%               annotate the code of files with such type information.
 %%-----------------------------------------------------------------------
 
--module(typer).
+-module(typer_s).
 
 -export([start/0]).
 
@@ -89,9 +89,9 @@ start() ->
   %% io:format("Final: ~p\n", [Analysis4#analysis.fms]),
   TypeInfo = get_type_info(Analysis4),
   dialyzer_timing:stop(Timer),
-  show_or_annotate(TypeInfo),
+  show_or_annotate(TypeInfo)
   %% io:format("\nTyper analysis finished\n"),
-  erlang:halt(0).
+  .
 
 %%--------------------------------------------------------------------
 

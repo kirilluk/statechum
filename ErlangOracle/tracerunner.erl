@@ -93,11 +93,12 @@ init([Arg]) ->
 %% Obtains the defines necessary to tailor Statechum to the specific version of Erlang runtime. This is only needed for Typer but in future may be used for other things.
 runtimeSpecificFlags() ->
   case string:substr(erlang:system_info(otp_release),1,3) of
-  	"R14"->{ok,{i,"lib/modified_typer/14"}};
-  	"R15"->{ok,{i,"lib/modified_typer/16"}};
-  	"R16"->{ok,{i,"lib/modified_typer/16"}};
-  	"17"->{ok,{i,"lib/modified_typer/17"}};  	
-  	"18"->{ok,{i,"lib/modified_typer/17"}};  	
+  	"R14"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/14"}]};
+  	"R15"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/16"}]};
+  	"R16"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/16"}]};
+  	"17"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/17"}]};
+  	"18"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/17"}]};
+  	"24"->{ok,[{i,"lib/modified_typer/typer_monolithic"}]};
 % Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
     Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R18 are supported", [Unknown])))}
   end.
@@ -106,14 +107,14 @@ runtimeSpecificFlags() ->
 %% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
 compileAndLoad(What,Path) ->
 	{ok,Flags}=runtimeSpecificFlags(),
-	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary,Flags]),
+	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary] ++ Flags),
 	ModuleName = filename:basename(What,".erl"),
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
 
 %% Sometimes, files are known under different names but define the same module,
-%% Dialyzer may lock up inside dialyzer_succ_typings:analyze_callgraph when 
-%% analysing such files. The following function check for this and complains when 
+%% Dialyzer (from Erlang 14-16 or so) may lock up inside dialyzer_succ_typings:analyze_callgraph when
+%% analysing such files. The following function checks for this and complains when
 %% file name does not match module name. Expects beams and throws an error if an
 %% inconsistency is detected.
 fileNameValid([])->ok;
@@ -254,7 +255,7 @@ handle_call({compile,[],erlc,_Dir}, _From, State) ->
 handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
 	case(runtimeSpecificFlags()) of
 		{ok,Flags} ->
-			case(compile:file(M,[verbose,debug_info,{outdir,Dir},Flags])) of
+			case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ Flags)) of
 				{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
 				Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
 			end;

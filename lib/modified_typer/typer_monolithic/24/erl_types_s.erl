@@ -71,7 +71,6 @@
 	 t_pos_fixnum/0,
 	 t_float/0,
          t_var_names/1,
-	 t_form_to_string/1,
          t_from_form/6,
          t_from_form_without_remote/3,
          t_from_form_check_remote/4,
@@ -193,8 +192,8 @@
 	 t_sup/1,
 	 t_sup/2,
 	 t_timeout/0,
-	 t_to_string/1,
-	 t_to_string/2,
+	 t_to_Statechum/1,
+	 t_to_Statechum/2,
 	 t_to_tlist/1,
 	 t_tuple/0,
 	 t_tuple/1,
@@ -215,7 +214,6 @@
          lift_list_to_pos_empty/1, lift_list_to_pos_empty/2,
          is_opaque_type/2,
 	 is_erl_type/1,
-	 atom_to_string/1,
 	 var_table__new/0,
 	 cache__new/0
 	]).
@@ -232,6 +230,29 @@
 -else.
 -define(debug(__A), ok).
 -endif.
+
+%%
+%% The format of the output is { JavaClass, ListOfAttributes, List1, List2 ... }
+%% (it is not a record in order to permit variables number of elements and we'd best be
+%% explicit as to the values of every element).
+%% Statechum instantiates the supplied class and passes it the args provided.
+%% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
+
+unsupportedType(Descr) -> throw("Unsupported type: "++Descr).
+
+%% This one is used in two cases, to dump sets of atoms and sets of numbers
+%% Returns a list of values
+set_to_Statechum(Set) ->
+  List = ordsets:to_list(Set),
+  lists:foreach(fun(X) ->
+	case erlang:is_atom(X) orelse erlang:is_number(X) of
+		false -> typer_s:reportError(io_lib:format("Asked to dump element ~w of a set which is neither an atom nor a number",[X]));
+		true ->true
+	end end,List),
+   List.
+
+sequence_to_Statechum(Types, RecDict) ->
+  [t_to_Statechum(T, RecDict) || T <- Types].
 
 %%=============================================================================
 %%
@@ -4294,77 +4315,50 @@ t_abstract_records(T, _RecDict) ->
 %%
 %%=============================================================================
 
--spec t_to_string(erl_type()) -> string().
+-spec t_to_Statechum(erl_type()) -> string().
 
-t_to_string(T) ->
-  t_to_string(T, maps:new()).
+t_to_Statechum(T) ->
+  t_to_Statechum(T, maps:new()).
 
--spec t_to_string(erl_type(), type_table()) -> string().
+-spec t_to_Statechum(erl_type(), type_table()) -> string().
 
-t_to_string(?any, _RecDict) ->
-  "any()";
-t_to_string(?none, _RecDict) ->
-  "none()";
-t_to_string(?unit, _RecDict) ->
-  "no_return()";
-t_to_string(?atom(?any), _RecDict) ->
-  "atom()";
-t_to_string(?atom(Set), _RecDict) ->
-  case set_size(Set) of
+t_to_Statechum(?any, _RecDict) ->
+  {'Any',[]};
+t_to_Statechum(?none, _RecDict) ->
+  {'None',[]};
+t_to_Statechum(?unit, _RecDict) -> unsupportedType("no_return");
+%% "no_return()";
+t_to_Statechum(?atom(?any), _RecDict) ->
+  {'Atom',[]};
+t_to_Statechum(?atom(Set), _RecDict) ->
+  case ordsets:size(Set) of
     2 ->
-      case set_is_element(true, Set) andalso set_is_element(false, Set) of
-	true -> "boolean()";
-	false -> set_to_string(Set)
+      case ordsets:is_element(true, Set) andalso ordsets:is_element(false, Set) of
+	true -> {'Boolean',[]};
+	false -> { 'Atom',[], set_to_Statechum(Set) }
       end;
     _ ->
-      set_to_string(Set)
+      { 'Atom',[],set_to_Statechum(Set) }
   end;
-t_to_string(?bitstr(0, 0), _RecDict) ->
-  "<<>>";
-t_to_string(?bitstr(8, 0), _RecDict) ->
-  "binary()";
-t_to_string(?bitstr(8, 8), _RecDict) ->
-  "nonempty_binary()";
-t_to_string(?bitstr(1, 0), _RecDict) ->
-  "bitstring()";
-t_to_string(?bitstr(1, 1), _RecDict) ->
-  "nonempty_bitstring()";
-t_to_string(?bitstr(0, B), _RecDict) ->
-  flat_format("<<_:~w>>", [B]);
-t_to_string(?bitstr(U, 0), _RecDict) ->
-  flat_format("<<_:_*~w>>", [U]);
-t_to_string(?bitstr(U, B), _RecDict) ->
-  flat_format("<<_:~w,_:_*~w>>", [B, U]);
-t_to_string(?function(?any, ?any), _RecDict) ->
-  "fun()";
-t_to_string(?function(?any, Range), RecDict) ->
-  "fun((...) -> " ++ t_to_string(Range, RecDict) ++ ")";
-t_to_string(?function(?product(ArgList), Range), RecDict) ->
-  "fun((" ++ comma_sequence(ArgList, RecDict) ++ ") -> "
-    ++ t_to_string(Range, RecDict) ++ ")";
-t_to_string(?identifier(Set), _RecDict) ->
-  case Set of
-    ?any -> "identifier()";
-    _ ->
-      flat_join([flat_format("~w()", [T]) || T <- set_to_list(Set)], " | ")
-  end;
-t_to_string(?opaque(Set), RecDict) ->
-  flat_join([opaque_type(Mod, Name, Args, S, RecDict) ||
-              #opaque{mod = Mod, name = Name, struct = S, args = Args}
-                <- set_to_list(Set)],
-            " | ");
-t_to_string(?matchstate(Pres, Slots), RecDict) ->
-  flat_format("ms(~ts,~ts)", [t_to_string(Pres, RecDict),
-                              t_to_string(Slots,RecDict)]);
-t_to_string(?nil, _RecDict) ->
-  "[]";
-t_to_string(?nonempty_list(Contents, Termination), RecDict) ->
-  ContentString = t_to_string(Contents, RecDict),
+t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B ]};
+
+t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as arguments are not yet supported");
+
+t_to_Statechum(?identifier(_Set), _RecDict) -> unsupportedType("PID/Port/reference types are not supported");
+
+t_to_Statechum(?opaque(_Set), _RecDict) -> unsupportedType("Opaque types cannot be created externally");
+
+t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
+
+t_to_Statechum(?nil, _RecDict) -> {'String',[],[[]]};
+
+t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
+  ContentString = t_to_Statechum(Contents, RecDict),
   case Termination of
     ?nil ->
       case Contents of
-	?char -> "nonempty_string()";
-	_ -> "["++ContentString++",...]"
+	?char -> {'String',['nonempty']};%% "nonempty_string()";
+	_ -> {'List',[],[ContentString]} %% "["++ContentString++",...]"
       end;
     ?any ->
       %% Just a safety check.
@@ -4375,24 +4369,22 @@ t_to_string(?nonempty_list(Contents, Termination), RecDict) ->
           %% erlang:error({illegal_list, ?nonempty_list(Contents, Termination)})
           ok
       end,
-      "nonempty_maybe_improper_list()";
+      {'List',['nonempty','maybeimproper'],[]}; %% "nonempty_maybe_improper_list()";
     _ ->
       case t_is_subtype(t_nil(), Termination) of
 	true ->
-	  "nonempty_maybe_improper_list("++ContentString++","
-	    ++t_to_string(Termination, RecDict)++")";
+	  {'List',['nonempty','maybeimproper'],[ContentString,t_to_Statechum(Termination, RecDict)]};
 	false ->
-	  "nonempty_improper_list("++ContentString++","
-	    ++t_to_string(Termination, RecDict)++")"
+	  {'List',['nonempty','improper'],[ContentString,t_to_Statechum(Termination, RecDict)]}
       end
   end;
-t_to_string(?list(Contents, Termination, ?unknown_qual), RecDict) ->
-  ContentString = t_to_string(Contents, RecDict),
+t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
+  ContentString = t_to_Statechum(Contents, RecDict),
   case Termination of
     ?nil ->
       case Contents of
-	?char -> "string()";
-	_ -> "["++ContentString++"]"
+	?char -> {'String',[]};%% "string()";
+	_ -> {'List',[],[ContentString]} %% "["++ContentString++"]"
       end;
     ?any ->
       %% Just a safety check.
@@ -4405,72 +4397,71 @@ t_to_string(?list(Contents, Termination, ?unknown_qual), RecDict) ->
           %% L = ?list(Contents, Termination, ?unknown_qual),
           %% erlang:error({illegal_list, L})
       end,
-      "maybe_improper_list()";
+      {'List',['maybeimproper'],[]}; %% "maybe_improper_list()";
     _ ->
       case t_is_subtype(t_nil(), Termination) of
 	true ->
-	  "maybe_improper_list("++ContentString++","
-	    ++t_to_string(Termination, RecDict)++")";
+	  {'List',['maybeimproper'],[ContentString,t_to_Statechum(Termination, RecDict)]};
 	false ->
-	  "maybe_improper_list("++ContentString++","
-	    ++t_to_string(Termination, RecDict)++")"
+	  {'List',['improper'],[ContentString,t_to_Statechum(Termination, RecDict)]}
       end
   end;
-t_to_string(?int_set(Set), _RecDict) ->
-  set_to_string(Set);
-t_to_string(?byte, _RecDict) -> "byte()";
-t_to_string(?char, _RecDict) -> "char()";
-t_to_string(?integer_pos, _RecDict) -> "pos_integer()";
-t_to_string(?integer_non_neg, _RecDict) -> "non_neg_integer()";
-t_to_string(?integer_neg, _RecDict) -> "neg_integer()";
-t_to_string(?int_range(From, To), _RecDict) ->
-  flat_format("~w..~w", [From, To]);
-t_to_string(?integer(?any), _RecDict) -> "integer()";
-t_to_string(?float, _RecDict) -> "float()";
-t_to_string(?number(?any, ?unknown_qual), _RecDict) -> "number()";
-t_to_string(?product(List), RecDict) ->
-  "<" ++ comma_sequence(List, RecDict) ++ ">";
-t_to_string(?map([],?any,?any), _RecDict) -> "map()";
-t_to_string(?map(Pairs0,DefK,DefV), RecDict) ->
-  {Pairs, ExtraEl} =
+t_to_Statechum(?int_set(Set), _RecDict) ->
+	{'Int',['values'],set_to_Statechum(Set)};
+t_to_Statechum(?byte, _RecDict) -> {'Byte',[]}; %% "byte()";
+t_to_Statechum(?char, _RecDict) -> {'Char',[]}; %% "char()";
+t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive']}; %% "pos_integer()";
+t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative']}; %% "non_neg_integer()";
+t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative']}; %% "neg_integer()";
+t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',['boundaries'],[From, To]}; %% OtpErlang will turn list into string but we'll turn it back afterwards
+%% but at the same time, it is not proper to turn the last argument from a list into a tuple because we'd like to generate them using
+%% list comprehensions in the union case and others; the trouble with lists integers being autoconverted to strings is relatively minor.
+%%  flat_format("~w..~w", [From, To]);
+t_to_Statechum(?integer(?any), _RecDict) -> {'Int',[]}; %% "integer()";
+t_to_Statechum(?float, _RecDict) -> {'Float',[]}; %% "float()";
+t_to_Statechum(?number(?any, ?unknown_qual), _RecDict) -> {'Int',[]}; %% "number()";
+t_to_Statechum(?product(_List), _RecDict) -> unsupportedType("product types are not supported");
+%% It is not hard to support this type - I could do the same as I did for fun_to_Statechum,
+%% but I do not know when it is used
+%% and hence the envelope to use for it.
+%%  "<" ++ comma_sequence(List, RecDict) ++ ">";
+t_to_Statechum(?map([],?any,?any), _RecDict) -> {'Map',[]};
+t_to_Statechum(?map(Pairs0,DefK,DefV), RecDict) ->
+  Pairs =
     case {DefK, DefV} of
-      {?none, ?none} -> {Pairs0, []};
-      _ -> {Pairs0 ++ [{DefK,?opt,DefV}], []}
+      {?none, ?none} -> Pairs0;
+      _ -> Pairs0 ++ [{DefK,?opt,DefV}]
     end,
-  Tos = fun(T) -> case T of
-		    ?any -> "_";
-		    _ -> t_to_string(T, RecDict)
-		  end end,
-  StrMand = [{Tos(K),Tos(V)}||{K,?mand,V}<-Pairs],
-  StrOpt  = [{Tos(K),Tos(V)}||{K,?opt,V}<-Pairs],
-  "#{" ++ flat_join([K ++ ":=" ++ V||{K,V}<-StrMand]
-                    ++ [K ++ "=>" ++ V||{K,V}<-StrOpt]
-                    ++ ExtraEl, ", ") ++ "}";
-t_to_string(?tuple(?any, ?any, ?any), _RecDict) -> "tuple()";
-t_to_string(?tuple(Elements, _Arity, ?any), RecDict) ->
-  "{" ++ comma_sequence(Elements, RecDict) ++ "}";
-t_to_string(?tuple(Elements, Arity, Tag), RecDict) ->
-  [TagAtom] = atom_vals(Tag),
-  case lookup_record(TagAtom, Arity-1, RecDict) of
-    error -> "{" ++ comma_sequence(Elements, RecDict) ++ "}";
+  StrMand = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?mand,V}<-Pairs],
+  StrOpt  = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?opt,V}<-Pairs],
+  {'Map',[],StrMand,StrOpt};
+t_to_Statechum(?tuple(?any, ?any, ?any), _RecDict) -> {'Tuple',[]}; %% "tuple()";
+t_to_Statechum(?tuple(Elements, _Arity, ?any), RecDict) -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)};
+%%  "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
+t_to_Statechum(?tuple(Elements, Arity, Tag), RecDict) ->
+  [TagAtom] = erl_types:t_atom_vals(Tag),
+  case erl_types:lookup_record(TagAtom, Arity-1, RecDict) of
+    error -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)}; %% "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
     {ok, FieldNames} ->
-      record_to_string(TagAtom, Elements, FieldNames, RecDict)
+      record_to_Statechum(TagAtom, Elements, FieldNames, RecDict)
   end;
-t_to_string(?tuple_set(_) = T, RecDict) ->
-  union_sequence(t_tuple_subtypes(T), RecDict);
-t_to_string(?union(Types), RecDict) ->
+t_to_Statechum(?tuple_set(_) = T, RecDict) ->
+  case erl_types:t_tuple_subtypes(T) of
+	'unknown' -> typer_s:reportError("set of tuple with arbitrary elements");
+	List ->  union_sequence(List, RecDict)
+  end;
+t_to_Statechum(?union(Types), RecDict) ->
   union_sequence([T || T <- Types, T =/= ?none], RecDict);
-t_to_string(?var(Id), _RecDict) when is_atom(Id) ->
-  flat_format("~s", [atom_to_list(Id)]);
-t_to_string(?var(Id), _RecDict) when is_integer(Id) ->
-  flat_format("var(~w)", [Id]).
+t_to_Statechum(?var(Id), _RecDict) when is_atom(Id) -> unsupportedType("variables are not supported");
+%%  flat_format("~s", [atom_to_list(Id)]);
+t_to_Statechum(?var(Id), _RecDict) when is_integer(Id) -> unsupportedType("variables are not supported").
+%%  flat_format("var(~w)", [Id]).
 
+record_to_Statechum(Tag, [_|Fields], FieldNames, RecDict) ->
+  FieldStrings = record_fields_to_Statechum(Fields, FieldNames, RecDict, []),
+  {'Record',[Tag],FieldStrings}.
 
-record_to_string(Tag, [_|Fields], FieldNames, RecDict) ->
-  FieldStrings = record_fields_to_string(Fields, FieldNames, RecDict, []),
-  "#" ++ atom_to_string(Tag) ++ "{" ++ flat_join(FieldStrings, ",") ++ "}".
-
-record_fields_to_string([F|Fs], [{FName, _Abstr, DefType}|FDefs],
+record_fields_to_Statechum([F|Fs], [{FName, _Abstr, DefType}|FDefs],
                         RecDict, Acc) ->
   NewAcc =
     case
@@ -4480,41 +4471,15 @@ record_fields_to_string([F|Fs], [{FName, _Abstr, DefType}|FDefs],
     of
       true -> Acc;
       false ->
-	StrFV = atom_to_string(FName) ++ "::" ++ t_to_string(F, RecDict),
+	StrFV = {FName, t_to_Statechum(F, RecDict)},
 	[StrFV|Acc]
     end,
-  record_fields_to_string(Fs, FDefs, RecDict, NewAcc);
-record_fields_to_string([], [], _RecDict, Acc) ->
+  record_fields_to_Statechum(Fs, FDefs, RecDict, NewAcc);
+record_fields_to_Statechum([], [], _RecDict, Acc) ->
   lists:reverse(Acc).
 
-comma_sequence(Types, RecDict) ->
-  List = [case T =:= ?any of
-	    true -> "_";
-	    false -> t_to_string(T, RecDict)
-	  end || T <- Types],
-  flat_join(List, ",").
-
 union_sequence(Types, RecDict) ->
-  List = [t_to_string(T, RecDict) || T <- Types],
-  flat_join(List, " | ").
-
--ifdef(DEBUG).
-opaque_type(Mod, Name, _Args, S, RecDict) ->
-  ArgsString = comma_sequence(_Args, RecDict),
-  String = t_to_string(S, RecDict),
-  opaque_name(Mod, Name, ArgsString) ++ "[" ++ String ++ "]".
--else.
-opaque_type(Mod, Name, Args, _S, RecDict) ->
-  ArgsString = comma_sequence(Args, RecDict),
-  opaque_name(Mod, Name, ArgsString).
--endif.
-
-opaque_name(Mod, Name, Extra) ->
-  S = mod_name(Mod, Name),
-  flat_format("~ts(~ts)", [S, Extra]).
-
-mod_name(Mod, Name) ->
-  flat_format("~w:~tw", [Mod, Name]).
+  {'Alt',[],[t_to_Statechum(T, RecDict) || T <- Types]}.
 
 %%=============================================================================
 %%
@@ -5334,140 +5299,6 @@ t_var_names([{var, _, Name}|L]) when Name =/= '_' ->
 t_var_names([]) ->
   [].
 
--spec t_form_to_string(parse_form()) -> string().
-
-t_form_to_string({var, _Anno, '_'}) -> "_";
-t_form_to_string({var, _Anno, Name}) -> atom_to_list(Name);
-t_form_to_string({atom, _Anno, Atom}) ->
-  io_lib:write_string(atom_to_list(Atom), $'); % To quote or not to quote... '
-t_form_to_string({integer, _Anno, Int}) -> integer_to_list(Int);
-t_form_to_string({char, _Anno, Char}) -> integer_to_list(Char);
-t_form_to_string({op, _Anno, _Op, _Arg} = Op) ->
-  case erl_eval:partial_eval(Op) of
-    {integer, _, _} = Int -> t_form_to_string(Int);
-    _ -> io_lib:format("Badly formed type ~w", [Op])
-  end;
-t_form_to_string({op, _Anno, _Op, _Arg1, _Arg2} = Op) ->
-  case erl_eval:partial_eval(Op) of
-    {integer, _, _} = Int -> t_form_to_string(Int);
-    _ -> io_lib:format("Badly formed type ~w", [Op])
-  end;
-t_form_to_string({ann_type, _Anno, [Var, Type]}) ->
-  t_form_to_string(Var) ++ "::" ++ t_form_to_string(Type);
-t_form_to_string({paren_type, _Anno, [Type]}) ->
-  flat_format("(~ts)", [t_form_to_string(Type)]);
-t_form_to_string({remote_type, _Anno, [{atom, _, Mod}, {atom, _, Name}, Args]}) ->
-  ArgString = "(" ++ flat_join(t_form_to_string_list(Args), ",") ++ ")",
-  flat_format("~w:~tw", [Mod, Name]) ++ ArgString;
-t_form_to_string({type, _Anno, arity, []}) -> "arity()";
-t_form_to_string({type, _Anno, binary, []}) -> "binary()";
-t_form_to_string({type, _Anno, binary, [Base, Unit]} = Type) ->
-  case {erl_eval:partial_eval(Base), erl_eval:partial_eval(Unit)} of
-    {{integer, _, B}, {integer, _, U}} ->
-      %% the following mirrors the clauses of t_to_string/2
-      case {U, B} of
-	{0, 0} -> "<<>>";
-	{8, 0} -> "binary()";
-	{1, 0} -> "bitstring()";
-	{0, B} -> flat_format("<<_:~w>>", [B]);
-	{U, 0} -> flat_format("<<_:_*~w>>", [U]);
-	{U, B} -> flat_format("<<_:~w,_:_*~w>>", [B, U])
-      end;
-    _ -> io_lib:format("Badly formed bitstr type ~w", [Type])
-  end;
-t_form_to_string({type, _Anno, bitstring, []}) -> "bitstring()";
-t_form_to_string({type, _Anno, 'fun', []}) -> "fun()";
-t_form_to_string({type, _Anno, 'fun', [{type, _, any}, Range]}) ->
-  "fun(...) -> " ++ t_form_to_string(Range);
-t_form_to_string({type, _Anno, 'fun', [{type, _, product, Domain}, Range]}) ->
-  "fun((" ++ flat_join(t_form_to_string_list(Domain), ",") ++ ") -> "
-    ++ t_form_to_string(Range) ++ ")";
-t_form_to_string({type, _Anno, iodata, []}) -> "iodata()";
-t_form_to_string({type, _Anno, iolist, []}) -> "iolist()";
-t_form_to_string({type, _Anno, list, [Type]}) ->
-  "[" ++ t_form_to_string(Type) ++ "]";
-t_form_to_string({type, _Anno, map, any}) -> "map()";
-t_form_to_string({type, _Anno, map, Args}) ->
-  "#{" ++ flat_join(t_form_to_string_list(Args), ",") ++ "}";
-t_form_to_string({type, _Anno, map_field_assoc, [Key, Val]}) ->
-  t_form_to_string(Key) ++ "=>" ++ t_form_to_string(Val);
-t_form_to_string({type, _Anno, map_field_exact, [Key, Val]}) ->
-  t_form_to_string(Key) ++ ":=" ++ t_form_to_string(Val);
-t_form_to_string({type, _Anno, mfa, []}) -> "mfa()";
-t_form_to_string({type, _Anno, module, []}) -> "module()";
-t_form_to_string({type, _Anno, node, []}) -> "node()";
-t_form_to_string({type, _Anno, nonempty_binary, []}) ->
-  "nonempty_binary()";
-t_form_to_string({type, _Anno, nonempty_bitstring, []}) ->
-  "nonempty_bitstring()";
-t_form_to_string({type, _Anno, nonempty_list, [Type]}) ->
-  "[" ++ t_form_to_string(Type) ++ ",...]";
-t_form_to_string({type, _Anno, nonempty_string, []}) -> "nonempty_string()";
-t_form_to_string({type, _Anno, product, Elements}) ->
-  "<" ++ flat_join(t_form_to_string_list(Elements), ",") ++ ">";
-t_form_to_string({type, _Anno, range, [From, To]} = Type) ->
-  case {erl_eval:partial_eval(From), erl_eval:partial_eval(To)} of
-    {{integer, _, FromVal}, {integer, _, ToVal}} ->
-      flat_format("~w..~w", [FromVal, ToVal]);
-    _ -> flat_format("Badly formed type ~w",[Type])
-  end;
-t_form_to_string({type, _Anno, record, [{atom, _, Name}]}) ->
-  flat_format("#~tw{}", [Name]);
-t_form_to_string({type, _Anno, record, [{atom, _, Name}|Fields]}) ->
-  FieldString = flat_join(t_form_to_string_list(Fields), ","),
-  flat_format("#~tw{~ts}", [Name, FieldString]);
-t_form_to_string({type, _Anno, field_type, [{atom, _, Name}, Type]}) ->
-  flat_format("~tw::~ts", [Name, t_form_to_string(Type)]);
-t_form_to_string({type, _Anno, term, []}) -> "term()";
-t_form_to_string({type, _Anno, timeout, []}) -> "timeout()";
-t_form_to_string({type, _Anno, tuple, any}) -> "tuple()";
-t_form_to_string({type, _Anno, tuple, Args}) ->
-  "{" ++ flat_join(t_form_to_string_list(Args), ",") ++ "}";
-t_form_to_string({type, _Anno, union, Args}) ->
-  flat_join(lists:map(fun(Arg) ->
-                          case Arg of
-                            {ann_type, _AL, _} ->
-                              "(" ++ t_form_to_string(Arg) ++ ")";
-                            _ ->
-                              t_form_to_string(Arg)
-                          end
-                      end, Args),
-            " | ");
-t_form_to_string({type, _Anno, Name, []} = T) ->
-   try
-     M = mod,
-     Site = {type, {M,Name,0}, ""},
-     V = var_table__new(),
-     C = cache__new(),
-     State = #from_form{site   = Site,
-                        xtypes = sets:new(),
-                        mrecs  = 'undefined',
-                        vtab   = V,
-                        tnames = []},
-     {T1, _, _} = from_form(T, State, _Deep=1000, _ALot=1000000, C),
-     t_to_string(T1)
-  catch throw:{error, _} -> atom_to_string(Name) ++ "()"
-  end;
-t_form_to_string({user_type, _Anno, Name, List}) ->
-  flat_format("~tw(~ts)",
-              [Name, flat_join(t_form_to_string_list(List), ",")]);
-t_form_to_string({type, Anno, Name, List}) ->
-  %% Compatibility: modules compiled before Erlang/OTP 18.0.
-  t_form_to_string({user_type, Anno, Name, List}).
-
-t_form_to_string_list(List) ->
-  t_form_to_string_list(List, []).
-
-t_form_to_string_list([H|T], Acc) ->
-  t_form_to_string_list(T, [t_form_to_string(H)|Acc]);
-t_form_to_string_list([], Acc) ->
-  lists:reverse(Acc).
-
--spec atom_to_string(atom()) -> string().
-
-atom_to_string(Atom) ->
-  flat_format("~tw", [Atom]).
-
 %%=============================================================================
 %%
 %% Utilities
@@ -5706,23 +5537,16 @@ set_filter(Fun, Set) ->
 set_size(Set) ->
   ordsets:size(Set).
 
-set_to_string(Set) ->
-  L = [case is_atom(X) of
-	 true -> io_lib:write_string(atom_to_list(X), $'); % stupid emacs '
-	 false -> flat_format("~tw", [X])
-       end || X <- set_to_list(Set)],
-  flat_join(L, " | ").
-
 set_min([H|_]) -> H.
 
 set_max(Set) ->
   hd(lists:reverse(Set)).
 
-flat_format(F, S) ->
-  lists:flatten(io_lib:format(F, S)).
-
-flat_join(List, Sep) ->
-  lists:flatten(lists:join(Sep, List)).
+%% flat_format(F, S) ->
+%%   lists:flatten(io_lib:format(F, S)).
+%%
+%% flat_join(List, Sep) ->
+%%   lists:flatten(lists:join(Sep, List)).
 
 %%=============================================================================
 %%

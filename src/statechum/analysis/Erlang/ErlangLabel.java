@@ -197,11 +197,13 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
+		if (!(obj instanceof  Label))
+			return false;
 		return toErlangTerm().equals(((Label) obj).toErlangTerm());
 	}
 
 	/** Implemented by differet components of Erlang<->text parser. */
-	public static interface ErlangParserComponent {
+	public interface ErlangParserComponent {
 		/**
 		 * Turns the text of this component into text which can be subsequently
 		 * parsed back. For instance, string are quoted and so are atoms, hence
@@ -217,7 +219,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		 *            lexer to use
 		 * @return Erlang term
 		 */
-		public OtpErlangObject parseObject(Lexer lex);
+		OtpErlangObject parseObject(Lexer lex);
 	}
 
 	public static class ErlangTuple implements ErlangParserComponent {
@@ -247,7 +249,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		public OtpErlangObject parseObject(Lexer lexer) {
 			assert lexer.getLastMatchType() == erlTupleBegin;
 
-			List<OtpErlangObject> tupleComponents = new LinkedList<OtpErlangObject>();
+			List<OtpErlangObject> tupleComponents = new LinkedList<>();
 
 			// Parser state.
 			boolean expectComma = false, pullNextToken = true;
@@ -343,7 +345,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		public OtpErlangObject parseObject(Lexer lexer) {
 			assert lexer.getLastMatchType() == erlListBegin;
 
-			List<OtpErlangObject> listComponents = new LinkedList<OtpErlangObject>();
+			List<OtpErlangObject> listComponents = new LinkedList<>();
 			OtpErlangObject tail = null;
 			
 			OtpErlangObject nextElement = null;// temporary variable.
@@ -856,7 +858,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			 * 
 			 * @param byteToAdd
 			 *            byte to store
-			 * @param len
+			 * @param lenArg
 			 *            current length of big number
 			 * @return the remaining length of big number
 			 */
@@ -928,10 +930,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					integerData[integerData.length - 1 - i] = numberData[numberData.length
 							- 1 - i];
 
-				num.toByteArray();
 				if (!littleEndian) {// dumping big-endian
-					for (int i = 0; i < integerData.length; ++i) {
-						byte currentByte = integerData[i];
+					for (byte currentByte : integerData) {
 						len = addBigEndianByte(currentByte, len);
 					}
 				} else {// little-endian case
@@ -1097,7 +1097,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			byte[] bitData = new byte[data.size()];
 			int i = 0;
 			for (Byte b : data)
-				bitData[i++] = b.byteValue();
+				bitData[i++] = b;
 			return new OtpErlangBitstr(bitData);
 		}
 	}
@@ -1435,11 +1435,10 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	}
 
 	/**
-	 * Given a string containing the first term of the expression to parse,
+	 * Given a lexer containing the first term of the expression to parse,
 	 * parses the text and returns the corresponding Erlang term.
 	 * 
-	 * @param str
-	 *            label to parse
+	 * @param lexer lexer set up to go through tokens of the label to parse
 	 * @return the outcome.
 	 */
 	public static OtpErlangObject parseFirstTermInText(Lexer lexer) {

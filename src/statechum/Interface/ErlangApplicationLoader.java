@@ -78,7 +78,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		initComponents();
 	}
 	
-	class InnerAlphabetModel extends AbstractListModel implements ComboBoxModel
+	class InnerAlphabetModel extends AbstractListModel<String> implements ComboBoxModel<String>
 	{
 		List<EXPANSIONOFANY> expansionValues = Arrays.asList(EXPANSIONOFANY.values());
 		List<String>sigValues = new ArrayList<String>(expansionValues.size());
@@ -109,7 +109,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		}
 		
 		@Override
-		public Object getElementAt(int index) {
+		public String getElementAt(int index) {
 			if (index >= 0 && index < expansionValues.size())
 				return sigValues.get(index);
 			
@@ -119,7 +119,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	    /**
 	     * Set the value of the selected item. The selected item may be null.
 	     * <p>
-	     * @param anObject The combo box value or null for no selection.
+	     * @param anItem The combo box value or null for no selection.
 	     */
 		@Override
 		public void setSelectedItem(Object anItem) 
@@ -161,7 +161,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		startModuleArgs = new javax.swing.JLabel();
 		jLabel4 = new javax.swing.JLabel();
 		jScrollPane1 = new javax.swing.JScrollPane();
-		modules = new javax.swing.JList();
+		modules = new javax.swing.JList<ErlangModule>();
 		jButton2 = new javax.swing.JButton();
 		jButton3 = new javax.swing.JButton();
 
@@ -316,7 +316,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		randomButton.setSelected(true);
 		seedField = new JTextField("" + (new Random()).nextLong());
 
-		anyAlphabet = new JComboBox(new InnerAlphabetModel());
+		anyAlphabet = new JComboBox<String>(new InnerAlphabetModel());
 		bottom.setLayout(new GridBagLayout());
 		c.weightx = 0.001;
 		c.gridx = 0;
@@ -441,7 +441,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			}
 			startModule.setText(app.startModule);
 			startModuleArgs.setText(app.startModuleArgs);
-			DefaultListModel model = new DefaultListModel();
+			DefaultListModel<ErlangModule> model = new DefaultListModel<ErlangModule>();
 			for (ErlangModule m : app.modules) {
 				model.addElement(m);
 			}
@@ -471,7 +471,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	protected JCheckBox outputMatchingBox;
 	protected JRadioButton exhaustiveButton;
 	protected JRadioButton randomButton;
-	protected JComboBox anyAlphabet;
+	protected JComboBox<String> anyAlphabet;
 	protected JTextField seedField;
 
 	void generatorChange(boolean exhaustive) {
@@ -538,8 +538,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	}// GEN-LAST:event_beginButtonActionPerformed
 
 	private void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
-		for (Object s : modules.getSelectedValues()) {
-			ErlangModuleViewer view = new ErlangModuleViewer((ErlangModule) s);
+		for (ErlangModule s : modules.getSelectedValuesList()) {
+			ErlangModuleViewer view = new ErlangModuleViewer(s);
 			view.pack();
 			view.setVisible(true);
 
@@ -554,7 +554,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	 * @param args
 	 *            the command line arguments
 	 */
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		if (args.length > 0) {// run the analysis directly
 
 			ErlangApplicationLoader loader = new ErlangApplicationLoader();
@@ -602,7 +602,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	private javax.swing.JLabel jLabel3;
 	private javax.swing.JLabel jLabel4;
 	private javax.swing.JScrollPane jScrollPane1;
-	private javax.swing.JList modules;
+	private javax.swing.JList<ErlangModule> modules;
 	private javax.swing.JLabel startModule;
 	private javax.swing.JLabel startModuleArgs;
 

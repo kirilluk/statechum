@@ -66,7 +66,7 @@ public abstract class Signature implements Label {
 
 	/**
 	 * Given an Erlang type encoded as an object, constructs an instance of a
-	 * corresponding type.
+	 * corresponding type as a subtype of Signature.
 	 */
 	public static Signature buildFromType(Configuration config, OtpErlangObject elementAt) {
 		Signature result = null;
@@ -100,14 +100,14 @@ public abstract class Signature implements Label {
 				for (int i = 0; i < argumentNumber; ++i) {
 					OtpErlangObject obj = argTuple.elementAt(i + 1);
 					if (obj instanceof OtpErlangString)
-						obj = stringToList(obj);
+						obj = stringToList(obj);// this works around a 'feature' in OtpErlang which converts lists that look like strings to it, into strings.
 					else if (!(obj instanceof OtpErlangList))
 						throw new IllegalArgumentException("got " + obj + " where expected a list");
 
 					values[i+1] = obj;
 				}
 				result = constructor.newInstance(values);
-			} else
+			} else // the only valid representation of signatures is an Erlang tuple.
 				throw new IllegalArgumentException("invalid type argument " + elementAt
 						+ " : it has to be a tuple");
 		} catch (IllegalArgumentException ex) {
@@ -195,7 +195,7 @@ public abstract class Signature implements Label {
 	public static String getSigName(Object obj) {
 		String name = obj.getClass().getName();
 		name = name.substring(name.lastIndexOf('.') + 1);
-		name = name.substring(0, name.indexOf("Signature"));
+		name = name.substring(0, name.indexOf("Signature"));//FIXME: this should be a method of signature over-ridden in subtypes
 		return name;
 	}
 
@@ -208,7 +208,8 @@ public abstract class Signature implements Label {
 			if (listB != null)
 				details.add(listB);
 		} else
-			throw new IllegalArgumentException("listA is null but listB is not");
+			if (listB != null)
+				throw new IllegalArgumentException("listA is null but listB is not");
 
 		return ErlangLabel.dumpErlangObject(new OtpErlangTuple(details.toArray(new OtpErlangObject[0])));
 	}

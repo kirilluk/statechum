@@ -29,8 +29,8 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 
 /** This represents a set of alternative signatures.
  *
- * This is usually the parse of a BNF signature. So [ 58 | 59 , ... ]
- * is a ListSignature with the first elem an AltSignature with two LiteralSignature elements.
+ * This is usually the parse of a BNF signature.
+ * In this way [ 58 | 59 , ... ] is a ListSignature with the first elem an AltSignature with two LiteralSignature elements.
  *
  * @author ramsay
  */

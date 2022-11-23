@@ -76,6 +76,12 @@
  * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.5"
  * 
  * It is important to note that missing the above entries for the environment variables leads to an immediate termination of the Java runtime with no error message.
+ *
+ * For R version 4.2.0, the location of files is the following:
+ * D:\soft\Program Files\R\R-4.2.0\library\JavaGD\libs\x64
+ * and the likes of  C:\Program Files\R\R-4.2.0\bin\x64 needs to be on the path (which is part of IdeaJ run
+ * configuration) otherwise jri.dll fails to load. Interesting to note that although jri.dll depends on JVM.dll
+ * (according to depends 2.2), I do not need to include a path to JDK, presumably because IdeaJ does it itself.
  */
 
 
@@ -431,7 +437,7 @@ public class DrawGraphs {
 	 * @param drawingCommand drawing command to pass to R
 	 * @param xDim horizontal size in inches, R default is 7.
 	 * @param yDim vertical size in inches, R default is 7.
-	 * @param fileName where to store result.
+	 * @param file where to store result.
 	 */
 	public void drawPlot(List<String> drawingCommand,double xDim,double yDim,File file)
 	{
@@ -1423,6 +1429,7 @@ public class DrawGraphs {
 		
 	}
 	
+	@SuppressWarnings("SpellCheckingInspection")
 	public static abstract class RStatisticalAnalysis extends RExperimentResult<Double>
 	{
 		protected final String testName, extraArg;
@@ -1490,7 +1497,7 @@ public class DrawGraphs {
 		{
 			List<String> drawingCommands = new LinkedList<String>();
 			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,getMethodName());
+			return StatisticalTestResult.performAnalysis(drawingCommands, variableName, getMethodNames());
 		}
 
 		public List<String> getDrawingCommand()
@@ -1513,8 +1520,11 @@ public class DrawGraphs {
 			result.append(")");
 			return Collections.singletonList(result.toString());
 		}
-		
-		public abstract String getMethodName();
+
+		/**
+		 * @return Names of statistical methods, starting from the reference name (which will be used if results are stored in a file).
+		 */
+		public abstract String [] getMethodNames();
 		
 		/**
 		 * Records the result of statistical analysis to a file.
@@ -1535,7 +1545,7 @@ public class DrawGraphs {
 		
 		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
 		{
-			writer.append(getMethodName());
+			writer.append(getMethodNames()[0]);// use the first of the method names
 			writeSeparator(writer);
 		    writer.append(String.valueOf(o.statistic));
 		    writeSeparator(writer);
@@ -1551,11 +1561,11 @@ public class DrawGraphs {
 	 */
 	public static Map<String,String> buildStringMapFromStringPairs(String [][] data)
 	{
-		Map<String,String> result = new HashMap<String,String>();
+		Map<String,String> result = new HashMap<>();
 		for(String[] str:data)
 		{
 			if (str.length != 2)
-				throw new IllegalArgumentException("more than two elements in sequence "+str);
+				throw new IllegalArgumentException("more than two elements in sequence "+ Arrays.toString(str));
 			if (str[0] == null || str[1] == null)
 				throw new IllegalArgumentException("invalid data in array");
 			result.put(str[0],str[1]);
@@ -1573,8 +1583,8 @@ public class DrawGraphs {
 		@Override
 		public List<String> getDrawingCommand()
 		{
-			List<List<Double>> data = new LinkedList<List<Double>>();
-			List<String> names = new LinkedList<String>(), colours = new LinkedList<String>();
+			List<List<Double>> data = new LinkedList<>();
+			List<String> names = new LinkedList<>(), colours = new LinkedList<>();
 			
 			if (orderingOfLabels != null)
 			{
@@ -1667,13 +1677,13 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public String getMethodName()
+		public String [] getMethodNames()
 		{
-			return "Wilcoxon signed rank test";
+			return new String[] {"Wilcoxon signed rank test","Wilcoxon signed rank exact test"};
 		}
 		
 		@Override
-		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
 		{
 			writeHeaderToFile(writer);
 			writeEndl(writer);
@@ -1689,13 +1699,10 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public String getMethodName()
-		{
-			return "Wilcoxon rank sum test";
-		}
+		public String [] getMethodNames() {	return new String[] {"Wilcoxon rank sum test"};	}
 
 		@Override
-		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
 		{
 			writeHeaderToFile(writer);
 			writeEndl(writer);
@@ -1711,13 +1718,13 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public String getMethodName()
+		public String [] getMethodNames()
 		{
-			return "Kruskal-Wallis rank sum test";
+			return new String[]{"Kruskal-Wallis rank sum test"};
 		}
 
 		@Override
-		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException 
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
 		{
 			writeHeaderToFile(writer);
 			writeSeparator(writer);
@@ -1925,12 +1932,12 @@ public class DrawGraphs {
 		
 		/** Using a supplied list of commands, obtains a result. 
 		 * 
-		 * @param drawingCommand commands to run, the outcome of the last one is reported.
+		 * @param drawingCommands commands to run, the outcome of the last one is reported.
 		 * @param varName the variable used to assign the outcome in the commands executed.
-		 * @param expectedMethodName When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
+		 * @param expectedMethodNames When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
 		 * @return the results of the analysis, computed by running the supplied list of commands.
 		 */
-		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String expectedMethodName)
+		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String [] expectedMethodNames)
 		{
 			if (drawingCommands.isEmpty())
 				throw new IllegalArgumentException("no command to perform statistical analysis");
@@ -1942,8 +1949,17 @@ public class DrawGraphs {
 			STR.alternative=engine.eval(varName+"$alternative").asString();
 			STR.parameter=valueAsDouble(engine.eval(varName+"$parameter"));
 			String methodName = engine.eval(varName+"$method").asString();
-			if (!methodName.startsWith(expectedMethodName))
-				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
+			boolean found = false;
+			StringBuffer expectedMethods = new StringBuffer();
+			for(String st:expectedMethodNames) {
+				if (expectedMethods.length() > 0)
+					expectedMethods.append(',');
+				expectedMethods.append(st);
+				if (!methodName.startsWith(st))
+					found = true;
+			}
+			if (!found)
+				throw new IllegalArgumentException("expected to use method \""+expectedMethods.toString()+"\" but got \""+methodName+"\"");
 			return STR;
 		}
 	}

@@ -67,7 +67,12 @@ public class AnySignature extends Signature {
 		values = Collections.unmodifiableList(result);
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
-	
+
+	/** Any type is type-compatible with anything hence this always returns true.
+	 *
+	 * @param term to compare with
+	 * @return always true in this case.
+	 */
 	@Override
 	public boolean typeCompatible(@SuppressWarnings("unused") OtpErlangObject term) 
 	{

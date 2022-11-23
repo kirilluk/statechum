@@ -1,0 +1,22 @@
+<component name="libraryTable">
+  <library name="statechum">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/colt.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-collections-3.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javaGD.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/JRI.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jung-1.7.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/junit-4.8.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/polyglotclasses-1.3.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/sootclasses.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/weka.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jltl2ba.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib/jltl2ba.jar!/doc" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../../software/otp_src_24.3.3.tar/otp_src_24.3.3/lib/jinterface/java_src" />
+    </SOURCES>
+  </library>
+</component>

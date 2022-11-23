@@ -82,7 +82,7 @@ public class GDLearnerGraph
 	 * 
 	 * @param coregraph the graph from which to build this graph
 	 * @param stateFilter the filter to use when deciding which states to consider and which to throw away.
-	 * @param buildForward true to build a forward graph, false for reverse. This is supposed
+	 * @param direction true to build a forward graph, false for reverse. This is supposed
 	 * to be an opposite of the direction in which linear should work, so in order to compute
 	 * linear forward, you need to pass false here.
 	 */
@@ -502,7 +502,6 @@ public class GDLearnerGraph
 	 * </ul>
 	 * 
 	 * @param graph the graph to process
-	 * @param filter which states to consider
 	 */
 	protected <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
 		void findDirectlyIncompatiblePairs(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> graph)
@@ -535,7 +534,6 @@ public class GDLearnerGraph
 	 * them in a matrix for computation of compatibility scores. This method updates the set of  
 	 * incompatible pairs of states.
 	 * 
-	 * @param coregraph
 	 * @param incompatiblePairs pairs currently considered incompatible
 	 * @param ThreadNumber number of CPUs to use.
 	 * @return

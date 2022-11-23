@@ -309,7 +309,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Generates vertex IDs. Since it modifies instance ID-related variables, 
 	 * it has to be synchronised.
 	 * 
-	 * @param accept whether the vertex is to be accept, reject, or none.
+	 * @param accepted whether the vertex is to be accept, reject, or none.
 	 * @param store whether to store changes to identifiers. If this is true, each call generates a vertex with a new number,
 	 * modifying the graph in the process. For graphs we'd rather not modify, this can be set to false, but then each call
 	 * will give the same identifier.
@@ -353,7 +353,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	}
 	
 	/** Given a string representation of a label, this one generates an instance of a specific label.
-	 * @param text what to turn into a label, using the supplied configuration.
+	 * @param label what to turn into a label, using the supplied configuration.
 	 * @param config determines which label to generate.
 	 * @param conv converter to intern labels, ignored if null.
 	 */
@@ -541,7 +541,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/** Returns true if the state is to be considered
 		 * 
 		 * @param vert state
-		 * @param graph the graph in which this state is contained.
 		 * @return whether state is to be considered
 		 */
 		public boolean stateToConsider(CmpVertex vert);
@@ -617,19 +616,17 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * as is the case for VertexID.
 	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE_A>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE_A>>
+		createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
 	{
 		return constructMap(config, pos_neg);
 	}
 	
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
 	 * such as a TreeMap. Note that template arguments of the return value match this class, but that it is possible to pass it an object with any template arguments but get a map with expected ones.  
-	 * 
-	 * @param pos_neg pair of values. The former is the expected maximal number of accept states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
-	 * as is the case for VertexID.
-	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>>
+		createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
 	{
 		return constructMap(config,graph);
 	}
@@ -779,7 +776,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * This is why {@link AbstractLearnerGraph#copyGraphs(AbstractLearnerGraph, AbstractLearnerGraph)} clones vertices first.
 	 * 
 	 * @param from graph to copy
-	 * @param relabel map relabelling states
+	 * @param oldToNew map relabelling states
 	 * @param result where to store result of copying
 	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
@@ -966,7 +963,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
 	 * or recorded as incompatible.
 	 *  
-	 * @param pair what to check. It is assumed that the two states belong to the graph.
+	 * @param Q the state to check.
+	 * @param R the other state to check. It is assumed that the two states belong to the graph.
+	 * @param compatibility the map that can be used to mark state compatibility or incompatibility
 	 * @return false if a pair is incompatible, true otherwise.
 	 */
 	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, PairCompatibility<CmpVertex> compatibility)
@@ -1070,8 +1069,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/**
 		 * Creates an instance, using an expected maximal state number
 		 *  
-		 * @param stateNumber determines the maximal number of states, this is passed to {@link HashMapWithSearch} where it determines the initial size of the
-		 * hash map. 
+		 * @param acceptStateNumber determines the maximal number of accept-states
+		 * @param rejectStateNumber determines the maximal number of reject-states. These parameters are passed
+		 *                                to {@link HashMapWithSearch} where they determine the initial size of the hash map.
 		 */
 		public PairCompatibility(int acceptStateNumber, int rejectStateNumber)
 		{
@@ -1082,7 +1082,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
 		 * or recorded as incompatible.
 		 *  
-		 * @param pair what to check. It is assumed that the two states belong to the graph.
+		 * @param Q first state
+		 * @param R the second state to check. It is assumed that the two states belong to the graph.
 		 * @return false if a pair is incompatible, true otherwise.
 		 */
 		public boolean checkCompatible(VERTEX_TYPE Q, VERTEX_TYPE R)

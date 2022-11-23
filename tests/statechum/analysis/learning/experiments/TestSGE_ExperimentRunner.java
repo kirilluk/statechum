@@ -34,6 +34,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
+/* Important: this test requires R tool to be available and hence JRI native library. */
 public class TestSGE_ExperimentRunner
 {
 	public TestSGE_ExperimentRunner() {

@@ -47,7 +47,7 @@ public class CharSignature extends Signature {
 
 	@Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-		return Collections.singletonList((OtpErlangObject)new OtpErlangChar('w'));
+		return Collections.singletonList((OtpErlangObject)new OtpErlangChar('w'));// the first character of 'wibble'
 	}
 
 }

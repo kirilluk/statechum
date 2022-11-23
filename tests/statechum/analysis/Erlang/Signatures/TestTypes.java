@@ -114,8 +114,7 @@ public class TestTypes
 	/** Creates a label from the string of text and a configuration. */
 	public static void createLabel(String str, Configuration config)
 	{
-		ConvertALabel converter = null;
-		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config,converter);
+		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config, null);
 	}
 	
 	/** Verifies that the specified label does not parse give the configuration. */

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/bin/production/XMachineTool-current" />
+    <output-test url="file://$MODULE_DIR$/bin/test/XMachineTool-current" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/lib/junit-statechum" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/modified_collections" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/htdocs" />
+      <excludeFolder url="file://$MODULE_DIR$/iceberg" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp" />
+    </content>
+    <orderEntry type="jdk" jdkName="16.0.2" jdkType="JavaSDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="statechum" level="project" />
+    <orderEntry type="library" name="OtpErlang-24" level="project" />
+  </component>
+</module>

@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * 
+ * Erlang 24.3.3 requires updated JInterface.jar because connections from the old one are rejected by the
+ * Erlang runtime.
+ *
  * In order to run Erlang on Win32, the following VM args can be used:
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path="linear/.libs;smt/.libs" -Xmx1500m -DERLANGHOME="D:\Program~1\erl5.8.2"
  * The "~1" is important: without it experimentRunner passes the wrong arguments to its nested jvm because 
@@ -58,7 +60,12 @@
  * to list all the "worst offenders", but one can see it in the list of allocators (ll_alloc is the one that ate all this and in another
  * lists that shows the size of the 'static' allocated memory). Solution: ERL_MAX_PORTS.
  * 
- * 
+ *
+ * OtpErlang library for communication with Erlang from Java: there are two versions of it, old one (OtpErlang/14/OtpErlang.jar) and new one (OtpErlang/14/OtpErlang.jar).
+ * They are not interchangeable: the old one will not work with new version of Erlang (connection will be rejected) and the new one will not work with old Erlang.
+ * The '14' refers to the Otp it came from; it is known to support versions 14-18. The new one is known to support version 24 it originates from. It would be possible
+ * to load one of them at run time using a custom classloader but it is not convenient for development. Hence at present this is left to the end user to decide which
+ * of the two to use. Customized typer is also version-specific and the relevant version of it is compiled depending on the detected version of Otp runtime.
  */
 
 package statechum.analysis.Erlang;
@@ -240,7 +247,7 @@ public class ErlangRunner {
 		}
 	}
 
-	/** Only used by the runtime to force runner to use the default genserver. */
+	/** Only used by the runtime to force runner to use the default genserver (within tracerunner), used to send commands such as 'startrunner' starting a new otp server on a module of interest. */
 	void forceReady()
 	{
 		mboxOpen = true;
@@ -337,10 +344,10 @@ public class ErlangRunner {
 	 * @throws IOException
 	 *             if something goes wrong.
 	 */
-	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)	throws IOException 
+	public static void compileErl(File whatToCompile, ErlangRunner useRunner, boolean compileIntoBeamDirectory)	throws IOException
 	{
 		File beamDirectory = compileIntoBeamDirectory?getErlangBeamDirectory():null;
-		compileErl(whatToCompile,useRunner,beamDirectory);
+		compileErl(whatToCompile,useRunner,null, beamDirectory);
 	}
 	
 	/**
@@ -352,11 +359,11 @@ public class ErlangRunner {
 	 * @param useRunner
 	 *            ask Erlang compiler to perform the compile - no need to launch
 	 *            compiler as a separate process.
-	 * @param beamDirectory where to place the compiled file. If null, will use the file name of the Erlang module to determine where to place the compiled .beam file.
+	 * @param whereToPlaceBeam where to place the compiled file. If null, will use the file name of the Erlang module to determine where to place the compiled .beam file.
 	 * @throws IOException
 	 *             if something goes wrong.
 	 */
-	public static void compileErl(File whatToCompile, ErlangRunner useRunner, File whereToPlaceBeam)	throws IOException 
+	public static void compileErl(File whatToCompile, ErlangRunner useRunner, OtpErlangList compileFlags, File whereToPlaceBeam) throws IOException
 	{
 		String erlFileName = getName(whatToCompile, ERL.ERL,null);
 		if (whatToCompile.getParentFile() == null)
@@ -371,6 +378,8 @@ public class ErlangRunner {
 		if (whatToCompile.lastModified() > new File(getName(whatToCompile, ERL.BEAM,whereToPlaceBeam)).lastModified()) 
 		{
 			if (useRunner == null) {
+				if (compileFlags != null)
+					throw new IllegalArgumentException("Cannot compile an Erlang file with flags that are intended to be handled by OTP calling erlc");
 				Process p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erlc",
 								"+debug_info", erlFileName }, null, beamDirectory);
@@ -382,7 +391,7 @@ public class ErlangRunner {
 								new OtpErlangList(
 										new OtpErlangObject[] { new OtpErlangAtom(
 												erlFileName) }),
-								new OtpErlangAtom("erlc"),
+								compileFlags == null? new OtpErlangList():compileFlags,
 								new OtpErlangAtom(beamDirectory.getAbsolutePath()) },
 								"cannot compile ");
 			}
@@ -400,7 +409,6 @@ public class ErlangRunner {
 	protected boolean mboxOpen = false;
 	
 	public static final OtpErlangAtom okAtom = new OtpErlangAtom("ok");
-	public static final OtpErlangAtom timeoutAtom = new OtpErlangAtom("timeout");
 
 	/** Passes Statechum configuration to Erlang. */
 	public void configurationToErlang(Configuration config) {

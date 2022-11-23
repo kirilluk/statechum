@@ -19,17 +19,10 @@ package statechum.analysis.Erlang;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.Map.Entry;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangDecodeException;
-import com.ericsson.otp.erlang.OtpErlangExit;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.*;
 
 import statechum.GlobalConfiguration;
 import statechum.Helper;
@@ -140,18 +133,49 @@ public class ErlangRuntime {
 		for (String str : new String[] { "tracerunner.erl",
 				"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
 				"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
-			ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), runner,whereToPlaceModules);
+			ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), runner,null,whereToPlaceModules);
 
 	}
 	
 	public static void compileTheRestOfErlangModules(ErlangRunner runner,File whereToPlaceModules) throws IOException
 	{
-		if (runner == null)
-			throw new IllegalArgumentException("these modules require a runtime because they need to be passed an include-path dependent on the target version of Erlang OTP");
-		for(G_PROPERTIES folderKind:new G_PROPERTIES[]{G_PROPERTIES.PATH_ERLANGTYPER,G_PROPERTIES.PATH_ERLANGSYNAPSE})
-			for (File f : new File(GlobalConfiguration.getConfiguration().getProperty(folderKind)).listFiles())
-				if (ErlangRunner.validName(f.getName()))
-					ErlangRunner.compileErl(f, runner, whereToPlaceModules);
+		// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
+		// Strings converted to lists of numbers to avoid using quotes that are not compatible between MacOS and Windows (quotes need backslash on Windows, but there should be none for MacOS). Using dollar sign is probably also bad since it may be expanded.
+		Process p = Runtime.getRuntime().exec(
+				new String[] { ErlangRunner.getErlangBin() + "erl",
+						"-eval", "io:format([126,115],[ [ erlang:system_info(otp_release) ]]),halt().",
+						"-noshell" }, null);
+		String erlangVersion=dumpProcessOutputOnFailure("extraction of OTP version", p);
+		List<String> foldersForErl = new LinkedList<>();foldersForErl.add(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGSYNAPSE));
+		String erlangTypeDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGTYPER)+File.separator;
+		OtpErlangList Flags = null;
+		switch(erlangVersion) {
+			case "14":
+			case "16":
+			case "17":
+				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
+						// Since this is Erlang, using Unix slash
+						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_splitfiles/"+erlangVersion)}));
+				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_splitfiles"}));
+				break;
+			case "18":
+				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
+						// Since this is Erlang, using Unix slash
+						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_splitfiles/17")}));
+				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_splitfiles"}));
+				break;
+			case "24":
+				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_monolithic/"+erlangVersion}));
+				break;
+			default:
+				throw new IllegalArgumentException("Unsupported Erlang version "+erlangVersion+", only 14,16,17 and 24 are supported");
+		}
+
+		for (String path : foldersForErl)
+			if (new File(path).isDirectory() && new File(path).canRead())
+				for (File f : new File(path).listFiles())
+					if (ErlangRunner.validName(f.getName()))
+						ErlangRunner.compileErl(f, runner, Flags, whereToPlaceModules);
 	}
 	
 	public static void main(String [] args) throws IOException
@@ -216,7 +240,8 @@ public class ErlangRuntime {
 						"testing that Erlang can be run at all", p);
 				
 				// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
-				// Strings converted to lists of numbers to avoid using quotes that are not compatible between MacOS and Windows (quotes need backslash on Windows, but there should be none for MacOS). Using dollar sign is probably also bad since it may be expanded. 
+				// Strings converted to lists of numbers to avoid using quotes that are not compatible between MacOS and Windows (quotes need backslash on Windows, but there should be none for MacOS). Using dollar sign is probably also bad since it may be expanded.
+				// node name is needed to let Erlang start epmd daemon.
 				p = Runtime.getRuntime().exec(
 						new String[] { ErlangRunner.getErlangBin() + "erl",
 								"-eval", "io:format([126,115],[ [95 | [ erlang:system_info(otp_release) | [45 | erlang:system_info(system_architecture)]]]]),halt().", optionForNodeName, traceRunnerNode,
@@ -226,14 +251,10 @@ public class ErlangRuntime {
 				// After the first Erlang node is created (by passing -name or -sname to Erlang), epmd appears and we can create a node.
 				ErlangNode.getErlangNode().createNode();
 
-				compileCoreErlangModules(null,ErlangRunner.getErlangBeamDirectory());
 				// The compilation phase could a few seconds but only needs to
-				// be done once after installation of Statechum. Here we only compile the core part of Statechum, the rest is compiled by the runtime 
+				// be done once after installation of Statechum. Here we only compile the core part of Statechum, the rest is compiled by the runtime
 				// because compile options depend on the version of Erlang in use and this is only known to the runtime.
-				for (String str : new String[] { "tracerunner.erl",
-						"tracer3.erl", "export_wrapper.erl", "gen_event_wrapper.erl",
-						"gen_fsm_wrapper.erl", "gen_server_wrapper.erl" })
-					ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), null,ErlangRunner.getErlangBeamDirectory());
+				compileCoreErlangModules(null,ErlangRunner.getErlangBeamDirectory());
 
 				// Now build environment variables to ensure that dialyzer will
 				// find a directory to put its plt file in.
@@ -346,7 +367,7 @@ public class ErlangRuntime {
 					throw new IllegalArgumentException("timeout waiting for a server's genserver to start after " + (endTime - startTime) + "ms");
 				}
 				
-				// Erlang started, the next step is to train message queue since given that we may have sent a number of messages above, responses to them may just begin to trickle.
+				// Erlang started, the next step is to drain message queue since given that we may have sent a number of messages above, responses to them may just begin to trickle.
 				while(null != runner.thisMbox.receive(100))
 				{// drain the queue
 				}

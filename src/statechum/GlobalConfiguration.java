@@ -62,7 +62,7 @@ public class GlobalConfiguration {
 		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
 		,PATH_ERLANGBEAM // where to place compiled Erlang modules
 		,PATH_ERLANGFOLDER // where .erl files associated with Erlang tracer are located
-		,PATH_ERLANGTYPER // where .erl files from a slightly modified Typer are located
+		,PATH_ERLANGTYPER // where .erl files from a slightly modified Typer are located //TODO: not used any more and should be removed
 		,PATH_ERLANGSYNAPSE // where .erl files from Synapse are located.
 		,PATH_ERLANGEXAMPLES // Erlang programs that are used for testing
 		,SCALE_TEXT // determines the size of the font in Jung graphs, 1.0 means no scaling.
@@ -165,7 +165,6 @@ public class GlobalConfiguration {
 	 *  The first call to this method opens the property file.
 	 *  
 	 * @param name the name of the property.
-	 * @param defaultValue the default value of the property
 	 * @return property value, default value if not found
 	 */
 	public String getProperty(G_PROPERTIES name)
@@ -247,8 +246,7 @@ public class GlobalConfiguration {
 
 	/** Loads the location/size of a frame from the properties file and positions the frame as appropriate.
 	 * 
-	 * @param frame the frame to position.
-	 * @param name the name of the property to load from
+	 * @param windowID the ID of the property to load from
 	 */   
 	public WindowPosition loadFrame(int windowID)
 	{
@@ -283,7 +281,7 @@ public class GlobalConfiguration {
 	/** Stores the current location/size of a frame to the properties file.
 	 * 
 	 * @param frame the frame to position.
-	 * @param name the name under which to store the property
+	 * @param windowID the ID under which to store the property
 	 */   
 	public void saveFrame(Frame frame,int windowID)
 	{

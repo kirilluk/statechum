@@ -21,8 +21,8 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.DeterministicDirectedSparseGraph.deepEquals;
 import static statechum.Helper.checkForCorrectException;
 
@@ -2048,7 +2048,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyVertex()
 	{
-		DirectedSparseGraph graphB = FsmParser.buildLearnerGraph("A-a->B-b->C","testCopyVertex",config,converter).pathroutines.getGraph();
+		DirectedSparseGraph graphB = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C","testCopyVertex",config,converter).pathroutines.getGraph();
 		Map<VertID,DeterministicVertex> vertexMap = new TreeMap<VertID,DeterministicVertex>();
 
 		DeterministicVertex vertD = AbstractLearnerGraph.generateNewJungVertex("D");
@@ -2442,7 +2442,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph1()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1", "testCopyGraph",config,converter).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph("S-a->S1", "testCopyGraph",config,converter).pathroutines.getGraph();
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gC = new LearnerGraph(copy,config);
 		
@@ -2454,7 +2454,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph2()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gCopy = new LearnerGraph(copy,config);
 		
@@ -2473,7 +2473,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph3() // this one tests that clone works
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config,converter).pathroutines.getGraph();
 		LearnerGraph orig = new LearnerGraph(g,config);
 		LearnerGraph copy = new LearnerGraph(orig,config);
 		LearnerGraph gS = new LearnerGraph(orig.pathroutines.getGraph(),config),

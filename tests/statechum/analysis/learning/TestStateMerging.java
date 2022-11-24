@@ -17,7 +17,7 @@
  */ package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +46,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -134,7 +134,7 @@ public class TestStateMerging
 	public void checkCorrectnessOfMerging(String machineToMerge, String expectedFSM, 
 			String stateBlue, String stateRed, String graphName, boolean checkWithEquals)
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph(machineToMerge, graphName,config,getLabelConverter()).pathroutines.getGraph(),
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph(machineToMerge, graphName,config,getLabelConverter()).pathroutines.getGraph(),
 			g2=(DirectedSparseGraph)g.copy();
 		DeterministicVertex 
 			a = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID(stateRed), g),
@@ -205,7 +205,7 @@ public class TestStateMerging
 	@Test
 	public final void testMerge1a()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge1a",config,getLabelConverter()).pathroutines.getGraph();
 		DeterministicVertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("U"), g);
@@ -436,7 +436,7 @@ public class TestStateMerging
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail1a()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph(largeGraph1_invalid5,"testMerge_fail1",config,getLabelConverter()).pathroutines.getGraph();
 		CmpVertex 
 			a = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID("A"), g),
 			b = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID("B"), g);
@@ -487,7 +487,7 @@ public class TestStateMerging
 	private void testGeneralPairScoreComputation(String machine, String graphName, int expectedScore,
 			String[][] expectedSrc,String [][]incompatibles)
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph(machine, graphName,mainConfiguration,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph(machine, graphName,mainConfiguration,getLabelConverter());
 
 		if (incompatibles != null)
 			for(String [] incompatibleRow:incompatibles)
@@ -776,14 +776,14 @@ public class TestStateMerging
 	@Test
 	public final void testPairCompatible_general_E()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Ea",config,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Ea",config,getLabelConverter());
 		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsToMerge = Arrays.asList(new StatePair[]{
 				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
 				});
 		int score = fsm.pairscores.computePairCompatibilityScore_general(null,pairsToMerge, verticesToMerge, true);
 		LearnerGraph mergedOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge, null,true);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1", "testPairCompatible_general_Eb",config,getLabelConverter());
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1", "testPairCompatible_general_Eb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergedOutcome);
 		if (diffEx != null)
 			throw diffEx;
@@ -795,14 +795,14 @@ public class TestStateMerging
 	@Test
 	public final void testPairCompatible_general_F()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-a->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Fa",config,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("I-a->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3", "testPairCompatible_general_Fa",config,getLabelConverter());
 		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsToMerge = Arrays.asList(new StatePair[]{
 				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
 				});
 		int score = fsm.pairscores.computePairCompatibilityScore_general(null,pairsToMerge, verticesToMerge, true);
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge, null,true);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I", "testPairCompatible_general_Fb",config,getLabelConverter());
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("I-b->I-c->I / I-a->I", "testPairCompatible_general_Fb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
@@ -814,14 +814,14 @@ public class TestStateMerging
 	@Test
 	public final void testPairCompatible_general_G()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-e->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ga",config,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-e->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ga",config,getLabelConverter());
 		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsToMerge = Arrays.asList(new StatePair[]{
 				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
 				});
 		int score = fsm.pairscores.computePairCompatibilityScore_general(null,pairsToMerge, verticesToMerge, true);
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge, null,true);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1 / I-e->B2", "testPairCompatible_general_Gb",config,getLabelConverter());
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("I-d->I-b->I-c->I / I-a->B2-b->B3-c->C1 / I-e->B2", "testPairCompatible_general_Gb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
@@ -833,14 +833,14 @@ public class TestStateMerging
 	@Test
 	public final void testPairCompatible_general_H()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-d->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ha",config,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("I-d->A1-a->A2-b->A3-c->A4 / I-b->B1-a->B2-b->B3 / I-c->C1-a->C2-b->C3 / A1-b->T1-c->T1 / A1-c->T2-a->A2 / B1-b->T2-d->B2 / C1-c->T3-a->T4", "testPairCompatible_general_Ha",config,getLabelConverter());
 		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsToMerge = Arrays.asList(new StatePair[]{
 				new StatePair(fsm.findVertex("I"),fsm.findVertex("A1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("B1")),new StatePair(fsm.findVertex("I"),fsm.findVertex("C1"))
 				});
 		int score = fsm.pairscores.computePairCompatibilityScore_general(null,pairsToMerge, verticesToMerge, true);
 		LearnerGraph mergeOutcome =  MergeStates.mergeCollectionOfVertices(fsm, null, verticesToMerge, null,true);
-		LearnerGraph expected = FsmParser.buildLearnerGraph("I-b->I-c->I / I-a->I-d->I", "testPairCompatible_general_Hb",config,getLabelConverter());
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("I-b->I-c->I / I-a->I-d->I", "testPairCompatible_general_Hb",config,getLabelConverter());
 		DifferentFSMException diffEx = WMethod.checkM(expected, mergeOutcome);
 		if (diffEx != null)
 			throw diffEx;
@@ -1027,7 +1027,7 @@ public class TestStateMerging
 	{
 		//buildRubyTests(fsm,expectedComputedScore,graphName);
 		
-		DirectedSparseGraph g = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g = FsmParserStatechum.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
 		OrigStatePair pairOrig = new OrigStatePair(
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));

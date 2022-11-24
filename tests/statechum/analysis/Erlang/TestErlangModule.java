@@ -19,7 +19,7 @@
 package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -34,9 +34,8 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 
@@ -58,7 +57,7 @@ public class TestEVGraphGeneration {
 	@SuppressWarnings("unchecked")
 	public static DirectedSparseGraph buildEVGraph(String graphString)
 	{
-		DirectedSparseGraph g = FsmParser.buildLearnerGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration().copy(),null).pathroutines.getGraph();
+		DirectedSparseGraph g = FsmParserStatechum.buildLearnerGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration().copy(),null).pathroutines.getGraph();
 		g.getEdgeConstraints().clear();
 		List<Edge> newEdges = new LinkedList<Edge>();
 		for(DeterministicEdge e:(Set<DeterministicEdge>)g.getEdges())

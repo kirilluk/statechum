@@ -38,7 +38,7 @@ import statechum.Label;
 import statechum.StatechumXML;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Learner.RestartLearningEnum;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;

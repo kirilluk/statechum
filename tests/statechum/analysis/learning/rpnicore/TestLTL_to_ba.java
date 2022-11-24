@@ -39,8 +39,8 @@ import statechum.analysis.learning.rpnicore.LTL_to_ba.UnrecognisedLabelException
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 import statechum.collections.TreeMapWithSearch;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 

@@ -35,7 +35,7 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.linear.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;

@@ -34,7 +34,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.Label;
 import statechum.analysis.learning.experiments.mutation.GraphMutator.FailureToMutateException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;

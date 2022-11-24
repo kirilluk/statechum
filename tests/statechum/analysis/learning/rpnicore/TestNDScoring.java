@@ -74,7 +74,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore1()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(0, ndGraph.pathroutines.computeScore(ndGraph.findVertex("A"), ndGraph.findVertex("D"), cache));		
@@ -83,7 +83,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore2()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(1, ndGraph.pathroutines.computeScore(ndGraph.findVertex("B"), ndGraph.findVertex("G"), cache));		
@@ -92,7 +92,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore3()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / D-a->G","testNDScore1",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / C-a->B / D-a->G","testNDScore1",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(1, ndGraph.pathroutines.computeScore(ndGraph.findVertex("B"), ndGraph.findVertex("G"), cache));		
@@ -101,7 +101,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore4()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G","testNDScore4",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G","testNDScore4",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(1, ndGraph.pathroutines.computeScore(ndGraph.findVertex("B"), ndGraph.findVertex("G"), cache));		
@@ -110,7 +110,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore5()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G / E-b->G","testNDScore5",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / C-a->B / C2-b->B / D-a->G / E-b->G","testNDScore5",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(2, ndGraph.pathroutines.computeScore(ndGraph.findVertex("B"), ndGraph.findVertex("G"), cache));		
@@ -119,7 +119,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore6()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore6",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore6",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> cache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(ndGraph);
 		assertEquals(2, ndGraph.pathroutines.computeScore(ndGraph.findVertex("B"), ndGraph.findVertex("G"), cache));		
@@ -128,7 +128,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore7()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore7",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore7",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		Label lblA = ndGraph.transitionMatrix.get(ndGraph.findVertex("A")).keySet().iterator().next();
 		ndGraph.addTransition(ndGraph.transitionMatrix.get(ndGraph.findVertex("D")),lblA,ndGraph.findVertex("D"));// creates a loop around D
@@ -139,7 +139,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore8()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore8",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("P-a->A-a->B / C-a->B / A-b->B / D-a->G / D-b->G","testNDScore8",config, converter);
 		LearnerGraphND ndGraph = MarkovClassifier.computeInverseGraph(graph);
 		Label lblA = ndGraph.transitionMatrix.get(ndGraph.findVertex("A")).keySet().iterator().next();
 		ndGraph.addTransition(ndGraph.transitionMatrix.get(ndGraph.findVertex("D")),lblA,ndGraph.findVertex("D"));// creates a loop around D
@@ -151,7 +151,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore9()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->C / B-b->C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore9",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->C / B-b->C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore9",config, converter);
 		LearnerGraphND ndGraph = new LearnerGraphND(graph,config);
 		Label lblA = ndGraph.transitionMatrix.get(ndGraph.findVertex("A")).keySet().iterator().next();
 		Iterator<Label> iter = ndGraph.transitionMatrix.get(ndGraph.findVertex("B")).keySet().iterator();iter.next();
@@ -166,7 +166,7 @@ public class TestNDScoring
 	@Test
 	public void testNDScore10()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->C / C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore10",config, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->C / C-b->C / E-a->E-b->F-a->F-b->G-a->G","testNDScore10",config, converter);
 		LearnerGraphND ndGraph = new LearnerGraphND(graph,config);
 		Label lblA = ndGraph.transitionMatrix.get(ndGraph.findVertex("A")).keySet().iterator().next();
 		Iterator<Label> iter = ndGraph.transitionMatrix.get(ndGraph.findVertex("C")).keySet().iterator();iter.next();

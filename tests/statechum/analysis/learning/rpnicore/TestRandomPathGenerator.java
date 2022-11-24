@@ -44,7 +44,7 @@ import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 public class TestRandomPathGenerator {
 	Configuration config = null;

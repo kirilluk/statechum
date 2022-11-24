@@ -56,7 +56,7 @@ import statechum.analysis.learning.Visualiser;
 import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTestComponent
@@ -640,7 +640,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed5()
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},

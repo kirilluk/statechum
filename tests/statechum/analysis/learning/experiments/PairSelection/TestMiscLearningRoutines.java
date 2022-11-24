@@ -31,7 +31,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -67,7 +67,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
 		Assert.assertEquals(2, mapUniqueInto.size());
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
@@ -81,14 +81,14 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
 		Assert.assertTrue(LearningSupportRoutines.uniqueIntoState(graph).isEmpty());
 	}
 
 	@Test
 	public void TestUniqueFromState3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
 		Assert.assertTrue(LearningSupportRoutines.uniqueFromState(graph).isEmpty());
 	}
 
@@ -96,7 +96,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState4a()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(3, mapUniqueInfo.size());
@@ -113,7 +113,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState4b()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(2, mapUniqueInfo.size());
@@ -128,7 +128,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState4c()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / A-d->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / A-d->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) if (entry.getValue().firstElem != null) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		Assert.assertEquals(2, mapUniqueInfo.size());
@@ -143,7 +143,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestUniqueIntoState5()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-e-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-e-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
 		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
 		
@@ -164,7 +164,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestMergeBasedOnUniques1()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
 		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
@@ -178,7 +178,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestMergeBasedOnUniques2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C", "TestMergeBasedOnUniques2", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C", "TestMergeBasedOnUniques2", mainConfiguration,converter);
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
 		Assert.assertTrue(pairsList.isEmpty());
 		pairsList =  LearningSupportRoutines.buildVerticesToMergeForPathsFrom(graph, AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter));
@@ -188,7 +188,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestMergeBasedOnUniques3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F", "TestMergeBasedOnUniques3", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F", "TestMergeBasedOnUniques3", mainConfiguration,converter);
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
 		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
 		Assert.assertEquals(1, pairsList.size());
@@ -202,7 +202,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestMergeBasedOnUniques4()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F-a->F", "TestMergeBasedOnUniques4", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F-a->F", "TestMergeBasedOnUniques4", mainConfiguration,converter);
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
 		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
 		Assert.assertEquals(2, pairsList.size());
@@ -218,7 +218,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestMergeBasedOnUniquesFail()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
 		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
 		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) < 0);
@@ -229,7 +229,7 @@ public class TestMiscLearningRoutines
 	public void TestConstructIfThenForUniques1()
 	{
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
 		Assert.assertNull(evaluationConfiguration.ifthenSequences);
 		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
@@ -243,7 +243,7 @@ public class TestMiscLearningRoutines
 	public void TestConstructIfThenForUniques2()
 	{
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
 		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
@@ -257,7 +257,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestDetectionOfMandatoryTransitions()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->C-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->C-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
 		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("B"),graph.findVertex("A"),0,0),graph));
 		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("A"),0,0),graph));
 		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("B"),0,0),graph));
@@ -300,7 +300,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestConstructPairsOfInfeasibleTransitions1()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b","c"},new String[]{}}, mainConfiguration,converter);
 		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
@@ -316,7 +316,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestConstructIfThenForInfeasible1()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
 		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
@@ -329,7 +329,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestConstructPairsOfInfeasibleTransitions2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A-a->B-c->B-b->A / B-a-#C", "TestConstructPairsOfInfeasibleTransitions2", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-c->A-a->B-c->B-b->A / B-a-#C", "TestConstructPairsOfInfeasibleTransitions2", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b"},new String[]{}}, mainConfiguration,converter);
 		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
@@ -345,7 +345,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestConstructPairsOfInfeasibleTransitions3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
 		// the list of lists below is in the order of labels, a,b,c
 		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{"e"},new String[]{"e"},new String[]{"a","b"}}, mainConfiguration,converter);
 		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
@@ -361,7 +361,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestConstructIfThenForInfeasible3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
 		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
@@ -377,7 +377,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestDecisionProcedureForRedStates1()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / F-a->G-a-#Rg","TestDecisionProcedureForRedStates1",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / F-a->G-a-#Rg","TestDecisionProcedureForRedStates1",mainConfiguration, converter);
 		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E"),graph.findVertex("G")}));
 		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B"),graph.findVertex("F")}));
 		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, new LinkedList<CmpVertex>(),true);
@@ -389,7 +389,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestDecisionProcedureForRedStates2()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / B-d->F","TestDecisionProcedureForRedStates2",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / B-d->F","TestDecisionProcedureForRedStates2",mainConfiguration, converter);
 		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E")}));
 		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
 		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{graph.findVertex("F")}),true);
@@ -401,7 +401,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void TestDecisionProcedureForRedStates3()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-b->F / C-b->G / B-b-#E","TestDecisionProcedureForRedStates3",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-b->F / C-b->G / B-b-#E","TestDecisionProcedureForRedStates3",mainConfiguration, converter);
 		
 		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("E")}));
 		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
@@ -560,7 +560,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testAutomatonConnected3()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
 		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
 		Assert.assertTrue(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
@@ -571,20 +571,20 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testUniqueFromInitial1()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
 		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
 	}
 	@Test
 	public void testUniqueFromInitial2()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A-b->B / C-a->A-t->A","testAutomatonConnected3",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->C-b->A-b->B / C-a->A-t->A","testAutomatonConnected3",mainConfiguration, converter);
 		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("t", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
 	}
 	
 	@Test
 	public void testAutomatonConnected4()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C","testAutomatonConnected4",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C","testAutomatonConnected4",mainConfiguration, converter);
 		Assert.assertFalse(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
 		LearnerGraph expected = new LearnerGraph(mainConfiguration);
@@ -595,10 +595,10 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testAutomatonConnected5()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A / D-a->D","testAutomatonConnected5",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->A / D-a->D","testAutomatonConnected5",mainConfiguration, converter);
 		Assert.assertFalse(graph.pathroutines.automatonConnected());
 		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3a",mainConfiguration, converter);
+		final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3a",mainConfiguration, converter);
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
 		if (ex != null) throw ex;
 	}
@@ -606,7 +606,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testConstructPairsToMergeWithOutgoing1()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
 		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
@@ -625,7 +625,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testConstructPairsToMergeWithOutgoing2()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
 		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
@@ -645,7 +645,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testConstructPairsToMergeWithOutgoing3()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
 		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
@@ -664,7 +664,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testConstructPairsToMergeWithOutgoing4()
 	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
 		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
 		Assert.assertTrue(actual.isEmpty());
@@ -683,9 +683,9 @@ public class TestMiscLearningRoutines
 	public void testMergeStatesForUniqueFromInitial1()
 	{
 		String graphSrc = "M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B";
-		final LearnerGraph graph = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
-				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4-c->P03 /  M1-a->A1-b->M2-c->C2 / M2-a->A2-b->M3-c->C3 / M2-b->B","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
+				graphCopy = FsmParserStatechum.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
+		final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4-c->P03 /  M1-a->A1-b->M2-c->C2 / M2-a->A2-b->M3-c->C3 / M2-b->B","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
 
 		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
@@ -700,9 +700,9 @@ public class TestMiscLearningRoutines
 	public void testMergeStatesForUniqueFromInitial2()
 	{
 		String graphSrc = "M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B";
-		final LearnerGraph graph = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
-				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
+				graphCopy = FsmParserStatechum.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
+		final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
 		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
 		DifferentFSMException ex = WMethod.checkM(expected, actual);
 		if (ex != null)
@@ -735,7 +735,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A","testRemoveNegatives2",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A","testRemoveNegatives2",mainConfiguration,converter);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
 		DifferentFSMException ex = WMethod.checkM(graph,actual);
 		if (ex != null)
@@ -746,7 +746,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A","testRemoveNegatives3",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->A","testRemoveNegatives3",mainConfiguration,converter);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
 		DifferentFSMException ex = WMethod.checkM(graph,actual);
 		if (ex != null)
@@ -757,9 +757,9 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives4()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A","testRemoveNegatives4a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / A-b->A","testRemoveNegatives4a",mainConfiguration,converter);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives4b",mainConfiguration,converter),actual);
+		DifferentFSMException ex = WMethod.checkM(FsmParserStatechum.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives4b",mainConfiguration,converter),actual);
 		if (ex != null)
 			throw ex;
 		
@@ -768,9 +768,9 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives5()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A-c-#D","testRemoveNegatives5a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / A-b->A-c-#D","testRemoveNegatives5a",mainConfiguration,converter);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives5b",mainConfiguration,converter),actual);
+		DifferentFSMException ex = WMethod.checkM(FsmParserStatechum.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives5b",mainConfiguration,converter),actual);
 		if (ex != null)
 			throw ex;
 		
@@ -789,7 +789,7 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives7()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives7a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives7a",mainConfiguration,converter);
 		graph.findVertex("B").setAccept(false);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
 		DifferentFSMException ex = WMethod.checkM(new LearnerGraph(mainConfiguration),actual);
@@ -802,10 +802,10 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testRemoveNegatives8()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		graph.findVertex("C").setAccept(false);
 		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B","testRemoveNegatives8b",mainConfiguration,converter),actual);
+		DifferentFSMException ex = WMethod.checkM(FsmParserStatechum.buildLearnerGraph("A-a->B","testRemoveNegatives8b",mainConfiguration,converter),actual);
 		if (ex != null)
 			throw ex;
 		
@@ -814,24 +814,24 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testIdentifyInitialState1()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-a->A-a->B-a->B-b->A-b->C","testIdentifyInitialState1",mainConfiguration,converter);
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-a->A-a->B-a->B-b->A-b->C","testIdentifyInitialState1",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertEquals("T", LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta).getStringId());
 	}
 
 	@Test
 	public void testIdentifyInitialState2()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-b->A-a->B-a->B-b->A-b->C","testIdentifyInitialState2",mainConfiguration,converter);
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-b->A-a->B-a->B-b->A-b->C","testIdentifyInitialState2",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertEquals("A", LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta).getStringId());
 	}
 
 	@Test
 	public void testIdentifyInitialState3()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-b->A-c->B-a->B-b->A-b->C","testIdentifyInitialState3",mainConfiguration,converter);
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-b->A-c->B-a->B-b->A-b->C","testIdentifyInitialState3",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertEquals("B", LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta).getStringId());
 	}
 
@@ -839,17 +839,17 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testIdentifyInitialState4()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-b->A-a->B-a->B-b->A-b->C","testIdentifyInitialState4",mainConfiguration,converter);
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-c->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-b->A-a->B-a->B-b->A-b->C","testIdentifyInitialState4",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-c->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertEquals("T", LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta).getStringId());
 	}
 
 	@Test
 	public void testIdentifyInitialState5()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-b->A","testIdentifyInitialState4",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-b->A","testIdentifyInitialState4",mainConfiguration,converter);
 		graph.initEmpty();// with an empty graph, the only possible result is a null since there are no states to match.
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertNull(LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta));
 	}
 
@@ -857,9 +857,9 @@ public class TestMiscLearningRoutines
 	@Test
 	public void testIdentifyInitialState6()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("T-b->A","testIdentifyInitialState4",mainConfiguration,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("T-b->A","testIdentifyInitialState4",mainConfiguration,converter);
 		graph.initPTA();graph.getInit().setAccept(false);// with a single-state reject graph pta will not match and the outcome will be null.
-		LearnerGraph pta = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
+		LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
 		Assert.assertNull(LearningSupportRoutines.findBestMatchForInitialVertexInGraph(graph, pta));
 	}
 }

@@ -32,7 +32,7 @@ import statechum.JUConstants;
 import statechum.StatechumXML;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.addExtraAttribute;
@@ -78,7 +78,7 @@ public class TestWriteReadPair {
 	@Before
 	public final void beforeTest()
 	{
-		graph = FsmParser.buildLearnerGraph("A-a->B-a->C", "testWritePairs1",config,converter);
+		graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testWritePairs1",config,converter);
 		xmlData=pairToXMLDocument(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7));
 	}
 	

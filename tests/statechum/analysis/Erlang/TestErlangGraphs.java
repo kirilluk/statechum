@@ -32,7 +32,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 public class TestErlangGraphs {
 	

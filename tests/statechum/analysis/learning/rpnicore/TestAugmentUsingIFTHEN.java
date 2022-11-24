@@ -60,7 +60,7 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.apps.QSMTool;
 import statechum.model.testset.PTASequenceEngine;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
@@ -1068,7 +1068,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		public final void beforeTest()
 		{
 			mainConfiguration.setLearnerCloneGraph(false);
-			origGraph = FsmParser.buildLearnerGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging",mainConfiguration,converter);
+			origGraph = FsmParserStatechum.buildLearnerGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging",mainConfiguration,converter);
 			graph = new LearnerGraph(origGraph,mainConfiguration);
 			
 			pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
@@ -1294,7 +1294,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		@Test
 		public final void testQuestionAnswering9() throws IncompatibleStatesException
 		{
-			origGraph = FsmParser.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
+			origGraph = FsmParserStatechum.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
 					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
 					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->23A-b->23B / C25-a->25A-b->25B /"+
 					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B", "testQuestionAnswering9",mainConfiguration,converter);

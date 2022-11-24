@@ -18,8 +18,6 @@
 
 package statechum.model.testset;
 
-import statechum.model.testset.PTA_FSMStructure;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -45,12 +43,11 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.JUConstants;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.Node;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import static org.junit.Assert.assertEquals;

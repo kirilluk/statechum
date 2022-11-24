@@ -50,8 +50,8 @@ import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -1882,7 +1882,7 @@ public class TestTransform
 	@Test
 	public final void testTrimGraph5()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(-1,graph.getInit());
 		Assert.assertTrue(trimmed.transitionMatrix.isEmpty());
 	}
@@ -1890,9 +1890,9 @@ public class TestTransform
 	@Test
 	public final void testTrimGraph6()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(0,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->A","testTrimGraph2", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->A","testTrimGraph2", config,converter);
 		expected.transitionMatrix.get(expected.transitionMatrix.findElementById(VertexID.parseID("A"))).clear();
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
@@ -1900,36 +1900,36 @@ public class TestTransform
 	@Test
 	public final void testTrimGraph7()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(1,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B","testTrimGraph3", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B","testTrimGraph3", config,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public final void testTrimGraph8()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / A-b-#E", "testTrimGraph4A", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(1,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B / A-b-#E","testTrimGraph4B", config,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public final void testTrimGraph9()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(1,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public final void testTrimGraph10()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(2,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
@@ -1937,16 +1937,16 @@ public class TestTransform
 	@Test
 	public final void testTrimGraph11()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(3,graph.getInit());
-		LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
+		LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E","testTrimGraph5B", config,converter);
 		Assert.assertNull(WMethod.checkM(expected,trimmed));
 	}
 	
 	@Test
 	public final void testTrimGraph12()
 	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
+		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E / B-b->A / A-b-#E", "testTrimGraph5A", config,converter);
 		LearnerGraph trimmed = graph.transform.trimGraph(4,graph.getInit());
 		Assert.assertNull(WMethod.checkM(graph,trimmed));
 	}

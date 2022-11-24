@@ -32,7 +32,7 @@ import org.junit.runners.ParameterizedWithName;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
@@ -356,7 +356,7 @@ public class TestQSMTool {
 			QSMTool.cmdOperation));
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
-		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(FsmParser.buildLearnerGraph("A-a->B", "testLoadXMLabels2",Configuration.getDefaultConfiguration(),null), null,true);
+		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(FsmParserStatechum.buildLearnerGraph("A-a->B", "testLoadXMLabels2",Configuration.getDefaultConfiguration(),null), null,true);
 		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new SmtLabelRepresentation.SMTLabel[]{}),null);
 		Assert.assertEquals("decl"+SmtLabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
 		Assert.assertEquals(SmtLabelRepresentation.commentForNewSeq+"[]"+ENDL+

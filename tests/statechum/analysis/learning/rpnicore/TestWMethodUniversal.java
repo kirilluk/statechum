@@ -17,7 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.io.File;
 import java.io.IOException;

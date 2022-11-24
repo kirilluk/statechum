@@ -57,7 +57,7 @@ import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.ENDL;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.toCurrentMem;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.generateFreshVariable;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.apps.QSMTool;
 

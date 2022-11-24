@@ -18,7 +18,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.fail;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -399,7 +399,6 @@ public class WMethod
 	 * Since we do not know in advance whether there are any states behaviourally-equivalent to a sink state
 	 * (and there could be a few of them, connected in a ring), a sink state is explicitly added.
 	 * @param fsm the machine to process
-	 * @param alphabet
 	 * @return characterising set
 	 */
 	public static List<List<Label>> computeWSetOrig(LearnerGraph fsm) throws EquivalentStatesException
@@ -593,8 +592,7 @@ public class WMethod
 	 * has to be added because machines are typically incomplete and we have to verify that when a label is not 
 	 * implemented, it leads to the sink state - this requires distinguishing between sink and all other states.
 	 * Adding such a sink state means changing the graph, hence a copy is made and modified.
-	 * @param fsm the machine to process
-	 * @param alphabet
+	 * @param fsmOrig the machine to process
 	 * @return characterising set
 	 */
 	public static Collection<List<Label>> computeWSet_reducedmemory(LearnerGraph fsmOrig) throws EquivalentStatesException
@@ -802,7 +800,6 @@ public class WMethod
 	 * separates an accept from a reject-state.
 	 * 
 	 * @param fsm the machine to process
-	 * @param alphabet
 	 * @return characterising set
 	 */
 	public static Collection<List<Label>> computeWSet_reducedw(LearnerGraph fsm) throws EquivalentStatesException

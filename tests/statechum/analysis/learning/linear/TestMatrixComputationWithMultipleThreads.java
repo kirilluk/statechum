@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.linear;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.Arrays;
 import java.util.Collection;

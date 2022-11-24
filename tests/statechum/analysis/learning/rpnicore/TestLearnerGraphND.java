@@ -18,8 +18,8 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -698,7 +698,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	 * 
 	 * @param graph graph to consider
 	 * @param graphName graph name
-	 * @param filter which states to filter out
+	 * @param filterClass which states to filter out
 	 * @param expectedToRemain which states are expected to remain after filtering.
 	 */
 	private final void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedToRemain)

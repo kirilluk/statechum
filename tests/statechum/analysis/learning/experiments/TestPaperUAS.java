@@ -1,6 +1,6 @@
 package statechum.analysis.learning.experiments;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Reader;
@@ -36,7 +36,7 @@ import statechum.analysis.learning.experiments.PairSelection.UASPairQuality;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
@@ -1050,13 +1050,13 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen2()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen3()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.5, entry.get(a),Configuration.fpAccuracy);
@@ -1065,7 +1065,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen4()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.75, entry.get(a),Configuration.fpAccuracy);
@@ -1074,19 +1074,19 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen5()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen6()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen7()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);

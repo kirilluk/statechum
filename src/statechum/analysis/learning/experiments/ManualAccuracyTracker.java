@@ -62,7 +62,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		
 		String target =  "X-initialise->B-fail_close->A-check_updates->A-update->H-failed_get_use_old->I-succeed_use_remove_pending->F-write_to_cm_sim->D-set_wind_altimeter->A\nB-success_ctas_use_new_weather->C-succeed_use->D\nC-failed_use->A\nI-failed_use->E-write_to_cm_sim->A\nG-succeed_use_remove_pending->F\nG-failed_use_remove_pending->E\nH-success_ctas_use_new_weather->G";
 		
-		LearnerGraph targetMachine = FsmParser.buildLearnerGraph(target, "Target", learnerInitConfiguration.config,null);
+		LearnerGraph targetMachine = FsmParserStatechum.buildLearnerGraph(target, "Target", learnerInitConfiguration.config,null);
 		
 		int sampleSize = (targetMachine.pathroutines.countEdges()*2);
 		int percentPerChunk = 10;

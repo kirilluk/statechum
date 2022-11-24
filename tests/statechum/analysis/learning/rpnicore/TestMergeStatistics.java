@@ -19,7 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.ArrayList;
 import java.util.Collection;

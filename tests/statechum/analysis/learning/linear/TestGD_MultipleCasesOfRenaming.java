@@ -30,13 +30,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.linear.GD.ChangesRecorder;
 import statechum.analysis.learning.linear.GD.LearnerGraphMutator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;

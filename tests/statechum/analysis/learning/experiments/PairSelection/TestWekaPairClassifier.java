@@ -43,7 +43,7 @@ import statechum.analysis.learning.experiments.PairSelection.ConstructClassifier
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.core.Attribute;
@@ -57,8 +57,8 @@ public class TestWekaPairClassifier {
 	final ConvertALabel converter = null;
 	
 	public TestWekaPairClassifier() {
-		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitPTA", mainConfiguration,converter);
+		correctGraph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		tentativeGraph = FsmParserStatechum.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitPTA", mainConfiguration,converter);
 	}
 
 	

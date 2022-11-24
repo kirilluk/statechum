@@ -74,6 +74,7 @@ public class FastTests {
         collections.TestMapWithSearchMisc.class,
         statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
         statechum.analysis.learning.rpnicore.TestFSMParser.class,
+        statechum.analysis.learning.rpnicore.TestParserDot.class,
         statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
         statechum.analysis.learning.rpnicore.TestLearnerGraphND.class,
         statechum.analysis.learning.rpnicore.TestEquivalenceChecking.class,

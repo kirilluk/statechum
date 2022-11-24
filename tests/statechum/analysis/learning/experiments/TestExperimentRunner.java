@@ -45,7 +45,7 @@ import statechum.Configuration;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerFailed;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;

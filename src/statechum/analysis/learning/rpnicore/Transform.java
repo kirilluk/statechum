@@ -278,7 +278,7 @@ public class Transform
 	 * to true, permitting <em>augmentFromMAX</em> to be used as a kind of AugmentMAX (<em>augmentPTA</em> 
 	 * with <em>max</em> argument set to true). 
 	 *   
-	 * @param what tentative PTA to update
+	 * @param graph tentative PTA to update
 	 * @param from maximal automaton to update from
 	 * @param override whether to replace parts of tentative PTA with those from maximal automaton if the two are in conflict.
 	 * @param maxIsPartial whether a maximal automaton is partial, i.e. there may be sequences in our tentative PTA which are not reflected in a 
@@ -747,7 +747,7 @@ public class Transform
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
 	 * This PTA is ignored if null, otherwise answered questions are marked.
-	 * @param ifthenGraph property automaton to consider.
+	 * @param ifthenGraphs property automaton to consider.
 	 * @param howManyToAdd how many waves of transitions to add to the graph. This is not used when if-then is used to answer 
 	 * questions (questionPaths not empty). At most <em>howMayToAdd</em> transitions will be added; 
 	 * if this value if not positive, the graph remains unchanged.
@@ -1030,7 +1030,7 @@ public class Transform
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph tmpPropertyAutomaton =
-						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
+						FsmParserStatechum.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
 							.transform.interpretLabelsAsReg(alphabet,conv); // this is inefficient but I can afford this because if-then automata are small.
 				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
 				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
@@ -1190,7 +1190,7 @@ public class Transform
 		/** Given a label, returns an interned label. Could return the same label but should not return null. 
 		 * For multi-core operation, this method has to be synchronized.
 		 * 
-		 * @param lbl label to intern. 
+		 * @param label label to intern.
 		 */
 		@Override
 		public synchronized Label convertLabelToLabel(Label label)

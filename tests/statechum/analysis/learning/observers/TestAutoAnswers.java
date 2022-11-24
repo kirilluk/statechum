@@ -17,7 +17,7 @@
  */
 package statechum.analysis.learning.observers;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.io.File;

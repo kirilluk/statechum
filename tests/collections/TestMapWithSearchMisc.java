@@ -1,6 +1,6 @@
 package collections;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import org.junit.Assert;
 import org.junit.Test;

@@ -3,7 +3,7 @@
  */
 package statechum.analysis.learning.linear;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 import java.util.Collection;
 import java.util.LinkedList;

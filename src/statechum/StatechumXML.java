@@ -226,7 +226,7 @@ public enum StatechumXML
 		
 		/** Loads a sequence of sequences from the supplied trace into a collection.
 		 * 
-		 * @param elem the element to load from
+		 * @param sequence data to load from
 		 * @return the collection of sequences of strings loaded from that element.
 		 */
 		abstract public List<List<ELEM_TYPE>> readSequenceList(String sequence);
@@ -375,7 +375,7 @@ public enum StatechumXML
      * corresponding Erlang trace. This is not a complete trace - it cannot really be passed to Erlang 
      * for execution because labels of which it consists are not associated with actual functions.
      *  
-     * @param str label to parse
+     * @param obj label to parse
      * @param config configuration to use 
      * Uses the module in the configuration to provide definitions of functions to associated with labels. Will 
      * generic name <em>ErlangLabel.missing</em> if <em>mod</em> is null.
@@ -439,7 +439,7 @@ public enum StatechumXML
 
 		/** Loads a sequence of sequences from the supplied trace into a collection.
 		 * 
-		 * @param elem the element to load from
+		 * @param sequence data to load from
 		 * @return the collection of sequences of strings loaded from that element.
 		 */
 		@Override
@@ -471,8 +471,7 @@ public enum StatechumXML
 		 * 
 		 * @param wr where to write sequences
 		 * @param str sequence of inputs to write out. The collection can be empty but no input can be of length zero.
-		 * @throws IOException
-		 */	
+		 */
 		@Override
 		public void writeInputSequence(StringBuffer wr,Collection<String> str)
 		{
@@ -484,7 +483,7 @@ public enum StatechumXML
 				if (st.length() == 0)
 					throw new IllegalArgumentException("empty input in sequence");
 				if (patternBadChars.matcher(st).find())
-					throw new IllegalArgumentException("invalid characters in sequence "+str+" : it matches "+patternBadChars.toString());
+					throw new IllegalArgumentException("invalid characters in sequence "+str+" : it matches "+ patternBadChars);
 				wr.append(st);
 			}
 			wr.append(seqEnd);
@@ -494,8 +493,8 @@ public enum StatechumXML
 		 * or some form of put-back but would like a way to see ahead, I decided simply to pass
 		 * the first character as a parameter, -1 if there is none.
 		 * 
-		 * @param rd stream to read
-		 * @param firstChar the first character, -1 if the first char is to be read from a stream
+		 * @param data string to read
+		 * In this override of readInputSequence the first char is to be read from the provided string
 		 * @return collection of inputs read from a stream
 		 */
 		@Override
@@ -504,6 +503,14 @@ public enum StatechumXML
 			return readInputSequence(new StringReader(data),-1);
 		}
 
+		/** Loads a sequence of inputs from a reader. Since I do not wish to use <em>mark</em>
+		 * or some form of put-back but would like a way to see ahead, I decided simply to pass
+		 * the first character as a parameter, -1 if there is none.
+		 *
+		 * @param rd stream to read
+		 * @param firstChar the first character, -1 if the first char is to be read from a stream
+		 * @return collection of inputs read from a stream
+		 */
 		public List<String> readInputSequence(Reader rd, int firstChar)
 		{
 			List<String> result = new LinkedList<String>();

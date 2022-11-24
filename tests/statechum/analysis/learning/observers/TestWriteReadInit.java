@@ -33,7 +33,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.InitialData;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;

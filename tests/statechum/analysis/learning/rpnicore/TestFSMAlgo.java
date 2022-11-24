@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.AfterClass;
@@ -63,8 +64,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static statechum.Helper.whatToRun;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 
 @RunWith(ParameterizedWithName.class)
@@ -523,7 +524,6 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data
-	 * @param config configuration determining the type of label to build
 	 * @return a set of sequences to apply to an RPNI learner
 	 */
 	public static List<List<String>> buildList(String [][] data)
@@ -548,7 +548,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		for(Object[] str:data)
 		{
 			if (str.length != 2)
-				throw new IllegalArgumentException("more than two elements in sequence "+str);
+				throw new IllegalArgumentException("more than two elements in sequence "+ Arrays.toString(str));
 			if (str[0] == null || str[1] == null || !(str[0] instanceof String[]) || !(str[1] instanceof String))
 				throw new IllegalArgumentException("invalid data in array");
 			result.put(ArrayOperations.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
@@ -567,7 +567,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(new LinkedList<String>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{}},config,converter)));
+		assertEquals(expectedResult, buildSet(new String[][]{new String[]{}}, config, converter));
 	}
 
 	@Test
@@ -576,7 +576,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
 		expectedResult.add(labelList(new String[]{"a","b","c"}));
 		expectedResult.add(new LinkedList<Label>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}},config,converter)));
+		assertEquals(expectedResult, buildSet(new String[][]{new String[]{}, new String[]{"a", "b", "c"}}, config, converter));
 	}
 
 	@Test
@@ -584,7 +584,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
 		expectedResult.add(labelList(new String[]{"a","b","c"}));
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}},config,converter)));
+		assertEquals(expectedResult, buildSet(new String[][]{new String[]{"a", "b", "c"}}, config, converter));
 	}
 
 	@Test
@@ -595,8 +595,8 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		expectedResult.add(new LinkedList<Label>());
 		expectedResult.add(labelList(new String[]{"g","t"}));
 		expectedResult.add(labelList(new String[]{"h","q","i"}));
-		assertTrue(expectedResult.equals(buildSet(new String[] []{
-				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} },config,converter)));
+		assertEquals(expectedResult, buildSet(new String[][]{
+				new String[]{"a", "b", "c"}, new String[]{"h", "q", "i"}, new String[]{}, new String[]{"g", "t"}}, config, converter));
 	}
 
 	@Test
@@ -613,11 +613,11 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"a"},"value2"},
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"a"}, "value2"},
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 	
 	@Test
@@ -625,12 +625,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value2"},
-				new Object[]{new String[]{"a"},"value1"},
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value2"},
+				new Object[]{new String[]{"a"}, "value1"},
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -638,12 +638,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
 				new Object[]{new String[]{"a"}},// an invalid sequence
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -651,12 +651,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
 				new Object[]{},// an invalid sequence - too few elements
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -664,12 +664,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{new String[]{"a"},"c","d"},// an invalid sequence - too many elements
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
+				new Object[]{new String[]{"a"}, "c", "d"},// an invalid sequence - too many elements
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -677,12 +677,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{new Object(),"c"},// an invalid sequence - wrong type of the first element
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
+				new Object[]{new Object(), "c"},// an invalid sequence - wrong type of the first element
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -690,12 +690,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{"text","c"},// an invalid sequence - wrong type of the first element
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
+				new Object[]{"text", "c"},// an invalid sequence - wrong type of the first element
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -703,12 +703,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{new String[]{"a"},new Object()},// an invalid sequence - wrong type of the second element
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
+				new Object[]{new String[]{"a"}, new Object()},// an invalid sequence - wrong type of the second element
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -716,12 +716,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{null,"value"},// an invalid sequence - null in the first element
-				new Object[]{new String[]{"b"},"value3"}
-		})));
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
+				new Object[]{null, "value"},// an invalid sequence - null in the first element
+				new Object[]{new String[]{"b"}, "value3"}
+		}));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -729,12 +729,12 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-				new Object[]{new String[]{"strC"},"value1"},
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"}, "value1"},
 				new Object[]{new String[]{"a"}, null},// an invalid sequence - null in the second element
-				new Object[]{new String[]{"b"},null}
-		})));
+				new Object[]{new String[]{"b"}, null}
+		}));
 	}
 	
 	public final void checkForCorrectException(final int [][]tTable, final int []vFrom, String exceptionString)
@@ -898,21 +898,21 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testGetNonRepeatingNumbers0()
 	{
-		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(0, 0); 
+		int[] data = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(0, 0);
 		Assert.assertEquals(0,data.length);
 	}
 	
 	@Test
 	public final void testGetNonRepeatingNumbers1()
 	{
-		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(1, 0); 
+		int[] data = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(1, 0);
 		Assert.assertEquals(1,data.length);Assert.assertEquals(0, data[0]);
 	}
 	
 	@Test
 	public final void testGetNonRepeatingNumbers2()
 	{
-		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(2, 0); 
+		int[] data = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(2, 0);
 		Assert.assertEquals(2,data.length);
 		if (data[0] == 0)
 			Assert.assertEquals(1, data[1]);
@@ -926,9 +926,9 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void testGetNonRepeatingNumbers3()
 	{
 		final int size = 200;
-		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(size, 1); 
+		int[] data = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(size, 1);
 		Assert.assertEquals(size,data.length);
-		boolean values[] = new boolean[size];
+		boolean[] values = new boolean[size];
 		for(int i=0;i<size;++i) { Assert.assertFalse(values[data[i]]);values[data[i]]=true; }
 		//System.out.println(Arrays.toString(data));
 	}
@@ -1069,8 +1069,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
-		
-		expectedSet.clear();
+
 		for(String vertex:new String[]{"A","B","C","D"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAB.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 		
@@ -1113,8 +1112,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertNotNull(mergedAll.getVertexToAbstractState());
 
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
-		
-		expectedSet.clear();
+
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAll.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 
@@ -1145,8 +1143,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertNotNull(mergedAll.getVertexToAbstractState());
 		
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
-		
-		expectedSet.clear();
+
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		for(String vertex:new String[]{"D3"}) expectedSet.add(mergedAB.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAll.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));

@@ -18,8 +18,7 @@
 
 package statechum;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 
 import org.junit.Assert;
 
@@ -65,6 +64,22 @@ public class Helper {
 					Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
 			}
 		}
+	}
+
+	/** Loads the contents of a file into a string.
+	 * @param file file to load
+	 *
+	 * @throws IOException
+	 */
+	public static String loadFile(File file) throws IOException
+	{
+		BufferedReader input = new BufferedReader(new FileReader(file));
+		StringBuffer result = new StringBuffer();
+		String line;
+		while ((line = input.readLine()) != null) {
+			result.append(line);result.append('\n');
+		}
+		input.close();return result.toString();
 	}
 
 	public interface whatToRun

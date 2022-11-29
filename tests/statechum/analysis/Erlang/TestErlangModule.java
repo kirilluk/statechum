@@ -21,9 +21,7 @@ package statechum.analysis.Erlang;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -247,27 +245,11 @@ public class TestErlangModule
     	return ((OtpErlangString)response.elementAt(1)).stringValue();
     }
 
-    /** Loads the contents of a file into a string. 
-     * @param file file to load
-     * 
-     * @throws IOException 
-     */
-    public static String loadFile(File file) throws IOException
-    {
-    	BufferedReader input = new BufferedReader(new FileReader(file));
-    	StringBuffer result = new StringBuffer();
-		String line;
-		while ((line = input.readLine()) != null) {
-			result.append(line);result.append('\n');
-		}
-		input.close();return result.toString();
-    }
-    
-    public void testConsistencyBetweenOriginalAndOurTyperHelper(File origFile) throws IOException
+	public void testConsistencyBetweenOriginalAndOurTyperHelper(File origFile) throws IOException
     {
     	Assert.assertFalse(erlangFile.equals(erlangFileOther));
     	String moduleName = ErlangRunner.getName(origFile, ERL.MOD, true);
-    	final String someErlang = loadFile(origFile);
+    	final String someErlang = Helper.loadFile(origFile);
   		String typerInRunner = null, typerAsProcess = null;
   		{// we have to create new files because of file sync problem between multiple instances of Erlang - where multiple tests are run, we sometime get module_info, sometimes not.
   			Assert.assertTrue(new File(testDir.getAbsolutePath()+File.separator+"A").mkdir());

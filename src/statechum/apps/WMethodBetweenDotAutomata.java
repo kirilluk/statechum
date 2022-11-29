@@ -1,6 +1,7 @@
 package statechum.apps;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
@@ -37,10 +38,10 @@ class WMethodBetweenDotAutomata {
          * java -cp bin:lib/modified_collections:lib/colt.jar:lib/commons-collections-3.1.jar:lib/jung-1.7.6.jar:lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot 2
          */
         public static void main(String[] args) throws IOException {
-                String referenceDot = statechum.analysis.Erlang.TestErlangModule.loadFile(new File(args[0]));
+                String referenceDot = Helper.loadFile(new File(args[0]));
                 LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, "reference", config, converter,true);
                 System.out.println("Size of reference graph: "+reference.getAcceptStateNumber()+" states");
-                String hypothesisDot = statechum.analysis.Erlang.TestErlangModule.loadFile(new File(args[1]));
+                String hypothesisDot = Helper.loadFile(new File(args[1]));
                 LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, "hypothesis", config, converter, true);
                 System.out.println("Size of hypothesis graph: "+hyp.getAcceptStateNumber()+" states");
 

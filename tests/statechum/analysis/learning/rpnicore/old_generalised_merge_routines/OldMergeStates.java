@@ -34,6 +34,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.Label;
+import statechum.collections.MapWithSearch;
 
 public class OldMergeStates 
 {
@@ -68,11 +69,11 @@ public class OldMergeStates
 		
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = AbstractLearnerGraph.constructMap(cloneConfig,original);
-                Map<VertID,Collection<VertID>> mergedToHard = new TreeMap<VertID,Collection<VertID>>();
+                Map<VertID,Collection<VertID>> mergedToHard = new TreeMap<>();
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
 			eqClass.constructMergedVertex(configHolder,false,true);
-                        Collection<VertID> hardVertices = new LinkedList<VertID>();mergedToHard.put(eqClass.getMergedVertex(), hardVertices);
+                        Collection<VertID> hardVertices = new LinkedList<>();mergedToHard.put(eqClass.getMergedVertex(), hardVertices);
 			for(CmpVertex v:eqClass.getStates())
             {
                 origToNew.put(v, eqClass);
@@ -87,15 +88,16 @@ public class OldMergeStates
 		}
 		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
-		Queue<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
+		Queue<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.getInit()));
-		Map<EquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean> visitedEqClasses = new ArrayMapWithSearch<EquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean>();
-		Boolean trueValue = Boolean.valueOf(true);
+		Map<EquivalenceClass<CmpVertex,LearnerGraphCachedData>,Boolean> visitedEqClasses =
+				new ArrayMapWithSearch<>();
+		Boolean trueValue = Boolean.TRUE;
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> current = currentExplorationBoundary.remove();
-			Map<Label,CmpVertex> row = result.transitionMatrix.get(current.getMergedVertex());
+			MapWithSearch<Label,Label,CmpVertex> row = result.transitionMatrix.get(current.getMergedVertex());
 			if (row == null)
 			{
 				row = result.createNewRow();result.transitionMatrix.put(current.getMergedVertex(), row);

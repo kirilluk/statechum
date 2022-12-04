@@ -26,13 +26,13 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 /** This one makes it possible to search a map for an element with a specific ID and returns an element of its domain that matches that ID.
  * 
  */
-public interface MapWithSearch<K,V> extends Map<K, V>
+public interface MapWithSearch<I, K extends I,V> extends Map<K, V>
 {
 	/** Returns true if the collection expects to store elements that implement {@link ConvertibleToInt} interface. */
 	boolean expectsConvertibleToInt();
 	
 	/** Searches a map for an element with a specific ID and returns an element of its domain that matches that ID. */
-	K findElementById(VertID id);
+	K findKey(I id);
 	
 	/** Returns elements in the same order as they would have been returned by TreeMap, for testing only. */
 	Set<Map.Entry<K, V>> getTreeEntrySet();

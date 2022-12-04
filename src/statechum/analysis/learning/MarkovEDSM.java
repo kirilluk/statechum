@@ -18,23 +18,6 @@
 
 package statechum.analysis.learning;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Stack;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicLong;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
@@ -44,31 +27,27 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.*;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerAbortedException;
-import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection;
-import statechum.analysis.learning.experiments.PairSelection.MarkovScoreComputation;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class MarkovEDSM extends PairQualityLearner
@@ -197,12 +176,7 @@ public class MarkovEDSM extends PairQualityLearner
 
 				if (onlyUsePositives)
 				{
-					pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-						@Override
-						public boolean shouldBeReturned(Object name) {
-							return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-						}
-					}));
+					pta.paths.augmentPTA(generator.getAllSequences(0).filter(name -> ((RandomPathGenerator.StateName)name).accept));
 				}
 				else
 					pta.paths.augmentPTA(generator.getAllSequences(0));
@@ -240,7 +214,7 @@ public class MarkovEDSM extends PairQualityLearner
 					verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 					
 					List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<>();
 					int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 					assert scoreInitialMerge >= 0;
 					ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, false);
@@ -258,11 +232,11 @@ public class MarkovEDSM extends PairQualityLearner
 				learnerOfPairs.setUseNewScoreNearRoot(useDifferentScoringNearRoot);learnerOfPairs.setUseClassifyPairs(useClassifyToOrderPairs);
 				learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 				
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());
 				
 				if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
 				{
-					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
@@ -297,7 +271,7 @@ public class MarkovEDSM extends PairQualityLearner
 				{
 					LearnerEvaluationConfiguration referenceLearnerEval = new LearnerEvaluationConfiguration(learnerEval.graph, learnerEval.testSet, evaluationConfig, learnerEval.ifthenSequences, learnerEval.labelDetails);
 					//outcomeOfReferenceLearner = new Cav2014.EDSMReferenceLearner(referenceLearnerEval,ptaCopy,2).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
-					outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO, scoringForEDSM).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+					outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(referenceLearnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO, scoringForEDSM).learnMachine(new LinkedList<>(), new LinkedList<>());
 					dataSample.referenceLearner = estimateDifference(referenceGraph, outcomeOfReferenceLearner,testSet);
 					dataSample.referenceLearner.inconsistency = MarkovClassifier.computeInconsistency(outcomeOfReferenceLearner, m, checker,false);
 				}
@@ -343,10 +317,11 @@ public class MarkovEDSM extends PairQualityLearner
 		
 	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
+		List<StatePair> pairsList = new LinkedList<>();
 		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
 		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
+			Set<CmpVertex> validStatesInGroup = new TreeSet<>(groupOfStates);
+			validStatesInGroup.retainAll(validStates);
 			if (validStatesInGroup.size() > 1)
 			{
 				CmpVertex v0=validStatesInGroup.iterator().next();
@@ -417,13 +392,12 @@ public class MarkovEDSM extends PairQualityLearner
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
-					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
-			inconsistencyFromAnEarlierIteration=value;
+
+			inconsistencyFromAnEarlierIteration= MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
 			cl = new MarkovClassifier(Markov, coregraph);
 		    extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<VertID,CmpVertex,Long>(coregraph.getStateNumber());
 		}
 		
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
@@ -434,11 +408,11 @@ public class MarkovEDSM extends PairQualityLearner
 
 		public long computeScoreBasedOnInconsistencies(PairScore p) 
 		{
-			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+			if(!p.getQ().isAccept() && !p.getR().isAccept())
 				return 0;
 			++comparisonsPerformed;
 			long currentInconsistency = 0;
-			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 			int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 			long score= genScore;
 			if (genScore >= 0)
@@ -535,11 +509,12 @@ public class MarkovEDSM extends PairQualityLearner
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
+		 * Pairs are supposed to be the ones from {@link LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
+		 * where all those not matching mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param extension_graph 
-		 * @param learnerGraph 
-		 * @param pairs 
+		 * @param pairs pairs to order
+		 * @param graph
+		 * @param extension_graph
 		 */
 		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
 		{
@@ -553,7 +528,7 @@ public class MarkovEDSM extends PairQualityLearner
 					allPairsNegative = false;break;
 				}
 			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
+			ArrayList<PairScore> possibleResults = new ArrayList<>(pairs.size()),nonNegPairs = new ArrayList<>(pairs.size());
 			if (allPairsNegative)
 				possibleResults.addAll(pairs);
 			else
@@ -575,15 +550,12 @@ public class MarkovEDSM extends PairQualityLearner
 				}
 			
 					
-				Collections.sort(possibleResults, new Comparator<PairScore>(){
-	
-					@Override
-					public int compare(PairScore o1, PairScore o2) {
-						int outcome = (int) Math.signum( ((MarkovPassivePairSelection.PairScoreWithDistance)o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance)o1).getDistanceScore());  
-						if (outcome != 0)
-							return outcome;
-						return o2.compareTo(o1);
-					}}); 
+				possibleResults.sort((o1, o2) -> {
+					int outcome = (int) Math.signum(((MarkovPassivePairSelection.PairScoreWithDistance) o2).getDistanceScore() - ((MarkovPassivePairSelection.PairScoreWithDistance) o1).getDistanceScore());
+					if (outcome != 0)
+						return outcome;
+					return o2.compareTo(o1);
+				});
 			}				
 			return possibleResults;
 		}
@@ -595,7 +567,7 @@ public class MarkovEDSM extends PairQualityLearner
 		}
 	}
 
-	public static void main(String args[]) throws Exception
+	public static void main(String[] args) throws Exception
 	{
 		try
 		{
@@ -612,7 +584,7 @@ public class MarkovEDSM extends PairQualityLearner
 	}
 	
 	
-	public static int runExperiment(String args[]) throws Exception
+	public static int runExperiment(String[] args) throws Exception
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.GENERAL);
@@ -627,7 +599,7 @@ public class MarkovEDSM extends PairQualityLearner
 		final int chunkSize = 3;
 		
 		final String branch = "JUNE2014;";
-		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<PairQualityLearner.ThreadResult>(ExperimentRunner.getCpuNumber(),"data",args);
+		RunSubExperiment<ThreadResult> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), "data", args);
 		// Inference from a few traces
 		final boolean onlyPositives=true;
 		final double alphabetMultiplierMax=2;
@@ -761,34 +733,31 @@ public class MarkovEDSM extends PairQualityLearner
 						learnerRunner.setDisableInconsistenciesInMergers(false);
 						experimentRunner.submitTask(learnerRunner);
 					}
-				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+				experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<>() {
 
 					@Override
-					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
-					{
-						for(SampleData sample:result.samples)
-							experimentrunner.RecordR(gr_StructuralDiff,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
-					
-						for(SampleData sample:result.samples)
-						{
-							experimentrunner.RecordR(gr_BCR,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+					public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException {
+						for (SampleData sample : result.samples)
+							experimentrunner.RecordR(gr_StructuralDiff, sample.referenceLearner.differenceStructural.getValue(), sample.actualLearner.differenceStructural.getValue(), null, null);
+
+						for (SampleData sample : result.samples) {
+							experimentrunner.RecordR(gr_BCR, sample.referenceLearner.differenceBCR.getValue(), sample.actualLearner.differenceBCR.getValue(), null, null);
 							comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 						}
-						
+
 					}
 
 					@Override
-					public String getSubExperimentName()
-					{
-						return "running tasks for learning whole graphs, preset "+preset;
+					public String getSubExperimentName() {
+						return "running tasks for learning whole graphs, preset " + preset;
 					}
-					
+
 					@SuppressWarnings("rawtypes")
 					@Override
 					public DrawGraphs.RGraph[] getGraphs() {
-						return new DrawGraphs.RGraph[]{gr_StructuralDiff,gr_BCR};
+						return new DrawGraphs.RGraph[]{gr_StructuralDiff, gr_BCR};
 					}
-					
+
 				});
 				
 				if (experimentRunner.isInteractive())
@@ -817,32 +786,29 @@ public class MarkovEDSM extends PairQualityLearner
 					learnerRunner.setDisableInconsistenciesInMergers(true);
 					experimentRunner.submitTask(learnerRunner);
 				}
-			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<PairQualityLearner.ThreadResult>() {
+			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<>() {
 
 				@Override
-				public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException 
-				{
-					for(SampleData sample:result.samples)
-						experimentrunner.RecordR(gr_StructuralDiffWithoutInconsistencies,sample.referenceLearner.differenceStructural.getValue(),sample.actualLearner.differenceStructural.getValue(),null,null);
-				
-					for(SampleData sample:result.samples)
-					{
-						experimentrunner.RecordR(gr_BCRWithoutInconsistencies,sample.referenceLearner.differenceBCR.getValue(),sample.actualLearner.differenceBCR.getValue(),null,null);
+				public void processSubResult(ThreadResult result, RunSubExperiment<ThreadResult> experimentrunner) throws IOException {
+					for (SampleData sample : result.samples)
+						experimentrunner.RecordR(gr_StructuralDiffWithoutInconsistencies, sample.referenceLearner.differenceStructural.getValue(), sample.actualLearner.differenceStructural.getValue(), null, null);
+
+					for (SampleData sample : result.samples) {
+						experimentrunner.RecordR(gr_BCRWithoutInconsistencies, sample.referenceLearner.differenceBCR.getValue(), sample.actualLearner.differenceBCR.getValue(), null, null);
 						comparisonsPerformed.addAndGet(sample.comparisonsPerformed);
 					}
-					
+
 				}
 
 				@Override
-				public String getSubExperimentName()
-				{
+				public String getSubExperimentName() {
 					return "learning without inconsistencies";
 				}
-				
+
 				@SuppressWarnings("rawtypes")
 				@Override
 				public DrawGraphs.RGraph[] getGraphs() {
-					return new DrawGraphs.RGraph[]{gr_StructuralDiffWithoutInconsistencies,gr_BCRWithoutInconsistencies};
+					return new DrawGraphs.RGraph[]{gr_StructuralDiffWithoutInconsistencies, gr_BCRWithoutInconsistencies};
 				}
 			});
 			

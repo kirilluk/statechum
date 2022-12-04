@@ -1,20 +1,20 @@
 package statechum.analysis.learning.experiments.mutation;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.Writer;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.MapWithSearch;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Writer;
+import java.util.List;
+import java.util.Map.Entry;
 
 public class GenerateRandomFSM extends DiffExperiments {
 
@@ -23,7 +23,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 		super(30);
 	}
 	
-	public static void main(String args[])
+	public static void main(String[] args)
 	{
 		Writer randomFSM = null;
 		try
@@ -46,7 +46,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 					
 					//Visualiser.updateFrame(origGraph, null);
 					randomFSM = new FileWriter(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"randomFSM/fsm_"+states+"_"+experiment+".x_");
-					for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:generatedFSM.transitionMatrix.entrySet())
+					for(Entry<CmpVertex, MapWithSearch<Label,Label,List<CmpVertex>>> entry:generatedFSM.transitionMatrix.entrySet())
 						for(Entry<Label,List<CmpVertex>> targets:entry.getValue().entrySet())
 							for(CmpVertex targetState:generatedFSM.getTargets(targets.getValue()))
 							{

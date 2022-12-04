@@ -92,6 +92,7 @@ import com.ericsson.otp.erlang.OtpNodeStatus;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
+import statechum.collections.MapWithSearch;
 
 public class Synapse implements Runnable {
 
@@ -119,14 +120,14 @@ public class Synapse implements Runnable {
 			@Override
 			public void remoteStatus(java.lang.String node, boolean up, @SuppressWarnings("unused") java.lang.Object info)
 			{
-				if (node.equals(erlangNode) && up == false)
+				if (node.equals(erlangNode) && !up)
 					System.exit(-1);// forcefully kill Java because Erlang has terminated.
 			}
 			
 			@Override
 			public void localStatus(java.lang.String node, boolean up, @SuppressWarnings("unused") java.lang.Object info)
 			{
-				if (node.equals(erlangNode) && up == false)
+				if (node.equals(erlangNode) && !up)
 					System.exit(-1);// forcefully kill Java because Erlang has terminated.
 			}
 		});
@@ -282,7 +283,7 @@ public class Synapse implements Runnable {
 		protected final String nodeWithTraceRunner;
 		
 		/** Overrides to function descriptions. */
-		protected final Map<String,OtpErlangTuple> overrides = new TreeMap<String,OtpErlangTuple>();
+		protected final Map<String,OtpErlangTuple> overrides = new TreeMap<>();
 		
 		public StatechumProcess(OtpErlangPid erlangPid, OtpErlangPid supervisorPid, OtpErlangRef refArg, String nodeWithTraceRunnerArg)
 		{
@@ -311,7 +312,7 @@ public class Synapse implements Runnable {
 						throw new IllegalArgumentException("invalid trace: got "+entry.elementAt(0)+" instead of pos/neg");
 				
 				OtpErlangList traceData = (OtpErlangList)entry.elementAt(1);
-				List<Label> data = new LinkedList<Label>();
+				List<Label> data = new LinkedList<>();
 				for(OtpErlangObject traceElement:traceData)
 					data.add(AbstractLearnerGraph.generateNewLabel( ((OtpErlangAtom)traceElement).atomValue(), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()));
 				
@@ -321,7 +322,7 @@ public class Synapse implements Runnable {
 
 		public static Map<VertID,VertID> parseMap(OtpErlangObject obj)
 		{
-			Map<VertID,VertID> outcome = new TreeMap<VertID,VertID>();
+			Map<VertID,VertID> outcome = new TreeMap<>();
 			updateMap(obj,outcome);
 			return outcome;
 		}
@@ -343,7 +344,7 @@ public class Synapse implements Runnable {
 		
 		public static OtpErlangList mapToObject(Map<VertID,VertID> map)
 		{
-			List<OtpErlangObject> outcome = new LinkedList<OtpErlangObject>();
+			List<OtpErlangObject> outcome = new LinkedList<>();
 			for(Entry<VertID,VertID> entry:map.entrySet())
 			{
 				outcome.add(new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey().getStringId()),new OtpErlangAtom(entry.getValue().getStringId())}));
@@ -410,7 +411,7 @@ public class Synapse implements Runnable {
 			if (states.arity() != gr.transitionMatrix.size())
 				throw new IllegalArgumentException("repeated states in the list of states");
 			
-			Map<OtpErlangObject,Label> objectToLabel = new HashMap<OtpErlangObject,Label>();
+			Map<OtpErlangObject,Label> objectToLabel = new HashMap<>();
 			for(OtpErlangObject l:alphabet)
 			{
 				String label = ((OtpErlangAtom)l).atomValue();if (label.isEmpty()) throw new IllegalArgumentException("empty label");
@@ -486,7 +487,7 @@ public class Synapse implements Runnable {
 			if (statesToBeIgnored.arity() > 0 && options != null)
 			{
 				if (options.ignoredStates == null)
-					options.ignoredStates = new TreeSet<String>();
+					options.ignoredStates = new TreeSet<>();
 				for(OtpErlangObject obj:statesToBeIgnored)
 					options.ignoredStates.add( ((OtpErlangAtom)obj).atomValue() );
 			}
@@ -498,10 +499,10 @@ public class Synapse implements Runnable {
 		 */
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> OtpErlangTuple constructFSM(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr)
 		{
-			List<OtpErlangObject> statesList = new LinkedList<OtpErlangObject>(), transitions = new LinkedList<OtpErlangObject>();
-			Map<String,OtpErlangObject> alphabet = new TreeMap<String,OtpErlangObject>();
+			List<OtpErlangObject> statesList = new LinkedList<>(), transitions = new LinkedList<>();
+			Map<String,OtpErlangObject> alphabet = new TreeMap<>();
 			
-			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:gr.transitionMatrix.entrySet()) 
+			for(Entry<CmpVertex, MapWithSearch<Label,Label,TARGET_TYPE>> entry:gr.transitionMatrix.entrySet())
 			{
 				statesList.add(new OtpErlangAtom(entry.getKey().getStringId()));
 				for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
@@ -514,20 +515,17 @@ public class Synapse implements Runnable {
 			}
 			return new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom("statemachine"),new OtpErlangList(statesList.toArray(new OtpErlangObject[0])),
 					new OtpErlangList(transitions.toArray(new OtpErlangObject[0])),
-					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.values().toArray(new OtpErlangObject[alphabet.size()])),
+					new OtpErlangAtom(gr.getInit().getStringId()),new OtpErlangList(alphabet.values().toArray(new OtpErlangObject[0])),
 			});
 		}
 
 		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void convertLabelsToStrings(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> grFrom, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> grTo)
 		{
-    		AbstractLearnerGraph.interpretLabelsOnGraph(grFrom,grTo,new Transform.ConvertLabel(new ConvertALabel() {
-				
-				@Override
-				public Label convertLabelToLabel(Label label) {
-					ErlangLabel lbl = (ErlangLabel)label;
-					return new StringLabel(lbl.function.getName()+"/"+lbl.function.getArity()+","+lbl.input+","+lbl.expectedOutput);
-				}
-			}));
+    		AbstractLearnerGraph.interpretLabelsOnGraph(grFrom,grTo,new Transform.ConvertLabel(
+					label -> {
+						ErlangLabel lbl = (ErlangLabel) label;
+						return new StringLabel(lbl.function.getName() + "/" + lbl.function.getArity() + "," + lbl.input + "," + lbl.expectedOutput);
+					}));
 		}
 		
 		public static class AskedToTerminateException extends RuntimeException
@@ -546,7 +544,7 @@ public class Synapse implements Runnable {
 				progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber });
 			else
 			{// we need to report red states in order to be able to continue QSM-learning the graph
-				List<OtpErlangObject> stateList = new LinkedList<OtpErlangObject>();
+				List<OtpErlangObject> stateList = new LinkedList<>();
 				for(CmpVertex v:graph.transitionMatrix.keySet())
 					if (v.getColour() == JUConstants.RED)
 						stateList.add(new OtpErlangAtom(v.getStringId()));
@@ -606,7 +604,7 @@ public class Synapse implements Runnable {
 		 */
 		public static OtpErlangList typeMapToList(Map<String,OtpErlangTuple> map)
 		{
-			OtpErlangTuple mapping [] = new OtpErlangTuple[map.size()];
+			OtpErlangTuple[] mapping = new OtpErlangTuple[map.size()];
 			int i=0;
 			for(Entry<String,OtpErlangTuple> entry:map.entrySet())
 				mapping[i++]=new OtpErlangTuple(new OtpErlangObject[]{new OtpErlangAtom(entry.getKey()),entry.getValue()});
@@ -953,7 +951,7 @@ public class Synapse implements Runnable {
 															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
 															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 														}
-														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 													}
 													catch(AskedToTerminateException e)
@@ -996,7 +994,7 @@ public class Synapse implements Runnable {
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-																LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+																LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<>();
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
 																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, false);
@@ -1026,7 +1024,7 @@ public class Synapse implements Runnable {
 																learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
 																LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 															}
-															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 														}
 														catch(AskedToTerminateException e)
@@ -1069,7 +1067,7 @@ public class Synapse implements Runnable {
 																// These vertices are merged first and then the learning start from the root as normal.
 																// The reason to learn from the root is a memory cost. if we learn from the middle, we can get better results
 																List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-																LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+																LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<>();
 																int scoreInitialMerge = ptaInitial.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 																assert scoreInitialMerge >= 0;
 																ptaToUseForInference = MergeStates.mergeCollectionOfVertices(ptaInitial, null, verticesToMergeInitialMerge, false);
@@ -1099,7 +1097,7 @@ public class Synapse implements Runnable {
 																learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
 																LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 															}
-															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+															LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
 															outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 														}
 														catch(AskedToTerminateException e)
@@ -1186,7 +1184,7 @@ public class Synapse implements Runnable {
 															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
 															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 														}
-														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 													}
 													catch(AskedToTerminateException e)
@@ -1237,7 +1235,7 @@ public class Synapse implements Runnable {
 															learnerInitConfiguration.graph.clearColours();learnerInitConfiguration.graph.getInit().setColour(JUConstants.RED);
 															LearnerGraph.copyGraphs(learnerInitConfiguration.graph,learner.getTentativeAutomaton());
 														}
-														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+														LearnerGraph graphLearnt = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,  constructFSM(graphLearnt)});
 													}
 													catch(AskedToTerminateException e)
@@ -1403,13 +1401,11 @@ public class Synapse implements Runnable {
 													{
 														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
 														
-														Set<String> modifiedLines = new TreeSet<String>();
+														Set<String> modifiedLines = new TreeSet<>();
 														for(Object obj:diff.getEdges()) // getEdges returns edges in a JDK-dependent order, we use TreeSet to sort them so that expected values can be determined without associating them with specific versions of JDK.
 														{
-															StringBuffer textOfTheOutcome = new StringBuffer();
-															
-															textOfTheOutcome.append(obj.toString());textOfTheOutcome.append(":");textOfTheOutcome.append( ((Edge)obj).getUserDatum(JUConstants.DIFF) );
-															modifiedLines.add(textOfTheOutcome.toString());
+
+															modifiedLines.add(obj.toString() + ":" + ((Edge) obj).getUserDatum(JUConstants.DIFF));
 														}
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,new OtpErlangAtom(modifiedLines.toString())});
 													}

@@ -33,13 +33,13 @@ import statechum.Pair;
  * @author kirill
  *
  */
-public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
+public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> implements MapWithSearch<VertID,K, V> {
 	int positiveCount = 0, negativeCount = 0;
 	boolean parentExpectsConvertibleToInt = false;
 	
-	protected MapWithSearch<K, V> parent = null;
+	protected MapWithSearch<VertID, K, V> parent = null;
 	
-	public MapWithSearchAndCounter(MapWithSearch<K, V> map) 
+	public MapWithSearchAndCounter(MapWithSearch<VertID, K, V> map)
 	{
 		parent = map;parentExpectsConvertibleToInt = parent.expectsConvertibleToInt();
 	}
@@ -65,7 +65,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 		{// did not have a previous value.
 			if (parentExpectsConvertibleToInt)
 			{
-				if (((ConvertibleToInt) k).toInt() >= 0)
+				if (k.toInt() >= 0)
 					positiveCount+=1;
 				else
 					negativeCount+=1;
@@ -112,7 +112,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 	/** Returns the number of positive and negative values in the collection. */
 	public Pair<Integer,Integer> getPosNeg()
 	{
-		return new Pair<Integer,Integer>(positiveCount,negativeCount);
+		return new Pair<>(positiveCount, negativeCount);
 	}
 
 
@@ -145,7 +145,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 	public Set<K> keySet() {
 		final Set<K> returnedKeys = parent.keySet();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Set<K>(){
+		return new Set<>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -160,7 +160,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			 */
 			@Override
 			public boolean equals(Object obj) {
-				return returnedKeys.equals(obj);
+				return obj instanceof Set && returnedKeys.equals(obj);
 			}
 
 			/* (non-Javadoc)
@@ -229,8 +229,8 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			@Override
 			public boolean removeAll(Collection<?> c) {
 				boolean returnValue = false;
-				for(Object elem:c)
-					returnValue |=remove(elem);
+				for (Object elem : c)
+					returnValue |= remove(elem);
 				return returnValue;
 			}
 
@@ -238,7 +238,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			public void clear() {
 				map.clear();
 			}
-			
+
 		};
 	}
 
@@ -247,7 +247,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 	public Collection<V> values() {
 		final Collection<V> returnedValues = parent.values();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Collection<V>()	{
+		return new Collection<>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -337,7 +337,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			public void clear() {
 				map.clear();
 			}
-	
+
 		};
 	}
 
@@ -346,8 +346,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 	public Set<java.util.Map.Entry<K, V>> entrySet() {
 		final Set<java.util.Map.Entry<K, V>> returnedEntries = parent.entrySet();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Set<java.util.Map.Entry<K, V>>()
-		{
+		return new Set<>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -389,7 +388,7 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			}
 
 			@Override
-			public Iterator<Entry<K,V>> iterator() {
+			public Iterator<Entry<K, V>> iterator() {
 				return returnedEntries.iterator();
 			}
 
@@ -437,14 +436,14 @@ public class MapWithSearchAndCounter<K,V> implements MapWithSearch<K, V> {
 			public void clear() {
 				map.clear();
 			}
-			
+
 		};
 	}
 
 
 	@Override
-	public K findElementById(VertID id) {
-		return parent.findElementById(id);
+	public K findKey(VertID id) {
+		return parent.findKey(id);
 	}
 
 

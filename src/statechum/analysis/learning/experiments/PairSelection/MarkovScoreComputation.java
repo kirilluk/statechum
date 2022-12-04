@@ -18,36 +18,23 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.Stack;
-
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.MarkovPassivePairSelection.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class MarkovScoreComputation 
 {
@@ -531,7 +518,7 @@ public class MarkovScoreComputation
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
 		
 		// make a loop
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
 				if (rowEntry.getValue() == pair.getQ())
@@ -544,7 +531,7 @@ public class MarkovScoreComputation
 		Set<Label> inputsUsed = new HashSet<Label>();
 		long remainsMinusToAdd=0;
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
 			if (mergedVertices.containsKey(vert))
@@ -701,14 +688,11 @@ public class MarkovScoreComputation
 	 * (in other words, both predicted as positive or negative). We can make a subsequent prediction, in which we assume that such predicted transitions are valid and predict those after them. Where these "second-step" transitions 
 	 *  match, increment scores.
 	 * 
-	 * @param graph graph which transitions are going to be predicted and compared
-	 * @param origInverse inverse graph that is used to construct all paths leading to states of interest
-	 * @param predictForward whether to make predictions either forward or sideways
-	 * @param markov prediction engine
+	 * @param cl prediction engine
 	 * @param red first state from which to predict transitions
 	 * @param blue second state from which to predict transitions
-	 * @param alphabet alphabet to use, passed to {@link MarkovModel#predictTransitionsFromState}. 
-	 * @param pathLenBeyondCurrentState path already predicted by the time this method is called. Initially empty and updated for each recursive call of {@link MarkovPassivePairSelection#comparePredictedFanouts(LearnerGraph, LearnerGraphND, MarkovModel, CmpVertex, CmpVertex, Set, List, int)}. 
+	 * @param pathLenBeyondCurrentState path already predicted by the time this method is called. Initially empty and updated for each recursive call of
+	 * {@link MarkovScoreComputation#comparePredictedFanouts(MarkovClassifier, CmpVertex, CmpVertex, List, int)}.
 	 * @param stepNumber how many waves of transitions to generate
 	 * @return number of matching transitions 
 	 */
@@ -795,7 +779,7 @@ public class MarkovScoreComputation
 
 		
 		// make a loop
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
 				if (rowEntry.getValue() == pair.getQ())
@@ -817,7 +801,7 @@ public class MarkovScoreComputation
 		Set<Label> inputsUsed = new HashSet<Label>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:cl.graph.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
 			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update

@@ -17,16 +17,9 @@
  */
 package statechum.collections;
 
-import java.util.AbstractSet;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Set;
-
-import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+
+import java.util.*;
 
 /**
  * A map backed by an array. Expects key to be convertible to an integer and be non-negative.
@@ -52,8 +45,10 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  * </ul>
  * @author kirill
  */
-public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWithSearchPos<K, V> {
-	
+public class ArrayMapWithSearch<I extends ConvertibleToInt, K extends I,V> extends ArrayMapWithSearchPos<I, K, V> {
+	/** The new size for the array on each resize is determined by adding the current size divided by this number. */
+	public static final int GROWTHRATE_DIV = 1;
+
 	@Override
 	public void clear() {
 		if (throwAwayArrayOnClear || !(array_or_key instanceof Object[]))
@@ -62,7 +57,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 			Arrays.fill((Object [])array_or_key, null);
 	}
 
-	protected boolean throwAwayArrayOnClear = true;
+	protected boolean throwAwayArrayOnClear;
 	
 	public ArrayMapWithSearch()
 	{
@@ -89,8 +84,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 			throw new IllegalArgumentException("invalid size of array (negative part)");
 
 		int currentOffset = (1+posSize+negSize)*CELLS_PER_ELEM;// +1 for the element with toInt() of zero, assuming both posSize and negSize are possible values of elements to be placed in the collection without incurring a resize.
-		Object[] data = new Object[CELLS_PER_ELEM+currentOffset];
-		array_or_key = data;
+		array_or_key = new Object[CELLS_PER_ELEM+currentOffset];
 		zero = -negSize;// zero is set to the lowest negative number.
 		throwAwayArrayOnClear = false;
 	}
@@ -128,7 +122,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
             throw new IllegalArgumentException("key cannot be null for ArrayMapWithSearch");
         if (v == null)
             throw new IllegalArgumentException("value cannot be null for ArrayMapWithSearch");
- 		int kIndex = ((ConvertibleToInt)k).toInt();
+ 		int kIndex = k.toInt();
 
 		if (array_or_key == null)
 		{
@@ -166,6 +160,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 				int newSize = currentLength + Math.max( -offset,  evenStep);
 				array = new Object[newSize];
 				int newZero = Math.min( kIndex, zero-(currentLength/2 /CELLS_PER_ELEM));
+				//noinspection SuspiciousSystemArraycopy
 				System.arraycopy(array_or_key, 0, array, (zero-newZero)*CELLS_PER_ELEM, currentLength);
 				zero=newZero;
 				offset = (kIndex-zero)*CELLS_PER_ELEM;
@@ -177,6 +172,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 				int evenStep = currentLength/GROWTHRATE_DIV;if (evenStep % GROWTHRATE_DIV > 0) evenStep-=evenStep % GROWTHRATE_DIV;
 				int newSize = currentLength + Math.max( offset-currentLength+CELLS_PER_ELEM, evenStep);
 				array = new Object[newSize];
+				//noinspection SuspiciousSystemArraycopy
 				System.arraycopy(array_or_key, 0, array, 0, currentLength);
 				array_or_key = array;
 			}
@@ -224,37 +220,33 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 
 	@Override
 	public Set<K> keySet() {
-		return new AbstractSet<K>(){
+		return new AbstractSet<>() {
 
 			@Override
 			public Iterator<K> iterator() {
-				return new AnIterator<K>(){
+				return new AnIterator<K>() {
 					K lastValue = null;
-					
+
 					@SuppressWarnings("unchecked")
 					@Override
 					public K next() {
-						K outcome = null;
+						K outcome;
 						if (!hasNext())// in case we're storing an array, this call will move index to the next non-null if there is any. 
 							throw new NoSuchElementException();
-						
-						if (array_or_key instanceof ConvertibleToInt)
-						{
+
+						if (array_or_key instanceof ConvertibleToInt) {
 							nextIndex = -1;// this is the only element, force next to negative
-							outcome = (K)array_or_key;							
-						}
-						else
-						{
-							outcome = (K) ((Object[])array_or_key)[nextIndex];
-							nextIndex+=CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()							
+							outcome = (K) array_or_key;
+						} else {
+							outcome = (K) ((Object[]) array_or_key)[nextIndex];
+							nextIndex += CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()
 						}
 						lastValue = outcome;
 						return outcome;
 					}
-					
+
 					@Override
-					public void remove()
-					{
+					public void remove() {
 						if (lastValue == null)
 							throw new IllegalStateException("next was not yet called or was already called");
 						ArrayMapWithSearch.this.remove(lastValue);
@@ -263,20 +255,20 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 				};
 			}
 
-	        @Override
+			@Override
 			public boolean contains(Object o) {
-	            return containsKey(o);
-	        }
-	        
-	        @Override
-	        public boolean remove(Object o) {
-	            return ArrayMapWithSearch.this.remove(o) != null;
-	        }
-	        
-	        @Override
+				return containsKey(o);
+			}
+
+			@Override
+			public boolean remove(Object o) {
+				return ArrayMapWithSearch.this.remove(o) != null;
+			}
+
+			@Override
 			public void clear() {
-	        	ArrayMapWithSearch.this.clear();
-	        }
+				ArrayMapWithSearch.this.clear();
+			}
 
 			/* (non-Javadoc)
 			 * @see java.util.AbstractCollection#add(java.lang.Object)
@@ -332,7 +324,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 		}
 	}
 	
-	abstract class Entry<A,B> implements java.util.Map.Entry<A,B>
+	abstract static class Entry<A,B> implements java.util.Map.Entry<A,B>
 	{
 		@Override
 		public int hashCode()
@@ -349,7 +341,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 				return false;
 			@SuppressWarnings("unchecked")
 			java.util.Map.Entry<A,B> o = (java.util.Map.Entry<A,B>)obj;
-			return o.getKey().equals(o.getKey()) && o.getValue().equals(o.getValue());
+			return getKey().equals(o.getKey()) && getValue().equals(o.getValue());
 		}
 		
 		@Override
@@ -361,7 +353,7 @@ public class ArrayMapWithSearch<K extends ConvertibleToInt,V> extends ArrayMapWi
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public K findElementById(VertID id) {
+	public K findKey(I id) {
 		if (id == null)
 			return null;
 		if (array_or_key == null)

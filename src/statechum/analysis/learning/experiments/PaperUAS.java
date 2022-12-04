@@ -90,6 +90,7 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubEx
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
 import statechum.apps.QSMTool.TraceAdder;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -194,7 +195,6 @@ public class PaperUAS
     /** Loads traces from the file and returns the maximal frame number.
      *  
      * @param inputData
-     * @param config
      */
     public int getMaxFrame(final Reader []inputData)
     {
@@ -313,7 +313,6 @@ public class PaperUAS
      * Every time a new timeframe is encountered, record the old starting point trace and start appending new traces to it. 
      *  
      * @param inputData data to load
-     * @param config configuration to use
      */
     public void loadDataByConcatenation(final Reader []inputData)
     {
@@ -534,7 +533,6 @@ public class PaperUAS
      * @param traces traces to add
      * @param isAccept whether traces to be added are accept or reject-traces
      * @param frameNumbers all possible frames, to ensure that all UAV frame numbers range over the same set. Should be an ordered set, such as a TreeSet.
-     * @param UAVs names of all UAVs, used to ensure that all UAV frame numbers range over the same set.
      */
     protected void turnTracesIntoPTAs(Map<String,Map<Integer,PTASequenceEngine>> whatToUpdate,
     		Map<String,Map<Integer,Set<List<Label>>>> traces, boolean isAccept, Set<Integer> frameNumbers)
@@ -639,7 +637,7 @@ public class PaperUAS
 		   supportForEvent.put(lbl, new AtomicInteger(0));supportForPair.put(lbl, new TreeMap<Label,AtomicInteger>());
 	   }
 	   
-	   for(Entry<CmpVertex,Map<Label,CmpVertex>> state:pta.transitionMatrix.entrySet())
+	   for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> state:pta.transitionMatrix.entrySet())
 		   for(Entry<Label,CmpVertex> next:state.getValue().entrySet())
 		   {
 			   Label lbl = next.getKey();
@@ -818,7 +816,7 @@ public class PaperUAS
  	public static int computeLeafCount(LearnerGraph graph)
  	{
  		int count = 0;
- 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+ 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
  			if (entry.getValue().isEmpty()) ++count;
  		return count;
  	}
@@ -826,7 +824,7 @@ public class PaperUAS
  	public static int computeTransitionCount(LearnerGraph graph)
  	{
  		int count = 0;
- 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+ 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
  			count+=entry.getValue().size();
  		return count;
  	}

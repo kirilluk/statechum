@@ -18,60 +18,40 @@
 
 package statechum.analysis.learning.linear;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
-
-import statechum.Configuration;
-import statechum.Configuration.GDScoreComputationAlgorithmEnum;
-import statechum.Configuration.GDScoreComputationEnum;
-import statechum.Configuration.STATETREE;
-import statechum.Label;
-import statechum.Pair;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.LSolver;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.TestLearnerGraphND;
-import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_BCR;
-import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
-import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.ParameterizedWithName;
+import org.junit.runners.ParameterizedWithName.ParametersToString;
+import statechum.Configuration;
+import statechum.Configuration.GDScoreComputationAlgorithmEnum;
+import statechum.Configuration.GDScoreComputationEnum;
+import statechum.Configuration.STATETREE;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
+import statechum.Pair;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_BCR;
+import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
+import statechum.analysis.learning.rpnicore.*;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
+import java.util.Map.Entry;
+
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_INCOMPATIBLE;
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_OK;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 public class TestMatrixComputationWithMultipleThreads {
@@ -84,11 +64,11 @@ public class TestMatrixComputationWithMultipleThreads {
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(int i=1;i<8;++i)
 		{
-			result.add(new Object[]{Integer.valueOf(i),false});
-			result.add(new Object[]{Integer.valueOf(i),true});
+			result.add(new Object[]{i,false});
+			result.add(new Object[]{i,true});
 		}
 		return result;
 	}
@@ -132,18 +112,14 @@ public class TestMatrixComputationWithMultipleThreads {
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		DetermineDiagonalAndRightHandSide ddrhInstance = ndGraph.new DDRH_default();
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entryA:ndGraph.matrixForward.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entryA:ndGraph.matrixForward.transitionMatrix.entrySet())
 		{
 			// Now iterate through states
-			Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
-			while(stateB_It.hasNext())
-			{
-				Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();
-
-				int currentStatePair = ndGraph.vertexToIntNR(stateB.getKey(),entryA.getKey());
-				ddrhInstance.compute(entryA.getKey(),stateB.getKey(),entryA.getValue(),stateB.getValue());
+			for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB : ndGraph.matrixForward.transitionMatrix.entrySet()) {
+				int currentStatePair = ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey());
+				ddrhInstance.compute(entryA.getKey(), stateB.getKey(), entryA.getValue(), stateB.getValue());
 				result.setQuick(currentStatePair, ddrhInstance.getRightHandSide());
-				
+
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 			}
 		}
@@ -157,40 +133,34 @@ public class TestMatrixComputationWithMultipleThreads {
 		DoubleMatrix2D result = DoubleFactory2D.sparse.make(size,size,0);
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entryA:ndGraph.matrixForward.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entryA:ndGraph.matrixForward.transitionMatrix.entrySet())
 		{
 			// Now iterate through states
-			Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
-			while(stateB_It.hasNext())
-			{
-				Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();
+			for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB : ndGraph.matrixForward.transitionMatrix.entrySet()) {
+				int currentStatePair = ndGraph.vertexToIntNR(entryA.getKey(), stateB.getKey());
 
-				int currentStatePair = ndGraph.vertexToIntNR(entryA.getKey(),stateB.getKey());
-				
-				int totalOutgoing =0;
-				
-				for(Entry<Label,List<CmpVertex>> targetsA:entryA.getValue().entrySet())
-				{
+				int totalOutgoing = 0;
+
+				for (Entry<Label, List<CmpVertex>> targetsA : entryA.getValue().entrySet()) {
 					List<CmpVertex> toB_list = stateB.getValue().get(targetsA.getKey());
 					if (toB_list != null)
-						for(CmpVertex toA:targetsA.getValue())
-							for(CmpVertex toB:toB_list)
-							{
+						for (CmpVertex toA : targetsA.getValue())
+							for (CmpVertex toB : toB_list) {
 								++totalOutgoing;
 								int targetStatePair = ndGraph.vertexToIntNR(toA, toB);
-								result.setQuick(currentStatePair,targetStatePair,
-										result.getQuick(currentStatePair, targetStatePair)-gr.config.getAttenuationK());
+								result.setQuick(currentStatePair, targetStatePair,
+										result.getQuick(currentStatePair, targetStatePair) - gr.config.getAttenuationK());
 							}
 					else
-						totalOutgoing+=targetsA.getValue().size();// add the number of possible target states to the number of outgoing transitions
+						totalOutgoing += targetsA.getValue().size();// add the number of possible target states to the number of outgoing transitions
 				}
-				for(Entry<Label,List<CmpVertex>> targetsB:stateB.getValue().entrySet())
+				for (Entry<Label, List<CmpVertex>> targetsB : stateB.getValue().entrySet())
 					if (!entryA.getValue().containsKey(targetsB.getKey()))
-							totalOutgoing+=targetsB.getValue().size();// add the number of possible target states to the number of outgoing transitions
-				totalOutgoing*=2;// doubling the diagonal to normalise the result of solving
+						totalOutgoing += targetsB.getValue().size();// add the number of possible target states to the number of outgoing transitions
+				totalOutgoing *= 2;// doubling the diagonal to normalise the result of solving
 				if (totalOutgoing == 0) totalOutgoing = 1;// if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero. 
-				result.setQuick(currentStatePair,currentStatePair,result.getQuick(currentStatePair, currentStatePair)+totalOutgoing);
-				
+				result.setQuick(currentStatePair, currentStatePair, result.getQuick(currentStatePair, currentStatePair) + totalOutgoing);
+
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 			}
 		}
@@ -223,10 +193,10 @@ public class TestMatrixComputationWithMultipleThreads {
 		
 		// check (A(1)-A(0))*one = b
 		Ax1.assign(Ax0, cern.jet.math.Functions.minus);
-		Ax1.zMult(one, a);for(int i=0;i<a.size();++i) Assert.assertTrue(a.getQuick(i) == -b.getQuick(i));
+		Ax1.zMult(one, a);for(int i=0;i<a.size();++i) Assert.assertEquals(a.getQuick(i), -b.getQuick(i), 0.0);
 		
 		// Finally, we check that neither states are incompatible (there are no reject states so there should not be any)
-		int pairNumber [] = new int[gr.getStateNumber()*(gr.getStateNumber()+1)/2];
+		int[] pairNumber = new int[gr.getStateNumber()*(gr.getStateNumber()+1)/2];
 		ndGraph.findIncompatiblePairs(pairNumber, threadNumber);GDLearnerGraph.numberNonNegativeElements(pairNumber);
 		for(int i=0;i<pairNumber.length;++i) pairNumber[i]=i;
 	}
@@ -446,11 +416,12 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void testDumpEquations1()
 	{
 		GDLearnerGraph ndGraph = new GDLearnerGraph(buildLearnerGraph("A-a->B-a->B-b->A",	"testBuildMatrix1",config,converter),LearnerGraphND.ignoreRejectStates, false);
-		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
+		Arrays.fill(incompatiblePairs, PAIR_OK);
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,threadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, threadNumber,null);
 
-		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, null).toString();
+		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, null);
 		Assert.assertEquals("2.0([A,A]:[A,A]) + -"+k+"([A,A]:[B,B]) = 1.0\n"+
 				"4.0([B,A]:[B,A]) + -"+k+"([B,A]:[B,B]) = 1.0\n"+
 				"-"+k+"([B,B]:[A,A]) + "+(4-k)+"([B,B]:[B,B]) = 2.0\n",outcome);
@@ -462,13 +433,14 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->B-b->A",	"testBuildMatrix1",config,converter);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(graph,LearnerGraphND.ignoreRejectStates, false);
-		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
+		Arrays.fill(incompatiblePairs, PAIR_OK);
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,threadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, threadNumber,null);
-		Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<>();
 		String P67="P67",P99="B";
 		newToOrig.put(graph.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(P67), graph.config));
-		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, newToOrig).toString();
+		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, newToOrig);
 		Assert.assertEquals("2.0(["+P67+","+P67+"]:["+P67+","+P67+"]) + -"+k+"(["+P67+","+P67+"]:["+P99+","+P99+"]) = 1.0\n"+
 				"4.0(["+P99+","+P67+"]:["+P99+","+P67+"]) + -"+k+"(["+P99+","+P67+"]:["+P99+","+P99+"]) = 1.0\n"+
 				"-"+k+"(["+P99+","+P99+"]:["+P67+","+P67+"]) + "+(4-k)+"(["+P99+","+P99+"]:["+P99+","+P99+"]) = 2.0\n",outcome);
@@ -480,14 +452,15 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->B-b->A",	"testBuildMatrix1",config,converter);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(graph,LearnerGraphND.ignoreRejectStates, false);
-		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
+		Arrays.fill(incompatiblePairs, PAIR_OK);
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,threadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, threadNumber,null);
-		Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<>();
 		String P67="P67",P99="P99";
 		newToOrig.put(graph.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(P67), graph.config));
 		newToOrig.put(graph.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(P99), graph.config));
-		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, newToOrig).toString();
+		String outcome = ndGraph.dumpEquations(solver, incompatiblePairs, newToOrig);
 		Assert.assertEquals("2.0(["+P67+","+P67+"]:["+P67+","+P67+"]) + -"+k+"(["+P67+","+P67+"]:["+P99+","+P99+"]) = 1.0\n"+
 				"4.0(["+P99+","+P67+"]:["+P99+","+P67+"]) + -"+k+"(["+P99+","+P67+"]:["+P99+","+P99+"]) = 1.0\n"+
 				"-"+k+"(["+P99+","+P99+"]:["+P67+","+P67+"]) + "+(4-k)+"(["+P99+","+P99+"]:["+P99+","+P99+"]) = 2.0\n",outcome);
@@ -508,9 +481,10 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c->R-a->F","TestFindIncompatibleStatesA",config,converter);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		final int size=ndGraph.getPairNumber();
-		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=PAIR_INCOMPATIBLE;
+		int[] pairs =new int[size];
+		Arrays.fill(pairs, PAIR_INCOMPATIBLE);
 		ndGraph.findIncompatiblePairs(pairs,threadNumber);
-		for(int i=0;i<pairs.length;++i) Assert.assertEquals(PAIR_INCOMPATIBLE,pairs[i]);
+		for (int pair : pairs) Assert.assertEquals(PAIR_INCOMPATIBLE, pair);
 	}
 
 	/** Tests that if all pairs are not compatible, this is preserved. */
@@ -520,66 +494,57 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStatesB",config,converter);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		final int size=ndGraph.getPairNumber();
-		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=PAIR_INCOMPATIBLE;
+		int[] pairs =new int[size];
+		Arrays.fill(pairs, PAIR_INCOMPATIBLE);
 		ndGraph.findIncompatiblePairs(pairs,threadNumber);
-		
-		for(int i=0;i<pairs.length;++i)
-			Assert.assertEquals(PAIR_INCOMPATIBLE,pairs[i]);
+
+		for (int pair : pairs) Assert.assertEquals(PAIR_INCOMPATIBLE, pair);
 	}
 
 	protected Map<Integer,StatePair> reverseMap = null;
 	
-	private class StringPair extends Pair<String,String>{
+	private static class StringPair extends Pair<String,String>{
 		public StringPair(String a, String b) {
 			super(a, b);
 		}}
 	
 	/** Uses computePairCompatibilityScore_general to identify incompatible pairs of states. */
-	protected static Set<StatePair> buildSetOfIncompatiblePairsSlowly(final LearnerGraph gr,int ThreadNumber)
-	{
-		final Set<StatePair> result = Collections.synchronizedSet(new LinkedHashSet<StatePair>());
+	protected static Set<StatePair> buildSetOfIncompatiblePairsSlowly(final LearnerGraph gr, int ThreadNumber) {
+		final Set<StatePair> result = Collections.synchronizedSet(new LinkedHashSet<>());
 		final StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
-		final GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
-		List<GDLearnerGraph.HandleRow<List<CmpVertex>>> handlerList = new LinkedList<GDLearnerGraph.HandleRow<List<CmpVertex>>>();
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new GDLearnerGraph.HandleRow<List<CmpVertex>>()
-		{
-			@Override
-			public void init(@SuppressWarnings("unused") int threadNo)
-			{
-				// No per-thread initialisation is needed.
-			}
-			
-			@Override
-			public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA,@SuppressWarnings("unused")  int threadNo) 
-			{
-				Assert.assertTrue(LearnerGraphND.ignoreRejectStates.stateToConsider(entryA.getKey()));
-					
-				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();
-					if (LearnerGraphND.ignoreRejectStates.stateToConsider(stateB.getKey()))
-					{
-						StatePair currentPair = new StatePair(entryA.getKey(),stateB.getKey());
-						if (gr.pairscores.computePairCompatibilityScore_general(currentPair,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false) < 0)
-						{// result is constructed as a synchronized set
-							result.add(currentPair);
+		final GDLearnerGraph ndGraph = new GDLearnerGraph(gr, filter, false);
+		List<GDLearnerGraph.HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
+		for (int threadCnt = 0; threadCnt < ThreadNumber; ++threadCnt)
+			handlerList.add(new GDLearnerGraph.HandleRow<>() {
+				@Override
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
+
+				@Override
+				public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) {
+					Assert.assertTrue(LearnerGraphND.ignoreRejectStates.stateToConsider(entryA.getKey()));
+
+					// Now iterate through states
+					for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB : ndGraph.matrixForward.transitionMatrix.entrySet()) {
+						if (LearnerGraphND.ignoreRejectStates.stateToConsider(stateB.getKey())) {
+							StatePair currentPair = new StatePair(entryA.getKey(), stateB.getKey());
+							if (gr.pairscores.computePairCompatibilityScore_general(currentPair, null, new LinkedList<>(), false) < 0) {// result is constructed as a synchronized set
+								result.add(currentPair);
+							}
 						}
-					}						
-					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
-				}// iterating through states (stateB)
-			}
-		});
-		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward.transitionMatrix,filter,
+						if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+					}// iterating through states (stateB)
+				}
+			});
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix, filter,
 				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
 		return result;
 	}
 
 	protected final void findIncompatibleTestHelper(LearnerGraph gr,List<StringPair> incompatibles_list)
 	{
-		HashSet<StatePair> incompatibles = new HashSet<StatePair>();
+		HashSet<StatePair> incompatibles = new HashSet<>();
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		for(StringPair p:incompatibles_list)
@@ -587,7 +552,7 @@ public class TestMatrixComputationWithMultipleThreads {
 			incompatibles.add(new StatePair(gr.findVertex(p.firstElem),gr.findVertex(p.secondElem)));
 			incompatibles.add(new StatePair(gr.findVertex(p.secondElem),gr.findVertex(p.firstElem)));
 		}
-		Set<StatePair> incompatiblePairs = new HashSet<StatePair>();
+		Set<StatePair> incompatiblePairs = new HashSet<>();
 		for(StatePair s:buildSetOfIncompatiblePairsSlowly(gr,threadNumber))
 		{
 			incompatiblePairs.add(s);incompatiblePairs.add(new StatePair(s.secondElem,s.firstElem));
@@ -598,17 +563,19 @@ public class TestMatrixComputationWithMultipleThreads {
 		// and doing computePairCompatibilityScore_general is that when pairs are merged, more traces
 		// are created, hence it is possible that some of those new traces will be in conflict.
 		// Example: states A3 and A2 in findIncompatibleStates6()
-		HashSet<StatePair> pairs_extra = new HashSet<StatePair>();pairs_extra.addAll(incompatibles);pairs_extra.removeAll(incompatiblePairs);
+		HashSet<StatePair> pairs_extra = new HashSet<>(incompatibles);
+		pairs_extra.removeAll(incompatiblePairs);
 		Assert.assertTrue("compatible pairs included :"+pairs_extra,pairs_extra.isEmpty());// this is a check that incompatibles_list does not include any compatible pairs
 
 		final int size=ndGraph.getPairNumber();
 		final int highNumber = 10000;
-		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=highNumber;
+		int[] pairs =new int[size];
+		Arrays.fill(pairs, highNumber);
 		
 		// reverseMap maps state pair number to the actual state pairs, we slowly build it here
 		// rather then rely on getPairScore() which may have not even been written when 
 		// I was doing this kind of testing.
-		reverseMap = new HashMap<Integer,StatePair>();
+		reverseMap = new HashMap<>();
 		for(CmpVertex A:gr.transitionMatrix.keySet())
 			if (filter.stateToConsider(A))
 				for(CmpVertex B:gr.transitionMatrix.keySet())
@@ -638,9 +605,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestFindIncompatibleStates1()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStates1",config,converter);
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","D")
-		}));
+		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "D")));
 	}
 
 	/** Tests that if A is not compatible to C and D, this is recorded. */
@@ -649,9 +614,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a-#Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStates2",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","D"),new StringPair("A","C")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "D"), new StringPair("A", "C")));
 	}
 
 	@Test
@@ -659,9 +622,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph("A3-a->A2-a->A1-a->A-b-#R\nB3-a->B2-a->B1-a->B-b->D","TestFindIncompatibleStates3",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),new StringPair("A1","B1"),new StringPair("A2","B2"),new StringPair("A3","B3")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"), new StringPair("A1", "B1"), new StringPair("A2", "B2"), new StringPair("A3", "B3")));
 	}
 
 	/** Tests using <em>addRejectVertices()</em> run the tool on graphs 
@@ -679,10 +640,8 @@ public class TestMatrixComputationWithMultipleThreads {
 				"C3-a->C2-a->C1-a->C0-b-#R\nB3-a->B2-a->B1-a->B0-b->D","TestFindIncompatibleStates3",config,converter);
 		for(String prefix:new String[]{"Z","Y"})
 			TestLinear.addRejectVertices(gr,prefix,5);
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("C0","B0"),new StringPair("C1","B1"),new StringPair("C2","B2"),new StringPair("C3","B3"),
-				new StringPair("C4","B4"),new StringPair("C5","B5"),new StringPair("C6","B6")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("C0", "B0"), new StringPair("C1", "B1"), new StringPair("C2", "B2"), new StringPair("C3", "B3"),
+				new StringPair("C4", "B4"), new StringPair("C5", "B5"), new StringPair("C6", "B6")));
 	}
 
 	@Test
@@ -693,11 +652,9 @@ public class TestMatrixComputationWithMultipleThreads {
 				"C3-a->C2-a->C1-a->C0-b-#R\nB3-a->B2-a->B1-a->B0-b->D","TestFindIncompatibleStates3",config,converter);
 		for(String prefix:new String[]{"Z","Y"})
 			TestLinear.addRejectVertices(gr,prefix,5);
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("C0","B0"),new StringPair("C1","B1"),new StringPair("C2","B2"),new StringPair("C3","B3"),
-				new StringPair("C4","B4"),
-				new StringPair("C4","B3"),new StringPair("C3","B4")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("C0", "B0"), new StringPair("C1", "B1"), new StringPair("C2", "B2"), new StringPair("C3", "B3"),
+				new StringPair("C4", "B4"),
+				new StringPair("C4", "B3"), new StringPair("C3", "B4")));
 	}
 
 
@@ -708,10 +665,8 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("B1-b->C\n"+
 				"A3-a->A2-a->A1-a->A-b-#R\nB3-a->B2-a->B1-a->B-b->D","TestFindIncompatibleStates4",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),new StringPair("A1","B1"),new StringPair("A2","B2"),new StringPair("A3","B3"),
-				new StringPair("A","B1"),new StringPair("A1","B2"),new StringPair("A2","B3")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"), new StringPair("A1", "B1"), new StringPair("A2", "B2"), new StringPair("A3", "B3"),
+				new StringPair("A", "B1"), new StringPair("A1", "B2"), new StringPair("A2", "B3")));
 	}
 
 	@Test
@@ -721,11 +676,9 @@ public class TestMatrixComputationWithMultipleThreads {
 				"B1-b->C\n"+
 				"A3-a->A2-a->A1-a->A-b-#R\nB3-a->B2-a->B1-a->B-b->D","TestFindIncompatibleStates5",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),new StringPair("A1","B1"),new StringPair("A2","B2"),new StringPair("A3","B3"),
-				new StringPair("A","B1"),new StringPair("A1","B2"),new StringPair("A2","B3"),
-				new StringPair("A","B3")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"), new StringPair("A1", "B1"), new StringPair("A2", "B2"), new StringPair("A3", "B3"),
+				new StringPair("A", "B1"), new StringPair("A1", "B2"), new StringPair("A2", "B3"),
+				new StringPair("A", "B3")));
 	}
 
 	@Test
@@ -735,12 +688,10 @@ public class TestMatrixComputationWithMultipleThreads {
 				"B1-b->C\n"+
 				"A3-a->A2-a->A1-a->A-b-#R\nB3-a->B2-a->B1-a->B-b->D","TestFindIncompatibleStates6",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),new StringPair("A1","B1"),new StringPair("A2","B2"),new StringPair("A3","B3"),
-				new StringPair("A","B1"),new StringPair("A1","B2"),new StringPair("A2","B3"),
-				new StringPair("A","B3"),
-				new StringPair("A3","A")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"), new StringPair("A1", "B1"), new StringPair("A2", "B2"), new StringPair("A3", "B3"),
+				new StringPair("A", "B1"), new StringPair("A1", "B2"), new StringPair("A2", "B3"),
+				new StringPair("A", "B3"),
+				new StringPair("A3", "A")));
 	}
 
 	@Test
@@ -749,11 +700,9 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("A-a->E-a->C-a->A-b-#R\nB-a->H-a->G-a->F-a->D-a->B-b->Q"
 				,"TestFindIncompatibleStates7",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),new StringPair("A","D"),new StringPair("A","F"),new StringPair("A","G"),new StringPair("A","H"),
-				new StringPair("C","B"),new StringPair("C","D"),new StringPair("C","F"),new StringPair("C","G"),new StringPair("C","H"),
-				new StringPair("E","B"),new StringPair("E","D"),new StringPair("E","F"),new StringPair("E","G"),new StringPair("E","H")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"), new StringPair("A", "D"), new StringPair("A", "F"), new StringPair("A", "G"), new StringPair("A", "H"),
+				new StringPair("C", "B"), new StringPair("C", "D"), new StringPair("C", "F"), new StringPair("C", "G"), new StringPair("C", "H"),
+				new StringPair("E", "B"), new StringPair("E", "D"), new StringPair("E", "F"), new StringPair("E", "G"), new StringPair("E", "H")));
 	}
 	
 	@Test
@@ -762,9 +711,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("E-a->C-a->A-b-#R\nE-c->C-c->E\nB-c->H-c->G-c->F-c->D-c->B-b->Q\n"
 				,"TestFindIncompatibleStates8",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B")
-		}));
+		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "B")));
 	}
 	
 	@Test
@@ -774,11 +721,9 @@ public class TestMatrixComputationWithMultipleThreads {
 				"E-a->C-a->A-b-#R\nE-c->C-c->E\nB-c->H-c->G-c->F-c->D-c->B-b->Q\n"
 				,"TestFindIncompatibleStates9",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("A","B"),
-				new StringPair("C","B"),new StringPair("C","D"),new StringPair("C","F"),new StringPair("C","G"),new StringPair("C","H"),
-				new StringPair("E","B"),new StringPair("E","D"),new StringPair("E","F"),new StringPair("E","G"),new StringPair("E","H")
-		}));
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair("A", "B"),
+				new StringPair("C", "B"), new StringPair("C", "D"), new StringPair("C", "F"), new StringPair("C", "G"), new StringPair("C", "H"),
+				new StringPair("E", "B"), new StringPair("E", "D"), new StringPair("E", "F"), new StringPair("E", "G"), new StringPair("E", "H")));
 	}
 	@Test
 	public final void TestFindIncompatibleStates10()
@@ -786,14 +731,12 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("B-a->C-a-#A\nC-b-#A"
 				,"TestFindIncompatibleStates10",config,converter);
 
-		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
-				new StringPair("C","B")
-		}));
+		findIncompatibleTestHelper(gr, List.of(new StringPair("C", "B")));
 	}
 	
 	public static Set<PairScore> addAllPermutations(Collection<PairScore> scores)
 	{
-		Set<PairScore> pairsSet = new TreeSet<PairScore>();
+		Set<PairScore> pairsSet = new TreeSet<>();
 		for(PairScore p:scores)
 		{
 			pairsSet.add(new PairScore(p.firstElem,p.secondElem,p.getScore(),0));
@@ -810,7 +753,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(ndGraph.computeStateCompatibility(threadNumber,null));
-		Assert.assertTrue(DoubleFactory1D.dense.make(new double[]{(1+k/2)/2,1./2,1./2,0,0,0}).equals(result));
+		Assert.assertEquals(DoubleFactory1D.dense.make(new double[]{(1 + k / 2) / 2, 1. / 2, 1. / 2, 0, 0, 0}), result);
 	}	
 	
 	@Test
@@ -819,18 +762,16 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2)/2),1),
+		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2)/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10/2,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),10/2,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),0,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)));
 		Assert.assertEquals(expected, pairsSet);
 	}	
 	
-	class NonRandomRandom extends StateBasedRandom
+	static class NonRandomRandom extends StateBasedRandom
 	{
 		public NonRandomRandom() 
 		{
@@ -856,14 +797,12 @@ public class TestMatrixComputationWithMultipleThreads {
 		
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
+		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),125,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),0,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)));
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -879,14 +818,12 @@ public class TestMatrixComputationWithMultipleThreads {
 		
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
+		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),162,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),125,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),125,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)));
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -902,14 +839,12 @@ public class TestMatrixComputationWithMultipleThreads {
 		
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
+		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),250,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),250,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)));
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -925,14 +860,12 @@ public class TestMatrixComputationWithMultipleThreads {
 		
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
+		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),0,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)));
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -947,7 +880,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(ndGraph.computeStateCompatibility(threadNumber,null));
 		//DoubleMatrix1D expected=DoubleFactory1D.dense.make(new double[]{1+k,PAIR_INCOMPATIBLE,1,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,0});
 		DoubleMatrix1D expected=DoubleFactory1D.dense.make(new double[]{(1+k/2*(k/2+1))/2,PAIR_INCOMPATIBLE,(1+k/2)/2,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,1./2});
-		Assert.assertTrue("unexpected results: "+result+"\nexpected: "+expected,expected.equals(result));
+		Assert.assertEquals("unexpected results: " + result + "\nexpected: " + expected, expected, result);
 	}
 
 	@Test
@@ -955,14 +888,12 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE*2,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 
@@ -972,11 +903,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1)
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 
@@ -985,10 +914,8 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(0.5,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1)
-		}));
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 
@@ -1005,24 +932,21 @@ public class TestMatrixComputationWithMultipleThreads {
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1),
-				
+
 				new PairScore(gr.findVertex("A"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
-				new PairScore(gr.findVertex("D"),gr.findVertex("D"),0,1),
-				
-		}));
+				new PairScore(gr.findVertex("D"),gr.findVertex("D"),0,1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 
-	private final void TestScoreComputationWithFilters(Class<? extends StatesToConsider> filterClass)
+	private void TestScoreComputationWithFilters(Class<? extends StatesToConsider> filterClass)
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2+
 				"\nB-b-#G\n","TestComputeStateCompatibility_checking_filtering2",config,converter);
@@ -1035,26 +959,23 @@ public class TestMatrixComputationWithMultipleThreads {
 			Assert.assertEquals(6,Ax.columns());
 		}
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,threadNumber,null,filter, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1),
-				
+
 				new PairScore(gr.findVertex("A"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("D"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("D"),gr.findVertex("D"),0,1),
-				
+
 				new PairScore(gr.findVertex("A"),gr.findVertex("G"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("G"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("G"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("D"),gr.findVertex("G"),0,1),
-				new PairScore(gr.findVertex("G"),gr.findVertex("G"),0,1),
-				
-		}));
+				new PairScore(gr.findVertex("G"),gr.findVertex("G"),0,1)));
 		Assert.assertEquals(exp, pairsSet);
 		
 	}
@@ -1084,17 +1005,14 @@ public class TestMatrixComputationWithMultipleThreads {
 				"\nB-c-#G\n","TestComputeStateCompatibility_checking_filtering2",config,converter);
 		double score_CC=1./2,score_BB=(2+score_CC*k)/4, score_AA=(1+k*score_BB)/2;
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1),
-				
+
 				new PairScore(gr.findVertex("D"),gr.findVertex("D"),0,1),
-				
+
 				new PairScore(gr.findVertex("D"),gr.findVertex("G"),0,1),
-				new PairScore(gr.findVertex("G"),gr.findVertex("G"),0,1),
-				
-		}));
+				new PairScore(gr.findVertex("G"),gr.findVertex("G"),0,1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 	
@@ -1105,11 +1023,9 @@ public class TestMatrixComputationWithMultipleThreads {
 				"\nB-b-#G\n","TestComputeStateCompatibility_checking_filtering2",config,converter);
 		double score_CC=1./2,score_BB=(2+score_CC*k)/4, score_AA=(1+k*score_BB)/2;
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(0,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
-		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
+		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
-				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1),
-		}));
+				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1)));
 		Assert.assertEquals(exp, pairsSet);
 	}
 }

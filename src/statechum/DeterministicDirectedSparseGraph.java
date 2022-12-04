@@ -390,7 +390,7 @@ final public class DeterministicDirectedSparseGraph {
 	}
 	
 	/** These are expected to be compared for equality using acceptance and IDs only,
-	 * not highlight or colour. The {@link AbstractLearnerGraph#findVertex(VertexID)} method relies on this property to efficiently find a vertex with the supplied identifier. 
+	 * not highlight or colour. The {@link AbstractLearnerGraph#findVertex(VertID)} method relies on this property to efficiently find a vertex with the supplied identifier.
 	 */
 	public interface CmpVertex extends VertID
 	{
@@ -433,7 +433,7 @@ final public class DeterministicDirectedSparseGraph {
 		void setDepth(int depth);
 			
 		/** This exception is thrown when vertex user data for a property is out of range. */ 
-		public static class IllegalUserDataException extends IllegalArgumentException {
+		static class IllegalUserDataException extends IllegalArgumentException {
 			/**
 			 * Serial ID.
 			 */
@@ -808,7 +808,7 @@ final public class DeterministicDirectedSparseGraph {
 	 * 
 	 * @param newVertices the map from labels to new vertices
 	 * @param g the graph which will have the new vertex added to it
-	 * @param origVertex the vertex to copy
+	 * @param orig the vertex to copy
 	 * @return a copy of the vertex
 	 */
 	public static DeterministicVertex copyVertex(Map<VertID,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)

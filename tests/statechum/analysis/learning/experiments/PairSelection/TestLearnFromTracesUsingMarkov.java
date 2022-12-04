@@ -12,13 +12,11 @@ import java.util.Map.Entry;
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.Configuration;
-import statechum.GlobalConfiguration;
-import statechum.JUConstants;
-import statechum.Label;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovModel;
@@ -83,7 +81,7 @@ public class TestLearnFromTracesUsingMarkov {
 		    extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
 			long newMillis = System.currentTimeMillis();
-			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<VertID,CmpVertex,Long>(coregraph.getStateNumber());
 //			for(CmpVertex v:coregraph.transitionMatrix.keySet())
 //				inconsistenciesPerVertex.put(v,cl.checkFanoutInconsistency(v,checker,false));// cache the inconsistency of the original graph. This will be reused across numerous invocations of computeInconsistencyOfAMerger on the same original graph.
 			System.out.println(""+(newMillis-currentMillis)/1000+" step, current inconsistency = "+value);

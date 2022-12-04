@@ -54,6 +54,7 @@ import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
+import statechum.collections.MapWithSearch;
 
 public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 {
@@ -105,7 +106,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	{
 		if (nodeElement.hasAttribute(JUConstants.ACCEPTED.name())) 
 		{
-			boolean outcome = false;
+			boolean outcome;
 			String value = nodeElement.getAttribute(JUConstants.ACCEPTED.name()).toLowerCase();
 			if (value.equalsIgnoreCase("true"))
 				outcome = true;
@@ -159,12 +160,12 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
 		graphTop.appendChild(endl(doc));
 		graphTop.appendChild(createStateNode(doc, coregraph.getInit()));graphTop.appendChild(endl(doc));
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			if (vert.getKey() != coregraph.getInit())
 			{
 				graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
 			}
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			for(Entry<Label,TARGET_TYPE> transition:vert.getValue().entrySet())
 				for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 				{
@@ -177,7 +178,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		if (!coregraph.pairCompatibility.compatibility.isEmpty())
 		{
 			Element compatibilityData = doc.createElementNS(StatechumXML.graphmlNS.toString(),graphmlData);compatibilityData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
-			Set<CmpVertex> encounteredNodes = new HashSet<CmpVertex>();
+			Set<CmpVertex> encounteredNodes = new HashSet<>();
 			for(Entry<CmpVertex,Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY>> entry:coregraph.pairCompatibility.compatibility.getPotentiallyOrderedEntrySet(coregraph.config.getUseOrderedEntrySet()))
 			{
 				encounteredNodes.add(entry.getKey());
@@ -198,12 +199,11 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	 * @throws IOException if an I/O error occurs or 
 	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
 	 * an initial state in the graphml file. Most of the time, "Init" is used instead in the graphs.
-	 * @throws ParserConfigurationException 
 	 */
 	public void writeGraphML(Writer writer) throws IOException
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		Document doc = null;
+		Document doc;
 		try
 		{
 			factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
@@ -212,7 +212,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			throw new IOException("configuration exception: "+ex, ex);
 		}
 		doc.appendChild(createGraphMLNode(doc));
 		// based on http://www.exampledepot.com/egs/javax.xml.transform/WriteDom.html
@@ -220,8 +220,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 			Transformer trans = TransformerFactory.newInstance().newTransformer();
 			trans.transform(new DOMSource(doc),new StreamResult(writer));
 		} catch (Exception e) {
-			IOException ex = new IOException("failed to write out XML "+e);ex.initCause(e);
-			throw ex;
+			throw new IOException("failed to write out XML "+e, e);
 		}
 	}
 	
@@ -285,7 +284,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 					if (result.transitionMatrix.containsKey(vert))
 						throw new IllegalArgumentException("duplicate vertex "+vert);
 
-					Map<Label,TARGET_TYPE> row = result.createNewRow();
+					MapWithSearch<Label,Label,TARGET_TYPE> row = result.createNewRow();
 					result.transitionMatrix.put(vert, row);
 					if (initial)
 					{
@@ -383,7 +382,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	
 	/** Loads a graph from a supplied file.
 	 *  
-	 * @param from where to load from
+	 * @param fileName where to load from
 	 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
 	 * The configuration of this graph determines types of nodes created, such as whether they are Jung nodes or Strings.
 	 * @param conv how to convert loaded labels, null for no conversion.
@@ -395,26 +394,21 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	{
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	String fileToLoad = fileName;
-	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
-	    	FileReader is = null;
-	    	try
-	    	{
-	    		is = new FileReader(fileToLoad);
-	    		loadGraph(is,result,conv);result.setName(fileName);
-	    	}
-	    	finally
-	    	{
-	    		if (is != null) { try { is.close();is=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
-	    	}
-	    	
-	    	return result;
+			String fileToLoad = fileName;
+			if (!new java.io.File(fileToLoad).canRead()) fileToLoad += ".xml";
+			try (FileReader is = new FileReader(fileToLoad)) {
+				loadGraph(is, result, conv);
+				result.setName(fileName);
+			}
+			/* Ignore exception */
+
+			return result;
 		}
 	}
 
 		/** Loads a graph from a supplied file.
 		 *  
-		 * @param from where to load from
+		 * @param fileToLoad where to load from
 		 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
 		 * The configuration of this graph determines types of nodes created, such as whether they are Jung nodes or Strings.
 	 	 * @param conv how to convert loaded labels, null for no conversion.

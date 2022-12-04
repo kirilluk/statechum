@@ -28,14 +28,10 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import edu.uci.ics.jung.graph.Vertex;
-import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
+import harmony.collections.TreeMapWithSearch;
+import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
-import statechum.GlobalConfiguration;
-import statechum.JUConstants;
-import statechum.StringLabel;
-import statechum.StringVertex;
 import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -45,27 +41,21 @@ import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
-import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.MapWithSearchAndCounter;
-import statechum.collections.ConvertibleToInt;
-import statechum.collections.HashMapWithSearch;
-import statechum.collections.MapWithSearch;
-import statechum.collections.TreeMapWithSearch;
-import statechum.Label;
-import statechum.Pair;
+import statechum.collections.*;
+import harmony.collections.HashMapWithSearch;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
 	/** The initial vertex. */
 	protected CmpVertex init;
 	
-	final public AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE> pathroutines = new AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE>(this);
-	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
+	final public AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE> pathroutines = new AbstractPathRoutines<>(this);
+	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<>(this);
 
 	/** Transition matrix. */
-	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = null;
+	public MapWithSearch<VertID,CmpVertex,MapWithSearch<Label, Label,TARGET_TYPE>> transitionMatrix = null;
 
-	public MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> getTransitionMatrix() {
+	public MapWithSearch<VertID,CmpVertex,MapWithSearch<Label, Label,TARGET_TYPE>> getTransitionMatrix() {
 		return transitionMatrix;
 	}
 
@@ -130,8 +120,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 
 	protected AbstractLearnerGraph(Configuration conf) {
 		config = conf;
-		transitionMatrix = createNewTransitionMatrix(new Pair<Integer,Integer>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber()));
-		pairCompatibility = new PairCompatibility<CmpVertex>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
+		transitionMatrix = createNewTransitionMatrix(new Pair<>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber()));
+		pairCompatibility = new PairCompatibility<>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
 		initEmpty();
 	}
 	
@@ -145,17 +135,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */ 
 	public static Map<Label,List<CmpVertex>> createLabelToStateMap(Collection<Label> labels,CmpVertex to,Map<Label,List<CmpVertex>> map)
 	{
-		Map<Label,List<CmpVertex>> result = (map == null)? new LinkedHashMap<Label,List<CmpVertex>>() : map;
+		Map<Label,List<CmpVertex>> result = (map == null)? new LinkedHashMap<>() : map;
 		
 		for(Label label:labels)
 		{
 			if(label==null)
 				continue;
-			List<CmpVertex> targets = result.get(label);
-			if (targets == null) 
-			{
-				targets = new LinkedList<CmpVertex>();result.put(label,targets);
-			}
+			List<CmpVertex> targets = result.computeIfAbsent(label, k -> new LinkedList<>());
 			for(CmpVertex tgt:targets)
 				if (tgt.equals(to))
 					throw new IllegalArgumentException("duplicate transition with label "+label+" to state "+to);
@@ -219,7 +205,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		int countAccept = 0, countReject = 0;
 		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++countAccept;else ++countReject;
-		return new Pair<Integer,Integer>(countAccept,countReject);
+		return new Pair<>(countAccept, countReject);
 	}
 
 	
@@ -271,14 +257,14 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Generates vertex IDs. Since it modifies instance ID-related variables, 
 	 * it has to be synchronised.
 	 * 
-	 * @param accept whether the vertex is to be accept, reject, or none.
+	 * @param accepted whether the vertex is to be accept, reject, or none.
 	 * @param store whether to store changes to identifiers. If this is true, each call generates a vertex with a new number,
 	 * modifying the graph in the process. For graphs we'd rather not modify, this can be set to false, but then each call
 	 * will give the same identifier.
 	 */
 	public synchronized VertexID nextID(JUConstants.VERTEXLABEL accepted, boolean store)
 	{
-		VertexID result = null;
+		VertexID result;
 		int positiveID = vertPositiveID, negativeID = vertNegativeID;
 		if (config.getLearnerIdMode() == IDMode.POSITIVE_ONLY)
 			result = new VertexID(VertKind.NEUTRAL,positiveID++);
@@ -308,35 +294,38 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public static List<Label> buildList(List<String> data,Configuration config,ConvertALabel converter)
 	{
-		List<Label> result = new LinkedList<Label>();
+		List<Label> result = new LinkedList<>();
 		for(String s:data)
 			result.add(AbstractLearnerGraph.generateNewLabel(s,config,converter));
 		return result;
 	}
-	
-	/** Given a string representation of a label, this one generates an instance of a specific label.
-	 * @param text what to turn into a label, using the supplied configuration.
+
+	/**
+	 * Given a string representation of a label, this one generates an instance of a specific label.
+	 *
+	 * @param label  the text to turn into a label, using the supplied configuration.
 	 * @param config determines which label to generate.
-	 * @param conv converter to intern labels, ignored if null.
+	 * @param conv   converter to intern labels, ignored if null.
 	 */
-	public static Label generateNewLabel(String label, Configuration config, ConvertALabel conv)
-	{
-		Label result = null;
-		switch(config.getLabelKind())
-		{
-		case LABEL_STRING:
-			result = new StringLabel(label);
-			break;
-		case LABEL_ERLANG:
-			result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label),config);
-			break;
-			
+	public static Label generateNewLabel(String label, Configuration config, ConvertALabel conv) {
+		Label result;
+		switch (config.getLabelKind()) {
+			case LABEL_STRING:
+				result = new StringLabel(label);
+				break;
+			case LABEL_ERLANG:
+				result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label), config);
+				break;
+			case LABEL_INPUT_OUTPUT:
+				result = new LabelInputOutput(label);
+				break;
+
 // Construction of abstract labels requires a list of low-level labels they are abstracting as well as a low-level label->high level label map. 
 // This information is not available in this method hence we are not using it to build labels. 
 /*		case LABEL_ABSTRACT:
 			result = new LearnerWithLabelRefinementViaPta.AbstractLabel(label);*/
-		default:
-			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
+			default:
+				throw new IllegalArgumentException("No parser available for traces of type " + config.getLabelKind());
 		}
 
 		if (conv != null)
@@ -344,25 +333,31 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return result;
 	}
 
-	/** Unlike the one above, this one does not attempt to parse a label, 
+	/**
+	 * Unlike the one above, this one does not attempt to parse a label,
 	 * it simply wraps into something the above will be able to parse.
-	 * 
-	 * @param l label
+	 *
+	 * @param l      label
 	 * @param config determines the wrapping
 	 * @return wrapped label.
 	 */
-	public static String inventParsableLabel(String l, Configuration config)
-	{
-		String outcome = null;
-		switch(config.getLabelKind())
-		{
-		case LABEL_ERLANG:
-			outcome = "{"+ErlangLabel.missingFunction+",'"+l+"',none}";break;
-		case LABEL_STRING:
-			outcome = l;break;
-		case LABEL_ABSTRACT:
-			outcome = l;break;
-		default:throw new IllegalArgumentException("unknown label kind");
+	public static String inventParsableLabel(String l, Configuration config) {
+		String outcome;
+		switch (config.getLabelKind()) {
+			case LABEL_ERLANG:
+				outcome = "{" + ErlangLabel.missingFunction + ",'" + l + "',none}";
+				break;
+			case LABEL_STRING:
+				outcome = l;
+				break;
+			case LABEL_INPUT_OUTPUT:
+				outcome = l;
+				break;
+			case LABEL_ABSTRACT:
+				outcome = l;
+				break;
+			default:
+				throw new IllegalArgumentException("unknown label kind");
 		}
 		return outcome;
 	}
@@ -373,16 +368,17 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * Could be more elaborate than just a number: for Erlang, this could generated trees. In addition, this one does not 
 	 * really assign numbers to labels, hence the outcome cannot be used where {@link ConvertibleToInt#toInt()} is used. 
 	 */
-	public static Label generateNewLabel(int number, Configuration config, ConvertALabel conv)
-	{
-		Label result = null;
-		switch(config.getLabelKind())
-		{
-		case LABEL_STRING:
-			result = new StringLabel("L"+Integer.toString(number));// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
-			break;
-		default:
-			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
+	public static Label generateNewLabel(int number, Configuration config, ConvertALabel conv) {
+		Label result;
+		switch (config.getLabelKind()) {
+			case LABEL_STRING:
+				result = new StringLabel("L" + Integer.toString(number));// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
+				break;
+			case LABEL_INPUT_OUTPUT:
+				String st = Integer.toString(number);
+				result = new LabelInputOutput(st + "/" + st);
+			default:
+				throw new IllegalArgumentException("No parser available for traces of type " + config.getLabelKind());
 		}
 		if (conv != null)
 			result = conv.convertLabelToLabel(result);
@@ -423,7 +419,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public static CmpVertex cloneCmpVertex(Object vertToClone,Configuration conf)
 	{
-		CmpVertex result = null;
+		CmpVertex result;
 		if (vertToClone instanceof CmpVertex)
 		{// normal processing
 			CmpVertex vert = (CmpVertex)vertToClone;
@@ -478,10 +474,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/** Returns true if the state is to be considered
 		 * 
 		 * @param vert state
-		 * @param graph the graph in which this state is contained.
 		 * @return whether state is to be considered
 		 */
-		public boolean stateToConsider(CmpVertex vert);
+		boolean stateToConsider(CmpVertex vert);
 	}
 	
 	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
@@ -536,7 +531,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public CmpVertex copyVertexUnderDifferentName(CmpVertex what)
 	{
 		CmpVertex newVert = AbstractLearnerGraph.generateNewCmpVertex(nextID(what.isAccept()), config);
-		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && findVertex(newVert) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getStringId()+" in graph "+toString());
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && findVertex(newVert) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getStringId()+" in graph "+ this);
 		DeterministicDirectedSparseGraph.copyVertexData(what, newVert);
 		transitionMatrix.put(newVert,createNewRow());
 		return newVert;
@@ -555,19 +550,18 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * as is the case for VertexID.
 	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE_A>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<VertID,CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE_A>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
 	{
 		return constructMap(config, pos_neg);
 	}
 	
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
-	 * such as a TreeMap. Note that template arguments of the return value match this class, but that it is possible to pass it an object with any template arguments but get a map with expected ones.  
-	 * 
-	 * @param pos_neg pair of values. The former is the expected maximal number of accept states, useful if we do not wish to incur a resize of a hashmap which in turn is important if our hash function is crafted to avoid collisions
-	 * as is the case for VertexID.
-	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
+	 * such as a TreeMap. Note that template arguments of the return value match this class,
+	 * but that it is possible to pass it an object with any template arguments but get a map with expected ones.
+	 * Uses the number of states in the provided graph.
 	 */
-	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<VertID,CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>>
+		createNewTransitionMatrix(AbstractLearnerGraph<TARGET_TYPE_A,CACHE_TYPE_A> graph)
 	{
 		return constructMap(config,graph);
 	}
@@ -580,7 +574,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 *  
 	 * @return new row
 	 */
-	abstract public Map<Label,TARGET_TYPE> createNewRow();
+	abstract public MapWithSearch<Label,Label,TARGET_TYPE> createNewRow();
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a row for a transition matrix needs to be updated with
@@ -590,7 +584,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to use
 	 * @param target the target state
 	 */
-	abstract public void addTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
+	abstract public void addTransition(MapWithSearch<Label,Label,TARGET_TYPE> row,Label input,CmpVertex target);
 
 	/** Makes it possible to remove a transition from a row in a transition matrix.
 	 * Does nothing if a transition does not exist.
@@ -599,7 +593,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to consider 
 	 * @param target state to remove.
 	 */
-	abstract public void removeTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
+	abstract public void removeTransition(MapWithSearch<Label,Label,TARGET_TYPE> row,Label input,CmpVertex target);
 	
 	/** Given a collection of vertices or a single vertex, this method returns a collection
 	 * representing all the vertices. This makes it possible to iterate through all target
@@ -658,7 +652,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public CmpVertex findVertex(VertID name)
 	{
-		return transitionMatrix.findElementById(name);
+		return transitionMatrix.findKey(name);
 	}
 	
 	/** Checks if the supplied vertex belongs to this graph. */
@@ -713,7 +707,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * states have the same IDs as those of existing states, new transitions lead to existing states.
 	 * 
 	 * @param from graph to copy
-	 * @param relabel map relabelling states
+	 * @param oldToNew map relabelling states
 	 * @param result where to store result of copying
 	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
@@ -724,9 +718,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		// Clone edges.
-		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{
-			Map<Label,TARGET_B_TYPE> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
+			MapWithSearch<Label,Label,TARGET_B_TYPE> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
 			if (row == null)
 			{// new state rather than a duplicate one
 				row = result.createNewRow();
@@ -766,10 +760,10 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,from);
 		result.initEmpty();
-		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
 		 // This is why associations (such as THENs) remain valid.
-			Map<Label,TARGET_B_TYPE> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
+			MapWithSearch<Label,Label,TARGET_B_TYPE> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
 			for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 				for(CmpVertex vertex:from.getTargets(transition.getValue()))
 					for(Label label:converter.convertLabel(transition.getKey()))
@@ -804,7 +798,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		result = prime * result + (config.getUseOrderedEntrySet()?  1231 : 1237);// this boolean determines the order in which vertices are explored and thus the hash code is set to be explicitly affected by it.
 		result = prime * result + (getInit() == null?0:getInit().hashCode());
 		//result = prime * result + transitionMatrix.hashCode();
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
 			int primeForState = 1;
 			primeForState = prime * primeForState + entry.getKey().hashCode();// has code for a state reflects the ID, not attributes
@@ -869,8 +863,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		if (!transitionMatrix.keySet().equals(other.transitionMatrix.keySet()))
 			return false;
 		
-		final Set<CmpVertex> targetThis = new TreeSet<CmpVertex>(), targetOther = new TreeSet<CmpVertex>(); 
-		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
+		final Set<CmpVertex> targetThis = new TreeSet<>(), targetOther = new TreeSet<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
 			
 			Map<Label,Object> row = (Map<Label,Object>)other.transitionMatrix.get(entry.getKey());
@@ -900,7 +894,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
 	 * or recorded as incompatible.
 	 *  
-	 * @param pair what to check. It is assumed that the two states belong to the graph.
+	 * @param Q first state to check
+	 * @param R second state to check. It is assumed that the two states belong to the graph.
+	 * @param compatibility the compatibility relation to use to determine whether vertices are incompatible.
 	 * @return false if a pair is incompatible, true otherwise.
 	 */
 	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, PairCompatibility<CmpVertex> compatibility)
@@ -953,33 +949,33 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param graph determines the number of states to create a matrix with. The aim here is to avoid array reallocations if using array matrix.
 	 * @return constructed map.
 	 */
-	public static <K extends ConvertibleToInt,V,TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>  
-		MapWithSearch<K, V> constructMap(Configuration config, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
+	public static <K extends ConvertibleToInt & VertID,V,TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+		MapWithSearch<VertID, K, V> constructMap(Configuration config, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
 		if (graph.transitionMatrix instanceof MapWithSearchAndCounter)
-			return constructMap(config,((MapWithSearchAndCounter<CmpVertex, Map<Label,TARGET_TYPE>>)graph.transitionMatrix).getPosNeg());
+			return constructMap(config,((MapWithSearchAndCounter<CmpVertex, MapWithSearch<Label,Label,TARGET_TYPE>>)graph.transitionMatrix).getPosNeg());
 		return constructMap(config,graph.getAcceptAndRejectStateNumber());
 	}
 	
-	public static <K extends ConvertibleToInt,V>  MapWithSearchAndCounter<K, V> constructMap(Configuration config,Pair<Integer,Integer> pos_neg)
+	public static <K extends ConvertibleToInt & VertID,V>  MapWithSearchAndCounter<K, V> constructMap(Configuration config,Pair<Integer,Integer> pos_neg)
 	{
-		MapWithSearch<K,V> map=null;
+		MapWithSearch<VertID,K,V> map=null;
 		switch(config.getTransitionMatrixImplType())
 		{
 		case STATETREE_LINKEDHASH:
-			map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
+			map = new HashMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
 			break;
 		case STATETREE_ARRAY:
 			if (pos_neg.firstElem+pos_neg.secondElem > config.getThresholdToGoHash() || config.getAlwaysUseTheSameMatrixType())
-				map = new ArrayMapWithSearch<K,V>(pos_neg.firstElem,pos_neg.secondElem);
+				map = new ArrayMapWithSearch<>(pos_neg.firstElem, pos_neg.secondElem);
 			else
-				map = new HashMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
+				map = new HashMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);
 			break;
 		case STATETREE_SLOWTREE:
-			map = new TreeMapWithSearch<K,V>(pos_neg.firstElem+pos_neg.secondElem);
+			map = new TreeMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);
 			break;
 		}
-		return new MapWithSearchAndCounter<K,V>(map);
+		return new MapWithSearchAndCounter<>(map);
 	}
 
 	public final PairCompatibility<CmpVertex> pairCompatibility;
@@ -994,9 +990,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * The purpose of this class is to provide helper methods, there is no encapsulation because 
 	 * direct access to the map is needed in a number of cases such as GD.
 	 */
-	public static class PairCompatibility<VERTEX_TYPE>
+	public static class PairCompatibility<VERTEX_TYPE extends VertID>
 	{
-		public final MapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> compatibility;
+		public final MapWithSearch<VertID,VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>> compatibility;
 		
 		/** These are do not have to be accurate, but if we use array matrix and have a lot of states beyond these, array reallocation will make things slow. */
 		protected final int maxAcceptStateNumber, maxRejectStateNumber;
@@ -1004,19 +1000,21 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/**
 		 * Creates an instance, using an expected maximal state number
 		 *  
-		 * @param stateNumber determines the maximal number of states, this is passed to {@link HashMapWithSearch} where it determines the initial size of the
-		 * hash map. 
+		 * @param acceptStateNumber determines the maximal number of accept states,
+		 * @param rejectStateNumber determines the maximal number of reject states.  Both values are passed to
+		 * {@link HashMapWithSearch} where it determines the initial size of the hash map.
 		 */
 		public PairCompatibility(int acceptStateNumber, int rejectStateNumber)
 		{
 			maxAcceptStateNumber = acceptStateNumber;maxRejectStateNumber = rejectStateNumber;
-			compatibility = new HashMapWithSearch<VERTEX_TYPE,Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>>(maxAcceptStateNumber+maxRejectStateNumber);
+			compatibility = new HashMapWithSearch<>(maxAcceptStateNumber + maxRejectStateNumber);
 		}
 		
 		/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
-		 * or recorded as incompatible.
-		 *  
-		 * @param pair what to check. It is assumed that the two states belong to the graph.
+		 * or recorded as incompatible according to the compatibility relation.
+		 *
+		 * @param Q first state to check
+		 * @param R second state to check. It is assumed that the two states belong to the graph.
 		 * @return false if a pair is incompatible, true otherwise.
 		 */
 		public boolean checkCompatible(VERTEX_TYPE Q, VERTEX_TYPE R)
@@ -1026,7 +1024,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		}
 		
 		
-		public static <VERTEX_FROM,VERTEX_TO>  
+		public static <VERTEX_FROM extends VertID,VERTEX_TO extends VertID>
 			void copyTo(PairCompatibility<VERTEX_FROM> from,PairCompatibility<VERTEX_TO> result,
 				Map<VERTEX_FROM, VERTEX_TO> oldToNew) {
 			for(Entry<VERTEX_FROM,Map<VERTEX_FROM,JUConstants.PAIRCOMPATIBILITY>> entry:from.compatibility.entrySet())
@@ -1070,7 +1068,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		
 		protected Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> createNewCompatibilityRow(VERTEX_TYPE A)
 		{
-			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMapWithSearch<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY>(maxAcceptStateNumber+maxRejectStateNumber);
+			Map<VERTEX_TYPE,JUConstants.PAIRCOMPATIBILITY> incSet = new HashMapWithSearch<>(maxAcceptStateNumber + maxRejectStateNumber);
 			compatibility.put(A,incSet);return incSet;
 		}
 		

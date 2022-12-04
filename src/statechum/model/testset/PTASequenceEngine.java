@@ -29,6 +29,7 @@ import java.util.Queue;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import harmony.collections.HashMapWithSearch;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
@@ -36,7 +37,6 @@ import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.ArrayOperations;
 import statechum.collections.ConvertibleToInt;
-import statechum.collections.HashMapWithSearch;
 
 public class PTASequenceEngine 
 {
@@ -160,17 +160,17 @@ public class PTASequenceEngine
 		 * yet been visited; for states which we've seen earlier, PTATestSequenceEngine will
 		 * store the appropriate entries in its map.
 		 */
-		public Object getNextState(Object currentState, Label input);
+		Object getNextState(Object currentState, Label input);
 		/** returns the initial state */
-		public Object getInitState();
+		Object getInitState();
 		/** returns true if the given state is an accept-state. */
-		public boolean isAccept(Object currentState);
+		boolean isAccept(Object currentState);
 		/** If this abstraction is used to extend FSM, such as when getNextState performs an extension,
 		 * this method can be used to set accept/reject conditions on vertices.
 		 */
-		public void setAccept(Object currentState, boolean value);
+		void setAccept(Object currentState, boolean value);
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
-		public boolean shouldBeReturned(Object elem);
+		boolean shouldBeReturned(Object elem);
 	}
 	
 	private final boolean useArrayMap;
@@ -183,9 +183,9 @@ public class PTASequenceEngine
 	{
 		useArrayMap = arrayMap;
 		if (useArrayMap)
-			pta = new ArrayMapWithSearch<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>();
+			pta = new ArrayMapWithSearch<>();
 		else
-			pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>(1024);
+			pta = new HashMap<>(1024);
 	}
 	
 	/** Initialises this PTA engine with an underlying machine. There is no method 
@@ -194,7 +194,7 @@ public class PTASequenceEngine
 	 * a machine and relabel the existing nodes in a PTA with those of the new machine,
 	 * expecting equals on them to define the expected (total) injection (orig->new). 
 	 * 
-	 * @param machine
+	 * @param machine The handler for LTS to use for building a trie.
 	 */
 	public void init(FSMAbstraction machine)
 	{
@@ -207,13 +207,13 @@ public class PTASequenceEngine
 		
 		if (useArrayMap)
 		{
-			pta.put(init,new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());
-			pta.put(rejectNode,new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());
+			pta.put(init, new ArrayMapWithSearchPos<>());
+			pta.put(rejectNode, new ArrayMapWithSearchPos<>());
 		}
 		else
 		{
-			pta.put(init,new LinkedHashMap<Label,PTASequenceEngine.Node>());
-			pta.put(rejectNode,new LinkedHashMap<Label,PTASequenceEngine.Node>());
+			pta.put(init, new LinkedHashMap<>());
+			pta.put(rejectNode, new LinkedHashMap<>());
 		}
 	}
 	
@@ -224,7 +224,7 @@ public class PTASequenceEngine
 		
 		public SequenceSet()
 		{
-			ptaNodes = new LinkedList<PTASequenceEngine.Node>();
+			ptaNodes = new LinkedList<>();
 		}
 		
 		public void setIdentity()
@@ -281,7 +281,7 @@ public class PTASequenceEngine
 		/** Appends elements from the supplied set to those stored in this sequenceSet.
 		 * 
 		 * @param inputs set with elements to append
-		 * @return
+		 * @return PTA nodes reached.
 		 */
 		public SequenceSet crossWithSet(Collection<? extends Label> inputs)
 		{
@@ -353,7 +353,7 @@ public class PTASequenceEngine
 		
 		/** Given a node, this method determines whether that node belongs to this set of nodes.
 		 * 
-		 * @param currentVertex node to look for
+		 * @param someNode node to look for
 		 * @return true if the supplied node is a part of this set of nodes.
 		 */
 		boolean contains(Node someNode) {
@@ -423,9 +423,9 @@ public class PTASequenceEngine
 				PTASequenceEngine.Node nextNode = new Node(newState);
 				row.put(input, nextNode);
 				if (useArrayMap)
-					pta.put(nextNode, new ArrayMapWithSearchPos<Label,PTASequenceEngine.Node>());//(10));
+					pta.put(nextNode, new ArrayMapWithSearchPos<>());//(10));
 				else
-					pta.put(nextNode, new LinkedHashMap<Label,PTASequenceEngine.Node>());//(10));
+					pta.put(nextNode, new LinkedHashMap<>());//(10));
 				nextCurrentNode = nextNode;
 			}
 		}
@@ -525,10 +525,10 @@ public class PTASequenceEngine
 	/** Turns this PTA into a set of sequences and returns this set. */
 	public Collection<List<Label>> getDataORIG()
 	{
-		Collection<List<Label>> result = new LinkedList<List<Label>>();
-		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
-		Queue<List<Label>> currentExplorationSequence = new LinkedList<List<Label>>();// FIFO queue
-		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<Label>());
+		Collection<List<Label>> result = new LinkedList<>();
+		Queue<Node> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		Queue<List<Label>> currentExplorationSequence = new LinkedList<>();// FIFO queue
+		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<>());
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			Node currentVertex = currentExplorationBoundary.remove();
@@ -543,7 +543,8 @@ public class PTASequenceEngine
 			else
 				for(Entry<Label,Node> entry:row.entrySet())
 				{
-					List<Label> newSeq = new LinkedList<Label>();newSeq.addAll(currentSequence);newSeq.add(entry.getKey());
+					List<Label> newSeq = new LinkedList<>(currentSequence);
+					newSeq.add(entry.getKey());
 					currentExplorationBoundary.offer(entry.getValue());currentExplorationSequence.offer(newSeq);
 				}
 		}
@@ -565,11 +566,11 @@ public class PTASequenceEngine
 	 */ 
 	public List<List<Label>> getData(final FilterPredicate predicate)
 	{
-		final List<List<Label>> result = new LinkedList<List<Label>>();
-		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
+		final List<List<Label>> result = new LinkedList<>();
+		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return Boolean.valueOf(true);
+				return Boolean.TRUE;
 			}
 
 			@Override
@@ -578,26 +579,23 @@ public class PTASequenceEngine
 			}
 
 			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
+			public void leafEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
 				if ((predicate == null && currentNode.shouldBeReturned()) ||
 						(predicate != null && predicate.shouldBeReturned(currentNode.ptaNode.getState()))
-						)
-				{
-					LinkedList<Label> newSeq = new LinkedList<Label>();
-					for(PTAExplorationNode elem:pathToInit)	newSeq.addFirst(elem.inputFromThisNode);
+				) {
+					LinkedList<Label> newSeq = new LinkedList<>();
+					for (PTAExplorationNode elem : pathToInit) newSeq.addFirst(elem.inputFromThisNode);
 					result.add(newSeq);
 				}
 			}
 
 			@Override
 			public void nodeLeft(
-						@SuppressWarnings("unused") PTAExplorationNode currentNode,
-						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
+					@SuppressWarnings("unused") PTAExplorationNode currentNode,
+					@SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
 				// this is needed to implement an interface, but we only care if a leaf is entered.
 			}
-			
+
 		};
 		exploration.walkThroughAllPaths();
 		return result;
@@ -612,7 +610,7 @@ public class PTASequenceEngine
 	 */
 	public String getDebugData(SequenceSet targetNodes)
 	{
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		for(Entry<String,String> elem:getDebugDataMapDepth(targetNodes).entrySet())
 		{
 			result.append('[');result.append(elem.getKey());result.append(']');result.append(elem.getValue());result.append('\n');
@@ -620,7 +618,7 @@ public class PTASequenceEngine
 		return result.toString();
 	}
 
-	public static enum DebugDataValues { 
+	public enum DebugDataValues {
 		LEAF("leaf"), INNER("inner"), sequenceReturned("returned"), sequenceTrashed("trashed");
 		
 		private final String text;
@@ -637,7 +635,7 @@ public class PTASequenceEngine
 		
 		public static String booleanToString(boolean leaf, boolean returned)
 		{
-			StringBuffer result = new StringBuffer();
+			StringBuilder result = new StringBuilder();
 			if (leaf) result.append(DebugDataValues.LEAF);else result.append(DebugDataValues.INNER);result.append(ArrayOperations.separator);
 			if (returned) result.append(DebugDataValues.sequenceReturned);else result.append(DebugDataValues.sequenceTrashed);
 			return result.toString();
@@ -654,11 +652,11 @@ public class PTASequenceEngine
 	 */
 	public Map<String,String> getDebugDataMapDepth(final SequenceSet targetNodes)
 	{
-		final Map<String,String> setToBeReturned = new HashMap<String,String>();
-		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
+		final Map<String,String> setToBeReturned = new HashMap<>();
+		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return Boolean.valueOf(true);
+				return Boolean.TRUE;
 			}
 
 			@Override
@@ -668,25 +666,22 @@ public class PTASequenceEngine
 			}
 
 			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				if (targetNodes == null || targetNodes.contains(currentNode.ptaNode)) addPath(currentNode,pathToInit);
+			public void leafEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
+				if (targetNodes == null || targetNodes.contains(currentNode.ptaNode)) addPath(currentNode, pathToInit);
 			}
 
 			@Override
 			public void nodeLeft(
-						@SuppressWarnings("unused") PTAExplorationNode currentNode,
-						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
+					@SuppressWarnings("unused") PTAExplorationNode currentNode,
+					@SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
 				// this is needed to implement an interface, but we only care if a node (or a leaf) is entered.
 			}
-			
-			private void addPath(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit)
-			{
-				LinkedList<Label> newSeq = new LinkedList<Label>();
-				for(PTAExplorationNode elem:pathToInit)	newSeq.addFirst(elem.inputFromThisNode);
+
+			private void addPath(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
+				LinkedList<Label> newSeq = new LinkedList<>();
+				for (PTAExplorationNode elem : pathToInit) newSeq.addFirst(elem.inputFromThisNode);
 				setToBeReturned.put(ArrayOperations.seqToString(
-						newSeq),DebugDataValues.booleanToString(currentNode.isTail(), fsm.shouldBeReturned(currentNode.ptaNode.getState())));
+						newSeq), DebugDataValues.booleanToString(currentNode.isTail(), fsm.shouldBeReturned(currentNode.ptaNode.getState())));
 			}
 		};
 		exploration.walkThroughAllPaths();
@@ -703,10 +698,10 @@ public class PTASequenceEngine
 	 */
 	public Map<String,String> getDebugDataMapBreadth(final SequenceSet targetNodes)
 	{
-		final Map<String,String> setToBeReturned = new HashMap<String,String>();
-		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
-		Queue<List<Label>> currentExplorationSequence = new LinkedList<List<Label>>();// FIFO queue
-		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<Label>());
+		final Map<String,String> setToBeReturned = new HashMap<>();
+		Queue<Node> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		Queue<List<Label>> currentExplorationSequence = new LinkedList<>();// FIFO queue
+		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<>());
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -722,8 +717,7 @@ public class PTASequenceEngine
 			if (!row.isEmpty()) // continue exploring if we can
 				for(Entry<Label,Node> entry:row.entrySet())
 				{
-					List<Label> newSeq = new LinkedList<Label>();
-                                        newSeq.addAll(currentSequence);
+					List<Label> newSeq = new LinkedList<>(currentSequence);
                                         newSeq.add(entry.getKey());
 					currentExplorationBoundary.offer(entry.getValue());currentExplorationSequence.offer(newSeq);
 				}
@@ -763,28 +757,16 @@ public class PTASequenceEngine
 	public interface FilterPredicate 
 	{
 		/** Whether a node with a specified name should be returned. Used during filtering. */
-		public boolean shouldBeReturned(Object name);
+		boolean shouldBeReturned(Object name);
 	}
 	
 	/** A predicate which always returns true. */
-	public static final FilterPredicate truePred = new FilterPredicate()
-	{
-		@Override 
-		public boolean shouldBeReturned(@SuppressWarnings("unused") Object name) {
-			return true;
-		}
-	};
+	public static final FilterPredicate truePred = name -> true;
 	
 	/** Returned a filter predicate determined by the underlying fsm. */
 	public FilterPredicate getFSM_filterPredicate()
 	{
-		return new FilterPredicate()
-		{
-			@Override 
-			public boolean shouldBeReturned(Object name) {
-				return fsm.shouldBeReturned(name);
-			}
-		};
+		return name -> fsm.shouldBeReturned(name);
 	}
 	
 	/** Returns a subset of this PTA, with all paths leading to rejected nodes removed.
@@ -798,7 +780,7 @@ public class PTASequenceEngine
 		PTASequenceEngine result = new PTASequenceEngine();
 		result.init = init;result.rejectNode = rejectNode;result.fsm=fsm;
 		result.negativeNodeID = negativeNodeID;result.positiveNodeID=positiveNodeID;
-		final List<Node> nodesToTrash = new LinkedList<Node>();
+		final List<Node> nodesToTrash = new LinkedList<>();
 			// all paths from these nodes are to be removed. The idea is to scan the PTA
 			// looking for the lowest nodes (aka closest to the root) such that 
 			// all paths from them lead to tail nodes which are reject-nodes.
@@ -816,51 +798,43 @@ public class PTASequenceEngine
 		 * The value is set to false if we've discovered that not 
 		 * all paths from the current node lead to reject nodes. 
 		 */ 
-		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
+		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
-				return Boolean.valueOf(true);
+				return Boolean.TRUE;
 			}
 
 			@Override
 			public void nodeEntered(
-					@SuppressWarnings("unused")	PTAExplorationNode currentNode,
-					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) {
+					@SuppressWarnings("unused") PTAExplorationNode currentNode,
+					@SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
 				// nothing to do here.
 			}
 
 			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
+			public void leafEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
 				currentNode.userObject = !filterPredicate.shouldBeReturned(currentNode.ptaNode.getState());
 				handleAcceptCondition(currentNode, pathToInit);
 			}
 
 			@Override
-			public void nodeLeft(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit) 
-			{
+			public void nodeLeft(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
 				handleAcceptCondition(currentNode, pathToInit);
 			}
-			
-			private void handleAcceptCondition(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit)
-			{
-				if (!currentNode.userObject)
-				{// go through the whole path from the current leaf to the initial state, clearing the "all paths to reject" flags.
-					Iterator<PTAExplorationNode> previousOnStack = pathToInit.iterator();
-					while(previousOnStack.hasNext())
-					{
-						PTAExplorationNode previous = previousOnStack.next();
+
+			private void handleAcceptCondition(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) {
+				if (!currentNode.userObject) {// go through the whole path from the current leaf to the initial state, clearing the "all paths to reject" flags.
+					for (PTAExplorationNode previous : pathToInit) {
 						if (previous.userObject)
 							previous.userObject = false;
 						else
 							break;// since nodes satisfying (allPathToReject == false) are 
-								// prefix-closed by construction, once we found one which 
-								// is already marked false, this means that all earlier 
-								// ones are already marked false. 
+						// prefix-closed by construction, once we found one which
+						// is already marked false, this means that all earlier
+						// ones are already marked false.
 					}
-				}
-				else
-				// this node and all its children lead to reject states
+				} else
+					// this node and all its children lead to reject states
 					nodesToTrash.add(currentNode.ptaNode);
 			}
 		};
@@ -870,7 +844,7 @@ public class PTASequenceEngine
 		for(Entry<Node, Map<Label,Node>> entry:pta.entrySet())
 			if (!nodesToTrash.contains(entry.getKey()) || entry.getKey() == init) // never throw away the init state
 			{// this node is not the one to be removed, hence add it, but filter the row to exclude elements referring to nodes to be removed.
-				Map<Label,Node> row = new LinkedHashMap<Label,Node>();
+				Map<Label,Node> row = new LinkedHashMap<>();
 				for(Entry<Label,Node> rowEntry:entry.getValue().entrySet())
 					if (!nodesToTrash.contains(rowEntry.getValue()))
 						row.put(rowEntry.getKey(),rowEntry.getValue());
@@ -897,7 +871,7 @@ public class PTASequenceEngine
 	{
 		final AtomicInteger counterCompressed = new AtomicInteger(-1), counterUncompressed = new AtomicInteger(0);
 		
-		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(pta) {
+		PTAExploration<Boolean> exploration = new PTAExploration<>(pta) {
 			@Override
 			public Boolean newUserObject() {
 				return null;
@@ -905,29 +879,28 @@ public class PTASequenceEngine
 
 			@Override
 			public void nodeEntered(
-					@SuppressWarnings("unused")	PTAExplorationNode currentNode,
-					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) {
+					@SuppressWarnings("unused") PTAExplorationNode currentNode,
+					@SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
 				counterCompressed.addAndGet(1);
 			}
 
 			@Override
-			public void leafEntered(@SuppressWarnings("unused")	PTAExplorationNode currentNode,	
-					LinkedList<PTAExplorationNode> pathToInit) 
-			{
+			public void leafEntered(@SuppressWarnings("unused") PTAExplorationNode currentNode,
+									LinkedList<PTAExplorationNode> pathToInit) {
 				counterCompressed.addAndGet(1);
 				counterUncompressed.addAndGet(pathToInit.size());
 			}
 
 			@Override
-			public void nodeLeft(@SuppressWarnings("unused")	PTAExplorationNode currentNode,
-					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) {
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,
+								 @SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
 				// nothing to do here.
 			}
 
 		};
 		exploration.walkThroughAllPaths();
 		
-		return new Pair<Integer,Integer>(counterUncompressed.get(),counterCompressed.get());
+		return new Pair<>(counterUncompressed.get(), counterCompressed.get());
 	}
 }
 

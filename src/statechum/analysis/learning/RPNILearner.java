@@ -17,33 +17,24 @@
  */
 package statechum.analysis.learning;
 
-import java.awt.Frame;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.lang.reflect.InvocationTargetException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-
-import statechum.Configuration;
-import statechum.Pair;
-import statechum.StringLabel;
+import statechum.*;
+import statechum.Label;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.OTPBehaviour;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
 
-
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Label;
-import statechum.Trace;
-import statechum.analysis.Erlang.ErlangLabel;
-import statechum.analysis.Erlang.OTPBehaviour;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class RPNILearner extends Observable implements Learner {
 
@@ -124,11 +115,7 @@ public abstract class RPNILearner extends Observable implements Learner {
             return false;
         }
 
-        if (score < config.getMinCertaintyThreshold()) {
-            return false;
-        }
-
-        return true;
+        return score >= config.getMinCertaintyThreshold();
     }
 
     /** Pretty-prints a supplied question. Useful for questions with Erlang labels which 
@@ -136,7 +123,7 @@ public abstract class RPNILearner extends Observable implements Learner {
      */ 
     public static String questionToString(List<? extends Label> question)
     {
-		StringBuffer questionString = new StringBuffer();questionString.append('[');
+		StringBuilder questionString = new StringBuilder();questionString.append('[');
 		boolean first = true;
 		for(Label lbl:question)
 		{
@@ -225,7 +212,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     /* This one is actually a specialised version of computeShortPathsToAllStates()
      */
     protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
-        Collection<Trace> result = new LinkedList<Trace>();
+        Collection<Trace> result = new LinkedList<>();
 
         Map<Label, CmpVertex> edges = hardFacts.getTransitionMatrix().get(v);
         if (edges.isEmpty()) {
@@ -244,7 +231,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     final String questionPrefix = "";
 
     protected List<String> beautifyQuestionList(List<Label> question) {
-        List<String> questionList = new LinkedList<String>();
+        List<String> questionList = new LinkedList<>();
         int i = 0;
         for (Label q : question) {
             questionList.add(questionPrefix + "(" + i++ + ") " + q);
@@ -265,8 +252,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     public void terminateUserDialogueFrame() {
         assert (SwingUtilities.isEventDispatchThread());
         if (dialog != null && jop != null && dialog.isVisible()) {
-            jop.setValue(Integer.valueOf(
-                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
+            jop.setValue(JOptionPane.CLOSED_OPTION);// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
         }		// The setting of the option above corresponds to hitting "close" or "ESC" on the dialogue,
         // which is interpreted by the learner as a request to terminate learning, hence
         // the learner stops and the corresponding thread terminates. For this reason,
@@ -315,135 +301,121 @@ public abstract class RPNILearner extends Observable implements Learner {
             answer.getAndSet(outcome);
         } else {
             try {
-                SwingUtilities.invokeAndWait(new Runnable() {
+                SwingUtilities.invokeAndWait(
+                        () -> {
+                            final Object[] options = new Object[1 + moreOptions.length];
 
-                    public
-                    @Override
-                    void run() {
-                        final Object[] options = new Object[1 + moreOptions.length];
+                            // A click on an element means a reject for that element and accept to all
+                            // earlier elements, hence we have to disable all those which should not
+                            // be rejected. The fact that we do only consider prefix-closed questions
+                            // implies that a whole prefix will be accept-only.
+                            Iterator<String> inputIter = questionList.iterator();
+                            Iterator<Boolean> factsIter = consistentFacts == null ? null : consistentFacts.iterator();
+                            List<String> listElements = new ArrayList<>(questionList.size());
+                            int inputCounter = 0;
+                            while (inputIter.hasNext()) {
+                                String currentElement = inputIter.next();
+                                Boolean fact = factsIter == null ? null : factsIter.next();
+                                String elementHtml = null;
+                                if (fact != null && fact) {
+                                    elementHtml = "<html><font color=gray>" + currentElement;
+                                } else {
+                                    elementHtml = "<html><font color=green>" + currentElement;
+                                }
 
-                        // A click on an element means a reject for that element and accept to all
-                        // earlier elements, hence we have to disable all those which should not
-                        // be rejected. The fact that we do only consider prefix-closed questions
-                        // implies that a whole prefix will be accept-only.
-                        Iterator<String> inputIter = questionList.iterator();
-                        Iterator<Boolean> factsIter = consistentFacts == null ? null : consistentFacts.iterator();
-                        List<String> listElements = new ArrayList<String>(questionList.size());
-                        int inputCounter = 0;
-                        while (inputIter.hasNext()) {
-                            String currentElement = inputIter.next();
-                            Boolean fact = factsIter == null ? null : factsIter.next();
-                            String elementHtml = null;
-                            if (fact != null && fact.booleanValue()) {
-                                elementHtml = "<html><font color=gray>" + currentElement;
+                                if (inputCounter == expectedForNoRestart) {
+                                    elementHtml = addAnnotationExpected(elementHtml);
+                                }
+                                ++inputCounter;
+                                listElements.add(elementHtml);
+                            }
+                            @SuppressWarnings({"unchecked", "rawtypes"}) final JList javaList = new JList(listElements.toArray());
+                            String optionZero = null;
+                            Boolean lastFact = consistentFacts.get(consistentFacts.size() - 1);
+                            if (lastFact != null && !lastFact) // last element has to be a reject
+                            {
+                                optionZero = "<html><font color=grey>cannot accept";
                             } else {
-                                elementHtml = "<html><font color=green>" + currentElement;
+                                optionZero = "<html><font color=green>Accept";
                             }
 
-                            if (inputCounter == expectedForNoRestart) {
-                                elementHtml = addAnnotationExpected(elementHtml);
+                            if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) {
+                                optionZero = addAnnotationExpected(optionZero);
+                                assert lastFact == null || lastFact;
                             }
-                            ++inputCounter;
-                            listElements.add(elementHtml);
-                        }
-                        @SuppressWarnings({ "unchecked", "rawtypes" })
-						final JList javaList = new JList(listElements.toArray());
-                        String optionZero = null;
-                        Boolean lastFact = consistentFacts.get(consistentFacts.size() - 1);
-                        if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject
-                        {
-                            optionZero = "<html><font color=grey>cannot accept";
-                        } else {
-                            optionZero = "<html><font color=green>Accept";
-                        }
+                            options[0] = optionZero;
+                            System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
+                            final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
+                            jop = new JOptionPane(new Object[]{label, javaList},
+                                    JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_CANCEL_OPTION, null, options, options[0]);
+                            dialog = new JDialog(parentFrame, "Valid input string?", false);
+                            dialog.setContentPane(jop);
 
-                        if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) {
-                            optionZero = addAnnotationExpected(optionZero);
-                            assert lastFact == null || lastFact.booleanValue();
-                        }
-                        options[0] = optionZero;
-                        System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
-                        final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
-                        jop = new JOptionPane(new Object[]{label, javaList},
-                                JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_CANCEL_OPTION, null, options, options[0]);
-                        dialog = new JDialog(parentFrame, "Valid input string?", false);
-                        dialog.setContentPane(jop);
+                            // the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
+                            dialog.setDefaultCloseOperation(
+                                    WindowConstants.DO_NOTHING_ON_CLOSE);
+                            dialog.addWindowListener(new WindowAdapter() {
 
-                        // the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
-                        dialog.setDefaultCloseOperation(
-                                WindowConstants.DO_NOTHING_ON_CLOSE);
-                        dialog.addWindowListener(new WindowAdapter() {
-
-                            @Override
-                            public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
-                                jop.setValue(Integer.valueOf(
-                                        JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
-                            }
-                        });
-                        jop.addPropertyChangeListener(new PropertyChangeListener() {
-
-                            public
-                            @Override
-                            void propertyChange(PropertyChangeEvent e) {
-                                String prop = e.getPropertyName();
-
-                                Object value = e.getNewValue();
-
-                                if (dialog.isVisible() && e.getSource() == jop
-                                        && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
-                                    boolean clickValid = true;
-                                    int i = 0;
-                                    for (; i < options.length && options[i] != value; ++i)
-                                    {}
-                                    if (i == options.length) {
-                                        i = AbstractOracle.USER_CANCELLED;// nothing was chosen
-                                    } else {
-                                        if (i == 0) {
-                                            Boolean fact = consistentFacts.get(consistentFacts.size() - 1);
-                                            clickValid = (fact == null || fact.booleanValue());
-                                        }
-                                        i = AbstractOracle.USER_ACCEPTED - i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers
-                                    }
-
-                                    if (clickValid) {
-                                        // one of the valid choices was made, record which one and close the window
-                                        answer.getAndSet(i);
-                                        synchronized (answer) {
-                                            answer.notifyAll();
-                                        }
-
-                                        dialog.setVisible(false);
-                                        dialog.dispose();
-                                    }
+                                @Override
+                                public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
+                                    jop.setValue(JOptionPane.CLOSED_OPTION);// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
                                 }
-                            }
-                        });
-                        javaList.addListSelectionListener(new ListSelectionListener() {
+                            });
+                            jop.addPropertyChangeListener(
+                                    e -> {
+                                        String prop = e.getPropertyName();
 
-                            public
-                            @Override
-                            void valueChanged(ListSelectionEvent e) {
-                                if (dialog.isVisible() && e.getSource() == javaList
-                                        && !e.getValueIsAdjusting() && !javaList.isSelectionEmpty()) {
-                                    int position = javaList.getLeadSelectionIndex();
-                                    Boolean fact = consistentFacts.get(position);
-                                    if (fact == null || !fact.booleanValue()) {
-                                        answer.getAndSet(position);
-                                        synchronized (answer) {
-                                            answer.notifyAll();
+                                        Object value = e.getNewValue();
+
+                                        if (dialog.isVisible() && e.getSource() == jop
+                                                && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
+                                            boolean clickValid = true;
+                                            int i = 0;
+                                            for (; i < options.length && options[i] != value; ++i) {
+                                            }
+                                            if (i == options.length) {
+                                                i = AbstractOracle.USER_CANCELLED;// nothing was chosen
+                                            } else {
+                                                if (i == 0) {
+                                                    Boolean fact = consistentFacts.get(consistentFacts.size() - 1);
+                                                    clickValid = (fact == null || fact);
+                                                }
+                                                i = AbstractOracle.USER_ACCEPTED - i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers
+                                            }
+
+                                            if (clickValid) {
+                                                // one of the valid choices was made, record which one and close the window
+                                                answer.getAndSet(i);
+                                                synchronized (answer) {
+                                                    answer.notifyAll();
+                                                }
+
+                                                dialog.setVisible(false);
+                                                dialog.dispose();
+                                            }
                                         }
+                                    });
+                            javaList.addListSelectionListener(
+                                    e -> {
+                                        if (dialog.isVisible() && e.getSource() == javaList
+                                                && !e.getValueIsAdjusting() && !javaList.isSelectionEmpty()) {
+                                            int position = javaList.getLeadSelectionIndex();
+                                            Boolean fact = consistentFacts.get(position);
+                                            if (fact == null || !fact) {
+                                                answer.getAndSet(position);
+                                                synchronized (answer) {
+                                                    answer.notifyAll();
+                                                }
 
-                                        dialog.setVisible(false);
-                                        dialog.dispose();
-                                    }
-                                }
-                            }
+                                                dialog.setVisible(false);
+                                                dialog.dispose();
+                                            }
+                                        }
+                                    });
+                            dialog.pack();
+                            //rejectElements.setListData(questionList.toArray());
+                            dialog.setVisible(true);
                         });
-                        dialog.pack();
-                        //rejectElements.setListData(questionList.toArray());
-                        dialog.setVisible(true);
-                    }
-                });
                 synchronized (answer) {
                     while (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) {
                         answer.wait();// wait for a user to make a response
@@ -460,6 +432,6 @@ public abstract class RPNILearner extends Observable implements Learner {
         {
             answer.getAndSet(AbstractOracle.USER_CANCELLED);
         }
-        return new Pair<Integer, String>(answer.get(), null);
+        return new Pair<>(answer.get(), null);
     }
 }

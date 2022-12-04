@@ -17,25 +17,13 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
 
-import statechum.Configuration;
-import statechum.GlobalConfiguration;
-import statechum.JUConstants;
+import harmony.collections.HashMapWithSearch;
+import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Label;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
@@ -47,7 +35,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRig
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -64,13 +52,13 @@ public class PairScoreComputation {
 
 	
 	/** Makes it possible to register callbacks for score computation. Currently used with Markov but should be useful for Weka. */ 
-	public static interface ScoreComputationCallback
+	public interface ScoreComputationCallback
 	{
-		public void initComputation(LearnerGraph graph);
-		public long overrideScoreComputation(PairScore p);
+		void initComputation(LearnerGraph graph);
+		long overrideScoreComputation(PairScore p);
 	}
 
-	public static interface RedNodeSelectionProcedure extends ScoreComputationCallback
+	public interface RedNodeSelectionProcedure extends ScoreComputationCallback
 	{
 		/** Used in order to explore the surroundings of red states in graphs that are not built from a PTA. If it returns <em>null</em>, the default is used. 
 		 * This is not a map in order to permit transitions with the same label to lead to multiple states.
@@ -102,14 +90,14 @@ public class PairScoreComputation {
 	{
 		coregraph.pairsAndScores.clear();
 		if (decisionProcedure != null) decisionProcedure.initComputation(coregraph);
-		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();// was: new LinkedHashSet<CmpVertex>();
+		Collection<CmpVertex> reds = new ArrayList<>();// was: new LinkedHashSet<CmpVertex>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			if (v.getColour() == JUConstants.RED)
 				reds.add(v);
 		//System.out.println("choose state pairs with "+reds.size()+" red states");
 		
-		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
-		Collection<CmpVertex> RedStatesFound = new ArrayList<CmpVertex>();
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		Collection<CmpVertex> RedStatesFound = new ArrayList<>();
 		
 		do
 		{
@@ -182,7 +170,7 @@ public class PairScoreComputation {
 	{
 		Collections.sort(coregraph.pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 
-		Stack<PairScore> result = new Stack<PairScore>();
+		Stack<PairScore> result = new Stack<>();
 		if (coregraph.config.getPairsMergedPerHypothesis() > 0)
 		{
 			int numberOfElements = Math.min(coregraph.pairsAndScores.size(),coregraph.config.getPairsMergedPerHypothesis());
@@ -206,13 +194,13 @@ public class PairScoreComputation {
 				break;
 			case GENERAL:
 			{
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, true);compatibilityScore=computedScore;
 				break;
 			}
 			case GENERAL_PLUS_NOFULLMERGE:
 			{
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
 	
 				if (computedScore >= 0)
@@ -226,7 +214,7 @@ public class PairScoreComputation {
 			}
 			case KTAILS:
 			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,false);
@@ -234,7 +222,7 @@ public class PairScoreComputation {
 			}
 			case KTAILS_ANY:
 			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
 					computedScore = coregraph.pairscores.computeStateScoreKTails(pairToComputeFrom,true);
@@ -308,7 +296,7 @@ public class PairScoreComputation {
 	 * is a straight line, computeScore happily matches PTA with itself while this one has to know
 	 * when we've looped (so as to effectively check for compatibility) and hence it cannot do that. 
 	 * 
-	 * @param model
+	 * @param origPair the pair to start resolving non-determinism with
 	 * @param mergedVertices records which vertices have to be merged.
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
@@ -318,8 +306,8 @@ public class PairScoreComputation {
 			// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
 		
 		int score = -1;// compatibility score between states in the pair
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
-		Queue<Boolean> currentRedFromPta = new LinkedList<Boolean>();// FIFO queue containing true if the red node comes from a branch of a PTA which has been previously already merged into the machine
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing pairs to be explored
+		Queue<Boolean> currentRedFromPta = new LinkedList<>();// FIFO queue containing true if the red node comes from a branch of a PTA which has been previously already merged into the machine
 		currentExplorationBoundary.add(origPair);currentRedFromPta.add(false);
 		
 		while(!currentExplorationBoundary.isEmpty())
@@ -335,7 +323,7 @@ public class PairScoreComputation {
 
 			if (!AbstractLearnerGraph.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.pairCompatibility))
 				return -1;// incompatible states
-			if (!redFromPta.booleanValue())
+			if (!redFromPta)
 				++score;
 			Map<Label,CmpVertex> targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
 
@@ -397,11 +385,7 @@ public class PairScoreComputation {
 			
 			if (RedAndBlueToBeMerged)
 			{// if the current pair of states is to be merged, do it (i.e. record them as merged).
-				List<CmpVertex> redMerged = mergedVertices.get(currentPair.getR());
-				if (redMerged == null)
-				{
-					redMerged = new LinkedList<CmpVertex>();mergedVertices.put(currentPair.getR(), redMerged);
-				}
+				List<CmpVertex> redMerged = mergedVertices.computeIfAbsent(currentPair.getR(), k -> new LinkedList<>());
 				redMerged.add(currentPair.getQ());
 			}
 		}
@@ -427,7 +411,7 @@ public class PairScoreComputation {
 		{
 			if (secondClass == null)
 			{// a new pair has been discovered, populate from the current transition matrix.
-				equivalenceClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+				equivalenceClass = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, coregraph);
 				assert coregraph.transitionMatrix.containsKey(currentPair.firstElem) : " state "+currentPair.firstElem+" is not in the graph";
 				assert coregraph.transitionMatrix.containsKey(currentPair.secondElem) : " state "+currentPair.firstElem+" is not in the graph";
 				singleton &= equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
@@ -498,11 +482,11 @@ public class PairScoreComputation {
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 
 		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.config.getMaxAcceptStateNumber()+coregraph.config.getMaxRejectStateNumber());// these are going to be small sets, no point creating really big ones.
+				new HashMapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(coregraph.config.getMaxAcceptStateNumber()+coregraph.config.getMaxRejectStateNumber());// these are going to be small sets, no point creating really big ones.
 		boolean compatible = true;
-		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
-		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
-				new ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
+		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing pairs to be explored
+		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>,EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
+				new ArrayMapWithSearchPos<>();
 		
 		// For large graphs, there are usually few states participate, compared to graph size, I've seen at most 10% and most often it is a handful out of a possibly million vertices. Hence use TreeMap
 		//Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
@@ -565,7 +549,7 @@ public class PairScoreComputation {
 							EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstEquivalenceClass = stateToEquivalenceClass.get(firstVertex);
 							if (firstEquivalenceClass == null)
 							{// the first outgoing transition is not associated to a known equivalence class.
-								firstEquivalenceClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+								firstEquivalenceClass = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, coregraph);
 								firstEquivalenceClass.mergeWith(firstVertex, coregraph.transitionMatrix.get(firstVertex).entrySet());
 								stateToEquivalenceClass.put(firstVertex, firstEquivalenceClass);
 								currentExplorationBoundary.offer(firstEquivalenceClass);// this may cause elements to be added to the collection of transitions in the considered equivalence classes and possibly even to the component of it denoted by targets.
@@ -614,7 +598,7 @@ public class PairScoreComputation {
 					EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
 					if (eqClass == null)
 					{
-						eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+						eqClass = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, coregraph);
 						try {
 							eqClass.mergeWith(vert, coregraph.transitionMatrix.get(vert).entrySet());
 						} catch (IncompatibleStatesException e) {
@@ -654,7 +638,7 @@ public class PairScoreComputation {
 	
 	/** Computes scores by navigating a cross-product of this machine, with itself.
 	 * 
-	 *  @param the pair to compute a score for
+	 *  @param pair the pair to compute a score for
 	 *  @return the resulting score, reflecting compatibility.
 	 */
 	public long computeStateScore(StatePair pair)
@@ -667,7 +651,7 @@ public class PairScoreComputation {
 		assert pair.getQ() != pair.getR();
 		boolean foundKTail = false;
 		
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		currentExplorationBoundary.add(pair);currentExplorationBoundary.offer(null);
 		
 		while(!foundKTail)
@@ -716,7 +700,7 @@ public class PairScoreComputation {
 		
 		if (foundKTail)
 		{// If we are operating in a k-tails mode, report a very high number if we found a k-tail.
-			if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
+			if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = (long) coregraph.transitionMatrix.size() *coregraph.pathroutines.computeAlphabet().size();
 			score = coregraph.learnerCache.maxScore+1;
 		}
 		return score;
@@ -724,7 +708,7 @@ public class PairScoreComputation {
 
 	/** Computes scores by navigating a cross-product of this machine, with itself. Implements the k-tails method.
 	 * 
-	 *  @param the pair to compute a score for
+	 *  @param pair the pair to compute a score for
 	 *  @param anyPath whether any path matching is good enough or all paths should match.
 	 *  @return the resulting score, reflecting compatibility.
 	 */
@@ -746,10 +730,10 @@ public class PairScoreComputation {
 		if (pairScore < 0)
 			return -1;
 
-		Set<Label> inputsUsed = new HashSet<Label>();
+		Set<Label> inputsUsed = new HashSet<>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if ( (recursive || entry.getKey() == pair.getR()) && entry.getKey().getColour() == JUConstants.RED)
 			{// only checks for specific state of interest if we are supposed to be non-recursive.
 				CmpVertex vert = entry.getKey();
@@ -802,7 +786,7 @@ public class PairScoreComputation {
 		}
 		
 		long outcome = 0;
-		Set<Label> outgoingRed = new TreeSet<Label>(), outgoingNew = new TreeSet<Label>();
+		Set<Label> outgoingRed = new TreeSet<>(), outgoingNew = new TreeSet<>();
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
 			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
 			{
@@ -846,7 +830,7 @@ public class PairScoreComputation {
 				throw new IllegalArgumentException("when looking for a score from a single pair, this pair should be passed as an argument");
 		}
 		
-		Set<Label> outgoingRed = new TreeSet<Label>();
+		Set<Label> outgoingRed = new TreeSet<>();
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
 			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
 			{
@@ -908,7 +892,8 @@ public class PairScoreComputation {
 			throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
 		}
 		
-		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=GDLearnerGraph.PAIR_OK;
+		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];
+		Arrays.fill(incompatiblePairs, GDLearnerGraph.PAIR_OK);
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve(ThreadNumber);
@@ -936,7 +921,7 @@ public class PairScoreComputation {
 	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
 	 * @param filter determines the states to filter out.
 	 * @param randomWalkGenerator random number generator to be used in walk generation.
-	 * @return
+	 * @return stack of states with scores over a given threshold
 	 */
 	public Stack<PairScore> chooseStatePairs_filtered(double threshold, double scale, int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
@@ -955,7 +940,7 @@ public class PairScoreComputation {
 	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
 	 * @param filter determines the states to filter out at the initial stage; all state pairs which 
 	 * were filtered out are subsequently appended to the end of the stack returned.
-	 * @return
+	 * @return a stack of states with scores over a given threshold
 	 */
 	public Stack<PairScore> chooseStatePairs(final double threshold, final double scale, final int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter,StateBasedRandom randomWalkGenerator)
@@ -963,36 +948,31 @@ public class PairScoreComputation {
 		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
 		if (threshold <= 0)
 		{
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<>();
 			@SuppressWarnings("unchecked")
-			final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
+			final List<PairScore>[] resultsPerThread = new List[ThreadNumber];
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			{
-				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
-				handlerList.add(new HandleRow<CmpVertex>()
-				{
+				resultsPerThread[threadCnt]= new LinkedList<>();
+				handlerList.add(new HandleRow<>() {
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
 					}
-	
+
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, int threadNo) 
-					{
+					public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entryA, int threadNo) {
 						// Now iterate through states
-						Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
-						while(stateB_It.hasNext())
-						{
-							Entry<CmpVertex,Map<Label,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+						// stateB should not have been filtered out by construction of matrixInverse
+						for (Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> stateB : coregraph.transitionMatrix.entrySet()) {
 							if (!filter.stateToConsider(entryA.getKey()) ||
-									!filter.stateToConsider(stateB.getKey()))
-							{
+									!filter.stateToConsider(stateB.getKey())) {
 								int score = 0;
 
-								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
+								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(), entryA.getKey(), coregraph.pairCompatibility)) score = GDLearnerGraph.PAIR_INCOMPATIBLE;
 
-								if (score>threshold)
-									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
+								if (score > threshold)
+									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(), stateB.getKey(), (int) (scale * score), 0));
 
 								if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 							}

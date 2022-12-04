@@ -33,6 +33,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.apps.QSMTool;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.MapWithSearch;
 
 public class LearningSupportRoutines
 {
@@ -53,7 +54,7 @@ public class LearningSupportRoutines
 		Set<Label> deadLabels = new HashSet<Label>();
 		
 		Map<Label, Pair<CmpVertex,CmpVertex> > labelToStatePair = new TreeMap<Label,Pair<CmpVertex,CmpVertex>>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
 				if (!deadLabels.contains(target.getKey()))
 				{// the label is not already recorded as leading to multiple different states.
@@ -86,7 +87,7 @@ public class LearningSupportRoutines
 		Set<Label> deadLabels = new HashSet<Label>();
 		
 		Map<Label,CmpVertex> labelToState = new TreeMap<Label,CmpVertex>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			CmpVertex state = entry.getKey(); 
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
@@ -117,7 +118,7 @@ public class LearningSupportRoutines
 			return null;
 		Set<Label> liveLabels = new HashSet<Label>();liveLabels.addAll(graph.transitionMatrix.get(graph.getInit()).keySet());
 		
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 			if (entry.getKey() != graph.getInit()) liveLabels.removeAll(entry.getValue().keySet());
 		
 		if (liveLabels.isEmpty())
@@ -209,7 +210,7 @@ public class LearningSupportRoutines
 	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
 	{
 		List<CmpVertex> sourceStates = new LinkedList<CmpVertex>(), statesOfInterest = new LinkedList<CmpVertex>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:pta.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:pta.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 					if (transition.getValue().isAccept() && transition.getKey().equals(uniqueFromInitial))
@@ -221,12 +222,12 @@ public class LearningSupportRoutines
 			if (vert != pta.getInit())
 			{
 				CmpVertex newSource = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
-				Map<Label,CmpVertex> row = pta.createNewRow();
+				MapWithSearch<Label,Label,CmpVertex> row = pta.createNewRow();
 				pta.transitionMatrix.put(newSource,row);row.put(uniqueFromInitial, pta.transitionMatrix.get(vert).get(uniqueFromInitial));
 				statesOfInterest.add(newSource);
 				
 				CmpVertex tailState = AbstractLearnerGraph.generateNewCmpVertex(pta.nextID(true), pta.config);
-				Map<Label,CmpVertex> tailRow = pta.createNewRow();
+				MapWithSearch<Label,Label,CmpVertex> tailRow = pta.createNewRow();
 				pta.transitionMatrix.put(tailState,tailRow);pta.transitionMatrix.get(vert).put(uniqueFromInitial,tailState);
 			}
 			else
@@ -290,7 +291,7 @@ public class LearningSupportRoutines
 		{
 			Set<Label> labels = new TreeSet<Label>();labels.addAll(alphabet);labelToSet.put(lbl,labels);
 		}
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> firstTransition:entry.getValue().entrySet())
 				labelToSet.get(firstTransition.getKey()).removeAll(tentativeGraph.transitionMatrix.get(firstTransition.getValue()).keySet());
 			
@@ -382,13 +383,13 @@ public class LearningSupportRoutines
 			return pairsList;
 		
 		Map<Label,Collection<CmpVertex>> labelToStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 		Map<Label,Collection<CmpVertex>> labelFromStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 					
 		for(Label lbl:transitionsToTheSameState) labelToStates.put(lbl,new ArrayList<CmpVertex>());
 		for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 				{
@@ -429,8 +430,8 @@ public class LearningSupportRoutines
 	 * @param graph the graph to consider
 	 * @param correctGraph states that should be merged
 	 * @param pairs pairs to consider
-	 * @param correct collection into which correct ones will be added. 
-	 * @param wrong collection where the wrong ones will be added.
+	 * @param correctPairs collection into which correct ones will be added.
+	 * @param wrongPairs collection where the wrong ones will be added.
 	 * @return the index of the first pair in the supplied list of pairs that is deemed correct.
 	 */
 	public static int SplitSetOfPairsIntoRightAndWrong(LearnerGraph graph, LearnerGraph correctGraph, Collection<PairScore> pairs, Collection<PairScore> correctPairs, Collection<PairScore> wrongPairs)
@@ -503,13 +504,13 @@ public class LearningSupportRoutines
 	
  	/** Given a graph, removes all negatives and returns the outcome.
  	 * 
- 	 * @param args
+ 	 * @param initialPTA
  	 * @throws Exception
  	 */
  	public static LearnerGraph removeAllNegatives(LearnerGraph initialPTA)
  	{
 		LearnerGraph ptaTmp = new LearnerGraph(initialPTA,initialPTA.config);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:initialPTA.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:initialPTA.transitionMatrix.entrySet())
 		{
 			if (!entry.getKey().isAccept())
 				ptaTmp.transitionMatrix.remove(entry.getKey());

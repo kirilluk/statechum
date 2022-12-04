@@ -450,7 +450,7 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 			cl = new MarkovClassifier(Markov, coregraph);
 		    extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<VertID,CmpVertex,Long>(coregraph.getStateNumber());
 		}
 		
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
@@ -565,11 +565,12 @@ public class MarkovLearnerExperimentWithStatisticalAnalysis extends PairQualityL
 		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
 		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearnerThatCanClassifyPairs#filterPairsBasedOnMandatoryMerge(Stack, LearnerGraph)} where all those not matching mandatory merge conditions are not included.
+		 * Pairs are supposed to be the ones from {@link LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
+		 * where all those not matching mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param extension_graph 
-		 * @param learnerGraph 
-		 * @param pairs 
+		 * @param pairs
+		 * @param graph
+		 * @param extension_graph
 		 */
 		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
 		{

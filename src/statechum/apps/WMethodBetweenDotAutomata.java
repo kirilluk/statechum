@@ -39,10 +39,10 @@ class WMethodBetweenDotAutomata {
          */
         public static void main(String[] args) throws IOException {
                 String referenceDot = Helper.loadFile(new File(args[0]));
-                LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, "reference", config, converter,true);
+                LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, config, converter,true);
                 System.out.println("Size of reference graph: "+reference.getAcceptStateNumber()+" states");
                 String hypothesisDot = Helper.loadFile(new File(args[1]));
-                LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, "hypothesis", config, converter, true);
+                LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, config, converter, true);
                 System.out.println("Size of hypothesis graph: "+hyp.getAcceptStateNumber()+" states");
 
                 int extra_states = Integer.parseInt(args[2]);

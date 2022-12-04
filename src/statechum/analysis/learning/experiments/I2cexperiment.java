@@ -65,6 +65,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.MapWithSearch;
 
 
 public class I2cexperiment extends PairQualityLearner
@@ -177,7 +178,7 @@ public class I2cexperiment extends PairQualityLearner
 				verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<>();
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
 				ptaToUseForInference = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, false);
@@ -193,7 +194,7 @@ public class I2cexperiment extends PairQualityLearner
 			learnerOfPairs = new EDSM_MarkovLearner(learnerEval,ptaToUseForInference,0);learnerOfPairs.setMarkov(m);learnerOfPairs.setChecker(checker);
 			learnerOfPairs.setDisableInconsistenciesInMergers(disableInconsistenciesInMergers);
 
-			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());
 			actualAutomaton.setName("i2c_experiment");
 
     		
@@ -201,7 +202,7 @@ public class I2cexperiment extends PairQualityLearner
 			
 			if (verticesToMergeBasedOnInitialPTA != null && mergeIdentifiedPathsAfterInference)
 			{
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 				int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 				assert genScore >= 0;
 				actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, true);
@@ -225,8 +226,8 @@ public class I2cexperiment extends PairQualityLearner
 	
 	public static void visualiseGraph(LearnerGraph actualAutomaton)
 	{
-		Map<String,String> labelling = new TreeMap<String,String>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:actualAutomaton.transitionMatrix.entrySet())
+		Map<String,String> labelling = new TreeMap<>();
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:actualAutomaton.transitionMatrix.entrySet())
 			labelling.put(entry.getKey().toString(),Visualiser.extralabelToReplaceExisting+entry.getKey().getStringId());
 		DirectedSparseGraph gr = actualAutomaton.pathroutines.getGraph();
 		
@@ -237,10 +238,11 @@ public class I2cexperiment extends PairQualityLearner
 		
 	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
+		List<StatePair> pairsList = new LinkedList<>();
 		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
 		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
+			Set<CmpVertex> validStatesInGroup = new TreeSet<>(groupOfStates);
+			validStatesInGroup.retainAll(validStates);
 			if (validStatesInGroup.size() > 1)
 			{
 				CmpVertex v0=validStatesInGroup.iterator().next();
@@ -299,13 +301,12 @@ public class I2cexperiment extends PairQualityLearner
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
-					 				
-			long value = MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
-			inconsistencyFromAnEarlierIteration=value;
+
+			inconsistencyFromAnEarlierIteration= MarkovClassifier.computeInconsistency(coregraph, Markov, checker,false);
 			cl = new MarkovClassifier(Markov, coregraph);
 		    //extendedGraph = cl.constructMarkovTentative();
 			inverseGraph = (LearnerGraphND)MarkovClassifier.computeInverseGraph(coregraph,true);
-			inconsistenciesPerVertex = new ArrayMapWithSearchPos<CmpVertex,Long>(coregraph.getStateNumber());
+			inconsistenciesPerVertex = new ArrayMapWithSearchPos<VertID,CmpVertex,Long>(coregraph.getStateNumber());
 		}
 		
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
@@ -316,11 +317,11 @@ public class I2cexperiment extends PairQualityLearner
 
 		public long computeScoreBasedOnInconsistencies(PairScore p) 
 		{
-			if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+			if(!p.getQ().isAccept() && !p.getR().isAccept())
 				return 0;
 			++comparisonsPerformed;
 			long currentInconsistency = 0;
-			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+			List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 			int genScore = //new OldPairScoreComputation(coregraph).computePairCompatibilityScore_general(p, null, verticesToMerge);
 					coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 			long score= genScore;
@@ -407,7 +408,7 @@ public class I2cexperiment extends PairQualityLearner
 		}
 	}
 
-	public static void main(String args[]) throws Exception
+	public static void main(String[] args) throws Exception
 	{
 		try
 		{
@@ -424,7 +425,7 @@ public class I2cexperiment extends PairQualityLearner
 	}
 	
 	/** Alphabet that is expected in a trace to load. */
-	protected static String alphabet[]=new String[]{
+	protected static String[] alphabet =new String[]{
 			"=S","@","=R","=TA","[*9]","-Ta","~SnA","~SnB","~R","#S","#W","#Ta","#s","#RA","[+1]","^Ra","~r",
 			"~SwA","~swA","^E","#L","~Xr","?"					
 	};
@@ -432,7 +433,7 @@ public class I2cexperiment extends PairQualityLearner
 	protected static String errElement = "Err";
 	private static List<Label> loadTrace(String inputFileName,ConvertALabel converter)
 	{
-		List<Label> returnValue = new LinkedList<Label>();
+		List<Label> returnValue = new LinkedList<>();
 		
         BufferedReader in = null;
         try {
@@ -487,7 +488,7 @@ public class I2cexperiment extends PairQualityLearner
 		System.out.println("same graph");
 	}
 */
-	public static void runExperiment(@SuppressWarnings("unused") String args[]) throws Exception
+	public static void runExperiment(@SuppressWarnings("unused") String[] args) throws Exception
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setAskQuestions(false);config.setDebugMode(false);config.setGdLowToHighRatio(0.7);config.setRandomPathAttemptFudgeThreshold(1000);
 		config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
@@ -502,7 +503,7 @@ public class I2cexperiment extends PairQualityLearner
 		LearnerGraph initialPTA = new LearnerGraph(config);
 		initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",converter), true, false,null);
     //System.out.println(initialPta.learnerCache.getAlphabet());
-		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), config, converter).toArray(new LearnerGraph[0]);
+		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(List.of("ifthenFSM graph1 A-!" + errElement + "->A-" + errElement + "->B-" + errElement + "->B-!" + errElement + "->A / P-" + errElement + "-#Q / P == THEN == B"), initialPTA.pathroutines.computeAlphabet(), config, converter).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, config.getHowManyStatesToAddFromIFTHEN());// we only need  to augment our PTA once.
 	  LearnerRunner learnerRunner = new LearnerRunner(config, converter);
 	  learnerRunner.setOnlyUsePositives(onlyPositives);

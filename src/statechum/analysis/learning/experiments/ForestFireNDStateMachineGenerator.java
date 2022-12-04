@@ -18,23 +18,11 @@
 
 package statechum.analysis.learning.experiments;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
-
 import cern.jet.random.Distributions;
 import cern.jet.random.engine.MersenneTwister;
 import cern.jet.random.engine.RandomEngine;
-
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -45,8 +33,9 @@ import statechum.StringVertex;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
 
 /*
  * Generates a random graph using a modified version of the 
@@ -59,7 +48,9 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class ForestFireNDStateMachineGenerator {
 	
-	private double forwards, backwards, selfLoop;
+	private final double forwards;
+	private final double backwards;
+	private final double selfLoop;
 	protected LearnerGraphND machine;
 	protected ConvertALabel converter = null;
 	protected List<CmpVertex> vertices;
@@ -73,9 +64,9 @@ public class ForestFireNDStateMachineGenerator {
 		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
 			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
-		visited = new HashSet<CmpVertex>();
+		visited = new HashSet<>();
 		machine = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
-		vertices = new ArrayList<CmpVertex>();
+		vertices = new ArrayList<>();
 		generator  = new MersenneTwister(seed);
 		this.alphabet = alphabetArg;
 		boolGenerator = new Random(seed);
@@ -96,8 +87,6 @@ public class ForestFireNDStateMachineGenerator {
 	/** Adds the supplied number of states to the machine, connecting them to the surrounding ones via forest-fire.
 	 * 
 	 * @param size the number of states to add
-	 * @return constructed machine.
-	 * @throws Exception if something goes wrong.
 	 */
 	protected void buildGraph(int size) 
 	{
@@ -105,7 +94,7 @@ public class ForestFireNDStateMachineGenerator {
 		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
 		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
 			
-			labelmap = new HashMap<VertID,CmpVertex>();
+			labelmap = new HashMap<>();
 			for(int i=0;i<size-1;i++)
 			{
 				CmpVertex v=new StringVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
@@ -175,7 +164,7 @@ public class ForestFireNDStateMachineGenerator {
 	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
 	{
 		DijkstraDistance p = new DijkstraDistance(machine);
-		List<Integer> distances = new LinkedList<Integer>();
+		List<Integer> distances = new LinkedList<>();
 		for(DeterministicVertex v:(Set<DeterministicVertex>)machine.getVertices())
 			for(DeterministicVertex vOther:(Set<DeterministicVertex>)machine.getVertices())
 			{
@@ -193,7 +182,7 @@ public class ForestFireNDStateMachineGenerator {
 		else
 		if (distances.size() > 0)
 		{
-			Integer distancesArray [] = new Integer[distances.size()];distances.toArray(distancesArray);
+			Integer[] distancesArray = new Integer[distances.size()];distances.toArray(distancesArray);
 			Arrays.sort(distancesArray);
 			int position90 = (int)(distances.size()*0.9)-1;
 	
@@ -207,17 +196,17 @@ public class ForestFireNDStateMachineGenerator {
 	 */
 	protected Collection<CmpVertex> selectVertices(Collection<CmpVertex> argVertices, int x)
 	{
-		Set<Integer> chosenInts = new TreeSet<Integer>();int size = argVertices.size();
+		Set<Integer> chosenInts = new TreeSet<>();int size = argVertices.size();
 		if (size <= x) return argVertices;
 		//if (size < x) throw new IllegalArgumentException("cannot return more vertices than there is in the set");
-		List<CmpVertex> result = new LinkedList<CmpVertex>(); 
+		List<CmpVertex> result = new LinkedList<>();
 		final int attemptCounter = 10000;
 		int i=0;
 		for(i=0;i<attemptCounter && chosenInts.size() < x;++i)
 			chosenInts.add(randomInt(size));
 		if (i == attemptCounter) 
 			throw new IllegalArgumentException("random number generator failure");
-		CmpVertex verticesGiven[]=new CmpVertex[size];argVertices.toArray(verticesGiven);
+		CmpVertex[] verticesGiven =new CmpVertex[size];argVertices.toArray(verticesGiven);
 		for(Integer chosen:chosenInts)
 			result.add(verticesGiven[chosen]);
 		return result;
@@ -236,7 +225,7 @@ public class ForestFireNDStateMachineGenerator {
 	{
 		Map<CmpVertex, Map<Label,List<CmpVertex>>> preds = computePreds();
 		// This one needs to choose vertices at random, not just choose first x/y vertices.
-		List<CmpVertex> result = new ArrayList<CmpVertex>();
+		List<CmpVertex> result = new ArrayList<>();
 		Map<Label,List<CmpVertex>> incoming = preds.get(ambassador);
 		if(incoming != null){
 			result.addAll(selectVerticesFromSet(x, incoming));
@@ -247,13 +236,10 @@ public class ForestFireNDStateMachineGenerator {
 	}
 
 	private List<CmpVertex> selectVerticesFromSet(int x, Map<Label, List<CmpVertex>> set) {
-		List<CmpVertex> result = new ArrayList<CmpVertex>();
-		List<CmpVertex> verticesToChooseFrom = new LinkedList<CmpVertex>();
-		Iterator<Label> inIt = set.keySet().iterator();
-		while(inIt.hasNext()){
-			Label e = inIt.next();
-			List<CmpVertex> verticesToBeAdded = new ArrayList<CmpVertex>();
-			verticesToBeAdded.addAll(set.get(e));
+		List<CmpVertex> result = new ArrayList<>();
+		List<CmpVertex> verticesToChooseFrom = new LinkedList<>();
+		for (Label e : set.keySet()) {
+			List<CmpVertex> verticesToBeAdded = new ArrayList<>(set.get(e));
 			verticesToBeAdded.removeAll(visited);
 			verticesToChooseFrom.addAll(verticesToBeAdded);
 		}
@@ -263,8 +249,8 @@ public class ForestFireNDStateMachineGenerator {
 	}
 
 	private Map<CmpVertex, Map<Label,List<CmpVertex>>> computePreds() {
-		Map<CmpVertex, Map<Label,List<CmpVertex>>> preds = new HashMap<CmpVertex,Map<Label,List<CmpVertex>>>();
-		Map<CmpVertex, Map<Label,List<CmpVertex>>> matrix = machine.getTransitionMatrix();
+		Map<CmpVertex, Map<Label,List<CmpVertex>>> preds = new HashMap<>();
+		Map<CmpVertex, MapWithSearch<Label,Label,List<CmpVertex>>> matrix = machine.getTransitionMatrix();
 		Set<CmpVertex> keys = matrix.keySet();
 		for (CmpVertex cmpVertex : keys) {
 			Map<Label,List<CmpVertex>> dests = matrix.get(cmpVertex);
@@ -274,7 +260,7 @@ public class ForestFireNDStateMachineGenerator {
 				for (CmpVertex destination : destinations) {
 					Map<Label,List<CmpVertex>> pred;
 					if(preds.get(destination)==null){
-						pred = new HashMap<Label,List<CmpVertex>>();
+						pred = new HashMap<>();
 						pred.put(string, newListWithVertex(cmpVertex));
 						
 					}
@@ -295,7 +281,7 @@ public class ForestFireNDStateMachineGenerator {
 	}
 
 	private List<CmpVertex> newListWithVertex(CmpVertex cmpVertex) {
-		List<CmpVertex> verticesToReturn = new ArrayList<CmpVertex>();
+		List<CmpVertex> verticesToReturn = new ArrayList<>();
 		verticesToReturn.add(cmpVertex);
 		return verticesToReturn;
 	}
@@ -360,8 +346,8 @@ public class ForestFireNDStateMachineGenerator {
 	}
 	*/
 	protected static void printResults(ArrayList<String> graphs){
-		for (int i=0;i<graphs.size();i++) {
-			System.out.println("synth."+graphs.get(i)+".net <- read.graph(\""+ graphs.get(i)+".net\", format=\"pajek\")");
+		for (String graph : graphs) {
+			System.out.println("synth." + graph + ".net <- read.graph(\"" + graph + ".net\", format=\"pajek\")");
 		}
 		System.out.print("synth.states <- c(");
 		for (int i=0;i<graphs.size();i++) {

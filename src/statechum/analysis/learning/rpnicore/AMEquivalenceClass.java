@@ -28,8 +28,10 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import harmony.collections.HashMapWithSearch;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -48,10 +50,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * for all states belonging to those classes.
 	 * This set makes it possible to do this.
 	 */
-	private Set<CmpVertex> states = new TreeSet<CmpVertex>();
+	private final Set<CmpVertex> states = new TreeSet<>();
 
 	/** Accumulates the states which are not compatible to states in this equivalence class. */
-	final Set<CmpVertex> incompatibleStates = new TreeSet<CmpVertex>();
+	final Set<CmpVertex> incompatibleStates = new TreeSet<>();
 	
 	/** Whether the collection of states in this equivalence class contains all-accept or all-reject states. */
 	private boolean accept;
@@ -67,7 +69,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		ClassNumber=number;coregraph=graph;
 		outgoingTransitions = //coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? // I cannot always rely on array-maps because some labels might not be numbered.
 				//new ArrayMapWithSearchPos<Label,Object>(5) : 
-					new TreeMap<Label,Object>();
+				new TreeMap<>();
 	}
 	
 	/* (non-Javadoc)
@@ -156,7 +158,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	
 	/** Adds a state to the collection of states in this equivalence class.
 	 * 
-	 * @param from transitions to add from.
+	 * @param vert transitions to add from.
 	 * @return false if the new state is not compatible with any state in this equivalence class
 	 * @throws IncompatibleStatesException if the state to be added is incompatible with any state in the equivalence class.
 	 */
@@ -210,14 +212,14 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 			}
 			else
 			{
-				List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add(target);where.put(label, details);
+				List<CmpVertex> details = new ArrayList<>(5);details.add(target);where.put(label, details);
 			}
 			outcome = true;
 		}
 		else
 			if (valueInMap instanceof CmpVertex)
 			{
-				List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add((CmpVertex)valueInMap);details.add(target);where.put(label, details);
+				List<CmpVertex> details = new ArrayList<>(5);details.add((CmpVertex)valueInMap);details.add(target);where.put(label, details);
 			}
 			else
 				((List<CmpVertex>)valueInMap).add(target);
@@ -229,8 +231,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * The idea of a singleton is significant because in this case we do not need to consider that specific input where we merge subsequent states: only those entered by transitions with the same inputs need to be merged.
 	 * 
 	 * @param where collection of transitions to update
-	 * @param label label associated with the transition to add.
-	 * @param target the target state of the transition of interest.
+	 * @param what labels and target states associated with the transitions to add.
+	 * @param useArrayMap whether to use arraymap for storage.
 	 * @return True if there is only one transition with that input after the supplied one has been added.
 	 */
 	public static boolean addAllTransitions(Map<Label,Object> where, Map<Label,Object> what, boolean useArrayMap)
@@ -257,13 +259,13 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 						}
 						else
 						{// if not using an array, create a list
-							List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add(v);valueInMap = details;
+							List<CmpVertex> details = new ArrayList<>(5);details.add(v);valueInMap = details;
 						}
 					}
 					else
 						if (valueInMap instanceof CmpVertex)
 						{
-							List<CmpVertex> details = new ArrayList<CmpVertex>(5);details.add((CmpVertex)valueInMap);details.add(v);singleton = false;
+							List<CmpVertex> details = new ArrayList<>(5);details.add((CmpVertex)valueInMap);details.add(v);singleton = false;
 							valueInMap = details;
 						}
 						else
@@ -312,14 +314,16 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 			
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			{// this one is tested with testEqClassHandlingOfIncompatibleVertices_fail7a
-				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(incompatibleStates);incomps.retainAll(to.states);
+				Set<CmpVertex> incomps = new TreeSet<>(incompatibleStates);
+				incomps.retainAll(to.states);
 				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
 					throw new IncompatibleStatesException("incompatible equivalence classes");
 			}
 			
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			{// this one is tested with testEqClassHandlingOfIncompatibleVertices_fail7b
-				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(to.incompatibleStates);incomps.retainAll(states);
+				Set<CmpVertex> incomps = new TreeSet<>(to.incompatibleStates);
+				incomps.retainAll(states);
 				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
 					throw new IncompatibleStatesException("incompatible equivalence classes");
 			}
@@ -396,7 +400,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return mergedVertex;
 	}
 	
-	private static final Map<JUConstants,Map<JUConstants,JUConstants>> ColourPriorities = new TreeMap<JUConstants,Map<JUConstants,JUConstants>>();
+	private static final Map<JUConstants,Map<JUConstants,JUConstants>> ColourPriorities = new TreeMap<>();
 	
 	static
 	{
@@ -410,7 +414,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		{
 			for(JUConstants col:priorities[priority])
 			{
-				final Map<JUConstants,JUConstants> transformation = new TreeMap<JUConstants,JUConstants>();
+				final Map<JUConstants,JUConstants> transformation = new TreeMap<>();
 				ColourPriorities.put(col,transformation);
 				
 				// lower priority and the current priority
@@ -456,7 +460,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	@Override
 	public String toString() {
 		String mergedDescr = mergedVertex == null?"":mergedVertex.getStringId()+"->";
-		StringBuffer result = new StringBuffer("["+mergedDescr+"{");
+		StringBuilder result = new StringBuilder("["+mergedDescr+"{");
 		Iterator<CmpVertex> vertIter = states.iterator();
 		result.append(vertIter.next().getStringId());
 		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getStringId());
@@ -513,7 +517,6 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * 
 	 * @param graph the graph to update
 	 * @param eqClasses the collection of equivalence classes out of which this graph has been built.
-	 * @param ThreadNumber the number of threads to use. 
 	 */
 	public static <TARGET_IN_TYPE,TARGET_OUT_TYPE,
 		CACHE_IN_TYPE extends CachedData<TARGET_IN_TYPE,CACHE_IN_TYPE>,
@@ -523,15 +526,12 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	{
 		final Map<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>> vertexToEqClassesContainingIt = 
 			// here we use default values since the matrix is most likely to be mostly empty
-					new statechum.collections.HashMapWithSearch<CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
+					new HashMapWithSearch<VertID,CmpVertex, List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>>(graph.config.getMaxAcceptStateNumber()+graph.config.getMaxRejectStateNumber());
 		for(EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> eqClass:eqClasses)
 			for(CmpVertex vertex:eqClass.getStates())
 			{
-				List<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
-				if (classes == null)
-				{
-					classes = new LinkedList<EquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>>();vertexToEqClassesContainingIt.put(vertex,classes);
-				}
+				List<EquivalenceClass<TARGET_IN_TYPE, CACHE_IN_TYPE>> classes =
+						vertexToEqClassesContainingIt.computeIfAbsent(vertex, k -> new LinkedList<>());
 				classes.add(eqClass);
 			}
 		

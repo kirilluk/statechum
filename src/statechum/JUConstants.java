@@ -27,7 +27,6 @@ public enum JUConstants {
 	ORIGSTATE("origstate"),// (VertexID) the name of a vertex in hard facts which corresponds to this vertex
 	DEPTH("depth"),// (int) how far the original state (ORIGSTATE) was from the root state
 	
-	PAIR_COMPATIBILITY("compatibility"),// compatibility between states in a graph, an attribute of a graph (similar to a title). 
 	STATS("STATS"),
 	COLOUR("colour"),
 	DIFF("DIFF"),// information used to facilitate coloring of edges 

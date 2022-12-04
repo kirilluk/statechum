@@ -35,6 +35,7 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import harmony.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
@@ -52,7 +53,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.apps.QSMTool;
-import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
 /** Miscellaneous graph transformation routines. */
@@ -87,7 +88,7 @@ public class Transform
 	public void addRejectStateRandomly(Random rnd)
 	{
 		CmpVertex v =coregraph.pathroutines.pickRandomState(rnd);
-		HashSet<Label> possibilities = new HashSet<Label>();possibilities.addAll(coregraph.learnerCache.getAlphabet());
+		HashSet<Label> possibilities = new HashSet<>(coregraph.learnerCache.getAlphabet());
 		possibilities.removeAll(coregraph.transitionMatrix.get(v).keySet());
 		Iterator<Label> inputIt = possibilities.iterator();
 		if (inputIt.hasNext())
@@ -108,13 +109,13 @@ public class Transform
 	 */
 	public static List<Boolean> wToBooleans(LearnerGraph g, CmpVertex state, Collection<List<Label>> wSet)
 	{
-		List<Boolean> result = new LinkedList<Boolean>();
+		List<Boolean> result = new LinkedList<>();
 		for(List<Label> seq:wSet)
 			result.add(g.paths.tracePathPrefixClosed(seq,state) == AbstractOracle.USER_ACCEPTED);
 		return result;
 	}
 	
-	Set<CmpVertex> fragileStates = new HashSet<CmpVertex>();
+	Set<CmpVertex> fragileStates = new HashSet<>();
 	
 	/** Computes Hamming distances between elements of a W set and outputs 
 	 * the description of the results, potentially including a lot of statistical information. 
@@ -125,13 +126,13 @@ public class Transform
 	 */
 	public String ComputeHamming(boolean produceStatistics)
 	{
-		List<List<Label>> wSet = new LinkedList<List<Label>>();wSet.addAll(WMethod.computeWSet_reducedmemory(coregraph));
-		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<CmpVertex,List<Boolean>>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
+		List<List<Label>> wSet = new LinkedList<>(WMethod.computeWSet_reducedmemory(coregraph));
+		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
 			bitVector.put(state.getKey(),wToBooleans(coregraph,state.getKey(), wSet));
 		int min=Integer.MAX_VALUE,max=0;double average = 0;
-		Map<Integer,AtomicInteger> statistics = new HashMap<Integer,AtomicInteger>();
-		Object stateToBitVector[] = bitVector.entrySet().toArray();
+		Map<Integer,AtomicInteger> statistics = new HashMap<>();
+		Object[] stateToBitVector = bitVector.entrySet().toArray();
 		for(int i=0;i< stateToBitVector.length;++i)
 			for(int j=i+1;j<stateToBitVector.length;++j)
 			{
@@ -144,14 +145,15 @@ public class Transform
 				AtomicInteger atomicH = statistics.get(h);if (atomicH == null) { atomicH = new AtomicInteger(1);statistics.put(h, atomicH); } else atomicH.addAndGet(1);
 				if (h == 1) fragileStates.add(vecI.getKey());
 			}
-		String result =" ONE:"+statistics.get(1)+" ";
-		for(Entry<Integer,AtomicInteger> pair:statistics.entrySet()) result+=" "+pair.getKey()+":"+pair.getValue();
-		result+="\n";
-		for(CmpVertex fragile:fragileStates) result+=" "+fragile;result+="\n";
+		StringBuilder result = new StringBuilder(" ONE:" + statistics.get(1) + " ");
+		for(Entry<Integer,AtomicInteger> pair:statistics.entrySet()) result.append(" ").append(pair.getKey()).append(":").append(pair.getValue());
+		result.append("\n");
+		for(CmpVertex fragile:fragileStates) result.append(" ").append(fragile);
+		result.append("\n");
 		int counter =  bitVector.size()*(bitVector.size()-1)/2;
 		String basicInfo = "Hamming distances min: "+min+" max: "+max;
-		result+="\n"+basicInfo+" average: "+(average/counter);
-		return produceStatistics?result:basicInfo;
+		result.append("\n").append(basicInfo).append(" average: ").append(average / counter);
+		return produceStatistics? result.toString() :basicInfo;
 	}
 
 	/** Takes a graph and outputs vectors corresponding to responses of states 
@@ -162,11 +164,11 @@ public class Transform
 	 */
 	public static String getVectors(LearnerGraph g, Collection<List<Label>> wSet)
 	{
-		String result = "";
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
-			result+="\n"+wToBooleans(g,state.getKey(), wSet);
-		result+="\n";
-		return result;
+		StringBuilder result = new StringBuilder();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> state:g.transitionMatrix.entrySet())
+			result.append("\n").append(wToBooleans(g, state.getKey(), wSet));
+		result.append("\n");
+		return result.toString();
 	}
 	
 	/** A graph may be completely random or built with a specific distribution of labels in mind.
@@ -187,9 +189,9 @@ public class Transform
 	public static double getEffectiveFillRate(LearnerGraph g, Collection<List<Label>> wSet)
 	{
 		int positives=0;
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> state:g.transitionMatrix.entrySet())
 			for(Boolean b:wToBooleans(g,state.getKey(), wSet))
-				if (b.booleanValue()) ++positives;
+				if (b) ++positives;
 		return ((double)positives)/(g.getStateNumber()*wSet.size());
 	}
 	
@@ -207,9 +209,9 @@ public class Transform
 	 */ 
 	public String checkWChanged()
 	{
-		String result = "";
+		StringBuilder result = new StringBuilder();
 		Collection<List<Label>> wSet = WMethod.computeWSet_reducedmemory(coregraph);
-		Set<Label> Walphabet = new HashSet<Label>();
+		Set<Label> Walphabet = new HashSet<>();
 		for(List<Label> wSeq:wSet)
 		{
 			if (wSeq.size() != 1)
@@ -218,14 +220,13 @@ public class Transform
 		}
 		Collection<Label> alphabet = coregraph.pathroutines.computeAlphabet();
 		double fillFactor = getEffectiveFillRate(coregraph, wSet);//transitionsFromEveryState/alphabet.size();
-		result+=getVectors(coregraph, wSet);
+		result.append(getVectors(coregraph, wSet));
 		double average = (1-fillFactor)*wSet.size()*coregraph.getStateNumber();
 		int changeNumber = 0, total =0;
-		Map<Label,AtomicInteger> labelUsage = new HashMap<Label,AtomicInteger>();for(Label l:alphabet) labelUsage.put(l, new AtomicInteger());
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		Map<Label,AtomicInteger> labelUsage = new HashMap<>();for(Label l:alphabet) labelUsage.put(l, new AtomicInteger());
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			Collection<Label> newLabels = new HashSet<Label>();
-                        newLabels.addAll(Walphabet);
+			Collection<Label> newLabels = new HashSet<>(Walphabet);
                         newLabels.removeAll(entry.getValue().keySet());
 			int changesForThisState = 0;
 			
@@ -253,16 +254,17 @@ public class Transform
 				++total;
 			}
 			changeNumber+=changesForThisState;
-			result+="changes for "+entry.getKey().getStringId()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
+			result.append("changes for ").append(entry.getKey().getStringId()).append(" ").append(changesForThisState).append(" (max ").append(newLabels.size()).append("), max for add/remove is ").append(Walphabet.size()).append("\n");
 		}
 		double stateNumber = coregraph.getStateNumber();
 		double wsize = wSet.size();
 		double expectedNrOfChanges = wsize*2*fillFactor*(1-fillFactor)*Math.pow(fillFactor*fillFactor+(1-fillFactor)*(1-fillFactor), wsize-1)*
 			stateNumber*(stateNumber-1)/2;
-		result+="Distribution of labels: ";for(Entry<Label,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
-		result+="Distribution of elements of W: ";
-                for(Label wElem:Walphabet) result+=" "+labelUsage.get(wElem);
-                result+="\n";
+		result.append("Distribution of labels: ");for(Entry<Label,AtomicInteger> en:labelUsage.entrySet()) result.append(" ").append(en.getValue());
+		result.append("\n");
+		result.append("Distribution of elements of W: ");
+                for(Label wElem:Walphabet) result.append(" ").append(labelUsage.get(wElem));
+                result.append("\n");
 		return Math.abs(expectedNrOfChanges-changeNumber)/changeNumber+"\n"+result+"W size: "+wSet.size()+" W changes: "+changeNumber+ " out of "+total+" (expected "+average+"), \nfill factor is "+fillFactor+"\n "+
 			"Expected number of changes is: "+expectedNrOfChanges
 		;
@@ -277,7 +279,7 @@ public class Transform
 	 * to true, permitting <em>augmentFromMAX</em> to be used as a kind of AugmentMAX (<em>augmentPTA</em> 
 	 * with <em>max</em> argument set to true). 
 	 *   
-	 * @param what tentative PTA to update
+	 * @param graph tentative PTA to update
 	 * @param from maximal automaton to update from
 	 * @param override whether to replace parts of tentative PTA with those from maximal automaton if the two are in conflict.
 	 * @param maxIsPartial whether a maximal automaton is partial, i.e. there may be sequences in our tentative PTA which are not reflected in a 
@@ -292,11 +294,11 @@ public class Transform
 	public static LearnerGraph augmentFromMAX(LearnerGraph graph, LearnerGraph from, boolean override, 
 			boolean maxIsPartial, Configuration config, boolean checkWasModified)
 	{
-		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		final Map<StatePair,CmpVertex> pairsToGraphStates = new HashMap<StatePair,CmpVertex>();
+		final Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		final Map<StatePair,CmpVertex> pairsToGraphStates = new HashMap<>();
 		LearnerGraph result = new LearnerGraph(config);result.initEmpty();
 		// Two sets are constructed so that I do not have to think about vertices which are shared between the two graphs regardless whether such a case is possible or not.
-		final Set<CmpVertex> encounteredGraph = new HashSet<CmpVertex>();
+		final Set<CmpVertex> encounteredGraph = new HashSet<>();
 		StatePair statePair = new StatePair(graph.getInit(),from.getInit());
 		encounteredGraph.add(statePair.firstElem);
 		result.setInit(AbstractLearnerGraph.cloneCmpVertex(graph.getInit(), config));
@@ -571,37 +573,36 @@ public class Transform
 		 * Where multiple elements are needed, it is converted to a real collection. This method takes an object and turns it into a collection
 		 * that can be iterated over. Nothing more is needed.
 		 * 
-		 * @param object
-		 * @return
+		 * @param object to turn into collection if it is not a null or already a collection
+		 * @return an iterator (unless the supplied element is null).
 		 */
-		public static Iterator<ExplorationElement> getCollectionOfVisited(final Object object) 
-		{
+		public static Iterator<ExplorationElement> getCollectionOfVisited(final Object object) {
 			if (object == null)
 				return null;
+			else if (object instanceof ExplorationElement)
+				return new Iterator<>() {
+					private boolean elementReturned = false;
+
+					@Override
+					public boolean hasNext() {
+						return !elementReturned;
+					}
+
+					@Override
+					public ExplorationElement next() {
+						if (elementReturned)
+							throw new NoSuchElementException("no more elments in the iterator over exploration elements");
+						elementReturned = true;
+						return (ExplorationElement) object;
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException("remove not supported from an iterator over exploration elements");
+					}
+				};
 			else
-				if (object instanceof ExplorationElement)
-					return new Iterator<ExplorationElement>(){
-						private boolean elementReturned = false;
-						
-						@Override
-						public boolean hasNext() {
-							return !elementReturned;
-						}
-
-						@Override
-						public ExplorationElement next() {
-							if (elementReturned)
-								throw new NoSuchElementException("no more elments in the iterator over exploration elements");
-							elementReturned = true;
-							return (ExplorationElement)object;
-						}
-
-						@Override
-						public void remove() {
-							throw new UnsupportedOperationException("remove not supported from an iterator over exploration elements");
-						}};
-						else
-							return ((Set<ExplorationElement>)object).iterator();
+				return ((Set<ExplorationElement>) object).iterator();
 		}
 	}
 
@@ -681,7 +682,7 @@ public class Transform
 			throw new IllegalArgumentException("questions PTA has not been computed yet"); 
 
 		NonExistingPaths nonExisting = (NonExistingPaths) engine.getFSM();
-		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
+		Map<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
 		CmpVertex currentState = coregraph.getInit();
 		nonExisting.getNonExistingVertices().remove(currentState);
 		for(Label label:question)
@@ -717,7 +718,7 @@ public class Transform
 			{// a singleton recorded, check if it is the same as the one we try to add.
 				if (!explorationElement.equals(propertyStatesForThisGraphState))
 				{// the new element is different from the previous one, have to record the two as a collection
-					Set<ExplorationElement> collection = new TreeSet<ExplorationElement>();
+					Set<ExplorationElement> collection = new TreeSet<>();
 					collection.add((ExplorationElement)propertyStatesForThisGraphState);collection.add(explorationElement);
 					visited[explorationElement.propertyGraph].put(explorationElement.graphState,collection);
 					result = false;// had to create a collection
@@ -746,7 +747,7 @@ public class Transform
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
 	 * This PTA is ignored if null, otherwise answered questions are marked.
-	 * @param ifthenGraph property automaton to consider.
+	 * @param ifthenGraphs property automata to consider.
 	 * @param howManyToAdd how many waves of transitions to add to the graph. This is not used when if-then is used to answer 
 	 * questions (questionPaths not empty). At most <em>howMayToAdd</em> transitions will be added; 
 	 * if this value if not positive, the graph remains unchanged.
@@ -761,22 +762,22 @@ public class Transform
 				if (state.getKind() == VertKind.NONEXISTING)
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		
-		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.getNonExistingVertices();
-		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix(graph):questionPaths.getNonExistingTransitionMatrix();
-		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
+		Set<CmpVertex> nonExistingVertices = questionPaths == null? new TreeSet<>():questionPaths.getNonExistingVertices();
+		Map<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix(graph):questionPaths.getNonExistingTransitionMatrix();
+		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		@SuppressWarnings("unchecked")
 		final Map<CmpVertex,Object>[] visited = new Map[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
-		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
+		final Set<CmpVertex> newStates = new HashSet<>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
 
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
 			visited[i]=AbstractLearnerGraph.constructMap(graph.config,graph);// previously the number of states was shifted left by one to create space for more vertices
 			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
-			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();
+			Set<ExplorationElement> visitedStates = new HashSet<>();
 			visited[i].put(graph.getInit(), visitedStates);visitedStates.add(initialState);
 		}
-		ExplorationElement explorationElement = null;
+		ExplorationElement explorationElement;
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			explorationElement = currentExplorationBoundary.remove();
@@ -784,7 +785,7 @@ public class Transform
 			LearnerGraph ifthenGraph = ifthenGraphs[explorationElement.propertyGraph];
 			assert explorationElement.graphState != null : "current TA state should never be null";
 			assert graph.transitionMatrix.containsKey(explorationElement.graphState) || nonexistingMatrix.containsKey(explorationElement.graphState): "state "+explorationElement.graphState+" is not known to the tentative automaton";
-			assert explorationElement.IFState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.IFState) : "state "+explorationElement.IFState.toString()+" is not known to the property graph";
+			assert explorationElement.IFState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.IFState) : "state "+ explorationElement.IFState +" is not known to the property graph";
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
 			{
@@ -837,7 +838,7 @@ public class Transform
 				graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
 			
 			Map<Label,CmpVertex> thenTargets = explorationElement.thenState == null?null:explorationElement.thenGraph.transitionMatrix.get(explorationElement.thenState);
-			List<Label> labelsOnOutgoingTransitions = new LinkedList<Label>();labelsOnOutgoingTransitions.addAll(graphTargets.keySet());
+			List<Label> labelsOnOutgoingTransitions = new LinkedList<>(graphTargets.keySet());
 			if (thenTargets != null) labelsOnOutgoingTransitions.addAll(thenTargets.keySet());// Exploring the added "THEN" graph, by adding the appropriate states to the graph or following question PTA.
 			for(Label label:labelsOnOutgoingTransitions)
 			{
@@ -971,23 +972,23 @@ public class Transform
 	{
 		LearnerGraph result = new LearnerGraph(ltl,ltl.config);
 		
-		Map<Set<Label>,CmpVertex> rejectInputsToRejectGraph = new HashMap<Set<Label>,CmpVertex>();
+		Map<Set<Label>,CmpVertex> rejectInputsToRejectGraph = new HashMap<>();
 		
 		// first pass - computing an alphabet
 		Set<Label> alphabet = result.learnerCache.getAlphabet();
-		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix(new Pair<Integer,Integer>(ltl.config.getMaxAcceptStateNumber(),ltl.config.getMaxRejectStateNumber()));
+		Map<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix(new Pair<>(ltl.config.getMaxAcceptStateNumber(), ltl.config.getMaxRejectStateNumber()));
 		// second pass - checking if any transitions need to be added and adding them.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 		{
-			Set<Label> labelsRejected = new TreeSet<Label>();
-			labelsRejected.addAll(alphabet);labelsRejected.removeAll(entry.getValue().keySet());
+			Set<Label> labelsRejected = new TreeSet<>(alphabet);
+			labelsRejected.removeAll(entry.getValue().keySet());
 			if (!labelsRejected.isEmpty())
 			{
 				CmpVertex thenGraph = rejectInputsToRejectGraph.get(labelsRejected);
 				if (thenGraph == null)
 				{// create a THEN graph which rejects all transitions with inputs rejected from entry.getKey() state.
 					thenGraph = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(true), result.config);
-					Map<Label,CmpVertex> row = result.createNewRow();
+					MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();
 					extraRows.put(thenGraph, row);
 					for(Label rejectInput:labelsRejected)
 					{
@@ -1007,7 +1008,7 @@ public class Transform
 	
 	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, Set<Label> alphabet, Configuration config, ConvertALabel conv)
 	{
-		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
+		Collection<LearnerGraph> ifthenAutomata = new LinkedList<>();
 		LTL_to_ba converter = new LTL_to_ba(config,conv);
 		if (converter.ltlToBA(ltl, alphabet, true,
 				GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)))
@@ -1056,7 +1057,7 @@ public class Transform
 	public static void checkTHEN_disjoint_from_IF(LearnerGraph ifthen)
 	{
 		Set<CmpVertex> ifStates = ifthen.pathroutines.computeShortPathsToAllStates(ifthen.getInit()).keySet();
-		Set<CmpVertex> allStates = new TreeSet<CmpVertex>();allStates.addAll(ifStates);
+		Set<CmpVertex> allStates = new TreeSet<>(ifStates);
 		int thenStatesCount = 0;
 		for(CmpVertex state:ifStates)
 		{
@@ -1068,7 +1069,7 @@ public class Transform
 						CmpVertex thenState = entry.getKey();
 						thenStatesCount++;
 
-						Set<CmpVertex> thenCollection = new TreeSet<CmpVertex>();thenCollection.addAll(ifthen.pathroutines.computeShortPathsToAllStates(thenState).keySet());
+						Set<CmpVertex> thenCollection = new TreeSet<>(ifthen.pathroutines.computeShortPathsToAllStates(thenState).keySet());
 						allStates.addAll(thenCollection);
 						thenCollection.retainAll(ifStates);
 						if (!thenCollection.isEmpty())
@@ -1088,7 +1089,7 @@ public class Transform
 			throw new IllegalArgumentException("unreachable states in graph");
 	}
 	
-	public static interface LabelConverter
+	public interface LabelConverter
 	{
 		/** Converts a label to a collection of labels, possibly of a completely different type,
 		 * such as string->Erlang.
@@ -1096,10 +1097,10 @@ public class Transform
 		 * @param label label to convert
 		 * @return outcome of conversion.
 		 */
-		public Set<Label> convertLabel(Label label);
+		Set<Label> convertLabel(Label label);
 	}
 	
-	public static interface ConvertALabel
+	public interface ConvertALabel
 	{
 		/** Converts a label to a single label, possibly of a completely different type,
 		 * such as string->Erlang.
@@ -1107,7 +1108,7 @@ public class Transform
 		 * @param label label to convert
 		 * @return outcome of conversion.
 		 */
-		public Label convertLabelToLabel(Label label);
+		Label convertLabelToLabel(Label label);
 	}
 	
 	/** Interprets string labels as a limited kind of regular expressions, returns the corresponding set of labels.
@@ -1181,7 +1182,7 @@ public class Transform
 	 */
 	public static class InternStringLabel implements LabelConverter, ConvertALabel
 	{
-		protected Map<Label,Label> labelDatabase = new HashMapWithSearch<Label,Label>(20);
+		protected MapWithSearch<Label,Label,Label> labelDatabase = new HashMapWithSearch<>(20);
 		
 		/** ID to give to the next label. */
 		protected int nextID;
@@ -1189,7 +1190,7 @@ public class Transform
 		/** Given a label, returns an interned label. Could return the same label but should not return null. 
 		 * For multi-core operation, this method has to be synchronized.
 		 * 
-		 * @param lbl label to intern. 
+		 * @param label label to intern.
 		 */
 		@Override
 		public synchronized Label convertLabelToLabel(Label label)
@@ -1239,10 +1240,10 @@ public class Transform
 	public static TraversalStatistics countSharedTransitions(LearnerGraph big, LearnerGraph small)
 	{
 		CmpVertex stateBig = big.getInit(), stateSmall = small.getInit();
-		Map<Pair<CmpVertex,Label>,Integer> TX_counter = new HashMap<Pair<CmpVertex,Label>,Integer>();// counts transitions which are visited more than once during the traversal.
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		Map<Pair<CmpVertex,Label>,Integer> TX_counter = new HashMap<>();// counts transitions which are visited more than once during the traversal.
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		int matchedTransitionCounter = 0;
-		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
+		Set<StatePair> statesAddedToBoundary = new HashSet<>();
 		currentExplorationBoundary.add(new StatePair(stateBig,stateSmall));statesAddedToBoundary.add(new StatePair(stateBig,stateSmall));
 		int tx=0;
 		while(!currentExplorationBoundary.isEmpty())
@@ -1265,12 +1266,12 @@ public class Transform
 				++matchedTransitionCounter;
 				CmpVertex nextSmall = labelstate.getValue();
 				CmpVertex nextBig = targetsBig.get(label);
-				Pair<CmpVertex,Label> transition = new Pair<CmpVertex,Label>(statePair.firstElem,label);
+				Pair<CmpVertex,Label> transition = new Pair<>(statePair.firstElem, label);
 				
 				Integer counter = TX_counter.get(transition);
 				if (counter == null)
 				{
-					counter = Integer.valueOf(0);
+					counter = 0;
 				}
 				else ++tx;
 				TX_counter.put(transition, counter+1);
@@ -1314,65 +1315,61 @@ public class Transform
 	/** Given a large graph, this method chops all states more than a specific number of transitions away from the root node. 
 	 * Very useful for visualisation of complex graphs where Jung will choke doing a layout and the part of interest is close to the root node.
 	 * 
-	 * @param coregraph graph to trim.
 	 * @param depth the diameter of the graph to leave.
+	 * @param startingState the start to start trimming from (that is, the one to use as initial state)
 	 * @return trimmed graph
 	 */
-	public LearnerGraph trimGraph(int depth,CmpVertex startingState)
-	{
+	public LearnerGraph trimGraph(int depth, CmpVertex startingState) {
 		if (coregraph.findVertex(startingState) != startingState)
 			throw new IllegalArgumentException("starting state passed as an argument to trimGraph does not belong to coregraph");
-		
+
 		LearnerGraph trimmedOne = new LearnerGraph(coregraph.config);
 		trimmedOne.initEmpty();
-		
+
 		if (depth < 0)
 			return trimmedOne;
-		
+
 		// we should not change attributes of coregraph's matrix here since we are re-using the vertices
-		trimmedOne.transitionMatrix.put(startingState,trimmedOne.createNewRow());
+		trimmedOne.transitionMatrix.put(startingState, trimmedOne.createNewRow());
 		trimmedOne.setInit(startingState);
 		trimmedOne.learnerCache.invalidate();
 
-		Queue<CmpVertex> newFringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// since the subset of the filtered vertices is very small, it is enough to use an ordinary HashSet. A HashMapWithSearch will be an overkill.
-		newFringe.add(startingState);statesInFringe.add(startingState);
-		int waveNumber=0;
-		do
-		{
-			Queue<CmpVertex> fringe = newFringe;newFringe = new LinkedList<CmpVertex>();
-			while(!fringe.isEmpty())
-			{
+		Queue<CmpVertex> newFringe = new LinkedList<>();
+		Set<CmpVertex> statesInFringe = new HashSet<>();// since the subset of the filtered vertices is very small, it is enough to use an ordinary HashSet. A HashMapWithSearch will be an overkill.
+		newFringe.add(startingState);
+		statesInFringe.add(startingState);
+		int waveNumber = 0;
+		do {
+			Queue<CmpVertex> fringe = newFringe;
+			newFringe = new LinkedList<>();
+			while (!fringe.isEmpty()) {
 				CmpVertex currentState = fringe.remove();
-				Map<Label,CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState==startingState?startingState:currentState);
-				Map<Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
-				if(targets != null && !targets.isEmpty())
-					for(Entry<Label,CmpVertex> labelstate:targets.entrySet())
-						
-					for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
-					{
-						// in the last pass we limit the set of states to those that have been encountered earlier
-						if (waveNumber <= depth -1 || statesInFringe.contains(target))
-						{
-							Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(target);
-							if (row == null) 
-							{
-								row = trimmedOne.createNewRow();trimmedOne.transitionMatrix.put(target, row);
-							}
-							trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
-							
-							if (!statesInFringe.contains(target))
-							{
-								newFringe.offer(target);
-								statesInFringe.add(target);
+				MapWithSearch<Label, Label, CmpVertex> currentRow = trimmedOne.transitionMatrix.get(currentState);
+				MapWithSearch<Label, Label, CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+				if (targets != null && !targets.isEmpty())
+					for (Entry<Label, CmpVertex> labelstate : targets.entrySet())
+
+						for (CmpVertex target : coregraph.getTargets(labelstate.getValue())) {
+							// in the last pass we limit the set of states to those that have been encountered earlier
+							if (waveNumber <= depth - 1 || statesInFringe.contains(target)) {
+								MapWithSearch<Label, Label, CmpVertex> row = trimmedOne.transitionMatrix.get(target);
+								if (row == null) {
+									row = trimmedOne.createNewRow();
+									trimmedOne.transitionMatrix.put(target, row);
+								}
+								trimmedOne.addTransition(currentRow, labelstate.getKey(), target);
+
+								if (!statesInFringe.contains(target)) {
+									newFringe.offer(target);
+									statesInFringe.add(target);
+								}
 							}
 						}
-					}
 			}
-			
+
 			++waveNumber;
 		}
-		while(!newFringe.isEmpty() && waveNumber <= depth);
+		while (!newFringe.isEmpty() && waveNumber <= depth);
 		return trimmedOne;
 	}
 	

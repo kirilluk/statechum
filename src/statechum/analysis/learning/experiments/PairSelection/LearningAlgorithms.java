@@ -1,54 +1,21 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.Stack;
-import java.util.Map.Entry;
-
-import statechum.Configuration;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.Label;
-import statechum.Pair;
+import harmony.collections.HashMapWithSearch;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.MarkovClassifier;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.RPNIUniversalLearner;
-import statechum.analysis.learning.StatePair;
+import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.analysis.learning.*;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.observers.LearnerReturningOriginalGraph;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.PairScoreComputation;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
@@ -56,8 +23,12 @@ import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectio
 import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class LearningAlgorithms
 {
@@ -129,7 +100,7 @@ public class LearningAlgorithms
 			initialPTA = argInitialPTA;
 		}
 
-		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<Label>(),labelsLeadingFromStatesToBeMerged = new LinkedList<Label>();
+		Collection<Label> labelsLeadingToStatesToBeMerged = new LinkedList<>(),labelsLeadingFromStatesToBeMerged = new LinkedList<>();
 		
 		public Collection<Label> getLabelsLeadingToStatesToBeMerged()
 		{
@@ -184,7 +155,7 @@ public class LearningAlgorithms
 			}
 			else
 			{
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
 				if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, false) < 0)
 					throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
 				outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices,false);
@@ -221,26 +192,22 @@ public class LearningAlgorithms
 		 */
 		public PairScore pickCorrectPair(Collection<PairScore> pairs, LearnerGraph tentativeGraph)
 		{
-			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+			List<PairScore> correctPairs = new ArrayList<>(pairs.size()), wrongPairs = new ArrayList<>(pairs.size());
 					
 			LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(tentativeGraph, referenceGraph, pairs, correctPairs, wrongPairs);
 			
 			// without sorting the pairs, the learner finds itself in a situation with no valid pairs to choose from.
-			Comparator<PairScore> PairComparator = new Comparator<PairScore>(){
-
-				@Override
-				// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
-				public int compare(PairScore o1, PairScore o2) {
-					// if o1 is negative and o2 is positive, the outcome is negative.
-					int outcome = LearningSupportRoutines.signum( o2.getAnotherScore() - o1.getAnotherScore() );
-					return outcome;
-					
-				}};
+			// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
+			Comparator<PairScore> PairComparator = (o1, o2) -> {
+				// if o1 is negative and o2 is positive, the outcome is negative.
+				int outcome = LearningSupportRoutines.signum(o2.getAnotherScore() - o1.getAnotherScore());
+				return outcome;
+			};
 				
-			Collections.sort(correctPairs,PairComparator);
+			correctPairs.sort(PairComparator);
 			if (correctPairs.isEmpty())
 			{
-				Collections.sort(wrongPairs, PairComparator);
+				wrongPairs.sort(PairComparator);
 				allMergersCorrect = false;
 				return wrongPairs.iterator().next();
 			}
@@ -253,7 +220,7 @@ public class LearningAlgorithms
 		{
 			
 			CmpVertex stateToMarkRed = null;
-			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+			List<PairScore> correctPairs = new ArrayList<>(pairs.size()), wrongPairs = new ArrayList<>(pairs.size());
 			LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
 			if (correctPairs.isEmpty())
 				stateToMarkRed = wrongPairs.get(0).getQ();// no correct pairs found to merge, return the first wrong pair so the corresponding state is marked as red.
@@ -284,8 +251,7 @@ public class LearningAlgorithms
 		@Override
 		public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 		{
-			CmpVertex redVertex = tentativeRedNodes.iterator().next();
-			return redVertex;
+			return tentativeRedNodes.iterator().next();
 		}
 
 		@SuppressWarnings("unused")
@@ -321,7 +287,7 @@ public class LearningAlgorithms
 		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4");
 		
 		public final String name;
-		private ScoringToApply(String nameText)
+		ScoringToApply(String nameText)
 		{
 			name = nameText;
 		}
@@ -329,7 +295,7 @@ public class LearningAlgorithms
 
 	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 
 	{
-		Learner outcome = null;
+		Learner outcome;
 		//final int threadNumber = 1;// we run each experiment on a separate thread hence do not create many threads.
 		switch(howToScore)
 		{
@@ -440,7 +406,7 @@ public class LearningAlgorithms
 			if (!permitUnlimitedNumberOfStates() && config.getOverride_maximalNumberOfStates() < 0)
 				throw new IllegalArgumentException("Reference learner requires a limit on a number of states in an automaton to learn");
 			
-			LearnerGraph outcome = null;
+			LearnerGraph outcome;
 			try
 			{
 				outcome = super.learnMachine();
@@ -471,8 +437,7 @@ public class LearningAlgorithms
 				@Override
 				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					CmpVertex redVertex = tentativeRedNodes.iterator().next();
-					return redVertex;
+					return tentativeRedNodes.iterator().next();
 				}
 
 				@SuppressWarnings("unused")
@@ -492,7 +457,7 @@ public class LearningAlgorithms
 				@Override
 				public long overrideScoreComputation(PairScore p) 
 				{
-					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<>();
 					long score = p.getScore();
 					
 					switch(ReferenceLearner.this.scoringMethod)
@@ -593,7 +558,7 @@ public class LearningAlgorithms
 		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
 			uniqueLabel = uniqueFromInitial;
-			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(new Label[]{uniqueFromInitial}));
+			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(uniqueFromInitial));
 			learner = learnerToUse;learner.init(initPTA);
 		}
 
@@ -618,7 +583,7 @@ public class LearningAlgorithms
 			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
 				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
 				CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
-				Map<Label,CmpVertex> outOfDummy = tmp.createNewRow();
+				MapWithSearch<Label,Label,CmpVertex> outOfDummy = tmp.createNewRow();
 				tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
 				Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
 				PairScore initialToMergeWith = null;
@@ -630,7 +595,7 @@ public class LearningAlgorithms
 				if (initialToMergeWith != null)
 				{// merge the initial vertex with one of the existing ones
 					//tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
-					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
 					if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
 						throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
 					tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
@@ -1112,7 +1077,7 @@ public class LearningAlgorithms
 		LearnerGraphND ndGraph = new LearnerGraphND(existingGraph.config.copy());
 		// we are not building merged vertices, preferring instead to use representative vertices.
 
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:existingGraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:existingGraph.transitionMatrix.entrySet())
 		{
 			EquivalenceClass<CmpVertex,LearnerGraphCachedData> sourceEq = stateToEquivalenceClass.get(entry.getKey());
 			CmpVertex considerTransitionsOriginatingFrom = entry.getKey();
@@ -1120,7 +1085,7 @@ public class LearningAlgorithms
 				// the current state is part of an equivalence class. Associate all outgoing transitions with a representative state.
 				considerTransitionsOriginatingFrom = sourceEq.getRepresentative();
 			
-			Map<Label,List<CmpVertex>> transitionRow = ndGraph.transitionMatrix.get(considerTransitionsOriginatingFrom);
+			MapWithSearch<Label,Label,List<CmpVertex>> transitionRow = ndGraph.transitionMatrix.get(considerTransitionsOriginatingFrom);
 			if (transitionRow == null)
 			{
 				transitionRow = ndGraph.createNewRow();ndGraph.transitionMatrix.put(considerTransitionsOriginatingFrom, transitionRow);
@@ -1134,7 +1099,7 @@ public class LearningAlgorithms
 				List<CmpVertex> targetStates = transitionRow.get(transition.getKey());
 				if (targetStates == null)
 				{
-					targetStates = new ArrayList<CmpVertex>();transitionRow.put(transition.getKey(), targetStates);
+					targetStates = new ArrayList<>();transitionRow.put(transition.getKey(), targetStates);
 				}
 				targetStates.add(considerTarget);
 			}
@@ -1159,11 +1124,11 @@ public class LearningAlgorithms
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = existingGraph.getAcceptAndRejectStateNumber();
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
 				existingGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
-		EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,existingGraph);
+						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
+						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, existingGraph);
 		initialEQ.mergeWith(existingGraph.getInit(),null);
 		stateToEquivalenceClass.put(existingGraph.getInit(), initialEQ);
 		if (!positive && sequence.size() == 0)
@@ -1175,7 +1140,7 @@ public class LearningAlgorithms
 		existingGraph.pairscores.mergePair(new StatePair(existingGraph.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);
 	
 		CmpVertex vA = startForPath;
-		Set<CmpVertex> visitedVertices = new LinkedHashSet<CmpVertex>();
+		Set<CmpVertex> visitedVertices = new LinkedHashSet<>();
 		while(vA != null)
 		{
 			visitedVertices.add(vA);
@@ -1202,7 +1167,7 @@ public class LearningAlgorithms
 		int currentExplorationDepth=1;// when we look at transitions from the initial pair of states, this is depth 1.
 		assert pair.getQ() != pair.getR();
 		
-		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		if (currentExplorationDepth <= k)
 			currentExplorationBoundary.add(pair);
 		currentExplorationBoundary.offer(null);
@@ -1265,11 +1230,11 @@ public class LearningAlgorithms
 	{
 		LearnerGraph graphWithTraces = new LearnerGraph(config);
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
 				config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+1,negative.size()+1):
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(positive.size()+negative.size()+1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,graphWithTraces);
+						new ArrayMapWithSearch<>(positive.size() + 1, negative.size() + 1):
+						new HashMapWithSearch<>(positive.size() + negative.size() + 1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, graphWithTraces);
 			initialEQ.mergeWith(graphWithTraces.getInit(),null);
 			stateToEquivalenceClass.put(graphWithTraces.getInit(), initialEQ);
 			for(List<Label> pos:positive)
@@ -1322,11 +1287,11 @@ public class LearningAlgorithms
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
 				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
+						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
+						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
 			initialEQ.mergeWith(pta.getInit(),null);
 			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
 			for(CmpVertex v:pta.transitionMatrix.keySet())
@@ -1355,11 +1320,11 @@ public class LearningAlgorithms
 	{
 		final AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
-		final Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =  
+		final MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
 				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+1,acceptRejectNumber.secondElem+1):
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(acceptRejectNumber.firstElem+acceptRejectNumber.secondElem+1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,pta);
+						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
+						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
+			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
 			try
 			{
 				initialEQ.mergeWith(pta.getInit(),null);
@@ -1375,38 +1340,29 @@ public class LearningAlgorithms
 				{
 					throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
 				}
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
-			handlerList.add(new HandleRow<CmpVertex>()
-			{
+			handlerList.add(new HandleRow<>() {
 				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
 				}
 
 				@Override
-				public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo)
-				{// we are never called with entryA which has been filtered out.
-					CmpVertex stateA=entryA.getKey();
-					Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = pta.transitionMatrix.entrySet().iterator();
-					while(stateB_It.hasNext())
-					{
-						CmpVertex stateB = stateB_It.next().getKey();
-						if (stateB.equals(stateA)) 
+				public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) {// we are never called with entryA which has been filtered out.
+					CmpVertex stateA = entryA.getKey();
+					for (Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> cmpVertexMapWithSearchEntry : pta.transitionMatrix.entrySet()) {
+						CmpVertex stateB = cmpVertexMapWithSearchEntry.getKey();
+						if (stateB.equals(stateA))
 							break; // we only process a triangular subset.
-						if (k == 0 || stateB.isAccept())
-						{
-							StatePair pair = new StatePair(stateA,stateB);
-							if (computeStateScoreKTails(pta,pair,k,true) >=0)
-							{
-								try
-								{
-									synchronized(stateToEquivalenceClass)
-									{// modifications to equivalence classes have to be made in sync
-										pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
+						if (k == 0 || stateB.isAccept()) {
+							StatePair pair = new StatePair(stateA, stateB);
+							if (computeStateScoreKTails(pta, pair, k, true) >= 0) {
+								try {
+									synchronized (stateToEquivalenceClass) {// modifications to equivalence classes have to be made in sync
+										pta.pairscores.mergePair(pair, stateToEquivalenceClass, mergingDetails);
 									}
-								} catch (IncompatibleStatesException e)
-								{
+								} catch (IncompatibleStatesException e) {
 									Helper.throwUnchecked("failed to merge states", e);
 								}
 							}
@@ -1415,16 +1371,11 @@ public class LearningAlgorithms
 				}
 			});
 			
-			StatesToConsider filter = new StatesToConsider()
-			{
-				@Override
-				public boolean stateToConsider(CmpVertex vert) 
-				{
-					if (k == 0)
-						return true;
-					
-					return vert.isAccept();
-				}
+			StatesToConsider filter = vert -> {
+				if (k == 0)
+					return true;
+
+				return vert.isAccept();
 			};
 			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, filter,GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix,filter));
 			

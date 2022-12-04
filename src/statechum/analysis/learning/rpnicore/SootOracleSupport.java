@@ -17,18 +17,12 @@
  */
 package statechum.analysis.learning.rpnicore;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+
+import java.util.*;
 
 /**
  * @author Kirill
@@ -56,7 +50,7 @@ public class SootOracleSupport {
 	public void augmentPairs(Pair<Label,Label> pair, boolean accepted){
 		Collection<CmpVertex> fromVertices = findVertices(pair.firstElem);
 		for (CmpVertex vertex : fromVertices) {
-			Collection<List<Label>> tails = getTails(vertex, new LinkedList<Label>(), new HashSet<List<Label>>());
+			Collection<List<Label>> tails = getTails(vertex, new LinkedList<>(), new HashSet<>());
 			for (List<Label> list : tails) {
 				addNegativeEdges(vertex, list, pair.secondElem, accepted);
 			}
@@ -64,20 +58,18 @@ public class SootOracleSupport {
 	}
 	
 	private void addNegativeEdges(CmpVertex fromVertex,List<Label> tail, Label label, boolean accepted){
-		Stack<Label> callStack = new Stack<Label>();
+		Stack<Label> callStack = new Stack<>();
 		coregraph.addVertex(fromVertex, accepted, label);
 		CmpVertex currentVertex = fromVertex;
-		for(int i=0;i<tail.size();i++){
-			Label element = tail.get(i);
+		for (Label element : tail) {
 			currentVertex = coregraph.transitionMatrix.get(currentVertex).get(element);
-			if(element.equals(ret)&&!callStack.isEmpty()){
+			if (element.equals(ret) && !callStack.isEmpty()) {
 				callStack.pop();
-				if(callStack.isEmpty())
+				if (callStack.isEmpty())
 					coregraph.addVertex(currentVertex, accepted, label);
-			}
-			else if (!element.equals(ret))
+			} else if (!element.equals(ret))
 				callStack.push(element);
-			else if (element.equals(ret)&&callStack.isEmpty())
+			else if (element.equals(ret) && callStack.isEmpty())
 				return;
 		}
 	}
@@ -89,11 +81,9 @@ public class SootOracleSupport {
 			return collection;
 		}
 
-		Iterator<Label> keyIt = successors.keySet().iterator();
-		while(keyIt.hasNext()){
-			Label key = keyIt.next();
+		for (Label key : successors.keySet()) {
 			currentList.add(key);
-			collection.addAll(getTails(successors.get(key),currentList,collection));
+			collection.addAll(getTails(successors.get(key), currentList, collection));
 		}
 		return collection;
 	}
@@ -103,11 +93,9 @@ public class SootOracleSupport {
 	 */
 	private Collection<CmpVertex> findVertices(Label label)
 	{
-		Collection<CmpVertex> vertices = new HashSet<CmpVertex>();
-		Iterator<Map<Label, CmpVertex>> outgoingEdgesIt = coregraph.transitionMatrix.values().iterator();
-		while(outgoingEdgesIt.hasNext()){
-			Map<Label,CmpVertex> edges = outgoingEdgesIt.next();
-			if(edges.keySet().contains(label))
+		Collection<CmpVertex> vertices = new HashSet<>();
+		for (Map<Label, CmpVertex> edges : coregraph.transitionMatrix.values()) {
+			if (edges.containsKey(label))
 				vertices.add(edges.get(label));
 		}
 		return vertices;

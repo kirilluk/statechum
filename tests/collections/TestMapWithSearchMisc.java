@@ -1,30 +1,27 @@
 package collections;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-
+import collections.TestMapWithSearch.CInteger;
 import org.junit.Assert;
 import org.junit.Test;
-
-import collections.TestMapWithSearch.CInteger;
-
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.collections.ArrayMapWithSearchPos;
+
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 
 /** Tests a few methods that are unique to some of the collections. */
 public class TestMapWithSearchMisc {
 	
+	@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 	@Test
 	public void testCannotAddNegativesToPosMap()
 	{
-		final ArrayMapWithSearchPos<CInteger, Long> ourMap = new ArrayMapWithSearchPos<CInteger, Long>();
-		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			ourMap.put(new CInteger(-2), 5L);
-		}},IllegalArgumentException.class,"negative indices are not supported");
+		final ArrayMapWithSearchPos<CInteger,CInteger, Long> ourMap = new ArrayMapWithSearchPos<>();
+		statechum.Helper.checkForCorrectException(() -> ourMap.put(new CInteger(-2), 5L),
+				IllegalArgumentException.class,"negative indices are not supported");
 	}
 	
 	@Test

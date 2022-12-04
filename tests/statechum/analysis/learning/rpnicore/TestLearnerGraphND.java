@@ -18,39 +18,30 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
-
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
-import statechum.Helper;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
+import statechum.Helper;
+import statechum.JUConstants;
 import statechum.Label;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
 /* Note that many methods are also tested by TestLTL_to_ba. */
 @RunWith(ParameterizedWithName.class)
@@ -78,7 +69,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	public final void beforeTest()
 	{
 		config = mainConfiguration.copy();
-		ba=new LTL_to_ba(config,converter);ba.setAlphabet(new HashSet<Label>());
+		ba=new LTL_to_ba(config,converter);ba.setAlphabet(new HashSet<>());
 		for(Label lbl:labelList(new String[]{"a","b","c"})) ba.alphabet.put(lbl,lbl);
 		
 		expectedFromASEExample = buildLearnerGraph(
@@ -92,53 +83,58 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	protected LearnerGraph expectedFromASEExample = null;
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph_empty() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
 		LearnerGraph expected = new LearnerGraph(config);expected.initEmpty();
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
 	 * A single accept-state.
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph0a() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = new LearnerGraphND(config);
 		LearnerGraph expected = new LearnerGraph(config);
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
 	 * A single reject-state.
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph0b() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = new LearnerGraphND(config);graph.getInit().setAccept(false);
 		LearnerGraph converted = graph.pathroutines.buildDeterministicGraph();
-		Assert.assertTrue(converted.getInit().equals(VertexID.parseID("P1000")));// the original name is preserved ...
+		Assert.assertEquals(converted.getInit(), VertexID.parseID("P1000"));// the original name is preserved ...
 		Assert.assertFalse(converted.getInit().isAccept());// as is the accept condition.
 		Assert.assertEquals(1,converted.transitionMatrix.size());
 		Assert.assertTrue(converted.transitionMatrix.get(converted.getInit()).isEmpty());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph1a() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a",config,converter);
 		LearnerGraph expected = buildLearnerGraph("A-a->B", "testbuildDeterministicGraph1_b",config,converter);
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
 	 * This is a minor variation on the above which checks that depth is honoured.
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph1b() throws IncompatibleStatesException
 	{
@@ -146,12 +142,13 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		graph.findVertex(VertexID.parseID("C")).setDepth(3);
 		LearnerGraph expected = buildLearnerGraph("A-a->C", "testbuildDeterministicGraph1_b",config,converter);
 		expected.findVertex(VertexID.parseID("C")).setDepth(3);
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
 	 * This is a minor variation on the above which checks that depth is not honoured if we say so.
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph1c() throws IncompatibleStatesException
 	{
@@ -161,27 +158,29 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		
 		LearnerGraph expected = buildLearnerGraph("A-a->B", "testbuildDeterministicGraph1_b",conf,converter);
 		LearnerGraph g = graph.pathroutines.buildDeterministicGraph();
-		Assert.assertTrue(expected.equals(g));
+		Assert.assertEquals(expected, g);
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph2() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a-#B\nA-a-#C\nA-a-#D", "testbuildDeterministicGraph1_a",config,converter);
 		LearnerGraph expected = buildLearnerGraph("A-a-#B", "testbuildDeterministicGraph1_b",config,converter);
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testbuildDeterministicGraph3() throws IncompatibleStatesException
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a",config,converter);
 		LearnerGraph expected = buildLearnerGraph("A-a->B-b->C\nA-c->C", "testbuildDeterministicGraph2_b",config,converter);
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertEquals(expected, graph.pathroutines.buildDeterministicGraph());
 	}
 	
 	/** Tests that it is not possible to build a deterministic graph if some vertices are not compatible. */ 
@@ -190,9 +189,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a",config,converter);
 		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			graph.pathroutines.buildDeterministicGraph();
-		}}, IncompatibleStatesException.class,"");
+		Helper.checkForCorrectException(
+				graph.pathroutines::buildDeterministicGraph,
+				IncompatibleStatesException.class,"");
 	}
 	
 	/** Tests that it is not possible to build a deterministic graph if some vertices are not compatible. */ 
@@ -200,9 +199,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	public final void testbuildDeterministicGraph_fail2()
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			graph.pathroutines.buildDeterministicGraph();
-		}}, IncompatibleStatesException.class,"");
+		Helper.checkForCorrectException(
+				graph.pathroutines::buildDeterministicGraph,
+				IncompatibleStatesException.class,"");
 	}
 	
 	/** Tests that it is not possible to build a deterministic graph if some vertices are not compatible. */ 
@@ -211,9 +210,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND(complexgraphND,"testbuildDeterministicGraphComplexND",config,converter);
 		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			graph.pathroutines.buildDeterministicGraph();
-		}}, IncompatibleStatesException.class,"");
+		Helper.checkForCorrectException(
+				graph.pathroutines::buildDeterministicGraph,
+				IncompatibleStatesException.class,"");
 	}
 	
 	public static final String complexgraphND = "A-a->B-a->D-a->A-a->C-a->E-a->C\nA-b->B-f->B\nA-b->C-q->C\nD-e->D\nE-p->E",
@@ -234,7 +233,6 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests a more complex case of conversion of a non-deterministic graph to a deterministic one. 
-	 * @throws IncompatibleStatesException 
 	 */
 	@Test
 	public final void testbuildDeterministicGraphComplex()
@@ -249,9 +247,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND(complexgraphND,"testbuildDeterministicGraphComplexND",config,converter);
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("junk"), graph.config);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			graph.pathroutines.buildDeterministicGraph(junkVertex);
-		}}, IllegalArgumentException.class,"the supplied state");
+		Helper.checkForCorrectException(
+				() -> graph.pathroutines.buildDeterministicGraph(junkVertex),
+				IllegalArgumentException.class,"the supplied state");
 		
 	}
 	
@@ -261,14 +259,15 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("junk"), graph.config);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			graph.pathroutines.buildDeterministicGraph(junkVertex);
-		}}, IllegalArgumentException.class,"non-null");
+		Helper.checkForCorrectException(
+				() -> graph.pathroutines.buildDeterministicGraph(junkVertex),
+				IllegalArgumentException.class,"non-null");
 		
 	}
 	
 	/** Tests adding to graph. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testLTL_add1() throws IncompatibleStatesException
 	{
@@ -282,7 +281,8 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests adding to graph. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testLTL_add2() throws IncompatibleStatesException
 	{
@@ -296,7 +296,8 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests adding to graph. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testLTL_add3() throws IncompatibleStatesException
 	{
@@ -311,7 +312,8 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests adding to graph. 
-	 * @throws IncompatibleStatesException */
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
+	 */
 	@Test
 	public final void testLTL_add4() throws IncompatibleStatesException
 	{
@@ -325,7 +327,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	}
 
 	/** Tests adding to graph. 
-	 * @throws IncompatibleStatesException 
+	 * @throws IncompatibleStatesException when the test catastrophically fails.
 	 */
 	@Test
 	public final void testLTL_add5() throws IncompatibleStatesException
@@ -404,31 +406,18 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	 */
 	private static void compareGraphs(LearnerGraphND Aarg, LearnerGraphND Barg)
 	{
-		LearnerGraphND A = new LearnerGraphND(Aarg,Aarg.config);LearnerGraphND B = new LearnerGraphND(Barg,Barg.config); 
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:A.transitionMatrix.entrySet())
-			for(Entry<Label,List<CmpVertex>> mapEntry:entry.getValue().entrySet())
-			Collections.sort(mapEntry.getValue(),new Comparator<CmpVertex>(){
+		LearnerGraphND A = new LearnerGraphND(Aarg, Aarg.config);
+		LearnerGraphND B = new LearnerGraphND(Barg, Barg.config);
+		for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entry : A.transitionMatrix.entrySet())
+			for (Entry<Label, List<CmpVertex>> mapEntry : entry.getValue().entrySet())
+				mapEntry.getValue().sort(Comparable::compareTo);
 
-				@Override
-				public int compare(CmpVertex arg0, CmpVertex arg1) {
-					return arg0.compareTo(arg1);
-				}
-				
-			});
-		
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:B.transitionMatrix.entrySet())
-			for(Entry<Label,List<CmpVertex>> mapEntry:entry.getValue().entrySet())
-			Collections.sort(mapEntry.getValue(),new Comparator<CmpVertex>(){
+		for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entry : B.transitionMatrix.entrySet())
+			for (Entry<Label, List<CmpVertex>> mapEntry : entry.getValue().entrySet())
+				mapEntry.getValue().sort(Comparable::compareTo);
 
-				@Override
-				public int compare(CmpVertex arg0, CmpVertex arg1) {
-					return arg0.compareTo(arg1);
-				}
-				
-			});
-		
-		Assert.assertEquals(A.transitionMatrix,B.transitionMatrix);
-		Assert.assertEquals(A.getInit(),B.getInit());
+		Assert.assertEquals(A.transitionMatrix, B.transitionMatrix);
+		Assert.assertEquals(A.getInit(), B.getInit());
 	}
 	
 	/** Simple graph. */
@@ -605,13 +594,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		expected.setInit(expected.findVertex("A"));
 		
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
-
-			@Override
-			public boolean stateToConsider(CmpVertex vert) {
-				return !vert.getStringId().equals("B");
-			}
-		}, actual);
+		AbstractPathRoutines.buildInverse(graph,
+				vert -> !vert.getStringId().equals("B"),
+				actual);
 		compareGraphs(expected, actual);
 	}
 
@@ -623,13 +608,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 			"testConvertToND6",config,converter);
 		
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractPathRoutines.buildInverse(graph, new StatesToConsider() {
-
-			@Override
-			public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
-				return false;
-			}
-		}, actual);
+		AbstractPathRoutines.buildInverse(graph, vert -> false, actual);
 		Assert.assertTrue(actual.transitionMatrix.isEmpty());Assert.assertNull(actual.getInit());
 	}
 
@@ -642,13 +621,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), graph.config), graph.createNewRow());
 		
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
-
-			@Override
-			public boolean stateToConsider(CmpVertex vert) {
-				return !vert.getStringId().equals("B");
-			}
-		}, actual);
+		AbstractPathRoutines.buildForward(graph,
+				vert -> !vert.getStringId().equals("B"),
+				actual);
 
 		compareGraphs(expected, actual);
 	}
@@ -660,12 +635,9 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U","testConvertToND6",config,converter);
 		final LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
 		
-		AbstractPathRoutines.buildForward(graph, new StatesToConsider() {
-			@Override
-			public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
-				return false;
-			}
-		},actual);
+		AbstractPathRoutines.buildForward(graph,
+				vert -> false,
+				actual);
 		Assert.assertNull(actual.getInit());
 	}
 
@@ -678,16 +650,16 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		StatesToConsider filter = null;
 		try {
-			java.lang.reflect.Constructor<? extends StatesToConsider> constructor = filterClass.getConstructor(new Class []{});
-			filter = constructor.newInstance(new Object[]{});
+			java.lang.reflect.Constructor<? extends StatesToConsider> constructor = filterClass.getConstructor();
+			filter = constructor.newInstance();
 		} catch (Exception e) {
 			// if we failed, filter stays at null, we'll try again.
 		}
 		
 		if (filter == null)
 			try {
-				java.lang.reflect.Constructor<? extends StatesToConsider> constructor = filterClass.getConstructor(new Class []{LearnerGraph.class});
-				filter = constructor.newInstance(new Object[]{gr});
+				java.lang.reflect.Constructor<? extends StatesToConsider> constructor = filterClass.getConstructor(LearnerGraph.class);
+				filter = constructor.newInstance(gr);
 			} catch (Exception e) {
 				Assert.fail("failed to create an instance of a filter");
 			}
@@ -698,7 +670,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	 * 
 	 * @param graph graph to consider
 	 * @param graphName graph name
-	 * @param filter which states to filter out
+	 * @param filterClass which states to filter out
 	 * @param expectedToRemain which states are expected to remain after filtering.
 	 */
 	private final void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedToRemain)
@@ -709,14 +681,14 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		for(boolean direction:new boolean[]{false,true})
 		{
 			GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, direction);
-			Map<CmpVertex,Integer> state_to_int_map = new TreeMap<CmpVertex,Integer>();
+			Map<CmpVertex,Integer> state_to_int_map = new TreeMap<>();
 			CmpVertex [] numberToStateNoReject = gr.buildStateToIntegerMap(filter,state_to_int_map);
 			Assert.assertEquals(state_to_int_map.size(), numberToStateNoReject.length);
 			Collection<CmpVertex> states_int = state_to_int_map.keySet();
 			Assert.assertEquals(ndGraph.getStateNumber(),state_to_int_map.values().size());
 			Assert.assertArrayEquals(states_int.toArray(),numberToStateNoReject);
 			
-			Set<CmpVertex> expectedIgnoredStates = new TreeSet<CmpVertex>();for(String st:expectedToRemain) expectedIgnoredStates.add(gr.findVertex(st));
+			Set<CmpVertex> expectedIgnoredStates = new TreeSet<>();for(String st:expectedToRemain) expectedIgnoredStates.add(gr.findVertex(st));
 			Assert.assertEquals(states_int,expectedIgnoredStates);
 			
 			// The forward matrix is not filtered
@@ -725,12 +697,12 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 		}
 	}
 	
-	private final void checkSource_Target_are_expected(LearnerGraphND matrixND,
-			Set<CmpVertex> expected)
+	private void checkSource_Target_are_expected(LearnerGraphND matrixND,
+												 Set<CmpVertex> expected)
 	{
 		Assert.assertEquals("source states mismatch",expected, matrixND.transitionMatrix.keySet());
-		Set<CmpVertex> targetSet = new HashSet<CmpVertex>();
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:matrixND.transitionMatrix.entrySet())
+		Set<CmpVertex> targetSet = new HashSet<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:matrixND.transitionMatrix.entrySet())
 			for(List<CmpVertex> list:entry.getValue().values())
 				targetSet.addAll(list);
 		// target states are supposed to be a subset of the main set of states, hence a subset of the expected states

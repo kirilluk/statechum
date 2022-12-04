@@ -19,7 +19,7 @@ public class CodeCoverageMap {
     }
 
     public CodeCoverageMap() {
-        map = new ArrayList<CodeCoverageMaplet>();
+        map = new ArrayList<>();
     }
 
     public CodeCoverageMap(CodeCoverageMap m) {
@@ -28,9 +28,9 @@ public class CodeCoverageMap {
 
     @Override
     public String toString() {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (CodeCoverageMaplet m : map) {
-            result += m.toString() + ",";
+            result.append(m.toString()).append(",");
         }
         return "[" + result + "]";
     }
@@ -45,7 +45,7 @@ public class CodeCoverageMap {
     }
 
     public void remove(String line) {
-        ArrayList<CodeCoverageMaplet> removes = new ArrayList<CodeCoverageMaplet>();
+        ArrayList<CodeCoverageMaplet> removes = new ArrayList<>();
         for (CodeCoverageMaplet m : map) {
             if (m.line.equals(line)) {
                 removes.add(m);
@@ -116,7 +116,7 @@ public class CodeCoverageMap {
         for (CodeCoverageMaplet m : map) {
             try {
                 result.map.add(new CodeCoverageCombinedMaplet(m.line, m.count, map2.findLine(m.line)));
-            } catch (CodeCoverageMapletNotFoundException e) {
+            } catch (CodeCoverageMapletNotFoundException ignored) {
             }
         }
         return result;

@@ -17,16 +17,7 @@
  */
 package statechum.collections;
 
-import java.util.AbstractSet;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.TreeMap;
-
-import statechum.DeterministicDirectedSparseGraph.VertID;
+import java.util.*;
 
 /**
  * A map backed by an array. Expects key to be convertible to an integer and be non-negative.
@@ -45,7 +36,7 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
  * 
  * @author kirill
  */
-public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapWithSearch<K, V> {
+public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> implements MapWithSearch<I, K, V> {
 	/** This is either
 	 * <ul> 
 	 * <li>null for an empty map,</li> 
@@ -57,7 +48,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	 * </ul>
 	 */
 	Object array_or_key;
-	
+
 	/** This is either
 	 * <ul> 
 	 * <li>null for an empty map,</li> 
@@ -65,7 +56,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	 * <li>unused otherwise. In principle, it can be used to count the number of non-nulls
 	 * in the collection, but in this case I would have to keep a static collection of Integer-objects
 	 * for different lengths (otherwise it'll consume +20 bytes or I'll have to introduce
-	 * another attribue).</li>
+	 * another attribute).</li>
 	 * <li>child classes may use it for any other purpose.</li>
 	 * </ul>. 
 	 */
@@ -77,14 +68,10 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	public ArrayMapWithSearchPos(int currentSize)
 	{
 		int currentOffset = currentSize*CELLS_PER_ELEM;
-		Object [] data = new Object[CELLS_PER_ELEM+currentOffset];
-		array_or_key = data;
+		array_or_key = new Object[CELLS_PER_ELEM+currentOffset];
 	}
 	
-	/** The new size for the array on each resize is determined by adding the current size divided by this number. */
-	public static final int GROWTHRATE_DIV = 1;
-
-	protected static final int CELLS_PER_ELEM=2; 
+	protected static final int CELLS_PER_ELEM=2;
 
 	@Override
 	public int size() {
@@ -155,7 +142,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
             throw new IllegalArgumentException("key cannot be null for ArrayMapWithSearch");
         if (v == null)
             throw new IllegalArgumentException("value cannot be null for ArrayMapWithSearch");
- 		int kIndex = ((ConvertibleToInt)k).toInt();
+ 		int kIndex = k.toInt();
 		if (kIndex < 0)
 			throw new IllegalArgumentException("negative indices are not supported");
 
@@ -191,8 +178,9 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			
 			if ( offset >= currentLength)
 			{// resize upwards
-				int newSize = currentLength + Math.max( offset, currentLength/GROWTHRATE_DIV);
+				int newSize = currentLength + offset;// this at least doubles the size of the array because offset >= currentLength and we are adding it to the currentLength.
 				array = new Object[newSize];
+				//noinspection SuspiciousSystemArraycopy
 				System.arraycopy(array_or_key, 0, array, 0, currentLength);
 				array_or_key = array;
 			}
@@ -207,7 +195,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	// Add: key is null/invalid/existing/non-existing
 	// Add: value is null/existing/non-existing
 	// Values: null/one/two/multiple with repeated values
-	// Keyset: null/one/two/multiple
+	// Key set: null/one/two/multiple
 	// Initial collection for add/remove: empty/one/two/multiple
 	@SuppressWarnings("unchecked")
 	@Override
@@ -250,37 +238,33 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 
 	@Override
 	public Set<K> keySet() {
-		return new AbstractSet<K>(){
+		return new AbstractSet<>() {
 
 			@Override
 			public Iterator<K> iterator() {
-				return new AnIterator<K>(){
+				return new AnIterator<K>() {
 					K lastValue = null;
-					
+
 					@SuppressWarnings("unchecked")
 					@Override
 					public K next() {
-						K outcome = null;
+						K outcome;
 						if (!hasNext())// in case we're storing an array, this call will move index to the next non-null if there is any. 
 							throw new NoSuchElementException();
-						
-						if (array_or_key instanceof ConvertibleToInt)
-						{
+
+						if (array_or_key instanceof ConvertibleToInt) {
 							nextIndex = -1;// this is the only element, force next to negative
-							outcome = (K)array_or_key;							
-						}
-						else
-						{
-							outcome = (K) ((Object[])array_or_key)[nextIndex];
-							nextIndex+=CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()							
+							outcome = (K) array_or_key;
+						} else {
+							outcome = (K) ((Object[]) array_or_key)[nextIndex];
+							nextIndex += CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()
 						}
 						lastValue = outcome;
 						return outcome;
 					}
-					
+
 					@Override
-					public void remove()
-					{
+					public void remove() {
 						if (lastValue == null)
 							throw new IllegalStateException("next was not yet called or was already called");
 						ArrayMapWithSearchPos.this.remove(lastValue);
@@ -289,20 +273,20 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 				};
 			}
 
-	        @Override
+			@Override
 			public boolean contains(Object o) {
-	            return containsKey(o);
-	        }
-	        
-	        @Override
-	        public boolean remove(Object o) {
-	            return ArrayMapWithSearchPos.this.remove(o) != null;
-	        }
-	        
-	        @Override
+				return containsKey(o);
+			}
+
+			@Override
+			public boolean remove(Object o) {
+				return ArrayMapWithSearchPos.this.remove(o) != null;
+			}
+
+			@Override
 			public void clear() {
-	        	ArrayMapWithSearchPos.this.clear();
-	        }
+				ArrayMapWithSearchPos.this.clear();
+			}
 
 			/* (non-Javadoc)
 			 * @see java.util.AbstractCollection#add(java.lang.Object)
@@ -329,28 +313,25 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 
 	@Override
 	public Collection<V> values() {
-		return new AbstractSet<V>(){
+		return new AbstractSet<>() {
 
 			@Override
 			public Iterator<V> iterator() {
-				return new AnIterator<V>(){
-					
+				return new AnIterator<V>() {
+
 					@SuppressWarnings("unchecked")
 					@Override
 					public V next() {
-						V outcome = null;
+						V outcome;
 						if (!hasNext())// in case we're storing an array, this call will move index to the next non-null if there is any. 
 							throw new NoSuchElementException();
-						
-						if (array_or_key instanceof ConvertibleToInt)
-						{
+
+						if (array_or_key instanceof ConvertibleToInt) {
 							nextIndex = -1;// this is the only element, force next to negative
-							outcome = value;							
-						}
-						else
-						{
-							outcome = (V) ((Object[])array_or_key)[1+nextIndex];
-							nextIndex+=CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()							
+							outcome = value;
+						} else {
+							outcome = (V) ((Object[]) array_or_key)[1 + nextIndex];
+							nextIndex += CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()
 						}
 						return outcome;
 					}
@@ -361,39 +342,46 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			public int size() {
 				return ArrayMapWithSearchPos.this.size();
 			}
-	       @Override
+
+			@Override
 			public boolean contains(Object o) {
-	            return containsValue(o);
-	        }
-	        @Override
+				return containsValue(o);
+			}
+
+			@Override
 			public void clear() {
-	        	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
-	        }
-	        @Override
-	 		public boolean remove(@SuppressWarnings("unused") Object o) {
-	         	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
-	         }
-	        @Override
-	        public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-	         	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
-	        }
-	        @Override
-	        public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-	         	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
-	        }
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+			}
+
+			@Override
+			public boolean remove(@SuppressWarnings("unused") Object o) {
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+			}
+
+			@Override
+			public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+			}
+
+			@Override
+			public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+			}
+
 			/* (non-Javadoc)
 			 * @see java.util.AbstractCollection#add(java.lang.Object)
 			 */
 			@Override
 			public boolean add(@SuppressWarnings("unused") V e) {
-	         	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
 			}
+
 			/* (non-Javadoc)
 			 * @see java.util.AbstractCollection#addAll(java.util.Collection)
 			 */
 			@Override
 			public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
-	         	throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of value set is not allowed for ArrayMapWithSearch");
 			}
 		};
 	}
@@ -401,7 +389,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	@Override
 	public String toString()
 	{
-		StringBuffer outcome = new StringBuffer();outcome.append('{');
+		StringBuilder outcome = new StringBuilder();outcome.append('{');
 		boolean first = true;
 		for(java.util.Map.Entry<K, V> entry:entrySet())
 		{
@@ -442,7 +430,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 		}
 	}
 	
-	abstract class Entry<A,B> implements java.util.Map.Entry<A,B>
+	abstract static class Entry<A,B> implements java.util.Map.Entry<A,B>
 	{
 		@Override
 		public int hashCode()
@@ -459,7 +447,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 				return false;
 			@SuppressWarnings("unchecked")
 			java.util.Map.Entry<A,B> o = (java.util.Map.Entry<A,B>)obj;
-			return o.getKey().equals(o.getKey()) && o.getValue().equals(o.getValue());
+			return getKey().equals(o.getKey()) && getValue().equals(o.getValue());
 		}
 		
 		@Override
@@ -471,34 +459,32 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	
 	@Override
 	public Set<java.util.Map.Entry<K, V>> entrySet() {
-		return new AbstractSet<Map.Entry<K,V>>(){
+		return new AbstractSet<>() {
 
 			@Override
 			public Iterator<java.util.Map.Entry<K, V>> iterator() {
-				return new AnIterator<java.util.Map.Entry<K, V>>(){
-					
+				return new AnIterator<java.util.Map.Entry<K, V>>() {
+
 					@Override
 					public Entry<K, V> next() {
-						Entry<K, V> outcome = null;
+						Entry<K, V> outcome;
 						if (!hasNext())// in case we're storing an array, this call will move index to the next non-null if there is any. 
 							throw new NoSuchElementException();
-						
-						if (array_or_key instanceof ConvertibleToInt)
-						{
+
+						if (array_or_key instanceof ConvertibleToInt) {
 							nextIndex = -1;// this is the only element, force next to negative
-							outcome = new Entry<K, V>()
-							{
+							outcome = new Entry<>() {
 
 								@SuppressWarnings("unchecked")
 								@Override
 								public K getKey() {
-									return (K)array_or_key;
+									return (K) array_or_key;
 								}
 
 								@SuppressWarnings("cast")
 								@Override
 								public V getValue() {
-									return (V)value;
+									return value;
 								}
 
 								@Override
@@ -506,39 +492,38 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 									V returnValue = value;
 									value = v;
 									return returnValue;
-								}};
-						}
-						else
-						{
-							outcome = new Entry<K, V>()
-							{
+								}
+							};
+						} else {
+							outcome = new Entry<>() {
 								private final int currentIndex = nextIndex;
-								
+
 								@SuppressWarnings("unchecked")
 								@Override
 								public K getKey() {
-									Object[] array=(Object[])array_or_key;
-									return (K)array[currentIndex]; 
+									Object[] array = (Object[]) array_or_key;
+									return (K) array[currentIndex];
 								}
 
 								@SuppressWarnings("unchecked")
 								@Override
 								public V getValue() {
-									Object[] array=(Object[])array_or_key;
-									return (V)array[currentIndex+1]; 
+									Object[] array = (Object[]) array_or_key;
+									return (V) array[currentIndex + 1];
 								}
 
 								@SuppressWarnings("unchecked")
 								@Override
 								public V setValue(V v) {
-									Object[] array=(Object[])array_or_key;
-									V returnValue = (V)array[currentIndex+1];
-									array[currentIndex+1]=v;
+									Object[] array = (Object[]) array_or_key;
+									V returnValue = (V) array[currentIndex + 1];
+									array[currentIndex + 1] = v;
 									return returnValue;
-								}};
-							nextIndex+=CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()
+								}
+							};
+							nextIndex += CELLS_PER_ELEM;// move to the next element, we'll be looking for non-nulls in the next call to hasNext()
 						}
-						
+
 						return outcome;
 					}
 				};
@@ -554,7 +539,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
 			}
 
 			/* (non-Javadoc)
@@ -562,7 +547,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public boolean add(@SuppressWarnings("unused") java.util.Map.Entry<K, V> e) {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
 			}
 
 			/* (non-Javadoc)
@@ -570,7 +555,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public boolean remove(@SuppressWarnings("unused") Object o) {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
 			}
 
 			/* (non-Javadoc)
@@ -578,7 +563,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public boolean addAll(@SuppressWarnings("unused") Collection<? extends java.util.Map.Entry<K, V>> c) {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
 			}
 
 			/* (non-Javadoc)
@@ -586,7 +571,7 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
 			}
 
 			/* (non-Javadoc)
@@ -594,13 +579,14 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 			 */
 			@Override
 			public void clear() {
-	            throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
-			}};
+				throw new UnsupportedOperationException("modification of entry set is not allowed for ArrayMapWithSearch");
+			}
+		};
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public K findElementById(VertID id) {
+	public K findKey(I id) {
 		if (id == null)
 			return null;
 		if (array_or_key == null)
@@ -622,7 +608,8 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 
 	@Override
 	public Set<java.util.Map.Entry<K, V>> getTreeEntrySet() {
-		TreeMap<K,V> treeMap = new TreeMap<K, V>();treeMap.putAll(this);return treeMap.entrySet();
+		TreeMap<K, V> treeMap = new TreeMap<>(this);
+		return treeMap.entrySet();
 	}
 
 	@Override
@@ -638,8 +625,9 @@ public class ArrayMapWithSearchPos<K extends ConvertibleToInt,V> implements MapW
 	{
 		if (!ordered)
 			return keySet();
-		
-		TreeMap<K,V> treeMap = new TreeMap<K, V>();treeMap.putAll(this);return treeMap.keySet();
+
+		TreeMap<K, V> treeMap = new TreeMap<>(this);
+		return treeMap.keySet();
 	}
 
 	/** The hash code is the sum of hash codes of elements, for compatibility with Java collections.

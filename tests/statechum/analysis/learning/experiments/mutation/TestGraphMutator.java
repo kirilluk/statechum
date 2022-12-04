@@ -17,28 +17,27 @@
  */
 package statechum.analysis.learning.experiments.mutation;
 
-import static org.junit.Assert.*;
-import static statechum.Helper.checkForCorrectException;
+import org.junit.Assert;
+import org.junit.Test;
+import statechum.Configuration;
+import statechum.Configuration.STATETREE;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
+import statechum.analysis.learning.experiments.mutation.GraphMutator.FailureToMutateException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.MapWithSearch;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.junit.Assert;
-import org.junit.Test;
-
-import statechum.Configuration;
-import statechum.Configuration.STATETREE;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
-import statechum.Label;
-import statechum.analysis.learning.experiments.mutation.GraphMutator.FailureToMutateException;
+import static org.junit.Assert.fail;
+import static statechum.Helper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 public class TestGraphMutator {
 
@@ -48,7 +47,7 @@ public class TestGraphMutator {
 	
 	void checkContainsTransition(String from, String to, String labelAsString)
 	{
-		LearnerGraphND mut = (LearnerGraphND)mutator.getMutated();Map<CmpVertex,Map<Label,List<CmpVertex>>> matrix = mut.getTransitionMatrix();
+		LearnerGraphND mut = (LearnerGraphND)mutator.getMutated();Map<CmpVertex, MapWithSearch<Label,Label,List<CmpVertex>>> matrix = mut.getTransitionMatrix();
 		Label label = AbstractLearnerGraph.generateNewLabel(labelAsString, mut.config,converter);
 		Assert.assertTrue(matrix.get(mut.findVertex(VertexID.parseID(from))).get(label).contains(mut.findVertex(VertexID.parseID(to))));
 	}
@@ -59,8 +58,8 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.addEdgeBetweenExistingStates();
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -72,19 +71,24 @@ public class TestGraphMutator {
 	@Test
 	public void testAddTransition2()
 	{
-		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
-		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		Configuration conf = config.copy();
+		conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
+		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1", conf, null);
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.addEdgeBetweenExistingStates();
 		mutator.addEdgeBetweenExistingStates();
-		for(int i=0;i< 9;++i)
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.addEdgeBetweenExistingStates();
-		}},FailureToMutateException.class,"duplicate");
+		for (int i = 0; i < 9; ++i)
+			checkForCorrectException(
+					() -> mutator.addEdgeBetweenExistingStates(),
+					FailureToMutateException.class, "duplicate");
 		mutator.addEdgeBetweenExistingStates();
-		for(int i=0;i< 100;++i)
-			try { mutator.addEdgeBetweenExistingStates();fail("should have thrown FailureToMutateException"); } catch(FailureToMutateException ex) {}
+		for (int i = 0; i < 100; ++i)
+			try {
+				mutator.addEdgeBetweenExistingStates();
+				fail("should have thrown FailureToMutateException");
+			} catch (FailureToMutateException ignored) {
+			}
 
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 	}
@@ -95,8 +99,8 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.addEdgeBetweenExistingStates();
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -111,13 +115,13 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.addEdgeBetweenExistingStates();
 		mutator.addEdgeBetweenExistingStates();
 		for(int i=0;i< 2;++i)
 			try { mutator.addEdgeBetweenExistingStates();
-			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ex) {}
+			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ignored) {}
 		mutator.addEdgeBetweenExistingStates();
 		//Visualiser.updateFrame(mutator.getMutated(), null);Visualiser.waitForKey();
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -135,17 +139,17 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B", "testAddTransition3",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.addEdgeBetweenExistingStates();
 		mutator.addEdgeBetweenExistingStates();
 		for(int i=0;i< 2;++i)
 			try { mutator.addEdgeBetweenExistingStates();
-			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ex) {}
+			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ignored) {}
 		mutator.addEdgeBetweenExistingStates();
 		for(int i=0;i< 5;++i)
 			try { mutator.addEdgeBetweenExistingStates();
-			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ex) {}
+			fail("should have thrown FailureToMutateException on iter "+i); } catch(FailureToMutateException ignored) {}
 		mutator.addEdgeBetweenExistingStates();
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		Assert.assertEquals(6,mutator.getMutated().pathroutines.countEdges());
@@ -162,8 +166,8 @@ public class TestGraphMutator {
 	public void testRemoveTransition1()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.removeEdge();
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -175,11 +179,11 @@ public class TestGraphMutator {
 	public void testRemoveAndThenAddTransition1()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.removeEdge();
 		for(int i=0;i< 100;++i)
-			try { mutator.addEdgeBetweenExistingStates();fail("should have thrown FailureToMutateException"); } catch(FailureToMutateException ex) {}
+			try { mutator.addEdgeBetweenExistingStates();fail("should have thrown FailureToMutateException"); } catch(FailureToMutateException ignored) {}
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		Assert.assertEquals(0,mutator.getMutated().pathroutines.countEdges());
@@ -190,11 +194,11 @@ public class TestGraphMutator {
 	public void testRemoveTransition2()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B", "testAddTransition1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.removeEdge();
 		for(int i=0;i< 100;++i)
-			try { mutator.removeEdge();fail("should have thrown FailureToMutateException"); } catch(FailureToMutateException ex) {}
+			try { mutator.removeEdge();fail("should have thrown FailureToMutateException"); } catch(FailureToMutateException ignored) {}
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		Assert.assertEquals(0,mutator.getMutated().pathroutines.countEdges());
@@ -205,8 +209,8 @@ public class TestGraphMutator {
 	public void testRemoveTransition3()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B / A-b->B", "testRemoveTransition3",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.removeEdge();
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -220,8 +224,8 @@ public class TestGraphMutator {
 	public void testRemoveTransition4()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B / A-b->B", "testRemoveTransition3",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		mutator.removeEdge();
 		mutator.removeEdge();
 		
@@ -238,11 +242,11 @@ public class TestGraphMutator {
 	public void testRemoveStateFail0()
 	{
 		LearnerGraphND gr = new LearnerGraphND(config);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(veryHighMutationValue);
-		}},FailureToMutateException.class,"number of states");
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
+		checkForCorrectException(
+				() -> mutator.removeState(veryHighMutationValue),
+				FailureToMutateException.class,"number of states");
 
 	}
 	
@@ -251,11 +255,11 @@ public class TestGraphMutator {
 	public void testRemoveStateFail1()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B / A-b->B", "testRemoveTransition3",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(veryHighMutationValue);
-		}},FailureToMutateException.class,"number of states");
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
+		checkForCorrectException(
+				() -> mutator.removeState(veryHighMutationValue),
+				FailureToMutateException.class,"number of states");
 
 	}
 	
@@ -264,10 +268,10 @@ public class TestGraphMutator {
 	public void testRemoveStateFail2()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testRemoveStateFail2",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(veryHighMutationValue);
-		}},FailureToMutateException.class,"number of states");
+		mutator = new GraphMutator<>(gr, new Random(3));
+		checkForCorrectException(
+				() -> mutator.removeState(veryHighMutationValue),
+				FailureToMutateException.class,"number of states");
 
 	}
 	
@@ -276,7 +280,7 @@ public class TestGraphMutator {
 	public void testRemoveState1()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator = new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.removeState(2));
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		//Visualiser.updateFrame(mutator.getMutated(), null);Visualiser.waitForKey();
@@ -295,7 +299,7 @@ public class TestGraphMutator {
 		Random r = new Random(3);
 		for(int i=0;i<2;++i) r.nextInt();
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,r);
+		mutator = new GraphMutator<>(gr, r);
 		Assert.assertEquals(5,mutator.removeState(5));
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		Assert.assertEquals(0,mutator.getMutated().pathroutines.countEdges());
@@ -310,7 +314,7 @@ public class TestGraphMutator {
 		Random r = new Random(3);
 		for(int i=0;i<2;++i) r.nextInt();
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,r);
+		mutator = new GraphMutator<>(gr, r);
 		Assert.assertEquals(2,mutator.removeState(4));
 		Assert.assertNull(mutator.getMutated().findVertex(VertexID.parseID("C")));
 		Assert.assertNotNull(mutator.getMutated().findVertex(VertexID.parseID("B")));
@@ -323,10 +327,10 @@ public class TestGraphMutator {
 		Random r = new Random(3);
 		for(int i=0;i<2;++i) r.nextInt();
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,r);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(1);
-		}},FailureToMutateException.class,"is empty");
+		mutator = new GraphMutator<>(gr, r);
+		checkForCorrectException(
+				() -> mutator.removeState(1),
+				FailureToMutateException.class,"is empty");
 	}
 	
 	/** Here we add a transition, then attempt to remove a state and check that it fails. */
@@ -334,12 +338,12 @@ public class TestGraphMutator {
 	public void testRemoveStateFail4()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testAddEdgeToNewState1",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator = new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(veryHighMutationValue);
-		}},FailureToMutateException.class,"mutation is too similar");
+		checkForCorrectException(
+				() -> mutator.removeState(veryHighMutationValue),
+				FailureToMutateException.class,"mutation is too similar");
 	}
 	
 	/** Here we add a transition, then attempt to remove a state and check that it fails. */
@@ -347,43 +351,43 @@ public class TestGraphMutator {
 	public void testRemoveStateFail5()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testAddEdgeToNewState1",config,null);
-		mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator = new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeState(veryHighMutationValue);
-		}},FailureToMutateException.class,"mutation is too similar");
+		checkForCorrectException(
+				() -> mutator.removeState(veryHighMutationValue),
+				FailureToMutateException.class,"mutation is too similar");
 	}
 
-	/** Attempts add a transition to a new state. */
+	/** Attempts to add a transition to a new state. */
 	@Test
 	public void testAddEdgeToNewStateFailure1()
 	{
 		LearnerGraphND gr = new LearnerGraphND(config);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.addEdgeToNewState(veryHighMutationValue);
-		}},FailureToMutateException.class,"is empty");
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
+		checkForCorrectException(
+				() -> mutator.addEdgeToNewState(veryHighMutationValue),
+				FailureToMutateException.class,"is empty");
 	}
 
 	@Test
 	public void testAddEdgeToNewStateFailure2()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testAddEdgeToNewState1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.addEdgeToNewState(1);
-		}},FailureToMutateException.class,"only one is available");
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
+		checkForCorrectException(
+				() -> mutator.addEdgeToNewState(1),
+				FailureToMutateException.class,"only one is available");
 	}
 	
 	@Test
 	public void testAddEdgeToNewState1()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testAddEdgeToNewState1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		
@@ -396,8 +400,8 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		
@@ -411,8 +415,8 @@ public class TestGraphMutator {
 	{
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraphND gr = buildLearnerGraphND("A-a->B-b->B-c->C / A-b->B", "testRemoveTransition3",conf,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
@@ -427,13 +431,13 @@ public class TestGraphMutator {
 	public void testAddEdgeToNewState4()
 	{
 		LearnerGraphND gr = buildLearnerGraphND("A-a->A", "testAddEdgeToNewState1",config,null);
-		mutator = 
-			new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr,new Random(3));
+		mutator =
+				new GraphMutator<>(gr, new Random(3));
 		Assert.assertEquals(2,mutator.addEdgeToNewState(2));
 		mutator.removeEdge();// happens to remove A-a->A
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			mutator.removeEdge();
-		}},FailureToMutateException.class,"mutation is too similar");
+		checkForCorrectException(
+				() -> mutator.removeEdge(),
+				FailureToMutateException.class,"mutation is too similar");
 		
 		mutator.getMutated().pathroutines.checkConsistency(mutator.getMutated());
 		

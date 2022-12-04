@@ -21,12 +21,11 @@ import java.io.File;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.*;
 
 import static statechum.Helper.throwUnchecked;
 
+import harmony.collections.HashMapWithSearch;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -36,7 +35,6 @@ import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.collections.HashMapWithSearch;
 import statechum.collections.MapWithSearch;
 
 /**
@@ -50,6 +48,7 @@ import statechum.collections.MapWithSearch;
  * This class is using the built-in <em>clone</em> method, hence all attributes
  * have to be either primitives or immutable (such as <em>String</em>).
  */
+@SuppressWarnings("unused")
 public class Configuration implements Cloneable {
 	/** Pairs with scores lower than this are not considered for merging. */
 	protected int generalisationThreshold = 0;
@@ -105,7 +104,7 @@ public class Configuration implements Cloneable {
 		CONVENTIONAL("CONV"), COMPATIBILITY("COMP"), KTAILS("KT"), KTAILS_ANY("KANY"), GENERAL("GEN"), GENERAL_PLUS_NOFULLMERGE("GPLS"), ONLYOVERRIDE("OVR");
 
 		public final String name;
-		private ScoreMode(String nameText)
+		ScoreMode(String nameText)
 		{
 			name = nameText;
 		}
@@ -178,7 +177,7 @@ public class Configuration implements Cloneable {
 
 	/** In many experiments, FSM evaluation only explores paths of length up to a specific boundary. If an outcome of learning has many long paths, anything beyond that boundary will not be explored.
 	 * We therefore put a bound on the length of paths, stopping the learning process with an error that can be caught and a special 'failure' FSM returned (that can be stored as an outcome of learning).
-	 * Such routines are not standard in the main learner but are implemented as part of {@link LearningAlgorithms#RefenceLearner}.
+	 * Such routines are not standard in the main learner but are implemented as part of {@link LearningAlgorithms.ReferenceLearner}.
 	 * The default is a negative indicating that no restriction is to be applied.
 	 */
 	protected int override_maximalNumberOfStates = -1;
@@ -432,10 +431,8 @@ public class Configuration implements Cloneable {
 		try {
 			return super.clone();
 		} catch (CloneNotSupportedException e) {
-			IllegalArgumentException ex = new IllegalArgumentException(
-					"clone of Configuration failed - should not happen");
-			ex.initCause(e);
-			throw ex;
+			throw new IllegalArgumentException(
+					"clone of Configuration failed - should not happen", e);
 		}
 	}
 
@@ -480,7 +477,7 @@ public class Configuration implements Cloneable {
 	 * parsing of them from text.
 	 */
 	public enum LABELKIND {
-		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT;
+		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT, LABEL_INPUT_OUTPUT
 	}
 
 	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;
@@ -569,36 +566,36 @@ public class Configuration implements Cloneable {
 		Class<? extends Configuration> clazz = getClass();
 		for(Field var:clazz.getDeclaredFields())
 		{
-			if (var.getType() != clazz && 
-					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if ((var.getType() != clazz) &&
+					!var.getName().equals("$VRc")// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
 			{
 				Method getter = statechum.AttributeMutator.getMethod(clazz,
 						GETMETHOD_KIND.FIELD_GET, var);
 				Object outcome = null;
 				try {
-					outcome = getter.invoke(this, new Object[] {});
+					outcome = getter.invoke(this);
 				} catch (Exception e) {
 					Helper.throwUnchecked("cannot invoke method " + getter
 							+ " on " + clazz, e);
 				}
 				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 				{
-					result = prime * result + ( ((Boolean)outcome).booleanValue() ? 1231 : 1237 );
+					result = (prime * result) + ((Boolean) outcome ? 1231 : 1237);
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
 				{
-					result = prime * result + ((Integer)outcome).intValue();
+					result = (prime * result) + (Integer) outcome;
 				}
 				else
 				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
 				{
-					result = prime * result + (int) ( ((Double)outcome).doubleValue() * 100);
+					result = (prime * result) + (int) ((Double) outcome * 100);
 				}
 				else
 					if (outcome != null)
-						result = prime * result + outcome.hashCode();
+						result = (prime * result) + outcome.hashCode();
 					else
 						result = prime * result;
 			}
@@ -626,21 +623,21 @@ public class Configuration implements Cloneable {
 		Class<? extends Configuration> clazz = getClass();
 		for(Field var:clazz.getDeclaredFields())
 		{
-			if (var.getType() != clazz && 
-					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if ((var.getType() != clazz) &&
+					(!var.getName().equals("$VRc"))// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
 			{
 				Method getter = statechum.AttributeMutator.getMethod(clazz,
 						GETMETHOD_KIND.FIELD_GET, var);
 				Object ourValue = null, otherValue = null;
 				try {
-					ourValue = getter.invoke(this, new Object[] {});
+					ourValue = getter.invoke(this);
 				} catch (Exception e) {
 					Helper.throwUnchecked("cannot invoke method " + getter
 							+ " on " + clazz, e);
 				}
 				try {
-					otherValue = getter.invoke(other, new Object[] {});
+					otherValue = getter.invoke(other);
 				} catch (Exception e) {
 					Helper.throwUnchecked("cannot invoke method " + getter
 							+ " on " + other.getClass(), e);
@@ -649,17 +646,17 @@ public class Configuration implements Cloneable {
 				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
 				{
 					if (Math.abs(
-							((Double)ourValue).doubleValue() - 
-							((Double)otherValue).doubleValue()
+							(Double) ourValue -
+									(Double) otherValue
 							) > fpAccuracy)
 						return false;
 				}
 				else
 				{
 
-					if ((ourValue == null && otherValue != null) ||
-							(ourValue != null && otherValue == null) ||
-							(ourValue != null && !ourValue.equals(otherValue)))
+					if (((ourValue == null) && (otherValue != null)) ||
+							((ourValue != null) && (otherValue == null)) ||
+							((ourValue != null) && !ourValue.equals(otherValue)))
 						return false;
 
 				}
@@ -994,7 +991,7 @@ public class Configuration implements Cloneable {
 	}
 
 	public void setGdKeyPairThreshold(double value) {
-		if (value < 0 || value > 1)
+		if ((value < 0) || (value > 1))
 			throw new IllegalArgumentException("threshold " + value
 					+ " is invalid, 0..1 is expected (both inclusive)");
 		gdKeyPairThreshold = value;
@@ -1017,7 +1014,7 @@ public class Configuration implements Cloneable {
 	}
 
 	public void setGdLowToHighRatio(double value) {
-		if (value < 0 || value > 1)
+		if ((value < 0) || (value > 1))
 			throw new IllegalArgumentException("HighLowRatio " + value
 					+ " is invalid, expected 0..1");
 		gdLowToHighRatio = value;
@@ -1062,7 +1059,7 @@ public class Configuration implements Cloneable {
 	 *             if k is negative or 1 or over 1.
 	 */
 	public void setAttenuationK(double k) {
-		if (k < 0 || k >= 1)
+		if ((k < 0) || (k >= 1))
 			throw new IllegalArgumentException(
 					"attenuation should be within [0,1[");
 		attenuationK = k;
@@ -1070,7 +1067,7 @@ public class Configuration implements Cloneable {
 
 	/** A test-only version of the above, permitting a value of 1. */
 	public void setAttenuationK_testOnly(double k) {
-		if (k < 0 || k > 1)
+		if ((k < 0) || (k > 1))
 			throw new IllegalArgumentException(
 					"attenuation should be within [0,1[");
 		attenuationK = k;
@@ -1412,9 +1409,12 @@ public class Configuration implements Cloneable {
 		initialIDvalue = newValue;
 	}
 
-	/** Where we need to frequently query a map from a state to a corresponding row, few things beat a direct array access. In order to retain flexibility, this is done via a custom 
-	 * of {@list HashMapWithSearch} class that is essentially a copy of {@list HashMap} but contains {@list HashMapWithSearch#searchByID} function and a slightly different algorithm to 
-	 * compute hash code. For this custom version to avoid resizing, we pre-allocate the maximal size where known. This is configurable below.
+	/** Where we need to frequently query a map from a state to a corresponding row, few things beat a direct array access.
+	 * In order to retain flexibility, this is done via a custom
+	 * of {@link HashMapWithSearch} class that is essentially a copy of {@link HashMap} but contains
+	 * {@link HashMapWithSearch#findKey(Object)}
+	 * function and a slightly different algorithm to compute hash code. For this custom version to avoid resizing,
+	 * we pre-allocate the maximal size where known. This is configurable below.
 	 */
 	protected int maxAcceptStateNumber=2000;
 	
@@ -1440,7 +1440,7 @@ public class Configuration implements Cloneable {
 		maxRejectStateNumber = newValue;
 	}
 	
-	/** The collection holding a transition matrix can be either a tree map for compatibility with old learners or a {@link HashMapWithSearch} that is a flavour of {@link LinkedHashMap}. 
+	/** The collection holding a transition matrix can be either a tree map for compatibility with old learners or a {@link HashMapWithSearch} that is a flavour of {@link LinkedHashMap}.
 	 * that is more efficient, particularly for large graphs. The order of state exploration is dependent on hash code computation rather than on names or numbers of states. This would
 	 * typically lead to slightly different learning outcomes hence the possibility of compatibility mode. 
 	 */
@@ -1495,7 +1495,8 @@ public class Configuration implements Cloneable {
 		alwaysUseTheSameMatrixType = newValue;
 	}
 	
-	/** With a switch to {@link LinkedHashMap} for representation of a transition matrix, performance is better however the order is dependent on hash code generation which may change. Using this attribute one
+	/** With a switch to {@link LinkedHashMap} for representation of a transition matrix,
+	 * performance is better however the order is dependent on hash code generation which may change. Using this attribute one
 	 * can switch the hashcode order to compare-order (like that of {@link TreeMap}) which is useful for recording test results.
 	 */
 	protected boolean useOrderedEntrySet = false;
@@ -1679,15 +1680,15 @@ public class Configuration implements Cloneable {
 	{
 		Configuration defaultConfiguration = Configuration.getDefaultConfiguration();
 		for (Field var : getClass().getDeclaredFields()) {
-			if (var.getType() != Configuration.class && var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if ((var.getType() != Configuration.class) && (!var.getName().equals("$VRc"))// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
 				Method getter = AttributeMutator.getMethod(Configuration.class,
 						GETMETHOD_KIND.FIELD_GET, var);
 				try {
-					Object origValue = getter.invoke(defaultConfiguration, new Object[] {});
-					Object value = getter.invoke(this, new Object[] {});
+					Object origValue = getter.invoke(defaultConfiguration);
+					Object value = getter.invoke(this);
 					if (value != null) {
-						if (origValue == null || !value.equals(origValue)) {
+						if ((origValue == null) || !value.equals(origValue)) {
 							resultHolder.append("config ");
 							resultHolder.append(var.getName());resultHolder.append(' ');
 							resultHolder.append(value.toString());
@@ -1720,13 +1721,13 @@ public class Configuration implements Cloneable {
 	public Element writeXML(Document doc) {
 		Element config = doc.createElement(configXMLTag);
 		for (Field var : getClass().getDeclaredFields()) {
-			if (var.getType() != Configuration.class && var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if ((var.getType() != Configuration.class) && (!var.getName().equals("$VRc"))// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
 				Method getter = AttributeMutator.getMethod(Configuration.class,
 						GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
 				try {
-					Object value = getter.invoke(this, new Object[] {});
+					Object value = getter.invoke(this);
 					if (value != null) {
 						varData.setAttribute(configVarAttrName, var.getName());
 						varData.setAttribute(configVarAttrValue,
@@ -1775,7 +1776,7 @@ public class Configuration implements Cloneable {
 		for (int i = 0; i < nodes.getLength(); ++i) {
 			org.w3c.dom.Node node = nodes.item(i);
 			if (node.getNodeType() != org.w3c.dom.Node.TEXT_NODE) {// ignore all text nodes
-				if (node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE
+				if ((node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE)
 						|| !node.getNodeName().equals(configVarTag))
 					throw new IllegalArgumentException("unexpected element "
 							+ node.getNodeName() + " in configuration XML");
@@ -1790,9 +1791,9 @@ public class Configuration implements Cloneable {
 	 * Given the name of the attribute and a new value, converts the value into
 	 * the correct type and assigns it.
 	 * 
-	 * @param attr
+	 * @param attrName
 	 *            name of attribute
-	 * @param value
+	 * @param attrValue
 	 *            value
 	 * @param strict
 	 *            if unknown attributes should cause an exception to be thrown
@@ -1804,29 +1805,28 @@ public class Configuration implements Cloneable {
 			var = getClass().getDeclaredField(attrName);
 			Method setter = AttributeMutator.getMethod(Configuration.class,
 					GETMETHOD_KIND.FIELD_SET, var);
-			Object value = null;
-			String valueAsText = attrValue;
+			Object value;
 			if (var.getType().equals(Boolean.class)
 					|| var.getType().equals(boolean.class)) {
-				value = Boolean.valueOf(valueAsText);
+				value = Boolean.valueOf(attrValue);
 			} else if (var.getType().equals(Double.class)
 					|| var.getType().equals(double.class)) {
-				value = Double.valueOf(valueAsText);
+				value = Double.valueOf(attrValue);
 			} else if (var.getType().equals(String.class)) {
-				value = valueAsText;
+				value = attrValue;
 			} else if (var.getType().isEnum()) {
-				value = Enum.valueOf((Class<Enum>) var.getType(), valueAsText);
+				value = Enum.valueOf((Class<Enum>) var.getType(), attrValue);
 			} else if (var.getType().equals(Integer.class)
 					|| var.getType().equals(int.class)) {
-				value = Integer.valueOf(valueAsText);
+				value = Integer.valueOf(attrValue);
 			} else if (var.getType().equals(File.class)) {
-				value = new File(valueAsText);
+				value = new File(attrValue);
 			} else
 				throw new IllegalArgumentException("A field " + var
 						+ " of Configuration has an unsupported type "
 						+ var.getType());
 
-			setter.invoke(this, new Object[] { value });
+			setter.invoke(this, value);
 		} catch (NoSuchFieldException e) {
 			if (strict)
 				throw new IllegalArgumentException(

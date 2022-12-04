@@ -65,7 +65,6 @@ import statechum.apps.ErlangQSMOracle;
  * 
  * @author ramsay
  */
-@SuppressWarnings("serial")
 public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	protected ErlangApp app;
@@ -81,7 +80,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	class InnerAlphabetModel extends AbstractListModel implements ComboBoxModel
 	{
 		List<EXPANSIONOFANY> expansionValues = Arrays.asList(EXPANSIONOFANY.values());
-		List<String>sigValues = new ArrayList<String>(expansionValues.size());
+		List<String>sigValues = new ArrayList<>(expansionValues.size());
 		int selectedItemIdx=0;
 		
 		public InnerAlphabetModel()
@@ -90,7 +89,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			for(EXPANSIONOFANY value:expansionValues)
 			{
 				Configuration conf = config.copy();conf.setErlangAlphabetAnyElements(value);
-				StringBuffer alphabetValues = new StringBuffer();
+				StringBuilder alphabetValues = new StringBuilder();
 				boolean first = true;
 				for(OtpErlangObject obj:new AnySignature(conf, new OtpErlangList()).instantiateAllAlts())
 				{
@@ -119,7 +118,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	    /**
 	     * Set the value of the selected item. The selected item may be null.
 	     * <p>
-	     * @param anObject The combo box value or null for no selection.
+	     * @param anItem The combo box value or null for no selection.
 	     */
 		@Override
 		public void setSelectedItem(Object anItem) 
@@ -151,39 +150,29 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	// desc="Generated Code">//GEN-BEGIN:initComponents
 	private void initComponents() {
 
-		jLabel1 = new javax.swing.JLabel();
+		JLabel jLabel1 = new JLabel();
 		appFile = new javax.swing.JLabel();
-		jButton1 = new javax.swing.JButton();
-		beginButton = new javax.swing.JButton();
-		jLabel2 = new javax.swing.JLabel();
+		javax.swing.JButton jButton1 = new javax.swing.JButton();
+		javax.swing.JButton beginButton = new javax.swing.JButton();
+		JLabel jLabel2 = new JLabel();
 		startModule = new javax.swing.JLabel();
-		jLabel3 = new javax.swing.JLabel();
+		JLabel jLabel3 = new JLabel();
 		startModuleArgs = new javax.swing.JLabel();
-		jLabel4 = new javax.swing.JLabel();
-		jScrollPane1 = new javax.swing.JScrollPane();
-		modules = new javax.swing.JList<ErlangModule>();
-		jButton2 = new javax.swing.JButton();
-		jButton3 = new javax.swing.JButton();
+		JLabel jLabel4 = new JLabel();
+		javax.swing.JScrollPane jScrollPane1 = new javax.swing.JScrollPane();
+		modules = new javax.swing.JList<>();
+		javax.swing.JButton jButton2 = new javax.swing.JButton();
+		javax.swing.JButton jButton3 = new javax.swing.JButton();
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
 		jLabel1.setText("App file:");
 
 		jButton1.setText("Choose");
-		jButton1.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jButton1ActionPerformed(evt);
-			}
-		});
+		jButton1.addActionListener(this::jButton1ActionPerformed);
 
 		beginButton.setText("Auto-Analyse All");
-		beginButton.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				beginButtonActionPerformed(evt);
-			}
-		});
+		beginButton.addActionListener(this::beginButtonActionPerformed);
 
 		jLabel2.setText("Start Module:");
 
@@ -194,20 +183,10 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		jScrollPane1.setViewportView(modules);
 
 		jButton2.setText("View selected module");
-		jButton2.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jButton2ActionPerformed(evt);
-			}
-		});
+		jButton2.addActionListener(this::jButton2ActionPerformed);
 
 		jButton3.setText("Reload");
-		jButton3.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jButton3ActionPerformed(evt);
-			}
-		});
+		jButton3.addActionListener(this::jButton3ActionPerformed);
 
 		JPanel top = new JPanel();
 		JPanel mid = new JPanel();
@@ -301,18 +280,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 		randomButton = new JRadioButton("Use random generation");
 		bgroup.add(exhaustiveButton);
 		bgroup.add(randomButton);
-		exhaustiveButton.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {
-				generatorChange(true);
-			}
-		});
-		randomButton.addActionListener(new java.awt.event.ActionListener() {
-			@Override
-			public void actionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {
-				generatorChange(false);
-			}
-		});
+		exhaustiveButton.addActionListener(evt -> generatorChange(true));
+		randomButton.addActionListener(evt -> generatorChange(false));
 		randomButton.setSelected(true);
 		seedField = new JTextField("" + (new Random()).nextLong());
 
@@ -419,7 +388,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			chooser = new JFileChooser();
 		}
 		chooser.setAcceptAllFileFilterUsed(false);
-		chooser.addChoosableFileFilter(new ErlangApplicationLoader.appFilter());
+		chooser.addChoosableFileFilter(new appFilter());
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		int returnValue = chooser.showOpenDialog(null);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -441,7 +410,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			}
 			startModule.setText(app.startModule);
 			startModuleArgs.setText(app.startModuleArgs);
-			DefaultListModel<ErlangModule> model = new DefaultListModel<ErlangModule>();
+			DefaultListModel<ErlangModule> model = new DefaultListModel<>();
 			for (ErlangModule m : app.modules) {
 				model.addElement(m);
 			}
@@ -495,28 +464,26 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			 * (ErlangRunner.validName(f.getName())) ErlangRunner.compileErl(f,
 			 * ErlangRunner.getRunner());
 			 */
-			for (Object s : app.modules) {
+			for (ErlangModule s : app.modules) {
 				try {
 					// Load the module
-					ErlangModule m = (ErlangModule) s;
-
 					int len = Integer.parseInt(lenField.getText());
 					boolean exhaustAlphabet = exhaustAlphabetBox.isSelected();
 					boolean useOutputMatching = outputMatchingBox.isSelected();
 					EXPANSIONOFANY expansion = ((InnerAlphabetModel)anyAlphabet.getModel()).getSelectedExpansion();
-					System.out.println("Generating traces for " + m.name + "...");
-					String tracefile = m.name + ".traces";
+					System.out.println("Generating traces for " + s.name + "...");
+					String tracefile = s.name + ".traces";
 					if (exhaustiveButton.isSelected()) {
-						ErlangTraceGenerator.genComplete(m, new File(tracefile), len, useOutputMatching, expansion);
+						ErlangTraceGenerator.genComplete(s, new File(tracefile), len, useOutputMatching, expansion);
 					} else {
 						long seed = Long.parseLong(seedField.getText());
 						int count = Integer.parseInt(countField.getText());
-						ErlangTraceGenerator.genRandom(m, new File(tracefile), len, count, exhaustAlphabet,
+						ErlangTraceGenerator.genRandom(s, new File(tracefile), len, count, exhaustAlphabet,
 								useOutputMatching, expansion, seed);
 					}
 					// Run ErlangQSMOracle on the trace file...
 
-					System.out.println("Learning " + m.name + "...");
+					System.out.println("Learning " + s.name + "...");
 					//LearnerGraph g = ErlangQSMOracle.startInference(tracefile);
 					ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
 					ErlangOracleLearner innerLearner = ErlangQSMOracle.createLearner(viz,tracefile);
@@ -538,8 +505,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	}// GEN-LAST:event_beginButtonActionPerformed
 
 	private void jButton2ActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
-		for (Object s : modules.getSelectedValues()) {
-			ErlangModuleViewer view = new ErlangModuleViewer((ErlangModule) s);
+		for (ErlangModule s : modules.getSelectedValuesList()) {
+			ErlangModuleViewer view = new ErlangModuleViewer(s);
 			view.pack();
 			view.setVisible(true);
 
@@ -554,7 +521,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 	 * @param args
 	 *            the command line arguments
 	 */
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		if (args.length > 0) {// run the analysis directly
 
 			ErlangApplicationLoader loader = new ErlangApplicationLoader();
@@ -576,13 +543,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			 */
 			loader.setVisible(true);
 		} else {
-			java.awt.EventQueue.invokeLater(new Runnable() {
-
-				@Override
-				public void run() {
-					new ErlangApplicationLoader().setVisible(true);
-				}
-			});
+			java.awt.EventQueue.invokeLater(() -> new ErlangApplicationLoader().setVisible(true));
 		}
 	}
 
@@ -593,22 +554,13 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables
 	private javax.swing.JLabel appFile;
-	private javax.swing.JButton beginButton;
-	private javax.swing.JButton jButton1;
-	private javax.swing.JButton jButton2;
-	private javax.swing.JButton jButton3;
-	private javax.swing.JLabel jLabel1;
-	private javax.swing.JLabel jLabel2;
-	private javax.swing.JLabel jLabel3;
-	private javax.swing.JLabel jLabel4;
-	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JList<ErlangModule> modules;
 	private javax.swing.JLabel startModule;
 	private javax.swing.JLabel startModuleArgs;
 
 	// End of variables declaration//GEN-END:variables
 
-	class appFilter extends FileFilter {
+	static class appFilter extends FileFilter {
 
 		@Override
 		public boolean accept(File f) {
@@ -618,9 +570,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 			int i = f.getName().lastIndexOf(".");
 			if (i >= 0) {
 				String extension = f.getName().substring(i).toLowerCase();
-				if (extension.equals(".app")) {
-					return true;
-				}
+				return extension.equals(".app");
 			}
 			return false;
 		}

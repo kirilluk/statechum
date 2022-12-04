@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import harmony.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
@@ -41,7 +42,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.collections.ArrayMapWithSearch;
-import statechum.collections.HashMapWithSearch;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -49,6 +49,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 import statechum.Label;
+import statechum.collections.MapWithSearch;
 
 public class MergeStates {
 	final LearnerGraph coregraph;
@@ -76,7 +77,7 @@ public class MergeStates {
 	{
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
 	}
 	
@@ -108,10 +109,7 @@ public class MergeStates {
 			CmpVertex targetInResultGraph = visitedTargetStates.get(targetState);// this returns the vertex in the target graph. For vertices built from eq classes, it is the same as mergedVertex, 
 				// for others (those not in eqClasses, corresponding to singleton equivalence classes) it will be a clone of that vertex that is used in the target graph.
 			if (nextClass != null && targetInResultGraph != null)
-				if (targetInResultGraph != nextClass.getMergedVertex())
-				{
-					assert false:"vertex in target graph is not the same as a merged vertex";// using assertfalse so that a breakpoint can be set on this line.
-				}
+				assert targetInResultGraph == nextClass.getMergedVertex() :"vertex in target graph is not the same as a merged vertex";// using assertfalse so that a breakpoint can be set on this line.
 
 			if (targetInResultGraph == null)
 			{// have not yet visited this class
@@ -119,8 +117,7 @@ public class MergeStates {
 					targetInResultGraph = nextClass.getMergedVertex();// class not null, hence target vertex has already been built.
 				else
 					targetInResultGraph = AMEquivalenceClass.constructMergedVertexFrom(targetState,targetState.getColour(),result,false,true);// cloning vertex here.
-				if (result.transitionMatrix.containsKey(targetInResultGraph))
-					assert false : "vertex "+targetInResultGraph+" already exists in the target graph";
+				assert !result.transitionMatrix.containsKey(targetInResultGraph) : "vertex "+targetInResultGraph+" already exists in the target graph";
 				if (mergedToHard != null && nextClass == null)
 					updateHardFacts(targetState,targetInResultGraph,original,mergedToHard);
 				result.transitionMatrix.put(targetInResultGraph, result.createNewRow());
@@ -128,8 +125,7 @@ public class MergeStates {
 				visitedTargetStates.put(targetState,targetInResultGraph);
 			}
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled() && row.containsKey(entry.getKey()))
-				if (row.get(entry.getKey()) != targetInResultGraph)
-					assert false:"every time we meet a target state, we should use the same object as a target state";// using assertfalse so that a breakpoint can be set on this line.
+				assert row.get(entry.getKey()) == targetInResultGraph :"every time we meet a target state, we should use the same object as a target state";// using assertfalse so that a breakpoint can be set on this line.
 			row.put(entry.getKey(), targetInResultGraph);
 		}	
 	}
@@ -137,7 +133,7 @@ public class MergeStates {
 	/** Updates the hard-facts map for the constructed vertex that corresponds to a singleton equivalence class for a merge. */
 	private static void updateHardFacts(CmpVertex currentInOrigin, CmpVertex currentInTarget, LearnerGraph original, Map<VertID,Collection<VertID>> mergedToHard)
 	{
-		Collection<VertID> hardVertices = new ArrayList<VertID>();mergedToHard.put(currentInTarget, hardVertices);
+		Collection<VertID> hardVertices = new ArrayList<>();mergedToHard.put(currentInTarget, hardVertices);
 		Map<VertID,Collection<VertID>> hardOrig = original.learnerCache.getMergedToHardFacts();
         if (hardOrig != null && hardOrig.containsKey(currentInOrigin))
         {
@@ -164,7 +160,7 @@ public class MergeStates {
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<>();
 				/*original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID,original.vertNegativeID):
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID+original.vertNegativeID);*/
@@ -174,7 +170,7 @@ public class MergeStates {
         if (updateAuxInformation)
         {
         	mergedToHard = AbstractLearnerGraph.constructMap(cloneConfig,original);
-        	mergedForCompatibility = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedForCompatibility.addAll(mergedVertices);
+			mergedForCompatibility = new ArrayList<>(mergedVertices);
         }
 		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
@@ -184,7 +180,7 @@ public class MergeStates {
 			
 			if (updateAuxInformation)
 			{
-	            Collection<VertID> hardVertices = new ArrayList<VertID>();mergedToHard.put(eqClass.getMergedVertex(), hardVertices);
+	            Collection<VertID> hardVertices = new ArrayList<>();mergedToHard.put(eqClass.getMergedVertex(), hardVertices);
 				for(CmpVertex v:eqClass.getStates())
 	            {
 	                Map<VertID,Collection<VertID>> hardOrig = original.learnerCache.getMergedToHardFacts();
@@ -209,12 +205,12 @@ public class MergeStates {
 		result.transitionMatrix.put(initVertexResult, result.createNewRow());
 		result.setInit(initVertexResult);
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
-		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing vertices to be explored
 		
 		// This map associates vertices in the original graph to those in the cloned one. It is populated when new vertices are explored and therefore doubles as a 'visited' set.
-		Map<CmpVertex,CmpVertex> originalVertexToClonedVertex = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,CmpVertex>(original.vertPositiveID,original.vertNegativeID):
-					new HashMap<CmpVertex,CmpVertex>();
+		MapWithSearch<VertID,CmpVertex,CmpVertex> originalVertexToClonedVertex = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<>(original.vertPositiveID, original.vertNegativeID):
+					new HashMapWithSearch<>();
 		currentExplorationBoundary.add(initVertexOriginal);originalVertexToClonedVertex.put(initVertexOriginal,initVertexResult);
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
@@ -237,7 +233,7 @@ public class MergeStates {
 					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> vertexToValue = original.pairCompatibility.compatibility.get(current);
 					if (vertexToValue != null)
 					{// if we have any vertices associated with the current one
-						Collection<CmpVertex> incompatibleVertices = new LinkedList<CmpVertex>();
+						Collection<CmpVertex> incompatibleVertices = new LinkedList<>();
 						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:vertexToValue.entrySet())
 							if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE)
 								incompatibleVertices.add(entry.getKey());
@@ -275,7 +271,7 @@ public class MergeStates {
 	{
 		private final CmpVertex representative,merged;
 		private final Collection<CmpVertex> incompatibleVertices;
-		private final Set<CmpVertex> states = new TreeSet<CmpVertex>();
+		private final Set<CmpVertex> states = new TreeSet<>();
 
 		public EquivalenceClassForConstructionOfCompatibility(CmpVertex representative, CmpVertex merged, Collection<CmpVertex> incompatibleVertices)
 		{
@@ -387,9 +383,9 @@ public class MergeStates {
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Map<CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-				new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID,original.vertNegativeID):
-				new HashMapWithSearch<CmpVertex,List<CmpVertex>>(original.vertPositiveID+original.vertNegativeID);
+		MapWithSearch<VertID,CmpVertex,List<CmpVertex>> mergedVertices = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+				new ArrayMapWithSearch<>(original.vertPositiveID, original.vertNegativeID):
+				new HashMapWithSearch<>(original.vertPositiveID + original.vertNegativeID);
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
@@ -400,7 +396,7 @@ public class MergeStates {
 			throw new IllegalArgumentException("elements of the pair are incompatible");
 
 		// make a loop
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
 				if (rowEntry.getValue() == pair.getQ())	
@@ -408,11 +404,11 @@ public class MergeStates {
 					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
 		}
 
-		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
-		Set<Label> inputsUsed = new HashSet<Label>();
+		Set<CmpVertex> ptaVerticesUsed = new HashSet<>();
+		Set<Label> inputsUsed = new HashSet<>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
 			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
@@ -442,7 +438,7 @@ public class MergeStates {
 		}
 		
 		// now remove everything related to the PTA
-		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add( pair.getQ() );
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -461,7 +457,7 @@ public class MergeStates {
 		
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && original.config.getDebugMode()) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
 		
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 			for(CmpVertex target:entry.getValue().values())
 				if (!result.transitionMatrix.containsKey(target))
 					throw new IllegalArgumentException("vertex "+target+" is not known in a transformed graph");
@@ -475,9 +471,9 @@ public class MergeStates {
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
 			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ(),g);
 			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR(),g);
-			Map<CmpVertex,List<CmpVertex>> mergedVertices = conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? 
-					new ArrayMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices(),g.numVertices()):
-					new HashMapWithSearch<CmpVertex,List<CmpVertex>>(g.numVertices());
+			MapWithSearch<VertID,CmpVertex,List<CmpVertex>> mergedVertices = conf.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
+					new ArrayMapWithSearch<>(g.numVertices(), g.numVertices()):
+					new HashMapWithSearch<>(g.numVertices());
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
 			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.
@@ -487,7 +483,7 @@ public class MergeStates {
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
 			// make a loop
-			Set<Label> usedInputs = new HashSet<Label>();
+			Set<Label> usedInputs = new HashSet<>();
 			for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)newBlue.getInEdges())
 			{
 				Vertex source = e.getSource();
@@ -526,7 +522,7 @@ public class MergeStates {
 						for(Label input:inputsFrom_toMerge)
 							if (!usedInputs.contains(input))
 							{
-								Set<Label> labels = new HashSet<Label>();
+								Set<Label> labels = new HashSet<>();
                                                                 labels.add(input);
 								DeterministicVertex targetVert = (DeterministicVertex)s.transitionMatrix.get(toMerge).get(input);
 								DirectedSparseEdge newEdge = new DirectedSparseEdge(vert,targetVert);
@@ -538,7 +534,7 @@ public class MergeStates {
 				}
 			
 			// now remove everything related to the PTA
-			Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
+			Queue<Vertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing vertices to be explored
 			currentExplorationBoundary.add( newBlue );
 			while(!currentExplorationBoundary.isEmpty())
 			{

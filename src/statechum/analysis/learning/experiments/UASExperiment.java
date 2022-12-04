@@ -33,6 +33,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
+import statechum.collections.MapWithSearch;
 
 public abstract class UASExperiment implements Callable<ThreadResult>
 {
@@ -214,7 +215,7 @@ public abstract class UASExperiment implements Callable<ThreadResult>
 		{
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaSource.buildPTA(),uniqueLabel,false);
 			ptaStateNumber=smallPta.getAcceptStateNumber();
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:smallPta.transitionMatrix.entrySet())
+			for(Entry<CmpVertex, MapWithSearch<Label,Label, CmpVertex>> entry:smallPta.transitionMatrix.entrySet())
 			{
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 					if (transition.getValue().isAccept())

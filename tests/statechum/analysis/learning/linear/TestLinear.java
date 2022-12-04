@@ -50,6 +50,7 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
+import statechum.collections.MapWithSearch;
 
 public class TestLinear {
 
@@ -60,27 +61,24 @@ public class TestLinear {
 	
 	public final void benchmarkArrayTransformations()
 	{
-		int buf[] = new int[8];
+		int[] buf = new int[8];
 		Random rnd = new Random(0);
 		for(int i=0;i<buf.length;++i) buf[i]=buf.length-i;
 		for(int reorder=0;reorder<buf.length/3;++reorder)
 			buf[rnd.nextInt(buf.length)]=buf[rnd.nextInt(buf.length)];
 
-		int tmpBuf[]=new int[buf.length];
+		int[] tmpBuf =new int[buf.length];
 		int stateNumber = 1000;
-		int Ai[] = new int[stateNumber*(stateNumber+1)/2*buf.length];
-		double Ax[] = new double[Ai.length];
+		int[] Ai = new int[stateNumber*(stateNumber+1)/2*buf.length];
+		double[] Ax = new double[Ai.length];
 		int pos=0;
 		for(int tmp=0;tmp<stateNumber*(stateNumber+1)/2;++tmp)
 		{
 			System.arraycopy(buf, 0, tmpBuf, 0, buf.length);		
-			cern.colt.Sorting.quickSort(tmpBuf, 0, buf.length, new IntComparator() {
-
-				@Override
-				public int compare(int o1, int o2) {
-					++cnt;
-					return o1-o2;
-				}});
+			cern.colt.Sorting.quickSort(tmpBuf, 0, buf.length, (o1, o2) -> {
+				++cnt;
+				return o1-o2;
+			});
 			
 			Ai[pos++]=tmpBuf[0];
 			int prev = tmpBuf[0];
@@ -281,7 +279,7 @@ public class TestLinear {
 				}
 	
 				@Override
-				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
+				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, MapWithSearch<Label,Label, List<CmpVertex>>> entryA, int threadNo)
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
@@ -320,7 +318,7 @@ public class TestLinear {
 				}
 	
 				@Override
-				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
+				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, MapWithSearch<Label,Label, List<CmpVertex>>> entryA, int threadNo)
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
@@ -359,7 +357,7 @@ public class TestLinear {
 				}
 	
 				@Override
-				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo) 
+				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, MapWithSearch<Label,Label, List<CmpVertex>>> entryA, int threadNo)
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
@@ -819,7 +817,7 @@ public class TestLinear {
 		LearnerGraph gr=buildLearnerGraph("A00-a->B-a->C","testAddRejectVertices",configMain,converter);
 		addRejectVertices(gr, "A0", -1);
 		LearnerGraph expectedResult = buildLearnerGraph("A-a->B-a->C\nA0-a->A","testAddRejectVertices_result",configMain,converter);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("A0")) entry.getValue().clear();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("A0")) entry.getValue().clear();
 		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 	
@@ -843,7 +841,7 @@ public class TestLinear {
 		LearnerGraph gr=buildLearnerGraph("A-a->B-a->C","testAddRejectVertices",configMain,converter);
 		addRejectVertices(gr, "QQ0", 4);
 		LearnerGraph expectedResult = buildLearnerGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A\nQQ01-a->A\nQQ02-a->A\nQQ03-a->A\n","testAddRejectVertices_result",configMain,converter);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("QQ0")) entry.getValue().clear();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("QQ0")) entry.getValue().clear();
 		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 	
@@ -861,7 +859,7 @@ public class TestLinear {
 		LearnerGraph gr=buildLearnerGraph("A-a->B-a->C","testAddRejectVertices",configMain,converter);
 		addRejectVertices(gr, "QQ0", 1);
 		LearnerGraph expectedResult = buildLearnerGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A","testAddRejectVertices_result3",configMain,converter);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("QQ0")) entry.getValue().clear();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getStringId().contains("QQ0")) entry.getValue().clear();
 		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 

@@ -18,70 +18,38 @@
 
 package statechum.analysis.learning.linear;
 
-import java.awt.Color;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
 import com.ericsson.otp.erlang.OtpErlangDouble;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
-
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
-
-import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import statechum.*;
 import statechum.Configuration.STATETREE;
-import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.GlobalConfiguration;
-import statechum.JConsole_Diagnostics;
-import statechum.JUConstants;
-import statechum.JUConstants.PAIRCOMPATIBILITY;
-import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
-import statechum.StringLabel;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.linear.GDLearnerGraph.*;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.AbstractPersistence;
-import statechum.analysis.learning.rpnicore.CachedData;
-import statechum.analysis.learning.rpnicore.LSolver;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_BCR;
-import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_default;
-import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
-import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
-import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
+import statechum.collections.MapWithSearch;
+
+import java.awt.*;
+import java.text.DateFormat;
+import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * @author kirill
@@ -163,7 +131,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		if (array == null)
 			return new OtpErlangList();// empty list
-		OtpErlangDouble convertedArray[] = new OtpErlangDouble[array.length];for(int i=0;i<array.length;++i) convertedArray[i]=new OtpErlangDouble(array[i]);
+		OtpErlangDouble[] convertedArray = new OtpErlangDouble[array.length];for(int i = 0; i<array.length; ++i) convertedArray[i]=new OtpErlangDouble(array[i]);
 		return new OtpErlangList(convertedArray);
 	}
 	
@@ -220,14 +188,14 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param a ID of the vertex in the outcome of patching
 		 * @param b the actual ID of the vertex.
 		 */
-		public void addRelabelling(VertID a,VertID b);
+		void addRelabelling(VertID a,VertID b);
 		
 		/** Adds a supplied vertex. Useful for adding vertices which are not connected anywhere or
 		 * updating attributes on those which do exist.
 		 * 
 		 * @param vertex what to add or update.
 		 */
-		public void addVertex(CmpVertex vertex);
+		void addVertex(CmpVertex vertex);
 		
 		/** Adds a pair of compatible or incompatible states. See <em>AbstractLearnerGraph</em> for details.
 		 *  
@@ -235,7 +203,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param b the second element of a pair.
 		 * @param value the relation between <em>a</em> and <em>b</em>.
 		 */
-		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value);
+		void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value);
 
 		/** Removes a pair of compatible or incompatible states from the collection of incompatible states. 
 		 * See <em>AbstractLearnerGraph</em> for details.
@@ -244,7 +212,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param b the second element of a pair.
 		 * @param value value to remove between <em>a</em> and <em>b</em>. This is useful where we wish for our adds to be cancelled out by removes.
 		 */
-		public void removeFromCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value);
+		void removeFromCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value);
 
 		/** Adds a transition between the specified states.
 		 * Throws if transition already exists.<p>
@@ -256,7 +224,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param label label of a transition
 		 * @param to target state
 		 */
-		public void addTransition(CmpVertex from,Label label, CmpVertex to);
+		void addTransition(CmpVertex from,Label label, CmpVertex to);
 
 		/** Removes a transition between the specified states. Throws
 		 * if a transition does not exist.
@@ -265,12 +233,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param label label of a transition
 		 * @param to target state
 		 */
-		public void removeTransition(CmpVertex from,Label label, CmpVertex to);
+		void removeTransition(CmpVertex from,Label label, CmpVertex to);
 		
 		/** Sets the initial state to the requested state.
 		 * @param vertex the state to become the initial state. 
 		 */
-		public void setInitial(CmpVertex vertex);
+		void setInitial(CmpVertex vertex);
 	}
 	
 	/** Contains an inverse of the <em>frontwave</em> map. */
@@ -300,9 +268,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		//
 		// frontWave is the wavefront from which we are exploring grCombined in
 		// search of these candidates for key pairs.
-		aTOb= new TreeMap<CmpVertex,CmpVertex>();
+		aTOb= new TreeMap<>();
 		
-		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		newToOrig = new TreeMap<>();
 		do
 		{
 			// we start with a wave, see if determinism can be used to extend it
@@ -427,12 +395,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// for clashes both with remaining states of A and states of B portion of grCombined.
 		// This is resolved below by ensuring that grCombined's B-vertex space does not intersect
 		// with that of the B graph by construction of grCombined.
-		
-		final Set<CmpVertex> duplicatesAB = new TreeSet<CmpVertex>();
-		duplicatesAB.addAll(aTOb.keySet());duplicatesAB.retainAll(newBToOrig.values());// throws away all states not in B, such as states in A's key pairs which are not in B and hence cannot be duplicates
+
+		final Set<CmpVertex> duplicatesAB = new TreeSet<>(aTOb.keySet());
+		duplicatesAB.retainAll(newBToOrig.values());// throws away all states not in B, such as states in A's key pairs which are not in B and hence cannot be duplicates
 		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) duplicatesAB.remove(newBToOrig.get(entry.getValue()));// throws all states of B which are B's key pairs - these are paired with A and hence cannot be conflicting.
 		// now we got duplicate states in terms of states of A and B, but duplicates are in terms of renamed states of B in grCombined, hence convert it.
-		duplicates = new TreeSet<CmpVertex>();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
+		duplicates = new TreeSet<>();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
 
 		if (!duplicates.isEmpty())
 		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
@@ -443,7 +411,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		final LearnerGraphND added = new LearnerGraphND(config),removed = new LearnerGraphND(config);
 		added.initEmpty();removed.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
 
-		final Set<CmpVertex> extraVertices = new TreeSet<CmpVertex>();
+		final Set<CmpVertex> extraVertices = new TreeSet<>();
 		
 		// Now collect the changes, where vertices to be added can cancel out with those to be removed. This is needed because 
 		// there could be transitions between key pairs in A such that there are transitions between vertices with the same 
@@ -454,7 +422,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			@Override
 			public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 				super.addTransition(from, label, to);
-				Map<Label,List<CmpVertex>> rowInAdd = added.transitionMatrix.get(from);
+				MapWithSearch<Label,Label,List<CmpVertex>> rowInAdd = added.transitionMatrix.get(from);
 				if (rowInAdd == null)
 				{
 					rowInAdd = added.createNewRow();added.transitionMatrix.put(from, rowInAdd);
@@ -465,7 +433,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			@Override
 			public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 				super.removeTransition(from, label, to);
-				Map<Label,List<CmpVertex>> rowInAdd = removed.transitionMatrix.get(from);
+				MapWithSearch<Label,Label,List<CmpVertex>> rowInAdd = removed.transitionMatrix.get(from);
 				if (rowInAdd == null)
 				{
 					rowInAdd = removed.createNewRow();removed.transitionMatrix.put(from, rowInAdd);
@@ -513,13 +481,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// (a) where a transition between unmatched states of A is removed and subsequently added between states of B
 		// (b) where a transition between unmatched states of A is removed but these states correspond to key states of B 
 		// that contain a transition that is missing between the components of those keys states in A and hence is added.
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:removed.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:removed.transitionMatrix.entrySet())
 			for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 				for(CmpVertex target:removed.getTargets(transition.getValue()))
 					if (!checkTransitionPresent(added, entry.getKey(), transition.getKey(), target))
 						graphToPatch.removeTransition(entry.getKey(), transition.getKey(), target);
 
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:added.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:added.transitionMatrix.entrySet())
 			for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 				for(CmpVertex target:added.getTargets(transition.getValue()))
 					if (!checkTransitionPresent(removed, entry.getKey(), transition.getKey(), target))
@@ -530,7 +498,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					}
 
 		// Now the same as above but for pairwise compatibility information
-		Set<CmpVertex> verticesSeen = new TreeSet<CmpVertex>();
+		Set<CmpVertex> verticesSeen = new TreeSet<>();
 		for(Entry<CmpVertex,Map<CmpVertex,PAIRCOMPATIBILITY>> entry:removed.pairCompatibility.compatibility.entrySet())
 		{
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> vertexComp:entry.getValue().entrySet())
@@ -595,7 +563,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		
 		public void computeGD()
 		{
-			/** States to be explicitly added are those that do not feature in any added or removed transitions and have to be added for two reasons, 
+			/* States to be explicitly added are those that do not feature in any added or removed transitions and have to be added for two reasons,
 			 * <ul>
 			 * <li>attributes on these states may have changed or</li> 
 			 * <li>these states feature no outgoing/incoming transitions
@@ -647,7 +615,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				{
 					// targetsB are the states&compatibility values associated with the B state in the entry pair.
 					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> targetsB = grCombined.pairCompatibility.compatibility.get(entry.getValue());// this is a function - there is no potential for non-determinism unlike that of transitionMatrix
-					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> newTargetsForB=new TreeMap<CmpVertex,JUConstants.PAIRCOMPATIBILITY>();if (targetsB != null) newTargetsForB.putAll(targetsB);
+					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> newTargetsForB= new TreeMap<>();if (targetsB != null) newTargetsForB.putAll(targetsB);
 					if (grCombined.pairCompatibility.compatibility.containsKey(entry.getKey())) // we have some pairs recorded in A which may match those in B
 						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> targetInA:grCombined.pairCompatibility.compatibility.get(entry.getKey()).entrySet())
 							if (aTOb.containsKey(targetInA.getKey()))
@@ -684,7 +652,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					else
 					{
 						Collection<CmpVertex> targetsA=grCombined.getTargets(transitionA.getValue()), targetsB=grCombined.getTargets(targetsInB);
-						Set<CmpVertex> newTargetsForB = new TreeSet<CmpVertex>();newTargetsForB.addAll(targetsB);
+						Set<CmpVertex> newTargetsForB = new TreeSet<>(targetsB);
 						
 						// It is not enough to check if both targetA and targetB are 
 						// key states, but the two have to be part of the same key state. 
@@ -743,14 +711,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 
 				if (!statesInKeyPairs.contains(vertex))
 				{
-					Iterator<Entry<Label,List<CmpVertex>>> targetStatesIterator = grCombined.transitionMatrix.get(vertex).entrySet().iterator();
-					
-					while(targetStatesIterator.hasNext())
-					{
-						Entry<Label,List<CmpVertex>> target = targetStatesIterator.next();
+
+					for (Entry<Label, List<CmpVertex>> target : grCombined.transitionMatrix.get(vertex).entrySet()) {
 						// transition not matched because some states are not known hence append it.
-						for(CmpVertex targetState:grCombined.getTargets(target.getValue()))
-								addTransition(vertexA, target.getKey(),getOrig(targetState));
+						for (CmpVertex targetState : grCombined.getTargets(target.getValue()))
+							addTransition(vertexA, target.getKey(), getOrig(targetState));
 					}
 
 					// incompatible pairs.
@@ -782,7 +747,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 		/**
-		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
+		 * @see GD.PatchGraph#addTransition(CmpVertex, Label, CmpVertex)
 		 */
 		@SuppressWarnings("unused")
 		@Override
@@ -790,7 +755,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 		/**
-		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
+		 * @see GD.PatchGraph#removeTransition(CmpVertex, Label, CmpVertex)
 		 */
 		@SuppressWarnings("unused")
 		@Override
@@ -798,7 +763,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 		/**
-		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addToCompatibility(statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.JUConstants)
+		 * @see GD.PatchGraph#addToCompatibility(CmpVertex, CmpVertex, PAIRCOMPATIBILITY)
 		 */
 		@SuppressWarnings("unused")
 		@Override
@@ -806,7 +771,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 		/**
-		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeFromCompatibility(statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.JUConstants)
+		 * @see GD.PatchGraph#removeFromCompatibility(CmpVertex, CmpVertex, PAIRCOMPATIBILITY)
 		 */
 		@SuppressWarnings("unused")
 		@Override
@@ -823,14 +788,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 */
 	public static void sortWave(List<PairScore> wave)
 	{
-		Collections.sort(wave, new Comparator<PairScore>() {
-
-			@Override
-			public int compare(PairScore o1, PairScore o2) {
-				return o2.compareTo(o1);// in reverse order
-			}
-			
-		});
+		wave.sort(Comparator.reverseOrder());
 	}
 	
 	/** Makes it possible to modify graphs by adding/removing transitions. */
@@ -839,23 +797,23 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		/** Graph to manipulate. */
 		private final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
 		/** Configuration to use for cloning if necessary. */
-		private Configuration cloneConfig;
+		private final Configuration cloneConfig;
 		
 		/** States which should be included in the target graph, even if they have no 
 		 * outgoing or incoming transitions. One of such states is an initial state. 
 		 */
-		private final Set<CmpVertex> statesToInclude = new TreeSet<CmpVertex>();
+		private final Set<CmpVertex> statesToInclude = new TreeSet<>();
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
 		
 		/** Relabelling of states, applied if necessary. */
-		private final Map<VertID,VertID> relabelling = new TreeMap<VertID,VertID>();
+		private final Map<VertID,VertID> relabelling = new TreeMap<>();
 		
 		/** Constructs an instance of the mutator
 		 * 
 		 * @param gr graph to modify
-		 * @param cloneConfig configuration to use
+		 * @param config configuration to use
 		 */
 		public LearnerGraphMutator(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, Configuration config,PatchGraph nextInStack)
 		{
@@ -907,7 +865,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (next != null) next.addTransition(from, input, to);
 			
 			CmpVertex fromVert = addNewVertex(from);
-			Map<Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
+			MapWithSearch<Label,Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			
 			CmpVertex toVert = addNewVertex(to);
 			graph.addTransition(entry, input, toVert);
@@ -927,7 +885,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{
 			if (next != null) next.removeTransition(from, input, to);
 			CmpVertex fromVert = addNewVertex(from), toVert = addNewVertex(to);
-			Map<Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
+			MapWithSearch<Label,Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			if (!entry.containsKey(input))
 				throw new IllegalArgumentException("there is no transition from state "+fromVert+" with input "+input+" in graph "+graph);
 			if (!graph.getTargets(entry.get(input)).contains(toVert))
@@ -940,10 +898,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 */
 		public void removeDanglingStates()
 		{
-			Set<CmpVertex> statesInGraph = new TreeSet<CmpVertex>();
-			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+			Set<CmpVertex> statesInGraph = new TreeSet<>();
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				if (entry.getValue().isEmpty()) statesInGraph.add(entry.getKey()); // add those with no outgoing
-			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				for(TARGET_TYPE targets:entry.getValue().values())
 					statesInGraph.removeAll(graph.getTargets(targets));// and remove those used as targets
 			statesInGraph.remove(graph.getInit());// initial state should stay
@@ -1009,7 +967,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.initEmpty();
 			result.setName(graph.getName());
 
-			Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
+			Map<CmpVertex,CmpVertex> oldToNew = new HashMap<>();
 
 			// First, clone vertices
 			for(CmpVertex state:graph.transitionMatrix.keySet())
@@ -1027,7 +985,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled()) 
 			{
-				Set<CmpVertex> encounteredNewVertices = new TreeSet<CmpVertex>();
+				Set<CmpVertex> encounteredNewVertices = new TreeSet<>();
 				for(Entry<CmpVertex,CmpVertex> entry:oldToNew.entrySet())
 				{
 					if (encounteredNewVertices.contains(entry.getValue()))
@@ -1063,7 +1021,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.append('\n');
 		}
 		
-		protected void appendTransition(CmpVertex from, Label label, CmpVertex to)
+		private void appendTransition(CmpVertex from, Label label, CmpVertex to)
 		{
 			result.append(from);
                         result.append(" - ");
@@ -1101,25 +1059,25 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		@Override
 		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value) {
 			if (next != null) next.addToCompatibility(a,b,value);
-			result.append("added incompatibles: "+a+","+b+" with value "+value);appendEndl();
+			result.append("added incompatibles: ").append(a).append(",").append(b).append(" with value ").append(value);appendEndl();
 		}
 
 		@Override
 		public void addVertex(CmpVertex vertex) {
 			if (next != null) next.addVertex(vertex);
-			result.append("added vertex:"+vertex);appendEndl();
+			result.append("added vertex:").append(vertex);appendEndl();
 		}
 
 		@Override
 		public void removeFromCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value) {
 			if (next != null) next.removeFromCompatibility(a,b,value);
-			result.append("removed incompatibles: "+a+","+b+" with value "+value);appendEndl();
+			result.append("removed incompatibles: ").append(a).append(",").append(b).append(" with value ").append(value);appendEndl();
 		}
 
 		@Override
 		public void addRelabelling(VertID a, VertID b) {
 			if (next != null) next.addRelabelling(a, b);
-			result.append("mapping: "+a+" - "+b);appendEndl();
+			result.append("mapping: ").append(a).append(" - ").append(b);appendEndl();
 		}
 	}
 
@@ -1233,7 +1191,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		
 		private final PatchGraph addedPatcher, removedPatcher;
 		
-		protected final Map<VertID,VertID> relabelling = new TreeMap<VertID,VertID>(); 
+		protected final Map<VertID,VertID> relabelling = new TreeMap<>();
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
@@ -1244,8 +1202,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			added = new LearnerGraphND(config);removed = new LearnerGraphND(config);removed.initEmpty();
 			added.setInit(null);added.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
-			addedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(added, config,null);
-			removedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(removed,config,null);
+			addedPatcher = new LearnerGraphMutator<>(added, config, null);
+			removedPatcher = new LearnerGraphMutator<>(removed, config, null);
 		}
 		
 		/** Used for testing. */
@@ -1254,8 +1212,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			next = nextInStack;
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			removed = r;added = a;
-			addedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(added, config,null);
-			removedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(removed,config,null);
+			addedPatcher = new LearnerGraphMutator<>(added, config, null);
+			removedPatcher = new LearnerGraphMutator<>(removed, config, null);
 		}
 		
 		/** Used to check whether a transition is present and fail assertion. Used to check for the same
@@ -1287,7 +1245,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		@Override
 		public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
-			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+			if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 				checkTransitionPresent(removed, from, label, to);
 			addedPatcher.addTransition(from, label, to);
 		}
@@ -1295,7 +1253,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		@Override
 		public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.removeTransition(from, label, to);
-			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+			if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 				checkTransitionPresent(added, from, label, to);
 			removedPatcher.addTransition(from, label, to);
 		}
@@ -1324,7 +1282,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * 
 		 * @param elem element within which to look for a node with the supplied tag.
 		 * @param name the tag to look for.
-		 * @param whether to throw an exception if an element was not found.
+		 * @param tolerateAbsentElements to throw an exception if an element was not found.
 		 * @return element found.
 		 */
 		static public Element getGraphElement(Element elem, String name,boolean tolerateAbsentElements, boolean checksingleChild)
@@ -1371,7 +1329,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			void applyGD(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, Element elem,final ConvertALabel conv)
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE>(graph,config,null);
+			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<>(graph, config, null);
 			loadDiff(graphPatcher, elem,conv);
 			graphPatcher.removeDanglingStates();
 		}
@@ -1389,7 +1347,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result)
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE>(graph,config,null);
+			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<>(graph, config, null);
 			loadDiff(graphPatcher, elem,conv);
 			graphPatcher.removeDanglingStates();
 			graphPatcher.relabel(result);
@@ -1399,7 +1357,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * handles GD and not general-purpose stuff which would be included in 
 		 * the likes of <em>Transform</em>. 
 		 * 
-		 * @param patcher graph to transform
+		 * @param graphPatcher graph to transform
 		 * @param elem element containing the difference.
 		 * @param conv label converter, ignored if null.
 		 */
@@ -1407,7 +1365,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			LearnerGraphND gr = new LearnerGraphND(config);AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdRemoved.toString(),false,true),gr,conv);
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
 				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:gr.getTargets(transition.getValue()))
 						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
@@ -1418,7 +1376,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			
 			AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdAdded.toString(),false,true),gr,conv);
 			
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
 			{
 				if (entry.getValue().isEmpty())
 					graphPatcher.addVertex(entry.getKey());
@@ -1491,7 +1449,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 * @param a the first graph
 	 * @param b the second graph
 	 * @param threads how many threads to use
-	 * @param config configuration to use
+	 * @param argConfig configuration to use
 	 */ 
 	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
@@ -1506,8 +1464,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		grCombined.vertNegativeID=Math.max(grCombined.vertNegativeID, b.vertNegativeID);// we aim for new vertices in grCombined to have ids different from all vertices in B. 
 		grCombined.vertPositiveID=Math.max(grCombined.vertPositiveID, b.vertPositiveID);
 		combined_initA = grCombined.getInit();
-		origToNewB = new TreeMap<CmpVertex,CmpVertex>();
-		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
+		origToNewB = new TreeMap<>();
+		statesOfA = new TreeSet<>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
 
 		// In the past, graph A could have textual vertices so when our new numerical IDs are converted to Strings for comparisons, IDs would overlap.
 		// The current graph loading approach via VertexID.parseID generates numerical vertex IDs. Moreover, assertion statements will check for this.
@@ -1515,11 +1473,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		grCombined.pathroutines.checkConsistency(grCombined);
 		grCombined.learnerCache.invalidate();
 		
-		statesOfB = new TreeSet<CmpVertex>();statesOfB.addAll(origToNewB.values());
+		statesOfB = new TreeSet<>();statesOfB.addAll(origToNewB.values());
 		assert statesOfA.size() == a.getStateNumber();
 		assert statesOfB.size() == origToNewB.size();assert statesOfB.size() == b.getStateNumber();
 		assert statesOfA.size() + statesOfB.size() == grCombined.getStateNumber(): " added "+statesOfB.size()+" states but the outcome is only "+(grCombined.getStateNumber()-statesOfA.size())+" states larger";
-		newBToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		newBToOrig = new TreeMap<>();
 		for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newBToOrig.put(entry.getValue(),entry.getKey());
 
 		forward = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,false);
@@ -1554,7 +1512,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		if (fallbackToInitialPair)
 		{// we are here only if the full matrix has to be built and it will be too big to solve it in the usual way
 			if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && // only warn if not forced.
-					Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+					Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 				System.out.println("Cannot use Linear since the number of states is "+
 						((double)forward.getStateNumber()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
 						" times over the limit");
@@ -1563,37 +1521,32 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{// normal processing
 			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, GDLearnerGraph.PAIR_INCOMPATIBLE);
 			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
-			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-				handlerList.add(new HandleRow<List<CmpVertex>>()
-				{
+				handlerList.add(new HandleRow<>() {
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
 					}
-	
+
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
-					{
+					public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) {
 						// Now iterate through states
-						for(CmpVertex stateB:statesOfB)
-						{
-							int pairINT = forward.vertexToIntNR(stateB,entryA.getKey());
-							assert pairScores[pairINT]==GDLearnerGraph.PAIR_INCOMPATIBLE:
-								"duplicate number "+pairINT+" for states "+
-								forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
-							pairScores[pairINT]=GDLearnerGraph.PAIR_OK;// caching is likely to lower down my performance a lot here
+						for (CmpVertex stateB : statesOfB) {
+							int pairINT = forward.vertexToIntNR(stateB, entryA.getKey());
+							assert pairScores[pairINT] == GDLearnerGraph.PAIR_INCOMPATIBLE :
+									"duplicate number " + pairINT + " for states " +
+											forward.getStatesToNumber().get(stateB) + "," + forward.getStatesToNumber().get(entryA.getKey());
+							pairScores[pairINT] = GDLearnerGraph.PAIR_OK;// caching is likely to lower down my performance a lot here
 						}
-						
+
 						// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
 						// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
 					}
 				});
-			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-				@Override public boolean stateToConsider(CmpVertex vert) {
-					return statesOfA.contains(vert);
-				}
-			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,
+					vert -> statesOfA.contains(vert),
+					GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 			final int numberOfPairs = GDLearnerGraph.numberNonNegativeElements(pairScores);
 			assert numberOfPairs == statesOfA.size()*statesOfB.size();
 			JConsole_Diagnostics.getDiagnostics().setStatus("started building matrix forward "+DateFormat.getTimeInstance().format(new Date()));
@@ -1631,9 +1584,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 */
 	protected boolean identifyKeyPairs()
 	{
-		currentWave = new ArrayList<PairScore>(java.lang.Math.max(statesOfA.size(),statesOfB.size()));
-		statesInKeyPairs = new HashSet<CmpVertex>();
-		frontWave = new LinkedList<PairScore>();
+		currentWave = new ArrayList<>(java.lang.Math.max(statesOfA.size(), statesOfB.size()));
+		statesInKeyPairs = new HashSet<>();
+		frontWave = new LinkedList<>();
 		PairScore topPair = null;
 		int threshold=0;
 		
@@ -1646,51 +1599,45 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 		else
 		{// normal processing
-			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 			@SuppressWarnings("unchecked")
-			final ArrayList<PairScore> wavePerThread[] = new ArrayList[ThreadNumber];
+			final ArrayList<PairScore>[] wavePerThread = new ArrayList[ThreadNumber];
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
 			{
-				wavePerThread[threadCnt] = new ArrayList<PairScore>(java.lang.Math.max(statesOfA.size(),statesOfB.size()));
-				handlerList.add(new HandleRow<List<CmpVertex>>()
-				{
+				wavePerThread[threadCnt] = new ArrayList<>(java.lang.Math.max(statesOfA.size(), statesOfB.size()));
+				handlerList.add(new HandleRow<>() {
 					ArrayList<PairScore> wave = null;
-					
+
 					@Override
 					public void init(int threadNo) {
-						wave = wavePerThread[threadNo];						
+						wave = wavePerThread[threadNo];
 					}
-	
+
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
-					{
-						double scoreHigh = -Double.MAX_VALUE,scoreLow = -Double.MAX_VALUE;
+					public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) {
+						double scoreHigh = -Double.MAX_VALUE, scoreLow = -Double.MAX_VALUE;
 						CmpVertex highState = null;
 						// Now iterate through states
-						for(CmpVertex stateB:statesOfB)
-						{
-							int scorePosition = pairScores[forward.vertexToIntNR(stateB,entryA.getKey())];
-							double scoreForward = scoresForward[scorePosition],scoreBackward=scoresInverse[scorePosition];
-							double score = scoreForward+scoreBackward;
+						for (CmpVertex stateB : statesOfB) {
+							int scorePosition = pairScores[forward.vertexToIntNR(stateB, entryA.getKey())];
+							double scoreForward = scoresForward[scorePosition], scoreBackward = scoresInverse[scorePosition];
+							double score = scoreForward + scoreBackward;
 							if (scoreForward < 0)// if a pair is incompatible, ensure the score is negative
 								score = Math.min(scoreForward, scoreBackward);
-							if (score > scoreHigh)
-							{
-								scoreLow = scoreHigh;scoreHigh = score;highState = stateB;
-							}
-							else
-								if (score > scoreLow) scoreLow = score;
+							if (score > scoreHigh) {
+								scoreLow = scoreHigh;
+								scoreHigh = score;
+								highState = stateB;
+							} else if (score > scoreLow) scoreLow = score;
 						}
 						assert highState != null;
-						wave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
+						wave.add(new PairScore(entryA.getKey(), highState, (int) (multiplier * scoreHigh), (int) (multiplier * scoreLow)));
 					}
 				});
 			}
-			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-				@Override public boolean stateToConsider(CmpVertex vert) {
-					return statesOfA.contains(vert);
-				}
-			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,
+					vert -> statesOfA.contains(vert),
+					GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 			
 			// now collect the results of processing. It is worth noting that each state of A may possibly be matched with only one state of B, 
 			// the one with which the compatibility score is the highest. Hence some states of B will not be matched with any of A and will
@@ -1727,13 +1674,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (topPair != null)
 			{// at least we've got a pair with a score over zero.
 				if (!fallbackToInitialPair &&
-						Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+						Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, scores in ["+topPair.getScore()+","+threshold+"], ratio "+grCombined.config.getGdLowToHighRatio()+", hence using "+topPair);
 				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 			}
 			else
 			{// nothing of use detected, the difference will contain a union of all transitions in graphs A and B.
-				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+				if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 					System.out.println("Failed to find any pairs with positive scores, the diff is the union of A and B");
 			}
 			result = false;
@@ -1788,7 +1735,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		boolean stateAdded = false;
 		
 		// on each iteration, new pairs are generated and only these will need to be iterated over in the following iteration.
-		List<PairScore> newWaveA = new LinkedList<PairScore>(), newWaveB = new LinkedList<PairScore>();
+		List<PairScore> newWaveA = new LinkedList<>(), newWaveB = new LinkedList<>();
 		
 		// When we start, we have to iterate over all the existing pairs and in subsequent iterations - over all the newly-added ones.
 		List<PairScore> waveToProcess = frontWave, waveToAppendTo = newWaveA;
@@ -1877,7 +1824,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 
 	public Map<CmpVertex,CmpVertex> getKeyPairs()
 	{
-		Map<CmpVertex,CmpVertex> result = new TreeMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> result = new TreeMap<>();
 		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
 			result.put(entry.getKey(),newBToOrig.get(entry.getValue()));
 		return result;
@@ -1947,15 +1894,15 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		Configuration gdConfig = a.config.copy();gdConfig.setGdFailOnDuplicateNames(false);gdConfig.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		init(a,b, threads,gdConfig);
 		identifyKeyPairs();
-		final List<PairScore> initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
-		final Map<VertID,VertID> oldVerticesToNew = new TreeMap<VertID,VertID>();
+		final List<PairScore> initialKeyPairs = new LinkedList<>(frontWave);
+		final Map<VertID,VertID> oldVerticesToNew = new TreeMap<>();
 		final LearnerGraphND outcome = new LearnerGraphND(a,gdConfig);outcome.setName(outcome.getName()+"_diff");
-		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
-			new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(outcome,gdConfig,null);
+		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator =
+				new LearnerGraphMutator<>(outcome, gdConfig, null);
 
 		final EdgeAnnotation transitionAnnotation = new EdgeAnnotation();
-		final Map<StatePair,TransitionChanges> pairToNumberOfChanges = new TreeMap<StatePair,TransitionChanges>();
-		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:a.transitionMatrix.entrySet())
+		final Map<StatePair,TransitionChanges> pairToNumberOfChanges = new TreeMap<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:a.transitionMatrix.entrySet())
 			for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 				for(CmpVertex target:a.getTargets(transition.getValue()))
 				{
@@ -1969,7 +1916,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				}
 		makeSteps();
 		computeDifference(new PatchGraph() {
-			protected Label copyVertexWithPrefix(String prefix, Label origLabel)
+			private Label copyVertexWithPrefix(String prefix, Label origLabel)
 			{
 				Label result = null;
 				if (origLabel instanceof StringLabel)
@@ -2046,20 +1993,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		for(Entry<StatePair,TransitionChanges> pc:pairToNumberOfChanges.entrySet())
 		{
 			CmpVertex from = pc.getKey().getQ(), to = pc.getKey().getR();
-			Map<Label,Map<String,Color>> lbl = transitionAnnotation.get(from.getStringId());
-			if (lbl == null)
-			{
-				lbl = new TreeMap<Label,Map<String,Color>>();transitionAnnotation.put(from.getStringId(), lbl);
-			}
+			Map<Label, Map<String, Color>> lbl = transitionAnnotation.computeIfAbsent(from.getStringId(), k -> new TreeMap<>());
 			for(Entry<Label,List<CmpVertex>> transition:outcome.transitionMatrix.get(from).entrySet())
 				for(CmpVertex target:outcome.getTargets(transition.getValue()))
 					if (to.equals(target))
 					{
-						Map<String,Color> targetToColour = lbl.get(transition.getKey());
-						if (targetToColour == null)
-						{// this is the first annotation for the specific target state
-							targetToColour = new TreeMap<String,Color>();lbl.put(transition.getKey(),targetToColour);
-						}
+						Map<String, Color> targetToColour = lbl.computeIfAbsent(transition.getKey(), k -> new TreeMap<>());
+						// this is the first annotation for the specific target state
 						targetToColour.put(to.getStringId(),pc.getValue().getColor(a.config));
 					}
 		}
@@ -2069,7 +2009,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// those from B which are new, these are added, as long as their names do not intersect 
 		// names of existing states in A, in which case such new states are given unique names.
 
-		final Set<CmpVertex> stateOfBOrig = new TreeSet<CmpVertex>();stateOfBOrig.addAll(newBToOrig.values());
+		final Set<CmpVertex> stateOfBOrig = new TreeSet<>(newBToOrig.values());
 		
 		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) 
 			stateOfBOrig.remove(newBToOrig.get(entry.getValue()));// states of B which participate in key pairs do not correspond to vertices of A which will be kept.
@@ -2090,7 +2030,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		for(CmpVertex vertex:stateOfBOrig)
 			if (!statesOfA.contains(vertex))
 				renameVertex(vertex, "ADD",oldVerticesToNew);
-		Map<CmpVertex,PairScore> initialKeyA = new TreeMap<CmpVertex,PairScore>();
+		Map<CmpVertex,PairScore> initialKeyA = new TreeMap<>();
 		for(PairScore pair:initialKeyPairs) initialKeyA.put(pair.getQ(),pair);
 		
 		for(Entry<CmpVertex,CmpVertex> pair:aTOb.entrySet()) 
@@ -2122,7 +2062,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 		*/
 		
-		Map<String,String> labelling = new TreeMap<String,String>();
+		Map<String,String> labelling = new TreeMap<>();
 		for(Entry<VertID,VertID> entry:oldVerticesToNew.entrySet())
 			labelling.put(entry.getKey().toString(),entry.getValue().toString());
 		DirectedSparseGraph gr = outcome.pathroutines.getGraph();

@@ -17,7 +17,9 @@
 
 package statechum;
 
-import static statechum.Helper.throwUnchecked;
+import statechum.Configuration.*;
+import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -25,22 +27,8 @@ import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 
-import junit.framework.Assert;
-import statechum.Configuration.ERLCOVERAGE;
-import statechum.Configuration.EXPANSIONOFANY;
-import statechum.Configuration.GDScoreComputationAlgorithmEnum;
-import statechum.Configuration.GDScoreComputationEnum;
-import statechum.Configuration.GD_COLOUR_MODE;
-import statechum.Configuration.IDMode;
-import statechum.Configuration.LABELKIND;
-import statechum.Configuration.LEARNER;
-import statechum.Configuration.QuestionGeneratorKind;
-import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
-import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
-import statechum.Configuration.STATETREE;
-import statechum.Configuration.ScoreMode;
-import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
+import static org.junit.Assert.fail;
+import static statechum.Helper.throwUnchecked;
 
 public class AttributeMutator {
 	/** Makes it possible to construct mutators by reflection in order to test that 
@@ -54,8 +42,8 @@ public class AttributeMutator {
 		{
 			method=m;Arg=a;AlternativeArg=b;field = f;
 		}
-		private Field field;
-		private Method method;Object Arg, AlternativeArg;
+		private final Field field;
+		private final Method method;Object Arg, AlternativeArg;
 
 		/** Returns the name of the field mutated by this instance of MethodAndArgs. */
 		public String getField()
@@ -68,11 +56,11 @@ public class AttributeMutator {
 		{
 			try
 			{
-				method.invoke(object, new Object[]{Arg});
+				method.invoke(object, Arg);
 			} catch (Exception e) 
 			{
 				e.printStackTrace();
-				Assert.fail(e.getMessage());
+				fail(e.getMessage());
 			}
 		}
 		
@@ -81,11 +69,11 @@ public class AttributeMutator {
 		{
 			try
 			{
-				method.invoke(object, new Object[]{AlternativeArg});
+				method.invoke(object, AlternativeArg);
 			} catch (Exception e) 
 			{
 				e.printStackTrace();
-				Assert.fail(e.getMessage());
+				fail(e.getMessage());
 			}
 		}
 	}
@@ -139,24 +127,24 @@ public class AttributeMutator {
 	 */
 	public static <T> List<MethodAndArgs<T>> constructArgList(Class<T> clazz)
 	{
-		List<MethodAndArgs<T>> MethodsArgs=new LinkedList<MethodAndArgs<T>>();
+		List<MethodAndArgs<T>> MethodsArgs= new LinkedList<>();
 		for(Field var:clazz.getDeclaredFields())
 		{
-			if (var.getType() != clazz && 
-					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if (var.getType() != clazz &&
+					!var.getName().equals("$VRc")// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
 			{
 				String varName = var.getName();
 				Method setter = getMethod(clazz,GETMETHOD_KIND.FIELD_SET, var);
-				Object valueA = null, valueB = null;
+				Object valueA, valueB;
 				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 				{
-					valueA = Boolean.valueOf(true);valueB=Boolean.valueOf(false);
+					valueA = Boolean.TRUE;valueB= Boolean.FALSE;
 				}
 				else
 				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
 				{
-					valueA = Double.valueOf(0.4);valueB=Double.valueOf(0.5);// note that we have to choose values which fall within the allowed range of values
+					valueA = 0.4;valueB= 0.5;// note that we have to choose values which fall within the allowed range of values
 				}
 				else
 				if (var.getType().equals(String.class))
@@ -251,7 +239,7 @@ public class AttributeMutator {
 				else
 					throw new IllegalArgumentException("A field "+var+" of "+clazz+" has an unsupported type "+var.getType());
 				
-				MethodsArgs.add(new MethodAndArgs<T>(setter,var,valueA,valueB));
+				MethodsArgs.add(new MethodAndArgs<>(setter, var, valueA, valueB));
 			}
 		}
 		

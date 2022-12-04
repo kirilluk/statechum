@@ -65,7 +65,7 @@ import statechum.analysis.learning.rpnicore.LSolver.LibraryLoadResult;
 
 public class Smt {
 	/** Yices' context, this field is actually a C pointer, accessed and set by the C code. */  
-	private volatile long context =0;
+	private final long context =0;
 	
 	/** Whether library was loaded. */
 	private static LibraryLoadResult libraryLoaded = LibraryLoadResult.NOT_ATTEMPTED;
@@ -74,16 +74,14 @@ public class Smt {
 	{
 		if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
 		{
-			UnsatisfiedLinkError ex = null;
-			ex = LSolver.tryLoading("cygSMT_Yices-1");
+			UnsatisfiedLinkError ex = LSolver.tryLoading("cygSMT_Yices-1");
 			if (ex != null) ex = LSolver.tryLoading("SMT_Yices");
 			if (ex != null) ex = LSolver.tryLoading("libSMT_Yices");
 
 			if (ex != null)
 			{// failed to load our library.
 				libraryLoaded = LibraryLoadResult.FAILURE;
-				IllegalArgumentException exc = new IllegalArgumentException("failed to load the Yices library");
-				exc.initCause(ex);throw exc;
+				throw new IllegalArgumentException("failed to load the Yices library", ex);
 			}
 
 			libraryLoaded = LibraryLoadResult.SUCCESS;
@@ -94,7 +92,7 @@ public class Smt {
 	private native void releaseContext();
 	
 	@Override
-	public void finalize()
+	protected void finalize()
 	{
 		releaseContext();
 	}

@@ -21,24 +21,25 @@ import statechum.analysis.learning.linear.GD.LearnerGraphMutator;
 import statechum.analysis.learning.linear.GD.PatchGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.collections.MapWithSearch;
 
 public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>  {
 
-	private AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> mutating;
-	private LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> mutator;
-	private Random r;
+	private final AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> mutating;
+	private final LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> mutator;
+	private final Random r;
 	private int addedStates = 0;
-	private ChangesRecorderAsCollectionOfTransitions changesMade = new ChangesRecorderAsCollectionOfTransitions(null,true);
+	private final ChangesRecorderAsCollectionOfTransitions changesMade = new ChangesRecorderAsCollectionOfTransitions(null,true);
 	
 	/** This class displays the requested changes.
 	 */
 	public static final class ChangesRecorderAsCollectionOfTransitions implements PatchGraph
 	{
 		
-		private Set<Transition> diff = new HashSet<Transition>();
+		private final Set<Transition> diff = new HashSet<>();
 		
 		/** Whether seemingly duplicate mutations should be banned. */
-		private boolean checkForInvalidMutations;
+		private final boolean checkForInvalidMutations;
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
@@ -116,7 +117,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		// it is important that the mutator above is asked first about the changes - 
 		// it should be able to veto removal of transitions which have previously been added
 		// or addition of those which were previously removed. 
-		mutator = new LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE>(mutating, mutating2.config.copy(), changesMade);
+		mutator = new LearnerGraphMutator<>(mutating, mutating2.config.copy(), changesMade);
 	}
 	
 	public AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> getMutated(){
@@ -159,7 +160,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	
 	protected CmpVertex selectRandomStateWithOutEdges() 
 	{
-		Set<CmpVertex> states = new TreeSet<CmpVertex>();
+		Set<CmpVertex> states = new TreeSet<>();
 		for(CmpVertex vert:mutating.getTransitionMatrix().keySet())
 			if (!mutating.getTransitionMatrix().get(vert).isEmpty())
 				states.add(vert);
@@ -167,8 +168,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	}
 	
 	protected CmpVertex selectRandomStateNotInit(){
-		Set<CmpVertex> selectFrom = new TreeSet<CmpVertex>();
-		selectFrom.addAll(mutating.getTransitionMatrix().keySet());
+		Set<CmpVertex> selectFrom = new TreeSet<>(mutating.getTransitionMatrix().keySet());
 		selectFrom.remove(mutating.getInit());
 		return randomFromCollection(selectFrom);
 	}
@@ -182,8 +182,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	}
 	
 	protected Label randomLabel(@SuppressWarnings("unused") CmpVertex v){
-		Set<Label> labs = new TreeSet<Label>();
-		labs.addAll(mutating.pathroutines.computeAlphabet());
+		Set<Label> labs = new TreeSet<>(mutating.pathroutines.computeAlphabet());
 		//labs.removeAll(buildAvoidSet(v));
 		return randomFromCollection(labs);
 	}
@@ -257,8 +256,8 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	
 	protected List<Transition> computeWhichTransitionsToRemoveFor(CmpVertex stateToRemove)
 	{
-		List<Transition> transitionsToRemove = new LinkedList<Transition>();
-		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:mutating.getTransitionMatrix().entrySet())
+		List<Transition> transitionsToRemove = new LinkedList<>();
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:mutating.getTransitionMatrix().entrySet())
 		{
 			for(Entry<Label,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
 			{
@@ -274,7 +273,7 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		int initSize = mutating.getStateNumber();
 		if(initSize<3) throw new FailureToMutateException("the number of states is less than 3");
 		
-		Map<CmpVertex,List<Transition>> candidatesForRemoval = new TreeMap<CmpVertex,List<Transition>>();
+		Map<CmpVertex,List<Transition>> candidatesForRemoval = new TreeMap<>();
 		for(CmpVertex vert:mutating.getTransitionMatrix().keySet())
 		{
 			List<Transition> mut = computeWhichTransitionsToRemoveFor(vert);

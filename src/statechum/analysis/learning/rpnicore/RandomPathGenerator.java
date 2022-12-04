@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
 import statechum.model.testset.PTASequenceSetAutomaton;
@@ -41,23 +42,19 @@ public class RandomPathGenerator {
 	final Random randomNumberGenerator;
 	
 	/** An array representation of the transition matrix of the graph, needed for fast computation of random walks. */
-	private Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions = new TreeMap<CmpVertex,ArrayList<Entry<Label,CmpVertex>>>();
+	private final Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions = new TreeMap<>();
 	/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
-	private Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<CmpVertex,ArrayList<Label>>();
+	private final Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<>();
 	
 	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
 	 * to java's Random being non-serialisable.
 	 *  
-	 * @param baseGraph the graph to operate on
+	 * @param graph the graph to operate on
 	 * @param random the random number generator.
 	 * @param extra the length of paths will be diameter plus this value.
 	 * @param initial the state to start the traversal with. null means use the initial state of <em>graph</em>.
-	 * @param alphabet in some cases we would want to generate walks using a different alphabet than the one visible in a graph. 
-	 * For instance, if we take a single state of a graph, only a portion of the whole 
-	 * graph will be accessible and this will limit visible alphabet while the alphabet for the whole has to be used.
-	 * Alphabet obtained from the supplied graph if <em>null</em>.
-	 */ 
+	 */
 	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial) 
 	{
 		this(graph,random,extra,initial,null);
@@ -67,11 +64,11 @@ public class RandomPathGenerator {
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
 	 * to java's Random being non-serialisable.
 	 *  
-	 * @param baseGraph the graph to operate on
+	 * @param graph the graph to operate on
 	 * @param random the random number generator.
 	 * @param extra the length of paths will be diameter plus this value.
 	 * @param initial the state to start the traversal with. null means use the initial state of <em>graph</em>.
-	 * @param alphabet in some cases we would want to generate walks using a different alphabet than the one visible in a graph. 
+	 * @param alphabetArg in some cases we would want to generate walks using a different alphabet than the one visible in a graph.
 	 * For instance, if we take a single state of a graph, only a portion of the whole 
 	 * graph will be accessible and this will limit visible alphabet while the alphabet for the whole has to be used.
 	 * Alphabet obtained from the supplied graph if <em>null</em>.
@@ -87,7 +84,7 @@ public class RandomPathGenerator {
 		pathLength = diameter(g)+extra;
 		
 		transitions.clear();inputsRejected.clear();
-		/** The alphabet of the graph. */
+		/* The alphabet of the graph. */
 		Set<Label> alphabet = null;
 		if (alphabetArg == null)
 			alphabet = g.pathroutines.computeAlphabet();
@@ -97,14 +94,14 @@ public class RandomPathGenerator {
 			origAlphabet.removeAll(alphabetArg);if(!origAlphabet.isEmpty()) throw new IllegalArgumentException("the supplied alphabet does not include the one of the graph, "+origAlphabet+" elements are new to the graph");
 			alphabet=alphabetArg;
 		}
- 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+ 		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
-			ArrayList<Entry<Label,CmpVertex>> row = new ArrayList<Entry<Label,CmpVertex>>();row.addAll(entry.getValue().entrySet());
+			ArrayList<Entry<Label, CmpVertex>> row = new ArrayList<>(entry.getValue().entrySet());
 			transitions.put(entry.getKey(), row);
-			
-			Set<Label> negatives = new LinkedHashSet<Label>();
-			negatives.addAll(alphabet);negatives.removeAll(entry.getValue().keySet());
-			ArrayList<Label> rejects = new ArrayList<Label>();rejects.addAll(negatives);
+
+			Set<Label> negatives = new LinkedHashSet<>(alphabet);
+			negatives.removeAll(entry.getValue().keySet());
+			ArrayList<Label> rejects = new ArrayList<>(negatives);
 			inputsRejected.put(entry.getKey(), rejects);
 		}
 		initAllSequences();
@@ -137,9 +134,9 @@ public class RandomPathGenerator {
 		DijkstraDistance dd = new DijkstraDistance(g);
 		@SuppressWarnings("unchecked")
 		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(g)).values();
-		Double result =-1.;
+		double result =-1.;
 		for(Double distance:distances) if (result<distance) result=distance;
-		return result.intValue();
+		return (int) result;
 	}
 
 	/** All new states will be given this %% and accept condition. Used to change names for states, 
@@ -147,7 +144,7 @@ public class RandomPathGenerator {
 	 * (i.e. %% of a full set of walk they belong to), 
 	 * which can subsequently be used to filter the PTA.
 	 */
-	public class StateName
+	public static class StateName
 	{
 		public final int percent;
 		public final boolean accept;
@@ -218,7 +215,7 @@ public class RandomPathGenerator {
 	{
 		int generationAttempt = 0;
 		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
-		List<Label> path = new ArrayList<Label>(walkLength+prefixForAllSequencesLength);
+		List<Label> path = new ArrayList<>(walkLength + prefixForAllSequencesLength);
 		
 		do
 		{
@@ -268,10 +265,10 @@ public class RandomPathGenerator {
 		{
 			LearnerGraphND inverse = new LearnerGraphND(g.config);
 			AbstractPathRoutines.buildInverse(g,LearnerGraphND.ignoreNone,inverse);
-			shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
+			shortestPathsIntoInit = new TreeMap<>();
 			for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
 				if (path.getValue().size() == 0)
-					shortestPathsIntoInit.put(path.getKey(),Collections.<Label>emptyList());
+					shortestPathsIntoInit.put(path.getKey(),Collections.emptyList());
 				else
 				{
 					Label[] invertedPath = new Label[path.getValue().size()];
@@ -281,22 +278,22 @@ public class RandomPathGenerator {
 					shortestPathsIntoInit.put(path.getKey(),Arrays.asList(invertedPath));
 				}
 			
-			lengthOfShortestPathsIntoInit = new TreeMap<CmpVertex,Integer>();
+			lengthOfShortestPathsIntoInit = new TreeMap<>();
 			for(Entry<CmpVertex,List<Label>> entry:shortestPathsIntoInit.entrySet())
 				lengthOfShortestPathsIntoInit.put(entry.getKey(), entry.getValue().size());
 
 			LearnerGraph withoutInitial = new LearnerGraph(g.config);withoutInitial.initEmpty();
-			Queue<CmpVertex> loopsWave = new LinkedList<CmpVertex>();
-			Map<CmpVertex,Set<CmpVertex>> vertexToThoseReachableFromIt = new TreeMap<CmpVertex,Set<CmpVertex>>(), vertexToThoseFromWhichItIsReachable = new TreeMap<CmpVertex,Set<CmpVertex>>();
+			Queue<CmpVertex> loopsWave = new LinkedList<>();
+			Map<CmpVertex,Set<CmpVertex>> vertexToThoseReachableFromIt = new TreeMap<>(), vertexToThoseFromWhichItIsReachable = new TreeMap<>();
 
 			transitions.clear();
-			Queue<CmpVertex> lengthWave = new LinkedList<CmpVertex>();
-			longestPathsNotLeadingToInit = new TreeMap<CmpVertex,Integer>();
+			Queue<CmpVertex> lengthWave = new LinkedList<>();
+			longestPathsNotLeadingToInit = new TreeMap<>();
 
-			for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:g.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:g.transitionMatrix.entrySet())
 			{// transitions from the initial state are included but those leading to it are not.
-				ArrayList<Entry<Label,CmpVertex>> row = new ArrayList<Entry<Label,CmpVertex>>();
-				Map<Label,CmpVertex> trs = withoutInitial.createNewRow();withoutInitial.transitionMatrix.put(entry.getKey(), trs);
+				ArrayList<Entry<Label,CmpVertex>> row = new ArrayList<>();
+				MapWithSearch<Label,Label,CmpVertex> trs = withoutInitial.createNewRow();withoutInitial.transitionMatrix.put(entry.getKey(), trs);
 
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 					if (transition.getValue() != g.getInit()) // filter out initial states as target ones in order to ensure walks do not go through the initial state.
@@ -317,8 +314,8 @@ public class RandomPathGenerator {
 			AbstractPathRoutines.buildInverse(withoutInitial,LearnerGraphND.ignoreNone,withoutInitialInverse);
 			
 			loopsWave.offer(g.getInit());
-			vertexToThoseFromWhichItIsReachable.put(g.getInit(),new LinkedHashSet<CmpVertex>());vertexToThoseFromWhichItIsReachable.get(g.getInit()).add(g.getInit());
-			vertexToThoseReachableFromIt.put(g.getInit(),new LinkedHashSet<CmpVertex>());
+			vertexToThoseFromWhichItIsReachable.put(g.getInit(), new LinkedHashSet<>());vertexToThoseFromWhichItIsReachable.get(g.getInit()).add(g.getInit());
+			vertexToThoseReachableFromIt.put(g.getInit(), new LinkedHashSet<>());
 			while(!loopsWave.isEmpty())
 			{
 				CmpVertex vert = loopsWave.remove();
@@ -333,8 +330,8 @@ public class RandomPathGenerator {
 
 					if (statesReachableFromNew == null)
 					{// we've not seen this vertex yet, add it into our sets
-						Set<CmpVertex> statesLeadingToNew = new LinkedHashSet<CmpVertex>();statesLeadingToNew.add(v);vertexToThoseFromWhichItIsReachable.put(v,statesLeadingToNew);
-						statesReachableFromNew = new LinkedHashSet<CmpVertex>(); vertexToThoseReachableFromIt.put(v,statesReachableFromNew);
+						Set<CmpVertex> statesLeadingToNew = new LinkedHashSet<>();statesLeadingToNew.add(v);vertexToThoseFromWhichItIsReachable.put(v,statesLeadingToNew);
+						statesReachableFromNew = new LinkedHashSet<>(); vertexToThoseReachableFromIt.put(v,statesReachableFromNew);
 						loopsWave.offer(v);// make sure we explore all paths reachable from it.
 					}
 						
@@ -384,7 +381,7 @@ public class RandomPathGenerator {
 	/** lengthMin is the shortest path permitted, this can be negative if we have already gotten as long a path as we like. */
 	private Entry<Label,CmpVertex> pickNextState(CmpVertex currentState,int lengthMin, int lengthMax)
 	{
-		if (currentRow == null) currentRow = new ArrayList<Entry<Label,CmpVertex>>();else currentRow.clear();
+		if (currentRow == null) currentRow = new ArrayList<>();else currentRow.clear();
 		for(Entry<Label,CmpVertex> transition:transitions.get(currentState))
 		{
 			Integer shortestPathToInit = lengthOfShortestPathsIntoInit.get(transition.getValue());
@@ -416,7 +413,7 @@ public class RandomPathGenerator {
 		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
 		
 		int generationAttempt = 0;
-		List<Label> path = new ArrayList<Label>(walkLength+deltaInGenerationOfWalkLeadingToTheInitialState);
+		List<Label> path = new ArrayList<>(walkLength + deltaInGenerationOfWalkLeadingToTheInitialState);
 		boolean generationFailed = false;
 		do
 		{
@@ -485,7 +482,7 @@ public class RandomPathGenerator {
 		return path;
 	}
 	
-	class PercentFilter implements FilterPredicate
+	static class PercentFilter implements FilterPredicate
 	{
 		private final int filter; 
 		public PercentFilter(int percent)
@@ -500,7 +497,7 @@ public class RandomPathGenerator {
 		
 	}
 	
-	class PercentIntervalFilter implements FilterPredicate
+	static class PercentIntervalFilter implements FilterPredicate
 	{
 		private final int filter; 
 		public PercentIntervalFilter(int percent)
@@ -517,7 +514,7 @@ public class RandomPathGenerator {
 	
 	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
 	 * 
-	 * @param upToChunk how many chunks to combine before returning the result.
+	 * @param chunk how many chunks to combine before returning the result.
 	 * @return the result. 
 	 */
 	public PTASequenceEngine getAllSequencesPercentageInterval(int chunk)
@@ -576,7 +573,6 @@ public class RandomPathGenerator {
 	 * 
 	 * @param numberPerChunk number of sequences per chunk.
 	 * @param chunks the number of chunks to generate.
-	 * @param length the maximal length of paths, minimal is 1.
 	 */
 	public void generatePosNeg(int numberPerChunk, int chunks)
 	{
@@ -586,7 +582,7 @@ public class RandomPathGenerator {
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
 		chunksGenerated = 0;
 		int seqNumber = chunks*numberPerChunk/2;
-		int distribution [] = new int[seqNumber];
+		int[] distribution = new int[seqNumber];
 		RandomLengthGenerator rnd = new RandomLengthGenerator(){
 
 			@Override
@@ -607,7 +603,7 @@ public class RandomPathGenerator {
 		Arrays.sort(distribution);
 		initAllSequences();
 		StateName [] positives = new StateName[chunks], negatives = new StateName[chunks];
-		for(int i=0;i< chunks;++i) { positives[i]=new StateName(i,true);negatives[i]=new StateName(i,false); }
+		for(int i=0;i< chunks;++i) { positives[i]= new StateName(i, true);negatives[i]= new StateName(i, false); }
 
 		for(int i=seqNumber-1;i>=0;--i)
 		{
@@ -635,8 +631,8 @@ public class RandomPathGenerator {
 	
 	public interface RandomLengthGenerator 
 	{
-		public int getLength();
-		public int getPrefixLength(int len);
+		int getLength();
+		int getPrefixLength(int len);
 	}
 
 	/** Initialises the collection of data. Used to reset the whole thing before
@@ -644,7 +640,7 @@ public class RandomPathGenerator {
 	 */
 	protected void initAllSequences()
 	{
-		tag = new StateName(0,false);
+		tag = new StateName(0, false);
 		allSequences = new PTASequenceSet(new PercentLabelledPTA());extraSequences = new PTASequenceSet(new PercentLabelledPTA());
 	}
 	/** Generates random positive and negative paths. 
@@ -691,9 +687,11 @@ public class RandomPathGenerator {
 	 * @param attemptPositive whether to attempt to generate positive sequences. If false, positives are not generated (but the number of negatives if requested is still numberPerChunk/2).
 	 * @param attemptNegative whether to attempt to generate positive sequences. If false, negatives are not generated (but the number of positives if requested is still numberPerChunk/2).
 	 * @param initialSet if non-null, the collection to initialise our sequences with. Useful for the purpose of augmenting an existing set with new sequences that are supposed to be different from the existing ones.
-	 * @param initial path if non-null, all sequences start with this path. Very useful where initial state is set to one of the states of a graph and we generate paths starting from that state. 
+	 * @param prefix path if non-null, all sequences start with this path. Very useful where initial state is set to one of the states of a graph and we generate paths starting from that state.
 	 */
-	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure, RandomLengthGenerator argRnd, boolean attemptPositive, boolean attemptNegative, Collection<List<Label>> initialSet, List<Label> prefix)
+	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure,
+									 RandomLengthGenerator argRnd, boolean attemptPositive,
+									 boolean attemptNegative, Collection<List<Label>> initialSet, List<Label> prefix)
 	{
 		if (pathLength < 1)
 			throw new IllegalArgumentException("Cannot generate paths of length less than 1");
@@ -702,7 +700,7 @@ public class RandomPathGenerator {
 		chunksGenerated = 0;
 
 		int seqNumber = chunks*numberPerChunk/2;
-		int distribution [] = new int[seqNumber];
+		int[] distribution = new int[seqNumber];
 		
 		RandomLengthGenerator rnd = argRnd;
 		if (rnd == null) rnd = new RandomLengthGenerator(){
@@ -723,10 +721,10 @@ public class RandomPathGenerator {
 			distribution[i]=rnd.getLength();
 		Arrays.sort(distribution);
 		initAllSequences();
-		if (initialSet != null) for (List<Label> seq:initialSet) allSequences.add(seq);
+		if (initialSet != null) allSequences.addAll(initialSet);
 
 		StateName [] positives = new StateName[chunks], negatives = new StateName[chunks];
-		for(int i=0;i< chunks;++i) { positives[i]=new StateName(i,true);negatives[i]=new StateName(i,false); }
+		for(int i=0;i< chunks;++i) { positives[i]= new StateName(i, true);negatives[i]= new StateName(i, false); }
 
 		for(int i=seqNumber-1;i>=0;--i)
 		{
@@ -764,7 +762,7 @@ public class RandomPathGenerator {
 	/** Counts the number of times sequence length was revised during
 	 * sequence generation. 0 means that the length was never revised. 
 	 */
-	private List<String> fudgeDetails = new LinkedList<String>();
+	private final List<String> fudgeDetails = new LinkedList<>();
 	
 	public List<String> getFudgeDetails()
 	{

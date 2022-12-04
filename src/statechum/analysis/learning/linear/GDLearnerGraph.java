@@ -18,16 +18,7 @@
 
 package statechum.analysis.learning.linear;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -53,6 +44,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.JConsole_Diagnostics;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_computePrecisionRecall;
 import cern.colt.bitvector.BitVector;
@@ -82,7 +74,7 @@ public class GDLearnerGraph
 	 * 
 	 * @param coregraph the graph from which to build this graph
 	 * @param stateFilter the filter to use when deciding which states to consider and which to throw away.
-	 * @param buildForward true to build a forward graph, false for reverse. This is supposed
+	 * @param direction true to build a forward graph, false for reverse. This is supposed
 	 * to be an opposite of the direction in which linear should work, so in order to compute
 	 * linear forward, you need to pass false here.
 	 */
@@ -96,7 +88,7 @@ public class GDLearnerGraph
 		matrixForward = new LearnerGraphND(config);matrixForward.initEmpty();
 		pairCompatibility = coregraph.pairCompatibility;
 		
-		stateToNumberMap = new TreeMap<CmpVertex,Integer>();
+		stateToNumberMap = new TreeMap<>();
 		numberToStateArray = coregraph.buildStateToIntegerMap(filter,stateToNumberMap);
 		assert numberToStateArray.length == stateToNumberMap.size();
 		
@@ -178,7 +170,7 @@ public class GDLearnerGraph
 	private int estimatePairIndegree()
 	{
 		int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:matrixInverse.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:matrixInverse.transitionMatrix.entrySet())
 			for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 			{
 				++incomingCnt;
@@ -202,7 +194,7 @@ public class GDLearnerGraph
 	/** An inverse map to the above, excluding reject-vertices. 
 	 * Used for computation of state-similarity.
 	 */
-	private CmpVertex numberToStateArray[] = null;
+	private CmpVertex[] numberToStateArray = null;
 	
 	public Map<CmpVertex,Integer> getStatesToNumber()
 	{
@@ -236,7 +228,7 @@ public class GDLearnerGraph
 		/** Initialises this job. 
 		 * @throws IllegalAccessException 
 		 * @throws InstantiationException */
-		public void init(int threadNo) throws InstantiationException, IllegalAccessException;
+		void init(int threadNo) throws InstantiationException, IllegalAccessException;
 		
 		/** Called for each row of our transition matrix. This should be a "forward" transition matrix.
 		 * 
@@ -244,7 +236,7 @@ public class GDLearnerGraph
 		 * @param threadNo the number of this thread- used when threads need to store 
 		 * results somewhere, so I create an array indexed by threadNo.
 		 */
-		public void handleEntry(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry, int threadNo);
+		void handleEntry(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry, int threadNo);
 	}
 	
 	public static class Job<TARGET_TYPE> implements Callable<Integer>
@@ -252,11 +244,11 @@ public class GDLearnerGraph
 		private final int[]workLoad;
 		private final int threadNo;
 		private final HandleRow<TARGET_TYPE> handler;
-		private final Map<CmpVertex,Map<Label,TARGET_TYPE>> matrix;
+		private final Map<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> matrix;
 		private final StatesToConsider filter;
 		
 		public Job(final int[]wLoad,int thNo,final HandleRow<TARGET_TYPE> h, 
-				Map<CmpVertex,Map<Label,TARGET_TYPE>> m, StatesToConsider f)
+				Map<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> m, StatesToConsider f)
 		{
 			workLoad = wLoad;
                         threadNo = thNo;
@@ -273,16 +265,16 @@ public class GDLearnerGraph
 				handler.init(threadNo);
 				int currentRow = 0;
 				//Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixForward.entrySet().iterator();
-				Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
+				Iterator<Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo])
 				{
-					Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
+					Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry = stateB_It.next();
 					if (filter.stateToConsider(entry.getKey()))
 						++currentRow;// only increment the row number if we are at the state we should consider
 				}
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo+1])
 				{
-					Entry<CmpVertex,Map<Label,TARGET_TYPE>> stateB = stateB_It.next();
+					Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> stateB = stateB_It.next();
 					if (filter.stateToConsider(stateB.getKey()))
 					{
 						handler.handleEntry(stateB, threadNo);
@@ -313,7 +305,7 @@ public class GDLearnerGraph
 		// d = ( -2*a-1 + sqrt((2*a+1)*(2*a+1)+4*n*(n+1)/ThreadNumber) ) /2
 		// We can hence iteratively compute different values of a.
 		if (ThreadNumber <= 0) throw new IllegalArgumentException("invalid processor number");
-		int result []= new int[ThreadNumber+1];
+		int[] result = new int[ThreadNumber+1];
 		result[0]=0;
 		double a = 0; // previous row
 		
@@ -337,13 +329,13 @@ public class GDLearnerGraph
 	 * @param filter determines which rows to process.
 	 * @return the row to start from for each thread
 	 */
-	public static <TARGET_TYPE> int [] partitionWorkLoadTriangular(int ThreadNumber, final Map<CmpVertex,Map<Label, TARGET_TYPE>> matrix, final StatesToConsider filter)
+	public static <TARGET_TYPE> int [] partitionWorkLoadTriangular(int ThreadNumber, final Map<CmpVertex, MapWithSearch<Label,Label, TARGET_TYPE>> matrix, final StatesToConsider filter)
 	{
 		long entryCounter = 0;
-		Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
+		Iterator<Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
 		while(stateB_It.hasNext())
 		{
-			Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
+			Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry = stateB_It.next();
 			if (filter.stateToConsider(entry.getKey()))
 				++entryCounter;
 		}
@@ -359,7 +351,7 @@ public class GDLearnerGraph
 		stateB_It = matrix.entrySet().iterator();
 		while(stateB_It.hasNext() && currentThread < ThreadNumber)
 		{
-			Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
+			Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry = stateB_It.next();
 			if (filter.stateToConsider(entry.getKey()))
 			{
 				currentAmount+=nonEmptyRow;
@@ -395,7 +387,7 @@ public class GDLearnerGraph
 	public static int [] partitionWorkLoadLinear(int ThreadNumber, int totalStateNumber)
 	{
 		if (ThreadNumber <= 0) throw new IllegalArgumentException("invalid processor number");
-		int result []= new int[ThreadNumber+1];
+		int[] result = new int[ThreadNumber+1];
 		result[0]=0;
 
 		for(int count=1;count < ThreadNumber;++count)
@@ -420,10 +412,10 @@ public class GDLearnerGraph
 	 * @param workLoad the which rows to be processed by which threads.
 	  */
 	public static <TARGET_TYPE> void performRowTasks(List<? extends HandleRow<TARGET_TYPE>> handlerList,int ThreadNumber, 
-			final Map<CmpVertex,Map<Label, TARGET_TYPE>> matrix, final StatesToConsider filter,final int[]workLoad)
+			final Map<CmpVertex,MapWithSearch<Label,Label, TARGET_TYPE>> matrix, final StatesToConsider filter,final int[]workLoad)
 	{
 		//final int[]workLoad = partitionWorkLoad(ThreadNumber,matrix.size());
-		/** The runner of computational threads. */
+		/* The runner of computational threads. */
 		ExecutorService executorService = null;
 		try
 		{
@@ -431,11 +423,11 @@ public class GDLearnerGraph
 			{// Run multi-threaded
 				executorService = Executors.newFixedThreadPool(ThreadNumber);
 
-				/** Stores tasks to complete. */
-				CompletionService<Integer> runner = new ExecutorCompletionService<Integer>(executorService);
+				/* Stores tasks to complete. */
+				CompletionService<Integer> runner = new ExecutorCompletionService<>(executorService);
 				
 				for(int count=0;count < ThreadNumber;++count) 
-					runner.submit(new Job<TARGET_TYPE>(workLoad,count,handlerList.get(count),matrix, filter));
+					runner.submit(new Job<>(workLoad, count, handlerList.get(count), matrix, filter));
 			
 				for(int count=0;count < ThreadNumber;++count)
 					runner.take().get();// this will throw an exception if any of the tasks failed.
@@ -446,7 +438,8 @@ public class GDLearnerGraph
 		}
 		catch(Exception ex)
 		{
-			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);throw e;
+			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex, ex);
+			throw e;
 		}
 		finally
 		{
@@ -467,8 +460,8 @@ public class GDLearnerGraph
 	 *  return intersectionOfAB.cardinality() > 0
 	 *	</code>
 	 * I think my code is more efficient as it does not make a clone.
-	 * @param A
-	 * @param B
+	 * @param A first vector to compare
+	 * @param B second vector
 	 * @return true if there is any bit in common between these two bit vectors.
 	 */
 	public static boolean intersects(BitVector A, BitVector B)
@@ -502,16 +495,15 @@ public class GDLearnerGraph
 	 * </ul>
 	 * 
 	 * @param graph the graph to process
-	 * @param filter which states to consider
 	 */
 	protected <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
 		void findDirectlyIncompatiblePairs(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> graph)
 	{
-		inputsAccepted = new TreeMap<CmpVertex,BitVector>();inputsRejected = new TreeMap<CmpVertex,BitVector>();
+		inputsAccepted = new TreeMap<>();inputsRejected = new TreeMap<>();
 		int num =0;
-		Map<Label,Integer> inputToInt = new TreeMap<Label,Integer>();
+		Map<Label,Integer> inputToInt = new TreeMap<>();
                 for(Label str:getAlphabet()) inputToInt.put(str, num++);
-		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 			{// ignoring irrelevant-states, for efficiency
 				BitVector 
@@ -535,7 +527,6 @@ public class GDLearnerGraph
 	 * them in a matrix for computation of compatibility scores. This method updates the set of  
 	 * incompatible pairs of states.
 	 * 
-	 * @param coregraph
 	 * @param incompatiblePairs pairs currently considered incompatible
 	 * @param ThreadNumber number of CPUs to use.
 	 * @return
@@ -546,85 +537,81 @@ public class GDLearnerGraph
 
 		if (incompatiblePairs.length != pairsNumber) throw new IllegalArgumentException("invalid array length");
 
-		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
+		final Queue<StatePair> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing pairs to be explored
 		
-		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new HandleRow<List<CmpVertex>>()
-		{
+		handlerList.add(new HandleRow<>() {
 			@Override
 			public void init(@SuppressWarnings("unused") int threadNo) {
 				// No per-thread initialisation is needed.
 			}
 
-			/** This set is different for different threads hence no need to acquire/release locks. */
-			Set<Integer> sourceData = new TreeSet<Integer>();
+			/**
+			 * This set is different for different threads hence no need to acquire/release locks.
+			 */
+			Set<Integer> sourceData = new TreeSet<>();
 
-			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
-			int prevStatePairNumber =-1;
+			/**
+			 * Used to detect non-consecutive state pair numbers - in this case an internal error should be reported.
+			 */
+			int prevStatePairNumber = -1;
 
 			@Override
-			public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
-			{// we are never called with entryA which has been filtered out.
-				Collection<Entry<Label,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();// the "inverse" row
+			public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) {// we are never called with entryA which has been filtered out.
+				Collection<Entry<Label, List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();// the "inverse" row
 				BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
-				
+
 				// Now iterate through states, pre-filtered during construction of matrixInverse but in the same order 
 				// because they are ordered by their IDs and we are using a TreeMap to store 'em.
-				Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
-					int currentStatePair = vertexToIntNR(stateB.getKey(),entryA.getKey());
-					assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
-					
+				Iterator<Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
+				while (stateB_It.hasNext()) {
+					Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+					int currentStatePair = vertexToIntNR(stateB.getKey(), entryA.getKey());
+					assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber + 1;
+					prevStatePairNumber = currentStatePair;
+
 					//System.out.println("[ ] current state pair is "+currentStatePair+" stateA is "+entryA.getKey()+ " and B is "+stateB.getKey());
-					
+
 					// Note that we are iterating state pairs consecutively in an increasing order and 
 					// different threads handle non-intersecting ranges of them, hence most of the time,
 					// there should be no "cache thrashing".
-					BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
+					BitVector B_accepted = inputsAccepted.get(stateB.getKey()), B_rejected = inputsRejected.get(stateB.getKey());
 					if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(), entryA.getKey(), pairCompatibility) ||// relevant in two cases: 
 							// (A) if we do not filter any states initially; this is the case where there are states 
 							// without outgoing transitions which may be incompatible due to different labelling.
 							// (B) some pairs of states are recorded as incompatible
-							intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
-					{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
-						sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
-						Map<Label,List<CmpVertex>> rowB = stateB.getValue();
-						
-						for(Entry<Label,List<CmpVertex>> outLabel:rowA_collection)
-						{
+							intersects(inputsAcceptedFromA, B_rejected) || intersects(inputsRejectedFromA, B_accepted)) {// an incompatible pair, which was not already marked as such, hence propagate incompatibility
+						sourceData.clear();
+						incompatiblePairs[currentStatePair] = PAIR_INCOMPATIBLE;
+						Map<Label, List<CmpVertex>> rowB = stateB.getValue();
+
+						for (Entry<Label, List<CmpVertex>> outLabel : rowA_collection) {
 							List<CmpVertex> to = rowB.get(outLabel.getKey());
-							if (to != null)
-							{// matched pair of transitions, now we need to build a cross-product 
-							 // of the states leading to the current pair of states, that is,
-							 // to (entryA.getKey(),stateB)
-	
-								for(CmpVertex srcA:outLabel.getValue())
-									for(CmpVertex srcB:to)
-									{
+							if (to != null) {// matched pair of transitions, now we need to build a cross-product
+								// of the states leading to the current pair of states, that is,
+								// to (entryA.getKey(),stateB)
+
+								for (CmpVertex srcA : outLabel.getValue())
+									for (CmpVertex srcB : to) {
 										// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
 										// in this case, we have to avoid including (B,A) in the list, but 
 										// it is not known in advance if any such case occurs, so we have to store
 										// the pairs we encountered and eliminate them. 
-										int sourcePair = vertexToIntNR(srcB,srcA);// Note that it does not matter if we use the correct one or the wrong one (vertexToInt) call here because all it is used for is to identify pairs, both do this uniquely. The queue of pairs to process gets actual state pairs because it need to map from them to the source states. For this reasaon, we are immune from the wrong call at this point. 
-										synchronized (currentExplorationBoundary) 
-										{
-											if (!sourceData.contains(sourcePair))
-											{
+										int sourcePair = vertexToIntNR(srcB, srcA);// Note that it does not matter if we use the correct one or the wrong one (vertexToInt) call here because all it is used for is to identify pairs, both do this uniquely. The queue of pairs to process gets actual state pairs because it need to map from them to the source states. For this reasaon, we are immune from the wrong call at this point.
+										synchronized (currentExplorationBoundary) {
+											if (!sourceData.contains(sourcePair)) {
 												sourceData.add(sourcePair);
-												currentExplorationBoundary.add(new StatePair(srcB,srcA));
+												currentExplorationBoundary.add(new StatePair(srcB, srcA));
 											}
 										}
 									}
 							}
 						}
 					}// if intersects
-					else 
-						if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE) // it is not possible for this loop to set this -
-							// we are going through the vertices sequentially, but it could have been set by whoever called us.
-						incompatiblePairs[currentStatePair]=PAIR_OK;// potentially compatible pair
+					else if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE) // it is not possible for this loop to set this -
+						// we are going through the vertices sequentially, but it could have been set by whoever called us.
+						incompatiblePairs[currentStatePair] = PAIR_OK;// potentially compatible pair
 
 					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 				}// B-loop
@@ -680,13 +667,12 @@ public class GDLearnerGraph
 	protected void printOK(int []data)
 	{
 		int cnt=0;
-		for(int i=0;i<data.length;++i)
-			if (data[i] == PAIR_OK) ++cnt;
+		for (int datum : data) if (datum == PAIR_OK) ++cnt;
 		System.out.println("OK pairs: "+cnt);
 	}
 	
 	/** Sequentially number elements in the array which are not negative. */
-	public static int numberNonNegativeElements(int data[])
+	public static int numberNonNegativeElements(int[] data)
 	{
 		int num=0;
 		for(int i=0;i<data.length;++i)
@@ -856,7 +842,7 @@ public class GDLearnerGraph
 	 * 
 	 * They are stored in this structure.
 	 */
-	public class GraphAndWalk
+	public static class GraphAndWalk
 	{
 		public GraphAndWalk(LearnerGraph gr, PTASequenceEngine a)
 		{
@@ -884,7 +870,7 @@ public class GDLearnerGraph
 	 */
 	public static class StateBasedRandom
 	{
-		private Map<CmpVertex,Random> rnd = new TreeMap<CmpVertex,Random>();
+		private final Map<CmpVertex,Random> rnd = new TreeMap<>();
 		private final int seed;
 		
 		public StateBasedRandom(int s)
@@ -913,70 +899,68 @@ public class GDLearnerGraph
 	 */
 	public void computeWalkSequences(final StateBasedRandom randomGenerator,int ThreadNumber)
 	{
-		stateToCorrespondingGraph = new TreeMap<CmpVertex,GraphAndWalk>();
+		stateToCorrespondingGraph = new TreeMap<>();
 		//final AtomicInteger totalStates = new AtomicInteger();
 		@SuppressWarnings("unchecked")
-		final Map<CmpVertex,GraphAndWalk> workerMap[]=new Map[ThreadNumber];
+		final Map<CmpVertex, GraphAndWalk>[] workerMap =new Map[ThreadNumber];
  
-		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
 		{
-			workerMap[threadCnt] = new TreeMap<CmpVertex,GraphAndWalk>();
+			workerMap[threadCnt] = new TreeMap<>();
 		
-			handlerList.add(new HandleRow<List<CmpVertex>>()
-			{
-				Map<CmpVertex,GraphAndWalk> stateToGraph = null;
+			handlerList.add(new HandleRow<>() {
+				Map<CmpVertex, GraphAndWalk> stateToGraph = null;
+
 				@Override
 				public void init(int threadNo) {
 					stateToGraph = workerMap[threadNo];
 				}
-	
-				int cnt=0;
-				
+
+				int cnt = 0;
+
 				@Override
-				public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
-				{
-					++cnt;JConsole_Diagnostics.getDiagnostics().setStatus("starting on state "+(100.*cnt/matrixForward.getStateNumber()));
+				public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) {
+					++cnt;
+					JConsole_Diagnostics.getDiagnostics().setStatus("starting on state " + (100. * cnt / matrixForward.getStateNumber()));
 					LearnerGraph deterministicGraph = new LearnerGraph(config);
-					
+
 					try {
 						deterministicGraph = matrixForward.pathroutines.buildDeterministicGraph(entryA.getKey());
 						//totalStates.addAndGet(deterministicGraph.getStateNumber());
 					} catch (IncompatibleStatesException e) {
-						Helper.throwUnchecked("failed to build a deterministic graph due to inconsistent state labelling starting from state "+entryA.getKey(), e);
+						Helper.throwUnchecked("failed to build a deterministic graph due to inconsistent state labelling starting from state " + entryA.getKey(), e);
 					}
-					
+
 					CmpVertex state = deterministicGraph.findVertex(entryA.getKey());
 					GraphAndWalk graphwalk = null;
-					switch(config.getGdScoreComputationAlgorithm())
-					{
-					case SCORE_RANDOMPATHS:
-						graphwalk = new GraphAndWalk(deterministicGraph, null);
-						if (!deterministicGraph.transitionMatrix.get(deterministicGraph.getInit()).isEmpty())
-						{// only makes sense to compute walks if there are any transitions, there are no walks otherwise.
-							int extraLength=0;
-							if (deterministicGraph.getStateNumber() == 1) extraLength=1;//where the diameter is zero (and due 
-							// to subset construction, we are not going to get unreachable states thus getStateNumber() 
-							// is the right way to determine this), we have to set extra length to 1 to ensure walks are generated.
+					switch (config.getGdScoreComputationAlgorithm()) {
+						case SCORE_RANDOMPATHS:
+							graphwalk = new GraphAndWalk(deterministicGraph, null);
+							if (!deterministicGraph.transitionMatrix.get(deterministicGraph.getInit()).isEmpty()) {// only makes sense to compute walks if there are any transitions, there are no walks otherwise.
+								int extraLength = 0;
+								if (deterministicGraph.getStateNumber() == 1) extraLength = 1;//where the diameter is zero (and due
+								// to subset construction, we are not going to get unreachable states thus getStateNumber()
+								// is the right way to determine this), we have to set extra length to 1 to ensure walks are generated.
 
-							RandomPathGenerator randomPaths = new RandomPathGenerator(deterministicGraph,randomGenerator.getRandom(entryA.getKey()),
-									extraLength+config.getGdScoreComputationAlgorithm_RandomWalk_ExtraLength(),state,matrixForward.pathroutines.computeAlphabet());
-							if (config.getGdScoreComputationAlgorithm_RandomWalk_PathLength() > 0)
-								randomPaths.setPathLength(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
-							randomPaths.generateRandomPosNeg(config.getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(), 1,false);
-							graphwalk=new GraphAndWalk(deterministicGraph,randomPaths.getAllSequences(0));
-						}
-						break;
-					case SCORE_TESTSET:
-						graphwalk=new GraphAndWalk(deterministicGraph,deterministicGraph.wmethod.computeNewTestSet(state, config.getGdScoreComputationAlgorithm_TestSet_ExtraStates()));
-						deterministicGraph.learnerCache.invalidate();// reduce memory footprint.
-						
-						break;
-					default:
-						break;// do nothing in this case.
+								RandomPathGenerator randomPaths = new RandomPathGenerator(deterministicGraph, randomGenerator.getRandom(entryA.getKey()),
+										extraLength + config.getGdScoreComputationAlgorithm_RandomWalk_ExtraLength(), state, matrixForward.pathroutines.computeAlphabet());
+								if (config.getGdScoreComputationAlgorithm_RandomWalk_PathLength() > 0)
+									randomPaths.setPathLength(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
+								randomPaths.generateRandomPosNeg(config.getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(), 1, false);
+								graphwalk = new GraphAndWalk(deterministicGraph, randomPaths.getAllSequences(0));
+							}
+							break;
+						case SCORE_TESTSET:
+							graphwalk = new GraphAndWalk(deterministicGraph, deterministicGraph.wmethod.computeNewTestSet(state, config.getGdScoreComputationAlgorithm_TestSet_ExtraStates()));
+							deterministicGraph.learnerCache.invalidate();// reduce memory footprint.
+
+							break;
+						default:
+							break;// do nothing in this case.
 					}
 					//totalSeq.addAndGet(graphwalk.testSequences.getData(PTASequenceEngine.truePred).size());
-					stateToGraph.put(state,graphwalk);
+					stateToGraph.put(state, graphwalk);
 				}
 			});
 		}
@@ -1060,7 +1044,8 @@ public class GDLearnerGraph
 	/** This routine is used for testing of buildMatrix_internal. */
 	public LSolver buildMatrix(final int ThreadNumber)
 	{
-		final int [] incompatiblePairs = new int[getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[getPairNumber()];
+		Arrays.fill(incompatiblePairs, PAIR_OK);
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,null);
 	}
@@ -1077,7 +1062,8 @@ public class GDLearnerGraph
 	// linear search is good enough for small number of elements and for a large
 	// number of them, I'll have no chance of making sense of the outcome of dumpEquations()
 	// anyway.
-		int i=0;for(;i<incompatiblePairs.length && incompatiblePairs[i]!=key;++i)
+		int i=0;
+		for(;i<incompatiblePairs.length && incompatiblePairs[i]!=key;++i)
 		{}
 		if (i < incompatiblePairs.length) 
 			return i;
@@ -1144,199 +1130,188 @@ public class GDLearnerGraph
 		//	System.out.println("Initial number of pairs: "+getPairNumber()+", after reduction: "+pairsNumber);
 
 		final int expectedMatrixSize = getExpectedIncomingPerPairOfStates()*pairsNumber;
-		/** This one is supposed to contain indices into Ai where each column starts. Every thread
+		/* This one is supposed to contain indices into Ai where each column starts. Every thread
 		 * processes a continuous sequence of state pairs (ensured by exploring a triangular subset of 
 		 * all the pairs and matching it to calls to vertexToIntNR()). For this reason, it is easy to 
 		 * compute a range of state pairs handled by every thread and subsequently renumber the array.
 		 */ 
-		final int Ap[]=config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH?new int[pairsNumber+1]:null;
-		final int Ap_threadStart[]=new int[ThreadNumber+1];for(int i=0;i<Ap_threadStart.length;++i) Ap_threadStart[i]=-1;
+		final int[] Ap =config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH?new int[pairsNumber+1]:null;
+		final int[] Ap_threadStart =new int[ThreadNumber+1];
+		Arrays.fill(Ap_threadStart, -1);
 		
 		// one array per thread.
-		final IntArrayList Ai_array[]=new IntArrayList[ThreadNumber];
-		final DoubleArrayList Ax_array[]=new DoubleArrayList[ThreadNumber];
-		final double b[] =new double[pairsNumber];
-		final int currentPosition[]=new int[ThreadNumber];// stores the last used index in the Ai and Ax arrays.
+		final IntArrayList[] Ai_array =new IntArrayList[ThreadNumber];
+		final DoubleArrayList[] Ax_array =new DoubleArrayList[ThreadNumber];
+		final double[] b =new double[pairsNumber];
+		final int[] currentPosition =new int[ThreadNumber];// stores the last used index in the Ai and Ax arrays.
 		final double k = config.getAttenuationK();
 
 		// We need next to no locking since state pairs considered are disjoint and work arrays are split between threads.
-		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new HandleRow<List<CmpVertex>>()
-		{
+			handlerList.add(new HandleRow<>() {
 			IntArrayList tmpAi = null;
-			
-			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
-			int prevStatePairNumber =-1;
-			
+
+			/**
+			 * Used to detect non-consecutive state pair numbers - in this case an internal error should be reported.
+			 */
+			int prevStatePairNumber = -1;
+
 			final int debugThread = -1;
 			DetermineDiagonalAndRightHandSideInterface ddrhInstance = null;
-			
+
 			@Override
-			public void init(int threadNo)
-			{
-				
+			public void init(int threadNo) {
+
 				// instances of ddrh are stateful, hence we need one per thread.
 				if (ddrh == null) ddrhInstance = new DDRH_default();
 				else
 					try {// from http://forums.sun.com/thread.jspa?threadID=767974
-						ddrhInstance = ddrh.getDeclaredConstructor(new Class[]{GDLearnerGraph.class}).newInstance(new Object[] { GDLearnerGraph.this });
+						ddrhInstance = ddrh.getDeclaredConstructor(new Class[]{GDLearnerGraph.class}).newInstance(new Object[]{GDLearnerGraph.this});
 					} catch (Exception e) {
 						Helper.throwUnchecked("failed to create an instance of ddrh", e);
 					}
-				
-				if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH)
-				{// since we need 'em, allocate the arrays.
-					tmpAi = new IntArrayList(getExpectedIncomingPerPairOfStates()*pairsNumber);
-					Ai_array[threadNo]=new IntArrayList(expectedMatrixSize/ThreadNumber+getExpectedIncomingPerPairOfStates());
-					Ax_array[threadNo]=new DoubleArrayList(expectedMatrixSize/ThreadNumber+getExpectedIncomingPerPairOfStates());
+
+				if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH) {// since we need 'em, allocate the arrays.
+					tmpAi = new IntArrayList(getExpectedIncomingPerPairOfStates() * pairsNumber);
+					Ai_array[threadNo] = new IntArrayList(expectedMatrixSize / ThreadNumber + getExpectedIncomingPerPairOfStates());
+					Ax_array[threadNo] = new DoubleArrayList(expectedMatrixSize / ThreadNumber + getExpectedIncomingPerPairOfStates());
 				}
-				currentPosition[threadNo]=0;
-				
+				currentPosition[threadNo] = 0;
+
 			}
-			
-			Set<Integer> sourceData = new TreeSet<Integer>();
-			
+
+			final Set<Integer> sourceData = new TreeSet<>();
+
 			@Override
-			public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo)
-			{
+			public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, int threadNo) {
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];
-				Collection<Entry<Label,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();
-					
+				Collection<Entry<Label, List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();
+
 				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();
-					Map<Label,List<CmpVertex>> rowB = stateB.getValue();
-					
+				for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB : matrixInverse.transitionMatrix.entrySet()) {
+					Map<Label, List<CmpVertex>> rowB = stateB.getValue();
+
 					// At this point, we consider a pair of states (entryA.getKey(),stateB),
 					// by iterating through inputs associated with incoming transitions and
 					// attempting to check if there is a match.
-					
-					int currentStatePair = incompatiblePairs[vertexToIntNR(stateB.getKey(),entryA.getKey())];// the order 
-							// of arguments is important:
-							// we have to iterate such that each thread has a continuous sequence of state pair numbers
-							// (and these numbers are never shared between threads).
-					if (currentStatePair >= 0)
-					{// this state pair is not an outright reject - if it is, we do not need to fill in b[currentStatePair]
-					 // and not even go through the column because entries in the column reflect the contribution of the 
-					 // compatibility of this pair to the compatibility of state pairs leading to currentStatePair.
-					 // Since currentStatePair is a reject, all pairs leading to it should be labelled rejects too
-					 // (this is the task of findIncompatiblePairs() ) and thus we do not need to consider this pair at all.
-						
+
+					int currentStatePair = incompatiblePairs[vertexToIntNR(stateB.getKey(), entryA.getKey())];// the order
+					// of arguments is important:
+					// we have to iterate such that each thread has a continuous sequence of state pair numbers
+					// (and these numbers are never shared between threads).
+					if (currentStatePair >= 0) {// this state pair is not an outright reject - if it is, we do not need to fill in b[currentStatePair]
+						// and not even go through the column because entries in the column reflect the contribution of the
+						// compatibility of this pair to the compatibility of state pairs leading to currentStatePair.
+						// Since currentStatePair is a reject, all pairs leading to it should be labelled rejects too
+						// (this is the task of findIncompatiblePairs() ) and thus we do not need to consider this pair at all.
+
 						// Now we check that we go through the sequence of pairs without missing any;
 						// a failure at this point means that we are now going through pairs in a different order 
 						// than when findIncompatiblePairs did when building incompatiblePairs. 
-						assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
+						assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber + 1;
+						prevStatePairNumber = currentStatePair;
 
-						if (Ap_threadStart[threadNo] < 0) Ap_threadStart[threadNo]=currentStatePair;
-						if (debugThread == threadNo) System.out.println("thread "+threadNo+" is considering states: ("+entryA+","+stateB+"), with state pair number "+currentStatePair);
-						int colEntriesNumber=0;
-						
-						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.transitionMatrix.get(stateB.getKey()));
-						b[currentStatePair]=ddrhInstance.getRightHandSide();
-						if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
+						if (Ap_threadStart[threadNo] < 0) Ap_threadStart[threadNo] = currentStatePair;
+						if (debugThread == threadNo) System.out.println("thread " + threadNo + " is considering states: (" + entryA + "," + stateB + "), with state pair number " + currentStatePair);
+						int colEntriesNumber = 0;
 
-						if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH)
-						{// if score computation is GD_DIRECT, no matrix will be filled in.
+						ddrhInstance.compute(entryA.getKey(), stateB.getKey(), entryA.getValue(), matrixForward.transitionMatrix.get(stateB.getKey()));
+						b[currentStatePair] = ddrhInstance.getRightHandSide();
+						if (debugThread == threadNo) System.out.println("shared outgoing: " + ddrhInstance.getRightHandSide());
+
+						if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH) {// if score computation is GD_DIRECT, no matrix will be filled in.
 							tmpAi.setQuick(colEntriesNumber++, currentStatePair);// we definitely need a diagonal element, hence add it.
 
-							for(Entry<Label,List<CmpVertex>> outLabel:rowA_collection)
-							{
+							for (Entry<Label, List<CmpVertex>> outLabel : rowA_collection) {
 								List<CmpVertex> to = rowB.get(outLabel.getKey());
-								if (to != null)
-								{// matched pair of transitions, now we need to build a cross-product 
-								 // of the states leading to the current pair of states, that is,
-								 // to (entryA.getKey(),stateB)
+								if (to != null) {// matched pair of transitions, now we need to build a cross-product
+									// of the states leading to the current pair of states, that is,
+									// to (entryA.getKey(),stateB)
 									sourceData.clear();
-									
-									int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
-									if (tmpAi.elements().length < maxSize)
-									{
-										if (linearWarningsEnabled )
-											System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread "+threadNo+"] from "+tmpAi.elements().length+" to "+maxSize);
+
+									int maxSize = colEntriesNumber + outLabel.getValue().size() * to.size();
+									if (tmpAi.elements().length < maxSize) {
+										if (linearWarningsEnabled)
+											System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread " + threadNo + "] from " + tmpAi.elements().length + " to " + maxSize);
 										tmpAi.ensureCapacity(maxSize);
 									}
-									if (debugThread == threadNo) System.out.println("matched "+outLabel.getKey());
-									for(CmpVertex srcA:outLabel.getValue())
-										for(CmpVertex srcB:to)
-										{
+									if (debugThread == threadNo) System.out.println("matched " + outLabel.getKey());
+									for (CmpVertex srcA : outLabel.getValue())
+										for (CmpVertex srcB : to) {
 											// It is possible that for the same inputs (srcA,srcB)=(A,B) and (B,A)
 											// in this case, we have to avoid including (B,A) in the list, but 
 											// it is not known in advance if any such case occurs, so we have to store
 											// the pairs we encountered and eliminate them.
 											int sourcePair = incompatiblePairs[vertexToIntNR(srcB, srcA)];
-											
+
 											// If sourcePair <0, it means that we are attempting to add an entry for a 
 											// row we've already discarded as incompatible, hence ignore this entry.
-											if (sourcePair >= 0 && !sourceData.contains(sourcePair))
-											{
+											if (sourcePair >= 0 && !sourceData.contains(sourcePair)) {
 												sourceData.add(sourcePair);
-												if (debugThread == threadNo) System.out.println(outLabel.getKey()+" : "+srcB+","+srcA);
-												tmpAi.setQuick(colEntriesNumber++,sourcePair);
+												if (debugThread == threadNo) System.out.println(outLabel.getKey() + " : " + srcB + "," + srcA);
+												tmpAi.setQuick(colEntriesNumber++, sourcePair);
 											}
 										}
 								}
 							}
-							
+
 							// At this point, we populated Ai and b with elements for the current row (number currentStatePair),
 							// so it is time to sort these entries. There is no need to populate Ax right now:
 							// all we care about is the state pairs from which there have been transitions leading to the 
 							// current state (and a diagonal element). 
-							cern.colt.Sorting.quickSort(tmpAi.elements(),0, colEntriesNumber,new cern.colt.function.IntComparator() {
-								@Override public int compare(int o1, int o2) { return o1-o2; }});
-							if (debugThread == threadNo)  { for(int i=0;i< colEntriesNumber;++i) System.out.print(tmpAi.getQuick(i)+" ");System.out.println(); }
+							cern.colt.Sorting.quickSort(tmpAi.elements(), 0, colEntriesNumber, (o1, o2) -> o1 - o2);
+							if (debugThread == threadNo) {
+								for (int i = 0; i < colEntriesNumber; ++i) System.out.print(tmpAi.getQuick(i) + " ");
+								System.out.println();
+							}
 							// Now we have to copy the result to the target array.
-							int pos = currentPosition[threadNo]-1;// the position where to start writing into Ai and Ax, minus 1 since it will be incremented when we find the our new value is above prev (below).
-							Ap[currentStatePair]=pos+1;// Ap maps each state pair to the corresponding position in Ai and Ax. We record here the first index (in Ai) of the current column 
-							
+							int pos = currentPosition[threadNo] - 1;// the position where to start writing into Ai and Ax, minus 1 since it will be incremented when we find the our new value is above prev (below).
+							Ap[currentStatePair] = pos + 1;// Ap maps each state pair to the corresponding position in Ai and Ax. We record here the first index (in Ai) of the current column
+
 							int prev = -1;
 							boolean diagonalSet = false;
-		
+
 							// Check if we have the capacity in the arrays for this column - in an ugly way,
 							// but resizing for each element as per Ax.add seems ridiculous.
-							int expectedMaxSize = pos+colEntriesNumber+1;
-							if (Ax.elements().length < expectedMaxSize)
-							{
+							int expectedMaxSize = pos + colEntriesNumber + 1;
+							if (Ax.elements().length < expectedMaxSize) {
 								if (linearWarningsEnabled && config.getDebugMode())
-									System.out.println("buildMatrix: warning - resizing arrays Ax[thread "+threadNo+"] and Ai[thread "+threadNo+"] from "+Ax.elements().length+" to "+expectedMaxSize);
+									System.out.println("buildMatrix: warning - resizing arrays Ax[thread " + threadNo + "] and Ai[thread " + threadNo + "] from " + Ax.elements().length + " to " + expectedMaxSize);
 								Ax.ensureCapacity(expectedMaxSize);
 								Ai.ensureCapacity(expectedMaxSize);
 							}
-		
-							for(int i=0;i<colEntriesNumber;++i)
-							{
+
+							for (int i = 0; i < colEntriesNumber; ++i) {
 								int currentValue = tmpAi.getQuick(i);
-								if(currentValue!=prev)
-								{
-									prev=currentValue;++pos;
-									
-									if (!diagonalSet && currentValue == currentStatePair)
-									{// this is the time to handle a diagonal. When this condition becomes true,
-									 // currentValue == currentStatePair for the first time.
+								if (currentValue != prev) {
+									prev = currentValue;
+									++pos;
+
+									if (!diagonalSet && currentValue == currentStatePair) {// this is the time to handle a diagonal. When this condition becomes true,
+										// currentValue == currentStatePair for the first time.
 										double rightHandSide = ddrhInstance.getDiagonal();
 										if (rightHandSide == 0)
 											rightHandSide = 1; // if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero.
-										if (debugThread == threadNo) System.out.println("setting diagonal to "+rightHandSide);
-										Ax.setQuick(pos,rightHandSide);
-										Ai.setQuick(pos,prev);
+										if (debugThread == threadNo) System.out.println("setting diagonal to " + rightHandSide);
+										Ax.setQuick(pos, rightHandSide);
+										Ai.setQuick(pos, prev);
 										diagonalSet = true;
 										// Now that we've added a diagonal, skip to the next element (we always add an entry for a diagonal, hence we have to "eat" it here.
+									} else {// new value but not a diagonal.
+										Ax.setQuick(pos, -k);
+										Ai.setQuick(pos, prev);
 									}
-									else		
-									{// new value but not a diagonal.							
-										Ax.setQuick(pos,-k);
-										Ai.setQuick(pos,prev);
-									}
-								}
-								else Ax.setQuick(pos,Ax.getQuick(pos)-k);
+								} else Ax.setQuick(pos, Ax.getQuick(pos) - k);
 							}
 							++pos;
-							if (debugThread == threadNo) { System.out.println("thread "+threadNo+" results:");for(int i=currentPosition[threadNo];i<pos;++i) System.out.println(i+ ": "+Ai.getQuick(i)+ " , "+Ax.getQuick(i)); }
-							
-							currentPosition[threadNo]=pos;
+							if (debugThread == threadNo) {
+								System.out.println("thread " + threadNo + " results:");
+								for (int i = currentPosition[threadNo]; i < pos; ++i) System.out.println(i + ": " + Ai.getQuick(i) + " , " + Ax.getQuick(i));
+							}
+
+							currentPosition[threadNo] = pos;
 						}// if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH)
 					}// if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE)
 					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
@@ -1352,7 +1327,8 @@ public class GDLearnerGraph
 			// First, we compute the number of non-zero elements.
 			int size = 0;for(int thread=0;thread<ThreadNumber;++thread) size+=currentPosition[thread];
 			// Second, allocate arrays.
-			int Ai[]=new int[size];double Ax[]=new double[size];
+			int[] Ai =new int[size];
+			double[] Ax =new double[size];
 	
 			// In a number of cases we'll have more threads than rows to handle, hence threads will have nothing to do
 			// and Ap_threadStart will be -1 for those threads. In order to ensure that Ap_threadStart contains
@@ -1434,12 +1410,13 @@ public class GDLearnerGraph
 	 */ 
 	public double [] computeStateCompatibility(int ThreadNumber,final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh)
 	{
-		final int [] incompatiblePairs = new int[getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[getPairNumber()];
+		Arrays.fill(incompatiblePairs, PAIR_OK);
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve(ThreadNumber);
 		solver.freeAllButResult();// deallocate memory before creating a large array.
-		double statePairScores[] = new double[incompatiblePairs.length];
+		double[] statePairScores = new double[incompatiblePairs.length];
 		// now fill in the scores in the array.
 		for(int i=0;i<incompatiblePairs.length;++i)
 			if (incompatiblePairs[i] >=0) statePairScores[i]=solver.j_x[incompatiblePairs[i]];

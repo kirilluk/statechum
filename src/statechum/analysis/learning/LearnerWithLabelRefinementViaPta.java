@@ -41,6 +41,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.collections.MapWithSearch;
 
 public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLearner 
 {
@@ -477,7 +478,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLear
 	public static Map<VertID,PrevAndLabel> constructInitialInverse(LearnerGraph graph)
 	{
 		Map<VertID,PrevAndLabel> outcome = new TreeMap<VertID,PrevAndLabel>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 			{
@@ -509,7 +510,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLear
 
 	/** Builds a new entry for {@link LearnerWithLabelRefinementViaPta#ptaMergers}, using the supplied vertex as an argument.
 	 * 
-	 * @param a vertex to add an entry for
+	 * @param abstractVert vertex to add an entry for
 	 */
 	public PartitioningOfvertices constructCompatibilityMappingForState(CmpVertex abstractVert)
 	{
@@ -613,11 +614,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLear
 	 * updates this information to record vertices that need to be merged to ensure that the outcome is deterministic.
 	 * 
 	 * @param vertex pta (low-level) vertex
-	 * @param p record describing what needs to be done for the abstract state currently associated with vertex.
 	 * @param forcedMergersForPTAstate map from abstract labels to the main state associated with them. This is a parameter to allow multiple calls to this routine to accumulate data.
 	 * @param verticesToEliminate vertices mentioned in ptaStatesForCheckOfNondeterminism that have to be merged into some other vertices. These should not participate in BronKerbosch to avoid merging them with unrelated states. 
 	 */
-	protected void constructVerticesThatNeedMergingForAbstractState(VertID vertex,Map<AbstractLabel,VertID> forcedMergersForPTAstate, List<VertID> verticesToEliminate)
+	protected void constructVerticesThatNeedMergingForAbstractState(VertID vertex,
+																	Map<AbstractLabel,VertID> forcedMergersForPTAstate, List<VertID> verticesToEliminate)
 	{
 		// First part: find a representative state for all the forced mergers, making sure it is one of ptaStatesWithForCheckOfNondeterminism
 		for(Entry<Label,CmpVertex> transition:initialPTA.transitionMatrix.get(vertex).entrySet())
@@ -748,11 +749,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLear
 			constructTransitionsForState(outcome,ptaToNewState,vert,mergedToPta.get(vert));
 		
 		// Copy the rest of the mergedToHardFacts
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if (!ptaMergers.containsKey(entry.getKey()))
 				mergedToPta.put(entry.getKey(),createSetOfVertID(coregraph.getCache().getMergedToHardFacts().get(entry.getKey())));
 
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if (!ptaMergers.containsKey(entry.getKey()))
 			{
 				boolean transitionsNeedRebuilding = false;
@@ -792,7 +793,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovEDSM.EDSM_MarkovLear
 		}
 	}
 	
-	/** Computes a set of partitions based on compatibility provided with the supplied map.  Based on https://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
+	/** Computes a set of partitions based on compatibility provided with the supplied map.  Based on <a href="https://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm">...</a>
 	 */ 
 	public static<T> List<T> BronKerbosch(final Map<T,Set<T>> adjacencyMap, List<T> R, List<T> P, List<T> X)
 	{

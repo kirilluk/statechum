@@ -18,33 +18,28 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-
+import edu.uci.ics.jung.graph.Graph;
+import harmony.collections.HashMapWithSearch;
+import harmony.collections.TreeMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
+import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.linear.Linear;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
-import edu.uci.ics.jung.graph.Graph;
-import statechum.Label;
-import statechum.Pair;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -63,7 +58,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public Object getNextState(Object currentState, Label input)
 		{
 			CmpVertex result = null;
-			Map<Label,CmpVertex> row = transitionMatrix.get(currentState);
+			MapWithSearch<Label,Label,CmpVertex> row = transitionMatrix.get(currentState);
 			if (row != null)
 				result = row.get(input);
 			return result;
@@ -113,12 +108,15 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		/** This one records non-existing transitions as well as some existing ones, 
 		 * those leaving states with at least one non-existing transition.
 		 */
-		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix(new Pair<Integer,Integer>(LearnerGraph.this.config.getMaxAcceptStateNumber(), LearnerGraph.this.config.getMaxRejectStateNumber()));
+		private final MapWithSearch<VertID,CmpVertex,MapWithSearch<Label,Label,CmpVertex>> NonExistingTransitions =
+				createNewTransitionMatrix(new Pair<>(
+						LearnerGraph.this.config.getMaxAcceptStateNumber(),
+						LearnerGraph.this.config.getMaxRejectStateNumber()));
 	
 		/** When checking which questions have been answered by IF-THEN automata, we need to record
 		 * which newly-added nodes have been explored by THEN automata. The set below records it.
 		*/
-		private final Set<CmpVertex> nonExistingVertices = new HashSet<CmpVertex>();
+		private final Set<CmpVertex> nonExistingVertices = new HashSet<>();
 		
 		/** Returns vertices which have not been traversed by THEN parts of if-then automata and hence should be presented to a user. */
 		public Set<CmpVertex> getNonExistingVertices()
@@ -128,7 +126,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		
 		
 		/** Returns a transition matrix of new paths. */
-		public Map<CmpVertex,Map<Label,CmpVertex>> getNonExistingTransitionMatrix()
+		public Map<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> getNonExistingTransitionMatrix()
 		{
 			return NonExistingTransitions;
 		}
@@ -145,12 +143,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		@Override
 		public Object getNextState(Object currentState, Label input)
 		{
-			CmpVertex result = null;
-			Map<Label,CmpVertex> transitions = NonExistingTransitions.get(currentState);
+			CmpVertex result;
+			MapWithSearch<Label,Label,CmpVertex> transitions = NonExistingTransitions.get(currentState);
 			if (transitions == null)
 			{// the current state is not one of the non-existing/semi-non-existing ones. Semi non-existing states are those
 			 // which replace existing states in order to make it possible to add transitions leading to non-existing states.
-				Map<Label,CmpVertex> row = transitionMatrix.get(currentState);
+				MapWithSearch<Label,Label,CmpVertex> row = transitionMatrix.get(currentState);
 				assert row != null;// a transition matrix is always total (unless current state is (semi)non-existing but then we'll not get here in this case). 
 				result = row.get(input);
 				if (result == null)
@@ -246,7 +244,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 */ 
 	public void setMaxScore(int score)
 	{
-		if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*pathroutines.computeAlphabet().size();
+		if (learnerCache.maxScore < 0) learnerCache.maxScore = (long) transitionMatrix.size() *pathroutines.computeAlphabet().size();
 		if (learnerCache.maxScore > score)
 			throw new IllegalArgumentException("cannot set the max score below the actual maximum");
 		learnerCache.maxScore=score;
@@ -284,7 +282,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public void initEmpty()
 	{
 		super.initEmpty();
-		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<>(pairArraySize);
 	}
 
 	/** A map from merged vertices to collections of original vertices they correspond to.
@@ -306,11 +304,11 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{// TODO: to test this one
 		if (from.getVertexToAbstractState() != null)
 		{
-			Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newMap = new TreeMap<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>>();
+			Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newMap = new TreeMap<>();
 			for(Entry<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> entry:from.getVertexToAbstractState().entrySet())
 			{
-				List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
-				combinedAbstractStates.addAll(entry.getValue());newMap.put(entry.getKey(), combinedAbstractStates);
+				List<AbstractState> combinedAbstractStates = new LinkedList<>(entry.getValue());
+				newMap.put(entry.getKey(), combinedAbstractStates);
 			}
 			to.vertexToAbstractState = newMap;
 		}
@@ -335,25 +333,22 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		if (vFrom.length == 0 || tTable.length == 0) throw new IllegalArgumentException("array is zero-sized");
 		int alphabetSize = tTable[vFrom[0]].length;
 		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
-		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"+i),config);
-		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]=AbstractLearnerGraph.generateNewLabel("i"+i,config,converter);
+		CmpVertex[] stateName = new CmpVertex[tTable.length];for(int i = 0; i < tTable.length; ++i) stateName[i]=AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"+i),config);
+		Label[] inputName = new Label[alphabetSize];for(int i = 0; i < alphabetSize; ++i) inputName[i]=AbstractLearnerGraph.generateNewLabel("i"+i,config,converter);
 		LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		fsm.setInit(stateName[vFrom[0]]);
-		Set<CmpVertex> statesUsed = new HashSet<CmpVertex>();
-		for(int i=0;i<vFrom.length;++i)
-		{
-			int currentState = vFrom[i];
+		Set<CmpVertex> statesUsed = new HashSet<>();
+		for (int currentState : vFrom) {
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
-			if (tTable[currentState].length != alphabetSize) 
+			if (tTable[currentState].length != alphabetSize)
 				throw new IllegalArgumentException("rows of inconsistent size");
-			Map<Label,CmpVertex> row = new LinkedHashMap<Label,CmpVertex>();
+			MapWithSearch<Label, Label, CmpVertex> row = new HashMapWithSearch<>();
 			stateName[currentState].setAccept(true);
-			for(int input=0;input < tTable[currentState].length;++input)
-				if (tTable[currentState][input] != rejectNumber)
-				{
+			for (int input = 0; input < tTable[currentState].length; ++input)
+				if (tTable[currentState][input] != rejectNumber) {
 					int nextState = tTable[currentState][input];
 					if (nextState < 0 || nextState > tTable.length)
-						throw new IllegalArgumentException("transition from state "+currentState+" leads to an invalid state "+nextState);
+						throw new IllegalArgumentException("transition from state " + currentState + " leads to an invalid state " + nextState);
 					row.put(inputName[input], stateName[nextState]);
 					statesUsed.add(stateName[nextState]);
 				}
@@ -366,15 +361,15 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	public Map<Label, CmpVertex> createNewRow() 
+	public MapWithSearch<Label,Label,CmpVertex> createNewRow()
 	{
 		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
-			return new ArrayMapWithSearchPos<Label, CmpVertex>();
-		return new TreeMap<Label,CmpVertex>();// using TreeMap makes everything predictable
+			return new ArrayMapWithSearchPos<>();
+		return new TreeMapWithSearch<>();// using TreeMap makes everything predictable
 	}
 
 	@Override
-	public void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
+	public void addTransition(MapWithSearch<Label,Label, CmpVertex> row, Label input, CmpVertex target)
 	{
 		if (row.containsKey(input)) 
 			throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
@@ -392,7 +387,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public
 	Collection<CmpVertex> getTargets(final CmpVertex targ) 
 	{
-		return new Collection<CmpVertex>() {
+		return new Collection<>() {
 
 			@Override
 			public boolean add(@SuppressWarnings("unused") CmpVertex e) {
@@ -426,25 +421,26 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 
 			@Override
 			public Iterator<CmpVertex> iterator() {
-				return new Iterator<CmpVertex>()
-				{
+				return new Iterator<>() {
 					boolean elementReturned = false;
+
 					@Override
 					public boolean hasNext() {
 						return !elementReturned;
 					}
-	
+
 					@Override
 					public CmpVertex next() {
-						assert hasNext();elementReturned = true;
+						assert hasNext();
+						elementReturned = true;
 						return targ;
 					}
-	
+
 					@Override
 					public void remove() {
 						throw new UnsupportedOperationException("remove cannot be performed.");
 					}
-				};				
+				};
 			}
 
 			@Override
@@ -480,7 +476,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	public void removeTransition(Map<Label, CmpVertex> row, Label input, @SuppressWarnings("unused") CmpVertex target)
+	public void removeTransition(MapWithSearch<Label,Label, CmpVertex> row, Label input, @SuppressWarnings("unused") CmpVertex target)
 	{
 		row.remove(input);
 	}

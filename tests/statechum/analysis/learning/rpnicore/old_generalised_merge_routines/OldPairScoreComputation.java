@@ -17,15 +17,10 @@
 
 package statechum.analysis.learning.rpnicore.old_generalised_merge_routines;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Map.Entry;
-
-import statechum.GlobalConfiguration;
+import harmony.collections.HashMapWithSearch;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
+import statechum.GlobalConfiguration;
 import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -33,7 +28,10 @@ import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.collections.ArrayMapWithSearchPos;
-import statechum.collections.HashMapWithSearch;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class OldPairScoreComputation 
 {
@@ -68,7 +66,7 @@ public class OldPairScoreComputation
 		{
 			if (secondClass == null)
 			{// a new pair has been discovered, populate from the current transition matrix.
-				equivalenceClass = new OldEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+				equivalenceClass = new OldEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, coregraph);
 				assert coregraph.transitionMatrix.containsKey(currentPair.firstElem) : " state "+currentPair.firstElem+" is not in the graph";
 				assert coregraph.transitionMatrix.containsKey(currentPair.secondElem) : " state "+currentPair.firstElem+" is not in the graph";
 				singleton &= equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
@@ -138,7 +136,7 @@ public class OldPairScoreComputation
 	{
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
 		if (new OldPairScoreComputation(original).computePairCompatibilityScore_general(pair,null,mergedVertices) > 0)
 			return OldMergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
 
@@ -157,13 +155,13 @@ public class OldPairScoreComputation
 		int score=-1;
 		
 		OldEquivalenceClassMergingDetails mergingDetails = new OldEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = 
-				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(5);// these are going to be small sets, no point creating really big ones.
+		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
+				new HashMapWithSearch<>(5);// these are going to be small sets, no point creating really big ones.
 		boolean compatible = true;
-		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();// FIFO queue containing pairs to be explored
+		Queue<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing pairs to be explored
 		//ArrayList<OldEquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack = new ArrayList<OldEquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
-		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
-				new ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>>();
+		ArrayMapWithSearchPos<EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> setOfEquivalenceClassesOnStack  =
+				new ArrayMapWithSearchPos<>();
 		try
 		{
 			if (pairToMerge != null) 
@@ -248,7 +246,7 @@ public class OldPairScoreComputation
 				EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = stateToEquivalenceClass.get(vert);
 				if (eqClass == null)
 				{
-					eqClass = new OldEquivalenceClass<CmpVertex,LearnerGraphCachedData>(mergingDetails.nextEquivalenceClass++,coregraph);
+					eqClass = new OldEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, coregraph);
 					try {
 						eqClass.mergeWith(vert, coregraph.transitionMatrix.get(vert).entrySet());
 					} catch (IncompatibleStatesException e) {

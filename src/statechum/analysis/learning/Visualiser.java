@@ -172,11 +172,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      * knowing the name (i.e. the layout) is not enough - we need to store
      * graphs themselves, which is accomplished using this map.
      */
-    protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
+    protected List<DirectedSparseGraph> graphs = new LinkedList<>();
     
     /** Same as above, but stores the graphs from which those of interest has been built.
      */
-    protected List<LearnerGraphND> graphsOrig = new  LinkedList<LearnerGraphND>();
+    protected List<LearnerGraphND> graphsOrig = new LinkedList<>();
     
     public static class LayoutOptions
     {
@@ -203,13 +203,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     		result.showNegatives = showNegatives;result.showIgnored = showIgnored;result.scaleText=scaleText;result.scaleLines = scaleLines;
     		if (ignoredStates != null)
     		{// make a copy
-    			result.ignoredStates = new TreeSet<String>();result.ignoredStates.addAll(ignoredStates);
+    			result.ignoredStates = new TreeSet<>();result.ignoredStates.addAll(ignoredStates);
     		}
     		return result;
     	}
     }
     
-    protected Map<Integer,LayoutOptions> layoutOptions = new TreeMap<Integer,LayoutOptions>();
+    protected Map<Integer,LayoutOptions> layoutOptions = new TreeMap<>();
     
     /** Current position in the above list. */
     protected int currentGraph;
@@ -245,7 +245,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     }
     
     /** Key bindings. */
-    Map<Integer, Action> keyToActionMap = new TreeMap<Integer, Action>();
+    Map<Integer, Action> keyToActionMap = new TreeMap<>();
     /** Actions to switch to picking/transform mode. */
     Action pickAction, transformAction, persistAction;
 
@@ -440,7 +440,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         });
    }
 
-    protected static final Set<Visualiser> framesVisible = new HashSet<Visualiser>();
+    protected static final Set<Visualiser> framesVisible = new HashSet<>();
     
     public static void removeFromList(Visualiser visualiser) {
 		framesVisible.remove(visualiser);
@@ -466,7 +466,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             }
         });
         
-        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
+        if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
         {
 	        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
 	
@@ -509,10 +509,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         }
 
         //
-        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE)))
+        if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE)))
         	this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         else
-        if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
+        if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE)))
         	this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         else
         	this.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
@@ -604,7 +604,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         /** Restores parameters which are not recorded in the view/layout transforms, from the supplied XML stream
          *
-         * @param decode XML decoder to use
+         * @param decoder XML decoder to use
          */
         public void restore(XMLDecoder decoder) {
             ((ScalingGraphMousePlugin) scalingPlugin).setIn((Float) decoder.readObject());
@@ -629,7 +629,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      * @param loadLayout layout from a save - used when we switch between graphs, but not used when changing anything related to a layout of a currently displayed graph.
      */
     protected void reloadLayout(boolean ignoreErrors,boolean loadLayout) {
-        /** The graph currently being displayed. */
+        /* The graph currently being displayed. */
         final Graph graph = graphs.get(currentGraph);
 
         assert graph != null;
@@ -666,7 +666,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     
     /** Loads the layout of the specific graph in the list.
      *
-     *  @param whether to ignore loading errors.
+     *  @param ignoreErrors to ignore loading errors.
      *  @param graphNumber the number of the graph to load.
      */
     protected void restoreLayout(boolean ignoreErrors, int graphNumber) {
@@ -1054,7 +1054,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
         /** Given a vertex, extracts an annotation associated with that label.
          *
-         * @param e edge to consider
+         * @param v vertex to consider
          * @return annotation if present and null otherwise.
          */
         public String getPickedLabel(ArchetypeVertex v) {
@@ -1172,7 +1172,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
     public static Set<Label> abstractLabels(Set<Label> lbls,int componentsToPick)
     {
-    	Set<Label> outcome = new TreeSet<Label>();// this ensures that labels that abstract to the same text are only displayed once.
+    	Set<Label> outcome = new TreeSet<>();// this ensures that labels that abstract to the same text are only displayed once.
     	for(Label l:lbls)
     	{
     		
@@ -1462,9 +1462,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         	StringBuffer outcome = new StringBuffer();
         	
 			Set<Vertex> set = getGraph().getVertices();
-            for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
-                Vertex v = iterator.next();
-                DoublePair p = new DoublePair(getX(v), getY(v));outcome.append(p.toString());
+            for (Vertex v : set) {
+                DoublePair p = new DoublePair(getX(v), getY(v));
+                outcome.append(p.toString());
             }
             
             return outcome.toString();
@@ -1478,14 +1478,13 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
          * @return map containing the layout.
          */
         public Map<Integer, DoublePair> persist() {
-            sourceMap = new TreeMap<Integer, DoublePair>();
+            sourceMap = new TreeMap<>();
 
             @SuppressWarnings("unchecked")
 			Set<Vertex> set = getGraph().getVertices();
-            for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) {
-                Vertex v = iterator.next();
+            for (Vertex v : set) {
                 DoublePair p = new DoublePair(getX(v), getY(v));
-                sourceMap.put(Integer.valueOf(v.hashCode()), p);
+                sourceMap.put(v.hashCode(), p);
             }
             //encoder.writeObject(sourceMap);
             return sourceMap;
@@ -1499,16 +1498,15 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         /** Almost verbatim from Jung source code.
          * Restores all vertex locations from a file; does nothing if loading fails.
          *
-         * @param map to load from
+         * @param loadedMap to load from
          */
         @SuppressWarnings("unchecked")
 		public void restore(Map<Integer, DoublePair> loadedMap) {
-           sourceMap = new TreeMap<Integer, DoublePair>();
+           sourceMap = new TreeMap<>();
            sourceMap.putAll(loadedMap);
-            for (Iterator<Map.Entry<Integer, DoublePair>> mi = sourceMap.entrySet().iterator(); mi.hasNext();) {
-                Map.Entry<Integer, DoublePair> e = mi.next();
+            for (Entry<Integer, DoublePair> e : sourceMap.entrySet()) {
                 DoublePair p = e.getValue();
-                map.put(e.getKey(), new PersistentLayout.Point(p.getX(), p.getY()));
+                map.put(e.getKey(), new Point(p.getX(), p.getY()));
             }
             initializeLocations();
             locked = true;
@@ -1545,7 +1543,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     {
         if (e.isPopupTrigger()) 
         {
-        	if ((e.getModifiers() & InputEvent.SHIFT_MASK) == 0)
+        	if ((e.getModifiersEx() & InputEvent.SHIFT_MASK) == 0)
         		popupMenu.show(e.getComponent(),
                    e.getX(), e.getY());
         	else
@@ -1558,10 +1556,9 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 		        {// if this is a real graph
 			        for(Visualiser viz:framesVisible)
 			        {
-			        	final Visualiser fViz = viz;
-			        	if (fViz.currentGraph >= 0)
+                        if (viz.currentGraph >= 0)
 			        	{
-			        		final LearnerGraphND otherGr = fViz.graphsOrig.get(fViz.currentGraph);
+			        		final LearnerGraphND otherGr = viz.graphsOrig.get(viz.currentGraph);
 			        		if (ourGraph != otherGr && otherGr != null)
 			        		{// only if this is a real graph
 						    	JMenuItem menuitem = new JMenuItem(new AbstractAction() {
@@ -1577,8 +1574,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 						    		
 									@Override
 									public void actionPerformed(@SuppressWarnings("unused") ActionEvent ev) {
-										GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
-											new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+										GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd =
+                                                new GD<>();
 										DirectedSparseGraph gr = 
 												//gd.showGD(ourGraph,otherGr,ExperimentRunner.getCpuNumber());
 												ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(ourGraph), ChangesToGraph.computeGD(ourGraph, otherGr,ourGraph.config));

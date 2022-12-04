@@ -75,6 +75,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGene
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class MarkovPassivePairSelection extends PairQualityLearner
@@ -92,7 +93,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		Map<CmpVertex,Set<Label>> outcome = new TreeMap<CmpVertex,Set<Label>>();
 		StatePair reference_pta = new StatePair(reference.getInit(),pta.getInit());
 		LinkedList<StatePair> pairsToExplore = new LinkedList<StatePair>();pairsToExplore.add(reference_pta);
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:reference.transitionMatrix.entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:reference.transitionMatrix.entrySet())
 			outcome.put(entry.getKey(), new TreeSet<Label>(entry.getValue().keySet()));
 		Set<CmpVertex> visitedInTree = new HashSet<CmpVertex>();
 		while(!pairsToExplore.isEmpty())
@@ -294,7 +295,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 		final long genScoreThreshold = 1;
 		int nrOfMergers=0;
 		List<StatePair> pairsToMerge = new LinkedList<StatePair>();
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:merged.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:merged.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 				if (merged.transitionMatrix.get(transition.getValue()).containsKey(transition.getKey()))
 				{// we have a potential loop
@@ -332,12 +333,12 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	public void constructMapFromLabelsToStateGroups(LearnerGraph tentativeGraph, Collection<Label> transitionsFromTheSameState)
 	{
 		Map<Label,Collection<CmpVertex>> labelToStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 		Map<Label,Collection<CmpVertex>> labelFromStates = 
-				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
+				tentativeGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? new ArrayMapWithSearchPos<Label,Label,Collection<CmpVertex>>() : new TreeMap<Label,Collection<CmpVertex>>();
 					
 		for(Label lbl:transitionsFromTheSameState) labelFromStates.put(lbl,new ArrayList<CmpVertex>());
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:tentativeGraph.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 				for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 				{
@@ -908,7 +909,7 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 					assert genScore >= 0;
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, false);
 					long chains = 0,tails=0,doubleChains=0;
-					for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:actualAutomaton.transitionMatrix.entrySet())
+					for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:actualAutomaton.transitionMatrix.entrySet())
 					{
 						if (entry.getValue().isEmpty())
 							++tails;
@@ -1000,7 +1001,6 @@ public class MarkovPassivePairSelection extends PairQualityLearner
 	 * @param coregraph graph to consider
 	 * @param current the state of interest
 	 * @param ignoreSelf whether to include single-state loops. 
-	 * @param number of outgoing transitions.
 	 */
 	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
 		long countTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex current,boolean ignoreSelf)

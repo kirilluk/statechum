@@ -166,7 +166,7 @@ public class FsmParser
 	 * @return LearnerGraph graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static LearnerGraph buildLearnerGraph(String fsm,String name,Configuration config,final ConvertALabel conv)
+	public static LearnerGraph buildLearnerGraph(String fsm, String name, Configuration config, final ConvertALabel conv)
 	{
 		LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
 		buildGraph(fsm,name,config,graph,conv);
@@ -181,7 +181,7 @@ public class FsmParser
 	 * @return LearnerGraphND graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static LearnerGraphND buildLearnerGraphND(String fsm,String name,Configuration config,final ConvertALabel conv)
+	public static LearnerGraphND buildLearnerGraphND(String fsm, String name, Configuration config, final ConvertALabel conv)
 	{
 		LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
 		buildGraph(fsm,name,config,graph,conv);
@@ -195,8 +195,8 @@ public class FsmParser
 	 * @param conv label converter, ignored if null.
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void buildGraph(String fsm,String name,final Configuration config, 
-			final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> target,final ConvertALabel conv)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void buildGraph(String fsm, String name, final Configuration config,
+																									  final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> target, final ConvertALabel conv)
 	{
 		assert config.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || conv != null : "converter has to be set for an ARRAY transition matrix";
 		//assert conv == null || config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY : "non-null converter may only accompany an ARRAY transition matrix in tests";
@@ -204,7 +204,7 @@ public class FsmParser
 		new FsmParser(fsm).parse(new TransitionReceiver()
 		{
 			public void put(String from, String to, Label label, boolean accept) {
-				CmpVertex fromVertex = target.transitionMatrix.findElementById(VertexID.parseID(from)), toVertex = target.transitionMatrix.findElementById(VertexID.parseID(to));
+				CmpVertex fromVertex = target.transitionMatrix.findKey(VertexID.parseID(from)), toVertex = target.transitionMatrix.findKey(VertexID.parseID(to));
 				
 				if (fromVertex == null)
 				{
@@ -250,7 +250,7 @@ public class FsmParser
 
 			@Override
 			public void pairCompatibility(String stateA, PAIRCOMPATIBILITY pairRelation, String stateB) {
-				CmpVertex fromVertex = target.transitionMatrix.findElementById(VertexID.parseID(stateA)), toVertex = target.transitionMatrix.findElementById(VertexID.parseID(stateB));
+				CmpVertex fromVertex = target.transitionMatrix.findKey(VertexID.parseID(stateA)), toVertex = target.transitionMatrix.findKey(VertexID.parseID(stateB));
 				if (fromVertex == null)
 					throw new IllegalArgumentException("unknown vertex "+stateA);
 				if (toVertex == null)

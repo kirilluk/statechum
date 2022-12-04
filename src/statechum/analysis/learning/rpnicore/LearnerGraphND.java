@@ -18,29 +18,18 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-
-import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.JUConstants;
+import harmony.collections.TreeMapWithSearch;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Label;
-import statechum.Pair;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.MapWithSearch;
+
+import java.util.*;
 
 /** This is a non-deterministic graph. Strictly speaking, all the methods here are applicable to the
  * generalised graph too and thus could have been placed in <em>AbstractPathRoutines</em>. The reason
@@ -54,7 +43,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public LearnerGraphND(Configuration conf)
 	{
 		super(conf);
-		transitionMatrix = createNewTransitionMatrix(new Pair<Integer,Integer>(conf.getMaxAcceptStateNumber(),conf.getMaxRejectStateNumber()));
+		transitionMatrix = createNewTransitionMatrix(new Pair<>(conf.getMaxAcceptStateNumber(), conf.getMaxRejectStateNumber()));
 		setInit(null);
 		initPTA();
 	}
@@ -69,21 +58,21 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	{
 		super(conf);
 		initEmpty();
-		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>(g.numVertices());
+		Map<Vertex,CmpVertex> origToCmp = new HashMap<>(g.numVertices());
 		if (g.containsUserDatumKey(JUConstants.TITLE))
 			setName((String)g.getUserDatum(JUConstants.TITLE));
-		Set<VertID> idSet = new HashSet<VertID>(); 
+		Set<VertID> idSet = new HashSet<>();
 		
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{
 			for(Vertex srcVert:(Set<Vertex>)g.getVertices())
 			{
-				CmpVertex vert = null;
+				CmpVertex vert;
 				if (DeterministicDirectedSparseGraph.isInitial(srcVert))// special case for the initial vertex.
 				{
 					vert = cloneCmpVertex(srcVert,config);//generateNewCmpVertex(getDefaultInitialPTAName(),config);
 					Object property = srcVert.getUserDatum(JUConstants.INITIAL);
-					if (!(property instanceof Boolean) || !((Boolean)property).booleanValue())
+					if (!(property instanceof Boolean) || !(Boolean) property)
 						throw new IllegalArgumentException("invalid init property");
 
 					if (getInit() != null)
@@ -104,19 +93,12 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		if (getInit() == null)
 			throw new IllegalArgumentException("missing initial state");
 
-		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
-		while(edgeIter.hasNext())
-		{	
-			DirectedSparseEdge edge = edgeIter.next();
-			Map<Label,List<CmpVertex>> outgoing = transitionMatrix.get(origToCmp.get(edge.getSource()));
+		for (DirectedSparseEdge edge : (Iterable<DirectedSparseEdge>) g.getEdges()) {
+			Map<Label, List<CmpVertex>> outgoing = transitionMatrix.get(origToCmp.get(edge.getSource()));
 			assert origToCmp.containsKey(edge.getDest());// this cannot fail if we handle normal Jung graphs which will never let me add an edge with vertex not in the graph
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
-			createLabelToStateMap((Set<Label>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
+			createLabelToStateMap((Set<Label>) edge.getUserDatum(JUConstants.LABEL), origToCmp.get(edge.getDest()), outgoing);
 		}
-		
-		PairCompatibility<Vertex> compat = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
-		if (compat != null)
-			PairCompatibility.copyTo(compat, pairCompatibility, origToCmp);
 		
 		setIDNumbers();
 	}
@@ -135,7 +117,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	/** Ignores all states with no outgoing transitions to accept-states.
 	 * The main idea is to eliminate as many states as possible for the construction
 	 * of a matrix. A pair consisting of an arbitrary state and a reject state 
-	 * will never have positive scores, either INCOMPATIBLE (if the former is an accept)
+	 * will never have positive scores, either INCOMPATIBLE (if the former is an accept state)
 	 * or a zero (if the former is reject) because there are no outgoing transitions
 	 * from reject states. The same can be said if the latter state is an accept one but
 	 * without outgoing transitions - there will also be no matched transitions.
@@ -198,7 +180,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		// given that all text identifiers go before (or after) numerical ones, we're not
 		// going to hit a state clash if we simply generate state names
 		// based on the existing IDs of origGraph. 
-		Map<CmpVertex,CmpVertex> firstToSecond = new TreeMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> firstToSecond = new TreeMap<>();
 		firstToSecond.put(matrixToAdd.getInit(), matrixResult.getInit());
 		for(CmpVertex firstVertex:matrixToAdd.transitionMatrix.keySet())
 			if (firstVertex != matrixToAdd.getInit())
@@ -213,18 +195,18 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	public Map<Label, List<CmpVertex>> createNewRow() {
+	public MapWithSearch<Label,Label, List<CmpVertex>> createNewRow() {
 		if (config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY)
-			return new ArrayMapWithSearchPos<Label, List<CmpVertex>>();
-		return new TreeMap<Label,List<CmpVertex>>();
+			return new ArrayMapWithSearchPos<>();
+		return new TreeMapWithSearch<>();
 	}
 
 	@Override
-	public void addTransition(Map<Label, List<CmpVertex>> row, Label input, CmpVertex target) {
+	public void addTransition(MapWithSearch<Label,Label, List<CmpVertex>> row, Label input, CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets == null)
 		{
-			targets = new LinkedList<CmpVertex>();row.put(input, targets);
+			targets = new LinkedList<>();row.put(input, targets);
 		}
 		else if (targets.contains(target)) throw new IllegalArgumentException("duplicate transition with input "+input+" to "+target);
 		targets.add(target);
@@ -241,7 +223,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	public void removeTransition(Map<Label, List<CmpVertex>> row, Label input,
+	public void removeTransition(MapWithSearch<Label,Label, List<CmpVertex>> row, Label input,
 			CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets != null)

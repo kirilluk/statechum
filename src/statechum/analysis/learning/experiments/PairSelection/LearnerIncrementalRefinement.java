@@ -41,6 +41,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.collections.MapWithSearch;
 
 public class LearnerIncrementalRefinement 
 {
@@ -301,7 +302,7 @@ public class LearnerIncrementalRefinement
 			concreteToAbstract.put(v, l_neg);
 		
 		
-		for(Entry<CmpVertex,Map<Label,CmpVertex>> transition:graph.getTransitionMatrix().entrySet())
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> transition:graph.getTransitionMatrix().entrySet())
 			for(Map.Entry<Label,CmpVertex> lblToVertex:transition.getValue().entrySet())
 			{
 				if (lblToVertex.getKey() == possibleSplit.whatToSplit)

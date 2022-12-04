@@ -23,9 +23,9 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.LabelInputOutput;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -84,37 +84,34 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	final boolean start0_points_to_initial_state;
 	/**
-	 * Given a textual representation of an fsm, builds a corresponding graph
+	 * Given a textual representation of an fsm, builds a corresponding graph. Graph name is extracted from dot graph name.
 	 *
-	 * @param whatToParse the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
-	 * @param name        graph name.
-	 * @param conf        configuration to use for node creation.
-	 * @param converter   label converter, ignored if null.
+	 * @param whatToParse     the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
+	 * @param conf            configuration to use for node creation.
+	 * @param converter       label converter, ignored if null.
 	 * @param labels_as_pairs whether to interpret labels as I/O pairs where an 'error' output is supposed to mean that a transition is not defined.
-	 * @param start0 when true, will use start0 to designate the initial state.
+	 * @param start0          when true, will use start0 to designate the initial state.
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public FsmParserDot(String whatToParse, String name, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter, boolean labels_as_pairs, boolean start0) {
+	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter, boolean labels_as_pairs, boolean start0) {
 		assert conf.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || converter != null : "converter has to be set for an ARRAY transition matrix";
 		text = whatToParse;
 		pos = 0;
 		graph = gr;
 		config = conf;
 		conv = converter;labelsArePairs=labels_as_pairs;start0_points_to_initial_state = start0;
-		graph.setName(name);
 	}
 
 	/**
 	 * Given a textual representation of an fsm, builds a corresponding graph
 	 *
 	 * @param whatToParse the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
-	 * @param name        graph name.
 	 * @param conf        configuration to use for node creation.
 	 * @param converter   label converter, ignored if null.
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public FsmParserDot(String whatToParse, String name, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter) {
-		this(whatToParse,name,conf,gr,converter,false,false);
+	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter) {
+		this(whatToParse, conf,gr,converter,false,false);
 	}
 
 		public String parseQuoted() {
@@ -288,7 +285,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	public void createVertex(String from) {
-		if (null != graph.transitionMatrix.findElementById(VertexID.parseID(from)))
+		if (null != graph.transitionMatrix.findKey(VertexID.parseID(from)))
 			throwException("State " + from + " already defined");
 		CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(from), config);
 		graph.transitionMatrix.put(vert, graph.createNewRow());
@@ -299,16 +296,18 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		String nameOfVertexInGraph = id_to_label.get(name);
 		if (null == nameOfVertexInGraph)
 			throwException("State " + name + " not defined");
-		CmpVertex vertexFound = graph.transitionMatrix.findElementById(VertexID.parseID(nameOfVertexInGraph));
+		if (nameOfVertexInGraph == null)
+			throw new IllegalArgumentException("Graph name cannot be null");
+		CmpVertex vertexFound = graph.transitionMatrix.findKey(VertexID.parseID(nameOfVertexInGraph));
 		assert null != vertexFound;
 		return vertexFound;
 	}
 
-	public void createTransition(String from, String to, String label) {
+	public void createTransition(String from, String to, Label label) {
 		CmpVertex fromVertex = vertexForName(from);
 		CmpVertex toVertex = vertexForName(to);
-		Label lbl = AbstractLearnerGraph.generateNewLabel(label, config, conv);
-		graph.addTransition(graph.transitionMatrix.get(fromVertex), lbl, toVertex);
+
+		graph.addTransition(graph.transitionMatrix.get(fromVertex), label, toVertex);
 	}
 
 	Map<String,String> id_to_label = new TreeMap<>();
@@ -362,13 +361,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					} else {
 						String lbl = getLabel(options);// will throw exception if label is not provided in options.
 						if (labelsArePairs) {
-							String[] input_output = lbl.split(" */ *");
-							if (input_output.length != 2)
-								throwException("invalid format of label " + Arrays.toString(input_output));
-							if (!input_output[1].equalsIgnoreCase("error"))
-								createTransition(currentNode, target, input_output[0] + "/" + input_output[1]);
+							LabelInputOutput label = new LabelInputOutput(lbl);
+							if (!label.isErrorTransition())
+								createTransition(currentNode, target, label);
 						} else
-							createTransition(currentNode, target, lbl);
+							createTransition(currentNode, target, AbstractLearnerGraph.generateNewLabel(lbl, config, conv));
 					}
 				}
 
@@ -397,15 +394,17 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * Given a textual representation of an fsm, builds a corresponding deterministic graph
 	 *
 	 * @param fsm  the textual representation of an FSM
-	 * @param name graph name, to be displayed as the caption of the Jung window.
 	 * @param conv label converter, ignored if null.
 	 * @return LearnerGraph graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraph buildLearnerGraph(String fsm, String name, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
-		LearnerGraph graph = new LearnerGraph(config);
+	public static LearnerGraph buildLearnerGraph(String fsm, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
+		Configuration conf = config.copy();
+		if (labelsArePairs)
+			conf.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph graph = new LearnerGraph(conf);
 		graph.initEmpty();
-		new FsmParserDot<CmpVertex, LearnerGraphCachedData>(fsm, name, config, graph, conv,labelsArePairs,true).parseGraph();
+		new FsmParserDot<CmpVertex, LearnerGraphCachedData>(fsm, config, graph, conv,labelsArePairs,true).parseGraph();
 		return graph;
 	}
 
@@ -413,15 +412,14 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
 	 *
 	 * @param fsm  the textual representation of an FSM
-	 * @param name graph name, to be displayed as the caption of the Jung window.
 	 * @param conv label converter, ignored if null.
 	 * @return LearnerGraphND graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraphND buildLearnerGraphND(String fsm, String name, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
+	public static LearnerGraphND buildLearnerGraphND(String fsm, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
 		LearnerGraphND graph = new LearnerGraphND(config);
 		graph.initEmpty();
-		new FsmParserDot<List<CmpVertex>, LearnerGraphNDCachedData>(fsm, name, config, graph, conv,labelsArePairs,true).parseGraph();
+		new FsmParserDot<List<CmpVertex>, LearnerGraphNDCachedData>(fsm, config, graph, conv,labelsArePairs,true).parseGraph();
 		return graph;
 	}
 

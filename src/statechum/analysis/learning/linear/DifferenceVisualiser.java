@@ -35,6 +35,7 @@ import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
+import statechum.collections.MapWithSearch;
 
 public class DifferenceVisualiser {
 
@@ -44,7 +45,7 @@ public class DifferenceVisualiser {
 	public static <TARGET_A_TYPE,TARGET_B_TYPE, CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
 		DirectedSparseGraph computeVisualGD(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> grA, AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> grB, Configuration config)
 	{
-		GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE> gd = new GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE>();
+		GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE> gd = new GD<>();
 	
 		ChangesToGraph recorder = new ChangesToGraph();
 		gd.computeGD(grA, grB, ExperimentRunner.getCpuNumber(),recorder,config);
@@ -116,13 +117,13 @@ public class DifferenceVisualiser {
 		
 		public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> void applyDiff(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> grA, Configuration config)
 		{
-			LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> graphPatcher = new LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE>(grA,config,null);
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:removed.transitionMatrix.entrySet())
+			LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> graphPatcher = new LearnerGraphMutator<>(grA, config, null);
+			for(Entry<CmpVertex, MapWithSearch<Label,Label,List<CmpVertex>>> entry:removed.transitionMatrix.entrySet())
 				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:removed.getTargets(transition.getValue()))
 						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
 
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:added.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:added.transitionMatrix.entrySet())
 			{
 				if (entry.getValue().isEmpty())
 					graphPatcher.addVertex(entry.getKey());
@@ -136,7 +137,7 @@ public class DifferenceVisualiser {
 		}
 		
 
-		protected Set<CmpVertex> extraVertices = new TreeSet<CmpVertex>();
+		protected Set<CmpVertex> extraVertices = new TreeSet<>();
 		
 		@Override
 		public void addVertex(CmpVertex vertex) {
@@ -155,7 +156,7 @@ public class DifferenceVisualiser {
 		public static <TARGET_A_TYPE,TARGET_B_TYPE, CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
 		OtpErlangObject computeGD(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> grA, AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> grB, Configuration config)
 		{
-			GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE> gd = new GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE>();
+			GD<TARGET_A_TYPE,TARGET_B_TYPE,CACHE_A_TYPE,CACHE_B_TYPE> gd = new GD<>();
 	
 			ChangesToGraph recorder = new ChangesToGraph();
 			gd.computeGD(grA, grB, ExperimentRunner.getCpuNumber(),recorder,config);
@@ -168,10 +169,10 @@ public class DifferenceVisualiser {
 			// now we apply the patch to the graph, the outcome will be in terms of the original vertices which is why it is easiest to apply a patch rather than use the second graph and figure out the relationship between the vertices.
 			recorder.applyDiff(finalMachineWithoutRelabelling,config);
 			
-			Set<CmpVertex> verticesAdded = new TreeSet<CmpVertex>(), verticesRemoved = new TreeSet<CmpVertex>();
-			verticesAdded.addAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());verticesAdded.removeAll(origMachine.transitionMatrix.keySet());verticesAdded.addAll(recorder.extraVertices);
-			verticesRemoved.addAll(origMachine.transitionMatrix.keySet());verticesRemoved.removeAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());
-			List<OtpErlangAtom> addedList = new LinkedList<OtpErlangAtom>(), removedList = new LinkedList<OtpErlangAtom>();
+			Set<CmpVertex> verticesAdded, verticesRemoved;
+			verticesAdded = new TreeSet<>(finalMachineWithoutRelabelling.transitionMatrix.keySet());verticesAdded.removeAll(origMachine.transitionMatrix.keySet());verticesAdded.addAll(recorder.extraVertices);
+			verticesRemoved = new TreeSet<>(origMachine.transitionMatrix.keySet());verticesRemoved.removeAll(finalMachineWithoutRelabelling.transitionMatrix.keySet());
+			List<OtpErlangAtom> addedList = new LinkedList<>(), removedList = new LinkedList<>();
 			for(CmpVertex a:verticesAdded) addedList.add(new OtpErlangAtom(a.getStringId()));for(CmpVertex a:verticesRemoved) removedList.add(new OtpErlangAtom(a.getStringId()));
 			
 			OtpErlangTuple addedTuple = Synapse.StatechumProcess.constructFSM(recorder.added), removedTuple = Synapse.StatechumProcess.constructFSM(recorder.removed);
@@ -199,19 +200,15 @@ public class DifferenceVisualiser {
 		
 		protected void updateAnnotationsWithColour(DirectedSparseGraph graphToUpdate, LearnerGraphND graph,EdgeAnnotation transitionAnnotation, Color color)
 		{
-			Map<StatePair,DeterministicEdge> pairsToNewEdges = new HashMap<StatePair,DeterministicEdge>();
+			Map<StatePair,DeterministicEdge> pairsToNewEdges = new HashMap<>();
 			
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:graph.transitionMatrix.entrySet())
 			{
 				CmpVertex from = entry.getKey();
 				DeterministicVertex fromVertex = DeterministicDirectedSparseGraph.findVertexNamed(from,graphToUpdate);
 				if (fromVertex == null) fromVertex = addVertex(graphToUpdate, from);
-				
-				Map<Label,Map<String,Color>> lbl = transitionAnnotation.get(from.getStringId());
-				if (lbl == null)
-				{
-					lbl = new TreeMap<Label,Map<String,Color>>();transitionAnnotation.put(from.getStringId(), lbl);
-				}
+
+				Map<Label, Map<String, Color>> lbl = transitionAnnotation.computeIfAbsent(from.getStringId(), k -> new TreeMap<>());
 
 				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:transition.getValue())
@@ -222,20 +219,17 @@ public class DifferenceVisualiser {
 						if (e == null)
 						{
 								e = new DeterministicEdge(fromVertex,targetVertex);
-								Set<Label> labels = new TreeSet<Label>();labels.add(transition.getKey()); 
+								Set<Label> labels = new TreeSet<>();labels.add(transition.getKey());
 								e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);e.addUserDatum(JUConstants.DIFF, color, UserData.SHARED);
 								graphToUpdate.addEdge(e);
 								pairsToNewEdges.put(new StatePair(from,target),e);
 						}
 						else
 							((Set<Label>)e.getUserDatum(JUConstants.LABEL)).add(transition.getKey());
-						
 
-						Map<String,Color> targetToColour = lbl.get(transition.getKey());
-						if (targetToColour == null)
-						{// this is the first annotation for the specific target state
-							targetToColour = new TreeMap<String,Color>();lbl.put(transition.getKey(),targetToColour);
-						}
+
+						Map<String, Color> targetToColour = lbl.computeIfAbsent(transition.getKey(), k -> new TreeMap<>());
+						// this is the first annotation for the specific target state
 						targetToColour.put(target.getStringId(),color);
 					}
 			}
@@ -243,7 +237,7 @@ public class DifferenceVisualiser {
 		
 		protected void removeFromGraph(DirectedSparseGraph graphToUpdate, LearnerGraphND graph)
 		{
-			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> entry:graph.transitionMatrix.entrySet())
 			{
 				CmpVertex from = entry.getKey();
 				DeterministicVertex fromVertex = DeterministicDirectedSparseGraph.findVertexNamed(from,graphToUpdate);
@@ -274,20 +268,19 @@ public class DifferenceVisualiser {
 		public DirectedSparseGraph getDifferenceGraph(DirectedSparseGraph origGraph)
 		{
 			final EdgeAnnotation transitionAnnotation = new EdgeAnnotation();
-			DirectedSparseGraph outcome = origGraph;//new DirectedSparseGraph();
-			for(Object constraint:outcome.getEdgeConstraints())
+			for(Object constraint: origGraph.getEdgeConstraints())
 				if (constraint instanceof org.apache.commons.collections.functors.NotPredicate)
 				{
-					outcome.getEdgeConstraints().remove(constraint);break;
+					origGraph.getEdgeConstraints().remove(constraint);break;
 				}
-			removeFromGraph(outcome, removed);
-			updateAnnotationsWithColour(outcome, added, transitionAnnotation, Color.GREEN);
-			updateAnnotationsWithColour(outcome, removed, transitionAnnotation, Color.RED);
-			DeterministicDirectedSparseGraph.findInitial(outcome).removeUserDatum(JUConstants.INITIAL);
-			DeterministicDirectedSparseGraph.findVertexNamed(added.getInit(),outcome).addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			removeFromGraph(origGraph, removed);
+			updateAnnotationsWithColour(origGraph, added, transitionAnnotation, Color.GREEN);
+			updateAnnotationsWithColour(origGraph, removed, transitionAnnotation, Color.RED);
+			DeterministicDirectedSparseGraph.findInitial(origGraph).removeUserDatum(JUConstants.INITIAL);
+			DeterministicDirectedSparseGraph.findVertexNamed(added.getInit(), origGraph).addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 			Visualiser.LayoutOptions options = new Visualiser.LayoutOptions();options.showDIFF=true;
-			outcome.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
-			return outcome;
+			origGraph.addUserDatum(JUConstants.LAYOUTOPTIONS,options, UserData.SHARED);
+			return origGraph;
 		}
 
 

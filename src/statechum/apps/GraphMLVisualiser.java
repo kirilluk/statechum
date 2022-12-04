@@ -39,6 +39,7 @@ import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.collections.MapWithSearch;
 
 public class GraphMLVisualiser extends Visualiser {
 	
@@ -49,8 +50,8 @@ public class GraphMLVisualiser extends Visualiser {
 
 	protected static DirectedSparseGraph convertToGraphWithoutStateNumbers(LearnerGraphND gr)
 	{
-		Map<String,String> labelling = new TreeMap<String,String>();
-		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+		Map<String,String> labelling = new TreeMap<>();
+		for(Entry<CmpVertex, MapWithSearch<Label,Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
 			labelling.put(entry.getKey().toString(),Visualiser.extralabelToReplaceExisting+entry.getKey().getStringId());
 		DirectedSparseGraph result = gr.pathroutines.getGraph();
 		result.addUserDatum(JUConstants.VERTEX, labelling, UserData.SHARED);
@@ -65,13 +66,13 @@ public class GraphMLVisualiser extends Visualiser {
 		GlobalConfiguration.getConfiguration().loadConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.CLOSE_TERMINATE,"true");
 
-		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1 = null;
+		LearnerGraphND graph0 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy()),graph1;
 		File file0 = new File(args[0]);AbstractPersistence.loadGraph(file0, graph0,null);graph0.setName(file0.getName());
 		if (args.length > 1)
 		{
 			graph1 = new LearnerGraphND(Configuration.getDefaultConfiguration().copy());
 			File file1 = new File(args[1]);AbstractPersistence.loadGraph(file1, graph1,null);graph1.setName(file1.getName());
-			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<>();
 			DirectedSparseGraph gr = gd.showGD(
 					graph0,graph1,
 					ExperimentRunner.getCpuNumber());

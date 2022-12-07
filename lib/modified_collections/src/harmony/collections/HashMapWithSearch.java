@@ -186,7 +186,7 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
 
     @Override
     public Set<Map.Entry<K, V>> getTreeEntrySet() {
-        return entrySet();
+        return entrySetOrdered();
     }
 
     @Override
@@ -199,7 +199,10 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
 
     @Override
     public Set<K> getPotentiallyOrderedKeySet(boolean ordered) {
-        return null;
+        if (ordered)
+            return new TreeMapWithSearch<>(this).keySet();
+
+        return keySet();
     }
 
     private static class AbstractMapIterator<I, K extends  I, V>  {
@@ -263,7 +266,19 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
         }
     }
 
-    private static class EntryIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V> implements Iterator<Map.Entry<K, V>> {
+    private static abstract class IteratorNoModification<I, K extends I, V> extends AbstractMapIterator<I, K, V> {
+
+        public IteratorNoModification(HashMapWithSearch<I, K, V> map) {
+            super(map);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("modification of iterator is not allowed for HashMapWithSearch");
+        }
+    }
+
+    private static class EntryIterator <I, K extends I, V> extends IteratorNoModification<I, K, V> implements Iterator<Map.Entry<K, V>> {
 
         EntryIterator (HashMapWithSearch<I, K, V> map) {
             super(map);
@@ -285,9 +300,18 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
             makeNext();
             return currentEntry.key;
         }
+
+        @Override
+        public void remove() {
+            if (currentEntry == null)
+                throw new IllegalStateException("next was not yet called");
+            super.remove();
+            //expectedModCount = modCount;// to permit more than a single remove to take place consecutively
+        }
+
     }
 
-    private static class ValueIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V> implements Iterator<V> {
+    private static class ValueIterator <I, K extends I, V> extends IteratorNoModification<I, K, V> implements Iterator<V> {
 
         ValueIterator (HashMapWithSearch<I, K, V> map) {
             super(map);
@@ -299,15 +323,54 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
         }
     }
 
-    static final class LinkedHashMapEntrySet<IT, KT extends  IT, VT> extends
-            HashMapEntrySet<KT, VT> {
+    static final class LinkedHashMapEntrySet<IT, KT extends  IT, VT> extends HashMapEntrySet<KT, VT> {
         public LinkedHashMapEntrySet(HashMapWithSearch<IT, KT, VT> lhm) {
             super(lhm);
         }
 
         @Override
         public Iterator<Map.Entry<KT, VT>> iterator() {
+
             return new EntryIterator<>((HashMapWithSearch<IT, KT, VT>) HarmonyHashMap());
+        }
+
+        @Override
+        public boolean remove(@SuppressWarnings("unused") Object o) {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+        @Override
+        public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+        /* (non-Javadoc)
+         * @see java.util.AbstractCollection#add(java.lang.Object)
+         */
+        @Override
+        public boolean add(Map.Entry<KT, VT> ktvtEntry) {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+        /* (non-Javadoc)
+         * @see java.util.AbstractCollection#addAll(java.util.Collection)
+         */
+        @Override
+        public boolean addAll(Collection<? extends Map.Entry<KT, VT>> c) {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        }
+
+        /* (non-Javadoc)
+         * @see java.util.AbstractCollection#retainAll(java.util.Collection)
+         */
+        @Override
+        public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
         }
     }
 
@@ -444,6 +507,11 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
      */
     @Override
     public V put(K key, V value) {
+        if (key == null)
+            throw new IllegalArgumentException("key cannot be null for HashMapWithSearch");
+        if (value == null)
+            throw new IllegalArgumentException("value cannot be null for HashMapWithSearch");
+
         V result = putImpl(key, value);
 
         if (removeEldestEntry(head)) {
@@ -562,6 +630,17 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
     }
 
     /**
+     * Returns a set containing all of the mappings in this map, ordered as if they were in a TreeMap. Each mapping is
+     * an instance of {@link Map.Entry}. The mappings are decoupled from the content of this hash in that changes to either of the
+     * two will not affect another.
+     *
+     * @return a set of the mappings.
+     */
+    public Set<Map.Entry<K, V>> entrySetOrdered() {
+        return new TreeMapWithSearch<>(this).entrySet();
+    }
+
+    /**
      * Returns a set of the keys contained in this map. The set is backed by
      * this map so changes to one are reflected by the other. The set does not
      * support adding.
@@ -600,6 +679,22 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
                 public Iterator<K> iterator() {
                     return new KeyIterator<>(HashMapWithSearch.this);
                 }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#add(java.lang.Object)
+                 */
+                @Override
+                public boolean add(@SuppressWarnings("unused") K e) {
+                    throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+                 */
+                @Override
+                public boolean addAll(@SuppressWarnings("unused") Collection<? extends K> c) {
+                    throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
+                }
             };
         }
         return keySet;
@@ -627,7 +722,7 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractCollection<>() {
+            valuesCollection = new AbstractSet<>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);
@@ -638,14 +733,45 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
                     return HashMapWithSearch.this.size();
                 }
 
-                @Override
-                public void clear() {
-                    HashMapWithSearch.this.clear();
-                }
+//                @Override
+//                public void clear() {
+//                    HashMapWithSearch.this.clear();
+//                }
 
                 @Override
                 public Iterator<V> iterator() {
                     return new ValueIterator<>(HashMapWithSearch.this);
+                }
+
+                @Override
+                public void clear() {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+                }
+                @Override
+                public boolean remove(@SuppressWarnings("unused") Object o) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+                }
+                @Override
+                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+                }
+                @Override
+                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+                }
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#add(java.lang.Object)
+                 */
+                @Override
+                public boolean add(@SuppressWarnings("unused") V e) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
+                }
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+                 */
+                @Override
+                public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
                 }
             };
         }

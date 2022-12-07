@@ -1,6 +1,7 @@
 package collections;
 
 import harmony.collections.HashMapWithSearch;
+import harmony.collections.TreeMapWithSearch;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import java.util.Map.Entry;
 
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("SuspiciousMethodCalls")
 @RunWith(ParameterizedWithName.class)
 public class TestMapWithSearch 
 {
@@ -84,13 +86,21 @@ public class TestMapWithSearch
 	{
 		Collection<Object []> result = new LinkedList<>();
 		result.add(new Object[]{new MapCreator() {
-			
+
 			@SuppressWarnings("rawtypes")
 			@Override
 			public MapWithSearch createMap() {
 				return new HashMapWithSearch(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY);
 			}
 		},"HashMapWithSearch"});
+		result.add(new Object[]{new MapCreator() {
+
+			@SuppressWarnings("rawtypes")
+			@Override
+			public MapWithSearch createMap() {
+				return new TreeMapWithSearch(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY);
+			}
+		},"TreeMapWithSearch"});
 		result.add(new Object[]{new MapCreator() {
 			
 			@SuppressWarnings("rawtypes")
@@ -155,8 +165,12 @@ public class TestMapWithSearch
 		//Assert.assertTrue(ourMap.values().equals(realValues));// this one is very slow because we have to go through the entire list for each element of the collection, giving it a quadratic performance in the number of elements.
 		if (realMap.isEmpty())
 		{
-			Assert.assertTrue(ourMap.isEmpty());Assert.assertEquals(0,ourMap.size());
-			Assert.assertTrue(ourMap.values().isEmpty());Assert.assertEquals(0,ourMap.size());
+			Assert.assertTrue(ourMap.isEmpty());
+			//noinspection ConstantConditions
+			Assert.assertEquals(0,ourMap.size());
+			Assert.assertTrue(ourMap.values().isEmpty());
+			//noinspection ConstantConditions
+			Assert.assertEquals(0,ourMap.size());
 		}
 		
 		Assert.assertEquals(realMap.keySet().hashCode(), ourMap.keySet().hashCode());
@@ -283,6 +297,7 @@ public class TestMapWithSearch
 			return oR;
 		}
 
+		@SuppressWarnings("SuspiciousToArrayCall")
 		@Override
 		public <T> T[] toArray(T[] a) 
 		{
@@ -519,20 +534,23 @@ public class TestMapWithSearch
 	
 	private <K extends ConvertibleToInt,V> Attempt<K,V> createMap()
 	{
-		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap(); 
+		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap();
+		//noinspection SortedCollectionWithNonComparableKeys
 		return new Attempt<>(new TreeMap<>(), ours);
 	}
 	
 	private <K extends ConvertibleToInt,V> Attempt<K,V> createMapOne(K k,V v)
 	{
-		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap(); 
+		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap();
+		//noinspection SortedCollectionWithNonComparableKeys
 		Attempt<K,V> outcome = new Attempt<>(new TreeMap<>(), ours);
 		outcome.put(k,v);return outcome;
 	}
 	
-	private <K extends ConvertibleToInt,V> Attempt<K,V> createMapTwo(K kOne,V vOne, K kTwo, V vTwo)
+	private <K extends ConvertibleToInt,V> Attempt<K,V> createMapTwo(K kOne, @SuppressWarnings("SameParameterValue") V vOne, K kTwo, V vTwo)
 	{
-		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap(); 
+		MapWithSearch<ConvertibleToInt,K,V> ours = createOurMap();
+		//noinspection SortedCollectionWithNonComparableKeys
 		Attempt<K,V> outcome = new Attempt<>(new TreeMap<>(), ours);
 		outcome.put(kOne,vOne);outcome.put(kTwo,vTwo);return outcome;
 	}
@@ -540,11 +558,12 @@ public class TestMapWithSearch
 	public static final CInteger keyOne = new CInteger(22), keyTwo = new CInteger(44);
 	public static final Long valueOne = 9L, valueTwo=7L;
 	
+	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnEntrySet(final Map<K,V> map)
 	{
 		statechum.Helper.checkForCorrectException(() -> map.entrySet().iterator().remove(),
 				UnsupportedOperationException.class,"modification of iterator");
-		
+
 		statechum.Helper.checkForCorrectException(() -> map.entrySet().add(null),
 				UnsupportedOperationException.class,"modification of entry set");
 
@@ -564,6 +583,7 @@ public class TestMapWithSearch
 				UnsupportedOperationException.class,"modification of entry set");
 	}
 	
+	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnValueSet(final Map<K,V> map)
 	{
 		statechum.Helper.checkForCorrectException(() -> map.values().iterator().remove(),
@@ -588,6 +608,7 @@ public class TestMapWithSearch
 				UnsupportedOperationException.class,"modification of value set");
 	}
 	
+	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnKeySet(final Map<K,V> map)
 	{
 		statechum.Helper.checkForCorrectException(() -> map.keySet().add(null),
@@ -597,6 +618,7 @@ public class TestMapWithSearch
 				UnsupportedOperationException.class,"modification of key set");
 	}
 	
+	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkArrayWithNoPairs(final Attempt<K,V> map)
 	{
 		Assert.assertEquals(0,map.size());Assert.assertTrue(map.isEmpty());
@@ -604,11 +626,11 @@ public class TestMapWithSearch
 		map.compareForEquality();
 		{// entry set
 			Assert.assertEquals("[]",map.entrySet().toString());
-			Assert.assertTrue(map.entrySet().isEmpty());Assert.assertEquals(0,map.entrySet().size());
+			Assert.assertTrue(map.entrySet().isEmpty());
+			Assert.assertEquals(0,map.entrySet().size());
 
 			{// the two collections have entry sets of different types, hence we cannot meaningfully compare them other then via toString.
-				Object[] data = map.getOurs().entrySet().toArray();
-				Assert.assertEquals(0,data.length);
+				Assert.assertEquals(0,map.getOurs().entrySet().toArray().length);
 			}
 			{
 				Object[] data10 = new Object[10];
@@ -633,7 +655,8 @@ public class TestMapWithSearch
 		
 		{// values
 			Assert.assertEquals("[]",map.values().toString());
-			Assert.assertTrue(map.values().isEmpty());Assert.assertEquals(0,map.values().size());
+			Assert.assertTrue(map.values().isEmpty());
+			Assert.assertEquals(0,map.values().size());
 			Assert.assertEquals(0,map.values().toArray().length);
 			
 			{
@@ -657,7 +680,8 @@ public class TestMapWithSearch
 		}
 		{// keys
 			Assert.assertEquals("[]",map.keySet().toString());
-			Assert.assertTrue(map.keySet().isEmpty());Assert.assertEquals(0,map.keySet().size());
+			Assert.assertTrue(map.keySet().isEmpty());
+			Assert.assertEquals(0,map.keySet().size());
 
 			Assert.assertEquals(0,map.keySet().toArray().length);
 
@@ -707,6 +731,7 @@ public class TestMapWithSearch
 				Object[] data1 = new Object[1];
 				Object[] data10returned =map.getOurs().entrySet().toArray(data1);Assert.assertSame(data1,data10returned);
 				Assert.assertEquals(keyArg+"="+valueArg,data1[0].toString());
+				//noinspection ConstantConditions
 				for(int i=1;i<data1.length;++i) Assert.assertNull(data1[i]);
 			}
 			
@@ -741,6 +766,7 @@ public class TestMapWithSearch
 				Object[] data1 = new Object[1];
 				Object[] data1returned =map.values().toArray(data1);Assert.assertSame(data1,data1returned);
 				Assert.assertEquals(valueArg,data1[0]);
+				//noinspection ConstantConditions
 				for(int i=1;i<data1.length;++i) Assert.assertNull(data1[i]);
 			}
 			
@@ -775,6 +801,7 @@ public class TestMapWithSearch
 				Object[] data1 = new Object[1];
 				Object[] data1returned =map.keySet().toArray(data1);Assert.assertSame(data1,data1returned);
 				Assert.assertEquals(keyArg,data1[0]);
+				//noinspection ConstantConditions
 				for(int i=1;i<data1.length;++i) Assert.assertNull(data1[i]);
 			}
 			{
@@ -833,6 +860,7 @@ public class TestMapWithSearch
 				Object[] data2 = new Object[2];
 				Object[] data2returned =map.getOurs().entrySet().toArray(data2);Assert.assertSame(data2,data2returned);
 				checkFirstTwoElementsAsString(data2, elem1AsString, elem2AsString);
+				//noinspection ConstantConditions
 				for(int i=2;i<data2.length;++i) Assert.assertNull(data2[i]);
 			}
 			
@@ -875,6 +903,7 @@ public class TestMapWithSearch
 				Object[] data2 = new Object[2];
 				Object[] data2returned =map.getOurs().values().toArray(data2);Assert.assertSame(data2,data2returned);
 				checkFirstTwoElements(data2,valueArgOne,valueArgTwo);
+				//noinspection ConstantConditions
 				for(int i=2;i<data2.length;++i) Assert.assertNull(data2[i]);
 			}
 			
@@ -916,6 +945,7 @@ public class TestMapWithSearch
 				Object[] data2 = new Object[2];
 				Object[] data2returned =map.getOurs().keySet().toArray(data2);Assert.assertSame(data2,data2returned);
 				checkFirstTwoElements(data2,keyArgOne,keyArgTwo);
+				//noinspection ConstantConditions
 				for(int i=2;i<data2.length;++i) Assert.assertNull(data2[i]);
 			}
 
@@ -938,6 +968,7 @@ public class TestMapWithSearch
 		map.compareForEquality();
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize1()
 	{
@@ -959,7 +990,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 		Assert.assertNull(map.put(new CInteger(55), 77L));
 		Assert.assertEquals(1, map.size());
-		checkArrayWithOnePair(map,new CInteger(55),Long.valueOf(77L));
+		checkArrayWithOnePair(map,new CInteger(55), 77L);
 	}
 	
 	@Test
@@ -982,6 +1013,7 @@ public class TestMapWithSearch
 		Assert.assertTrue( ((MapWithSearch<VertexID,VertexID,Long>)map.getOurs()).getPotentiallyOrderedKeySet(false).isEmpty() );
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_EntrySet()
 	{
@@ -1002,6 +1034,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_Values()
 	{
@@ -1011,7 +1044,7 @@ public class TestMapWithSearch
 		Assert.assertFalse(map.containsValue(new CInteger(33)));
 		Assert.assertFalse(map.containsValue(new CInteger(-7)));
 		Assert.assertTrue(map.values().containsAll(map.entrySet()));// contains all on an empty set returns true
-		Assert.assertFalse(map.values().contains(Long.valueOf(0)));
+		Assert.assertFalse(map.containsValue(0L));
 		checkArrayWithNoPairs(map);
 
 		Iterator<Long> iter = map.values().iterator();
@@ -1022,6 +1055,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_KeySet1()
 	{
@@ -1042,6 +1076,7 @@ public class TestMapWithSearch
 		try	{ iter.next();fail("exception not thrown");	} catch(NoSuchElementException e){/* exception if all is good */}
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_KeySet2()
 	{
@@ -1056,6 +1091,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 	}
 		
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_KeySet3()
 	{
@@ -1072,6 +1108,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 	}
 
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testZeroSize_KeySet5()
 	{
@@ -1086,6 +1123,7 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 	}
 
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testSizeOne1()
 	{
@@ -1112,7 +1150,7 @@ public class TestMapWithSearch
 		Assert.assertEquals("{22=9}",map.toString());
 		Assert.assertNull(map.put(new CInteger(55), 77L));
 		Assert.assertEquals(2, map.size());
-		checkArrayWithTwoPairs(map, keyOne, valueOne, new CInteger(55), Long.valueOf(77L));
+		checkArrayWithTwoPairs(map, keyOne, valueOne, new CInteger(55), 77L);
 	}
 
 	@Test
@@ -1125,7 +1163,7 @@ public class TestMapWithSearch
 		Assert.assertNull(map.put(new CInteger(55), 77L));
 		Assert.assertEquals(1, map.size());
 		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(55)));
-		checkArrayWithOnePair(map,new CInteger(55),Long.valueOf(77L));
+		checkArrayWithOnePair(map,new CInteger(55), 77L);
 	}
 
 	@Test
@@ -1138,12 +1176,12 @@ public class TestMapWithSearch
 		Assert.assertNull(map.get(keyOne));
 
 		Assert.assertNull(map.put(keyOne, 77L));
-		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(77L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithOnePair(map,keyOne,Long.valueOf(77L));
+		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(77L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithOnePair(map,keyOne, 77L);
 		
 		Assert.assertEquals(Long.valueOf(77L),map.put(keyOne, 88L));
-		Assert.assertEquals(Long.valueOf(88L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(88L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithOnePair(map,keyOne,Long.valueOf(88L));
+		Assert.assertEquals(Long.valueOf(88L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(88L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithOnePair(map,keyOne, 88L);
 
 		Assert.assertEquals(Long.valueOf(88L),map.remove(new CInteger(keyOne.toInt())));
 		Assert.assertFalse(map.containsKey(keyOne));Assert.assertFalse(map.containsValue(valueOne));
@@ -1151,8 +1189,8 @@ public class TestMapWithSearch
 		checkArrayWithNoPairs(map);
 
 		Assert.assertNull(map.put(keyOne, 77L));
-		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(77L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithOnePair(map,keyOne,Long.valueOf(77L));
+		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(77L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithOnePair(map,keyOne, 77L);
 	}
 
 	@Test
@@ -1198,6 +1236,7 @@ public class TestMapWithSearch
 		Assert.assertEquals(new CIntegerWithReverseOrder(89),ourMap.getPotentiallyOrderedKeySet(false).iterator().next());
 	}
 	
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testSizeOne_EntrySet1()
 	{
@@ -1245,8 +1284,8 @@ public class TestMapWithSearch
 		Assert.assertFalse(map.containsValue(new CInteger(33)));
 		Assert.assertFalse(map.containsValue(new CInteger(-7)));
 		Assert.assertTrue(map.values().containsAll(map.values()));// contains all on an empty set returns true
-		Assert.assertFalse(map.values().contains(Long.valueOf(0)));
-		Assert.assertFalse(map.values().containsAll(Arrays.asList(valueOne,Long.valueOf(0))));
+		Assert.assertFalse(map.containsValue(0L));
+		Assert.assertFalse(map.values().containsAll(Arrays.asList(valueOne, 0L)));
 		Assert.assertTrue(map.values().containsAll(Arrays.asList(valueOne,valueOne)));
 		Assert.assertTrue(map.values().containsAll(createMapOne(keyOne,valueOne).values()));// contains all on an empty set returns true
 		checkArrayWithOnePair(map, keyOne, valueOne);
@@ -1359,7 +1398,7 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetContainsAll1()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		Assert.assertTrue(map.keySet().contains(keyOne));
+		Assert.assertTrue(map.containsKey(keyOne));
 		checkArrayWithOnePair(map, keyOne, valueOne);
 	}
 	
@@ -1411,22 +1450,31 @@ public class TestMapWithSearch
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
 		final Iterator<CInteger> iter = map.keySet().iterator();
 		iter.next();iter.remove();	
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+		statechum.Helper.checkForCorrectException(
+				() -> map.getOurs().keySet().iterator().remove(),
+				IllegalStateException.class,"next was not yet called");
 	}
 	
 	@Test
 	public void testNull1()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().put(null, Long.valueOf(33)),IllegalArgumentException.class,"key cannot be null");
+		statechum.Helper.checkForCorrectException(
+				() -> map.getOurs().put(null, 33L),
+				IllegalArgumentException.class,"key cannot be null");
 	}
 	
+	@SuppressWarnings("ConstantConditions")
 	@Test
 	public void testNull2()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().put(keyOne, null),IllegalArgumentException.class,"value cannot be null");
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().putAll(null),NullPointerException.class,null);
+		statechum.Helper.checkForCorrectException(
+				() -> map.getOurs().put(keyOne, null),
+				IllegalArgumentException.class,"value cannot be null");
+		statechum.Helper.checkForCorrectException(
+				() -> map.getOurs().putAll(null),
+				NullPointerException.class,null);
 	}
 	
 	@Test
@@ -1497,7 +1545,7 @@ public class TestMapWithSearch
 		Assert.assertNull(map.put(new CInteger(55), 77L));
 		Assert.assertEquals(2, map.size());
 		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(55)));
-		checkArrayWithTwoPairs(map,keyTwo, valueTwo, new CInteger(55),Long.valueOf(77L));
+		checkArrayWithTwoPairs(map,keyTwo, valueTwo, new CInteger(55), 77L);
 	}
 
 	@Test
@@ -1512,12 +1560,12 @@ public class TestMapWithSearch
 		checkArrayWithOnePair(map, keyTwo, valueTwo);
 
 		Assert.assertNull(map.put(keyOne, 77L));
-		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(77L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithTwoPairs(map,keyOne,Long.valueOf(77L), keyTwo, valueTwo);
+		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(77L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithTwoPairs(map,keyOne, 77L, keyTwo, valueTwo);
 		
 		Assert.assertEquals(Long.valueOf(77L),map.put(keyOne, 88L));
-		Assert.assertEquals(Long.valueOf(88L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(88L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithTwoPairs(map,keyOne,Long.valueOf(88L), keyTwo, valueTwo);
+		Assert.assertEquals(Long.valueOf(88L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(88L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithTwoPairs(map,keyOne, 88L, keyTwo, valueTwo);
 
 		Assert.assertEquals(Long.valueOf(88L),map.remove(new CInteger(keyOne.toInt())));
 		Assert.assertFalse(map.containsKey(keyOne));Assert.assertFalse(map.containsValue(valueOne));
@@ -1525,8 +1573,8 @@ public class TestMapWithSearch
 		checkArrayWithOnePair(map, keyTwo, valueTwo);
 
 		Assert.assertNull(map.put(keyOne, 77L));
-		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(Long.valueOf(77L)));Assert.assertTrue(map.containsKey(keyOne));
-		checkArrayWithTwoPairs(map,keyOne,Long.valueOf(77L), keyTwo, valueTwo);
+		Assert.assertEquals(Long.valueOf(77L),map.get(new CInteger(keyOne.toInt())));Assert.assertTrue(map.containsValue(77L));Assert.assertTrue(map.containsKey(keyOne));
+		checkArrayWithTwoPairs(map,keyOne, 77L, keyTwo, valueTwo);
 	}
 
 	@Test
@@ -1623,7 +1671,7 @@ public class TestMapWithSearch
 			Assert.assertFalse(iter.hasNext());
 		}
 		
-		StringBuffer outcome = new StringBuffer();boolean success = false;
+		StringBuffer outcome = new StringBuffer();boolean success;
 		if ( ourMap.getPotentiallyOrderedKeySet(false).iterator().next().equals(new CIntegerWithReverseOrder(6)))
 		{// Here we accept any order because we've not asked for an ordered collection
 			success = ArrayOperations.cmp(new CIntegerWithReverseOrder[]{new CIntegerWithReverseOrder(6), new CIntegerWithReverseOrder(89)}, ourMap.getPotentiallyOrderedKeySet(false).toArray(), outcome);
@@ -1638,6 +1686,7 @@ public class TestMapWithSearch
 		Assert.assertTrue(outcome.toString(),success);
 	}
 
+	@SuppressWarnings("SuspiciousMethodCalls")
 	@Test
 	public void testSizeTwo_EntrySet1()
 	{
@@ -1648,7 +1697,7 @@ public class TestMapWithSearch
 		Assert.assertFalse(map.entrySet().contains(new CInteger(-7)));
 		Assert.assertTrue(map.entrySet().containsAll(createMapTwo(keyOne,valueOne, keyTwo, valueTwo).entrySet()));// contains all on an the set of pairs from the same set should return true
 		Assert.assertTrue(map.entrySet().containsAll(createMapOne(keyOne,valueOne).entrySet()));
-		Assert.assertFalse(map.entrySet().containsAll(createMapTwo(keyOne,valueOne, keyTwo, Long.valueOf(6)).entrySet()));
+		Assert.assertFalse(map.entrySet().containsAll(createMapTwo(keyOne,valueOne, keyTwo, 6L).entrySet()));
 		Assert.assertTrue(map.entrySet().containsAll(map.entrySet()));// contains all on an the set of pairs from the same set should return true
 		
 		{// now check with an invalid entry
@@ -1680,11 +1729,11 @@ public class TestMapWithSearch
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		Iterator<Entry<CInteger,Long>> iter = map.entrySet().iterator();
 		Assert.assertTrue(iter.hasNext());
-		Entry<CInteger,Long> entry = iter.next();entry.setValue(Long.valueOf(11L));
-		iter.next().setValue(Long.valueOf(64L));//  the above sets or real map, now we set ours,
+		Entry<CInteger,Long> entry = iter.next();entry.setValue(11L);
+		iter.next().setValue(64L);//  the above sets or real map, now we set ours,
 		Iterator<Entry<CInteger,Long>> iterOurs = map.getOurs().entrySet().iterator();
-		iterOurs.next().setValue(Long.valueOf(11L));iterOurs.next().setValue(Long.valueOf(64L));
-		checkArrayWithTwoPairs(map,keyOne, Long.valueOf(11L), keyTwo,Long.valueOf(64L));
+		iterOurs.next().setValue(11L);iterOurs.next().setValue(64L);
+		checkArrayWithTwoPairs(map,keyOne, 11L, keyTwo, 64L);
 	}
 	
 	@Test
@@ -1692,11 +1741,13 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 
+		//noinspection SuspiciousMethodCalls
 		Assert.assertFalse(map.containsValue(new CInteger(33)));
+		//noinspection SuspiciousMethodCalls
 		Assert.assertFalse(map.containsValue(new CInteger(-7)));
 		Assert.assertTrue(map.values().containsAll(map.values()));// contains all on an empty set returns true
 		Assert.assertTrue(map.values().containsAll(createMapOne(keyOne,valueOne).values()));// contains all on an empty set returns true
-		Assert.assertFalse(map.values().containsAll(Arrays.asList(valueOne,Long.valueOf(0))));
+		Assert.assertFalse(map.values().containsAll(Arrays.asList(valueOne, 0L)));
 		Assert.assertTrue(map.values().containsAll(Arrays.asList(valueOne,valueOne)));
 		checkArrayWithTwoPairs(map,keyOne,valueOne, keyTwo, valueTwo);
 
@@ -1750,6 +1801,7 @@ public class TestMapWithSearch
 	public void testSizeTwo_KeySetRemoveAll1()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
+		//noinspection SuspiciousMethodCalls
 		Assert.assertFalse(map.keySet().removeAll(List.of()));
 		checkArrayWithTwoPairs(map,keyOne,valueOne, keyTwo, valueTwo);
 	}
@@ -1798,6 +1850,7 @@ public class TestMapWithSearch
 	public void testSizeTwo_KeySetRetainAll3()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
+		//noinspection SuspiciousMethodCalls
 		Assert.assertTrue(map.keySet().retainAll(List.of()));
 		checkArrayWithNoPairs(map);
 	}
@@ -1846,6 +1899,7 @@ public class TestMapWithSearch
 	public void testSizeTwo_KeySetContainsAll3()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
+		//noinspection SuspiciousMethodCalls
 		Assert.assertTrue(map.keySet().containsAll(List.of()));
 		checkArrayWithTwoPairs(map,keyOne,valueOne, keyTwo, valueTwo);
 	}
@@ -1901,7 +1955,7 @@ public class TestMapWithSearch
 		final Attempt<CInteger,Long> map = createMap();
 		for(int i=0;i<collectionOfKeys.length;++i)
 		{
-			map.put(new CInteger(collectionOfKeys[i]), Long.valueOf(1000+i));
+			map.put(new CInteger(collectionOfKeys[i]), (long) (1000 + i));
 			for(int j=0;j <= i;++j)
 				Assert.assertEquals(Long.valueOf(1000+i),map.get(new CInteger(collectionOfKeys[i])));
 		}
@@ -1914,7 +1968,7 @@ public class TestMapWithSearch
 		final Attempt<VertexID,Long> map = createMap();
 		for(int i=0;i<collectionOfKeys.length;++i)
 		{
-			map.put(collectionOfKeys[i], Long.valueOf(1000+i));
+			map.put(collectionOfKeys[i], (long) (1000 + i));
 			for(int j=i+1;j < collectionOfKeys.length;++j)
 			{
 				Assert.assertFalse("j="+j+", key "+collectionOfKeys[j]+" should not exist",map.containsKey(collectionOfKeys[j]));

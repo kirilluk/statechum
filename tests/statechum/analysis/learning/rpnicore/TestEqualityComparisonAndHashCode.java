@@ -118,12 +118,15 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(p, p);
 		assertEquals(q, q);
 		if (!p.equals(q))
+			//noinspection ResultOfMethodCallIgnored
 			p.equals(q);// this line is to set a breakpoint on when debugging equality
 		assertEquals("graphs differ: " + p + " and " + q, p, q);
 		assertEquals("graphs differ: " + p + " and " + q, q, p);
 		if (p.hashCode() != q.hashCode())
 		{
+			//noinspection ResultOfMethodCallIgnored
 			p.hashCode();// this line is to set a breakpoint on when debugging hash code computation
+			//noinspection ResultOfMethodCallIgnored
 			q.hashCode();
 		}
 		assertEquals("hash codes differ", p.hashCode(), q.hashCode());
@@ -170,7 +173,7 @@ public class TestEqualityComparisonAndHashCode {
 	/** Used to check that compareTo method works well.
 	 * The first argument should be less that the second one. 
 	 */ 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({"unchecked", "rawtypes", "EqualsWithItself"})
 	static private void checkLessHelper(Comparable p, Comparable q)
 	{
 		assertNotEquals(p, q);
@@ -254,7 +257,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
+	@SuppressWarnings({"unused", "ConstantConditions"})
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2a()
 	{
@@ -262,7 +265,7 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
+	@SuppressWarnings({"unused", "ConstantConditions"})
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2b()
 	{
@@ -308,7 +311,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final VertexID id = VertexID.parseID("");Assert.assertEquals(VertKind.NONE,id.getKind());Assert.assertEquals("",id.getStringId());
 		checkForCorrectException(
-				() -> id.getIntegerID(),
+				id::getIntegerID,
 				IllegalArgumentException.class,"ID without an integer");
 	}
 
@@ -323,7 +326,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final VertexID id = VertexID.parseID("ABCDE");Assert.assertEquals(VertKind.NONE,id.getKind());Assert.assertEquals("ABCDE",id.getStringId());
 		checkForCorrectException(
-				() -> id.getIntegerID(),
+				id::getIntegerID,
 				IllegalArgumentException.class,"ID without an integer");
 	}
 
@@ -429,7 +432,8 @@ public class TestEqualityComparisonAndHashCode {
 		checkLessHelper(pA,qA);
 		checkLessHelper(pA,pB);
 		checkLessHelper(qA,pB);
-		
+
+		//noinspection ConstantConditions
 		Assert.assertTrue("P10".compareTo("P5") < 0);
 		
 		Assert.assertTrue(pB.compareTo(new VertexID(idP5)) < 0);
@@ -469,8 +473,8 @@ public class TestEqualityComparisonAndHashCode {
 		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA,true);
 	}
 
-	@Test
 	/** Checks that attributes other than accept, name and the like known to Statechum are ignored. */
+	@Test
 	public final void checkDEquality_ignoresAttrs1()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);
@@ -484,8 +488,8 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertTrue(deepEquals(DvertB,DvertB));
 	}
 	
-	@Test
 	/** Checks that name is ignored by <em>nonIDAttributesEquals</em>. */
+	@Test
 	public final void checkDEquality_ignoresAttrs2()
 	{
 		CmpVertex A = new DeterministicVertex("a"),B = new DeterministicVertex("b");
@@ -511,8 +515,8 @@ public class TestEqualityComparisonAndHashCode {
 		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA,true);
 	}
 
-	@Test
 	/** Checks that attributes other than name are ignored. */
+	@Test
 	public final void checkSEquality_ignoresAttrs()
 	{
 		SvertA.setAccept(true);SvertB.setAccept(true);
@@ -526,7 +530,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertTrue(deepEquals(SvertB,SvertB));
 	}
 
-	/** Checks that if CmpVertex implemented with different types 
+	/* Checks that if CmpVertex implemented with different types
 	 * (StringVertex v.s. DeterminisitcVertex), equals returns false.
 	 * Right now, we allow comparisons between different types, hence the test is commented out. 
 	@Test
@@ -570,19 +574,20 @@ public class TestEqualityComparisonAndHashCode {
 	 * a collection of StringVertices and another one of Deterministic ones, they may
 	 * actually be equal, but the way Java5 collections compare them makes it impossible
 	 * to use equals without causing a comparison between vertices of the two types. 
-	@Test(expected=IllegalArgumentException.class)
+	Test(expected=IllegalArgumentException.class)
 	public final void checkComparison_fail1()
 	{
 		SvertA.compareTo(DvertA);
 	}
 		
-	@Test(expected=IllegalArgumentException.class)
+	Test(expected=IllegalArgumentException.class)
 	public final void checkComparison_fail2()
 	{
 		DvertA.compareTo(SvertA);
 	}
 	 */
 	
+	@SuppressWarnings("EqualsWithItself")
 	@Test
 	public final void testDeterministicVertexComparison1_old()
 	{
@@ -595,6 +600,7 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(0,q.compareTo(q));
 	}
 		
+	@SuppressWarnings("EqualsWithItself")
 	@Test
 	public final void testDeterministicVertexComparison2_old()
 	{
@@ -860,6 +866,7 @@ public class TestEqualityComparisonAndHashCode {
 				List<CmpVertex> list = new ArrayList<>();list.add((CmpVertex)where.get(lbl));where.put(lbl, list);
 			}
 		}
+		//noinspection unchecked
 		return (List<CmpVertex>)where.get(lbl);
 	}
 	
@@ -891,6 +898,7 @@ public class TestEqualityComparisonAndHashCode {
 			if (entry.getValue() instanceof CmpVertex)
 				vertices.add((CmpVertex)entry.getValue());
 			else
+				//noinspection unchecked
 				vertices.addAll((List<CmpVertex>)entry.getValue());
 			actualTargetsAsSets.put(entry.getKey(), new ArrayList<>(vertices));
 			vertices.clear();
@@ -952,7 +960,9 @@ public class TestEqualityComparisonAndHashCode {
 		
 		eqClassA.mergeWith(eqClassB);
 		
-		addOutgoing(expectedTargets,"b").add(C);((List<CmpVertex>)expectedTargets.get(AbstractLearnerGraph.generateNewLabel("a", config,converter))).add(D);
+		addOutgoing(expectedTargets,"b").add(C);
+		//noinspection unchecked
+		((List<CmpVertex>)expectedTargets.get(AbstractLearnerGraph.generateNewLabel("a", config,converter))).add(D);
 		Map<Label,ArrayList<CmpVertex>> actualTargetsAsSets = new TreeMap<>();
 		Set<CmpVertex> vertices = new TreeSet<>();
 		for(Entry<Label,Object> entry:eqClassA.getOutgoing().entrySet())
@@ -960,6 +970,7 @@ public class TestEqualityComparisonAndHashCode {
 			if (entry.getValue() instanceof CmpVertex)
 				vertices.add((CmpVertex)entry.getValue());
 			else
+				//noinspection unchecked
 				vertices.addAll((List<CmpVertex>)entry.getValue());
 			actualTargetsAsSets.put(entry.getKey(), new ArrayList<>(vertices));
 			vertices.clear();
@@ -1375,7 +1386,7 @@ public class TestEqualityComparisonAndHashCode {
 			buildClass(new AMEquivalenceClass<>(0, testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, true);
 		// no point comparing all attributes here since origState will be set to a different value than that of vert
-		Assert.assertEquals(JUConstants.AMBER, eqClass.getMergedVertex().getOrigState());
+		Assert.assertEquals(JUConstants.AMBER, eqClass.getMergedVertex().getColour());
 		Assert.assertEquals(vert,eqClass.getMergedVertex().getOrigState());
 		Assert.assertNotEquals(eqClass.getMergedVertex(), vert);
 	}
@@ -1559,10 +1570,10 @@ public class TestEqualityComparisonAndHashCode {
 				constructOrigPair("a", "b")
 		};
 		for (Object samePair : samePairs)
-			for (int sameSecond = 0; sameSecond < samePairs.length; ++sameSecond)
+			for (Object pair : samePairs)
 				for (int different = 0; different < differentPairs.length; ++different)
-					equalityTestingHelper(samePair, samePairs[sameSecond], differentPairs[different], differentPairs[differentPairs.length - different - 1], true);
-		
+					equalityTestingHelper(samePair, pair, differentPairs[different], differentPairs[differentPairs.length - different - 1], true);
+
 	}
 	
 	/** Tests that nulls are valid elements of state pairs. */
@@ -1578,12 +1589,13 @@ public class TestEqualityComparisonAndHashCode {
 				constructOrigPair("a", "b")
 		};
 		for (Object samePair : samePairs)
-			for (int sameSecond = 0; sameSecond < samePairs.length; ++sameSecond)
+			for (Object pair : samePairs)
 				for (int different = 0; different < differentPairs.length; ++different)
-					equalityTestingHelper(samePair, samePairs[sameSecond], differentPairs[different], differentPairs[differentPairs.length - different - 1], true);
+					equalityTestingHelper(samePair, pair, differentPairs[different], differentPairs[differentPairs.length - different - 1], true);
 		
 	}
 	
+	@SuppressWarnings("SameParameterValue")
 	private static void checkLess(String a, String b, String c, String d)
 	{
 		checkLessHelper(new StatePair(new StringVertex(a), new StringVertex(b)), new StatePair(new StringVertex(c), new StringVertex(d)));

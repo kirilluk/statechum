@@ -22,6 +22,12 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 import statechum.analysis.learning.rpnicore.testLTLToBa;
 
+/*
+Important: when running via IntelliJ Idea, the console will not show the progress of initialisation until
+a custom property editable.java.test.console=true is set (Help->Edit Custom Properties).
+ */
+
+
 /**
  * @author Kirill
  *

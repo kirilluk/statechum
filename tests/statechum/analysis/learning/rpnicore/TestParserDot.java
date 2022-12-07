@@ -766,13 +766,13 @@ public class TestParserDot {
         Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid format of label ");
     }
     /** Tests that transitions with input/output pairs are handled as atomic labels. */
-    public final LearnerGraph constructReferenceGraphWithErrorTransition(String label) {
-        LearnerGraph gr = new LearnerGraph(configMealy);gr.initEmpty();
-        DeterministicDirectedSparseGraph.CmpVertex a = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"), configLTS);
+    public final LearnerGraph constructReferenceGraphWithErrorTransition(String label, Configuration config) {
+        LearnerGraph gr = new LearnerGraph(config);gr.initEmpty();
+        DeterministicDirectedSparseGraph.CmpVertex a = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"), gr.config);
         gr.transitionMatrix.put(a, gr.createNewRow());
-        DeterministicDirectedSparseGraph.CmpVertex b = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"), configLTS);
+        DeterministicDirectedSparseGraph.CmpVertex b = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"), gr.config);
         gr.transitionMatrix.put(b, gr.createNewRow());
-        DeterministicDirectedSparseGraph.CmpVertex c = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("c"), configLTS);
+        DeterministicDirectedSparseGraph.CmpVertex c = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("c"), gr.config);
         gr.transitionMatrix.put(c, gr.createNewRow());
         gr.addTransition(gr.transitionMatrix.get(a),AbstractLearnerGraph.generateNewLabel("lbl/g",gr.config,null),b);
         gr.addTransition(gr.transitionMatrix.get(b),AbstractLearnerGraph.generateNewLabel(label,gr.config,null),c);
@@ -781,9 +781,9 @@ public class TestParserDot {
     }
     public final LearnerGraph constructReferenceGraphNoErrorTransition() {
         LearnerGraph gr = new LearnerGraph(configMealy);gr.initEmpty();
-        DeterministicDirectedSparseGraph.CmpVertex a = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"), configLTS);
+        DeterministicDirectedSparseGraph.CmpVertex a = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"), gr.config);
         gr.transitionMatrix.put(a, gr.createNewRow());
-        DeterministicDirectedSparseGraph.CmpVertex b = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"), configLTS);
+        DeterministicDirectedSparseGraph.CmpVertex b = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"), gr.config);
         gr.transitionMatrix.put(b, gr.createNewRow());
         gr.addTransition(gr.transitionMatrix.get(a),AbstractLearnerGraph.generateNewLabel("lbl/g",gr.config,null),b);
         return gr;
@@ -793,7 +793,7 @@ public class TestParserDot {
         LearnerGraph graph = new LearnerGraph(configMealy);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];__start0->a; }", configLTS,graph,converter,true,true);
         parser.parseGraph();
-        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p");
+        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p", configMealy);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
         Assert.assertEquals("a",graph.getInit().getStringId());
     }
@@ -819,14 +819,14 @@ public class TestParserDot {
     }
     @Test
     public final void testParse11b() {
-        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/error");
+        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/error", configLTS);
         LearnerGraph graph = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/error\"];__start0->a; }", configLTS,null, false);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
         Assert.assertEquals("a",graph.getInit().getStringId());
     }
     @Test
     public final void testParse11c() {
-        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p");
+        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p", configLTS);
         LearnerGraph graph = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];__start0->a; }", configLTS,null, false);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
         Assert.assertEquals("a",graph.getInit().getStringId());
@@ -834,7 +834,7 @@ public class TestParserDot {
 
     @Test
     public final void testParse11d() throws AMEquivalenceClass.IncompatibleStatesException {
-        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p");
+        LearnerGraph gr = constructReferenceGraphWithErrorTransition("u/p", configLTS);
         LearnerGraphND graphND = FsmParserDot.buildLearnerGraphND("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];__start0->a; }", configLTS,null, false);
         LearnerGraph graph = graphND.pathroutines.buildDeterministicGraph();
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));

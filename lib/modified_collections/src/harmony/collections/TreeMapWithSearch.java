@@ -58,6 +58,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     /** The implementation is a clone of the get() method but modified to return a key rather than the value. */
     @Override
     public K findKey(I key) {
+        if (key == null)
+            return null;// we never store null keys.
+
         Comparable<I> object = comparator == null ? toComparable(key) : null;
         Node<I, K, V> node = root;
         while (node != null) {
@@ -199,6 +202,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         int size = 0;
         boolean color;
 
+        @SuppressWarnings("unchecked")
         public Node() {
             keys = (K[]) new Object[NODE_SIZE];
             values = (V[]) new Object[NODE_SIZE];
@@ -231,7 +235,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         if (obj == null) {
             throw new NullPointerException();
         }
-        return (Comparable) obj;
+        return (Comparable<I>) obj;
     }
 
     static class AbstractMapIterator <I,K extends I,V> {
@@ -280,7 +284,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             }
         }
 
-        final public void remove() {
+        public void remove() {
             if (expectedModCount == backingMap.modCount) {
                 if (lastNode != null) {
                     int idx = lastNode.right_idx - lastOffset;
@@ -295,8 +299,26 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             }
         }
     }
+    private static abstract class IteratorNoModification<I, K extends I, V> extends AbstractMapIterator<I, K, V> {
 
-    static class UnboundedEntryIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V>
+        IteratorNoModification(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
+            super(map, startNode, startOffset);
+        }
+
+        IteratorNoModification(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode) {
+            super(map, startNode);
+        }
+
+        IteratorNoModification(TreeMapWithSearch<I, K, V> map) {
+            super(map);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("modification of iterator is not allowed for HashMapWithSearch");
+        }
+    }
+    static class UnboundedEntryIterator <I, K extends I, V> extends IteratorNoModification<I, K, V>
                                             implements Iterator<Map.Entry<K, V>> {
 
         UnboundedEntryIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
@@ -329,9 +351,17 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             makeNext();
             return lastNode.keys[lastNode.right_idx - lastOffset];
         }
+
+        @Override
+        public void remove() {
+            if (lastNode == null)
+                throw new IllegalStateException("next was not yet called");
+            super.remove();
+            //expectedModCount = modCount;// to permit more than a single remove to take place consecutively
+        }
     }
 
-    static class UnboundedValueIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V>
+    static class UnboundedValueIterator <I, K extends I, V> extends IteratorNoModification<I, K, V>
                                                           implements Iterator<V> {
 
         UnboundedValueIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
@@ -922,7 +952,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         @Override
         public boolean remove(Object object) {
             if (contains(object)) {
-                Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
+                @SuppressWarnings("unchecked") Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
                 K key = entry.getKey();
                 subMap.remove(key);
                 return true;
@@ -1167,6 +1197,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public boolean containsKey(Object key) {
+        if (key == null)
+            return false;// we never store null keys
+
         Comparable<I> object = comparator == null ? toComparable((K) key) : null;
         K keyK = (K) key;
         Node<I, K, V> node = root;
@@ -1220,6 +1253,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         if (root == null) {
             return false;
         }
+        if (value == null)
+            return false;// we never store null values
+
         Node<I, K, V> node = minimum(root);
         if (value != null) {
             while (node != null) {
@@ -1264,10 +1300,10 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     return size;
                 }
 
-                @Override
-                public void clear() {
-                    TreeMapWithSearch.this.clear();
-                }
+//                @Override
+//                public void clear() {
+//                    TreeMapWithSearch.this.clear();
+//                }
 
                 @SuppressWarnings("unchecked")
                 @Override
@@ -1281,20 +1317,58 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     return false;
                 }
 
-                @Override
-                public boolean remove(Object object) {
-                    if (contains(object)) {
-                        Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
-                        K key = entry.getKey();
-                        TreeMapWithSearch.this.remove(key);
-                        return true;
-                    }
-                    return false;
-                }
+//                @Override
+//                public boolean remove(Object object) {
+//                    if (contains(object)) {
+//                        Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
+//                        K key = entry.getKey();
+//                        TreeMapWithSearch.this.remove(key);
+//                        return true;
+//                    }
+//                    return false;
+//                }
 
                 @Override
                 public Iterator<Map.Entry<K, V>> iterator() {
                     return new UnboundedEntryIterator<>(TreeMapWithSearch.this);
+                }
+                @Override
+                public boolean remove(@SuppressWarnings("unused") Object o) {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                }
+
+                @Override
+                public void clear() {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                }
+
+                @Override
+                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#add(java.lang.Object)
+                 */
+                @Override
+                public boolean add(Map.Entry<K, V> ktvtEntry) {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
+                 */
+                @Override
+                public boolean addAll(Collection<? extends Map.Entry<K, V>> c) {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractCollection#retainAll(java.util.Collection)
+                 */
+                @Override
+                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
                 }
             };
         }
@@ -1331,6 +1405,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public V get(Object key) {
+        if (key == null)
+            return null;// we never store null keys
+
         Comparable<I> object = comparator == null ? toComparable((K) key) : null;
         K keyK = (K) key;
         Node<I, K, V> node = root;
@@ -1446,6 +1523,22 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                 public Iterator<K> iterator() {
                     return new UnboundedKeyIterator<>(TreeMapWithSearch.this);
                 }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractSet#add(java.lang.Object)
+                 */
+                @Override
+                public boolean add(@SuppressWarnings("unused") K e) {
+                    throw new UnsupportedOperationException("modification of key set is not allowed for TreeMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractSet#addAll(java.util.Collection)
+                 */
+                @Override
+                public boolean addAll(@SuppressWarnings("unused") Collection<? extends K> c) {
+                    throw new UnsupportedOperationException("modification of key set is not allowed for TreeMapWithSearch");
+                }
             };
         }
         return keySet;
@@ -1504,6 +1597,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public V put(K key, V value) {
+        if (key == null)
+            throw new IllegalArgumentException("key cannot be null for TreeMapWithSearch");
+        if (value == null)
+            throw new IllegalArgumentException("value cannot be null for TreeMapWithSearch");
+
         if (root == null) {
             root = createNode(key, value);
             size = 1;
@@ -1528,7 +1626,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             } else {
                 int right_idx = node.right_idx;
                 if (left_idx != right_idx) {
-                    result = cmp(object, (K) key, keys[right_idx]);
+                    result = cmp(object, key, keys[right_idx]);
                 }
                 if (result > 0) {
                     node = node.right;
@@ -1540,7 +1638,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     int low = left_idx + 1, mid = 0, high = right_idx - 1;
                     while (low <= high) {
                         mid = (low + high) >>> 1;
-                        result = cmp(object, (K) key, keys[mid]);
+                        result = cmp(object, key, keys[mid]);
                         if (result > 0) {
                             low = mid + 1;
                         } else if (result == 0) {
@@ -2381,6 +2479,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      *             if this map itself a sorted map over a range of another map
      *             and the specified key is outside of its range.
      */
+    @SuppressWarnings({"ResultOfMethodCallIgnored", "EqualsWithItself"})
     public SortedMap<K, V> tailMap(K startKey) {
         // Check for errors
         if (comparator == null) {
@@ -2413,7 +2512,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractCollection<>() {
+            valuesCollection = new AbstractSet<>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);
@@ -2424,9 +2523,42 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     return size;
                 }
 
+//                @Override
+//                public void clear() {
+//                    TreeMapWithSearch.this.clear();
+//                }
+
                 @Override
                 public void clear() {
-                    TreeMapWithSearch.this.clear();
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                }
+                @Override
+                public boolean remove(@SuppressWarnings("unused") Object o) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                }
+                @Override
+                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                }
+                @Override
+                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractSet#add(java.lang.Object)
+                 */
+                @Override
+                public boolean add(@SuppressWarnings("unused") V e) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                }
+
+                /* (non-Javadoc)
+                 * @see java.util.AbstractSet#addAll(java.util.Collection)
+                 */
+                @Override
+                public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
+                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
                 }
 
                 @Override

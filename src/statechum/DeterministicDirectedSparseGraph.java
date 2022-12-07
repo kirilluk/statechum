@@ -42,7 +42,7 @@ import edu.uci.ics.jung.utils.UserData;
 final public class DeterministicDirectedSparseGraph {
 
 	/** An identity for vertices. */
-	public static interface VertID extends Comparable<VertID>, ConvertibleToInt
+	public interface VertID extends Comparable<VertID>, ConvertibleToInt
 	{
 		/** A kind of a state identifier - this is not the same as state label accept/reject/none; the two are different
 		 * because I may choose to give uniform IDs to all states however some have to be accept and others - rejects.
@@ -64,22 +64,21 @@ final public class DeterministicDirectedSparseGraph {
 		 * do not exist in a tentative automaton.
 		 * </ul>
 		 */
-		public enum VertKind { NEGATIVE, POSITIVE, NONEXISTING, NEUTRAL, NONE }
+		enum VertKind { NEGATIVE, POSITIVE, NONEXISTING, NEUTRAL, NONE }
 		
 		/** Returns the kind of this ID. */
-		public VertKind getKind();
+		VertKind getKind();
 		
 		/** In order to enable comparison between vertex ID which are 
 		 * represented by Strings and/or integer, 
 		 * the two need need to be converted to a common form.
 		 */
-		public String getStringId();
+		String getStringId();
 		
-		public int getIntegerID();
+		int getIntegerID();
 	}
 	
-	public static class VertexID implements VertID, Serializable
-	{
+	public static class VertexID implements VertID, Serializable {
 		/**
 		 * ID for serialization
 		 */
@@ -149,7 +148,6 @@ final public class DeterministicDirectedSparseGraph {
 		public static VertexID parseID(String text)
 		{
 			VertKind tentativeKind = VertKind.NONE;
-			int id = JUConstants.intUNKNOWN;
 			VertexID outcome = null;
 			
 			if (text.length() > 1)
@@ -175,11 +173,12 @@ final public class DeterministicDirectedSparseGraph {
 				{
 					try
 					{
-							id = Integer.parseInt(text.substring(1));
-							outcome = new VertexID(tentativeKind,id);
+						int id = Integer.parseInt(text.substring(1));
+						outcome = new VertexID(tentativeKind,id);
 					}
 					catch(NumberFormatException ex)
 					{// cannot parse, revert to text.
+						//noinspection UnusedAssignment
 						tentativeKind = VertKind.NONE;
 					}
 				}
@@ -206,13 +205,13 @@ final public class DeterministicDirectedSparseGraph {
 		 * increase linearly, both positive and negative IDs. This method intended in order 
 		 * to subvert a hash table to look like an array lookup of vertices by IDs.
 		 * 
-		 * @param kind
-		 * @param id
-		 * @return
+		 * @param kind vertex kind
+		 * @param id numerical vertex id
+		 * @return hash code.
 		 */
 		public static int hashFromID(VertKind kind, int id)
 		{
-			int value = 0;
+			int value;
 			switch(kind)
 			{
 			case POSITIVE:value = 0;break;
@@ -241,7 +240,7 @@ final public class DeterministicDirectedSparseGraph {
 				if (kind == VertKind.NEGATIVE)
 					return -idInteger;
 				
-			throw new IllegalArgumentException("ID "+kind+" in vertex ID "+toString()+" is neither a positive nor a negative");
+			throw new IllegalArgumentException("ID "+kind+" in vertex ID "+ this +" is neither a positive nor a negative");
 		}
 		
 		protected static final String initID = "Init"; 
@@ -338,12 +337,8 @@ final public class DeterministicDirectedSparseGraph {
 				int kindDifference = kind.compareTo(vertID.getKind());
 				if (kindDifference != 0)
 					return kindDifference;
-				
-				if (idInteger < vertID.getIntegerID())
-					return -1;
-				if (idInteger > vertID.getIntegerID())
-					return 1;
-				return 0;				
+
+				return Integer.compare(idInteger, vertID.getIntegerID());
 			}
 			
 			int kindDifference = kind.compareTo(vertID.getKind());
@@ -432,8 +427,8 @@ final public class DeterministicDirectedSparseGraph {
 		 */
 		void setDepth(int depth);
 			
-		/** This exception is thrown when vertex user data for a property is out of range. */ 
-		static class IllegalUserDataException extends IllegalArgumentException {
+		/** This exception is thrown when vertex user data for a property is out of range. */
+		class IllegalUserDataException extends IllegalArgumentException {
 			/**
 			 * Serial ID.
 			 */
@@ -476,7 +471,7 @@ final public class DeterministicDirectedSparseGraph {
 		/** Used to hold two objects and nothing else. */
 		public static final class MiniPair
 		{
-			protected Object key,datum;
+			private Object key,datum;
 			
 			public Object getKey()
 			{ return key; }
@@ -562,10 +557,10 @@ final public class DeterministicDirectedSparseGraph {
 				return (Boolean)obj;
 			
 			if (obj.toString().equalsIgnoreCase("true"))
-				return Boolean.valueOf(true);
+				return Boolean.TRUE;
 
 			if (obj.toString().equalsIgnoreCase("false"))
-				return Boolean.valueOf(false);
+				return Boolean.FALSE;
 			
 			throw new IllegalUserDataException(obj.toString());
 		}
@@ -575,12 +570,12 @@ final public class DeterministicDirectedSparseGraph {
 			if (obj instanceof Integer)
 				return (Integer)obj;
 			
-			Integer result = null;
+			int result;
 			try
-			{ result = Integer.valueOf(obj.toString()); }
+			{ result = Integer.parseInt(obj.toString()); }
 			catch(NumberFormatException ex)
 			{
-				throw new IllegalUserDataException("invalid number "+obj.toString());
+				throw new IllegalUserDataException("invalid number "+ obj);
 			}
 			return result;
 		}
@@ -600,9 +595,7 @@ final public class DeterministicDirectedSparseGraph {
 
 		@Override
 		public int hashCode() {
-			int labelHashCode = hashCode;
-			
-			return labelHashCode;
+			return hashCode;
 		}
 
 		/*
@@ -616,7 +609,7 @@ final public class DeterministicDirectedSparseGraph {
 			String origName = "";if (getOrigState() != null) origName=" <"+getOrigState()+">";
 			String strDepth="";if(getDepth()!=JUConstants.intUNKNOWN) strDepth=" depth="+getDepth();
 			String strColour="";if(getColour()!=null) strColour=" colour="+getColour();
-			return vertexID == null?"NULL":vertexID.toString()+origName+strDepth+strColour;
+			return vertexID == null?"NULL": vertexID +origName+strDepth+strColour;
 		}
 
 		/** The ordering is based on names only ignoring whether this is an
@@ -632,7 +625,7 @@ final public class DeterministicDirectedSparseGraph {
 		
 		/** Compares this vertex with a different one, based on label alone.
 		 */
-
+		@SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
 		@Override
 		public boolean equals(Object obj) {
 			if (this == obj)
@@ -690,7 +683,7 @@ final public class DeterministicDirectedSparseGraph {
 			Object depthObject = getUserDatum(JUConstants.DEPTH);
 			if (depthObject == null)
 				return JUConstants.intUNKNOWN;
-			return ((Integer)depthObject).intValue();
+			return (Integer) depthObject;
 		}
 
 		@Override 
@@ -773,10 +766,10 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param v vertex to check
 	 * @return true if the vertex is an accept-vertex
 	 */
-	public final static boolean isAccept(final Vertex v)
+	public static boolean isAccept(final Vertex v)
 	{
 		if (v.containsUserDatumKey(JUConstants.ACCEPTED))
-			return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
+			return (Boolean) v.getUserDatum(JUConstants.ACCEPTED);
 		
 		return true;
 	}
@@ -796,7 +789,7 @@ final public class DeterministicDirectedSparseGraph {
 	@SuppressWarnings("unchecked")
 	public static Set<Label> computeAlphabet(DirectedSparseGraph g)
 	{
-		Set<Label> alphabet = new TreeSet<Label>();
+		Set<Label> alphabet = new TreeSet<>();
 	
 		for(Edge e:(Set<Edge>)g.getEdges())
 				alphabet.addAll( (Set<Label>)e.getUserDatum(JUConstants.LABEL) );
@@ -816,16 +809,15 @@ final public class DeterministicDirectedSparseGraph {
 		if (!(orig instanceof DeterministicVertex))
 			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
 		DeterministicVertex origVertex = (DeterministicVertex)orig;
-		VertID vertID = origVertex;
-		DeterministicVertex newVertex = newVertices.get(vertID);
+		DeterministicVertex newVertex = newVertices.get(origVertex);
 		if (newVertex == null) 
 			synchronized (AbstractLearnerGraph.syncObj)
 			{
-				newVertex = new DeterministicVertex(vertID);
+				newVertex = new DeterministicVertex(origVertex);
 				if (DeterministicDirectedSparseGraph.isInitial(origVertex))
 					newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
-				newVertices.put(vertID,newVertex);g.addVertex(newVertex);
+				newVertices.put(origVertex,newVertex);g.addVertex(newVertex);
 			}
 		return newVertex;
 	}
@@ -835,7 +827,7 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param v vertex to check
 	 * @return true if the vertex is an initial state
 	 */
-	public final static boolean isInitial(final Vertex v)
+	public static boolean isInitial(final Vertex v)
 	{
 		return v.containsUserDatumKey(JUConstants.INITIAL);		
 	}
@@ -873,16 +865,14 @@ final public class DeterministicDirectedSparseGraph {
 		Set<Label> alphabet = computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
-		Set<Label> outLabels = new HashSet<Label>();
+		Set<Label> outLabels = new HashSet<>();
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext() && !transitionsToBeAdded)
 		{
 			Vertex v = vertexIt.next();
 			outLabels.clear();
-			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-			while(outEdgeIt.hasNext()){
-				DirectedSparseEdge outEdge = outEdgeIt.next();
-				outLabels.addAll( (Set<Label>)outEdge.getUserDatum(JUConstants.LABEL) );
+			for (DirectedSparseEdge outEdge : (Iterable<DirectedSparseEdge>) v.getOutEdges()) {
+				outLabels.addAll((Set<Label>) outEdge.getUserDatum(JUConstants.LABEL));
 			}
 			transitionsToBeAdded = !alphabet.equals(outLabels);
 		}
@@ -897,12 +887,10 @@ final public class DeterministicDirectedSparseGraph {
 				Vertex v = vertexIt.next();
 				if (v != rejectVertex)
 				{// no transitions should start from the reject vertex
-					Set<Label> outgoingLabels = new TreeSet<Label>();outgoingLabels.addAll(alphabet);
-					
-					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-					while(outEdgeIt.hasNext()){
-						DirectedSparseEdge outEdge = outEdgeIt.next();
-						outgoingLabels.removeAll( (Set<Label>)outEdge.getUserDatum(JUConstants.LABEL) );
+					Set<Label> outgoingLabels = new TreeSet<>(alphabet);
+
+					for (DirectedSparseEdge outEdge : (Iterable<DirectedSparseEdge>) v.getOutEdges()) {
+						outgoingLabels.removeAll((Set<Label>) outEdge.getUserDatum(JUConstants.LABEL));
 					}
 					if (!outgoingLabels.isEmpty())
 					{
@@ -926,29 +914,25 @@ final public class DeterministicDirectedSparseGraph {
 	 * @param pta the graph to operate on.
 	 */
 	public static void numberVertices(DirectedSparseGraph pta){
-		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
-		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+		for (Vertex v : getBFSList(pta)) {
 			v.removeUserDatum(JUConstants.LABEL);// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
 			v.addUserDatum(JUConstants.LABEL, v.toString(), UserData.SHARED);
 		}
 	}
 
 	public static List<Vertex> getBFSList(Graph g){
-		List<Vertex> queue = new LinkedList<Vertex>();
+		List<Vertex> queue = new LinkedList<>();
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
 		queue.add(0,init);
 		int i=0;
 		int j= queue.size();
-		Set<Vertex> done = new HashSet<Vertex>();
+		Set<Vertex> done = new HashSet<>();
 		while(i<j){
 			DirectedSparseVertex v = (DirectedSparseVertex)queue.get(i);
 			done.add(v);
-			@SuppressWarnings("unchecked")
-			Iterator<Vertex> succIt = v.getSuccessors().iterator();
-			while(succIt.hasNext()){
-				Vertex succ = succIt.next();
-				if(!done.contains(succ))
+			//noinspection unchecked
+			for (Vertex succ : (Iterable<Vertex>) v.getSuccessors()) {
+				if (!done.contains(succ))
 					queue.add(succ);
 			}
 			j = queue.size();
@@ -967,14 +951,12 @@ final public class DeterministicDirectedSparseGraph {
 	public static Vertex findVertex(JUConstants property, Object value, Graph g){
 		if (value == null)
 			throw new IllegalArgumentException("value to search for cannot be null");
-		
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
-		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
-			if(v.getUserDatum(property) == null)
+
+		//noinspection unchecked
+		for (Vertex v : (Iterable<Vertex>) g.getVertices()) {
+			if (v.getUserDatum(property) == null)
 				continue;
-			if(v.getUserDatum(property).equals(value))
+			if (v.getUserDatum(property).equals(value))
 				return v;
 		}
 		return null;
@@ -986,10 +968,8 @@ final public class DeterministicDirectedSparseGraph {
 	 * @return initial vertex, null if not found.
 	 */
 	public static Vertex findInitial(Graph g){
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
-		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+		//noinspection unchecked
+		for (Vertex v : (Iterable<Vertex>) g.getVertices()) {
 			if (isInitial(v))
 				return v;
 		}
@@ -997,14 +977,12 @@ final public class DeterministicDirectedSparseGraph {
 	}
 
 	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){
-		Set<Vertex> vertices = new HashSet<Vertex>();
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
-		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
-			if(v.getUserDatum(property) == null)
+		Set<Vertex> vertices = new HashSet<>();
+		//noinspection unchecked
+		for (Vertex v : (Iterable<Vertex>) g.getVertices()) {
+			if (v.getUserDatum(property) == null)
 				continue;
-			if(v.getUserDatum(property).equals(value))
+			if (v.getUserDatum(property).equals(value))
 				vertices.add(v);
 		}
 		return vertices;
@@ -1017,14 +995,14 @@ final public class DeterministicDirectedSparseGraph {
 	public static DirectedSparseGraph copy(Graph g)
 	{
 		DirectedSparseGraph result = new DirectedSparseGraph();
-		Map<VertID,DeterministicVertex> newVertices = new TreeMap<VertID,DeterministicVertex>();
+		Map<VertID,DeterministicVertex> newVertices = new TreeMap<>();
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
 		{
 			DeterministicVertex newSrc = DeterministicDirectedSparseGraph.copyVertex(newVertices,result,e.getSource()),
 				newDst = DeterministicDirectedSparseGraph.copyVertex(newVertices, result, e.getDest());
 			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
 			Set<Label> origLabels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
-			TreeSet<Label> copiedLabels = new TreeSet<Label>();copiedLabels.addAll(origLabels);
+			TreeSet<Label> copiedLabels = new TreeSet<>(origLabels);
 			newEdge.addUserDatum(JUConstants.LABEL, copiedLabels, UserData.SHARED);
 			result.addEdge(newEdge);
 		}
@@ -1039,7 +1017,7 @@ final public class DeterministicDirectedSparseGraph {
 	 */ 
 	public static int [] getNonRepeatingNumbers(int howMany, int seed)
 	{
-    	int newNumbers[] = new int[howMany];
+    	int[] newNumbers = new int[howMany];
     	for(int i=0;i < howMany;++i) newNumbers[i]=i;
     	Random rnd = new Random(seed);
     	for(int i=0;i < howMany;++i) 
@@ -1084,9 +1062,8 @@ final public class DeterministicDirectedSparseGraph {
 		else
 			if (!origVert.equals(vert.getOrigState()))
 				return false;
-		
-		if (thisVertex.getDepth() != vert.getDepth()) return false;
-		return true;
+
+		return thisVertex.getDepth() == vert.getDepth();
 	}
 
 	/** Copies all attributes from one vertex into another one.
@@ -1104,11 +1081,9 @@ final public class DeterministicDirectedSparseGraph {
 	}
 	
 	public static Edge findEdge(Vertex from, Vertex to){
-		@SuppressWarnings("unchecked")
-		Iterator<DirectedSparseEdge> edgesOut = from.getOutEdges().iterator();
-		while(edgesOut.hasNext()){
-			DirectedSparseEdge current = edgesOut.next();
-			if(current.getDest().equals(to))
+		//noinspection unchecked
+		for (DirectedSparseEdge current : (Iterable<DirectedSparseEdge>) from.getOutEdges()) {
+			if (current.getDest().equals(to))
 				return current;
 		}
 		return null;

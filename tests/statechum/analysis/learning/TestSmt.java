@@ -73,7 +73,7 @@ public class TestSmt {
 	@Test
 	public void testYices3()
 	{
-		Smt.closeStdOut();
+		//Smt.closeStdOut();// On Windows10 under IntelliJ Idea this causes Java runtime to terminate after running this test, leading to an 'inconclusive' verdict.
 		Smt smtA = new Smt();
 		
 		smtA.loadData("(define x::int)\n(assert (> x 1))");
@@ -99,9 +99,9 @@ public class TestSmt {
 	public void testYices_error1()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+		checkForCorrectException(() -> {
 			Smt smt = new Smt();smt.loadData("(define x::int)\n(assert (A> x 1))");
-		}}, IllegalArgumentException.class,"Undefined name \"A>\"");
+		}, IllegalArgumentException.class,"Undefined name \"A>\"");
 	}
 	
 	/** Checks that if type checking is not enabled, the error goes undetected. */
@@ -116,9 +116,9 @@ public class TestSmt {
 	@Test
 	public void testYices_error2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
+		checkForCorrectException(() -> {
 			Smt smt = new Smt();smt.loadData("(define x::bool)\n(assert (> x 1))");
-		}}, IllegalArgumentException.class,"argument is not a numeral");
+		}, IllegalArgumentException.class,"argument is not a numeral");
 	}
 	
 	/** Check if a field can be correctly extracted. */

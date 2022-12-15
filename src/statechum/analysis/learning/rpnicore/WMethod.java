@@ -596,11 +596,16 @@ public class WMethod
 		int[] WNext = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
 		Label[] WChar = new Label[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
 		final Map<Label,AtomicInteger> distinguishingLabels = new HashMap<Label,AtomicInteger>();
-		
+
+		// It is important to iterate through the same collection because different collections
+		// such as fsm.transitionMatrix and equivalenceClasses may have a different order of elements
+		// and thus I would not be going through a triangular matrix of pairs.
 		for(CmpVertex stateA:fsm.transitionMatrix.keySet())
-		{
+			equivalenceClasses.put(stateA, stateA.isAccept() ? 1 : 0);
+
+		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
+			CmpVertex stateA = stateA_entry.getKey();
 			boolean stateAaccept = stateA.isAccept();
-			equivalenceClasses.put(stateA, stateAaccept?1:0);
 			for (Entry<CmpVertex, Integer> stateB : equivalenceClasses.entrySet()) {
 				if (stateB.getKey().equals(stateA)) break; // we only process a triangular subset.
 				int index = fsm.wmethod.vertexToInt(stateA, stateB.getKey());

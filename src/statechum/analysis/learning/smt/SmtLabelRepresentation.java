@@ -86,7 +86,7 @@ public class SmtLabelRepresentation
 	 * only looking at a subset of possible behaviours and may miss non-determinism if it occurs in 
 	 * a wider context). 
 	 */
-	protected Map<String,VARTYPE> variables = new HashMap<String,VARTYPE>();
+	protected Map<String,VARTYPE> variables = new HashMap<>();
 	
 	public enum VARTYPE { VAR_INPUT, VAR_OUTPUT, VAR_MEMORY }
 	
@@ -104,8 +104,8 @@ public class SmtLabelRepresentation
 	 * </pre>
 	 * 
 	 * @param str what to append
-	 * @param where to append
-	 * @param result, which could be null 
+	 * @param buffer to append
+	 * @return result, which could be null
 	 */
 	public static String appendToString(String str,String buffer)
 	{
@@ -283,7 +283,7 @@ public class SmtLabelRepresentation
 		
 		/** Constructs an instance of an empty second phase of this composition. */
 		public static CompositionOfFunctions createEmptySecondPhase() {
-			return new CompositionOfFunctions("","","",new TreeMap<LowLevelFunction,Collection<String>>());
+			return new CompositionOfFunctions("","","", new TreeMap<>());
 		}
 
 		/* (non-Javadoc)
@@ -466,7 +466,7 @@ public class SmtLabelRepresentation
 		if (num != JUConstants.intUNKNOWN)
 			result = result.replaceAll(varNewSuffix,delimiterString+num);
 		else
-			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+			if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 			{// Consistency checking
 				if (result.contains(varNewSuffix))
 					throw new IllegalArgumentException("current number should be valid in "+constraint);
@@ -475,7 +475,7 @@ public class SmtLabelRepresentation
 		if (previous != JUConstants.intUNKNOWN)
 			result = result.replaceAll(varOldSuffix,delimiterString+previous);
 		else
-			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+			if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 			{// Consistency checking
 				if (result.contains(varOldSuffix))
 					throw new IllegalArgumentException("previous number should be valid in "+constraint);
@@ -511,10 +511,10 @@ public class SmtLabelRepresentation
 	
 	/** Maps names of low-level functions to their representation. 
 	 */
-	protected Map<String,LowLevelFunction> functionMap = new TreeMap<String,LowLevelFunction>();
+	protected Map<String,LowLevelFunction> functionMap = new TreeMap<>();
 	
 	/** This one stores the text from which label descriptions have been loaded. */
-	private List<String> originalText = new LinkedList<String>();
+	private List<String> originalText = new LinkedList<>();
 	
 	public Element storeToXML(Document doc,StatechumXML.SequenceIO<String> stringio)
 	{
@@ -537,12 +537,12 @@ public class SmtLabelRepresentation
 		protected List<CompositionOfFunctions> arguments = null;
 	}
 	
-	protected final Collection<TraceWithData> traces = new LinkedList<TraceWithData>();
+	protected final Collection<TraceWithData> traces = new LinkedList<>();
 	
 	/** Extracts positive sequences from the collection. */
 	public Collection<List<Label>> getSPlus() 
 	{
-		final Collection<List<Label>> sPlus = new LinkedList<List<Label>>();
+		final Collection<List<Label>> sPlus = new LinkedList<>();
 		for(TraceWithData trace:traces)
 			if (trace.accept)
 				sPlus.add(trace.traceDetails);
@@ -552,7 +552,7 @@ public class SmtLabelRepresentation
 	/** Extracts negative sequences from the collection. */
 	public Collection<List<Label>> getSMinus() 
 	{ 
-		final Collection<List<Label>> sMinus = new LinkedList<List<Label>>();
+		final Collection<List<Label>> sMinus = new LinkedList<>();
 		for(TraceWithData trace:traces)
 			if (!trace.accept)
 				sMinus.add(trace.traceDetails);
@@ -597,35 +597,20 @@ public class SmtLabelRepresentation
 	}
 
 	/** Maps low level functions to variables associated with arguments and return values of these functions. */ 
-	final Map<LowLevelFunction,Collection<String>> functionToVariables = new TreeMap<LowLevelFunction,Collection<String>>();
+	final Map<LowLevelFunction,Collection<String>> functionToVariables = new TreeMap<>();
 	
 	/** Contains declarations and assertions associated with known traces and values of arguments 
 	 * of uninterpreted functions used in those traces.  
 	 */
 	String knownTraces;
 	
-	/** Called for each detected function and accumulates declarations and variables used for arguments
-	 * over
-	 * <ul> 
-	 * <li>each IO element (values passed to an X-machine operation aka each element in a data trace),</li>
-	 * <li>each pre and post-condition of each X-machine operation. </li>
-	 * </ul>
-	 * When all traces are passed to yices, they refer to different variables and frgs referring to argument
-	 * of low-level functions are effectively associated with parameters of those traces. Every new trace
-	 * can subsequently constrain arguments to low-level functions generated from pre/post/io conditions
-	 * to those used in the existing traces.
-	 * 
-	 * @param functionName the name of the function
-	 * @param args arguments of this function.
-	 * @return if non-null, the name of a variable to represent the result of computing this function;
-	 * null return value means that function and its arguments should be passed unchanged through interpretFunctionalExpression.
-	 */
+
 	public class FunctionVariablesHandler implements FunctionArgumentsHandler
 	{
 		/** How many times a function has been used within a precondition, postcondition or i/o. */
-		final Map<LowLevelFunction,Integer> functionToUseCounter = new TreeMap<LowLevelFunction,Integer>();
+		final Map<LowLevelFunction,Integer> functionToUseCounter = new TreeMap<>();
 		final StringBuffer additionalVariables = new StringBuffer(),additionalDeclarations = new StringBuffer();
-		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs = new TreeMap<LowLevelFunction,Collection<String>>();
+		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs = new TreeMap<>();
 		
 		@Override 
 		public void reset()
@@ -643,8 +628,24 @@ public class SmtLabelRepresentation
 		{
 			useKind = kind;reset();
 		}
-		
-		@Override 
+
+		/** Called for each detected function and accumulates declarations and variables used for arguments
+		 * over
+		 * <ul>
+		 * <li>each IO element (values passed to an X-machine operation aka each element in a data trace),</li>
+		 * <li>each pre and post-condition of each X-machine operation. </li>
+		 * </ul>
+		 * When all traces are passed to yices, they refer to different variables and frgs referring to argument
+		 * of low-level functions are effectively associated with parameters of those traces. Every new trace
+		 * can subsequently constrain arguments to low-level functions generated from pre/post/io conditions
+		 * to those used in the existing traces.
+		 *
+		 * @param functionName the name of the function
+		 * @param args arguments of this function.
+		 * @return if non-null, the name of a variable to represent the result of computing this function;
+		 * null return value means that function and its arguments should be passed unchanged through interpretFunctionalExpression.
+		 */
+		@Override
 		public String HandleLowLevelFunction(String functionName,List<String> args) 
 		{
 			String result = null;
@@ -689,7 +690,7 @@ public class SmtLabelRepresentation
 				
 				int useCounter = 0;
 				Integer currentUseCounter = functionToUseCounter.get(func);
-				if (currentUseCounter != null) useCounter = currentUseCounter.intValue();
+				if (currentUseCounter != null) useCounter = currentUseCounter;
 				
 				// We have an expression describing a call of a function with specific arguments, such as (func a b)
 				// Where all traces are loaded at the same time, multiple use of the same variable name will be aliased
@@ -732,11 +733,7 @@ public class SmtLabelRepresentation
 				additionalDeclarations.append(ENDL);
 				result = outcomeVariable;
 				// variables introduced for every use of this function are recorded in the map 
-				Collection<String> knownValues = variablesUsedForArgs.get(func);
-				if (knownValues == null)
-				{
-					knownValues = new LinkedList<String>();variablesUsedForArgs.put(func,knownValues);
-				}
+				Collection<String> knownValues = variablesUsedForArgs.computeIfAbsent(func, k -> new LinkedList<>());
 				knownValues.add(generateFreshVariable(func.getName(), useKind, useCounter, JUConstants.intUNKNOWN));// records a unique use number for this particular use of this low-level function.
 				useCounter++;
 				functionToUseCounter.put(func, useCounter);// stores the "use" count, to be incremented next time this low-level function is used.
@@ -794,7 +791,7 @@ public class SmtLabelRepresentation
 		
 		if (labelMapConstructionOfOperations != null)
 			throw new IllegalArgumentException("operations already built");
-		labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
+		labelMapConstructionOfOperations = new TreeMap<>();
 		for(String text:data) 
 			if (text.startsWith(QSMTool.cmdVarInput))
 			{
@@ -819,7 +816,7 @@ public class SmtLabelRepresentation
 			throw new IllegalArgumentException(init.getName()+" should not refer to "+varOldSuffix);
 
 		assert labelMapConstructionOfDataTraces == null;
-		labelMapConstructionOfDataTraces = new TreeMap<Label,SMTLabel>();
+		labelMapConstructionOfDataTraces = new TreeMap<>();
 		for(SMTLabel label:labelMapConstructionOfOperations.values())
 		{
 			label.pre  =  parser.interpretPrePostCondition(label.pre.text, new FunctionVariablesHandler(VARIABLEUSE.PRE));
@@ -833,8 +830,7 @@ public class SmtLabelRepresentation
 				parseTrace(text.substring(QSMTool.cmdOperation.length()).trim());
 			}
 
-		for(String text:data)
-			originalText.add(text);
+		originalText.addAll(data);
 	}
 	
 	/** Given a string of text, parses it as a low-level function. */
@@ -856,7 +852,7 @@ public class SmtLabelRepresentation
 			throw new IllegalArgumentException("expected one of the "+Arrays.toString(FUNC_DATA.values())+" but got: "+prepost);
 		}
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected specification for function "+functionName+" "+prepost);
-		StringBuffer labelSpec = new StringBuffer(tokenizer.nextToken());
+		StringBuilder labelSpec = new StringBuilder(tokenizer.nextToken());
 		while(tokenizer.hasMoreTokens())
 		{
 			labelSpec.append(' ');labelSpec.append(tokenizer.nextToken());
@@ -883,12 +879,12 @@ public class SmtLabelRepresentation
 			}
 			catch(NumberFormatException ex)
 			{
-				throw new IllegalArgumentException("the arity of "+functionName+" is "+labelSpec.toString()+" which is not a number");
+				throw new IllegalArgumentException("the arity of "+functionName+" is "+ labelSpec +" which is not a number");
 			}
 			if (func.arity < 0)
 				throw new IllegalArgumentException("the arity of "+functionName+" is an invalid number");
 			if (func.arity == 0)
-				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+				if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 					System.err.println("WARNING: function "+func.getName()+" has a zero arity and hence arguments cannot be constrained to values used"); 
 			break;
 		case CONSTRAINARGS:
@@ -948,7 +944,7 @@ public class SmtLabelRepresentation
 			throw new IllegalArgumentException("expected "+Arrays.toString(OP_DATA.values())+" but got: "+prepost);
 		}
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected specification for label "+labelName);
-		StringBuffer labelSpec = new StringBuffer(tokenizer.nextToken());
+		StringBuilder labelSpec = new StringBuilder(tokenizer.nextToken());
 		while(tokenizer.hasMoreTokens())
 		{
 			labelSpec.append(' ');labelSpec.append(tokenizer.nextToken());
@@ -1063,7 +1059,7 @@ public class SmtLabelRepresentation
 		ioIterator = inputOutput == null?null:inputOutput.iterator();
 		for(SMTLabel currentLabel:path) 
 		{
-			axiom.append(commentForLabel+currentLabel.getName());axiom.append(ENDL);
+			axiom.append(commentForLabel).append(currentLabel.getName());axiom.append(ENDL);
 			int previousNumber = i+currentNumber;++i;
 			if (ioIterator != null)
 				pathNotEmpty |= addStringRepresentation(ioIterator.next().getCondition(),i+currentNumber,previousNumber,axiom);
@@ -1074,7 +1070,7 @@ public class SmtLabelRepresentation
 		currentNumber+=path.size()+1;
 		
 		axiom.append(ENDL);
-		return new Pair<String,String>(varDeclaration.toString(), pathNotEmpty?axiom.toString():commentForNewSeq+path+ENDL+"true"+ENDL);
+		return new Pair<>(varDeclaration.toString(), pathNotEmpty ? axiom.toString() : commentForNewSeq + path + ENDL + "true" + ENDL);
 	}
 	
 	public static String getAssertionFromVarAndAxiom(String variableDeclarations, String abstractState)
@@ -1114,7 +1110,7 @@ public class SmtLabelRepresentation
 		
 		/** Constructs an abstract state for the initial state.
 		 * 
-		 * @param v state
+		 * @param initState state
 		 * @param num number to give to this state.
 		 */
 		public AbstractState(CmpVertex initState, int num)
@@ -1136,7 +1132,7 @@ public class SmtLabelRepresentation
 		 * @param argPreviousState an abstract state from which this state has been entered by invoking <em>step</em>. 
 		 * @param arglastLabel the operation used to enter this abstract state from the previous one.
 		 * @param arglastIO the arguments to the X-machine operation used to enter this abstract state from the previous one.
-		 * @param N the number to give to variables in order to express "current state". Previous state is obtained 
+		 * @param num the number to give to variables in order to express "current state". Previous state is obtained
 		 * from the number associated with the previous state provided as an argument <em>argPreviousState</em>.
 		 * <p>
 		 * Since this one is called after the second phase of construction, pre- and post- conditions as well as IO used
@@ -1237,7 +1233,7 @@ public class SmtLabelRepresentation
 		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> previousMap = previousGraph == null?null:previousGraph.getVertexToAbstractState();
 		
 		// First, we build a collection of states of the original PTA which correspond to the each merged vertex.
-		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newVertexToEqClass = new TreeMap<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>>();
+		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newVertexToEqClass = new TreeMap<>();
 		
 		if (previousMap == null)
 		{// either the case when we get here for the first time (as well as right after a reset)
@@ -1248,8 +1244,8 @@ public class SmtLabelRepresentation
 			newVertexToEqClass = coregraph.getVertexToAbstractState();// we are updating the map here.
 			int elementCounter = currentNumber;
 
-			Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-			Set<CmpVertex> statesAlreadyVisited = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+			Queue<CmpVertex> fringe = new LinkedList<>();
+			Set<CmpVertex> statesAlreadyVisited = new HashSet<>();// in order not to iterate through the list all the time.
 			fringe.add(coregraph.getInit());statesAlreadyVisited.add(coregraph.getInit());
 			assert newVertexToEqClass.containsKey(coregraph.getInit());
 			
@@ -1271,7 +1267,7 @@ public class SmtLabelRepresentation
 							Collection<AbstractState> targetDataStates = newVertexToEqClass.get(target);
 							if (targetDataStates == null)
 							{// build a collection of target abstract states if none are known.
-								targetDataStates = new LinkedList<AbstractState>();
+								targetDataStates = new LinkedList<>();
 								newVertexToEqClass.put(target, targetDataStates);
 								for(AbstractState currentAbstractState:currentAbstractStates)
 								{
@@ -1298,7 +1294,7 @@ public class SmtLabelRepresentation
 				 * they refer to the recorded values.
 				 */
 				
-				labelMapFinal = new TreeMap<Label,SMTLabel>();
+				labelMapFinal = new TreeMap<>();
 				for(SMTLabel label:labelMapConstructionOfDataTraces.values())
 				{
 					label.pre  =  addKnownValuesToPrePost(label.pre);
@@ -1312,16 +1308,16 @@ public class SmtLabelRepresentation
 			for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
 				if (eqClass.getMergedVertex().isAccept())
 				{// TODO: to test this
-					List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
+					List<AbstractState> combinedAbstractStates = new LinkedList<>();
 					for(CmpVertex state:eqClass.getStates())
 						combinedAbstractStates.addAll(previousMap.get(state));
 					newVertexToEqClass.put(eqClass.getMergedVertex(),combinedAbstractStates);
 				}
 		coregraph.setVertexToAbstractState(newVertexToEqClass);
 		
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+		if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 		{// Consistency checking
-			Map<CmpVertex,CmpVertex> vertexToCollection = new TreeMap<CmpVertex,CmpVertex>();
+			Map<CmpVertex,CmpVertex> vertexToCollection = new TreeMap<>();
 			for(Entry<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> eqClass:coregraph.getVertexToAbstractState().entrySet())
 			{
 			 // Checking that vertices associated with abstract states from different merged vertices do not intersect.
@@ -1340,7 +1336,7 @@ public class SmtLabelRepresentation
 			{// Checking that all accept-vertices from the current graph have a merged vertex corresponding to them.
 			 // This should be true by construction of the graph; the only way we may get here is where a vertex
 			 // is not reachable from an initial state.
-				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();
+				Set<CmpVertex> verticesInGraph = new TreeSet<>();
 				for(CmpVertex vert:coregraph.transitionMatrix.keySet())
 					if (vert.isAccept()) verticesInGraph.add(vert);
 				verticesInGraph.removeAll(coregraph.getVertexToAbstractState().keySet());
@@ -1349,7 +1345,7 @@ public class SmtLabelRepresentation
 			}
 			
 			{// Checking that domain of getVertexToAbstractState is contained within the set of vertices of our graph.
-				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.getVertexToAbstractState().keySet());
+				Set<CmpVertex> verticesInCollection = new TreeSet<>(coregraph.getVertexToAbstractState().keySet());
 				verticesInCollection.removeAll(coregraph.transitionMatrix.keySet());
 				if (!verticesInCollection.isEmpty())
 					throw new IllegalArgumentException("vertices from the vertex to collection map "+verticesInCollection+" do not feature in the graph");
@@ -1376,11 +1372,7 @@ public class SmtLabelRepresentation
 		if (composition.variablesUsedForArgs != null)
 			for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
 			{
-				Collection<String> vars = functionToVariables.get(entry.getKey());
-				if (vars == null)
-				{
-					vars = new LinkedList<String>();functionToVariables.put(entry.getKey(),vars);
-				}
+				Collection<String> vars = functionToVariables.computeIfAbsent(entry.getKey(), k -> new LinkedList<>());
 				for(String var:entry.getValue())
 					vars.add(toCurrentMem(var, num, previous));
 			}
@@ -1401,10 +1393,10 @@ public class SmtLabelRepresentation
 		functionToVariables.clear();
 		tracesVars = new StringBuffer();traceAxioms = new StringBuffer(); 
 		int elementCounter = currentNumber;
-		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> grMap = new TreeMap<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>>();
+		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> grMap = new TreeMap<>();
 		gr.setVertexToAbstractState(grMap);
 		AbstractState initialAbstractState = new AbstractState(gr.getInit(),elementCounter++);
-		grMap.put(gr.getInit(),Arrays.asList(new AbstractState[]{initialAbstractState}));
+		grMap.put(gr.getInit(),Arrays.asList(initialAbstractState));
 
 		populateVarsUsedForArgs(init.post, initialAbstractState.stateNumber, initialAbstractState.stateNumber);
 		// Add details of the current abstract state to what we know of supplied data traces.
@@ -1437,12 +1429,8 @@ public class SmtLabelRepresentation
 					populateVarsUsedForArgs(currentLabel.pre, elementCounter, abstractState.stateNumber);
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
 					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
-					
-					Collection<AbstractState> abstractStatesForDFAState = grMap.get(currentState);
-					if (abstractStatesForDFAState == null)
-					{
-						abstractStatesForDFAState = new LinkedList<AbstractState>();grMap.put(currentState, abstractStatesForDFAState);
-					}
+
+					Collection<AbstractState> abstractStatesForDFAState = grMap.computeIfAbsent(currentState, k -> new LinkedList<>());
 					abstractStatesForDFAState.add(abstractState);
 
 					// Add details of the current abstract state to what we know of supplied data traces.
@@ -1470,11 +1458,7 @@ public class SmtLabelRepresentation
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
 					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
 
-					Collection<AbstractState> abstractStatesForDFAState = grMap.get(currentState);
-					if (abstractStatesForDFAState == null)
-					{
-						abstractStatesForDFAState = new LinkedList<AbstractState>();grMap.put(currentState, abstractStatesForDFAState);
-					}
+					Collection<AbstractState> abstractStatesForDFAState = grMap.computeIfAbsent(currentState, k -> new LinkedList<>());
 					abstractStatesForDFAState.add(abstractState);
 
 					// Add details of the current abstract state to what we know of supplied data traces.
@@ -1495,7 +1479,7 @@ public class SmtLabelRepresentation
 	
 	public CompositionOfFunctions addKnownValuesToPrePost(CompositionOfFunctions composition)
 	{
-		StringBuffer additionalVariables = new StringBuffer();
+		StringBuilder additionalVariables = new StringBuilder();
 		if (composition.variablesUsedForArgs != null && !composition.variablesUsedForArgs.isEmpty()) // if there are any variables in need of handling, go through them.
 		{
 			for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
@@ -1529,7 +1513,7 @@ public class SmtLabelRepresentation
 		return new CompositionOfFunctions(composition,additionalVariables.toString());
 	}
 		
-	/** Given PTA computes a path which can be used as an axiom in later computations. 
+	/* Given PTA computes a path which can be used as an axiom in later computations.
 	 * In addition to the construction of axioms, the method populates the map associating
 	 * vertex identifiers to abstract states which would be reached in the supplied graph
 	 * when those states are reached. 
@@ -1657,7 +1641,8 @@ public class SmtLabelRepresentation
 	{
 		if (smtSolver != null)
 			return smtSolver;
-		Smt.loadLibrary();Smt.closeStdOut();
+		Smt.loadLibrary();
+		//Smt.closeStdOut();// Under Windows 10, this causes java runtime running under IdeaJ test runner to terminate
 		smtSolver = new Smt();
 		if (usingLowLevelFunctions) smtSolver.loadData(knownTraces);
 		return smtSolver;
@@ -1672,7 +1657,6 @@ public class SmtLabelRepresentation
 	 * </li>
 	 * </ul>
 	 * Returns IllegalArgumentException if any checked condition is not satisfied, null otherwise.
-	 * 
 	 * The choice of conditions to check is selected using the supplied configuration.
 	 */
 	public synchronized IllegalArgumentException checkConsistency(LearnerGraph graph,Configuration whatToCheck)
@@ -1716,12 +1700,12 @@ public class SmtLabelRepresentation
 								for(Entry<Label,CmpVertex> otherTransition:graph.transitionMatrix.get(entry.getKey()).entrySet())
 									if (otherTransition != transition && otherTransition.getValue().isAccept())
 									{
-										StringBuffer variableBuffer = new StringBuffer();
+										StringBuilder variableBuffer = new StringBuilder();
 										variableBuffer.append(state.abstractState);variableBuffer.append(ENDL);
 										variableBuffer.append(toCurrentMem(init.pre.getCondition(), variableNumber, variableNumber+1));variableBuffer.append(ENDL);
 										variableBuffer.append(toCurrentMem(init.pre.getCondition(), variableNumber, variableNumber+2));variableBuffer.append(ENDL);
 										
-										StringBuffer statementBuffer = new StringBuffer();
+										StringBuilder statementBuffer = new StringBuilder();
 										statementBuffer.append("(and ");statementBuffer.append(ENDL);
 										statementBuffer.append(state.abstractState);statementBuffer.append(ENDL);
 										statementBuffer.append(toCurrentMem(labelMapFinal.get(transition.getKey()).pre.getCondition(), variableNumber, variableNumber+1));statementBuffer.append(ENDL);
@@ -1767,7 +1751,7 @@ public class SmtLabelRepresentation
 	public int CheckWithEndUser(List<Label> question)
 	{
 		int pos = -1;
-		List<SMTLabel> partialPath = new LinkedList<SMTLabel>();
+		List<SMTLabel> partialPath = new LinkedList<>();
 		for(Label label:question)
 		{
 			++pos;

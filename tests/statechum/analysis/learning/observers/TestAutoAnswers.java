@@ -17,38 +17,24 @@
  */
 package statechum.analysis.learning.observers;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import statechum.Configuration.STATETREE;
-import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Label;
 import statechum.Configuration;
-import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.Erlang.ErlangLabel;
-import statechum.analysis.Erlang.ErlangModule;
-import statechum.analysis.Erlang.ErlangRuntime;
+import statechum.Label;
+import statechum.Pair;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.PairScore;
+
+import java.io.StringReader;
+import java.util.List;
+
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 /** Tests that AutoAnswers works.
  * 
@@ -57,7 +43,7 @@ import statechum.analysis.learning.PairScore;
  */
 public class TestAutoAnswers {
 
-	private String partA = 				
+	private final String partA =
 		RPNILearner.QUESTION_USER+"[c, a, c] <no> at position 2, element c\n"+
 		RPNILearner.QUESTION_USER+"[c, a, b, p, a] <no> at position 2, element b\n"+
 		RPNILearner.QUESTION_USER+"[c, b, b] <no> at position 2, element b\n"+
@@ -68,8 +54,8 @@ public class TestAutoAnswers {
 		RPNILearner.QUESTION_USER+"[e, c, b, p] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[e, c, e, c] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[e, a] <no> at position 1, element a\n"+
-		RPNILearner.QUESTION_USER+"[e, p] <no> at position 1, element p\n",
-		partB = 
+		RPNILearner.QUESTION_USER+"[e, p] <no> at position 1, element p\n";
+	private final String partB =
 			RPNILearner.QUESTION_USER+"[e] <yes>\n"+
 			RPNILearner.QUESTION_USER+"[e, p, a] <no> at position 1, element p\n"+
 			RPNILearner.QUESTION_USER+"[e, a, a] <no> at position 1, element a\n"+
@@ -79,9 +65,9 @@ public class TestAutoAnswers {
 			RPNILearner.QUESTION_USER+"[e, c] <yes>\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, c] <no> at position 3, element c\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, p] <no> at position 3, element p\n"+
-			RPNILearner.QUESTION_USER+"[e, c, a, b] <no> at position 3, element b\n",
+			RPNILearner.QUESTION_USER+"[e, c, a, b] <no> at position 3, element b\n";
 
-	partC = 
+	private final String partC =
 		RPNILearner.QUESTION_USER+"[e, c, a, e, c] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[c, b, c] <no> at position 2, element c\n"+
 		RPNILearner.QUESTION_USER+"[e, c, c] <no> at position 2, element c\n"+
@@ -96,38 +82,12 @@ public class TestAutoAnswers {
 	@Test
 	public void testPrettyPrintTrace0()
 	{
-		Assert.assertEquals("[]",RPNILearner.questionToString(Arrays.asList(new Label[]{})));
+		Assert.assertEquals("[]",RPNILearner.questionToString(List.of()));
 	}
-	
-	@Test
-	public void testPrettyPrintTrace1() throws IOException
-	{
-		File file = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker/locker.erl");config.setErlangMboxName(ErlangRuntime.getDefaultRuntime().createNewRunner().getRunnerName());
-		ErlangModule.setupErlangConfiguration(config,file);config.setErlangCompileIntoBeamDirectory(true);config.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
-		ErlangModule.loadModule(config);
-		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
-		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config,null);
-		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
-		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
-		List<Label> trace = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
-		Assert.assertEquals("[{?F(),'call','read'},{?F(),'call','lock'},{?F(),'call','lock'}]",RPNILearner.questionToString(trace));
-	}
-	
-	private ConvertALabel converter = null;
+
+	private final ConvertALabel converter = null;
 	private Configuration config;
-	
-	@BeforeClass
-	public static void beforeClass()
-	{
-		ErlangRuntime.getDefaultRuntime();
-	}
-	
-	@AfterClass
-	public static void afterClass()
-	{
-		ErlangRuntime.getDefaultRuntime().killErlang();
-	}
-	
+
 	@Before
 	public void setup()
 	{

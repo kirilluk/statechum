@@ -34,7 +34,8 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.analysis.Erlang.Signatures.TestTypes.class,
     statechum.analysis.Erlang.TestErlangGraphs.class,
     statechum.analysis.Erlang.TestSynapseAuxiliaryFunctions.class,
-    statechum.analysis.Erlang.TestSynapse.class
+    statechum.analysis.Erlang.TestSynapse.class,
+    statechum.analysis.Erlang.TestPrettyPrintTraces.class
 })
 public class ErlangTests {// all tests are included in the annotation.
 }

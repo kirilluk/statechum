@@ -640,7 +640,7 @@ public class WMethod
 							// vectors  for two reject-states with transitions to a sink state (equivalence class 0)
 							// { a->0, b->0 } and { a->0 } look superficially different even though they
 							// both denote states accepting an empty language.
-							// Note that any real sink states would belong to the same equivalce class as our sink state.
+							// Note that any real sink states would belong to the same equivalence class as our sink state.
 							map.put(labelstate.getKey(), targetEqClass);
 					}
 				

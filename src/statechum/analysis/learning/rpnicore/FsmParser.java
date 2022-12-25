@@ -54,7 +54,7 @@ public class FsmParser
 	public FsmParser(String whatToParse, boolean slashForEndl)
 	{
 		text = "\n"+whatToParse;
-		String patternSlashForEndl = "([^\n#\\055<>/|=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n/|] *)";
+		String patternSlashForEndl = "([^\n#\\055<>/=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n/] *)";
 		String patternNoSlashForEndl = "([^\n#\\055<>|=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n|] *)";
 		lexer = Pattern.compile(slashForEndl? patternSlashForEndl:patternNoSlashForEndl).matcher(text);
 	}

@@ -18,10 +18,8 @@
  */
 package statechum;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author kirill
@@ -86,6 +84,7 @@ public class LabelInputOutput implements Label {
 		return obj instanceof LabelInputOutput && input.equals(((LabelInputOutput)obj).input);
 	}
 
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 	public boolean deepEquals(Object obj) {
 		if (!(equals(obj)))
 			return false;
@@ -104,6 +103,25 @@ public class LabelInputOutput implements Label {
 				return false;
 		}
 		return true;
+	}
+
+	public static String deepDiffCollection(Collection<LabelInputOutput> a,Collection<LabelInputOutput> b) {
+		if (a.size() != b.size())
+			return "Sequence are of different length";
+
+		Iterator<LabelInputOutput> a_iter = a.iterator(),b_iter = b.iterator();
+		int position = 0;
+		while (a_iter.hasNext() && b_iter.hasNext()) {
+			LabelInputOutput a_elem = a_iter.next(), b_elem = b_iter.next();
+			if (!a_elem.deepEquals(b_elem))
+				return "Elements in position "+position+" (starting from 0), "+a_elem+" v.s. "+b_elem;
+			++position;
+		}
+		return null;
+	}
+
+	public static List<String> toInput(Collection<Label> seq) {
+		return seq.stream().map(k -> ((LabelInputOutput)k).input).collect(Collectors.toList());
 	}
 
 	@Override

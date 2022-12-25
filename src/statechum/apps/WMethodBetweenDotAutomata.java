@@ -3,7 +3,9 @@ package statechum.apps;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
+import statechum.LabelInputOutput;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -50,11 +52,15 @@ class WMethodBetweenDotAutomata {
 
                 System.out.println("Test set size is : " + ts.size());
                 for (List<Label> seq : ts) {
-                        int hyp_value = hyp.paths.tracePathPrefixClosed(seq);
-                        int ref_value = reference.paths.tracePathPrefixClosed(seq);
-                        if (hyp_value != ref_value) {
-                                System.out.println(returnCodeToString(hyp_value) + " [hypothesis] " + returnCodeToString(ref_value) + " [reference] " + seq);
-                        }
+                        List<LabelInputOutput> io_hypothesis = hyp.paths.pathToInputOutputPairs(seq,hyp.getInit());
+                        List<LabelInputOutput> io_reference = reference.paths.pathToInputOutputPairs(seq,reference.getInit());
+
+                        // Equality for LabelInputOutput is based on inputs only hence we need to do 'deep' equals.
+                        String difference = LabelInputOutput.deepDiffCollection(io_hypothesis,io_reference);
+                        if (difference != null)
+                                System.out.println(LabelInputOutput.toInput(seq) + ": \n"+difference);
                 }
+
+                //Visualiser.updateFrame(hyp,reference);Visualiser.waitForKey();
         }
 }

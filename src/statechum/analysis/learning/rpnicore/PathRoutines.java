@@ -728,7 +728,35 @@ public class PathRoutines {
 
 		return current.isAccept()? AbstractOracle.USER_ACCEPTED:pos;
 	}
-	
+
+	/** Traces a path in a partially-specified Mealy automaton.
+	 *
+	 * @param path sequence of inputs to trace
+	 * @param startState the state to start from
+	 * @return
+	 */
+	public List<LabelInputOutput> pathToInputOutputPairs(List<Label> path, CmpVertex startState) {
+		assert coregraph.config.getLabelKind() == Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
+
+		List<LabelInputOutput> result = new ArrayList<>();
+		CmpVertex current = startState;
+		if (current == null)
+			return result;// if we start from null (i.e. not found) state, fail immediately.
+
+		for(Label label:path)
+		{
+			MapWithSearch<Label,Label,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
+			if (exitingTrans == null || (current = exitingTrans.get(label)) == null) {
+				// cannot make a move
+				result.add(new LabelInputOutput( ((LabelInputOutput) label).input, LabelInputOutput.ERROR));
+				return result;
+			}
+			result.add((LabelInputOutput) exitingTrans.findKey(label));
+		}
+
+		return result;
+	}
+
 	/** Given a path, checks if this path contradicts current if-then constraints.
 	 * 
 	 * @param path path to check

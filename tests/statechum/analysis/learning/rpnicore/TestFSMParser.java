@@ -18,17 +18,14 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static org.junit.Assert.assertEquals;
-
-
 import junit.framework.AssertionFailedError;
-
 import org.junit.Test;
-
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.Label;
+
+import static org.junit.Assert.assertEquals;
 
 /** Tests the low-level parser for graphs. High-level functionality is tested
  * using <em>TestGraphConstruction</em>
@@ -44,7 +41,7 @@ public class TestFSMParser {
 		public bufferMatcher(String st,String [] data)
 		{
 			elements = data;text = st;
-			assertEquals("incorrect number of elements in the array",true,elements.length % 4 == 0);
+			assertEquals("incorrect number of elements in the array", 0, elements.length % 4);
 		}
 
 		private int i=0;
@@ -78,7 +75,7 @@ public class TestFSMParser {
 		{
 			try
 			{
-				FsmParser p = new FsmParser(text);
+				FsmParser p = new FsmParser(text,true);
 				p.parse(this,Configuration.getDefaultConfiguration(),null);
 			}
 			catch(IllegalArgumentException e)
@@ -272,33 +269,31 @@ public class TestFSMParser {
 
 	protected static void checkEx(final String whatToParse, String exceptionSubString)
 	{
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
-			new FsmParser(whatToParse).parse(new TransitionReceiver()
+		statechum.Helper.checkForCorrectException(() -> new FsmParser(whatToParse,true).parse(new TransitionReceiver()
+		{
+			@Override
+			public void accept(@SuppressWarnings("unused") String from,
+					@SuppressWarnings("unused")	String to,
+					@SuppressWarnings("unused")	Label label)
 			{
-				@Override 
-				public void accept(@SuppressWarnings("unused") String from, 
-						@SuppressWarnings("unused")	String to, 
-						@SuppressWarnings("unused")	Label label) 
-				{
-					// do nothing at all
-				}
-				
-				@Override 
-				public void reject(@SuppressWarnings("unused") String from, 
-						@SuppressWarnings("unused")	String to, 
-						@SuppressWarnings("unused")	Label label) 
-				{
-					// do nothing at all
-				}
-				
-				@Override 
-				public void pairCompatibility(@SuppressWarnings("unused") String stateA, 
-						@SuppressWarnings("unused") PAIRCOMPATIBILITY pairRelation, @SuppressWarnings("unused") String stateB) 
-				{
-					// do nothing at all
-				}
-			},Configuration.getDefaultConfiguration(),null);
-		}},IllegalArgumentException.class,exceptionSubString);
+				// do nothing at all
+			}
+
+			@Override
+			public void reject(@SuppressWarnings("unused") String from,
+					@SuppressWarnings("unused")	String to,
+					@SuppressWarnings("unused")	Label label)
+			{
+				// do nothing at all
+			}
+
+			@Override
+			public void pairCompatibility(@SuppressWarnings("unused") String stateA,
+					@SuppressWarnings("unused") PAIRCOMPATIBILITY pairRelation, @SuppressWarnings("unused") String stateB)
+			{
+				// do nothing at all
+			}
+		},Configuration.getDefaultConfiguration(),null),IllegalArgumentException.class,exceptionSubString);
 	}
 	
 	@Test 

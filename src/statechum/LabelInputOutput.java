@@ -19,6 +19,7 @@
 package statechum;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * @author kirill
@@ -36,10 +37,25 @@ public class LabelInputOutput implements Label {
 		if (input_output.length != 2)
 			throw new IllegalArgumentException("invalid format of label " + Arrays.toString(input_output));
 		errorTransition =  input_output[1].equalsIgnoreCase("error");
-		input = input_output[0];output = input_output[1];
+		input = input_output[0];
+		if (errorTransition)
+			output = ERROR;
+		else if (input_output[1].equalsIgnoreCase(NO_OUTPUT))
+			output = NO_OUTPUT;
+		else
+			output = input_output[1];
+
 		label = input+"/"+output;
 	}
 
+	public static final String NO_OUTPUT="no_out";
+	public static final String ERROR="error";
+
+	public LabelInputOutput(String i, String o) {
+		input = i;output = o != null? o:NO_OUTPUT;
+		errorTransition = Objects.equals(o, ERROR);
+		label = input+"/"+output;
+	}
 	public boolean isErrorTransition() {
 		return errorTransition;
 	}

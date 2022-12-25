@@ -109,9 +109,9 @@ public class TestWMethod {
 				new String[]{"b"},
 				new String[]{"b","a"}}
 		,config,converter),
-			actual = new HashSet<List<Label>>();
-			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
-		Assert.assertTrue(expected.equals(actual));
+			actual;
+			actual = new HashSet<>(gr.pathroutines.computeStateCover(gr.getInit()));
+		assertEquals(expected, actual);
 	}
 
 	/**
@@ -125,9 +125,9 @@ public class TestWMethod {
 				new String[]{"b"},
 				new String[]{"b","a"}}
 		,config,converter),
-			actual = new HashSet<List<Label>>();
-			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
-		Assert.assertTrue(expected.equals(actual));
+			actual;
+			actual = new HashSet<>(gr.pathroutines.computeStateCover(gr.getInit()));
+		assertEquals(expected, actual);
 	}
 
 	/**
@@ -142,9 +142,9 @@ public class TestWMethod {
 				new String[]{"d"},
 				new String[]{"b","a"}}
 		,config,converter),
-			actual = new HashSet<List<Label>>();
-			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
-		Assert.assertTrue(expected.equals(actual));
+			actual;
+			actual = new HashSet<>(gr.pathroutines.computeStateCover(gr.getInit()));
+		assertEquals(expected, actual);
 	}
 
 	/**
@@ -159,9 +159,9 @@ public class TestWMethod {
 				new String[]{"d"},
 				new String[]{"a"}}
 		,config,converter),
-			actual = new HashSet<List<Label>>();
-			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
-		Assert.assertTrue(expected.equals(actual));
+			actual;
+			actual = new HashSet<>(gr.pathroutines.computeStateCover(gr.getInit()));
+		assertEquals(expected, actual);
 	}
 
 	/**
@@ -178,13 +178,13 @@ public class TestWMethod {
 				new String[]{"b","a"},
 				new String[]{"b","a","a"}}
 		,config,converter),
-			actual = new HashSet<List<Label>>();
-			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
-		Assert.assertTrue(expected.equals(actual));
+			actual;
+			actual = new HashSet<>(gr.pathroutines.computeStateCover(gr.getInit()));
+		assertEquals(expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#isPrefix(java.util.List, java.util.List)}.
+	 * Test method for {@link statechum.model.testset.PrefixFreeCollection#isPrefix(java.util.List, java.util.List)}.
 	 */
 	@Test
 	public final void testIsPrefix0() {
@@ -192,7 +192,7 @@ public class TestWMethod {
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#isPrefix(java.util.List, java.util.List)}.
+	 * Test method for {@link statechum.model.testset.PrefixFreeCollection#isPrefix(java.util.List, java.util.List)}.
 	 */
 	@Test
 	public final void testIsPrefix1() {
@@ -200,7 +200,7 @@ public class TestWMethod {
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#isPrefix(java.util.List, java.util.List)}.
+	 * Test method for {@link statechum.model.testset.PrefixFreeCollection#isPrefix(java.util.List, java.util.List)}.
 	 */
 	@Test
 	public final void testIsPrefix2() {
@@ -208,7 +208,7 @@ public class TestWMethod {
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#isPrefix(java.util.List, java.util.List)}.
+	 * Test method for {@link statechum.model.testset.PrefixFreeCollection#isPrefix(java.util.List, java.util.List)}.
 	 */
 	@Test
 	public final void testIsPrefix3() {
@@ -216,29 +216,27 @@ public class TestWMethod {
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross1a() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter), 
-		buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter),
+				buildList(new String[][]{new String[]{"c", "d"}, new String[]{"q", "w"}}, config, converter)));
 		Set<List<Label>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"a","b","q","w"},
 						new String[]{"z","x","c","d"},
 						new String[]{"z","x","q","w"}},config,converter);
-		Assert.assertTrue(expected.equals(actual));
+		assertEquals(expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross1b() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {new String[]{},new String[]{"a","b"},new String[]{"z","x"}},config,converter), 
-				buildList(new String[][] {new String[]{},new String[]{"c","d"}, new String[]{"q","w"}},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{new String[]{}, new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter),
+				buildList(new String[][]{new String[]{}, new String[]{"c", "d"}, new String[]{"q", "w"}}, config, converter)));
 		Set<List<Label>> expected = buildSet(new String[][] {
 						new String[]{},
 						new String[]{"a","b"},new String[]{"z","x"},
@@ -247,102 +245,98 @@ public class TestWMethod {
 						new String[]{"a","b","q","w"},
 						new String[]{"z","x","c","d"},
 						new String[]{"z","x","q","w"}},config,converter);
-		Assert.assertTrue(expected.equals(actual));
+		assertEquals(expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross2() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"}},config,converter), 
-				buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{new String[]{"a", "b"}}, config, converter),
+				buildList(new String[][]{new String[]{"c", "d"}, new String[]{"q", "w"}}, config, converter)));
 		Set<List<Label>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"a","b","q","w"}},config,converter);
-		Assert.assertTrue(expected.equals(actual));
+		assertEquals(expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross3() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter), 
-				buildList(new String[][] {new String[]{"c","d"}},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter),
+				buildList(new String[][]{new String[]{"c", "d"}}, config, converter)));
 		Set<List<Label>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"z","x","c","d"}},config,converter);
-		Assert.assertTrue(expected.equals(actual));
+		assertEquals(expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross4() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {},config,converter), 
-				buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{}, config, converter),
+				buildList(new String[][]{new String[]{"c", "d"}, new String[]{"q", "w"}}, config, converter)));
 				
 		Assert.assertTrue(actual.isEmpty());		
 	}				
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#cross(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCross5() {
-		Set<List<Label>> actual = new HashSet<List<Label>>();
-		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter), 
-				buildList(new String[][] {},config,converter)));
+		Set<List<Label>> actual = new HashSet<>(cross(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter),
+				buildList(new String[][]{}, config, converter)));
 				
 		Assert.assertTrue(actual.isEmpty());		
 	}
 	
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCrossWithSet1() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{"p","q"});
-		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
-		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
+		actualA = new HashSet<>(crossWithSet(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
+		actualB = new HashSet<>(crossWithSet_One(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[]{"a","b","p"},
 				new String[]{"z","x","p"},
 				new String[]{"a","b","q"},
 				new String[]{"z","x","q"}}
 				,config,converter);
-		Assert.assertTrue("expected: "+expected+" actual: "+actualA,expected.equals(actualA));
-		Assert.assertTrue("expected: "+expected+" actual: "+actualB,expected.equals(actualB));
+		assertEquals("expected: " + expected + " actual: " + actualA, expected, actualA);
+		assertEquals("expected: " + expected + " actual: " + actualB, expected, actualB);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCrossWithSet2() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{});
-		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
-		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
+		actualA = new HashSet<>(crossWithSet(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
+		actualB = new HashSet<>(crossWithSet_One(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
 		Assert.assertEquals(0, actualA.size());
 		Assert.assertEquals(0, actualB.size());
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCrossWithSet3() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{"p","q"});
-		actualA.addAll(crossWithSet(buildList(new String[][] {},config,converter),with));
-		actualB.addAll(crossWithSet(buildList(new String[][] {},config,converter),with));
+		actualA = new HashSet<>(crossWithSet(buildList(new String[][]{}, config, converter), with));
+		actualB = new HashSet<>(crossWithSet(buildList(new String[][]{}, config, converter), with));
 		Assert.assertEquals(0, actualA.size());
 		Assert.assertEquals(0, actualB.size());
 	}
@@ -350,44 +344,44 @@ public class TestWMethod {
 	@SuppressWarnings("unchecked")
 	@Test
 	public final void testCrossWithSet4() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{"p"});
-		LinkedList<List<Label>> data = new LinkedList<List<Label>>();
-		LinkedList<Label> seq = new LinkedList<Label>();
-		seq.clear();seq.addAll(labelList(new String[]{"a","b"}));data.add((List<Label>)seq.clone());
+		LinkedList<List<Label>> data = new LinkedList<>();
+		LinkedList<Label> seq = new LinkedList<>(labelList(new String[]{"a", "b"}));
+		data.add((List<Label>)seq.clone());
 		seq.clear();seq.addAll(labelList(new String[]{"z","x"}));data.add((List<Label>)seq.clone());// cannot use buildList here because it returns a collection of immutable sequences
 		
-		actualA.addAll(crossWithSet((LinkedList<List<Label>>)data.clone(),with));
-		actualB.addAll(crossWithSet_One((LinkedList<List<Label>>)data.clone(),with));
+		actualA = new HashSet<>(crossWithSet((LinkedList<List<Label>>) data.clone(), with));
+		actualB = new HashSet<>(crossWithSet_One((LinkedList<List<Label>>) data.clone(), with));
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[]{"a","b","p"},
 				new String[]{"z","x","p"}},config,converter);
-		Assert.assertTrue("expected: "+expected+" actual: "+actualA,expected.equals(actualA));
-		Assert.assertTrue("expected: "+expected+" actual: "+actualB,expected.equals(actualB));
+		assertEquals("expected: " + expected + " actual: " + actualA, expected, actualA);
+		assertEquals("expected: " + expected + " actual: " + actualB, expected, actualB);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCrossWithSet5() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{});
-		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
-		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}},config,converter),with));
+		actualA = new HashSet<>(crossWithSet(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
+		actualB = new HashSet<>(crossWithSet_One(buildList(new String[][]{new String[]{"a", "b"}, new String[]{"z", "x"}}, config, converter), with));
 		Assert.assertEquals(0, actualA.size());
 		Assert.assertEquals(0, actualB.size());
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#crossWithSet(Collection, Collection)}.
 	 */
 	@Test
 	public final void testCrossWithSet6() {
-		Set<List<Label>> actualA = new HashSet<List<Label>>(), actualB = new HashSet<List<Label>>();
+		Set<List<Label>> actualA, actualB;
 		List<Label> with = labelList(new String[]{"p"});
-		actualA.addAll(crossWithSet(buildList(new String[][] {},config,converter),with));
-		actualB.addAll(crossWithSet(buildList(new String[][] {},config,converter),with));
+		actualA = new HashSet<>(crossWithSet(buildList(new String[][]{}, config, converter), with));
+		actualB = new HashSet<>(crossWithSet(buildList(new String[][]{}, config, converter), with));
 		Assert.assertEquals(0, actualA.size());
 		Assert.assertEquals(0, actualB.size());
 	}
@@ -405,16 +399,14 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testGetStimuli2() {
-		Set<List<Label>> singleton = new HashSet<List<Label>>();
-		singleton.addAll(WMethod.makeSingleton(labelList(new String[]{"a","c","p","d","b"})));
-		Assert.assertTrue(singleton
-				.equals(buildSet(new String[][]{
-						new String[]{"p"},
-						new String[]{"d"},
-						new String[]{"b"},
-						new String[]{"c"},
-						new String[]{"a"}
-				},config,converter)));
+		Set<List<Label>> singleton = new HashSet<>(WMethod.makeSingleton(labelList(new String[]{"a", "c", "p", "d", "b"})));
+		assertEquals(singleton, buildSet(new String[][]{
+				new String[]{"p"},
+				new String[]{"d"},
+				new String[]{"b"},
+				new String[]{"c"},
+				new String[]{"a"}
+		}, config, converter));
 	}
 
 	@Test
@@ -474,7 +466,7 @@ public class TestWMethod {
 	}
 	
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence0() 
@@ -486,12 +478,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence0b() 
@@ -505,12 +497,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence1() 
@@ -523,12 +515,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence2() 
@@ -541,12 +533,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p","b"}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence3() 
@@ -559,12 +551,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p","b","c"}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence4() 
@@ -578,12 +570,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p","p"}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.List)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendSequence5() 
@@ -599,12 +591,12 @@ public class TestWMethod {
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p"}));
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p","p"}));
 		fsm.wmethod.appendSequence(sequences, labelList(new String[]{"p","p","p"}));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendAllSequences(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendAllSequences0() {
@@ -622,12 +614,12 @@ public class TestWMethod {
 				new String [] {"g"},
 				new String[]{"p","p","p"}}
 		,config,converter));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendAllSequences(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendAllSequences0b() {
@@ -637,12 +629,12 @@ public class TestWMethod {
 			},config,converter);
 		
 		fsm.wmethod.appendAllSequences(sequences, buildList(new String[][] {},config,converter));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	/**
-	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendAllSequences(statechum.analysis.learning.TestFSMAlgo.FSMStructure, java.util.Set, java.util.Set)}.
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#appendSequence(PrefixFreeCollection, List)}.
 	 */
 	@Test
 	public final void testAppendAllSequences1() {
@@ -662,8 +654,8 @@ public class TestWMethod {
 				new String [] {"g"},
 				new String[]{"p","p","p"}}
 		,config,converter));
-		Set<List<Label>> actual = new HashSet<List<Label>>();actual.addAll(sequences.getData());
-		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
+		Set<List<Label>> actual = new HashSet<>(sequences.getData());
+		assertEquals("expected : " + expected + " got: " + actual, expected, actual);
 	}
 
 	public static void checkEquivalentStatesException(EquivalentStatesException e,LearnerGraph fsm)
@@ -701,21 +693,13 @@ public class TestWMethod {
 		}
 	}
 	
-
-	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
-	{
-		LearnerGraph fsm = buildLearnerGraph(machine,"testWset",config,converter);
-		testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
-	}
-	
 	public static void testWsetConstructionWithEquivalentStates(LearnerGraph fsm, boolean prefixClosed,Set<StatePair> equivalentVertices)
 	{
 		fsm.config.setPrefixClosed(prefixClosed);
 		fsm.config.setEquivalentStatesAllowedForW(false);
-		Set<List<Label>> computedWset = new TreeSet<List<Label>>(); 
 		try
 		{
-			computedWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+			WMethod.computeWSet_reducedmemory(fsm);
 			fail("exception not thrown");
 		}
 		catch(EquivalentStatesException e)
@@ -724,7 +708,7 @@ public class TestWMethod {
 		}
 
 		fsm.config.setEquivalentStatesAllowedForW(true);
-		Set<List<Label>> wset = new HashSet<List<Label>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+		Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
 		fsm.wmethod.checkW_is_corrent(wset,prefixClosed,equivalentVertices);// we are not checking for W reduction here since space-saving way to compute W
 		
 	}
@@ -732,23 +716,23 @@ public class TestWMethod {
 	public static void testWsetconstruction(LearnerGraph fsm, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
 	{
 		fsm.config.setPrefixClosed(prefixClosed);
-		Set<List<Label>> origWset = new HashSet<List<Label>>();// This cannot be a TreeSet because lists store in it may not always implement Comparable (this is the case for LinkedList).
+		Set<List<Label>> origWset = new HashSet<>();// This cannot be a TreeSet because lists store in it may not always implement Comparable (this is the case for LinkedList).
 		try
 		{
 			origWset.addAll(WMethod.computeWSetOrig(fsm));
-			Assert.assertEquals(false, equivalentExpected);
+			assertFalse(equivalentExpected);
 			fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);			
 		}
 		catch(EquivalentStatesException e)
 		{
-			Assert.assertEquals(true, equivalentExpected);
+			assertTrue(equivalentExpected);
 			checkEquivalentStatesException(e,fsm);
 		}
 
 		try
 		{
-			Set<List<Label>> wset = new HashSet<List<Label>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
-			Assert.assertEquals(false, equivalentExpected);
+			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
+			assertFalse(equivalentExpected);
 			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
@@ -758,25 +742,59 @@ public class TestWMethod {
 		}
 		catch(EquivalentStatesException e)
 		{
-			Assert.assertEquals(true, equivalentExpected);
+			assertTrue(equivalentExpected);
 			checkEquivalentStatesException(e,fsm);
 		}
 
 		try
 		{
-			Set<List<Label>> wset = new HashSet<List<Label>>();wset.addAll(WMethod.computeWSet_reducedw(fsm));
-			Assert.assertEquals(false, equivalentExpected);
+			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedw(fsm));
+			assertFalse(equivalentExpected);
 			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);
 			int reduction = origWset.size() - wset.size();
 			Assert.assertTrue(reduction >= 0 || !reductionExpected);
 		}
 		catch(EquivalentStatesException e)
 		{
-			Assert.assertEquals(true, equivalentExpected);
+			assertTrue(equivalentExpected);
 			checkEquivalentStatesException(e,fsm);
 		}
-	}	
-	
+	}
+
+	public static void testMealyWsetconstruction(LearnerGraph fsm, boolean equivalentExpected)
+	{
+		Assert.assertEquals(Configuration.LABELKIND.LABEL_INPUT_OUTPUT,fsm.config.getLabelKind());
+
+		try
+		{
+			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
+			assertFalse(equivalentExpected);
+			fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null);// we are not checking for W reduction here since space-saving way to compute W
+			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
+			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
+			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep
+			// recomputing because it will take a long time, I think. Storing separating characters as per computeWSet_reduced
+			// does not appear to be feasible because of space constraints (we'd like to operate on 16k states in under of 4g memory).
+		}
+		catch(EquivalentStatesException e)
+		{
+			assertTrue(equivalentExpected);
+			checkEquivalentStatesException(e,fsm);
+		}
+
+		try
+		{
+			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedw(fsm));
+			assertFalse(equivalentExpected);
+			fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null);
+		}
+		catch(EquivalentStatesException e)
+		{
+			assertTrue(equivalentExpected);
+			checkEquivalentStatesException(e,fsm);
+		}
+	}
+
 	/** Checking generation of a sink state. */
 	@Test
 	public final void testGenerateSink1()
@@ -791,8 +809,8 @@ public class TestWMethod {
 	{
 		LearnerGraph fsm = buildLearnerGraph("A-a->B","testFindSink2a",config,converter);
 		CmpVertex sink = WMethod.generateSinkState(fsm);Assert.assertFalse(sink.isAccept());
-		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(sink));		
-		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(sink));		
+		assertNotEquals(fsm.findVertex(VertexID.parseID("A")), sink);
+		assertNotEquals(fsm.findVertex(VertexID.parseID("B")), sink);
 	}
 	
 	/** Checking generation of a sink state. */
@@ -803,11 +821,11 @@ public class TestWMethod {
 		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
 		CmpVertex sink = WMethod.generateSinkState(fsm);Assert.assertFalse(sink.isAccept());
 		//Assert.assertEquals(fsm.findVertex(VertexID.parseID("B")),WMethod.generateSinkState(fsm));		
-		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(sink));		
-		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(sink));		
+		assertNotEquals(fsm.findVertex(VertexID.parseID("A")), sink);
+		assertNotEquals(fsm.findVertex(VertexID.parseID("B")), sink);
 	}
 	
-	/** Checking identification of a sink state. B is reject but has outgoing transitions, hence not a sink state. 
+	/* Checking identification of a sink state. B is reject but has outgoing transitions, hence not a sink state.
 	@Test
 	public final void testFindSink2c()
 	{
@@ -826,7 +844,42 @@ public class TestWMethod {
 		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(WMethod.generateSinkState(fsm)));		
 	}
 	*/
-	
+
+	@Test
+	public final void testW_Mealy_1a()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/b->A","testWset",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
+	@Test
+	public final void testW_Mealy_1b()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/b->A","testW_Mealy_1b",config,converter);
+		fsm.findVertex(VertexID.parseID("A")).setAccept(false);
+		statechum.Helper.checkForCorrectException( ()->testMealyWsetconstruction(fsm,false),
+				java.lang.IllegalArgumentException.class,
+				"Unable to handle Mealy-like automata with transitions from a non-accept state A");
+	}
+
+	@Test
+	public final void testW_Mealy_2()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/b->B","testW_Mealy_2",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
+	@Test
+	public final void testW_Mealy_3()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/b->B | B-a/c->C | C-a/b->D | D-a/a->D","testW_Mealy_3",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
 	/** All states reject-states. */
 	@Test
 	public final void testW_nonAccept1()
@@ -907,7 +960,8 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmL = buildLearnerGraph(fsm,"testReductionA",config,converter),
 			expectedL = buildLearnerGraph(expected,"testReductionB",config,converter);
-		WMethod.checkM(expectedL, fsmL.paths.reduce());
+		DifferentFSMException ex=WMethod.checkM(expectedL, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	
@@ -917,7 +971,8 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmL = new LearnerGraph(config),
 		expectedL = new LearnerGraph(config);
-		WMethod.checkM(expectedL, fsmL.paths.reduce());
+		DifferentFSMException ex=WMethod.checkM(expectedL, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	/** Tests that a process to minimise an automaton works, first with minimal machines. */
@@ -987,17 +1042,14 @@ public class TestWMethod {
 		Assert.assertEquals(1, outcome.getStateNumber());
 		Assert.assertEquals(0, outcome.pathroutines.countEdges());
 
-		// there is a transition between them in the expected machine.
-		LearnerGraph expectedA = new LearnerGraph(expectedL,config);
-		WMethod.checkM(expectedA, fsmL.paths.reduce());
-		
 		// there are no transitions in the expected machine.
 		LearnerGraph expectedB = new LearnerGraph(expectedL,config);
-		expectedB.removeTransition(expectedL.transitionMatrix.get(
+		expectedB.removeTransition(expectedB.transitionMatrix.get(
 				expectedB.findVertex(VertexID.parseID("A"))), 
 				AbstractLearnerGraph.generateNewLabel("a",config,converter),
 				expectedB.findVertex(VertexID.parseID("A")));
-		WMethod.checkM(expectedB, fsmL.paths.reduce());
+		DifferentFSMException ex = WMethod.checkM(expectedB, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	/** There are some non-terminal states. */
@@ -1005,8 +1057,9 @@ public class TestWMethod {
 	public final void testReduction10()
 	{
 		LearnerGraph fsmL = buildLearnerGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction10a",config,converter),
-		expectedL = buildLearnerGraph("A-a->B-a->C-c->A","testReduction10b",config,converter);
-		WMethod.checkM(expectedL, fsmL.paths.reduce());
+		expectedL = buildLearnerGraph("A-a->B-a->C-c->A-b->B","testReduction10b",config,converter);
+		DifferentFSMException ex = WMethod.checkM(expectedL, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	/** There are some non-terminal states. */
@@ -1014,9 +1067,11 @@ public class TestWMethod {
 	public final void testReduction11()
 	{
 		LearnerGraph fsmL = buildLearnerGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction11a",config,converter),
-		expectedL = buildLearnerGraph("A-a->B-a->C-c->A","testReduction11b",config,converter);
-		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);
-		WMethod.checkM(expectedL, fsmL.paths.reduce());
+		expectedL = buildLearnerGraph("A-a->B-a->C-c->A-b->B","testReduction11b",config,converter);
+		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);fsmL.findVertex(VertexID.parseID("B2")).setAccept(false);
+		expectedL.findVertex(VertexID.parseID("B")).setAccept(false);
+		DifferentFSMException ex = WMethod.checkM(expectedL, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	/** There are some non-terminal states. */
@@ -1024,11 +1079,12 @@ public class TestWMethod {
 	public final void testReduction12()
 	{
 		LearnerGraph fsmL = buildLearnerGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction12a",config,converter),
-		expectedL = buildLearnerGraph("A-a->B-a->C-c->A","testReduction12b",config,converter);
+		expectedL = buildLearnerGraph("A-a->B-a->C-c->A-b->B","testReduction12b",config,converter);
 		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);
 		fsmL.findVertex(VertexID.parseID("B2")).setAccept(false);
 		expectedL.findVertex(VertexID.parseID("B")).setAccept(false);
-		WMethod.checkM(expectedL, fsmL.paths.reduce());
+		DifferentFSMException ex = WMethod.checkM(expectedL, fsmL.paths.reduce());
+		Assert.assertNull(ex);
 	}
 	
 	/** Adds an entry to the supplied map of pairs of states to labels which distinguish among those states.
@@ -1038,31 +1094,32 @@ public class TestWMethod {
 	 * @param stateB second state
 	 * @param labels labels to distinguish between states.
 	 */
-	private final void addDistLabels(Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels, String stateA, String stateB, String [] labels)
+	private void addDistLabels(Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels, String stateA, String stateB, String [] labels)
 	{
-		Set<Label> distLabels = new HashSet<Label>();Map<CmpVertex,Set<Label>> stateToDist = new HashMap<CmpVertex,Set<Label>>();
-		distLabels.clear();distLabels.addAll(labelList(labels));stateToDist.put(new StringVertex(stateB), distLabels);
+		Map<CmpVertex,Set<Label>> stateToDist = new HashMap<>();
+		Set<Label> distLabels = new HashSet<>(labelList(labels));
+		stateToDist.put(new StringVertex(stateB), distLabels);
 		distinguishingLabels.put(new StringVertex(stateA),stateToDist);		
 	}
 	
 	@Test
 	public final void testComputeTopLabe0()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		Assert.assertNull(WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test
 	public final void testComputeTopLabel1()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		Assert.assertNull(WMethod.computeTopLabel(distinguishingLabels));
 	}
 	
 	@Test
 	public final void testComputeTopLabe2()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"a"});
 		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config,converter),WMethod.computeTopLabel(distinguishingLabels));
 	}
@@ -1070,7 +1127,7 @@ public class TestWMethod {
 	@Test
 	public final void testComputeTopLabe3()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"a"});
 		addDistLabels(distinguishingLabels, "0","2",new String[] {"a"});
 		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a",config,converter),WMethod.computeTopLabel(distinguishingLabels));
@@ -1079,7 +1136,7 @@ public class TestWMethod {
 	@Test
 	public final void testComputeTopLabe4()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		addDistLabels(distinguishingLabels, "1","2",new String[] {"a"});
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"b"});
 		addDistLabels(distinguishingLabels, "3","1",new String[] {"b"});
@@ -1089,7 +1146,7 @@ public class TestWMethod {
 	@Test
 	public final void testComputeTopLabe5()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<>();
 		addDistLabels(distinguishingLabels, "1","2",new String[] {"a"});
 		addDistLabels(distinguishingLabels, "0","1",new String[] {"b"});
 		addDistLabels(distinguishingLabels, "3","1",new String[] {"b"});
@@ -1102,7 +1159,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsm = 
 				buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1",config,null);
-		Assert.assertEquals(true, WMethod.checkEquivalentStates(fsm));
+		assertTrue(WMethod.checkEquivalentStates(fsm));
 	}
 	
 	@Test
@@ -1110,7 +1167,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsm = 
 				buildLearnerGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates2",config,null);
-		Assert.assertEquals(false, WMethod.checkEquivalentStates(fsm));
+		assertFalse(WMethod.checkEquivalentStates(fsm));
 	}
 
 	@Test
@@ -1121,7 +1178,7 @@ public class TestWMethod {
 				{-1,1}
 			};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1}, -1,config,converter);
-		Assert.assertEquals(false, WMethod.checkEquivalentStates(fsm));
+		assertFalse(WMethod.checkEquivalentStates(fsm));
 	}
 
 	@Test
@@ -1132,16 +1189,17 @@ public class TestWMethod {
 				{1,-1}
 			};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1}, -1,config,converter);
-		Assert.assertEquals(true, WMethod.checkEquivalentStates(fsm));
+		assertTrue(WMethod.checkEquivalentStates(fsm));
 	}
 	
 	private void checkTestGenerationResult(LearnerGraph fsm, int extraStates, String [][] expected)
 	{
 		Set<List<Label>> expectedSet = buildSet(expected,config,converter),
-			actualA = new HashSet<List<Label>>(),actualB = new HashSet<List<Label>>();
-		actualA.addAll(fsm.wmethod.computeOldTestSet(extraStates));actualB.addAll(fsm.wmethod.computeNewTestSet(extraStates));
-		assertTrue("old test generator failure, received "+actualA+" expected "+expectedSet,expectedSet.equals(actualA));
-		assertTrue("new test generator failure, received "+actualB+" expected "+expectedSet,expectedSet.equals(actualB));
+			actualA,actualB;
+		actualA = new HashSet<>(fsm.wmethod.computeOldTestSet(extraStates));
+		actualB = new HashSet<>(fsm.wmethod.computeNewTestSet(extraStates));
+		assertEquals("old test generator failure, received " + actualA + " expected " + expectedSet, expectedSet, actualA);
+		assertEquals("new test generator failure, received " + actualB + " expected " + expectedSet, expectedSet, actualB);
 	}
 	
 	@Test
@@ -1222,11 +1280,11 @@ public class TestWMethod {
 				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
 				"A-d->A\nA5-b->AA6", "testTestGeneration6",config,converter);
 		Set<List<Label>> 
-			actualA = new HashSet<List<Label>>(),actualB = new HashSet<List<Label>>();
-			actualA.addAll(fsm.wmethod.computeOldTestSet(0));actualB.addAll(fsm.wmethod.computeNewTestSet(0));
-			assertTrue("the two test generators return different values, old returns "+
-					actualA+" and the new one - "+actualB,
-			actualA.equals(actualB));
+			actualA,actualB;
+			actualA = new HashSet<>(fsm.wmethod.computeOldTestSet(0));
+		actualB = new HashSet<>(fsm.wmethod.computeNewTestSet(0));
+		assertEquals("the two test generators return different values, old returns " +
+				actualA + " and the new one - " + actualB, actualA, actualB);
 	}
 	
 	@Test
@@ -1236,11 +1294,11 @@ public class TestWMethod {
 				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
 				"A-d->A\nA5-b->AA6", "testTestGeneration7",config,converter);
 		Set<List<Label>> 
-			actualA = new HashSet<List<Label>>(),actualB = new HashSet<List<Label>>();
-			actualA.addAll(fsm.wmethod.computeOldTestSet(2));actualB.addAll(fsm.wmethod.computeNewTestSet(2));
-			assertTrue("the two test generators return different values, old returns "+
-					actualA+" and the new one - "+actualB,
-			actualA.equals(actualB));
+			actualA,actualB;
+			actualA = new HashSet<>(fsm.wmethod.computeOldTestSet(2));
+		actualB = new HashSet<>(fsm.wmethod.computeNewTestSet(2));
+		assertEquals("the two test generators return different values, old returns " +
+				actualA + " and the new one - " + actualB, actualA, actualB);
 	}
 	
 	/** Almost the same as testTestGeneration7 but using a different initial state. */
@@ -1252,12 +1310,11 @@ public class TestWMethod {
 				"A-d->A\nA5-b->AA6", "testTestGeneration7",config,converter);
 		LearnerGraph fsmWOther = new LearnerGraph(fsmWW,fsmWW.config);fsmWOther.init=fsmWOther.findVertex(VertexID.parseID("S"));
 		Set<List<Label>> 
-			actualA = new HashSet<List<Label>>(),actualB = new HashSet<List<Label>>();
-			actualA.addAll(fsmWOther.wmethod.computeOldTestSet(4));
-			actualB.addAll(fsmWW.wmethod.computeNewTestSet(fsmWW.findVertex(VertexID.parseID("S")),4).getData());
-			assertTrue("the two test generators return different values, old returns "+
-					actualA+" and the new one - "+actualB,
-			actualA.equals(actualB));
+			actualA,actualB;
+			actualA = new HashSet<>(fsmWOther.wmethod.computeOldTestSet(4));
+			actualB = new HashSet<>(fsmWW.wmethod.computeNewTestSet(fsmWW.findVertex(VertexID.parseID("S")), 4).getData());
+		assertEquals("the two test generators return different values, old returns " +
+				actualA + " and the new one - " + actualB, actualA, actualB);
 	}
 	
 	@Test
@@ -1265,7 +1322,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmWW = buildLearnerGraph(
 				"A-a->B-b->C-b->B", "testEquivalentStates1",config,converter);
-		Set<StatePair> equiv=new TreeSet<StatePair>();
+		Set<StatePair> equiv= new TreeSet<>();
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
 		testWsetConstructionWithEquivalentStates(fsmWW,true,equiv);
 		
@@ -1276,7 +1333,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmWW = buildLearnerGraph(
 				"A-a->B-b-#C / B-c->B / D-b-#E", "testEquivalentStates2",config,converter);
-		Set<StatePair> equiv=new TreeSet<StatePair>();
+		Set<StatePair> equiv= new TreeSet<>();
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("E"))));
@@ -1292,7 +1349,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmWW = buildLearnerGraph(
 				"A-a->B-b-#C / D-b-#E", "testEquivalentStates3",config,converter);
-		Set<StatePair> equiv=new TreeSet<StatePair>();
+		Set<StatePair> equiv= new TreeSet<>();
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("E"))));
@@ -1308,7 +1365,7 @@ public class TestWMethod {
 	{
 		LearnerGraph fsmWW = buildLearnerGraph(
 				"A-a->B-b-#C / D-b-#E", "testEquivalentStates3",config,converter);
-		Set<StatePair> equiv=new TreeSet<StatePair>();
+		Set<StatePair> equiv= new TreeSet<>();
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
 		equiv.add(new StatePair(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("E"))));
 		testWsetConstructionWithEquivalentStates(fsmWW,false,equiv);
@@ -1357,7 +1414,7 @@ public class TestWMethod {
 	{
 		LearnerGraph textGraph = buildLearnerGraph("A-a->A-c->C","testCheckGraphNumeric",config,converter);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = AbstractPathRoutines.addToGraph(numericGraph, textGraph,null);
-		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(numericGraph.paths.getVertex(new LinkedList<Label>()),newInit));
+		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(numericGraph.paths.getVertex(new LinkedList<>()),newInit));
 		Assert.assertTrue(numericGraph.wmethod.checkGraphNumeric());
 	}
 	
@@ -1386,7 +1443,7 @@ public class TestWMethod {
 		Configuration conf = config.copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraph textGraph = buildLearnerGraph("A-a->A-b->B-c->C","testCheckGraphNumeric",config,converter);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = AbstractPathRoutines.addToGraph(numericGraph, textGraph,null);
-		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<Label>())));
+		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<>())));
 		GDLearnerGraph numericNDGraph = new GDLearnerGraph(numericGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = numericGraph.paths.getVertex(labelList(new String[]{})),
 			B = numericGraph.paths.getVertex(labelList(new String[]{"b"})),
@@ -1498,7 +1555,7 @@ public class TestWMethod {
 		Visualiser.disposeFrame();
 	}
 	
-	/** In order to be able to use old junit runner.
+	/* In order to be able to use old junit runner.
 	public static junit.framework.Test suite()
 	{
 		return new JUnit4TestAdapter(TestWMethod.class);

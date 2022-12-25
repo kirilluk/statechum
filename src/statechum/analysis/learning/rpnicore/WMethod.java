@@ -567,8 +567,10 @@ public class WMethod
 		CmpVertex sink = AbstractLearnerGraph.generateNewCmpVertex(fsm.nextID(JUConstants.VERTEXLABEL.REJECT,false), fsm.config);
 		sink.setAccept(false);return sink;
 	}
-	
-	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
+
+	static final int W_NOPREV=-1, W_INDIST=-2;
+
+	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states,
 	 * it will take a bit longer to perform the computation). 
 	 * Additionally, it attempts to reduce the size of W and conserve computer memory. W is not reduced as much
 	 * as per computeWSet_reducedw though because the distribution of labels is not recomputed each time we 
@@ -583,8 +585,6 @@ public class WMethod
 	 */
 	public static Collection<List<Label>> computeWSet_reducedmemory(LearnerGraph fsmOrig) throws EquivalentStatesException
 	{
-		final int W_NOPREV=-1, W_INDIST=-2;
-		
 		Configuration copyConfig = fsmOrig.config.copy();copyConfig.setLearnerCloneGraph(false);
 		LearnerGraph fsm = new LearnerGraph(fsmOrig,copyConfig);
 		CmpVertex sink = generateSinkState(fsm);fsm.transitionMatrix.put(sink, fsm.createNewRow());
@@ -597,26 +597,18 @@ public class WMethod
 		Label[] WChar = new Label[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
 		final Map<Label,AtomicInteger> distinguishingLabels = new HashMap<Label,AtomicInteger>();
 
+		boolean mealy = fsm.config.getLabelKind() == Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
+
 		// It is important to iterate through the same collection because different collections
 		// such as fsm.transitionMatrix and equivalenceClasses may have a different order of elements
 		// and thus I would not be going through a triangular matrix of pairs.
-		for(CmpVertex stateA:fsm.transitionMatrix.keySet())
-			equivalenceClasses.put(stateA, stateA.isAccept() ? 1 : 0);
-
-		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
-			CmpVertex stateA = stateA_entry.getKey();
-			boolean stateAaccept = stateA.isAccept();
-			for (Entry<CmpVertex, Integer> stateB : equivalenceClasses.entrySet()) {
-				if (stateB.getKey().equals(stateA)) break; // we only process a triangular subset.
-				int index = fsm.wmethod.vertexToInt(stateA, stateB.getKey());
-				WChar[index] = null;
-				if (stateAaccept == stateB.getKey().isAccept())
-					WNext[index] = W_INDIST;// where two states have the same acceptance conditions,
-					// they cannot be distinguished at this stage.
-				else
-					WNext[index] = W_NOPREV;// an empty sequence distinguishes between the two,
-				// the fact that seq is empty is due to WChar[index] being null.
-			}
+		if (mealy) {
+			constructMealyEquivalenceClasses(fsm, sink, equivalenceClasses);
+			constructMealy_WNextWChar(fsm, equivalenceClasses, WNext, WChar);
+		}
+		else {
+			constructDFAEquivalenceClasses(fsm, sink, equivalenceClasses);
+			constructDFA_WNextWChar(fsm, equivalenceClasses, WNext, WChar);
 		}
 
 		int equivalenceClassNumber = 0,oldEquivalenceClassNumber;
@@ -630,14 +622,15 @@ public class WMethod
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
 				// This one is a vector associating names of inputs to equivalence classes of target states
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
+				boolean stateAaccept = mealy || stateA.isAccept();
+				TransitionRowEqClass map = new TransitionRowEqClass(stateAaccept);
 				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<Label,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
 						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
-						if (targetEqClass != sinkEqClass) // filter out all transitions to sink - this is important because otherwise
-							// vectors  for two reject-states with transitions to a sink state (equivalence class 0)
+						if (mealy || targetEqClass != sinkEqClass) // filter out all transitions to sink - this is important because otherwise
+							// vectors for two reject-states with transitions to a sink state (equivalence class 0)
 							// { a->0, b->0 } and { a->0 } look superficially different even though they
 							// both denote states accepting an empty language.
 							// Note that any real sink states would belong to the same equivalence class as our sink state.
@@ -645,7 +638,8 @@ public class WMethod
 					}
 				
 				newMap.put(stateA, map);
-				if (map.looksLikeSink()) statesEquivalentToSink++;
+				if ( (map.isEmpty() && mealy) || map.looksLikeSink())
+					statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
 					sortedRows.put(map,equivalenceClassNumber);newEquivClasses.put(stateA, equivalenceClassNumber);
@@ -672,13 +666,8 @@ public class WMethod
 						// the two states used to be equivalent but not any more, find inputs which 
 						// distinguish between them and update the histogram to count the number
 						// of inputs which can be used distinguish between states at this stage.
-						for (Label distLabel : newMap.get(stateA.getKey()).computeDistinguishingLabel(newMap.get(stateB.getKey()))) {
-							AtomicInteger aint = distinguishingLabels.get(distLabel);
-							if (aint == null) {
-								aint = new AtomicInteger(1);
-								distinguishingLabels.put(distLabel, aint);
-							} else aint.addAndGet(1);
-						}
+						for (Label distLabel : newMap.get(stateA.getKey()).computeDistinguishingLabel(newMap.get(stateB.getKey())))
+							distinguishingLabels.computeIfAbsent(distLabel, k->new AtomicInteger(0)).addAndGet(1);
 					}
 				}
 			}
@@ -753,6 +742,8 @@ public class WMethod
 								Label elementToAdd = WChar[index];
 								while (elementToAdd != null) {
 									seq.add(elementToAdd);
+									if (WNext[index] == W_NOPREV) // this is the special case for the Mealy automata where the last character is not an epsilon.
+										break;
 									index = WNext[index];
 									elementToAdd = WChar[index];
 								}
@@ -768,6 +759,244 @@ public class WMethod
 			throw EquivalentStatesException.construct(equivalenceClasses,fsm,sink);
 
 		return result;
+	}
+
+	/**
+	 * Constructs equivalence classes based on accept/reject states.
+	 *
+	 * @param fsm                the automaton to generate equivalence classes for
+	 * @param sinkState          the sink state (will be equivalence to an actual sink state if present in the graph).
+	 * @param equivalenceClasses map from states to equivalence classes
+	 */
+	public static void constructDFAEquivalenceClasses(LearnerGraph fsm, CmpVertex sinkState, Map<CmpVertex,Integer> equivalenceClasses) {
+		assert fsm.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
+
+		for(CmpVertex state:fsm.transitionMatrix.keySet())
+			equivalenceClasses.put(state, state.isAccept()?1:0);
+		if (sinkState != null)
+			equivalenceClasses.put(sinkState, 0);
+	}
+
+	/** Takes an automaton and equivalence classes and constructs a list giving prioritiy to
+	 * labels that distinguish the most pairs of states.
+	 *
+	 * @param  fsm automaton
+	 * @param equivalenceClasses equivalence classes of states
+	 * @return list of labels. The first is most 'distinguishing'.
+	 */
+
+	private static List<String> constructMealyTopLabelsForFirstStep(LearnerGraph fsm, Map<CmpVertex, Integer> equivalenceClasses) {
+		final Map<String,AtomicInteger> distinguishingLabels = new HashMap<String,AtomicInteger>();
+
+		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
+			CmpVertex stateA = stateA_entry.getKey();
+			for (Entry<CmpVertex, Integer> stateB_entry : equivalenceClasses.entrySet()) {
+				if (stateB_entry.getKey().equals(stateA)) break; // we only process a triangular subset.
+				CmpVertex stateB = stateB_entry.getKey();
+				MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
+				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
+					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
+						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+							distinguishingLabels.computeIfAbsent(keyA.input, k -> new AtomicInteger(0)).addAndGet(1);
+					}
+
+					if (mapB != null)
+						for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
+							LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
+							MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
+							LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
+							if (keyA == null) // no defined transition
+								distinguishingLabels.computeIfAbsent(keyB.input, k -> new AtomicInteger(0)).addAndGet(1);
+						}
+				}
+			}
+		}
+
+		// distinguishingLabels contains all labels we may use; the choice of an optimal subset is NP, hence we simply pick
+		// those which look best until we distinguish all states.
+		ArrayList<String> labelList = new ArrayList<String>(distinguishingLabels.size());labelList.addAll(0, distinguishingLabels.keySet());
+		labelList.sort(
+				(o1, o2) -> {
+					int diffInNumberOfdistStates = -distinguishingLabels.get(o1).get() + distinguishingLabels.get(o2).get();
+					if (diffInNumberOfdistStates != 0) return diffInNumberOfdistStates;
+					return o1.compareTo(o2);// otherwise, just compare strings.
+				});
+		return labelList;
+	}
+
+	private static void constructMealy_WNextWChar(LearnerGraph fsm, Map<CmpVertex, Integer> equivalenceClasses, int[] WNext, Label[] WChar) {
+		List<String> labelList = constructMealyTopLabelsForFirstStep(fsm,equivalenceClasses);
+
+		Set<String> distLabels = new TreeSet<>();
+		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
+			CmpVertex stateA = stateA_entry.getKey();
+			for (Entry<CmpVertex, Integer> stateB_entry : equivalenceClasses.entrySet()) {
+				if (stateB_entry.getKey().equals(stateA)) break; // we only process a triangular subset.
+				CmpVertex stateB = stateB_entry.getKey();
+				int index = fsm.wmethod.vertexToInt(stateA, stateB);
+
+				WChar[index] = null;
+
+				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
+					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
+						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
+						MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+							distLabels.add(keyA.input);
+					}
+
+					for (Entry<Label, CmpVertex> enB : fsm.transitionMatrix.get(stateB).entrySet()) {
+						LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
+						MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
+						LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
+						if (keyA == null) // no defined transition
+							distLabels.add(keyB.input);
+					}
+
+					// now we have both the ordering of labels in labelList and the list of labels that can be distinguish stateA from stateB in distLabels.
+					String topInput = null;
+					Iterator<String> topLabelIter = labelList.iterator();
+					while (topInput == null) {
+						String lbl = topLabelIter.next();
+						if (distLabels.contains(lbl)) topInput = lbl;
+					}
+					assert topInput != null : "Collection of all labels that can separate states no longer separates the pair " + stateA + " and " + stateB;
+					WChar[index] = new LabelInputOutput(topInput, null);
+					WNext[index] = W_NOPREV;
+				}
+				else
+					WNext[index] = W_INDIST;
+
+			}
+		}
+	}
+
+	private static void constructMealy_NextChar(LearnerGraph fsm, Map<CmpVertex, Integer> equivalenceClasses, Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata) {
+		List<String> labelList = constructMealyTopLabelsForFirstStep(fsm,equivalenceClasses);
+
+		Set<String> distLabels = new TreeSet<>();
+		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
+			CmpVertex stateA = stateA_entry.getKey();
+			boolean stateAaccept = stateA.isAccept();
+			Map<CmpVertex,List<Label>> row = new HashMap<CmpVertex,List<Label>>(fsm.getStateNumber());
+			Wdata.put(stateA, row);
+
+			for (Entry<CmpVertex, Integer> stateB_entry : equivalenceClasses.entrySet()) {
+				if (stateB_entry.getKey().equals(stateA)) break; // we only process a triangular subset.
+				CmpVertex stateB = stateB_entry.getKey();
+				List<Label> separatingLabelIfAny = new LinkedList<Label>();
+				row.put(stateB, separatingLabelIfAny);
+
+				MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
+				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
+					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
+						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+							distLabels.add(keyA.input);
+					}
+
+					if (mapB != null)
+						for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
+							LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
+							MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
+							LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
+							if (keyA == null) // no defined transition
+								distLabels.add(keyB.input);
+						}
+
+					// now we have both the ordering of labels in labelList and the list of labels that can be distinguish stateA from stateB in distLabels.
+					String topInput = null;
+					Iterator<String> topLabelIter = labelList.iterator();
+					while (topInput == null) {
+						String lbl = topLabelIter.next();
+						if (distLabels.contains(lbl)) topInput = lbl;
+					}
+					assert topInput != null : "Collection of all labels that can separate states no longer separates the pair " + stateA + " and " + stateB;
+					separatingLabelIfAny.add(new LabelInputOutput(topInput,null));
+				}
+			}
+		}
+	}
+
+	private static void  constructDFA_NextChar(LearnerGraph fsm, Map<CmpVertex,Integer> equivalenceClasses, Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata) {
+		for (Entry<CmpVertex, Integer> stateA : equivalenceClasses.entrySet()) {
+			Map<CmpVertex, List<Label>> row = new HashMap<CmpVertex, List<Label>>(fsm.getStateNumber());
+			Wdata.put(stateA.getKey(), row);
+
+			for (Entry<CmpVertex, Integer> stateB : equivalenceClasses.entrySet()) {
+				if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				row.put(stateB.getKey(), new LinkedList<Label>());
+			}
+		}
+	}
+
+	private static void constructDFA_WNextWChar(LearnerGraph fsm, Map<CmpVertex, Integer> equivalenceClasses, int[] WNext, Label[] WChar) {
+		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
+			CmpVertex stateA = stateA_entry.getKey();
+			boolean stateAaccept = stateA.isAccept();
+			for (Entry<CmpVertex, Integer> stateB : equivalenceClasses.entrySet()) {
+				if (stateB.getKey().equals(stateA)) break; // we only process a triangular subset.
+				int index = fsm.wmethod.vertexToInt(stateA, stateB.getKey());
+				WChar[index] = null;
+				if (stateAaccept == stateB.getKey().isAccept())
+					WNext[index] = W_INDIST;// where two states have the same acceptance conditions,
+					// they cannot be distinguished at this stage.
+				else
+					WNext[index] = W_NOPREV;// an empty sequence distinguishes between the two,
+				// the fact that seq is empty is due to WChar[index] being null.
+			}
+		}
+	}
+
+
+	/**
+	 * Constructs equivalence classes based on pairwise separability of states.
+	 *
+	 * @param fsm                the automaton to generate equivalence classes for
+	 * @param sinkState          the sink state (to permit the DFA and Mealy codebase to be shared).
+	 * @param equivalenceClasses map from states to equivalence classes
+	 */
+	public static void constructMealyEquivalenceClasses(LearnerGraph fsm, CmpVertex sinkState, Map<CmpVertex,Integer> equivalenceClasses) {
+		assert fsm.config.getLabelKind() == Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
+
+		Map<Map<String,String>,Integer> sortedRows = new HashMap<Map<String,String>,Integer>();
+
+		int equivalenceClassNumber=0;
+		if (sinkState != null) {
+			sortedRows.put(new TreeMap<String,String>(),equivalenceClassNumber);equivalenceClasses.put(sinkState, equivalenceClassNumber);
+			equivalenceClassNumber++;
+		}
+
+		for(Entry<CmpVertex,MapWithSearch<Label, Label, CmpVertex>> entry:fsm.transitionMatrix.entrySet())
+		{
+			if (!entry.getKey().isAccept() && !entry.getValue().isEmpty())
+				throw new IllegalArgumentException("Unable to handle Mealy-like automata with transitions from a non-accept state "+entry.getKey());
+
+			Map<String,String> map = new TreeMap<String,String>();
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+			{
+				LabelInputOutput io = (LabelInputOutput) transition.getKey();
+				map.put(io.input,io.output);
+			}
+			if (!sortedRows.containsKey(map))
+			{
+				sortedRows.put(map,equivalenceClassNumber);equivalenceClasses.put(entry.getKey(), equivalenceClassNumber);
+				equivalenceClassNumber++;
+			}
+			else
+				equivalenceClasses.put(entry.getKey(), sortedRows.get(map));
+		}
+
 	}
 
 	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
@@ -788,19 +1017,14 @@ public class WMethod
 		Map<CmpVertex,Map<CmpVertex,List<Label>>> Wdata = new HashMap<CmpVertex,Map<CmpVertex,List<Label>>>(fsm.getStateNumber());
 		Map<CmpVertex,Map<CmpVertex,Set<Label>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<Label>>>(fsm.getStateNumber());
 		CmpVertex sink = generateSinkState(fsm);
-		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
-			equivalenceClasses.put(state, state.isAccept()?1:0);
-		equivalenceClasses.put(sink, 0);
-		
-		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
-		{
-			Map<CmpVertex,List<Label>> row = new HashMap<CmpVertex,List<Label>>(fsm.getStateNumber());
-			Wdata.put(stateA.getKey(), row);
-
-			for (Entry<CmpVertex, Integer> stateB : equivalenceClasses.entrySet()) {
-				if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-				row.put(stateB.getKey(), new LinkedList<Label>());
-			}
+		boolean mealy = fsm.config.getLabelKind() == Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
+		if (mealy) {
+			constructMealyEquivalenceClasses(fsm, sink, equivalenceClasses);
+			constructMealy_NextChar(fsm,equivalenceClasses,Wdata);
+		}
+		else {
+			constructDFAEquivalenceClasses(fsm, sink, equivalenceClasses);
+			constructDFA_NextChar(fsm,equivalenceClasses,Wdata);
 		}
 
 		int equivalenceClassNumber = 0,oldEquivalenceClassNumber;
@@ -813,20 +1037,21 @@ public class WMethod
 			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
+				boolean stateAaccept = mealy || stateA.isAccept();
+				TransitionRowEqClass map = new TransitionRowEqClass(stateAaccept);
 				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 				{
 					for(Entry<Label,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
 						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
-						if (targetEqClass != sinkEqClass) // filter out all transitions to sink
+						if (mealy || targetEqClass != sinkEqClass) // filter out all transitions to sink
 							map.put(labelstate.getKey(), targetEqClass);
 					}
 				}
 				
 				newMap.put(stateA, map);
-				if (map.looksLikeSink()) statesEquivalentToSink++;
+				if ((map.isEmpty() && mealy) || map.looksLikeSink()) statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
 					equivalenceClassNumber++;
@@ -849,10 +1074,9 @@ public class WMethod
 						// the two states used to be equivalent but not any more, find inputs which 
 						// distinguish between them and update the histogram to count the number
 						// of inputs which can be used distinguish between states at this stage.
+						distinguishingLabels.computeIfAbsent(stateA.getKey(), k->new HashMap<CmpVertex, Set<Label>>(fsm.getStateNumber()));
 						Map<CmpVertex, Set<Label>> stateToDist = distinguishingLabels.get(stateA.getKey());
-						if (stateToDist == null) stateToDist = new HashMap<CmpVertex, Set<Label>>(fsm.getStateNumber());
 						stateToDist.put(stateB.getKey(), newMap.get(stateA.getKey()).computeDistinguishingLabel(newMap.get(stateB.getKey())));
-						distinguishingLabels.put(stateA.getKey(), stateToDist);
 					}
 				}
 			}
@@ -1328,7 +1552,41 @@ public class WMethod
 		
 		return null;
 	}
-	
+
+	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
+	 *
+	 * @param wset the set to check validity of.
+	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
+	 */
+	public String checkW_Mealy_is_correct_boolean(Collection<List<Label>> wset, Set<StatePair> equivalentVertices)
+	{
+		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
+		{
+			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
+				if (stateA != stateB && (equivalentVertices == null ||
+						(!equivalentVertices.contains(new StatePair(stateA, stateB)) &&
+								!equivalentVertices.contains(new StatePair(stateB, stateA)))))
+				{
+					boolean foundString = false;
+					Iterator<List<Label>> pathIt = wset.iterator();
+					while(pathIt.hasNext() && !foundString)
+					{
+						List<Label> path = pathIt.next();
+						List<LabelInputOutput> ioA = coregraph.paths.pathToInputOutputPairs(path,stateA);
+						List<LabelInputOutput> ioB = coregraph.paths.pathToInputOutputPairs(path,stateB);
+						if (!ioA.equals(ioB))
+							foundString = true;
+					}
+
+					if (!foundString)
+						return "W set "+wset+" does not distinguish between "+stateA+" and "+stateB;
+				}
+		}
+
+		return null;
+	}
+
+
 	public interface FsmPermutator {
 		/** Returns a collection representing an order in which elements of an FSM should be placed in a string. */
 		ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from);

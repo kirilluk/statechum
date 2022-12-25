@@ -800,7 +800,7 @@ public class WMethod
 						LabelInputOutput keyB = null;
 						if (mapB != null)
 							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
-						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distinguishingLabels.computeIfAbsent(keyA.input, k -> new AtomicInteger(0)).addAndGet(1);
 					}
 
@@ -848,7 +848,7 @@ public class WMethod
 						LabelInputOutput keyB = null;
 						if (mapB != null)
 							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
-						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distLabels.add(keyA.input);
 					}
 
@@ -863,9 +863,10 @@ public class WMethod
 					// now we have both the ordering of labels in labelList and the list of labels that can be distinguish stateA from stateB in distLabels.
 					String topInput = null;
 					Iterator<String> topLabelIter = labelList.iterator();
-					while (topInput == null) {
+					while (topLabelIter.hasNext() && topInput == null) {
 						String lbl = topLabelIter.next();
-						if (distLabels.contains(lbl)) topInput = lbl;
+						if (distLabels.contains(lbl))
+							topInput = lbl;
 					}
 					assert topInput != null : "Collection of all labels that can separate states no longer separates the pair " + stateA + " and " + stateB;
 					WChar[index] = new LabelInputOutput(topInput, null);
@@ -884,7 +885,6 @@ public class WMethod
 		Set<String> distLabels = new TreeSet<>();
 		for(Entry<CmpVertex, Integer> stateA_entry : equivalenceClasses.entrySet()) {
 			CmpVertex stateA = stateA_entry.getKey();
-			boolean stateAaccept = stateA.isAccept();
 			Map<CmpVertex,List<Label>> row = new HashMap<CmpVertex,List<Label>>(fsm.getStateNumber());
 			Wdata.put(stateA, row);
 
@@ -901,7 +901,7 @@ public class WMethod
 						LabelInputOutput keyB = null;
 						if (mapB != null)
 							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
-						if (keyB == null || keyA.output != keyB.output) // either no defined transition or different outputs
+						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distLabels.add(keyA.input);
 					}
 
@@ -917,9 +917,10 @@ public class WMethod
 					// now we have both the ordering of labels in labelList and the list of labels that can be distinguish stateA from stateB in distLabels.
 					String topInput = null;
 					Iterator<String> topLabelIter = labelList.iterator();
-					while (topInput == null) {
+					while (topLabelIter.hasNext() && topInput == null) {
 						String lbl = topLabelIter.next();
-						if (distLabels.contains(lbl)) topInput = lbl;
+						if (distLabels.contains(lbl))
+							topInput = lbl;
 					}
 					assert topInput != null : "Collection of all labels that can separate states no longer separates the pair " + stateA + " and " + stateB;
 					separatingLabelIfAny.add(new LabelInputOutput(topInput,null));

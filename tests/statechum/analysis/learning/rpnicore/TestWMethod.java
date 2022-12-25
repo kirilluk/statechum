@@ -95,7 +95,8 @@ public class TestWMethod {
 	}
 	
 	/** The configuration to use when running tests. */
-	private Configuration config = null, mainConfiguration = null;
+	private Configuration config = null;
+	private final Configuration mainConfiguration;
 	ConvertALabel converter = null;
 	
 	/**
@@ -682,7 +683,8 @@ public class TestWMethod {
 								fsm.config.setPrefixClosed(true);
 								DifferentFSMException ex = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 								System.out.println("B: "+fsm.transitionMatrix.get(fsm.findVertex("B"))+" ; D:  "+fsm.transitionMatrix.get(fsm.findVertex("D")));
-								System.out.println(ex);
+								if (ex != null)
+									System.out.println(ex.getMessage());
 								fsm.config.setPrefixClosed(false);
 								DifferentFSMException ex2 = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE, true);
 								System.out.println(ex2==null?"NULL":ex);
@@ -769,7 +771,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
 			assertFalse(equivalentExpected);
-			fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null);// we are not checking for W reduction here since space-saving way to compute W
+			Assert.assertNull(fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null));// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
 			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep
@@ -786,7 +788,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedw(fsm));
 			assertFalse(equivalentExpected);
-			fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null);
+			Assert.assertNull(fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null));
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -877,6 +879,46 @@ public class TestWMethod {
 	{
 		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
 		LearnerGraph fsm = buildLearnerGraph("A-a/b->B | B-a/c->C | C-a/b->D | D-a/a->D","testW_Mealy_3",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
+	@Test
+	public final void testW_Mealy_4()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/a->B | B-a/a->C | C-a/a->D | D-a/a->D","testW_Mealy_4",config,converter);
+		testMealyWsetconstruction(fsm,true);
+	}
+
+	@Test
+	public final void testW_Mealy_5()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/a->B | B-a/a->C | C-a/a->D | D-a/b->D","testW_Mealy_5",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
+	@Test
+	public final void testW_Mealy_6a()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/a->B | A-b/b -> E | B-a/a->C | C-a/a->D | D-a/b->D | E-a/a->F | F-a/a->G | G-a/a->H | H-a/c->H","testW_Mealy_6",config,converter);
+		testMealyWsetconstruction(fsm,false);
+	}
+
+	@Test
+	public final void testW_Mealy_6b()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/a->B | A-b/b -> E | B-a/a->C | C-a/a->D | D-a/b->D | E-a/a->F | F-a/a->G | G-a/a->H | H-a/b->H","testW_Mealy_6",config,converter);
+		testMealyWsetconstruction(fsm,true);
+	}
+
+	@Test
+	public final void testW_Mealy_7()
+	{
+		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+		LearnerGraph fsm = buildLearnerGraph("A-a/a->B | A-b/b -> E | B-a/a->C | C-a/a->D | D-a/b->D | E-a/a->F | F-a/a->G | G-a/a->H | H-b/b->H","testW_Mealy_7",config,converter);
 		testMealyWsetconstruction(fsm,false);
 	}
 

@@ -19,6 +19,8 @@
 package statechum;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
 
 /**
@@ -65,7 +67,7 @@ public class LabelInputOutput implements Label {
 	 */
 	@Override
 	public int compareTo(Label o) {
-		return toErlangTerm().compareTo(o.toErlangTerm());
+		return input.compareTo( ((LabelInputOutput)o).input);
 	}
 
 	/* (non-Javadoc)
@@ -82,6 +84,26 @@ public class LabelInputOutput implements Label {
 	@Override
 	public boolean equals(Object obj) {
 		return obj instanceof LabelInputOutput && input.equals(((LabelInputOutput)obj).input);
+	}
+
+	public boolean deepEquals(Object obj) {
+		if (!(equals(obj)))
+			return false;
+
+		LabelInputOutput other = (LabelInputOutput) obj;
+		return Objects.equals(output, other.output);
+	}
+
+	public static boolean deepEqualsCollection(Collection<LabelInputOutput> a,Collection<LabelInputOutput> b) {
+		if (a.size() != b.size())
+			return false;
+
+		Iterator<LabelInputOutput> a_iter = a.iterator(),b_iter = b.iterator();
+		while (a_iter.hasNext()) {
+			if (!a_iter.next().deepEquals(b_iter.next()))
+				return false;
+		}
+		return true;
 	}
 
 	@Override

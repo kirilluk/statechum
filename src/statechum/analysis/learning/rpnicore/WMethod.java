@@ -283,11 +283,11 @@ public class WMethod
 	@SuppressWarnings("Convert2Diamond")
 	private static class TransitionRowEqClass extends HashMap<Label,Integer>
 	{
-		private final boolean accept;
+		private final int origEqClass;
 		
-		public TransitionRowEqClass(boolean acceptState)
+		public TransitionRowEqClass(int eqClass)
 		{
-			accept = acceptState;
+			origEqClass = eqClass;
 		}
 		
 		@Override
@@ -299,7 +299,7 @@ public class WMethod
 				if (entry.getValue() != sinkEqClass)
 					result+=entry.getKey().hashCode()^entry.getValue().hashCode();
 			*/
-			return accept?result:~result;
+			return result*17+origEqClass;
 		}		
 		
 		/** All non-existing transitions lead to a sink state, hence we filter all transitions
@@ -312,7 +312,7 @@ public class WMethod
 				return false;
 			TransitionRowEqClass what = (TransitionRowEqClass) obj;
 			
-			if (accept != what.accept) return false;
+			if (origEqClass != what.origEqClass) return false;
 /*
 			Iterator<Entry<String,Integer>> mapAiter = entrySet().iterator();
 			while(mapAiter.hasNext())
@@ -377,9 +377,9 @@ public class WMethod
 		 * 
 		 * @return true if the state appears to be like a sink state.
 		 */
-		public boolean looksLikeSink() 
+		public boolean looksLikeSink(int sinkEqClass)
 		{
-			return isEmpty() && !accept;
+			return isEmpty() && origEqClass == sinkEqClass;
 		}
 	}
 	
@@ -425,7 +425,7 @@ public class WMethod
 			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
+				TransitionRowEqClass map = new TransitionRowEqClass(equivalenceClasses.get(stateA));
 				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<Label,CmpVertex> labelstate:labelNSmap.entrySet())
@@ -435,7 +435,7 @@ public class WMethod
 							map.put(labelstate.getKey(), targetEqClass);
 					}
 				newMap.put(stateA, map);
-				if (map.looksLikeSink()) statesEquivalentToSink++;
+				if (map.looksLikeSink(sinkEqClass)) statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
 					equivalenceClassNumber++;
@@ -619,11 +619,10 @@ public class WMethod
 			MapWithSearch<VertID,CmpVertex,TransitionRowEqClass> newMap = new HashMapWithSearch<VertID,CmpVertex,TransitionRowEqClass>(fsm.getStateNumber());
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
 			int sinkEqClass = equivalenceClasses.get(sink);
-			for(CmpVertex stateA:equivalenceClasses.keySet())
+			for(Map.Entry<CmpVertex,Integer> stateA_entry:equivalenceClasses.entrySet())
 			{
-				// This one is a vector associating names of inputs to equivalence classes of target states
-				boolean stateAaccept = mealy || stateA.isAccept();
-				TransitionRowEqClass map = new TransitionRowEqClass(stateAaccept);
+				CmpVertex stateA = stateA_entry.getKey();
+				TransitionRowEqClass map = new TransitionRowEqClass(stateA_entry.getValue());
 				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<Label,CmpVertex> labelstate:labelNSmap.entrySet())
@@ -638,7 +637,7 @@ public class WMethod
 					}
 				
 				newMap.put(stateA, map);
-				if ( (map.isEmpty() && mealy) || map.looksLikeSink())
+				if ( (map.isEmpty() && mealy) || map.looksLikeSink(sinkEqClass))
 					statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
@@ -842,6 +841,7 @@ public class WMethod
 				WChar[index] = null;
 
 				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
+					distLabels.clear();
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
 						MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
@@ -896,6 +896,7 @@ public class WMethod
 
 				MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
 				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
+					distLabels.clear();
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
 						LabelInputOutput keyB = null;
@@ -1034,12 +1035,14 @@ public class WMethod
 		{
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
 			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>(fsm.getStateNumber());
-			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
+			equivalenceClassNumber = 0;sortedRows.clear();
+			//noinspection RedundantOperationOnEmptyContainer
+			newEquivClasses.clear();
 			int sinkEqClass = equivalenceClasses.get(sink);
-			for(CmpVertex stateA:equivalenceClasses.keySet())
+			for(Map.Entry<CmpVertex,Integer> stateA_entry:equivalenceClasses.entrySet())
 			{
-				boolean stateAaccept = mealy || stateA.isAccept();
-				TransitionRowEqClass map = new TransitionRowEqClass(stateAaccept);
+				CmpVertex stateA = stateA_entry.getKey();
+				TransitionRowEqClass map = new TransitionRowEqClass(stateA_entry.getValue());
 				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 				{
@@ -1052,7 +1055,7 @@ public class WMethod
 				}
 				
 				newMap.put(stateA, map);
-				if ((map.isEmpty() && mealy) || map.looksLikeSink()) statesEquivalentToSink++;
+				if ((map.isEmpty() && mealy) || map.looksLikeSink(sinkEqClass)) statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
 					equivalenceClassNumber++;
@@ -1575,7 +1578,9 @@ public class WMethod
 						List<Label> path = pathIt.next();
 						List<LabelInputOutput> ioA = coregraph.paths.pathToInputOutputPairs(path,stateA);
 						List<LabelInputOutput> ioB = coregraph.paths.pathToInputOutputPairs(path,stateB);
-						if (!ioA.equals(ioB))
+
+						// Equality for LabelInputOutput is based on inputs only hence we need to do 'deep' equals.
+						if (!LabelInputOutput.deepEqualsCollection(ioA,ioB))
 							foundString = true;
 					}
 

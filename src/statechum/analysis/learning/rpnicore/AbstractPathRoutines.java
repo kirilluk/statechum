@@ -52,7 +52,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 	public Set<Label> computeAlphabet()
 	{
-		Set<Label> result = new LinkedHashSet<>();
+		Set<Label> result = new LinkedHashSet<>(coregraph.inputsFilteredOutOnLoad);
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:
                     coregraph.transitionMatrix.entrySet())
 			result.addAll(entry.getValue().keySet());

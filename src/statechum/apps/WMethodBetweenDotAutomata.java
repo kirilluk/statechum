@@ -9,6 +9,7 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.WMethod;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +43,7 @@ class WMethodBetweenDotAutomata {
         public static void main(String[] args) throws IOException {
                 String referenceDot = Helper.loadFile(new File(args[0]));
                 LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, config, converter,true);
+
                 System.out.println("Size of reference graph: "+reference.getAcceptStateNumber()+" states");
                 String hypothesisDot = Helper.loadFile(new File(args[1]));
                 LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, config, converter, true);

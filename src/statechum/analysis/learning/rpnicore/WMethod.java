@@ -1361,9 +1361,14 @@ public class WMethod
 				Label actualLabel = actualTargets.findKey(label);
 
 				if (mealy) {
+					if ( expectedLabel == null && actualLabel != null )
+						return new DifferentFSMException("For input \""+((LabelInputOutput) actualLabel).input+"\" from a state \"" + statePair+" actual produces "+((LabelInputOutput) actualLabel).output+" and expected one cannot take a transition");
+					if ( expectedLabel != null && actualLabel == null )
+						return new DifferentFSMException("For input \""+((LabelInputOutput) expectedLabel).input+"\" from a state \"" + statePair+" expected produces "+((LabelInputOutput) expectedLabel).output+" and actual one cannot take a transition");
+					assert (expectedLabel != null && actualLabel != null);
 					String expectedOutput = ((LabelInputOutput) expectedLabel).output, actualOutput = ((LabelInputOutput) actualLabel).output;
 					if (!expectedOutput.equals(actualOutput))
-						return new DifferentFSMException("different output on input \""+((LabelInputOutput) expectedLabel).input+"\" from a state \"" + statePair);
+						return new DifferentFSMException("different output on input \"" + ((LabelInputOutput) expectedLabel).input + "\" from a state \"" + statePair);
 				}
 
 				if (!expectedTargets.containsKey(label)) {

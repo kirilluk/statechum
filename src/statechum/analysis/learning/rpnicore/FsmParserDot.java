@@ -319,7 +319,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			throwException("The graph should be labelled as directed graph");
 
 		skipWhitespace();
-		graph.setName(parseID());
+		graph.setName(parseID());graph.inputsFilteredOutOnLoad.clear();
 		skipWhitespace();
 		if (nextChar() != '{')
 			throwException("The graph description should be enclosed in curly braces");
@@ -364,6 +364,9 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 							LabelInputOutput label = new LabelInputOutput(lbl);
 							if (!label.isErrorTransition())
 								createTransition(currentNode, target, label);
+							else
+								graph.inputsFilteredOutOnLoad.add(label);
+
 						} else
 							createTransition(currentNode, target, AbstractLearnerGraph.generateNewLabel(lbl, config, conv));
 					}

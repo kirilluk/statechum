@@ -17,11 +17,11 @@ lack of tracking dependencies between Java files.
   <property name="junit_statechum_src" location="${junit_statechum}"/>
   <property name="junit_statechum_bin" location="bin"/>
   <property name="statechum_src" location="src"/>
-  <property name="statechum_collections_src" location="lib/modified_collections"/>
+  <property name="statechum_collections_src" location="lib/modified_collections/src"/>
   <property name="test_src" location="tests"/>
   <property name="test_dir" location="."/>
   <property name="statechum_bin" location="bin"/>
-  <property name="ant.build.javac.source" value="1.7"/>
+  <property name="ant.build.javac.source" value="9"/>
   <property name="rtool_path" value="/usr/local/lib/R/site-library/rJava/jri"/>
   <property name="rpath" value="/usr/lib/R"/>
   <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
@@ -33,7 +33,6 @@ lack of tracking dependencies between Java files.
 
     <path id="classpath.statechum">
       <pathelement location="${junit_statechum_bin}"/>
-      <path refid="classpath.lib"/>
       <path refid="classpath.lib"/>
     </path>
 

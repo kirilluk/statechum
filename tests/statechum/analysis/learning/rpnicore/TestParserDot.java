@@ -2,11 +2,12 @@ package statechum.analysis.learning.rpnicore;
 
 import org.junit.Assert;
 import org.junit.Test;
-import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.Helper;
+import statechum.*;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
@@ -503,6 +504,7 @@ public class TestParserDot {
         LearnerGraph gr = buildLearnerGraph("a-lbl->b-q->c","testParse3", configLTS,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
+
     /** quoted label name containing a newline. */
     @Test
     public final void testParse3b() {
@@ -516,6 +518,37 @@ public class TestParserDot {
                 gr.transitionMatrix.get(gr.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"))),
                 AbstractLearnerGraph.generateNewLabel("q\n",gr.config,null),vert);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testParse3c() {
+        LearnerGraph graph = new LearnerGraph(configMealy);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;a->b[label=\"in1/out1\"];b->c[label=\"in2/out2\"]; }", configMealy,graph,null);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-in1/out1->b | b-in2/out2->c","testParse3", configMealy,null);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testParse3d() {
+        LearnerGraph graph = new LearnerGraph(configMealy);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;a->b[label=\"in1/error\"];b->c[label=\"in2/error\"]; }", configMealy,graph,null,true,false);
+        parser.parseGraph();
+        Assert.assertNotNull(graph.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a")));
+        Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"))).isEmpty());
+        Assert.assertEquals(List.of(new LabelInputOutput("in1/error"),new LabelInputOutput("in2/error")),
+                new LinkedList<>(graph.pathroutines.computeAlphabet()));
+    }
+
+    @Test
+    public final void testParse3e() {
+        LearnerGraph graph = new LearnerGraph(configMealy);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;a->b[label=\"in1/out1\"];b->c[label=\"in2/error\"]; }", configMealy,graph,null,true,false);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-in1/out1->b","testParse3", configMealy,null);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals(Set.of(new LabelInputOutput("in1/out1"),new LabelInputOutput("in2/error")),
+                graph.pathroutines.computeAlphabet());
     }
     @Test
     public final void testParse4a() {

@@ -53,11 +53,18 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<>(this);
 
 	/** Transition matrix. */
-	public MapWithSearch<VertID,CmpVertex,MapWithSearch<Label, Label,TARGET_TYPE>> transitionMatrix = null;
+	public MapWithSearch<VertID,CmpVertex,MapWithSearch<Label, Label,TARGET_TYPE>> transitionMatrix;
 
 	public MapWithSearch<VertID,CmpVertex,MapWithSearch<Label, Label,TARGET_TYPE>> getTransitionMatrix() {
 		return transitionMatrix;
 	}
+
+	/** For incompletely defined automata, it is possible to have transitions that lead to an error-response. If we load
+	 * such a graph from a file, these transitions will be eliminated at the point of loading however if these are the only
+	 * transitions in a graph with a particular input, computeAlphabet will return the wrong value - it needs to include
+	 * elements that were filtered out on load.
+	 */
+	final Set<Label> inputsFilteredOutOnLoad = new TreeSet<>();
 
 	/** Determines the default options with which a graph should be displayed. */
     protected LayoutOptions layoutOptions = new LayoutOptions();
@@ -372,11 +379,12 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		Label result;
 		switch (config.getLabelKind()) {
 			case LABEL_STRING:
-				result = new StringLabel("L" + Integer.toString(number));// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
+				result = new StringLabel("L" + number);// this is necessary if I subsequently choose to use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
 				break;
 			case LABEL_INPUT_OUTPUT:
 				String st = Integer.toString(number);
 				result = new LabelInputOutput(st + "/" + st);
+				break;
 			default:
 				throw new IllegalArgumentException("No parser available for traces of type " + config.getLabelKind());
 		}
@@ -750,8 +758,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * between label types, for instance, one may load a graph with textual labels and then use
 	 * this method to interpret labels as Erlang expressions.
 	 *  
+	 * The outcome is a state machine where each transition label belongs to the alphabet.
 	 * @param converter code do convert vertices.
-	 * @return a state machine where each transition transition label belongs to the alphabet.
 	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
@@ -884,11 +892,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 					return false;
 			}
 		}
-		
-		if (!pairCompatibility.equals(other.pairCompatibility))
-			return false;
-		
-		return true;
+
+		return pairCompatibility.equals(other.pairCompatibility);
 	}
 
 	/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 

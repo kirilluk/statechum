@@ -44,6 +44,7 @@ import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -83,7 +84,7 @@ public class TestStateMerging
 	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestStateMerging(Configuration conf) 
@@ -126,7 +127,7 @@ public class TestStateMerging
 	 * @param expectedFSM the expected result
 	 * @param stateBlue the name of the second state to merge.
 	 * @param stateRed the name of the first state to merge
-	 * @param name of the graph - important to store the layout information 
+	 * @param graphName of the graph - important to store the layout information
 	 * @param checkWithEquals whether the equivalence between the result of merging is to be assessed by 
 	 * running a language equivalence query or by doing a .equals on FSMStructures corresponding to them. This will usually
 	 * be false.
@@ -874,7 +875,7 @@ public class TestStateMerging
 		 */ 
 		public static String parametersToString(Configuration config, Integer i)
 		{
-			return Configuration.parametersToString(config)+" "+i;
+			return TestConfiguration.parametersToString(config)+" "+i;
 		}		
 		
 		protected final Configuration config;
@@ -1012,15 +1013,16 @@ public class TestStateMerging
 	 * to verify compatibility.
 	 * 
 	 * @param fsm the graph to operate
-	 * @param expectedComputeScore the expected score
-	 * @param compatibility the expected pair compatibility score
+	 * @param expectedComputedScore the expected score
+	 * @param pairCompatibilityScore the actual score
+	 * @param pairCompatibility the expected pair compatibility score
 	 * @param k1 k-tails score for k=1
 	 * @param k2 k-tails score for k=2
 	 * @param k3 k-tails score for k=3
 	 * @param graphName the name to give to the graph
 	 */
 	private void testScoreAndCompatibilityComputation(String fsm, 
-			int expectedComputedScore,int pairCompatibilityScore, 
+			int expectedComputedScore,int pairCompatibilityScore,
 			int pairCompatibility,
 			int k1,int k2,int k3,
 			String graphName)

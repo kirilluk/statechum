@@ -26,7 +26,6 @@ import java.util.*;
 import static statechum.Helper.throwUnchecked;
 
 import harmony.collections.HashMapWithSearch;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -537,21 +536,6 @@ public class Configuration implements Cloneable {
 		Configuration stringsArray = strings.copy();stringsCompat.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		return Arrays
 				.asList(new Object[][] { { same }, { clone }, { strings }, {sameCompat},{ cloneCompat },{stringsCompat},{stringsArray}});
-	}
-
-	/**
-	 * Given a test configuration, returns a textual description of its purpose.
-	 * 
-	 * @param config
-	 *            configuration to consider
-	 * @return description.
-	 */
-	@ParametersToString
-	public static String parametersToString(Configuration config) {
-		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
-				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone") 
-				+ ", " + (config.getTransitionMatrixImplType())				
-				;
 	}
 
 	/*

@@ -37,13 +37,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 
-import statechum.Configuration;
+import statechum.*;
 import statechum.Configuration.ScoreMode;
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.JUConstants;
-import statechum.Label;
-import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -96,7 +92,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestRpniLearner(Configuration conf) 
@@ -233,7 +229,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	/** Checks that both the old and the two new algorithms report the same score for a pair of states and ask the same questions.
-	 * @param states being merged are called "A" and "B". 
+	 * States being merged are called "A" and "B".
 	 */
 	public final void testNewLearnerQuestions(String fsm, int expectedScore, String learnerName)
 	{

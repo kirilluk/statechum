@@ -15,7 +15,6 @@ lack of tracking dependencies between Java files.
   <property name="root" location="lib"/>
   <property name="junit_statechum" location="lib/junit-statechum"/>
   <property name="junit_statechum_src" location="${junit_statechum}"/>
-  <property name="junit_statechum_bin" location="bin"/>
   <property name="statechum_src" location="src"/>
   <property name="statechum_collections_src" location="lib/modified_collections/src"/>
   <property name="test_src" location="tests"/>
@@ -32,7 +31,7 @@ lack of tracking dependencies between Java files.
     </path>
 
     <path id="classpath.statechum">
-      <pathelement location="${junit_statechum_bin}"/>
+      <pathelement location="${statechum_bin}"/>
       <path refid="classpath.lib"/>
     </path>
 
@@ -40,12 +39,30 @@ lack of tracking dependencies between Java files.
     <!-- Create the time stamp -->
     <tstamp/>
     <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${junit_statechum_bin}"/>
     <mkdir dir="${statechum_bin}"/>
   </target>
 
-  <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
- 	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
+
+	<target name="hamcrest" depends="init" description="compile JUnit from source " >
+		<javac fork="on" srcdir="lib/hamcrest-core-1.3" includeantruntime="false" destdir="${statechum_bin}">
+			<classpath>
+				<path refid="classpath.lib"/>
+			</classpath>
+			<compilerarg value="-g" />
+		</javac>
+	</target>
+
+	<target name="junit" depends="init,hamcrest" description="compile JUnit from source " >
+		<javac fork="on" srcdir="lib/junit-4.13.2" includeantruntime="false" destdir="${statechum_bin}">
+			<classpath>
+				<path refid="classpath.lib"/>
+			</classpath>
+			<compilerarg value="-g" />
+		</javac>
+	</target>
+
+	<target name="compileJunitStatechum" depends="junit" description="compile JUnit-statechum source " >
+ 	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${statechum_bin}">
 		<classpath>
 			<path refid="classpath.lib"/>
 		</classpath>
@@ -226,7 +243,6 @@ lack of tracking dependencies between Java files.
 
   <target name="clean" description="clean up" >
     <delete dir="${statechum_bin}/statechum"/>
-    <delete dir="${junit_statechum_bin}"/>
     <delete>
     	<fileset dir="." includes="**/*.beam"/>
     	<fileset dir="." includes="**/*.plt"/>

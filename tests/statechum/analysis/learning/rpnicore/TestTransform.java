@@ -81,7 +81,7 @@ public class TestTransform
 	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}	
 
 	private final LearnerGraph g;

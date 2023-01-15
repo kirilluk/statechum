@@ -49,6 +49,7 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
@@ -86,7 +87,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestGraphBasicAlgorithms(Configuration conf) {

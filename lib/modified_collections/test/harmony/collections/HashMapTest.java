@@ -102,7 +102,7 @@ public class HashMapTest extends junit.framework.TestCase {
 		objArray = new Object[hmSize];
 		objArray2 = new Object[hmSize];
 		for (int i = 0; i < objArray.length; i++) {
-			objArray[i] = new Integer(i);
+			objArray[i] = i;
 			objArray2[i] = objArray[i].toString();
 		}
 	}

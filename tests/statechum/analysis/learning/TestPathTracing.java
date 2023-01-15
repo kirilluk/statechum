@@ -37,6 +37,7 @@ import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -61,7 +62,7 @@ public class TestPathTracing {
 	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestPathTracing(Configuration conf)
@@ -89,8 +90,8 @@ public class TestPathTracing {
 	 * @param fsmString a description of an FSM
 	 * @param path a sequence of labels to follow
 	 * @param ExpectedResult the result to check
-	 * @param The name of the vertex which is expected to be returned by getVertex
-	 * @param config the configuration to pass to LearnerGraph
+	 * @param enteredName The name of the vertex which is expected to be returned by getVertex
+	 * @param conf the configuration to pass to LearnerGraph
 	 * @param conv label intern engine to use
 	 */
 	public void checkPath(String fsmString, String []path, int ExpectedResult, String enteredName, Configuration conf, ConvertALabel conv)

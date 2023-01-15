@@ -30,6 +30,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.junit.runners.ParameterizedWithName;
 import statechum.Configuration.EXPANSIONOFANY;
 import statechum.Helper.whatToRun;
 import statechum.AttributeMutator.MethodAndArgs;
@@ -41,7 +42,21 @@ public class TestConfiguration {
 		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
-	
+
+	/**
+	 * Given a test configuration, returns a textual description of its purpose.
+	 *
+	 * @param config
+	 *            configuration to consider
+	 * @return description.
+	 */
+	@ParameterizedWithName.ParametersToString
+	public static String parametersToString(Configuration config) {
+		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
+				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone")
+				+ ", " + (config.getTransitionMatrixImplType())
+				;
+	}
 	org.w3c.dom.Document doc = null;
 	
 	/** Make sure that whatever changes a test have made to the 
